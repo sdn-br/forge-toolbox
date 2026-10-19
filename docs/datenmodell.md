@@ -210,7 +210,7 @@ Ein Gebäude steht unter „Jetzt plünderbar“, wenn alles zutrifft:
 Woher das Produkt kommt:
 
 - Klassische Gebäude schicken es im Besuch als `current_product`. Alle 52 fertigen Wohnhäuser im de10-Besuch tun das.
-- Fertige generische Gebäude schickt der Besuch oft ohne Produkt. Dann gibt es nichts zu plündern, geprüft im Spiel am Keltischen Goldschmied St. 5 (fertig, nicht motiviert, ohne Produkt, im Spiel nichts zu holen). Die alte Toolbox listet solche Gebäude ebenfalls nicht. Die Definition dient nur noch dazu, Medaillen der Stufe zu erkennen.
+- Fertige generische Gebäude schickt der Besuch oft ohne Produkt. Dann gibt es nichts zu plündern, geprüft im Spiel am Keltischen Goldschmied St. 5 und am Handelsposten St. 8 derselben Stadt (beide fertig, nicht motiviert, ohne Produkt, Plünderung noch frei, im Spiel nichts zu holen). Das inoffizielle Wiki nennt Yggdrasil unmotiviert plünderbar, was dem widerspricht, vermutlich veraltet. Die alte Toolbox listet solche Gebäude ebenfalls nicht. Die Definition dient nur noch dazu, Medaillen der Stufe zu erkennen.
 
 Belege:
 
