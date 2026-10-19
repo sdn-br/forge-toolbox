@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import { Ingestion } from '../src/content/core/ingestion';
 import { registerGameHandlers } from '../src/content/game/handlers';
+import { BattleStore } from '../src/content/stores/battles';
 import { CatalogStore } from '../src/content/stores/catalog';
 import { CityStore } from '../src/content/stores/cities';
 import { PlayerStore } from '../src/content/stores/players';
 import { SessionStore } from '../src/content/stores/session';
 import { playerId, worldId } from '../src/shared/ids';
+import { testDb } from './helpers/battle-db';
 
 function setup() {
   const bus = createBus();
@@ -21,6 +23,7 @@ function setup() {
     players,
     cities,
     catalog: new CatalogStore(bus),
+    battles: new BattleStore(bus, worldId('de20'), testDb().persistence),
   });
   const events: string[] = [];
   bus.on('city.visited', () => events.push('visited'));

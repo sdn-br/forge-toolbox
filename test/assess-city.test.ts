@@ -64,6 +64,7 @@ const defs = lookup([
     __class__: 'GenericCityEntity',
     abilities: [],
     components: {
+      AllAge: { socialInteraction: { interactionType: 'motivate' } },
       IndustrialAge: {
         production: { options: [{ products: [{ playerResources: { resources: { strategy_points: 5 } } }] }] },
         boosts: {
@@ -82,7 +83,47 @@ const defs = lookup([
     abilities: [{ __class__: 'AddResourcesToGuildTreasuryAbility' }],
     components: {},
   },
+  // shaped like the Siegesturm, Wunschbrunnen or Druidentempel: a generic building that cannot be motivated
+  {
+    id: 'G_Test_Tower',
+    name: 'Turm',
+    __class__: 'GenericCityEntity',
+    abilities: [],
+    components: {
+      AllAge: { flags: { flags: 19 } },
+      IndustrialAge: {
+        production: { options: [{ products: [{ playerResources: { resources: { money: 100 } } }] }] },
+      },
+    },
+  },
+  {
+    id: 'G_Test_Event',
+    name: 'Eventgebäude',
+    __class__: 'GenericCityEntity',
+    abilities: [],
+    components: {
+      AllAge: { flags: { flags: 19 }, socialInteraction: { interactionType: 'motivate' } },
+      IndustrialAge: {
+        production: {
+          options: [
+            {
+              products: [
+                { playerResources: { resources: { all_goods_of_age: 10 } } },
+                { onlyWhenMotivated: true, playerResources: { resources: { strategy_points: 4 } } },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  },
 ]);
+
+const generic = (id: number, state: object, def = 'G_Test_Generic'): GameCityEntity => ({
+  ...house(id, state),
+  cityentity_id: def,
+  type: 'generic_building',
+});
 
 describe('assessCity against the game', () => {
   it('matches the boosts the game reports for the own city', () => {
@@ -105,7 +146,7 @@ describe('assessCity against the game', () => {
 });
 
 describe('assessCity rules', () => {
-  it('lists finished and producing plunderable buildings, ready ones first', () => {
+  it('lists only finished buildings, the game hides when the others are ready', () => {
     const result = assessCity(
       cityOf([
         house(1, {
@@ -117,10 +158,7 @@ describe('assessCity rules', () => {
       ]),
       defs,
     );
-    expect(result.plunderable.map((p) => [p.building, p.readyAt])).toEqual([
-      [2, undefined],
-      [1, 500_000],
-    ]);
+    expect(result.plunderable).toEqual([{ building: 2, name: 'Haus', resources: { money: 20 } }]);
   });
 
   it('protects motivated buildings', () => {
@@ -137,26 +175,74 @@ describe('assessCity rules', () => {
     expect(result.plunderable).toEqual([]);
   });
 
-  it('takes the product of a generic building from its definition when the city does not tell', () => {
+  // a visited city marks motivation as a social interaction, not as is_motivated
+  it('protects buildings motivated in a visited city', () => {
     const result = assessCity(
       cityOf([
-        {
-          ...house(1, { __class__: 'ProducingState', next_state_transition_at: 9 }),
-          cityentity_id: 'G_Test_Generic',
-          type: 'generic_building',
-        },
+        house(1, {
+          __class__: 'ProductionFinishedState',
+          socialInteractionId: 'motivate',
+          current_product: { product: { resources: { money: 20 } } },
+        }),
       ]),
       defs,
     );
-    expect(result.plunderable[0]?.resources).toEqual({ strategy_points: 5 });
+    expect(result.plunderable).toEqual([]);
+  });
+
+  // a visited city sends no current_product for finished generic buildings
+  // checked in the game: a finished generic building the visit sends without a product has nothing to plunder
+  it('never lists a finished building the visit sends without a product', () => {
+    const result = assessCity(cityOf([generic(1, { __class__: 'ProductionFinishedState' })]), defs);
+    expect(result.plunderable).toEqual([]);
+  });
+
+  it('lists a finished generic building with the product the visit sends', () => {
+    const result = assessCity(
+      cityOf([
+        generic(1, {
+          __class__: 'ProductionFinishedState',
+          current_product: { product: { resources: { strategy_points: 7 } } },
+        }),
+      ]),
+      defs,
+    );
+    expect(result.plunderable[0]?.resources).toEqual({ strategy_points: 7 });
+  });
+
+  it('never lists generic buildings that cannot be motivated', () => {
+    const result = assessCity(
+      cityOf([
+        generic(1, { __class__: 'ProductionFinishedState' }, 'G_Test_Tower'),
+        generic(
+          2,
+          {
+            __class__: 'ProductionFinishedState',
+            current_product: { product: { resources: { money: 100 } } },
+          },
+          'G_Test_Tower',
+        ),
+      ]),
+      defs,
+    );
+    expect(result.plunderable).toEqual([]);
+  });
+
+  it('never lists a building whose production has medals', () => {
+    const result = assessCity(
+      cityOf([
+        house(1, {
+          __class__: 'ProductionFinishedState',
+          current_product: { product: { resources: { medals: 30, money: 20 } } },
+        }),
+        house(2, { __class__: 'ProductionFinishedState', current_product: { product: { resources: { medals: 30 } } } }),
+      ]),
+      defs,
+    );
+    expect(result.plunderable).toEqual([]);
   });
 
   it('counts only boosts for all features and none of unconnected buildings', () => {
-    const generic = (id: number, state: object) => ({
-      ...house(id, state),
-      cityentity_id: 'G_Test_Generic',
-      type: 'generic_building',
-    });
     const result = assessCity(
       cityOf([generic(1, { __class__: 'IdleState' }), generic(2, { __class__: 'UnconnectedState' })]),
       defs,

@@ -1,11 +1,14 @@
 // Game format → own model. Nothing outside src/content/game sees the game format.
 import { buildingDefId, eraId, guildId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
-import type { GuildRef } from '../../shared/model';
+import type { Battle, BattleResult, BattleSide, GuildRef } from '../../shared/model';
 import type { VisitInfo } from '../stores/cities';
 import type { Building, BuildingState, City, Product } from '../stores/city-model';
 import type { PlayerObservation } from '../stores/players';
 import type { Session } from '../stores/session';
 import type {
+  GameBattle,
+  GameBattleState,
+  GameBattleUnit,
   GameCityEntity,
   GamePlayer,
   GameProduct,
@@ -51,6 +54,10 @@ function productOfOption(o: GameProductionOption | undefined): Product | undefin
   return Object.keys(guildGoods).length ? { resources, guildGoods } : { resources };
 }
 
+function motivated(s: GameState): boolean | undefined {
+  return s.socialInteractionId === 'motivate' ? true : s.is_motivated;
+}
+
 export function toState(s: GameState | undefined): BuildingState {
   const product = () => toProduct(s?.current_product) ?? productOfOption(s?.productionOption);
   switch (s?.__class__) {
@@ -61,11 +68,11 @@ export function toState(s: GameState | undefined): BuildingState {
         kind: 'producing',
         readyAt: seconds(s.next_state_transition_at),
         product: product(),
-        motivated: s.is_motivated,
+        motivated: motivated(s),
         boosted: s.boosted,
       };
     case 'ProductionFinishedState':
-      return { kind: 'finished', product: product(), motivated: s.is_motivated };
+      return { kind: 'finished', product: product(), motivated: motivated(s) };
     case 'PlunderedState':
       return { kind: 'plundered' };
     case 'UnconnectedState':
@@ -157,5 +164,78 @@ export function toSession(world: WorldId, u: GameUserData | undefined): Session 
     name: u.user_name ?? '',
     era: eraId(u.era ?? ''),
     guild: u.clan_id ? { id: guildId(u.clan_id), name: u.clan_name ?? '' } : undefined,
+  };
+}
+
+const ATTACKER_TEAM = 1;
+const DEFENDER_TEAM = 2;
+
+function bonusesOf(units: GameBattleUnit[], team: number): Record<string, number> {
+  const bonuses: Record<string, number> = {};
+  for (const b of units.find((u) => u.teamFlag === team)?.bonuses ?? []) {
+    if (b.type && typeof b.value === 'number') bonuses[b.type] = (bonuses[b.type] ?? 0) + b.value;
+  }
+  return bonuses;
+}
+
+/** units and end hit points from the final state; bonuses from the start, else from the final state */
+function toSide(start: GameBattleUnit[], final: GameBattleUnit[], team: number): BattleSide {
+  const fromStart = bonusesOf(start, team);
+  return {
+    bonuses: Object.keys(fromStart).length ? fromStart : bonusesOf(final, team),
+    units: final
+      .filter((u) => u.teamFlag === team)
+      .map((u) => ({
+        unitTypeId: u.unitTypeId ?? 'unknown',
+        startHp: u.startHitpoints ?? 0,
+        endHp: u.currentHitpoints ?? 0,
+      })),
+  };
+}
+
+function resultOf(state: GameBattleState): BattleResult | null {
+  if (state.surrenderBit) return 'surrendered';
+  if (state.winnerBit === 1) return 'won';
+  if (state.winnerBit) return 'lost';
+  return null;
+}
+
+/** A PvP battle the session player attacks in, finished or still running. */
+export function isOwnPvpBattle(b: GameBattle, me: PlayerId): boolean {
+  return (
+    b.battleType?.type === 'pvp' &&
+    b.attackerPlayerId === me &&
+    typeof b.battleId === 'number' &&
+    typeof b.defenderPlayerId === 'number' &&
+    b.state !== undefined
+  );
+}
+
+/** A response that is a battle state, for example the answer to a move of a manual battle. */
+export function isBattleState(data: unknown): data is GameBattleState {
+  return typeof data === 'object' && data !== null && (data as GameBattleState).__class__ === 'BattleRealmState';
+}
+
+/**
+ * A finished PvP battle the session player attacked in; anything else is null. Without `end` the start must carry
+ * the result (auto battle). With `end`, the final state of a manual battle, the result comes from there.
+ */
+export function toBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: GameBattleState): Battle | null {
+  if (!isOwnPvpBattle(b, me) || !b.state) return null;
+  const final = end ?? b.state;
+  const result = resultOf(final);
+  if (!result) return null;
+  return {
+    world,
+    battleId: b.battleId as number,
+    at: (b.startTime ?? 0) * 1000,
+    opponent: playerId(b.defenderPlayerId as number),
+    result,
+    auto: end ? false : b.isAutoBattle === true,
+    // the game counts rounds from 0 and omits the field while it is 0
+    rounds: (final.round ?? 0) + 1,
+    era: eraId(b.battleType?.era ?? ''),
+    attacker: toSide(b.state.unitsOrder ?? [], final.unitsOrder ?? [], ATTACKER_TEAM),
+    defender: toSide(b.state.unitsOrder ?? [], final.unitsOrder ?? [], DEFENDER_TEAM),
   };
 }

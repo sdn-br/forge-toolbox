@@ -9,13 +9,11 @@ export interface ArmyValues {
   defense: number;
 }
 
+/** a finished production in a city; the game hides when the others are ready, so only finished ones count */
 export interface Plunderable {
   building: number;
   name: string;
   resources: Record<string, number>;
-  ready: boolean;
-  /** only known in the own city, the game hides times of other cities */
-  readyAt?: number;
 }
 
 export interface CityAssessment {
@@ -68,22 +66,23 @@ function givesBoosts(b: Building): boolean {
   return true;
 }
 
+/** a building whose production at its level has medals can never be plundered (confirmed by the user) */
+const PROTECTING_RESOURCES = ['medals'];
+
 function plunderableOf(b: Building, def: BuildingDef, city: City): Plunderable | null {
   if (!def.flags.plunderable) return null;
   const s = b.state;
-  if (s.kind !== 'producing' && s.kind !== 'finished') return null;
+  if (s.kind !== 'finished') return null;
   // a motivated building is protected against plundering
   if (def.flags.motivatable && s.motivated) return null;
-  const product: Product | undefined = s.product ?? productFor(def, city.era);
-  const resources = Object.fromEntries(Object.entries(product?.resources ?? {}).filter(([, n]) => n > 0));
+  // checked in the game: without a product in the visit there is nothing to plunder
+  if (!s.product) return null;
+  const resources = Object.fromEntries(Object.entries(s.product.resources ?? {}).filter(([, n]) => n > 0));
+  // the definition also knows medals the visit may leave out
+  const levelProduct = { ...productFor(def, city.era)?.resources, ...resources };
+  if (PROTECTING_RESOURCES.some((id) => (levelProduct[id] ?? 0) > 0)) return null;
   if (Object.keys(resources).length === 0) return null;
-  return {
-    building: b.id,
-    name: def.name,
-    resources,
-    ready: s.kind === 'finished',
-    readyAt: s.kind === 'producing' ? s.readyAt : undefined,
-  };
+  return { building: b.id, name: def.name, resources };
 }
 
 const bonusesUpTo = (bonuses: LevelBonus[], level: number, era: EraId): Boost[] =>
@@ -134,7 +133,6 @@ export function assessCity(city: City, ctx: AssessContext): CityAssessment {
     if (p) plunderable.push(p);
   }
 
-  plunderable.sort((a, b) => Number(b.ready) - Number(a.ready) || (a.readyAt ?? Infinity) - (b.readyAt ?? Infinity));
   return {
     army: { attacker: { attack: sums.aa, defense: sums.ad }, defender: { attack: sums.da, defense: sums.dd } },
     plunderRepel: Math.round(plunderRepel * 100) / 100,

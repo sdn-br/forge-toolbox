@@ -9,9 +9,11 @@ import { connectProxy } from './core/proxy-link';
 import { Recorder } from './core/recorder';
 import { callBackground } from './core/rpc';
 import { Settings } from './core/settings';
+import { pvpFeature } from './features/pvp';
 import { sabotageFeature } from './features/sabotage';
 import { settingsFeature } from './features/settings-feature';
 import { registerGameHandlers } from './game/handlers';
+import { BattleStore, battlePersistence } from './stores/battles';
 import { CatalogStore } from './stores/catalog';
 import { CityStore } from './stores/cities';
 import { PlayerStore } from './stores/players';
@@ -19,7 +21,7 @@ import { SessionStore } from './stores/session';
 import { Menu } from './ui/menu';
 import { UiState } from './ui/ui-state';
 
-const features: Feature[] = [sabotageFeature, settingsFeature];
+const features: Feature[] = [sabotageFeature, pvpFeature, settingsFeature];
 
 async function main() {
   const world = worldId(location.hostname.split('.')[0] ?? 'unknown');
@@ -33,12 +35,13 @@ async function main() {
     load: (w) => callBackground('players.load', { world: w }),
     put: (rows) => callBackground('players.put', { rows }),
   });
+  const battles = new BattleStore(bus, world, battlePersistence(callBackground));
   const cities = new CityStore(bus);
   const catalog = new CatalogStore(bus);
-  const recorder = new Recorder();
+  const recorder = new Recorder(() => settings.get('core.record'));
   const menu = new Menu();
 
-  registerGameHandlers(ingestion, { world, now, session, players, cities, catalog });
+  registerGameHandlers(ingestion, { world, now, session, players, cities, catalog, battles });
   // the proxy buffers game traffic until we connect, so loading first loses nothing
   await Promise.all([
     settings.load(),
@@ -55,6 +58,7 @@ async function main() {
     players,
     cities,
     catalog,
+    battles,
     recorder,
     createBox: boxFactory(ui),
   };
@@ -66,9 +70,8 @@ async function main() {
     }
   }
 
-  const record = settings.get('core.record');
   connectProxy((traffic) => {
-    if (record) recorder.add(traffic);
+    recorder.add(traffic);
     ingestion.accept(traffic);
   });
 

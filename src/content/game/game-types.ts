@@ -21,6 +21,8 @@ export interface GameState {
   current_product?: GameProduct;
   productionOption?: GameProductionOption;
   is_motivated?: boolean;
+  /** set in visited cities, where is_motivated is missing */
+  socialInteractionId?: string;
   boosted?: boolean;
   invested_forge_points?: number;
   forge_points_for_level_up?: number;
@@ -98,4 +100,40 @@ export interface GameVisit {
   other_player?: GamePlayer;
   city_map?: GameCityMap;
   other_player_era?: string;
+}
+
+export interface GameUnitBonus {
+  type?: string;
+  value?: number;
+}
+
+export interface GameBattleUnit {
+  ownerId?: number;
+  /** 1 attacker, 2 defender */
+  teamFlag?: number;
+  unitTypeId?: string;
+  startHitpoints?: number;
+  /** missing when the unit is dead */
+  currentHitpoints?: number;
+  bonuses?: GameUnitBonus[];
+}
+
+/** BattleRealmState: the state of a running battle, also the whole response of a move */
+export interface GameBattleState {
+  __class__?: string;
+  /** 1 = attacker won */
+  winnerBit?: number;
+  surrenderBit?: number;
+  round?: number;
+  unitsOrder?: GameBattleUnit[];
+}
+
+export interface GameBattle {
+  battleId?: number;
+  startTime?: number;
+  isAutoBattle?: boolean;
+  attackerPlayerId?: number;
+  defenderPlayerId?: number;
+  battleType?: { type?: string; era?: string };
+  state?: GameBattleState;
 }

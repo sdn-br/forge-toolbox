@@ -25,11 +25,13 @@ function resources(v: unknown): Record<string, number> {
   return out;
 }
 
+/** What the first option yields without motivation; products marked `onlyWhenMotivated` need it. */
 function genericProduct(production: unknown): Product | undefined {
   const option = list(isObject(production) ? production.options : undefined)[0];
   if (!option) return undefined;
   const product: Product = { resources: {} };
   for (const p of list(option.products)) {
+    if (p.onlyWhenMotivated === true) continue;
     for (const [k, n] of Object.entries(resources(p.playerResources)))
       product.resources[k] = (product.resources[k] ?? 0) + n;
   }
@@ -138,15 +140,17 @@ export function toBuildingDef(json: unknown): BuildingDef | null {
   const type = typeof json.type === 'string' ? json.type : undefined;
   const excluded =
     NOT_PLUNDERABLE.some(has) || abilities.some((a) => typeof a.gridId === 'string' && a.gridId !== 'main');
+  const motivatable = has('MotivatableAbility') || interaction === 'motivate';
   return {
     id: buildingDefId(json.id),
     name: typeof json.name === 'string' ? json.name : json.id,
     generic,
     type,
     flags: {
-      motivatable: has('MotivatableAbility') || interaction === 'motivate',
+      motivatable,
       polishable: has('PolishableAbility') || interaction === 'polish',
-      plunderable: !excluded && (generic || (type !== undefined && PLUNDERABLE_TYPES.includes(type))),
+      // a generic building is plunderable only if it can be motivated (Siegesturm, Wunschbrunnen, Druidentempel)
+      plunderable: !excluded && (generic ? motivatable : type !== undefined && PLUNDERABLE_TYPES.includes(type)),
     },
     size: sizeOf(json, components),
     boostsByEra,

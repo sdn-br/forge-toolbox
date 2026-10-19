@@ -31,6 +31,16 @@ describe('Ingestion', () => {
     expect(other).not.toHaveBeenCalled();
   });
 
+  it('routes every method of a service to its service handlers', () => {
+    const ingestion = new Ingestion();
+    const battlefield = vi.fn();
+    ingestion.onService('BattlefieldService', battlefield);
+    ingestion.accept(
+      json([entry('BattlefieldService', 'submitMove'), entry('BattlefieldService', 'surrender'), entry('A', 'b')]),
+    );
+    expect(battlefield.mock.calls.map((c) => c[0].method)).toEqual(['submitMove', 'surrender']);
+  });
+
   it('handles the startup data before everything else in the same response', () => {
     const ingestion = new Ingestion();
     const order: string[] = [];
