@@ -176,6 +176,14 @@ Features, die an Spielereignisse gebunden sind (GbG, Minispiele der Events), wer
 | 5 | Statistik mit Chart-Komponente |
 | 6 | Restliche Helfer-Features, Event-Minispiele nach Verfügbarkeit |
 
+PvP-Angriffe in Phase 2 kommt in drei Teilen:
+
+- **A:** Kämpfe speichern, gemessene Boni, Box „PvP-Angriffe“, gemessene Werte in den Stadtinformationen.
+- **B:** Plünderung, Abwehr, Double Loot, FP-Summen. Braucht eine Aufnahme einer Plünderung.
+- **C:** Schilde. Braucht eine Aufnahme.
+
+Kämpfe in der PvP-Arena kommen mit dem Arena-Protokoll in Phase 6. Die Notizkarte in der Box kommt mit dem Feature Notizen.
+
 ## Feature-Checkliste
 
 Stand der FoE Toolbox. Module, die im Fundament aufgehen, stehen getrennt.
@@ -285,5 +293,4 @@ Folgerungen:
 
 ## Offene Punkte
 
-- Datenmodell der ersten Stores (Player, City) im Detail.
-- Repo auf GitHub (`sdn-br/forge-toolbox`) anlegen.
+Derzeit keine.
