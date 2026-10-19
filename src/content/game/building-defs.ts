@@ -1,0 +1,157 @@
+// Building definitions from the game metadata → own BuildingDef. Two formats exist:
+// classic definitions (`abilities`, `boostHintEraMap`) and GenericCityEntity (`components` per era).
+import { buildingDefId } from '../../shared/ids';
+import type { Boost, BoostsByEra, BuildingDef, LevelBonus, Rect } from '../stores/catalog';
+import type { Product } from '../stores/city-model';
+
+type Json = Record<string, unknown>;
+
+const isObject = (v: unknown): v is Json => typeof v === 'object' && v !== null && !Array.isArray(v);
+const list = (v: unknown): Json[] => (Array.isArray(v) ? v.filter(isObject) : []);
+
+function toBoost(hint: unknown): Boost | null {
+  if (!isObject(hint) || typeof hint.type !== 'string') return null;
+  return {
+    type: hint.type,
+    feature: typeof hint.targetedFeature === 'string' ? hint.targetedFeature : 'all',
+    value: Number(hint.value ?? 0),
+  };
+}
+
+function resources(v: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  const r = isObject(v) ? v.resources : undefined;
+  if (isObject(r)) for (const [k, n] of Object.entries(r)) if (typeof n === 'number') out[k] = n;
+  return out;
+}
+
+function genericProduct(production: unknown): Product | undefined {
+  const option = list(isObject(production) ? production.options : undefined)[0];
+  if (!option) return undefined;
+  const product: Product = { resources: {} };
+  for (const p of list(option.products)) {
+    for (const [k, n] of Object.entries(resources(p.playerResources)))
+      product.resources[k] = (product.resources[k] ?? 0) + n;
+  }
+  return product;
+}
+
+/** `{ AllAge: hint }` or `{ IronAge: hint, … }` → boosts per era */
+function boostMap(map: unknown): BoostsByEra {
+  const out: BoostsByEra = {};
+  if (!isObject(map)) return out;
+  for (const [era, hint] of Object.entries(map)) {
+    const boost = toBoost(hint);
+    if (boost) out[era] = [boost];
+  }
+  return out;
+}
+
+function levelBonuses(bonuses: unknown): LevelBonus[] {
+  return list(bonuses).map((b) => {
+    // generic chains list plain boosts, classic definitions a boost per era
+    const plain = list(b.boosts)
+      .map(toBoost)
+      .filter((x): x is Boost => x !== null);
+    return { level: Number(b.level ?? 1), boosts: plain.length ? { AllAge: plain } : boostMap(b.boost) };
+  });
+}
+
+function rects(linkPositions: unknown): Rect[] {
+  return list(linkPositions).map((p) => {
+    const a = isObject(p.topLeftPoint) ? p.topLeftPoint : {};
+    const b = isObject(p.bottomRightPoint) ? p.bottomRightPoint : {};
+    // the game leaves out coordinates that are 0
+    return { x1: Number(a.x ?? 0), y1: Number(a.y ?? 0), x2: Number(b.x ?? 0), y2: Number(b.y ?? 0) };
+  });
+}
+
+function sizeOf(json: Json, components: Json | undefined): { width: number; length: number } {
+  if (typeof json.width === 'number' && typeof json.length === 'number')
+    return { width: json.width, length: json.length };
+  const all = components && isObject(components.AllAge) ? components.AllAge : {};
+  const size = isObject(all.placement) && isObject(all.placement.size) ? all.placement.size : {};
+  return { width: Number(size.x ?? 1), length: Number(size.y ?? 1) };
+}
+
+const NOT_PLUNDERABLE = ['AddResourcesToGuildTreasuryAbility', 'RandomChestRewardAbility', 'NotPlunderableAbility'];
+const PLUNDERABLE_TYPES = ['production', 'goods', 'residential', 'clan_power_production'];
+
+export function toBuildingDef(json: unknown): BuildingDef | null {
+  if (!isObject(json) || typeof json.id !== 'string') return null;
+  const abilities = list(json.abilities);
+  const has = (cls: string) => abilities.some((a) => a.__class__ === cls);
+  const components = isObject(json.components) ? json.components : undefined;
+  const generic = json.__class__ === 'GenericCityEntity';
+
+  const boostsByEra: Record<string, Boost[]> = {};
+  const productByEra: Record<string, Product> = {};
+  const add = (era: string, boost: Boost | null) => {
+    if (boost) boostsByEra[era] = [...(boostsByEra[era] ?? []), boost];
+  };
+
+  let interaction: string | undefined;
+  let chain: BuildingDef['chain'];
+  if (components) {
+    for (const [era, c] of Object.entries(components)) {
+      if (!isObject(c)) continue;
+      for (const b of list(isObject(c.boosts) ? c.boosts.boosts : undefined)) add(era, toBoost(b));
+      const product = genericProduct(c.production);
+      if (product) productByEra[era] = product;
+      if (isObject(c.socialInteraction) && typeof c.socialInteraction.interactionType === 'string') {
+        interaction = c.socialInteraction.interactionType;
+      }
+      if (isObject(c.chain) && typeof c.chain.chainId === 'string') {
+        const config = isObject(c.chain.config) ? c.chain.config : {};
+        chain = {
+          id: c.chain.chainId,
+          start: config.__class__ === 'ChainStartConfig' || config.bonuses === undefined,
+          links: rects(c.chain.linkPositions),
+          bonuses: levelBonuses(config.bonuses),
+        };
+      }
+    }
+  }
+  for (const a of abilities) {
+    if (a.__class__ !== 'BoostAbility') continue;
+    for (const hint of list(a.boostHints)) {
+      const map = isObject(hint.boostHintEraMap) ? hint.boostHintEraMap : {};
+      for (const [era, b] of Object.entries(map)) add(era, toBoost(b));
+    }
+  }
+
+  let set: BuildingDef['set'];
+  for (const a of abilities) {
+    if (a.__class__ === 'BonusOnSetAdjacencyAbility' && typeof a.setId === 'string') {
+      set = { id: a.setId, bonuses: levelBonuses(a.bonuses) };
+    }
+    if ((a.__class__ === 'ChainStartAbility' || a.__class__ === 'ChainLinkAbility') && typeof a.chainId === 'string') {
+      chain = {
+        id: a.chainId,
+        start: a.__class__ === 'ChainStartAbility',
+        links: rects(a.linkPositions),
+        bonuses: isObject(a.bonusGiven) ? levelBonuses([a.bonusGiven]) : [],
+      };
+    }
+  }
+
+  const type = typeof json.type === 'string' ? json.type : undefined;
+  const excluded =
+    NOT_PLUNDERABLE.some(has) || abilities.some((a) => typeof a.gridId === 'string' && a.gridId !== 'main');
+  return {
+    id: buildingDefId(json.id),
+    name: typeof json.name === 'string' ? json.name : json.id,
+    generic,
+    type,
+    flags: {
+      motivatable: has('MotivatableAbility') || interaction === 'motivate',
+      polishable: has('PolishableAbility') || interaction === 'polish',
+      plunderable: !excluded && (generic || (type !== undefined && PLUNDERABLE_TYPES.includes(type))),
+    },
+    size: sizeOf(json, components),
+    boostsByEra,
+    productByEra,
+    set,
+    chain,
+  };
+}

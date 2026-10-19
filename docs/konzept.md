@@ -104,6 +104,29 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Parser aktualisiert d
 
 - Oberfläche zunächst nur Deutsch, wie die FoE Toolbox. Texte trotzdem über Schlüssel, damit weitere Sprachen möglich bleiben.
 
+## Techstack
+
+Festgelegt nach Phase 0. Jede Wahl mit der Alternative, die verworfen wurde.
+
+| Bereich | Wahl | Verworfene Alternative | Begründung |
+|---|---|---|---|
+| Sprache | TypeScript, `strict` | JavaScript mit JSDoc | Datenmodell und Event-Verträge sind der Kern des Neubaus, Typen machen sie prüfbar. JSDoc prüft dasselbe, ist aber umständlicher zu schreiben. |
+| Build | esbuild, ein Bundle je Einstiegspunkt | Vite | Eine Extension hat drei Einstiegspunkte (Proxy, Content Script, Service Worker) ohne HTML-Seite. esbuild baut sie direkt in unter einer Sekunde. Vite bringt Dev-Server und Hot Reload, die bei Content Scripts nur mit Zusatz-Plugins gehen, deren Pflege unsicher ist. Nachteil esbuild: Hot Reload fehlt, nach dem Bauen wird die Extension neu geladen. |
+| Typprüfung | `tsc --noEmit` | Prüfung im Bundler | esbuild entfernt Typen nur, prüft sie aber nicht. |
+| UI-Rendering | lit-html | Preact | Klein (rund 7 KB), Templates sind normales TypeScript, kein virtueller DOM. In Phase 0 belegt: rendert im Shadow DOM und nach dem Umzug ins Pop-out weiter. Preact wäre ähnlich klein und bietet JSX und Komponenten-Zustand, braucht aber JSX im Build und verleitet dazu, Zustand in Komponenten zu legen statt in Stores. |
+| Komponenten | Funktionen, die Templates liefern | Web Components (Lit) | Im Content Script ist `customElements` in Chrome nicht verfügbar (isolierte Welt), eigene Elemente gingen nur mit Polyfill. |
+| Style-Kapselung | Shadow DOM je Box | CSS mit Präfix | Spiel-CSS und Toolbox-CSS beeinflussen sich nicht. In Phase 0 belegt, zieht ins Pop-out mit. Ein Präfix schützt nur in eine Richtung: Spiel-Regeln wie `button {…}` greifen trotzdem. |
+| Zustand und Events | eigene Stores und typisierter Event-Bus | Redux, Zustand, Signals | Das Konzept will Besitz pro Store und Events mit Vertrag. Das sind wenige Zeilen eigener Code. Eine Bibliothek brächte ein zweites Modell (ein globaler Store, Reaktivität), das dem Plugin-Gedanken widerspricht. |
+| Messaging | eigenes typisiertes RPC über `chrome.runtime.sendMessage` | Comlink, webext-bridge | Es gibt nur zwei Wege (Proxy → Content Script, Content Script ↔ Service Worker). Eigener Code mit TypeScript-Typen ist klein und transparent. Bibliotheken lohnen sich erst bei vielen Kontexten. |
+| Datenbank | Dexie im Service Worker | `idb` (dünner Wrapper) | Dexie bringt Schema-Versionen, zusammengesetzte Indizes, Massen-Operationen und gute Typen. Das brauchen Statistik, PvP-Verlauf und der Altdaten-Import. Die Altdaten liegen selbst in Dexie-Formaten. `idb` ist kleiner, verlangt aber Migrationen und Abfragen von Hand. |
+| Charts | Apache ECharts, modular importiert und lazy geladen | Chart.js, uPlot | ECharts deckt alles ab, was die heutigen Statistiken nutzen (Zoom über Zeitachsen, gestapelte Serien, Export als Bild). Modular importiert lädt nur, was gebraucht wird. Chart.js ist leichter, bei Zoom und großen Zeitreihen aber schwächer. uPlot ist sehr schnell, kann aber nur Linien und Balken. |
+| Tests | Vitest mit happy-dom | Jest, `node:test` | Vitest versteht TypeScript und ESM ohne Konfiguration und ist schnell. happy-dom erlaubt Tests der Views. Jest braucht für TypeScript und ESM Zusatzkonfiguration. `node:test` braucht keine Abhängigkeit, hat aber keine DOM-Umgebung und weniger Komfort. |
+| Lint und Format | Biome | ESLint plus Prettier | Ein Werkzeug statt zwei, schnell, kaum Konfiguration. Weniger Regeln als ESLint, für ein Ein-Personen-Projekt reicht das. |
+| Datum und Zahlen | `Intl` des Browsers | moment, date-fns | Formatierung von Datum und Zahlen auf Deutsch kann der Browser selbst. Eine Bibliothek erst, wenn echte Datumsrechnung nötig wird. |
+| Texte | eigene Schlüssel-Tabelle mit typisierten Schlüsseln | i18next | Nur Deutsch, keine Pluralregeln außer einfachen. Typisierte Schlüssel finden Tippfehler beim Bauen. |
+| Paketmanager | npm | pnpm | Schon installiert, ein Paket, keine Workspaces nötig. |
+| Browser | Chrome | Chrome und Firefox | Zielbrowser ist Chrome. Firefox kennt `world: MAIN` seit Version 128, eine spätere Unterstützung bleibt möglich. Bis dahin wird sie nicht getestet. |
+
 ## Persistenz
 
 Entscheidung: Hauptspeicher ist IndexedDB im Origin der Extension, mit Sicherungskopie im Origin der Spielseite.
@@ -146,7 +169,8 @@ Features, die an Spielereignisse gebunden sind (GbG, Minispiele der Events), wer
 |---|---|
 | 0 | Prototypen: Pop-out per Bild-im-Bild aus dem Content Script, Proxy im Seitenkontext übergibt aufgezeichnete Antworten an das Content Script |
 | 1 | Fundament (Shell, Proxy, Ingestion, Bus, Storage, Box, Menü, Settings) zusammen mit Sabotage als erstem echtem Feature |
-| 2 | Toolbox-Kern: PvP-Angriffe, Notizen, LG-Rechner mit Snipehilfe, Investitionen, Eigenanteilsrechner, Altdaten-Import, Sicherung und Export |
+| 2 | Toolbox-Kern: PvP-Angriffe (speichern nach jedem Kampf die echten Boni des Gegners aus `BattlefieldService.startByBattleType`, Stadtinformationen zeigen sie neben dem berechneten Wert mit Datum), Notizen, LG-Rechner mit Snipehilfe, Investitionen, Eigenanteilsrechner, Altdaten-Import, Sicherung und Export |
+| 2a | Design-Durchgang für das UI-Kit: Farben, Schrift, Abstände, Icons, Tabellen- und Kartenstil, Varianten live im Spiel. Bis dahin enthalten Features keine eigenen Styles. |
 | 3 | Stadt und Produktion |
 | 4 | Gilde: GbG, GEX, QI, Mitgliederstatistik, Alarme |
 | 5 | Statistik mit Chart-Komponente |
@@ -238,10 +262,28 @@ Querschnitt aus der FoE Toolbox, der in die passenden Features eingeht: Fenster 
 - `api.foe-rechner.de` nur nach Double-Opt-In, nur über den Service Worker.
 - Discord-Webhooks und eigene Server nur mit URLs, die der Nutzer einträgt.
 
+## Ergebnisse Phase 0
+
+Prototyp `prototypes/phase-0`, getestet am 2026-10-19 in Chrome auf de20, parallel zur FoE Toolbox 2.0.
+
+| Frage | Ergebnis |
+|---|---|
+| Proxy-Übergabe | Funktioniert. Das Content Script ist vor der ersten Spielantwort bereit, `StartupService.getData` und `visitPlayer` kommen an. Übergabe per `postMessage` meist 0,1 bis 0,3 ms, beim Spielstart Spitzen bis 84 ms, weil der Hauptthread mit dem Spiel beschäftigt ist. Datenmenge beim Start rund 2,3 MB, größter Brocken `OutpostService.getAll` mit 1,4 MB. |
+| Pop-out | Bild-im-Bild und `window.open` gehen direkt aus dem Content Script. Box im Shadow DOM zieht mit, Styles greifen, lit-html rendert weiter, Klicks kommen an, beim Schließen kehrt die Box ins Spiel zurück. |
+| Speicher | Aufwecken des Service Workers 93 bis 107 ms. Kleine Zugriffe 0,5 bis 1,3 ms. 5.000 Zeilen schreiben rund 115 ms, lesen rund 25 ms, je in einer Nachricht. |
+| Aufnahme | Mitschnitt als JSON klappt (21 Nachrichten, 61 verschiedene Service-Methoden, 2,9 MB). Taugt als Grundlage für Fixtures. |
+
+Folgerungen:
+
+- Die Architektur trägt, kein Helfer im Seitenkontext nötig außer dem Proxy.
+- Styles werden per Shadow DOM gekapselt.
+- Gebaut wird mit esbuild (ein Bundle je Einstiegspunkt, kein Dev-Server nötig). TypeScript prüft getrennt mit `tsc --noEmit`.
+- Rendern darf nicht am `requestAnimationFrame` des Spielfensters hängen. Ist der Spiel-Tab im Hintergrund, drosselt Chrome ihn, und ein offenes Pop-out würde nicht mehr aktualisiert. Das Fundament plant Renders über das Fenster, in dem die Box gerade steckt (noch nicht getestet).
+- Schreiben in die DB immer gesammelt, nicht Zeile für Zeile per Nachricht.
+- `postMessage` sieht auch das Spiel. Der Proxy liest ohnehin im Seitenkontext mit, daraus entsteht kein neues Risiko. Fremde Seitenskripte könnten aber Nachrichten fälschen, Parser müssen Eingaben prüfen.
+- Aufnahmen enthalten private Spieldaten. Fixtures werden vor dem Commit auf das Nötige gekürzt und anonymisiert.
+
 ## Offene Punkte
 
-- Pop-out per Bild-im-Bild aus dem Content Script möglich? (Prototyp)
-- Build-Werkzeug (Vorschlag Vite) und Test-Framework.
-- Styles per Shadow DOM kapseln oder per Präfix?
 - Datenmodell der ersten Stores (Player, City) im Detail.
 - Repo auf GitHub (`sdn-br/forge-toolbox`) anlegen.

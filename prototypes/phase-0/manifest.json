@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Forge Toolbox Prototype (Phase 0)",
+  "version": "0.0.1",
+  "description": "Throwaway prototype: proxy hand-off, pop-out from the content script, storage round trips.",
+  "permissions": ["storage", "unlimitedStorage"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://*.forgeofempires.com/game/*"],
+      "js": ["proxy.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://*.forgeofempires.com/game/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}
