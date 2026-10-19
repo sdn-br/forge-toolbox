@@ -1,11 +1,13 @@
 // Game format → own model. Nothing outside src/content/game sees the game format.
 import { buildingDefId, eraId, guildId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
-import type { GuildRef } from '../../shared/model';
+import type { Battle, BattleResult, BattleSide, GuildRef } from '../../shared/model';
 import type { VisitInfo } from '../stores/cities';
 import type { Building, BuildingState, City, Product } from '../stores/city-model';
 import type { PlayerObservation } from '../stores/players';
 import type { Session } from '../stores/session';
 import type {
+  GameBattle,
+  GameBattleUnit,
   GameCityEntity,
   GamePlayer,
   GameProduct,
@@ -157,5 +159,55 @@ export function toSession(world: WorldId, u: GameUserData | undefined): Session 
     name: u.user_name ?? '',
     era: eraId(u.era ?? ''),
     guild: u.clan_id ? { id: guildId(u.clan_id), name: u.clan_name ?? '' } : undefined,
+  };
+}
+
+const ATTACKER_TEAM = 1;
+const DEFENDER_TEAM = 2;
+
+function toSide(units: GameBattleUnit[], team: number): BattleSide {
+  const own = units.filter((u) => u.teamFlag === team);
+  const bonuses: Record<string, number> = {};
+  for (const b of own[0]?.bonuses ?? []) {
+    if (b.type && typeof b.value === 'number') bonuses[b.type] = (bonuses[b.type] ?? 0) + b.value;
+  }
+  return {
+    bonuses,
+    units: own.map((u) => ({
+      unitTypeId: u.unitTypeId ?? 'unknown',
+      startHp: u.startHitpoints ?? 0,
+      endHp: u.currentHitpoints ?? 0,
+    })),
+  };
+}
+
+function resultOf(state: NonNullable<GameBattle['state']>): BattleResult | null {
+  if (state.surrenderBit) return 'surrendered';
+  if (state.winnerBit === 1) return 'won';
+  if (state.winnerBit) return 'lost';
+  return null;
+}
+
+/** A finished PvP battle the session player attacked in; anything else is null. */
+export function toBattle(world: WorldId, b: GameBattle, me: PlayerId): Battle | null {
+  if (b.battleType?.type !== 'pvp' || b.attackerPlayerId !== me) return null;
+  if (typeof b.battleId !== 'number' || typeof b.defenderPlayerId !== 'number' || !b.state) return null;
+  // debt: a battle that starts without a winner (likely every manual battle) is not recorded. ceiling: only battles
+  // decided at start are measured. upgrade: take the result from the message that ends a manual battle, once a
+  // recording shows it.
+  const result = resultOf(b.state);
+  if (!result) return null;
+  const units = b.state.unitsOrder ?? [];
+  return {
+    world,
+    battleId: b.battleId,
+    at: (b.startTime ?? 0) * 1000,
+    opponent: playerId(b.defenderPlayerId),
+    result,
+    auto: b.isAutoBattle === true,
+    rounds: b.state.round ?? 0,
+    era: eraId(b.battleType.era ?? ''),
+    attacker: toSide(units, ATTACKER_TEAM),
+    defender: toSide(units, DEFENDER_TEAM),
   };
 }

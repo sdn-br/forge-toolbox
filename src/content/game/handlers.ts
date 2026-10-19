@@ -1,14 +1,15 @@
 // Which game response feeds which store. One place, so every response has exactly one owner.
 import { eraId, type WorldId } from '../../shared/ids';
 import type { Ingestion } from '../core/ingestion';
+import type { BattleStore } from '../stores/battles';
 import type { CatalogStore } from '../stores/catalog';
 import type { CityStore } from '../stores/cities';
 import type { Building } from '../stores/city-model';
 import type { PlayerObservation, PlayerStore } from '../stores/players';
 import type { SessionStore } from '../stores/session';
 import { toBuildingDef } from './building-defs';
-import { toBuilding, toCity, toObservation, toSession, toVisitInfo } from './convert';
-import type { GameCityEntity, GameEra, GameSocialList, GameStartup, GameVisit } from './game-types';
+import { toBattle, toBuilding, toCity, toObservation, toSession, toVisitInfo } from './convert';
+import type { GameBattle, GameCityEntity, GameEra, GameSocialList, GameStartup, GameVisit } from './game-types';
 
 export interface GameHandlerDeps {
   world: WorldId;
@@ -17,13 +18,14 @@ export interface GameHandlerDeps {
   players: PlayerStore;
   cities: CityStore;
   catalog: CatalogStore;
+  battles: BattleStore;
 }
 
 const observations = (list: unknown) =>
   (Array.isArray(list) ? list : []).map(toObservation).filter((o): o is PlayerObservation => o !== null);
 
 export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps): void {
-  const { world, now, session, players, cities, catalog } = deps;
+  const { world, now, session, players, cities, catalog, battles } = deps;
 
   ingestion.on('StartupService', 'getData', ({ data }) => {
     const d = data as GameStartup;
@@ -53,6 +55,17 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     const era = d.other_player_era ?? d.other_player.era ?? '';
     const city = toCity(world, o.id, era, d.city_map?.gridId, d.city_map?.entities, now());
     cities.setVisited({ ...city, visit: toVisitInfo(d.other_player, now()) });
+  });
+
+  // comes with battles and other interactions, for example in the same response as the battle against that player
+  ingestion.on('OtherPlayerService', 'updatePlayer', ({ data }) => {
+    players.apply(world, observations(data), 'update');
+  });
+
+  ingestion.on('BattlefieldService', 'startByBattleType', ({ data }) => {
+    const me = session.current?.playerId;
+    const battle = me === undefined ? null : toBattle(world, data as GameBattle, me);
+    if (battle) battles.record(battle);
   });
 
   const updateBuildings = ({ data }: { data: unknown }) => {

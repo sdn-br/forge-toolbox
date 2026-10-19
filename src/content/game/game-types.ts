@@ -99,3 +99,35 @@ export interface GameVisit {
   city_map?: GameCityMap;
   other_player_era?: string;
 }
+
+export interface GameUnitBonus {
+  type?: string;
+  value?: number;
+}
+
+export interface GameBattleUnit {
+  ownerId?: number;
+  /** 1 attacker, 2 defender */
+  teamFlag?: number;
+  unitTypeId?: string;
+  startHitpoints?: number;
+  /** missing when the unit is dead */
+  currentHitpoints?: number;
+  bonuses?: GameUnitBonus[];
+}
+
+export interface GameBattle {
+  battleId?: number;
+  startTime?: number;
+  isAutoBattle?: boolean;
+  attackerPlayerId?: number;
+  defenderPlayerId?: number;
+  battleType?: { type?: string; era?: string };
+  state?: {
+    /** 1 = attacker won */
+    winnerBit?: number;
+    surrenderBit?: number;
+    round?: number;
+    unitsOrder?: GameBattleUnit[];
+  };
+}

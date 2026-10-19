@@ -1,7 +1,43 @@
 # Turns a recording (settings: "Spielverkehr aufzeichnen") into an anonymized fixture of one visited city.
 # Usage: python3 -I scripts/make-fixture.py <recording.json> <player_id> <out.json>
+# Battle: python3 -I scripts/make-fixture.py battle <recording.json> <out.json>
+# keeps the first PvP battle and the opponent's updatePlayer, with fake ids and names.
 
 import json,sys
+
+def battle_fixture(rec,out):
+    ME,OPP,BATTLE=1000,1001,5001
+    batch=None
+    for r in rec:
+        if r['kind']!='json': continue
+        entries=json.loads(r['response'])
+        if any(e.get('requestMethod')=='startByBattleType' and e['responseData'].get('battleType',{}).get('type')=='pvp' for e in entries):
+            batch=entries; break
+    battle=next(e['responseData'] for e in batch if e.get('requestMethod')=='startByBattleType')
+    ids={battle['attackerPlayerId']:ME,battle['defenderPlayerId']:OPP}
+    UNIT=('ownerId','teamFlag','unitTypeId','startHitpoints','currentHitpoints')
+    def unit(u):
+        o={k:u[k] for k in UNIT if k in u}
+        o['ownerId']=ids[u['ownerId']]
+        o['bonuses']=[{k:b[k] for k in ('type','value','__class__') if k in b} for b in u.get('bonuses',[])]
+        return o
+    st=battle['state']
+    state={k:st[k] for k in ('winnerBit','surrenderBit','round','__class__') if k in st}
+    state['unitsOrder']=[unit(u) for u in st['unitsOrder']]
+    bt=battle['battleType']
+    data={'battleId':BATTLE,'battleType':{'attackerPlayerId':ME,'defenderPlayerId':OPP,'era':bt['era'],'type':bt['type'],'__class__':bt.get('__class__')},
+      'attackerPlayerId':ME,'defenderPlayerId':OPP,'startTime':battle['startTime'],'isAutoBattle':battle['isAutoBattle'],'state':state,'__class__':battle.get('__class__')}
+    opp=next(p for e in batch if e.get('requestMethod')=='updatePlayer' for p in e['responseData'] if p.get('player_id') in ids and ids[p['player_id']]==OPP)
+    player={'player_id':OPP,'name':'Testgegner','avatar':'','city_name':'Gegnerstadt','era':opp.get('era'),'score':1,'rank':1,
+      'is_neighbor':True,'is_active':True,'clan_id':1,'clan':{'id':1,'name':'Testgilde'},'__class__':opp.get('__class__')}
+    fixture={'note':'PvP battle recorded on de20 2026-10-19 with the response batch it came in, players anonymized (me 1000, opponent 1001), unrelated entries and fields dropped.',
+      'me':ME,'batch':[
+        {'requestClass':'OtherPlayerService','requestMethod':'updatePlayer','responseData':[player]},
+        {'requestClass':'BattlefieldService','requestMethod':'startByBattleType','responseData':data}]}
+    json.dump(fixture,open(out,'w'),indent=1)
+
+if sys.argv[1]=='battle':
+    battle_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
 rec=json.load(open(sys.argv[1])); target=int(sys.argv[2]); out=sys.argv[3]
 defs={}
 for r in rec:

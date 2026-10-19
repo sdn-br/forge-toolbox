@@ -13,7 +13,7 @@ export interface Relations {
   friend: boolean;
 }
 
-export type PlayerSource = 'socialList' | 'visit' | 'ranking' | 'gbg' | 'event';
+export type PlayerSource = 'socialList' | 'visit' | 'update' | 'ranking' | 'gbg' | 'event';
 
 export interface Player {
   world: WorldId;
@@ -30,4 +30,32 @@ export interface Player {
   firstSeenAt: number;
   seenAt: number;
   source: PlayerSource;
+}
+
+export type BattleResult = 'won' | 'lost' | 'surrendered';
+
+export interface BattleUnit {
+  unitTypeId: string;
+  startHp: number;
+  endHp: number;
+}
+
+export interface BattleSide {
+  /** raw bonus sums by game type, from the first unit of the side; measured values are derived from these */
+  bonuses: Record<string, number>;
+  units: BattleUnit[];
+}
+
+/** A PvP battle the session player started as the attacker. */
+export interface Battle {
+  world: WorldId;
+  battleId: number;
+  at: number;
+  opponent: PlayerId;
+  result: BattleResult;
+  auto: boolean;
+  rounds: number;
+  era: EraId;
+  attacker: BattleSide;
+  defender: BattleSide;
 }
