@@ -24,11 +24,17 @@ const FIRST = 'StartupService.getData';
 
 export class Ingestion {
   private game = new Map<string, GameHandler[]>();
+  private services = new Map<string, GameHandler[]>();
   private meta: { prefix: string; handler: MetaHandler }[] = [];
 
   on(service: string, method: string, handler: GameHandler): void {
     const key = `${service}.${method}`;
     this.game.set(key, [...(this.game.get(key) ?? []), handler]);
+  }
+
+  /** every method of a service, for responses whose method is not known in advance */
+  onService(service: string, handler: GameHandler): void {
+    this.services.set(service, [...(this.services.get(service) ?? []), handler]);
   }
 
   onMeta(prefix: string, handler: MetaHandler): void {
@@ -43,8 +49,8 @@ export class Ingestion {
     const entries = parseEntries(traffic.kind === 'json' ? traffic.response : traffic.data);
     entries.sort((a, b) => Number(key(b) === FIRST) - Number(key(a) === FIRST));
     for (const entry of entries) {
-      const handlers = this.game.get(key(entry));
-      if (!handlers) continue;
+      const handlers = [...(this.game.get(key(entry)) ?? []), ...(this.services.get(entry.requestClass) ?? [])];
+      if (handlers.length === 0) continue;
       const message: GameMessage = {
         service: entry.requestClass,
         method: entry.requestMethod,

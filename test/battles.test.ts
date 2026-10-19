@@ -4,7 +4,7 @@ import { openDb } from '../src/background/db';
 import { createBus } from '../src/content/core/events';
 import { Ingestion } from '../src/content/core/ingestion';
 import { measuredArmy } from '../src/content/domain/measured-army';
-import type { GameBattle } from '../src/content/game/game-types';
+import type { GameBattle, GameBattleState } from '../src/content/game/game-types';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import { BattleStore } from '../src/content/stores/battles';
 import { CatalogStore } from '../src/content/stores/catalog';
@@ -14,6 +14,7 @@ import { SessionStore } from '../src/content/stores/session';
 import { eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { Battle } from '../src/shared/model';
 import fixture from './fixtures/pvp-battle.json';
+import manual from './fixtures/pvp-manual-battle.json';
 import { testDb } from './helpers/battle-db';
 
 const world = worldId('de20');
@@ -147,6 +148,108 @@ describe('recording battles', () => {
       [1, 'lost'],
       [2, 'surrendered'],
     ]);
+  });
+});
+
+describe('recording manual battles', () => {
+  /** the end of the manual battle with its state changed */
+  const endWith = (state: Record<string, unknown>) => {
+    const end = structuredClone(manual.end);
+    Object.assign(end[1]?.responseData ?? {}, state);
+    return end;
+  };
+
+  it('records a manual battle once it ends, with auto false', async () => {
+    const { battles, recorded, send } = setup(manual.me);
+    send(manual.start);
+    expect(await battles.count()).toBe(0);
+    send(manual.end);
+    send(manual.end);
+    expect(await battles.count()).toBe(1);
+    const b = await battles.latest(opponent);
+    expect(b).toMatchObject({
+      battleId: 5002,
+      at: 1_792_438_262_000,
+      opponent,
+      result: 'won',
+      auto: false,
+      rounds: 1,
+      era: 'ColonialAge',
+    });
+    expect(b?.attacker.units).toHaveLength(8);
+    expect(b?.defender.units).toEqual([
+      { unitTypeId: 'javeliner', startHp: 10, endHp: 0 },
+      { unitTypeId: 'javeliner', startHp: 10, endHp: 0 },
+    ]);
+    expect(Object.keys(b?.attacker.bonuses ?? {}).length).toBeGreaterThan(0);
+    expect(recorded).toEqual([opponent]);
+  });
+
+  it('takes the bonuses from the start and falls back to the end', async () => {
+    const start = structuredClone(manual.start);
+    const startUnits = start[0]?.responseData.state.unitsOrder ?? [];
+    for (const u of startUnits) u.bonuses = [{ type: 'attack_boost', value: 7, __class__: 'UnitBonus' }];
+    const fromStart = setup(manual.me);
+    fromStart.send(start);
+    fromStart.send(manual.end);
+    expect((await fromStart.battles.latest(opponent))?.attacker.bonuses).toEqual({ attack_boost: 7 });
+
+    for (const u of startUnits) u.bonuses = [];
+    const end = endWith({});
+    const endState = end[1]?.responseData as GameBattleState | undefined;
+    for (const u of endState?.unitsOrder ?? []) u.bonuses = [{ type: 'attack_boost', value: 9 }];
+    const fromEnd = setup(manual.me);
+    fromEnd.send(start);
+    fromEnd.send(end);
+    expect((await fromEnd.battles.latest(opponent))?.attacker.bonuses).toEqual({ attack_boost: 9 });
+  });
+
+  it('keeps the battle pending while moves come without a result', async () => {
+    const { battles, send } = setup(manual.me);
+    send(manual.start);
+    send(endWith({ winnerBit: undefined }));
+    expect(await battles.count()).toBe(0);
+    send(manual.end);
+    expect(await battles.count()).toBe(1);
+  });
+
+  it('ignores a move without a pending battle', async () => {
+    const { battles, send } = setup(manual.me);
+    send(manual.end);
+    expect(await battles.count()).toBe(0);
+  });
+
+  it('ignores a pending battle that is not PvP or not attacked by the session player', async () => {
+    const pve = structuredClone(manual.start);
+    if (pve[0]) pve[0].responseData.battleType.type = 'guild_expedition';
+    const a = setup(manual.me);
+    a.send(pve);
+    a.send(manual.end);
+    expect(await a.battles.count()).toBe(0);
+    const b = setup(1001);
+    b.send(manual.start);
+    b.send(manual.end);
+    expect(await b.battles.count()).toBe(0);
+  });
+
+  it('replaces the pending battle with the next start', async () => {
+    const { battles, send } = setup(manual.me);
+    send(manual.start);
+    const next = structuredClone(manual.start);
+    if (next[0]) next[0].responseData.battleId = 5003;
+    send(next);
+    send(manual.end);
+    expect((await battles.list({ limit: 10, offset: 0 })).map((r) => r.battleId)).toEqual([5003]);
+  });
+
+  it('forgets the pending battle when a battle of another type starts', async () => {
+    const { battles, send } = setup(manual.me);
+    send(manual.start);
+    const pve = structuredClone(manual.start);
+    if (pve[0]) pve[0].responseData.battleType.type = 'guild_expedition';
+    send(pve);
+    send(manual.end);
+    expect(await battles.count()).toBe(0);
   });
 });
 

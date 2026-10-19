@@ -198,7 +198,7 @@ Geprüft an der eigenen Stadt gegen `BoostService.getAllBoosts`, das die Boosts 
 
 ## Battle (PvP-Angriffe)
 
-Stand 2026-10-19. Grundlage: ein aufgenommener Autokampf auf de20 (`BattlefieldService.startByBattleType`, Testfall `test/fixtures/pvp-battle.json`).
+Stand 2026-10-19. Grundlage: ein aufgenommener Autokampf auf de20 (`BattlefieldService.startByBattleType`, Testfall `test/fixtures/pvp-battle.json`) und ein manueller Kampf (ein Zug von Hand, dann Autokampf; `startByBattleType` und `submitMove`, Testfall `test/fixtures/pvp-manual-battle.json`).
 
 ```ts
 type BattleResult = 'won' | 'lost' | 'surrendered';
@@ -228,7 +228,11 @@ interface BattleSide {
 - Die Seite einer Einheit steht in `teamFlag`: 1 Angreifer, 2 Verteidiger. `bonuses` sind die Summen je Typ aus der ersten Einheit der Seite. Alle Einheiten einer Seite tragen in der Aufnahme dieselben Boni.
 - Die Boni bleiben roh gespeichert. Sie sind unwiederbringlich, und eine spätere Auswertung soll sie neu deuten können.
 - Fehlt `currentHitpoints`, ist die Einheit tot (`endHp` 0).
-- Ergebnis: `surrenderBit` gesetzt ergibt `surrendered`, `winnerBit` 1 ergibt `won`, ein anderer `winnerBit` ergibt `lost`. Ohne `winnerBit` steht der Kampf noch aus und wird nicht gespeichert. Das trifft vermutlich jeden manuellen Kampf; dessen Ergebnis kommt mit einer späteren Nachricht, für die es noch keine Aufnahme gibt.
+- Ergebnis: `surrenderBit` gesetzt ergibt `surrendered`, `winnerBit` 1 ergibt `won`, ein anderer `winnerBit` ergibt `lost`.
+- **Autokampf:** Das Ergebnis steht schon in `startByBattleType` (`isAutoBattle` true). Der Kampf wird sofort gespeichert.
+- **Manueller Kampf:** `startByBattleType` kommt ohne `winnerBit` und ohne `isAutoBattle`. Der Kampf wartet dann im Speicher, nur der zuletzt gestartete (der Kampf auf dem Bildschirm). Jede weitere Antwort des `BattlefieldService`, die ein `BattleRealmState` ist (gesehen: `submitMove`, ohne `battleId`), schließt ihn ab, sobald sie `winnerBit` oder `surrenderBit` trägt. Ergebnis, Runden und `endHp` kommen aus diesem Endzustand, die Boni aus dem Start (fehlen sie dort, aus dem Endzustand). Gespeichert wird mit `auto: false`. Ein Zug ohne Ergebnis lässt den Kampf warten. Ein neuer `startByBattleType` ersetzt den wartenden Kampf, auch wenn er kein eigener PvP-Kampf ist. Ein Zug ohne wartenden Kampf wird ignoriert.
+- Geprüft am 2026-10-19 an der Aufnahme des manuellen Kampfes: genau ein `submitMove`, mit `winnerBit` 1 und `round` 1. Die Boni aller Einheiten sind dort dieselben wie im Start. Toten Einheiten fehlt `currentHitpoints` auch im Endzustand.
+- Ein Kampf, der wartet, geht bei einem Neuladen verloren.
 - Derselbe Kampf zweimal gesehen wird einmal gespeichert (Schlüssel `[world+battleId]`).
 
 **Gemessene Werte** rechnet eine reine Funktion `measuredArmy(battle)` aus den Rohwerten:
@@ -260,7 +264,8 @@ Ein Kampf misst nur die verteidigende Armee des Gegners. Seine angreifende Armee
 | `OtherPlayerService.getSocialList` | Player | alle Spieler aktualisieren, Beziehungen neu setzen |
 | `OtherPlayerService.visitPlayer` | Player, City | Spieler aktualisieren, besuchte Stadt setzen |
 | `OtherPlayerService.updatePlayer` | Player | Spieler aktualisieren |
-| `BattlefieldService.startByBattleType` | Battle | eigenen PvP-Angriff speichern |
+| `BattlefieldService.startByBattleType` | Battle | eigenen PvP-Angriff speichern, manuellen Kampf bis zum Ende vormerken |
+| `BattlefieldService.*` mit `BattleRealmState` (gesehen: `submitMove`) | Battle | vorgemerkten manuellen Kampf mit dem Ergebnis speichern |
 | `CityMapService.updateEntity`, `reset` | City | eigene oder besuchte Stadt je nach Spieler-ID |
 | `CityMapService.placeBuilding`, `removeBuilding`, `moveEntity` | City | eigene Stadt ändern |
 | Metadaten `building_entity_lookup` und `building_entity_<id>` | Catalog | Gebäude-Definitionen |

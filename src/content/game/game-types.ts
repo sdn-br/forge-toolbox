@@ -116,6 +116,16 @@ export interface GameBattleUnit {
   bonuses?: GameUnitBonus[];
 }
 
+/** BattleRealmState: the state of a running battle, also the whole response of a move */
+export interface GameBattleState {
+  __class__?: string;
+  /** 1 = attacker won */
+  winnerBit?: number;
+  surrenderBit?: number;
+  round?: number;
+  unitsOrder?: GameBattleUnit[];
+}
+
 export interface GameBattle {
   battleId?: number;
   startTime?: number;
@@ -123,11 +133,5 @@ export interface GameBattle {
   attackerPlayerId?: number;
   defenderPlayerId?: number;
   battleType?: { type?: string; era?: string };
-  state?: {
-    /** 1 = attacker won */
-    winnerBit?: number;
-    surrenderBit?: number;
-    round?: number;
-    unitsOrder?: GameBattleUnit[];
-  };
+  state?: GameBattleState;
 }

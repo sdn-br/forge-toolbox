@@ -7,6 +7,7 @@ import type { PlayerObservation } from '../stores/players';
 import type { Session } from '../stores/session';
 import type {
   GameBattle,
+  GameBattleState,
   GameBattleUnit,
   GameCityEntity,
   GamePlayer,
@@ -165,49 +166,71 @@ export function toSession(world: WorldId, u: GameUserData | undefined): Session 
 const ATTACKER_TEAM = 1;
 const DEFENDER_TEAM = 2;
 
-function toSide(units: GameBattleUnit[], team: number): BattleSide {
-  const own = units.filter((u) => u.teamFlag === team);
+function bonusesOf(units: GameBattleUnit[], team: number): Record<string, number> {
   const bonuses: Record<string, number> = {};
-  for (const b of own[0]?.bonuses ?? []) {
+  for (const b of units.find((u) => u.teamFlag === team)?.bonuses ?? []) {
     if (b.type && typeof b.value === 'number') bonuses[b.type] = (bonuses[b.type] ?? 0) + b.value;
   }
+  return bonuses;
+}
+
+/** units and end hit points from the final state; bonuses from the start, else from the final state */
+function toSide(start: GameBattleUnit[], final: GameBattleUnit[], team: number): BattleSide {
+  const fromStart = bonusesOf(start, team);
   return {
-    bonuses,
-    units: own.map((u) => ({
-      unitTypeId: u.unitTypeId ?? 'unknown',
-      startHp: u.startHitpoints ?? 0,
-      endHp: u.currentHitpoints ?? 0,
-    })),
+    bonuses: Object.keys(fromStart).length ? fromStart : bonusesOf(final, team),
+    units: final
+      .filter((u) => u.teamFlag === team)
+      .map((u) => ({
+        unitTypeId: u.unitTypeId ?? 'unknown',
+        startHp: u.startHitpoints ?? 0,
+        endHp: u.currentHitpoints ?? 0,
+      })),
   };
 }
 
-function resultOf(state: NonNullable<GameBattle['state']>): BattleResult | null {
+function resultOf(state: GameBattleState): BattleResult | null {
   if (state.surrenderBit) return 'surrendered';
   if (state.winnerBit === 1) return 'won';
   if (state.winnerBit) return 'lost';
   return null;
 }
 
-/** A finished PvP battle the session player attacked in; anything else is null. */
-export function toBattle(world: WorldId, b: GameBattle, me: PlayerId): Battle | null {
-  if (b.battleType?.type !== 'pvp' || b.attackerPlayerId !== me) return null;
-  if (typeof b.battleId !== 'number' || typeof b.defenderPlayerId !== 'number' || !b.state) return null;
-  // debt: a battle that starts without a winner (likely every manual battle) is not recorded. ceiling: only battles
-  // decided at start are measured. upgrade: take the result from the message that ends a manual battle, once a
-  // recording shows it.
-  const result = resultOf(b.state);
+/** A PvP battle the session player attacks in, finished or still running. */
+export function isOwnPvpBattle(b: GameBattle, me: PlayerId): boolean {
+  return (
+    b.battleType?.type === 'pvp' &&
+    b.attackerPlayerId === me &&
+    typeof b.battleId === 'number' &&
+    typeof b.defenderPlayerId === 'number' &&
+    b.state !== undefined
+  );
+}
+
+/** A response that is a battle state, for example the answer to a move of a manual battle. */
+export function isBattleState(data: unknown): data is GameBattleState {
+  return typeof data === 'object' && data !== null && (data as GameBattleState).__class__ === 'BattleRealmState';
+}
+
+/**
+ * A finished PvP battle the session player attacked in; anything else is null. Without `end` the start must carry
+ * the result (auto battle). With `end`, the final state of a manual battle, the result comes from there.
+ */
+export function toBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: GameBattleState): Battle | null {
+  if (!isOwnPvpBattle(b, me) || !b.state) return null;
+  const final = end ?? b.state;
+  const result = resultOf(final);
   if (!result) return null;
-  const units = b.state.unitsOrder ?? [];
   return {
     world,
-    battleId: b.battleId,
+    battleId: b.battleId as number,
     at: (b.startTime ?? 0) * 1000,
-    opponent: playerId(b.defenderPlayerId),
+    opponent: playerId(b.defenderPlayerId as number),
     result,
-    auto: b.isAutoBattle === true,
-    rounds: b.state.round ?? 0,
-    era: eraId(b.battleType.era ?? ''),
-    attacker: toSide(units, ATTACKER_TEAM),
-    defender: toSide(units, DEFENDER_TEAM),
+    auto: end ? false : b.isAutoBattle === true,
+    rounds: final.round ?? 0,
+    era: eraId(b.battleType?.era ?? ''),
+    attacker: toSide(b.state.unitsOrder ?? [], final.unitsOrder ?? [], ATTACKER_TEAM),
+    defender: toSide(b.state.unitsOrder ?? [], final.unitsOrder ?? [], DEFENDER_TEAM),
   };
 }

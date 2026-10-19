@@ -8,7 +8,16 @@ import type { Building } from '../stores/city-model';
 import type { PlayerObservation, PlayerStore } from '../stores/players';
 import type { SessionStore } from '../stores/session';
 import { toBuildingDef } from './building-defs';
-import { toBattle, toBuilding, toCity, toObservation, toSession, toVisitInfo } from './convert';
+import {
+  isBattleState,
+  isOwnPvpBattle,
+  toBattle,
+  toBuilding,
+  toCity,
+  toObservation,
+  toSession,
+  toVisitInfo,
+} from './convert';
 import type { GameBattle, GameCityEntity, GameEra, GameSocialList, GameStartup, GameVisit } from './game-types';
 
 export interface GameHandlerDeps {
@@ -62,10 +71,25 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     players.apply(world, observations(data), 'update');
   });
 
+  // A manual battle starts without a result. Its result comes with a later BattlefieldService response that is a
+  // battle state (seen: submitMove). Only the latest start counts, it is the battle on screen.
+  let running: GameBattle | null = null;
   ingestion.on('BattlefieldService', 'startByBattleType', ({ data }) => {
+    running = null;
     const me = session.current?.playerId;
-    const battle = me === undefined ? null : toBattle(world, data as GameBattle, me);
+    if (me === undefined) return;
+    const start = data as GameBattle;
+    const battle = toBattle(world, start, me);
     if (battle) battles.record(battle);
+    else if (isOwnPvpBattle(start, me)) running = start;
+  });
+  ingestion.onService('BattlefieldService', ({ method, data }) => {
+    const me = session.current?.playerId;
+    if (method === 'startByBattleType' || !running || me === undefined || !isBattleState(data)) return;
+    const battle = toBattle(world, running, me, data);
+    if (!battle) return;
+    battles.record(battle);
+    running = null;
   });
 
   const updateBuildings = ({ data }: { data: unknown }) => {

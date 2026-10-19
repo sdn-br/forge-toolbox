@@ -2,6 +2,8 @@
 # Usage: python3 -I scripts/make-fixture.py <recording.json> <player_id> <out.json>
 # Battle: python3 -I scripts/make-fixture.py battle <recording.json> <out.json>
 # keeps the first PvP battle and the opponent's updatePlayer, with fake ids and names.
+# Manual battle: python3 -I scripts/make-fixture.py manual-battle <recording.json> <out.json>
+# keeps the first PvP battle that starts without a result and the BattlefieldService response that ends it.
 
 import json,sys
 
@@ -36,8 +38,49 @@ def battle_fixture(rec,out):
         {'requestClass':'BattlefieldService','requestMethod':'startByBattleType','responseData':data}]}
     json.dump(fixture,open(out,'w'),indent=1)
 
+def manual_battle_fixture(rec,out):
+    ME,OPP,BATTLE=1000,1001,5002
+    batches=[json.loads(r['response']) for r in rec if r['kind']=='json']
+    batches=[b for b in batches if isinstance(b,list)]
+    def realm(e): return e.get('requestClass')=='BattlefieldService' and e['responseData']
+    start=end=None
+    for b in batches:
+        for e in b:
+            d=realm(e)
+            if not d: continue
+            if start is None and e['requestMethod']=='startByBattleType' and d.get('battleType',{}).get('type')=='pvp' and 'winnerBit' not in d['state']:
+                start=d
+            elif start is not None and d.get('__class__')=='BattleRealmState' and ('winnerBit' in d or 'surrenderBit' in d):
+                end,move,batch=d,e['requestMethod'],b; break
+        if end: break
+    ids={start['attackerPlayerId']:ME,start['defenderPlayerId']:OPP}
+    UNIT=('ownerId','teamFlag','unitTypeId','startHitpoints','currentHitpoints')
+    def unit(u):
+        o={k:u[k] for k in UNIT if k in u}
+        o['ownerId']=ids[u['ownerId']]
+        o['bonuses']=[{k:b[k] for k in ('type','value','__class__') if k in b} for b in u.get('bonuses',[])]
+        return o
+    def state(st):
+        o={k:st[k] for k in ('winnerBit','surrenderBit','round','__class__') if k in st}
+        o['unitsOrder']=[unit(u) for u in st['unitsOrder']]
+        return o
+    bt=start['battleType']
+    data={'battleId':BATTLE,'battleType':{'attackerPlayerId':ME,'defenderPlayerId':OPP,'era':bt['era'],'type':bt['type'],'__class__':bt.get('__class__')},
+      'attackerPlayerId':ME,'defenderPlayerId':OPP,'startTime':start['startTime'],'state':state(start['state']),'__class__':start.get('__class__')}
+    opp=next(p for e in batch if e.get('requestMethod')=='updatePlayer' for p in e['responseData'] if ids.get(p.get('player_id'))==OPP)
+    player={'player_id':OPP,'name':'Testgegner','avatar':'','city_name':'Gegnerstadt','era':opp.get('era'),'score':1,'rank':1,
+      'is_neighbor':True,'is_active':True,'clan_id':1,'clan':{'id':1,'name':'Testgilde'},'__class__':opp.get('__class__')}
+    fixture={'note':'Manual PvP battle recorded on de20 2026-10-19 (one manual move, then auto battle): the start and the response that ends it, players anonymized (me 1000, opponent 1001), unrelated entries and fields dropped.',
+      'me':ME,
+      'start':[{'requestClass':'BattlefieldService','requestMethod':'startByBattleType','responseData':data}],
+      'end':[{'requestClass':'OtherPlayerService','requestMethod':'updatePlayer','responseData':[player]},
+        {'requestClass':'BattlefieldService','requestMethod':move,'responseData':state(end)}]}
+    json.dump(fixture,open(out,'w'),indent=1)
+
 if sys.argv[1]=='battle':
     battle_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
+if sys.argv[1]=='manual-battle':
+    manual_battle_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
 rec=json.load(open(sys.argv[1])); target=int(sys.argv[2]); out=sys.argv[3]
 defs={}
 for r in rec:

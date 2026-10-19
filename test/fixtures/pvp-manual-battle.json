@@ -1,0 +1,523 @@
+{
+  "note": "Manual PvP battle recorded on de20 2026-10-19 (one manual move, then auto battle): the start and the response that ends it, players anonymized (me 1000, opponent 1001), unrelated entries and fields dropped.",
+  "me": 1000,
+  "start": [
+    {
+      "requestClass": "BattlefieldService",
+      "requestMethod": "startByBattleType",
+      "responseData": {
+        "battleId": 5002,
+        "battleType": {
+          "attackerPlayerId": 1000,
+          "defenderPlayerId": 1001,
+          "era": "ColonialAge",
+          "type": "pvp",
+          "__class__": "PvpBattleType"
+        },
+        "attackerPlayerId": 1000,
+        "defenderPlayerId": 1001,
+        "startTime": 1792438262,
+        "state": {
+          "__class__": "BattleRealmState",
+          "unitsOrder": [
+            {
+              "ownerId": 1001,
+              "teamFlag": 2,
+              "unitTypeId": "javeliner",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "defense_boost",
+                  "value": 6,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "defender_attack_boost",
+                  "value": 6,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1001,
+              "teamFlag": 2,
+              "unitTypeId": "javeliner",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "defense_boost",
+                  "value": 6,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "defender_attack_boost",
+                  "value": 6,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "grenadier",
+              "startHitpoints": 9,
+              "currentHitpoints": 9,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 135.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 233,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 134,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "grenadier",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 135.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 233,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 134,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "rogue",
+              "startHitpoints": 7,
+              "currentHitpoints": 7,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 135.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 233,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 134,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "rogue",
+              "startHitpoints": 9,
+              "currentHitpoints": 9,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 135.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 233,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 134,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "rogue",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 135.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 233,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 134,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "rogue",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 135.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 233,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 134,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "rogue",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 135.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 233,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 134,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "rogue",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 135.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 233,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 134,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            }
+          ]
+        },
+        "__class__": "BattleRealm"
+      }
+    }
+  ],
+  "end": [
+    {
+      "requestClass": "OtherPlayerService",
+      "requestMethod": "updatePlayer",
+      "responseData": [
+        {
+          "player_id": 1001,
+          "name": "Testgegner",
+          "avatar": "",
+          "city_name": "Gegnerstadt",
+          "era": "ColonialAge",
+          "score": 1,
+          "rank": 1,
+          "is_neighbor": true,
+          "is_active": true,
+          "clan_id": 1,
+          "clan": {
+            "id": 1,
+            "name": "Testgilde"
+          },
+          "__class__": "Player"
+        }
+      ]
+    },
+    {
+      "requestClass": "BattlefieldService",
+      "requestMethod": "submitMove",
+      "responseData": {
+        "winnerBit": 1,
+        "round": 1,
+        "__class__": "BattleRealmState",
+        "unitsOrder": [
+          {
+            "ownerId": 1001,
+            "teamFlag": 2,
+            "unitTypeId": "javeliner",
+            "startHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "defense_boost",
+                "value": 6,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "defender_attack_boost",
+                "value": 6,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": 1001,
+            "teamFlag": 2,
+            "unitTypeId": "javeliner",
+            "startHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "defense_boost",
+                "value": 6,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "defender_attack_boost",
+                "value": 6,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": 1000,
+            "teamFlag": 1,
+            "unitTypeId": "grenadier",
+            "startHitpoints": 9,
+            "currentHitpoints": 9,
+            "bonuses": [
+              {
+                "type": "military_boost",
+                "value": 135,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "attack_boost",
+                "value": 233,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "attacker_defense_boost",
+                "value": 134,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": 1000,
+            "teamFlag": 1,
+            "unitTypeId": "grenadier",
+            "startHitpoints": 10,
+            "currentHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "military_boost",
+                "value": 135,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "attack_boost",
+                "value": 233,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "attacker_defense_boost",
+                "value": 134,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": 1000,
+            "teamFlag": 1,
+            "unitTypeId": "rogue",
+            "startHitpoints": 7,
+            "currentHitpoints": 7,
+            "bonuses": [
+              {
+                "type": "military_boost",
+                "value": 135,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "attack_boost",
+                "value": 233,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "attacker_defense_boost",
+                "value": 134,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": 1000,
+            "teamFlag": 1,
+            "unitTypeId": "rogue",
+            "startHitpoints": 9,
+            "currentHitpoints": 9,
+            "bonuses": [
+              {
+                "type": "military_boost",
+                "value": 135,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "attack_boost",
+                "value": 233,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "attacker_defense_boost",
+                "value": 134,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": 1000,
+            "teamFlag": 1,
+            "unitTypeId": "rogue",
+            "startHitpoints": 10,
+            "currentHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "military_boost",
+                "value": 135,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "attack_boost",
+                "value": 233,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "attacker_defense_boost",
+                "value": 134,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": 1000,
+            "teamFlag": 1,
+            "unitTypeId": "rogue",
+            "startHitpoints": 10,
+            "currentHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "military_boost",
+                "value": 135,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "attack_boost",
+                "value": 233,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "attacker_defense_boost",
+                "value": 134,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": 1000,
+            "teamFlag": 1,
+            "unitTypeId": "rogue",
+            "startHitpoints": 10,
+            "currentHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "military_boost",
+                "value": 135,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "attack_boost",
+                "value": 233,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "attacker_defense_boost",
+                "value": 134,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": 1000,
+            "teamFlag": 1,
+            "unitTypeId": "rogue",
+            "startHitpoints": 10,
+            "currentHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "military_boost",
+                "value": 135,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "attack_boost",
+                "value": 233,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "attacker_defense_boost",
+                "value": 134,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
