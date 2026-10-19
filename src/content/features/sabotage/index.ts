@@ -1,4 +1,7 @@
+import type { PlayerId } from '../../../shared/ids';
+import type { Battle } from '../../../shared/model';
 import type { Feature } from '../../core/feature';
+import { logError } from '../../core/log';
 import { t } from '../../core/texts';
 import { assessCity } from '../../domain/assess-city';
 import { sabotageView } from './view';
@@ -21,6 +24,7 @@ export const sabotageFeature: Feature = {
     });
 
     let vm: SabotageVm | undefined;
+    let lastBattle: Battle | undefined;
     const box = ctx.createBox({
       id: 'sabotage',
       title: () => t('sabotage.title'),
@@ -42,13 +46,28 @@ export const sabotageFeature: Feature = {
         ctx.catalog,
         ctx.settings.get('sabotage.showArmy'),
         Date.now(),
+        lastBattle?.opponent === city.owner ? lastBattle : undefined,
       );
       box.update();
     };
 
-    ctx.bus.on('city.visited', () => {
+    const loadLastBattle = (owner: PlayerId) =>
+      ctx.battles.latest(owner).then(
+        (battle) => {
+          if (ctx.cities.visited()?.owner !== owner) return;
+          lastBattle = battle;
+          refresh();
+        },
+        (error) => logError('loading the last battle failed', error),
+      );
+
+    ctx.bus.on('city.visited', ({ owner }) => {
       refresh();
+      loadLastBattle(owner);
       if (ctx.settings.get('sabotage.autoOpen')) box.open();
+    });
+    ctx.bus.on('battle.recorded', ({ opponent }) => {
+      if (ctx.cities.visited()?.owner === opponent) loadLastBattle(opponent);
     });
     ctx.bus.on('city.visitedChanged', refresh);
     ctx.bus.on('catalog.updated', ({ defs }) => {

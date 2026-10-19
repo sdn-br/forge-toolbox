@@ -1,14 +1,32 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
+import type { ArmyValues } from '../../domain/assess-city';
 import type { PlunderItem, SabotageVm } from './view-model';
 
-const armyTable = (army: NonNullable<SabotageVm['army']>, repel: number) => html`
+const percent = (n: number) => `${formatNumber(n)} %`;
+
+const armyCells = (army: ArmyValues | undefined) =>
+  army
+    ? html`<td class="num">${percent(army.attack)}</td><td class="num">${percent(army.defense)}</td>`
+    : html`<td></td><td></td>`;
+
+function armyTable(army: NonNullable<SabotageVm['army']>, repel: number, measured: SabotageVm['measured']) {
+  const heads = html`<th class="num">${t('sabotage.attack')}</th><th class="num">${t('sabotage.defense')}</th>`;
+  return html`
   <table>
-    <tr><th></th><th class="num">${t('sabotage.attack')}</th><th class="num">${t('sabotage.defense')}</th></tr>
-    <tr><td>${t('sabotage.attacker')}</td><td class="num">${formatNumber(army.attacker.attack)} %</td><td class="num">${formatNumber(army.attacker.defense)} %</td></tr>
-    <tr><td>${t('sabotage.defender')}</td><td class="num">${formatNumber(army.defender.attack)} %</td><td class="num">${formatNumber(army.defender.defense)} %</td></tr>
-    <tr><td>${t('sabotage.plunderRepel')}</td><td class="num" colspan="2">${formatNumber(repel)} %</td></tr>
-  </table>`;
+    ${
+      measured
+        ? html`<tr><th></th><th class="num" colspan="2">${t('sabotage.calculated')}</th>
+            <th class="num" colspan="2">${t('sabotage.measured', { when: measured.when })}</th></tr>`
+        : ''
+    }
+    <tr><th></th>${heads}${measured ? heads : ''}</tr>
+    <tr><td>${t('sabotage.attacker')}</td>${armyCells(army.attacker)}${measured ? armyCells(undefined) : ''}</tr>
+    <tr><td>${t('sabotage.defender')}</td>${armyCells(army.defender)}${measured ? armyCells(measured.defender) : ''}</tr>
+    <tr><td>${t('sabotage.plunderRepel')}</td><td class="num" colspan="2">${percent(repel)}</td></tr>
+  </table>
+  ${measured ? html`<p class="muted">${t('sabotage.measuredHint')}</p>` : ''}`;
+}
 
 const plunderTable = (items: PlunderItem[]) =>
   html`<table>${items.map(
@@ -22,7 +40,7 @@ export function sabotageView(vm: SabotageVm | undefined): TemplateResult {
     <p><b>${vm.player.name}</b>${vm.player.guild ? html` <span class="muted">[${vm.player.guild}]</span>` : ''}
       <br /><span class="muted">${t('sabotage.era')}: ${vm.player.era}</span></p>
     ${vm.lootable ? '' : html`<p class="warn">${t('sabotage.notLootable')}</p>`}
-    ${vm.army ? armyTable(vm.army, vm.plunderRepel) : ''}
+    ${vm.army ? armyTable(vm.army, vm.plunderRepel, vm.measured) : ''}
     <h2>${t('sabotage.plunderable')}</h2>
     ${vm.ready.length === 0 ? html`<p class="muted">${t('sabotage.nothingPlunderable')}</p>` : plunderTable(vm.ready)}
     ${vm.producing.length === 0 ? '' : html`<h2>${t('sabotage.producing', { count: vm.producing.length })}</h2>${plunderTable(vm.producing)}`}
