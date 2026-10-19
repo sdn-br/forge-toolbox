@@ -21,6 +21,8 @@ export interface GameState {
   current_product?: GameProduct;
   productionOption?: GameProductionOption;
   is_motivated?: boolean;
+  /** set in visited cities, where is_motivated is missing */
+  socialInteractionId?: string;
   boosted?: boolean;
   invested_forge_points?: number;
   forge_points_for_level_up?: number;

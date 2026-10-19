@@ -54,6 +54,10 @@ function productOfOption(o: GameProductionOption | undefined): Product | undefin
   return Object.keys(guildGoods).length ? { resources, guildGoods } : { resources };
 }
 
+function motivated(s: GameState): boolean | undefined {
+  return s.socialInteractionId === 'motivate' ? true : s.is_motivated;
+}
+
 export function toState(s: GameState | undefined): BuildingState {
   const product = () => toProduct(s?.current_product) ?? productOfOption(s?.productionOption);
   switch (s?.__class__) {
@@ -64,11 +68,11 @@ export function toState(s: GameState | undefined): BuildingState {
         kind: 'producing',
         readyAt: seconds(s.next_state_transition_at),
         product: product(),
-        motivated: s.is_motivated,
+        motivated: motivated(s),
         boosted: s.boosted,
       };
     case 'ProductionFinishedState':
-      return { kind: 'finished', product: product(), motivated: s.is_motivated };
+      return { kind: 'finished', product: product(), motivated: motivated(s) };
     case 'PlunderedState':
       return { kind: 'plundered' };
     case 'UnconnectedState':

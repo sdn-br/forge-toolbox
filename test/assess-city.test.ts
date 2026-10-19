@@ -137,6 +137,21 @@ describe('assessCity rules', () => {
     expect(result.plunderable).toEqual([]);
   });
 
+  // a visited city marks motivation as a social interaction, not as is_motivated
+  it('protects buildings motivated in a visited city', () => {
+    const result = assessCity(
+      cityOf([
+        house(1, {
+          __class__: 'ProductionFinishedState',
+          socialInteractionId: 'motivate',
+          current_product: { product: { resources: { money: 20 } } },
+        }),
+      ]),
+      defs,
+    );
+    expect(result.plunderable).toEqual([]);
+  });
+
   it('takes the product of a generic building from its definition when the city does not tell', () => {
     const result = assessCity(
       cityOf([
