@@ -170,6 +170,7 @@ Features, die an Spielereignisse gebunden sind (GbG, Minispiele der Events), wer
 | 0 | Prototypen: Pop-out per Bild-im-Bild aus dem Content Script, Proxy im Seitenkontext übergibt aufgezeichnete Antworten an das Content Script |
 | 1 | Fundament (Shell, Proxy, Ingestion, Bus, Storage, Box, Menü, Settings) zusammen mit Sabotage als erstem echtem Feature |
 | 2 | Toolbox-Kern: PvP-Angriffe, Notizen, LG-Rechner mit Snipehilfe, Investitionen, Eigenanteilsrechner, Altdaten-Import, Sicherung und Export |
+| 2a | Design-Durchgang für das UI-Kit: Farben, Schrift, Abstände, Icons, Tabellen- und Kartenstil, Varianten live im Spiel. Bis dahin enthalten Features keine eigenen Styles. |
 | 3 | Stadt und Produktion |
 | 4 | Gilde: GbG, GEX, QI, Mitgliederstatistik, Alarme |
 | 5 | Statistik mit Chart-Komponente |
