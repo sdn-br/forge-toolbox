@@ -218,7 +218,7 @@ describe('assessCity rules', () => {
     expect(result.plunderable).toEqual([]);
   });
 
-  it('never lists medals', () => {
+  it('never lists a building whose production has medals', () => {
     const result = assessCity(
       cityOf([
         house(1, {
@@ -229,7 +229,7 @@ describe('assessCity rules', () => {
       ]),
       defs,
     );
-    expect(result.plunderable).toEqual([{ building: 1, name: 'Haus', resources: { money: 20 } }]);
+    expect(result.plunderable).toEqual([]);
   });
 
   it('counts only boosts for all features and none of unconnected buildings', () => {

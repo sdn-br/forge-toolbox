@@ -66,8 +66,8 @@ function givesBoosts(b: Building): boolean {
   return true;
 }
 
-/** no plunder seen with them; the Siegesturm, which only produces medals, can never be plundered */
-const NOT_PLUNDERABLE_RESOURCES = ['medals'];
+/** a building whose production at its level has medals can never be plundered (confirmed by the user) */
+const PROTECTING_RESOURCES = ['medals'];
 
 function plunderableOf(b: Building, def: BuildingDef, city: City): Plunderable | null {
   if (!def.flags.plunderable) return null;
@@ -77,9 +77,8 @@ function plunderableOf(b: Building, def: BuildingDef, city: City): Plunderable |
   if (def.flags.motivatable && s.motivated) return null;
   // a visited city sends no product for finished generic buildings, their definition knows it
   const product: Product | undefined = s.product ?? productFor(def, city.era);
-  const resources = Object.fromEntries(
-    Object.entries(product?.resources ?? {}).filter(([id, n]) => n > 0 && !NOT_PLUNDERABLE_RESOURCES.includes(id)),
-  );
+  const resources = Object.fromEntries(Object.entries(product?.resources ?? {}).filter(([, n]) => n > 0));
+  if (PROTECTING_RESOURCES.some((id) => id in resources)) return null;
   if (Object.keys(resources).length === 0) return null;
   return { building: b.id, name: def.name, resources };
 }
