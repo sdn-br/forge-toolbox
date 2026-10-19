@@ -55,4 +55,16 @@ describe('sabotage view model', () => {
     expect(vmOf(true).measured).toBeUndefined();
     expect(vmOf(false, battle).measured).toBeUndefined();
   });
+
+  it('lists the plunderable buildings with named resources', () => {
+    const vm = sabotageViewModel(
+      city,
+      undefined,
+      { ...assessment, plunderable: [{ building: 1, name: 'Haus', resources: { money: 20 } }] },
+      new CatalogStore(createBus()),
+      false,
+      now,
+    );
+    expect(vm.plunderable).toEqual([{ name: 'Haus', items: [{ label: 'Münzen', amount: 20 }] }]);
+  });
 });

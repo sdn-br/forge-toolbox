@@ -30,7 +30,7 @@ function armyTable(army: NonNullable<SabotageVm['army']>, repel: number, measure
 
 const plunderTable = (items: PlunderItem[]) =>
   html`<table>${items.map(
-    (p) => html`<tr><td>${p.name}${p.when ? html`<br /><span class="muted">${p.when}</span>` : ''}</td>
+    (p) => html`<tr><td>${p.name}</td>
     <td>${p.items.map((i) => html`${formatNumber(i.amount)} ${i.label}<br />`)}</td></tr>`,
   )}</table>`;
 
@@ -42,7 +42,10 @@ export function sabotageView(vm: SabotageVm | undefined): TemplateResult {
     ${vm.lootable ? '' : html`<p class="warn">${t('sabotage.notLootable')}</p>`}
     ${vm.army ? armyTable(vm.army, vm.plunderRepel, vm.measured) : ''}
     <h2>${t('sabotage.plunderable')}</h2>
-    ${vm.ready.length === 0 ? html`<p class="muted">${t('sabotage.nothingPlunderable')}</p>` : plunderTable(vm.ready)}
-    ${vm.producing.length === 0 ? '' : html`<h2>${t('sabotage.producing', { count: vm.producing.length })}</h2>${plunderTable(vm.producing)}`}
+    ${
+      vm.plunderable.length === 0
+        ? html`<p class="muted">${t('sabotage.nothingPlunderable')}</p>`
+        : plunderTable(vm.plunderable)
+    }
     ${vm.incomplete ? html`<p class="warn">${t('sabotage.incomplete')}</p>` : ''}`;
 }

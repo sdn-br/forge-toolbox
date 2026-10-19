@@ -9,7 +9,6 @@ import { de } from '../../texts/de';
 export interface PlunderItem {
   name: string;
   items: { label: string; amount: number }[];
-  when?: string;
 }
 
 export interface SabotageVm {
@@ -19,8 +18,7 @@ export interface SabotageVm {
   /** the defending army as the last own attack on this player met it; a battle never shows their attacking army */
   measured?: { defender: ArmyValues; when: string };
   plunderRepel: number;
-  ready: PlunderItem[];
-  producing: PlunderItem[];
+  plunderable: PlunderItem[];
   incomplete: boolean;
 }
 
@@ -45,7 +43,6 @@ export function sabotageViewModel(
   const item = (p: Plunderable): PlunderItem => ({
     name: p.name,
     items: Object.entries(p.resources).map(([id, amount]) => ({ label: resourceLabel(id, catalog), amount })),
-    when: p.readyAt === undefined ? undefined : t('sabotage.readyAt', { when: formatWhen(p.readyAt, now) }),
   });
   return {
     player: { name: player?.name ?? '', guild: player?.guild?.name, era: catalog.eraName(city.era) },
@@ -56,8 +53,7 @@ export function sabotageViewModel(
         ? { defender: measuredArmy(lastBattle).defender, when: formatWhen(lastBattle.at, now) }
         : undefined,
     plunderRepel: assessment.plunderRepel,
-    ready: assessment.plunderable.filter((p) => p.ready).map(item),
-    producing: assessment.plunderable.filter((p) => !p.ready).map(item),
+    plunderable: assessment.plunderable.map(item),
     incomplete: assessment.missingDefs.length > 0,
   };
 }

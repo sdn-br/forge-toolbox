@@ -25,11 +25,13 @@ function resources(v: unknown): Record<string, number> {
   return out;
 }
 
+/** What the first option yields without motivation; products marked `onlyWhenMotivated` need it. */
 function genericProduct(production: unknown): Product | undefined {
   const option = list(isObject(production) ? production.options : undefined)[0];
   if (!option) return undefined;
   const product: Product = { resources: {} };
   for (const p of list(option.products)) {
+    if (p.onlyWhenMotivated === true) continue;
     for (const [k, n] of Object.entries(resources(p.playerResources)))
       product.resources[k] = (product.resources[k] ?? 0) + n;
   }
@@ -75,6 +77,16 @@ function sizeOf(json: Json, components: Json | undefined): { width: number; leng
 }
 
 const NOT_PLUNDERABLE = ['AddResourcesToGuildTreasuryAbility', 'RandomChestRewardAbility', 'NotPlunderableAbility'];
+/**
+ * Bit of the generic `flags` component. Checked 2026-10-19: of all generic definitions seen, only Siegesturm and
+ * Wunschbrunnen (flags 23) carry it, plunderable ones like Zeitlose Kreuzung carry 19.
+ */
+const NOT_PLUNDERABLE_FLAG = 4;
+
+function componentFlags(components: Json | undefined): number {
+  const all = components && isObject(components.AllAge) ? components.AllAge : {};
+  return isObject(all.flags) && typeof all.flags.flags === 'number' ? all.flags.flags : 0;
+}
 const PLUNDERABLE_TYPES = ['production', 'goods', 'residential', 'clan_power_production'];
 
 export function toBuildingDef(json: unknown): BuildingDef | null {
@@ -137,7 +149,9 @@ export function toBuildingDef(json: unknown): BuildingDef | null {
 
   const type = typeof json.type === 'string' ? json.type : undefined;
   const excluded =
-    NOT_PLUNDERABLE.some(has) || abilities.some((a) => typeof a.gridId === 'string' && a.gridId !== 'main');
+    NOT_PLUNDERABLE.some(has) ||
+    (componentFlags(components) & NOT_PLUNDERABLE_FLAG) !== 0 ||
+    abilities.some((a) => typeof a.gridId === 'string' && a.gridId !== 'main');
   return {
     id: buildingDefId(json.id),
     name: typeof json.name === 'string' ? json.name : json.id,

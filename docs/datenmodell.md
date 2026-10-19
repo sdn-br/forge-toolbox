@@ -177,7 +177,7 @@ interface CityAssessment {
     defender: { attack: number; defense: number };
   };
   plunderRepel: number;
-  plunderable: { building: number; product: Product; readyAt?: number }[];
+  plunderable: { building: number; name: string; resources: Record<string, number> }[];  // nur fertige
   missingDefs: BuildingDefId[];   // noch nicht geladen, Bewertung unvollständig
 }
 ```
@@ -194,7 +194,31 @@ Geprüft an der eigenen Stadt gegen `BoostService.getAllBoosts`, das die Boosts 
 - **LG-Boni:** `military_boost` für die angreifende, `fierce_resistance` für die verteidigende Armee, `advanced_tactics` für beide. Gleiche Zuordnung wie im Forge Hammer.
 - **Nicht bekannt für fremde Städte:** Burgsystem-Bonus (bei der eigenen Stadt +6 auf beide Armeen) und Verbündete. Die alte Toolbox hat offenbar den eigenen Burgsystem-Bonus auf fremde Städte gerechnet.
 - **Echte Werte aus dem Kampf:** `BattlefieldService.startByBattleType` liefert je Einheit die tatsächlichen Boni beider Seiten (`attack_boost`, `attacker_defense_boost`, `defender_attack_boost`, `defense_boost`, dazu die LG-Typen). Beim Test gegen eine fremde Stadt lag die Berechnung rund 30 (Angriff) und 41 (Verteidigung) unter dem Spiel, vermutlich Burgsystem und Verbündete. Berechnete Werte vor einem Kampf sind daher eine Untergrenze. Die gemessenen Werte speichert der Battle-Store (siehe unten).
-- **Zeiten:** In fremden Städten verbirgt das Spiel alle Zeiten (`next_state_transition_at` und `_in` = 2147483647). Sicher plünderbar ist nur, was fertig ist.
+- **Zeiten:** In fremden Städten verbirgt das Spiel alle Zeiten (`next_state_transition_at` und `_in` = 2147483647). Gelistet wird deshalb nur, was fertig ist (`ProductionFinishedState`). Einen Abschnitt „In Produktion“ gibt es nicht, ohne Zeit sagt er nichts.
+
+### Plünderbarkeit (geprüft am 2026-10-19)
+
+Grundlage: Besuch einer Stadt auf de10 mit allen Gebäude-Definitionen (628 Gebäude), Besuch auf de20, je ein echtes Plündern (`OtherPlayerService.plunderById`) und Angaben eines erfahrenen Spielers.
+
+Ein Gebäude steht unter „Jetzt plünderbar“, wenn alles zutrifft:
+
+1. **Die Definition erlaubt es.** Klassische Definitionen: Typ `production`, `goods`, `residential` oder `clan_power_production`, keine der Fähigkeiten `AddResourcesToGuildTreasuryAbility`, `RandomChestRewardAbility`, `NotPlunderableAbility`, nur auf dem Hauptgitter. Generische Definitionen (`GenericCityEntity`): nur, wenn im Bauteil `AllAge.flags.flags` das Bit 4 fehlt.
+2. **Die Produktion ist fertig** (`ProductionFinishedState`).
+3. **Das Gebäude ist nicht motiviert** (`is_motivated`, in fremden Städten `socialInteractionId: 'motivate'`).
+4. **Es bleibt etwas übrig:** Medaillen zählen nicht.
+
+Woher das Produkt kommt:
+
+- Klassische Gebäude schicken es im Besuch als `current_product`. Alle 52 fertigen Wohnhäuser im de10-Besuch tun das.
+- Fertige generische Gebäude schicken im Besuch nie ein Produkt (6 von 6 im de10-Besuch, motiviert oder nicht). Das Produkt kommt dann aus der Definition: erste Produktionsoption im Zeitalter der Stadt, nur `playerResources`. Produkte mit `onlyWhenMotivated: true` fallen weg, denn sie entstehen nur mit Motivation, und ein motiviertes Gebäude ist geschützt. Boosts der Stadt fehlen, die Menge ist eine Untergrenze. `guildResources` (Gildenkasse) und zufällige Produkte (`random`, `genericReward`) tragen keine `playerResources` und zählen nicht.
+
+Belege:
+
+- **Bit 4 der Flags:** Unter den 32 generischen Definitionen aus beiden Aufnahmen, die `flags` tragen, tragen nur Siegesturm St. 1 und 2, Wunschbrunnen und Kleiner Wunschbrunnen den Wert 23 (Bit 4 gesetzt). Alle anderen tragen 19, darunter die Zeitlose Kreuzung, die laut Spieler plünderbar ist. Der Siegesturm ist laut Spieler nie plünderbar. Eine andere Markierung (Fähigkeit, Produkt-Flag, Typ) unterscheidet ihn nicht von plünderbaren Gebäuden: Typ-Tag `residential`, Produkt `resources` mit leeren `flags`. Was Bit 4 im Spiel heißt, ist nicht dokumentiert. Die Regel stützt sich nur auf diese Übereinstimmung.
+- **Medaillen:** Kein beobachtetes Plündern hat Medaillen gebracht. Der Siegesturm produziert nur Medaillen. Ob Medaillen anderer Gebäude (etwa Savannen-Zeltlager) plünderbar sind, ist nicht belegt. Sie werden deshalb nicht gelistet.
+- **Handelsposten:** Seine Definition gleicht der der Zeitlosen Kreuzung (Flags 19, `motivate`, Produkt ohne `onlyWhenMotivated`). Im de10-Besuch war er motiviert, das allein schließt ihn aus. Eine weitere Sperre findet sich in den Daten nicht.
+- **Plünderbar:** Wohnhaus mit 610 Münzen, geplündert 1.220 (doppelte Beute, de10). Domizil mit 110 Münzen, geplündert 110 (de20). Rosarium (klassisch, Typ `production`) und Zeitlose Kreuzung laut Spieler.
+- **Ergebnis de10-Besuch:** vorher 52 Einträge (50 fertige Wohnhäuser, dazu Siegesturm St. 1 und St. 2 unter „In Produktion“), danach 50, nur die fertigen Wohnhäuser.
 
 ## Battle (PvP-Angriffe)
 
