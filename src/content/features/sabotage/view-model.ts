@@ -1,5 +1,5 @@
 import type { Player } from '../../../shared/model';
-import { formatTime, type TextKey, t } from '../../core/texts';
+import { formatWhen, type TextKey, t } from '../../core/texts';
 import type { CityAssessment } from '../../domain/assess-city';
 import type { CatalogStore } from '../../stores/catalog';
 import type { VisitedCity } from '../../stores/cities';
@@ -47,7 +47,7 @@ export function sabotageViewModel(
       when:
         p.readyAt === undefined || p.readyAt <= now
           ? t('sabotage.ready')
-          : t('sabotage.readyAt', { time: formatTime(p.readyAt) }),
+          : t('sabotage.readyAt', { when: formatWhen(p.readyAt, now) }),
     })),
     incomplete: assessment.missingDefs.length > 0,
     setsIgnored: assessment.ignoresSetsAndChains,

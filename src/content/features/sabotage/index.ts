@@ -24,7 +24,7 @@ export const sabotageFeature: Feature = {
     const box = ctx.createBox({
       id: 'sabotage',
       title: () => t('sabotage.title'),
-      width: 360,
+      width: 400,
       render: () => sabotageView(vm),
     });
 

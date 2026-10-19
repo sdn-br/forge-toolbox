@@ -22,7 +22,7 @@ export const de = {
   'sabotage.plunderable': 'Plünderbar',
   'sabotage.nothingPlunderable': 'Nichts Plünderbares.',
   'sabotage.ready': 'fertig',
-  'sabotage.readyAt': 'fertig um {time}',
+  'sabotage.readyAt': 'fertig {when}',
   'sabotage.notLootable': 'Diese Stadt kannst du nicht plündern.',
   'sabotage.incomplete': 'Noch nicht alle Gebäudedaten geladen, Werte können fehlen.',
   'sabotage.guild': 'Gilde',
@@ -32,6 +32,14 @@ export const de = {
   'resource.strategy_points': 'Forge-Punkte',
   'resource.medals': 'Medaillen',
   'resource.premium': 'Diamanten',
+  'resource.all_goods_of_age': 'je Gut des Zeitalters',
+  'resource.all_goods_of_previous_age': 'je Gut des Vorzeitalters',
+  'resource.all_goods_of_next_age': 'je Gut des nächsten Zeitalters',
+  'resource.random_good_of_age': 'zufällige Güter des Zeitalters',
+  'resource.random_good_of_previous_age': 'zufällige Güter des Vorzeitalters',
+  'resource.random_good_of_next_age': 'zufällige Güter des nächsten Zeitalters',
+  'time.today': 'heute {time}',
+  'time.tomorrow': 'morgen {time}',
   'sabotage.setsIgnored': 'Set- und Kettenboni sind noch nicht eingerechnet.',
 } as const;
 
