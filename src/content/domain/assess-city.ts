@@ -75,10 +75,12 @@ function plunderableOf(b: Building, def: BuildingDef, city: City): Plunderable |
   if (s.kind !== 'finished') return null;
   // a motivated building is protected against plundering
   if (def.flags.motivatable && s.motivated) return null;
-  // a visited city sends no product for finished generic buildings, their definition knows it
-  const product: Product | undefined = s.product ?? productFor(def, city.era);
-  const resources = Object.fromEntries(Object.entries(product?.resources ?? {}).filter(([, n]) => n > 0));
-  if (PROTECTING_RESOURCES.some((id) => id in resources)) return null;
+  // checked in the game: without a product in the visit there is nothing to plunder
+  if (!s.product) return null;
+  const resources = Object.fromEntries(Object.entries(s.product.resources ?? {}).filter(([, n]) => n > 0));
+  // the definition also knows medals the visit may leave out
+  const levelProduct = { ...productFor(def, city.era)?.resources, ...resources };
+  if (PROTECTING_RESOURCES.some((id) => (levelProduct[id] ?? 0) > 0)) return null;
   if (Object.keys(resources).length === 0) return null;
   return { building: b.id, name: def.name, resources };
 }

@@ -191,14 +191,23 @@ describe('assessCity rules', () => {
   });
 
   // a visited city sends no current_product for finished generic buildings
-  it('takes the product of a finished generic building from its definition', () => {
+  // checked in the game: a finished generic building the visit sends without a product has nothing to plunder
+  it('never lists a finished building the visit sends without a product', () => {
     const result = assessCity(cityOf([generic(1, { __class__: 'ProductionFinishedState' })]), defs);
-    expect(result.plunderable[0]?.resources).toEqual({ strategy_points: 5 });
+    expect(result.plunderable).toEqual([]);
   });
 
-  it('leaves out products that only come with motivation', () => {
-    const result = assessCity(cityOf([generic(1, { __class__: 'ProductionFinishedState' }, 'G_Test_Event')]), defs);
-    expect(result.plunderable[0]?.resources).toEqual({ all_goods_of_age: 10 });
+  it('lists a finished generic building with the product the visit sends', () => {
+    const result = assessCity(
+      cityOf([
+        generic(1, {
+          __class__: 'ProductionFinishedState',
+          current_product: { product: { resources: { strategy_points: 7 } } },
+        }),
+      ]),
+      defs,
+    );
+    expect(result.plunderable[0]?.resources).toEqual({ strategy_points: 7 });
   });
 
   it('never lists generic buildings that cannot be motivated', () => {

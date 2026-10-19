@@ -210,7 +210,7 @@ Ein Gebäude steht unter „Jetzt plünderbar“, wenn alles zutrifft:
 Woher das Produkt kommt:
 
 - Klassische Gebäude schicken es im Besuch als `current_product`. Alle 52 fertigen Wohnhäuser im de10-Besuch tun das.
-- Fertige generische Gebäude schicken im Besuch nie ein Produkt (6 von 6 im de10-Besuch, motiviert oder nicht). Das Produkt kommt dann aus der Definition: erste Produktionsoption im Zeitalter der Stadt, nur `playerResources`. Produkte mit `onlyWhenMotivated: true` fallen weg, denn sie entstehen nur mit Motivation, und ein motiviertes Gebäude ist geschützt. Boosts der Stadt fehlen, die Menge ist eine Untergrenze. `guildResources` (Gildenkasse) und zufällige Produkte (`random`, `genericReward`) tragen keine `playerResources` und zählen nicht.
+- Fertige generische Gebäude schickt der Besuch oft ohne Produkt. Dann gibt es nichts zu plündern, geprüft im Spiel am Keltischen Goldschmied St. 5 (fertig, nicht motiviert, ohne Produkt, im Spiel nichts zu holen). Die alte Toolbox listet solche Gebäude ebenfalls nicht. Die Definition dient nur noch dazu, Medaillen der Stufe zu erkennen.
 
 Belege:
 
