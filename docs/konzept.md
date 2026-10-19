@@ -238,10 +238,29 @@ Querschnitt aus der FoE Toolbox, der in die passenden Features eingeht: Fenster 
 - `api.foe-rechner.de` nur nach Double-Opt-In, nur über den Service Worker.
 - Discord-Webhooks und eigene Server nur mit URLs, die der Nutzer einträgt.
 
+## Ergebnisse Phase 0
+
+Prototyp `prototypes/phase-0`, getestet am 2026-10-19 in Chrome auf de20, parallel zur FoE Toolbox 2.0.
+
+| Frage | Ergebnis |
+|---|---|
+| Proxy-Übergabe | Funktioniert. Das Content Script ist vor der ersten Spielantwort bereit, `StartupService.getData` und `visitPlayer` kommen an. Übergabe per `postMessage` meist 0,1 bis 0,3 ms, beim Spielstart Spitzen bis 84 ms, weil der Hauptthread mit dem Spiel beschäftigt ist. Datenmenge beim Start rund 2,3 MB, größter Brocken `OutpostService.getAll` mit 1,4 MB. |
+| Pop-out | Bild-im-Bild und `window.open` gehen direkt aus dem Content Script. Box im Shadow DOM zieht mit, Styles greifen, lit-html rendert weiter, Klicks kommen an, beim Schließen kehrt die Box ins Spiel zurück. |
+| Speicher | Aufwecken des Service Workers 93 bis 107 ms. Kleine Zugriffe 0,5 bis 1,3 ms. 5.000 Zeilen schreiben rund 115 ms, lesen rund 25 ms, je in einer Nachricht. |
+| Aufnahme | Mitschnitt als JSON klappt (21 Nachrichten, 61 verschiedene Service-Methoden, 2,9 MB). Taugt als Grundlage für Fixtures. |
+
+Folgerungen:
+
+- Die Architektur trägt, kein Helfer im Seitenkontext nötig außer dem Proxy.
+- Styles werden per Shadow DOM gekapselt.
+- Gebaut wird mit esbuild (ein Bundle je Einstiegspunkt, kein Dev-Server nötig). TypeScript prüft getrennt mit `tsc --noEmit`.
+- Rendern darf nicht am `requestAnimationFrame` des Spielfensters hängen. Ist der Spiel-Tab im Hintergrund, drosselt Chrome ihn, und ein offenes Pop-out würde nicht mehr aktualisiert. Das Fundament plant Renders über das Fenster, in dem die Box gerade steckt (noch nicht getestet).
+- Schreiben in die DB immer gesammelt, nicht Zeile für Zeile per Nachricht.
+- `postMessage` sieht auch das Spiel. Der Proxy liest ohnehin im Seitenkontext mit, daraus entsteht kein neues Risiko. Fremde Seitenskripte könnten aber Nachrichten fälschen, Parser müssen Eingaben prüfen.
+- Aufnahmen enthalten private Spieldaten. Fixtures werden vor dem Commit auf das Nötige gekürzt und anonymisiert.
+
 ## Offene Punkte
 
-- Pop-out per Bild-im-Bild aus dem Content Script möglich? (Prototyp)
-- Build-Werkzeug (Vorschlag Vite) und Test-Framework.
-- Styles per Shadow DOM kapseln oder per Präfix?
+- Test-Framework.
 - Datenmodell der ersten Stores (Player, City) im Detail.
 - Repo auf GitHub (`sdn-br/forge-toolbox`) anlegen.
