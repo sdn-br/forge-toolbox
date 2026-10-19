@@ -43,6 +43,13 @@ export function opponentsFor(filter: PvpFilter, players: Player[]): PlayerId[] |
 
 export const pageCount = (total: number) => Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+// a surrender before the first round has ended reports no rounds
+function battleKind(b: Battle): string {
+  if (b.auto) return t('pvp.auto');
+  if (b.rounds === 0) return t('pvp.manual');
+  return b.rounds === 1 ? t('pvp.round') : t('pvp.rounds', { count: b.rounds });
+}
+
 export function pvpViewModel(input: {
   battles: Battle[];
   total: number;
@@ -63,7 +70,7 @@ export function pvpViewModel(input: {
         name: nameOf(b.opponent),
         when: formatWhen(b.at, now),
         result: t(`pvp.${b.result}`),
-        battle: b.auto ? t('pvp.auto') : t('pvp.rounds', { count: b.rounds }),
+        battle: battleKind(b),
         attacker: army.attacker,
         defender: army.defender,
       };
