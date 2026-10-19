@@ -9,6 +9,7 @@ import { connectProxy } from './core/proxy-link';
 import { Recorder } from './core/recorder';
 import { callBackground } from './core/rpc';
 import { Settings } from './core/settings';
+import { pvpFeature } from './features/pvp';
 import { sabotageFeature } from './features/sabotage';
 import { settingsFeature } from './features/settings-feature';
 import { registerGameHandlers } from './game/handlers';
@@ -20,7 +21,7 @@ import { SessionStore } from './stores/session';
 import { Menu } from './ui/menu';
 import { UiState } from './ui/ui-state';
 
-const features: Feature[] = [sabotageFeature, settingsFeature];
+const features: Feature[] = [sabotageFeature, pvpFeature, settingsFeature];
 
 async function main() {
   const world = worldId(location.hostname.split('.')[0] ?? 'unknown');
