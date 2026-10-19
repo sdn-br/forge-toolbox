@@ -1,4 +1,5 @@
 import type { WorldId } from '../../shared/ids';
+import type { CatalogStore } from '../stores/catalog';
 import type { CityStore } from '../stores/cities';
 import type { PlayerStore } from '../stores/players';
 import type { SessionStore } from '../stores/session';
@@ -18,6 +19,7 @@ export interface FeatureContext {
   session: SessionStore;
   players: PlayerStore;
   cities: CityStore;
+  catalog: CatalogStore;
   recorder: Recorder;
   createBox(options: BoxOptions): Box;
 }

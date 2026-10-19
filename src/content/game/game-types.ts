@@ -80,6 +80,12 @@ export interface GameUserData {
 export interface GameStartup {
   user_data?: GameUserData;
   city_map?: GameCityMap;
+  goodsList?: { id?: string; name?: string }[];
+}
+
+export interface GameEra {
+  era?: string;
+  name?: string;
 }
 
 export interface GameSocialList {

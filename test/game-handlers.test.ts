@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import { Ingestion } from '../src/content/core/ingestion';
 import { registerGameHandlers } from '../src/content/game/handlers';
+import { CatalogStore } from '../src/content/stores/catalog';
 import { CityStore } from '../src/content/stores/cities';
 import { PlayerStore } from '../src/content/stores/players';
 import { SessionStore } from '../src/content/stores/session';
@@ -13,7 +14,14 @@ function setup() {
   const session = new SessionStore(bus);
   const players = new PlayerStore(bus, { load: async () => [], put: async () => {} });
   const cities = new CityStore(bus);
-  registerGameHandlers(ingestion, { world: worldId('de20'), now: () => 1_000_000, session, players, cities });
+  registerGameHandlers(ingestion, {
+    world: worldId('de20'),
+    now: () => 1_000_000,
+    session,
+    players,
+    cities,
+    catalog: new CatalogStore(bus),
+  });
   const events: string[] = [];
   bus.on('city.visited', () => events.push('visited'));
   bus.on('city.visitedChanged', () => events.push('visitedChanged'));

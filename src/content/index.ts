@@ -9,15 +9,17 @@ import { connectProxy } from './core/proxy-link';
 import { Recorder } from './core/recorder';
 import { callBackground } from './core/rpc';
 import { Settings } from './core/settings';
+import { sabotageFeature } from './features/sabotage';
 import { settingsFeature } from './features/settings-feature';
 import { registerGameHandlers } from './game/handlers';
+import { CatalogStore } from './stores/catalog';
 import { CityStore } from './stores/cities';
 import { PlayerStore } from './stores/players';
 import { SessionStore } from './stores/session';
 import { Menu } from './ui/menu';
 import { UiState } from './ui/ui-state';
 
-const features: Feature[] = [settingsFeature];
+const features: Feature[] = [sabotageFeature, settingsFeature];
 
 async function main() {
   const world = worldId(location.hostname.split('.')[0] ?? 'unknown');
@@ -32,10 +34,11 @@ async function main() {
     put: (rows) => callBackground('players.put', { rows }),
   });
   const cities = new CityStore(bus);
+  const catalog = new CatalogStore(bus);
   const recorder = new Recorder();
   const menu = new Menu();
 
-  registerGameHandlers(ingestion, { world, now, session, players, cities });
+  registerGameHandlers(ingestion, { world, now, session, players, cities, catalog });
   // the proxy buffers game traffic until we connect, so loading first loses nothing
   await Promise.all([
     settings.load(),
@@ -51,6 +54,7 @@ async function main() {
     session,
     players,
     cities,
+    catalog,
     recorder,
     createBox: boxFactory(ui),
   };

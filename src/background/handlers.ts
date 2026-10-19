@@ -9,9 +9,5 @@ export function createHandlers(db: ToolboxDb): Handlers {
     'players.put': async ({ rows }) => {
       await db.players.bulkPut(rows);
     },
-    'defs.load': () => db.buildingDefs.toArray(),
-    'defs.put': async ({ rows }) => {
-      await db.buildingDefs.bulkPut(rows);
-    },
   };
 }

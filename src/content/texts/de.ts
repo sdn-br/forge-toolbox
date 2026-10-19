@@ -27,6 +27,12 @@ export const de = {
   'sabotage.incomplete': 'Noch nicht alle Gebäudedaten geladen, Werte können fehlen.',
   'sabotage.guild': 'Gilde',
   'sabotage.era': 'Zeitalter',
+  'resource.money': 'Münzen',
+  'resource.supplies': 'Vorräte',
+  'resource.strategy_points': 'Forge-Punkte',
+  'resource.medals': 'Medaillen',
+  'resource.premium': 'Diamanten',
+  'sabotage.setsIgnored': 'Set- und Kettenboni sind noch nicht eingerechnet.',
 } as const;
 
 export type TextKey = keyof typeof de;
