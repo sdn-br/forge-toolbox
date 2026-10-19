@@ -82,7 +82,8 @@ describe('recording battles', () => {
       opponent,
       result: 'won',
       auto: true,
-      rounds: 2,
+      // the game counts rounds from 0 and omits the field in the first round
+      rounds: 3,
       era: 'ColonialAge',
     });
     expect(b?.attacker.bonuses).toEqual({ military_boost: 135, attack_boost: 233, attacker_defense_boost: 134 });
@@ -138,6 +139,12 @@ describe('recording battles', () => {
     expect(await later.count()).toBe(1);
   });
 
+  it('counts a battle that ended in the first round, where the game omits the round, as one round', async () => {
+    const { battles, send } = setup();
+    send(batchWith({ battleId: 4 }, { surrenderBit: 1, winnerBit: undefined, round: undefined }));
+    expect((await battles.list({ limit: 1, offset: 0 }))[0]?.rounds).toBe(1);
+  });
+
   it('maps lost and surrendered battles and skips battles without a result', async () => {
     const { battles, send } = setup();
     send(batchWith({ battleId: 1 }, { winnerBit: 2 }));
@@ -173,7 +180,7 @@ describe('recording manual battles', () => {
       opponent,
       result: 'won',
       auto: false,
-      rounds: 1,
+      rounds: 2,
       era: 'ColonialAge',
     });
     expect(b?.attacker.units).toHaveLength(8);

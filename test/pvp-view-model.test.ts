@@ -52,16 +52,16 @@ describe('pvp view model', () => {
     expect(vm).toMatchObject({ page: 0, pages: 1, empty: undefined, picked: undefined });
   });
 
-  it('names one round in singular and a surrender before the first round as manual', () => {
+  it('names one round in singular', () => {
     const vm = pvpViewModel({
-      battles: [battle(1, 1001, { auto: false, rounds: 1 }), battle(2, 1001, { auto: false, rounds: 0 })],
+      battles: [battle(1, 1001, { auto: false, rounds: 1 }), battle(2, 1001, { auto: false, rounds: 4 })],
       total: 2,
       page: 0,
       filter: { text: '' },
       name,
       now,
     });
-    expect(vm.rows.map((r) => r.battle)).toEqual(['1 Runde', 'manuell']);
+    expect(vm.rows.map((r) => r.battle)).toEqual(['1 Runde', '4 Runden']);
   });
 
   it('tells no battles from no match and names the picked player', () => {

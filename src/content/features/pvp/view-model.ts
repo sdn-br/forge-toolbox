@@ -43,10 +43,8 @@ export function opponentsFor(filter: PvpFilter, players: Player[]): PlayerId[] |
 
 export const pageCount = (total: number) => Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-// a surrender before the first round has ended reports no rounds
 function battleKind(b: Battle): string {
   if (b.auto) return t('pvp.auto');
-  if (b.rounds === 0) return t('pvp.manual');
   return b.rounds === 1 ? t('pvp.round') : t('pvp.rounds', { count: b.rounds });
 }
 

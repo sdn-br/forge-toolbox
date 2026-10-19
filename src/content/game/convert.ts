@@ -232,7 +232,8 @@ export function toBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: Game
     opponent: playerId(b.defenderPlayerId as number),
     result,
     auto: end ? false : b.isAutoBattle === true,
-    rounds: final.round ?? 0,
+    // the game counts rounds from 0 and omits the field while it is 0
+    rounds: (final.round ?? 0) + 1,
     era: eraId(b.battleType?.era ?? ''),
     attacker: toSide(b.state.unitsOrder ?? [], final.unitsOrder ?? [], ATTACKER_TEAM),
     defender: toSide(b.state.unitsOrder ?? [], final.unitsOrder ?? [], DEFENDER_TEAM),

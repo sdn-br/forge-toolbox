@@ -234,7 +234,7 @@ interface Battle {
   opponent: PlayerId;           // der Verteidiger
   result: BattleResult;
   auto: boolean;
-  rounds: number;
+  rounds: number;               // gespielte Runden, ab 1
   era: EraId;                   // Zeitalter des Kampfes
   attacker: BattleSide;         // die eigene Armee
   defender: BattleSide;
@@ -255,6 +255,7 @@ interface BattleSide {
 - Ergebnis: `surrenderBit` gesetzt ergibt `surrendered`, `winnerBit` 1 ergibt `won`, ein anderer `winnerBit` ergibt `lost`.
 - **Autokampf:** Das Ergebnis steht schon in `startByBattleType` (`isAutoBattle` true). Der Kampf wird sofort gespeichert.
 - **Manueller Kampf:** `startByBattleType` kommt ohne `winnerBit` und ohne `isAutoBattle`. Der Kampf wartet dann im Speicher, nur der zuletzt gestartete (der Kampf auf dem Bildschirm). Jede weitere Antwort des `BattlefieldService`, die ein `BattleRealmState` ist (gesehen: `submitMove`, ohne `battleId`), schließt ihn ab, sobald sie `winnerBit` oder `surrenderBit` trägt. Ergebnis, Runden und `endHp` kommen aus diesem Endzustand, die Boni aus dem Start (fehlen sie dort, aus dem Endzustand). Gespeichert wird mit `auto: false`. Ein Zug ohne Ergebnis lässt den Kampf warten. Ein neuer `startByBattleType` ersetzt den wartenden Kampf, auch wenn er kein eigener PvP-Kampf ist. Ein Zug ohne wartenden Kampf wird ignoriert.
+- **Runden:** Das Spiel zählt `round` ab 0 und lässt das Feld weg, solange es 0 ist (geprüft an einem manuellen Kampf über vier Runden: Feld fehlt in den ersten 7 Zügen, dann 1, 2, 3). Gespeichert wird `round` + 1. Aufgeben (`BattlefieldService.surrender`) liefert einen `BattleRealmState` mit `surrenderBit` und ohne `winnerBit`.
 - Geprüft am 2026-10-19 an der Aufnahme des manuellen Kampfes: genau ein `submitMove`, mit `winnerBit` 1 und `round` 1. Die Boni aller Einheiten sind dort dieselben wie im Start. Toten Einheiten fehlt `currentHitpoints` auch im Endzustand.
 - Ein Kampf, der wartet, geht bei einem Neuladen verloren.
 - Derselbe Kampf zweimal gesehen wird einmal gespeichert (Schlüssel `[world+battleId]`).

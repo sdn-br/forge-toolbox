@@ -55,7 +55,6 @@ export const de = {
   'pvp.auto': 'Autokampf',
   'pvp.rounds': '{count} Runden',
   'pvp.round': '1 Runde',
-  'pvp.manual': 'manuell',
   'pvp.page': 'Seite {page} von {pages}',
   'pvp.previous': 'Zurück',
   'pvp.next': 'Weiter',
