@@ -64,6 +64,7 @@ const defs = lookup([
     __class__: 'GenericCityEntity',
     abilities: [],
     components: {
+      AllAge: { socialInteraction: { interactionType: 'motivate' } },
       IndustrialAge: {
         production: { options: [{ products: [{ playerResources: { resources: { strategy_points: 5 } } }] }] },
         boosts: {
@@ -82,14 +83,14 @@ const defs = lookup([
     abilities: [{ __class__: 'AddResourcesToGuildTreasuryAbility' }],
     components: {},
   },
-  // shaped like the Siegesturm: the game sets bit 4 of the flags component (23) on it, plunderable ones carry 19
+  // shaped like the Siegesturm, Wunschbrunnen or Druidentempel: a generic building that cannot be motivated
   {
     id: 'G_Test_Tower',
     name: 'Turm',
     __class__: 'GenericCityEntity',
     abilities: [],
     components: {
-      AllAge: { flags: { flags: 23 } },
+      AllAge: { flags: { flags: 19 } },
       IndustrialAge: {
         production: { options: [{ products: [{ playerResources: { resources: { money: 100 } } }] }] },
       },
@@ -200,7 +201,7 @@ describe('assessCity rules', () => {
     expect(result.plunderable[0]?.resources).toEqual({ all_goods_of_age: 10 });
   });
 
-  it('never lists buildings the definition flags as not plunderable', () => {
+  it('never lists generic buildings that cannot be motivated', () => {
     const result = assessCity(
       cityOf([
         generic(1, { __class__: 'ProductionFinishedState' }, 'G_Test_Tower'),

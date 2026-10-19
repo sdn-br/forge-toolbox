@@ -202,7 +202,7 @@ Grundlage: Besuch einer Stadt auf de10 mit allen Gebäude-Definitionen (628 Geb�
 
 Ein Gebäude steht unter „Jetzt plünderbar“, wenn alles zutrifft:
 
-1. **Die Definition erlaubt es.** Klassische Definitionen: Typ `production`, `goods`, `residential` oder `clan_power_production`, keine der Fähigkeiten `AddResourcesToGuildTreasuryAbility`, `RandomChestRewardAbility`, `NotPlunderableAbility`, nur auf dem Hauptgitter. Generische Definitionen (`GenericCityEntity`): nur, wenn im Bauteil `AllAge.flags.flags` das Bit 4 fehlt.
+1. **Die Definition erlaubt es.** Klassische Definitionen: Typ `production`, `goods`, `residential` oder `clan_power_production`, keine der Fähigkeiten `AddResourcesToGuildTreasuryAbility`, `RandomChestRewardAbility`, `NotPlunderableAbility`, nur auf dem Hauptgitter. Generische Definitionen (`GenericCityEntity`): nur, wenn das Gebäude motivierbar ist (`socialInteraction` mit `interactionType: 'motivate'` oder `MotivatableAbility`).
 2. **Die Produktion ist fertig** (`ProductionFinishedState`).
 3. **Das Gebäude ist nicht motiviert** (`is_motivated`, in fremden Städten `socialInteractionId: 'motivate'`).
 4. **Keine Medaillen:** Hat die Produktion des Gebäudes in seiner Stufe Medaillen, ist das ganze Gebäude nie plünderbar. Sonst muss etwas zu holen sein.
@@ -214,8 +214,8 @@ Woher das Produkt kommt:
 
 Belege:
 
-- **Bit 4 der Flags:** Unter den 32 generischen Definitionen aus beiden Aufnahmen, die `flags` tragen, tragen nur Siegesturm St. 1 und 2, Wunschbrunnen und Kleiner Wunschbrunnen den Wert 23 (Wunschbrunnen laut Spieler nie plünderbar) (Bit 4 gesetzt). Alle anderen tragen 19, darunter die Zeitlose Kreuzung, die laut Spieler plünderbar ist. Der Siegesturm ist laut Spieler nie plünderbar. Eine andere Markierung (Fähigkeit, Produkt-Flag, Typ) unterscheidet ihn nicht von plünderbaren Gebäuden: Typ-Tag `residential`, Produkt `resources` mit leeren `flags`. Was Bit 4 im Spiel heißt, ist nicht dokumentiert. Die Regel stützt sich nur auf diese Übereinstimmung.
-- **Medaillen:** Laut Spieler sind Gebäude, die in ihrer Stufe Medaillen produzieren, nie plünderbar. Manche Gebäude waren deshalb ab einer bestimmten Stufe nicht mehr plünderbar. Jede Stufe ist eine eigene Definition, die Regel greift also je Stufe. Offen: Medaillen, die nur mit Motivation entstehen (`onlyWhenMotivated`), fallen beim Produkt aus der Definition heraus und schützen das Gebäude deshalb nicht.
+- **Motivierbarkeit:** Laut Spieler sind nicht motivierbare Spezialgebäude nie plünderbar, schon ab Stufe 1: Siegesturm, Wunschbrunnen, Druidentempel, Piratenversteck, Goldenes Orrery. In der de10-Aufnahme sind das genau die 6 generischen Produktionsgebäude ohne `motivate`. Alle 18 motivierbaren (etwa Handelsposten, Yggdrasil, Adlerberg) sind unmotiviert plünderbar. Ein Kennzeichen im Bauteil `flags` (Wert 23 statt 19) trifft nur Siegesturm und Wunschbrunnen und reicht deshalb nicht.
+- **Medaillen:** Laut Spieler sind Gebäude, die in ihrer Stufe Medaillen produzieren, nie plünderbar. Manche Gebäude waren deshalb ab einer bestimmten Stufe nicht mehr plünderbar. Jede Stufe ist eine eigene Definition, die Regel greift also je Stufe. Medaillen, die nur mit Motivation entstehen (`onlyWhenMotivated`, etwa Yggdrasil St. 9, Adlerberg, Fiore-Dorf St. 10), schützen nicht: Diese Gebäude sind laut Spieler unmotiviert plünderbar.
 - **Handelsposten:** Seine Definition gleicht der der Zeitlosen Kreuzung (Flags 19, `motivate`, Produkt ohne `onlyWhenMotivated`). Im de10-Besuch war er motiviert, das allein schließt ihn aus. Laut Spieler ist er unmotiviert plünderbar.
 - **Plünderbar:** Wohnhaus mit 610 Münzen, geplündert 1.220 (doppelte Beute, de10). Domizil mit 110 Münzen, geplündert 110 (de20). Rosarium (klassisch, Typ `production`) und Zeitlose Kreuzung laut Spieler.
 - **Ergebnis de10-Besuch:** vorher 52 Einträge (50 fertige Wohnhäuser, dazu Siegesturm St. 1 und St. 2 unter „In Produktion“), danach 50, nur die fertigen Wohnhäuser.

@@ -77,16 +77,6 @@ function sizeOf(json: Json, components: Json | undefined): { width: number; leng
 }
 
 const NOT_PLUNDERABLE = ['AddResourcesToGuildTreasuryAbility', 'RandomChestRewardAbility', 'NotPlunderableAbility'];
-/**
- * Bit of the generic `flags` component. Checked 2026-10-19: of all generic definitions seen, only Siegesturm and
- * Wunschbrunnen (flags 23) carry it, plunderable ones like Zeitlose Kreuzung carry 19.
- */
-const NOT_PLUNDERABLE_FLAG = 4;
-
-function componentFlags(components: Json | undefined): number {
-  const all = components && isObject(components.AllAge) ? components.AllAge : {};
-  return isObject(all.flags) && typeof all.flags.flags === 'number' ? all.flags.flags : 0;
-}
 const PLUNDERABLE_TYPES = ['production', 'goods', 'residential', 'clan_power_production'];
 
 export function toBuildingDef(json: unknown): BuildingDef | null {
@@ -149,18 +139,18 @@ export function toBuildingDef(json: unknown): BuildingDef | null {
 
   const type = typeof json.type === 'string' ? json.type : undefined;
   const excluded =
-    NOT_PLUNDERABLE.some(has) ||
-    (componentFlags(components) & NOT_PLUNDERABLE_FLAG) !== 0 ||
-    abilities.some((a) => typeof a.gridId === 'string' && a.gridId !== 'main');
+    NOT_PLUNDERABLE.some(has) || abilities.some((a) => typeof a.gridId === 'string' && a.gridId !== 'main');
+  const motivatable = has('MotivatableAbility') || interaction === 'motivate';
   return {
     id: buildingDefId(json.id),
     name: typeof json.name === 'string' ? json.name : json.id,
     generic,
     type,
     flags: {
-      motivatable: has('MotivatableAbility') || interaction === 'motivate',
+      motivatable,
       polishable: has('PolishableAbility') || interaction === 'polish',
-      plunderable: !excluded && (generic || (type !== undefined && PLUNDERABLE_TYPES.includes(type))),
+      // a generic building is plunderable only if it can be motivated (Siegesturm, Wunschbrunnen, Druidentempel)
+      plunderable: !excluded && (generic ? motivatable : type !== undefined && PLUNDERABLE_TYPES.includes(type)),
     },
     size: sizeOf(json, components),
     boostsByEra,
