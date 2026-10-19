@@ -3,9 +3,20 @@ import type { Traffic } from '../../shared/proxy-protocol';
 /** Keeps raw game traffic for test fixtures. Contains private game data: saved files never go into the repo as is. */
 export class Recorder {
   private traffic: Traffic[] = [];
+  private listeners = new Set<() => void>();
+
+  /** `enabled` is asked for every message, so switching the setting takes effect at once */
+  constructor(private enabled: () => boolean) {}
 
   add(traffic: Traffic): void {
+    if (!this.enabled()) return;
     this.traffic.push(traffic);
+    for (const listener of this.listeners) listener();
+  }
+
+  onChange(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
   }
 
   get count(): number {

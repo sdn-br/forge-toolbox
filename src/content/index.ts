@@ -38,7 +38,7 @@ async function main() {
   const battles = new BattleStore(bus, world, battlePersistence(callBackground));
   const cities = new CityStore(bus);
   const catalog = new CatalogStore(bus);
-  const recorder = new Recorder();
+  const recorder = new Recorder(() => settings.get('core.record'));
   const menu = new Menu();
 
   registerGameHandlers(ingestion, { world, now, session, players, cities, catalog, battles });
@@ -70,9 +70,8 @@ async function main() {
     }
   }
 
-  const record = settings.get('core.record');
   connectProxy((traffic) => {
-    if (record) recorder.add(traffic);
+    recorder.add(traffic);
     ingestion.accept(traffic);
   });
 

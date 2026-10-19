@@ -39,6 +39,8 @@ export const settingsFeature: Feature = {
       },
     });
     ctx.settings.onChange(() => box.update());
+    // the counter on the save button; update does nothing while the box is closed
+    ctx.recorder.onChange(() => box.update());
     ctx.menu.add({ id: 'settings', icon: '⚙️', label: () => t('menu.settings'), action: () => box.toggle() });
   },
 };
