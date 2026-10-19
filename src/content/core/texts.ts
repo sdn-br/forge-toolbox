@@ -11,7 +11,12 @@ const numberFormat = new Intl.NumberFormat('de-DE');
 const timeFormat = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' });
 
 export const formatNumber = (n: number) => numberFormat.format(n);
-const dateTimeFormat = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+const dateTimeFormat = new Intl.DateTimeFormat('de-DE', {
+  day: '2-digit',
+  month: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+});
 
 export const formatTime = (epochMs: number) => timeFormat.format(epochMs);
 

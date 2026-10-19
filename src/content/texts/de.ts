@@ -19,7 +19,8 @@ export const de = {
   'sabotage.attack': 'Angriff',
   'sabotage.defense': 'Verteidigung',
   'sabotage.plunderRepel': 'Plünderabwehr',
-  'sabotage.plunderable': 'Plünderbar',
+  'sabotage.plunderable': 'Jetzt plünderbar',
+  'sabotage.producing': 'In Produktion ({count}), Zeit verrät das Spiel nicht',
   'sabotage.nothingPlunderable': 'Nichts Plünderbares.',
   'sabotage.ready': 'fertig',
   'sabotage.readyAt': 'fertig {when}',
@@ -40,7 +41,6 @@ export const de = {
   'resource.random_good_of_next_age': 'zufällige Güter des nächsten Zeitalters',
   'time.today': 'heute {time}',
   'time.tomorrow': 'morgen {time}',
-  'sabotage.setsIgnored': 'Set- und Kettenboni sind noch nicht eingerechnet.',
 } as const;
 
 export type TextKey = keyof typeof de;

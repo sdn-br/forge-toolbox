@@ -1,19 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { assessCity } from '../src/content/domain/assess-city';
+import { type AssessContext, assessCity } from '../src/content/domain/assess-city';
 import { toBuildingDef } from '../src/content/game/building-defs';
 import { toCity } from '../src/content/game/convert';
 import type { GameCityEntity } from '../src/content/game/game-types';
 import type { BuildingDef } from '../src/content/stores/catalog';
-import { type BuildingDefId, buildingDefId, playerId, worldId } from '../src/shared/ids';
+import { type BuildingDefId, buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
+import ownCity from './fixtures/own-city.json';
 import fixture from './fixtures/visit-industrial.json';
+import setsAndChains from './fixtures/visit-sets-chains.json';
 
-const lookup = (defs: unknown[]) => {
+const lookup = (defs: unknown[], eras: string[] = []): AssessContext => {
   const map = new Map<BuildingDefId, BuildingDef>();
   for (const json of defs) {
     const def = toBuildingDef(json);
     if (def) map.set(def.id, def);
   }
-  return (id: BuildingDefId) => map.get(id);
+  return { def: (id) => map.get(id), eraByLevel: (level) => (eras[level] ? eraId(eras[level]) : undefined) };
 };
 
 const cityOf = (entities: GameCityEntity[], era = 'IndustrialAge') =>
@@ -21,7 +23,7 @@ const cityOf = (entities: GameCityEntity[], era = 'IndustrialAge') =>
 
 describe('assessCity with a recorded city', () => {
   const city = cityOf(fixture.visit.city_map.entities as GameCityEntity[], fixture.visit.other_player_era);
-  const result = assessCity(city, lookup(fixture.defs));
+  const result = assessCity(city, lookup(fixture.defs, fixture.eras));
 
   it('sums building and great building boosts per army side', () => {
     // building boosts for all features (297/198/246/67, summed independently from the raw data)
@@ -81,6 +83,26 @@ const defs = lookup([
     components: {},
   },
 ]);
+
+describe('assessCity against the game', () => {
+  it('matches the boosts the game reports for the own city', () => {
+    const city = cityOf(ownCity.entities as GameCityEntity[], ownCity.era);
+    const { boostTotals } = assessCity(city, lookup(ownCity.defs, ownCity.eras));
+    const military = (totals: Record<string, number>) =>
+      Object.fromEntries(Object.entries(totals).filter(([type]) => /^(att|def)_/.test(type)));
+    expect(military(boostTotals)).toEqual(military(ownCity.expectedBoosts));
+  });
+
+  it('connects every link of the chains in a recorded city', () => {
+    const city = cityOf(
+      setsAndChains.visit.city_map.entities as GameCityEntity[],
+      setsAndChains.visit.other_player_era,
+    );
+    const { missingDefs, army } = assessCity(city, lookup(setsAndChains.defs, setsAndChains.eras));
+    expect(missingDefs).toEqual([]);
+    expect(army.attacker.attack).toBeGreaterThan(0);
+  });
+});
 
 describe('assessCity rules', () => {
   it('lists finished and producing plunderable buildings, ready ones first', () => {

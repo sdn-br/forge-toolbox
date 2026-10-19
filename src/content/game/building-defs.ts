@@ -1,7 +1,7 @@
 // Building definitions from the game metadata → own BuildingDef. Two formats exist:
 // classic definitions (`abilities`, `boostHintEraMap`) and GenericCityEntity (`components` per era).
 import { buildingDefId } from '../../shared/ids';
-import type { Boost, BuildingDef } from '../stores/catalog';
+import type { Boost, BoostsByEra, BuildingDef, LevelBonus, Rect } from '../stores/catalog';
 import type { Product } from '../stores/city-model';
 
 type Json = Record<string, unknown>;
@@ -36,6 +36,44 @@ function genericProduct(production: unknown): Product | undefined {
   return product;
 }
 
+/** `{ AllAge: hint }` or `{ IronAge: hint, … }` → boosts per era */
+function boostMap(map: unknown): BoostsByEra {
+  const out: BoostsByEra = {};
+  if (!isObject(map)) return out;
+  for (const [era, hint] of Object.entries(map)) {
+    const boost = toBoost(hint);
+    if (boost) out[era] = [boost];
+  }
+  return out;
+}
+
+function levelBonuses(bonuses: unknown): LevelBonus[] {
+  return list(bonuses).map((b) => {
+    // generic chains list plain boosts, classic definitions a boost per era
+    const plain = list(b.boosts)
+      .map(toBoost)
+      .filter((x): x is Boost => x !== null);
+    return { level: Number(b.level ?? 1), boosts: plain.length ? { AllAge: plain } : boostMap(b.boost) };
+  });
+}
+
+function rects(linkPositions: unknown): Rect[] {
+  return list(linkPositions).map((p) => {
+    const a = isObject(p.topLeftPoint) ? p.topLeftPoint : {};
+    const b = isObject(p.bottomRightPoint) ? p.bottomRightPoint : {};
+    // the game leaves out coordinates that are 0
+    return { x1: Number(a.x ?? 0), y1: Number(a.y ?? 0), x2: Number(b.x ?? 0), y2: Number(b.y ?? 0) };
+  });
+}
+
+function sizeOf(json: Json, components: Json | undefined): { width: number; length: number } {
+  if (typeof json.width === 'number' && typeof json.length === 'number')
+    return { width: json.width, length: json.length };
+  const all = components && isObject(components.AllAge) ? components.AllAge : {};
+  const size = isObject(all.placement) && isObject(all.placement.size) ? all.placement.size : {};
+  return { width: Number(size.x ?? 1), length: Number(size.y ?? 1) };
+}
+
 const NOT_PLUNDERABLE = ['AddResourcesToGuildTreasuryAbility', 'RandomChestRewardAbility', 'NotPlunderableAbility'];
 const PLUNDERABLE_TYPES = ['production', 'goods', 'residential', 'clan_power_production'];
 
@@ -53,7 +91,7 @@ export function toBuildingDef(json: unknown): BuildingDef | null {
   };
 
   let interaction: string | undefined;
-  let hasChain = has('ChainLinkAbility') || has('ChainStartAbility');
+  let chain: BuildingDef['chain'];
   if (components) {
     for (const [era, c] of Object.entries(components)) {
       if (!isObject(c)) continue;
@@ -63,7 +101,15 @@ export function toBuildingDef(json: unknown): BuildingDef | null {
       if (isObject(c.socialInteraction) && typeof c.socialInteraction.interactionType === 'string') {
         interaction = c.socialInteraction.interactionType;
       }
-      if (c.chain) hasChain = true;
+      if (isObject(c.chain) && typeof c.chain.chainId === 'string') {
+        const config = isObject(c.chain.config) ? c.chain.config : {};
+        chain = {
+          id: c.chain.chainId,
+          start: config.__class__ === 'ChainStartConfig' || config.bonuses === undefined,
+          links: rects(c.chain.linkPositions),
+          bonuses: levelBonuses(config.bonuses),
+        };
+      }
     }
   }
   for (const a of abilities) {
@@ -71,6 +117,21 @@ export function toBuildingDef(json: unknown): BuildingDef | null {
     for (const hint of list(a.boostHints)) {
       const map = isObject(hint.boostHintEraMap) ? hint.boostHintEraMap : {};
       for (const [era, b] of Object.entries(map)) add(era, toBoost(b));
+    }
+  }
+
+  let set: BuildingDef['set'];
+  for (const a of abilities) {
+    if (a.__class__ === 'BonusOnSetAdjacencyAbility' && typeof a.setId === 'string') {
+      set = { id: a.setId, bonuses: levelBonuses(a.bonuses) };
+    }
+    if ((a.__class__ === 'ChainStartAbility' || a.__class__ === 'ChainLinkAbility') && typeof a.chainId === 'string') {
+      chain = {
+        id: a.chainId,
+        start: a.__class__ === 'ChainStartAbility',
+        links: rects(a.linkPositions),
+        bonuses: isObject(a.bonusGiven) ? levelBonuses([a.bonusGiven]) : [],
+      };
     }
   }
 
@@ -87,8 +148,10 @@ export function toBuildingDef(json: unknown): BuildingDef | null {
       polishable: has('PolishableAbility') || interaction === 'polish',
       plunderable: !excluded && (generic || (type !== undefined && PLUNDERABLE_TYPES.includes(type))),
     },
-    hasSetOrChain: hasChain || has('BonusOnSetAdjacencyAbility'),
+    size: sizeOf(json, components),
     boostsByEra,
     productByEra,
+    set,
+    chain,
   };
 }

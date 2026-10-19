@@ -8,15 +8,34 @@ export interface Boost {
   value: number;
 }
 
+export type BoostsByEra = Record<string, Boost[]>;
+
+/** Area relative to the top left corner of a building, both corners inclusive. */
+export interface Rect {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+export interface LevelBonus {
+  level: number;
+  boosts: BoostsByEra;
+}
+
 export interface BuildingDef {
   id: BuildingDefId;
   name: string;
   generic: boolean;
   type?: string;
+  size: { width: number; length: number };
   flags: { motivatable: boolean; polishable: boolean; plunderable: boolean };
-  hasSetOrChain: boolean;
-  boostsByEra: Record<string, Boost[]>;
+  boostsByEra: BoostsByEra;
   productByEra: Record<string, Product>;
+  /** set membership: bonus level n needs n different adjacent buildings of the same set */
+  set?: { id: string; bonuses: LevelBonus[] };
+  /** chain membership: `links` are where the next link has to sit, `bonuses` what this link adds once connected */
+  chain?: { id: string; start: boolean; links: Rect[]; bonuses: LevelBonus[] };
 }
 
 /**
@@ -29,9 +48,13 @@ function eraKey(byEra: Record<string, unknown>, era: EraId): string | undefined 
   return own.length === 1 ? own[0] : undefined;
 }
 
+export function boostsAt(byEra: BoostsByEra, era: EraId): Boost[] {
+  const key = eraKey(byEra, era);
+  return [...(byEra.AllAge ?? []), ...(key && key !== 'AllAge' ? (byEra[key] ?? []) : [])];
+}
+
 export function boostsFor(def: BuildingDef, era: EraId): Boost[] {
-  const key = eraKey(def.boostsByEra, era);
-  return [...(def.boostsByEra.AllAge ?? []), ...(key ? (def.boostsByEra[key] ?? []) : [])];
+  return boostsAt(def.boostsByEra, era);
 }
 
 export function productFor(def: BuildingDef, era: EraId): Product | undefined {
@@ -65,8 +88,16 @@ export class CatalogStore {
     return this.names.get(id);
   }
 
-  setEraNames(names: Record<string, string>): void {
-    for (const [id, name] of Object.entries(names)) this.eras.set(id, name);
+  private eraOrder: EraId[] = [];
+
+  /** Eras in game order with their names. The order turns a building level into its era. */
+  setEras(eras: { id: EraId; name: string }[]): void {
+    this.eraOrder = eras.map((e) => e.id);
+    for (const e of eras) this.eras.set(e.id, e.name);
+  }
+
+  eraByLevel(level: number): EraId | undefined {
+    return this.eraOrder[level];
   }
 
   eraName(era: EraId): string {

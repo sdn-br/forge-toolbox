@@ -5820,12 +5820,41 @@
       ]
     }
   },
+  "eras": [
+    "StoneAge",
+    "BronzeAge",
+    "IronAge",
+    "EarlyMiddleAge",
+    "HighMiddleAge",
+    "LateMiddleAge",
+    "ColonialAge",
+    "IndustrialAge",
+    "ProgressiveEra",
+    "ModernEra",
+    "PostModernEra",
+    "ContemporaryEra",
+    "TomorrowEra",
+    "FutureEra",
+    "ArcticFuture",
+    "OceanicFuture",
+    "VirtualFuture",
+    "SpaceAgeMars",
+    "SpaceAgeAsteroidBelt",
+    "SpaceAgeVenus",
+    "SpaceAgeJupiterMoon",
+    "SpaceAgeTitan",
+    "SpaceAgeSpaceHub",
+    "StellarAgeDiscovery",
+    "TheUnknownEra"
+  ],
   "defs": [
     {
       "id": "F_IndustrialAge_FriendsTavern",
       "name": "Freundes-Taverne",
       "__class__": "CityEntityFriendsTavern",
       "type": "friends_tavern",
+      "width": 7,
+      "length": 5,
       "abilities": []
     },
     {
@@ -5833,6 +5862,8 @@
       "name": "Rathaus",
       "__class__": "CityEntityMainBuilding",
       "type": "main_building",
+      "width": 6,
+      "length": 7,
       "abilities": []
     },
     {
@@ -5840,6 +5871,8 @@
       "name": "B\u00fcchsenmacher",
       "__class__": "CityEntityProductionBuilding",
       "type": "production",
+      "width": 3,
+      "length": 2,
       "abilities": [{ "__class__": "MotivatableAbility" }]
     },
     {
@@ -5847,6 +5880,8 @@
       "name": "Gepflasterte Stra\u00dfe",
       "__class__": "CityEntityStreet",
       "type": "street",
+      "width": 1,
+      "length": 1,
       "abilities": []
     },
     {
@@ -5854,6 +5889,8 @@
       "name": "Kopfsteinpflaster-Stra\u00dfe",
       "__class__": "CityEntityStreet",
       "type": "street",
+      "width": 1,
+      "length": 1,
       "abilities": []
     },
     {
@@ -5861,6 +5898,8 @@
       "name": "Befestigter Weg",
       "__class__": "CityEntityStreet",
       "type": "street",
+      "width": 1,
+      "length": 1,
       "abilities": []
     },
     {
@@ -5868,6 +5907,8 @@
       "name": "Mosaikpflaster-Stra\u00dfe",
       "__class__": "CityEntityStreet",
       "type": "street",
+      "width": 1,
+      "length": 1,
       "abilities": []
     },
     {
@@ -5875,6 +5916,8 @@
       "name": "Schotterweg",
       "__class__": "CityEntityStreet",
       "type": "street",
+      "width": 1,
+      "length": 1,
       "abilities": []
     },
     {
@@ -5882,11 +5925,19 @@
       "name": "Schildwacht - St. 2",
       "__class__": "CityEntity",
       "type": "tower",
+      "width": 1,
+      "length": 1,
       "abilities": [
         {
           "boostHints": [
             {
               "boostHintEraMap": {
+                "IronAge": {
+                  "type": "def_boost_attacker",
+                  "value": 4,
+                  "targetedFeature": "all",
+                  "__class__": "BoostHint"
+                },
                 "IndustrialAge": {
                   "type": "def_boost_attacker",
                   "value": 4,
@@ -5906,6 +5957,8 @@
       "name": "Burgsystem",
       "__class__": "CityEntity",
       "type": "off_grid",
+      "width": 10,
+      "length": 10,
       "abilities": []
     },
     {
@@ -5913,6 +5966,8 @@
       "name": "Forge Plus",
       "__class__": "CityEntity",
       "type": "off_grid",
+      "width": 2,
+      "length": 2,
       "abilities": []
     },
     {
@@ -5920,6 +5975,8 @@
       "name": "Quanten-Invasion",
       "__class__": "CityEntity",
       "type": "off_grid",
+      "width": 4,
+      "length": 4,
       "abilities": []
     },
     {
@@ -5927,6 +5984,8 @@
       "name": "Historische Verb\u00fcndete",
       "__class__": "CityEntity",
       "type": "off_grid",
+      "width": 4,
+      "length": 4,
       "abilities": []
     },
     {
@@ -5934,6 +5993,8 @@
       "name": "Heldensch\u00e4nke",
       "__class__": "CityEntity",
       "type": "off_grid",
+      "width": 3,
+      "length": 3,
       "abilities": []
     },
     {
@@ -5941,14 +6002,26 @@
       "name": "Antiquit\u00e4tenh\u00e4ndler",
       "__class__": "CityEntity",
       "type": "off_grid",
+      "width": 6,
+      "length": 6,
       "abilities": []
     },
-    { "id": "V_IndustrialAge_Harbor", "name": "Hafen", "__class__": "CityEntity", "type": "off_grid", "abilities": [] },
+    {
+      "id": "V_IndustrialAge_Harbor",
+      "name": "Hafen",
+      "__class__": "CityEntity",
+      "type": "off_grid",
+      "width": 7,
+      "length": 13,
+      "abilities": []
+    },
     {
       "id": "V_IronAge_BattlegroundCopper",
       "name": "Gilden-Gefechte",
       "__class__": "CityEntity",
       "type": "off_grid",
+      "width": 8,
+      "length": 7,
       "abilities": []
     },
     {
@@ -5956,16 +6029,124 @@
       "name": "Gilden-Expeditionen",
       "__class__": "CityEntity",
       "type": "off_grid",
+      "width": 5,
+      "length": 8,
       "abilities": []
     },
-    { "id": "V_IronAge_PVPArena", "name": "Turm", "__class__": "CityEntity", "type": "off_grid", "abilities": [] },
+    {
+      "id": "V_IronAge_PVPArena",
+      "name": "Turm",
+      "__class__": "CityEntity",
+      "type": "off_grid",
+      "width": 6,
+      "length": 4,
+      "abilities": []
+    },
     {
       "id": "W_AllAge_EasterBonus1",
       "name": "Wunschbrunnen",
       "__class__": "GenericCityEntity",
       "abilities": [],
       "components": {
-        "AllAge": {},
+        "AllAge": {
+          "placement": {
+            "type": "placement",
+            "allowedPlacements": [
+              {
+                "gridId": "main",
+                "content": "main",
+                "sector": { "__enum__": "GridSectorType", "value": "Regular" },
+                "__class__": "PlacementConfig"
+              }
+            ],
+            "size": { "type": "size", "x": 3, "y": 3, "z": 1, "__class__": "SizeComponent" },
+            "__class__": "PlacementComponent"
+          }
+        },
+        "IronAge": {
+          "production": {
+            "type": "production",
+            "options": [
+              {
+                "asset": "random_productionItem",
+                "name": "Option 1",
+                "time": 86400,
+                "products": [
+                  {
+                    "type": "random",
+                    "flags": [],
+                    "products": [
+                      {
+                        "product": {
+                          "type": "resources",
+                          "flags": [],
+                          "playerResources": { "resources": { "premium": 50 }, "__class__": "Resources" },
+                          "__class__": "ResourceProduct"
+                        },
+                        "dropChance": 0.01,
+                        "__class__": "RandomProductEntry"
+                      },
+                      {
+                        "product": {
+                          "type": "resources",
+                          "flags": [],
+                          "playerResources": { "resources": { "medals": 3 }, "__class__": "Resources" },
+                          "__class__": "ResourceProduct"
+                        },
+                        "dropChance": 0.09,
+                        "__class__": "RandomProductEntry"
+                      },
+                      {
+                        "product": {
+                          "type": "resources",
+                          "flags": [],
+                          "playerResources": { "resources": { "strategy_points": 2 }, "__class__": "Resources" },
+                          "__class__": "ResourceProduct"
+                        },
+                        "dropChance": 0.1,
+                        "__class__": "RandomProductEntry"
+                      },
+                      {
+                        "product": {
+                          "type": "resources",
+                          "flags": [],
+                          "playerResources": { "resources": { "money": 1080 }, "__class__": "Resources" },
+                          "__class__": "ResourceProduct"
+                        },
+                        "dropChance": 0.25,
+                        "__class__": "RandomProductEntry"
+                      },
+                      {
+                        "product": {
+                          "type": "resources",
+                          "flags": [],
+                          "playerResources": { "resources": { "supplies": 1080 }, "__class__": "Resources" },
+                          "__class__": "ResourceProduct"
+                        },
+                        "dropChance": 0.25,
+                        "__class__": "RandomProductEntry"
+                      },
+                      {
+                        "product": {
+                          "type": "resources",
+                          "flags": [],
+                          "playerResources": { "resources": { "random_good_of_age": 10 }, "__class__": "Resources" },
+                          "__class__": "ResourceProduct"
+                        },
+                        "dropChance": 0.3,
+                        "__class__": "RandomProductEntry"
+                      }
+                    ],
+                    "__class__": "RandomProduct"
+                  }
+                ],
+                "__class__": "ProductionOption"
+              }
+            ],
+            "autoStart": true,
+            "__class__": "ProductionsComponent"
+          }
+        },
         "IndustrialAge": {
           "production": {
             "type": "production",
@@ -6058,7 +6239,105 @@
       "__class__": "GenericCityEntity",
       "abilities": [],
       "components": {
-        "AllAge": {},
+        "AllAge": {
+          "placement": {
+            "type": "placement",
+            "allowedPlacements": [
+              {
+                "gridId": "main",
+                "content": "main",
+                "sector": { "__enum__": "GridSectorType", "value": "Regular" },
+                "__class__": "PlacementConfig"
+              }
+            ],
+            "size": { "type": "size", "x": 2, "y": 3, "z": 1, "__class__": "SizeComponent" },
+            "__class__": "PlacementComponent"
+          }
+        },
+        "IronAge": {
+          "production": {
+            "type": "production",
+            "options": [
+              {
+                "asset": "random_productionItem",
+                "name": "Option 1",
+                "time": 86400,
+                "products": [
+                  {
+                    "type": "random",
+                    "flags": [],
+                    "products": [
+                      {
+                        "product": {
+                          "type": "resources",
+                          "flags": [],
+                          "playerResources": { "resources": { "premium": 50 }, "__class__": "Resources" },
+                          "__class__": "ResourceProduct"
+                        },
+                        "dropChance": 0.01,
+                        "__class__": "RandomProductEntry"
+                      },
+                      {
+                        "product": {
+                          "type": "resources",
+                          "flags": [],
+                          "playerResources": { "resources": { "medals": 3 }, "__class__": "Resources" },
+                          "__class__": "ResourceProduct"
+                        },
+                        "dropChance": 0.09,
+                        "__class__": "RandomProductEntry"
+                      },
+                      {
+                        "product": {
+                          "type": "resources",
+                          "flags": [],
+                          "playerResources": { "resources": { "strategy_points": 2 }, "__class__": "Resources" },
+                          "__class__": "ResourceProduct"
+                        },
+                        "dropChance": 0.1,
+                        "__class__": "RandomProductEntry"
+                      },
+                      {
+                        "product": {
+                          "type": "resources",
+                          "flags": [],
+                          "playerResources": { "resources": { "money": 1080 }, "__class__": "Resources" },
+                          "__class__": "ResourceProduct"
+                        },
+                        "dropChance": 0.25,
+                        "__class__": "RandomProductEntry"
+                      },
+                      {
+                        "product": {
+                          "type": "resources",
+                          "flags": [],
+                          "playerResources": { "resources": { "supplies": 1080 }, "__class__": "Resources" },
+                          "__class__": "ResourceProduct"
+                        },
+                        "dropChance": 0.25,
+                        "__class__": "RandomProductEntry"
+                      },
+                      {
+                        "product": {
+                          "type": "resources",
+                          "flags": [],
+                          "playerResources": { "resources": { "random_good_of_age": 10 }, "__class__": "Resources" },
+                          "__class__": "ResourceProduct"
+                        },
+                        "dropChance": 0.3,
+                        "__class__": "RandomProductEntry"
+                      }
+                    ],
+                    "__class__": "RandomProduct"
+                  }
+                ],
+                "__class__": "ProductionOption"
+              }
+            ],
+            "autoStart": true,
+            "__class__": "ProductionsComponent"
+          }
+        },
         "IndustrialAge": {
           "production": {
             "type": "production",
@@ -6152,10 +6431,91 @@
       "abilities": [],
       "components": {
         "AllAge": {
+          "placement": {
+            "type": "placement",
+            "allowedPlacements": [
+              {
+                "gridId": "main",
+                "content": "main",
+                "sector": { "__enum__": "GridSectorType", "value": "Regular" },
+                "__class__": "PlacementConfig"
+              }
+            ],
+            "size": { "type": "size", "x": 2, "y": 2, "z": 2, "__class__": "SizeComponent" },
+            "__class__": "PlacementComponent"
+          },
           "socialInteraction": {
             "type": "socialInteraction",
             "interactionType": "motivate",
             "__class__": "SocialInteractionComponent"
+          }
+        },
+        "IronAge": {
+          "boosts": {
+            "type": "boosts",
+            "boosts": [
+              { "type": "att_boost_attacker", "value": 6, "targetedFeature": "all", "__class__": "BoostHint" },
+              { "type": "def_boost_attacker", "value": 11, "targetedFeature": "all", "__class__": "BoostHint" },
+              { "type": "att_boost_defender", "value": 10, "targetedFeature": "all", "__class__": "BoostHint" }
+            ],
+            "__class__": "BoostsComponent"
+          },
+          "production": {
+            "type": "production",
+            "options": [
+              {
+                "asset": "bazaar_5",
+                "name": "Option 1",
+                "time": 86400,
+                "products": [
+                  {
+                    "type": "resources",
+                    "flags": [],
+                    "playerResources": { "resources": { "strategy_points": 4 }, "__class__": "Resources" },
+                    "__class__": "ResourceProduct"
+                  },
+                  {
+                    "type": "random",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "products": [
+                      {
+                        "product": {
+                          "type": "genericReward",
+                          "flags": [],
+                          "reward": {
+                            "id": "era_unit#light_melee#CurrentEra#6",
+                            "flags": [],
+                            "__class__": "GenericReward"
+                          },
+                          "__class__": "GenericRewardProduct"
+                        },
+                        "dropChance": 0.5,
+                        "__class__": "RandomProductEntry"
+                      },
+                      {
+                        "product": {
+                          "type": "genericReward",
+                          "flags": [],
+                          "reward": {
+                            "id": "era_unit#light_melee#NextEra#2",
+                            "flags": [],
+                            "__class__": "GenericReward"
+                          },
+                          "__class__": "GenericRewardProduct"
+                        },
+                        "dropChance": 0.5,
+                        "__class__": "RandomProductEntry"
+                      }
+                    ],
+                    "__class__": "RandomProduct"
+                  }
+                ],
+                "__class__": "ProductionOption"
+              }
+            ],
+            "autoStart": true,
+            "__class__": "ProductionsComponent"
           }
         },
         "IndustrialAge": {
@@ -6235,6 +6595,19 @@
       "abilities": [],
       "components": {
         "AllAge": {
+          "placement": {
+            "type": "placement",
+            "allowedPlacements": [
+              {
+                "gridId": "main",
+                "content": "main",
+                "sector": { "__enum__": "GridSectorType", "value": "Regular" },
+                "__class__": "PlacementConfig"
+              }
+            ],
+            "size": { "type": "size", "x": 2, "y": 2, "z": 1, "__class__": "SizeComponent" },
+            "__class__": "PlacementComponent"
+          },
           "socialInteraction": {
             "type": "socialInteraction",
             "interactionType": "motivate",
@@ -6257,6 +6630,36 @@
               }
             ],
             "__class__": "BoostsComponent"
+          }
+        },
+        "IronAge": {
+          "production": {
+            "type": "production",
+            "options": [
+              {
+                "asset": "bazaar_3",
+                "name": "Option 1",
+                "time": 86400,
+                "products": [
+                  {
+                    "type": "resources",
+                    "flags": [],
+                    "playerResources": { "resources": { "medals": 40 }, "__class__": "Resources" },
+                    "__class__": "ResourceProduct"
+                  },
+                  {
+                    "type": "resources",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "playerResources": { "resources": { "strategy_points": 40 }, "__class__": "Resources" },
+                    "__class__": "ResourceProduct"
+                  }
+                ],
+                "__class__": "ProductionOption"
+              }
+            ],
+            "autoStart": true,
+            "__class__": "ProductionsComponent"
           }
         },
         "IndustrialAge": {
@@ -6298,10 +6701,61 @@
       "abilities": [],
       "components": {
         "AllAge": {
+          "placement": {
+            "type": "placement",
+            "allowedPlacements": [
+              {
+                "gridId": "main",
+                "content": "main",
+                "sector": { "__enum__": "GridSectorType", "value": "Regular" },
+                "__class__": "PlacementConfig"
+              }
+            ],
+            "size": { "type": "size", "x": 2, "y": 2, "z": 2, "__class__": "SizeComponent" },
+            "__class__": "PlacementComponent"
+          },
           "socialInteraction": {
             "type": "socialInteraction",
             "interactionType": "motivate",
             "__class__": "SocialInteractionComponent"
+          }
+        },
+        "IronAge": {
+          "production": {
+            "type": "production",
+            "options": [
+              {
+                "asset": "production_icon_money",
+                "name": "Option 1",
+                "time": 86400,
+                "products": [
+                  {
+                    "type": "resources",
+                    "flags": [],
+                    "playerResources": {
+                      "resources": {
+                        "money": 740,
+                        "all_goods_of_age": 30,
+                        "all_goods_of_previous_age": 45,
+                        "all_goods_of_next_age": 15
+                      },
+                      "__class__": "Resources"
+                    },
+                    "__class__": "ResourceProduct"
+                  },
+                  {
+                    "type": "genericReward",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "reward": { "id": "genb_random_unit_chest8", "flags": [], "__class__": "GenericReward" },
+                    "__class__": "GenericRewardProduct"
+                  }
+                ],
+                "__class__": "ProductionOption"
+              }
+            ],
+            "autoStart": true,
+            "__class__": "ProductionsComponent"
           }
         },
         "IndustrialAge": {
@@ -6351,10 +6805,94 @@
       "abilities": [],
       "components": {
         "AllAge": {
+          "placement": {
+            "type": "placement",
+            "allowedPlacements": [
+              {
+                "gridId": "main",
+                "content": "main",
+                "sector": { "__enum__": "GridSectorType", "value": "Regular" },
+                "__class__": "PlacementConfig"
+              }
+            ],
+            "size": { "type": "size", "x": 6, "y": 5, "z": 2, "__class__": "SizeComponent" },
+            "__class__": "PlacementComponent"
+          },
           "socialInteraction": {
             "type": "socialInteraction",
             "interactionType": "motivate",
             "__class__": "SocialInteractionComponent"
+          }
+        },
+        "IronAge": {
+          "boosts": {
+            "type": "boosts",
+            "boosts": [
+              { "type": "def_boost_attacker", "value": 55, "targetedFeature": "all", "__class__": "BoostHint" },
+              {
+                "type": "att_def_boost_attacker",
+                "value": 78,
+                "targetedFeature": "battleground",
+                "__class__": "BoostHint"
+              }
+            ],
+            "__class__": "BoostsComponent"
+          },
+          "production": {
+            "type": "production",
+            "options": [
+              {
+                "asset": "bazaar_3",
+                "name": "Option 1",
+                "time": 86400,
+                "products": [
+                  {
+                    "type": "resources",
+                    "flags": [],
+                    "playerResources": { "resources": { "medals": 430, "supplies": 9840 }, "__class__": "Resources" },
+                    "__class__": "ResourceProduct"
+                  },
+                  {
+                    "type": "guildResources",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "guildResources": { "resources": { "all_goods_of_age": 150 }, "__class__": "Resources" },
+                    "__class__": "GuildResourceProduct"
+                  },
+                  {
+                    "type": "random",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "products": [
+                      {
+                        "product": {
+                          "type": "resources",
+                          "flags": [],
+                          "playerResources": { "resources": { "strategy_points": 276 }, "__class__": "Resources" },
+                          "__class__": "ResourceProduct"
+                        },
+                        "dropChance": 0.25,
+                        "__class__": "RandomProductEntry"
+                      },
+                      {
+                        "product": {
+                          "type": "resources",
+                          "flags": [],
+                          "playerResources": { "resources": { "all_goods_of_age": 220 }, "__class__": "Resources" },
+                          "__class__": "ResourceProduct"
+                        },
+                        "dropChance": 0.75,
+                        "__class__": "RandomProductEntry"
+                      }
+                    ],
+                    "__class__": "RandomProduct"
+                  }
+                ],
+                "__class__": "ProductionOption"
+              }
+            ],
+            "autoStart": true,
+            "__class__": "ProductionsComponent"
           }
         },
         "IndustrialAge": {
@@ -6437,6 +6975,19 @@
       "abilities": [],
       "components": {
         "AllAge": {
+          "placement": {
+            "type": "placement",
+            "allowedPlacements": [
+              {
+                "gridId": "main",
+                "content": "main",
+                "sector": { "__enum__": "GridSectorType", "value": "Regular" },
+                "__class__": "PlacementConfig"
+              }
+            ],
+            "size": { "type": "size", "x": 5, "y": 4, "z": 8, "__class__": "SizeComponent" },
+            "__class__": "PlacementComponent"
+          },
           "socialInteraction": {
             "type": "socialInteraction",
             "interactionType": "motivate",
@@ -6460,6 +7011,87 @@
               { "type": "att_boost_defender", "value": 15, "targetedFeature": "guild_raids", "__class__": "BoostHint" }
             ],
             "__class__": "BoostsComponent"
+          }
+        },
+        "IronAge": {
+          "production": {
+            "type": "production",
+            "options": [
+              {
+                "asset": "production_icon_money",
+                "name": "Option 1",
+                "time": 86400,
+                "products": [
+                  {
+                    "type": "resources",
+                    "flags": [],
+                    "playerResources": { "resources": { "money": 5470 }, "__class__": "Resources" },
+                    "__class__": "ResourceProduct"
+                  },
+                  {
+                    "type": "resources",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "playerResources": {
+                      "resources": { "medals": 420, "strategy_points": 40, "all_goods_of_age": 100 },
+                      "__class__": "Resources"
+                    },
+                    "__class__": "ResourceProduct"
+                  },
+                  {
+                    "type": "genericReward",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "reward": { "id": "era_unit#heavy_melee#CurrentEra#20", "flags": [], "__class__": "GenericReward" },
+                    "__class__": "GenericRewardProduct"
+                  },
+                  {
+                    "type": "genericReward",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "reward": { "id": "era_unit#heavy_melee#NextEra#10", "flags": [], "__class__": "GenericReward" },
+                    "__class__": "GenericRewardProduct"
+                  },
+                  {
+                    "type": "random",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "products": [
+                      {
+                        "product": {
+                          "type": "resources",
+                          "flags": [],
+                          "playerResources": {
+                            "resources": { "all_goods_of_previous_age": 100 },
+                            "__class__": "Resources"
+                          },
+                          "__class__": "ResourceProduct"
+                        },
+                        "dropChance": 0.5,
+                        "__class__": "RandomProductEntry"
+                      },
+                      {
+                        "product": {
+                          "type": "resources",
+                          "flags": [],
+                          "playerResources": {
+                            "resources": { "all_goods_of_next_age": 100 },
+                            "__class__": "Resources"
+                          },
+                          "__class__": "ResourceProduct"
+                        },
+                        "dropChance": 0.5,
+                        "__class__": "RandomProductEntry"
+                      }
+                    ],
+                    "__class__": "RandomProduct"
+                  }
+                ],
+                "__class__": "ProductionOption"
+              }
+            ],
+            "autoStart": true,
+            "__class__": "ProductionsComponent"
           }
         },
         "IndustrialAge": {
@@ -6552,10 +7184,74 @@
       "abilities": [],
       "components": {
         "AllAge": {
+          "placement": {
+            "type": "placement",
+            "allowedPlacements": [
+              {
+                "gridId": "main",
+                "content": "main",
+                "sector": { "__enum__": "GridSectorType", "value": "Regular" },
+                "__class__": "PlacementConfig"
+              }
+            ],
+            "size": { "type": "size", "x": 5, "y": 2, "z": 1, "__class__": "SizeComponent" },
+            "__class__": "PlacementComponent"
+          },
           "socialInteraction": {
             "type": "socialInteraction",
             "interactionType": "motivate",
             "__class__": "SocialInteractionComponent"
+          }
+        },
+        "IronAge": {
+          "boosts": {
+            "type": "boosts",
+            "boosts": [
+              { "type": "att_boost_attacker", "value": 30, "targetedFeature": "all", "__class__": "BoostHint" },
+              { "type": "att_boost_attacker", "value": 8, "targetedFeature": "battleground", "__class__": "BoostHint" },
+              {
+                "type": "att_boost_attacker",
+                "value": 5,
+                "targetedFeature": "guild_expedition",
+                "__class__": "BoostHint"
+              }
+            ],
+            "__class__": "BoostsComponent"
+          },
+          "production": {
+            "type": "production",
+            "options": [
+              {
+                "asset": "bazaar_0",
+                "name": "Option 1",
+                "time": 86400,
+                "products": [
+                  {
+                    "type": "resources",
+                    "flags": [],
+                    "playerResources": { "resources": { "supplies": 6591 }, "__class__": "Resources" },
+                    "__class__": "ResourceProduct"
+                  },
+                  {
+                    "type": "resources",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "playerResources": {
+                      "resources": {
+                        "strategy_points": 25,
+                        "random_good_of_age": 25,
+                        "random_good_of_previous_age": 45
+                      },
+                      "__class__": "Resources"
+                    },
+                    "__class__": "ResourceProduct"
+                  }
+                ],
+                "__class__": "ProductionOption"
+              }
+            ],
+            "autoStart": true,
+            "__class__": "ProductionsComponent"
           }
         },
         "IndustrialAge": {
@@ -6618,6 +7314,19 @@
       "abilities": [],
       "components": {
         "AllAge": {
+          "placement": {
+            "type": "placement",
+            "allowedPlacements": [
+              {
+                "gridId": "main",
+                "content": "main",
+                "sector": { "__enum__": "GridSectorType", "value": "Regular" },
+                "__class__": "PlacementConfig"
+              }
+            ],
+            "size": { "type": "size", "x": 4, "y": 3, "z": 2, "__class__": "SizeComponent" },
+            "__class__": "PlacementComponent"
+          },
           "socialInteraction": {
             "type": "socialInteraction",
             "interactionType": "motivate",
@@ -6713,6 +7422,7 @@
             "__class__": "ProductionsComponent"
           }
         },
+        "IronAge": {},
         "IndustrialAge": {}
       }
     },
@@ -6723,10 +7433,72 @@
       "abilities": [],
       "components": {
         "AllAge": {
+          "placement": {
+            "type": "placement",
+            "allowedPlacements": [
+              {
+                "gridId": "main",
+                "content": "main",
+                "sector": { "__enum__": "GridSectorType", "value": "Regular" },
+                "__class__": "PlacementConfig"
+              }
+            ],
+            "size": { "type": "size", "x": 6, "y": 5, "z": 3, "__class__": "SizeComponent" },
+            "__class__": "PlacementComponent"
+          },
           "socialInteraction": {
             "type": "socialInteraction",
             "interactionType": "motivate",
             "__class__": "SocialInteractionComponent"
+          }
+        },
+        "IronAge": {
+          "boosts": {
+            "type": "boosts",
+            "boosts": [
+              { "type": "att_boost_attacker", "value": 22, "targetedFeature": "all", "__class__": "BoostHint" },
+              { "type": "att_boost_defender", "value": 12, "targetedFeature": "all", "__class__": "BoostHint" },
+              { "type": "def_boost_defender", "value": 12, "targetedFeature": "all", "__class__": "BoostHint" }
+            ],
+            "__class__": "BoostsComponent"
+          },
+          "production": {
+            "type": "production",
+            "options": [
+              {
+                "asset": "production_icon_money",
+                "name": "Option 1",
+                "time": 86400,
+                "products": [
+                  {
+                    "type": "resources",
+                    "flags": [],
+                    "playerResources": { "resources": { "money": 4900 }, "__class__": "Resources" },
+                    "__class__": "ResourceProduct"
+                  },
+                  {
+                    "type": "resources",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "playerResources": {
+                      "resources": { "strategy_points": 12, "random_good_of_age": 45 },
+                      "__class__": "Resources"
+                    },
+                    "__class__": "ResourceProduct"
+                  },
+                  {
+                    "type": "genericReward",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "reward": { "id": "genb_random_unit_chest5", "flags": [], "__class__": "GenericReward" },
+                    "__class__": "GenericRewardProduct"
+                  }
+                ],
+                "__class__": "ProductionOption"
+              }
+            ],
+            "autoStart": true,
+            "__class__": "ProductionsComponent"
           }
         },
         "IndustrialAge": {
@@ -6786,7 +7558,52 @@
       "__class__": "GenericCityEntity",
       "abilities": [],
       "components": {
-        "AllAge": {},
+        "AllAge": {
+          "placement": {
+            "type": "placement",
+            "allowedPlacements": [
+              {
+                "gridId": "main",
+                "content": "main",
+                "sector": { "__enum__": "GridSectorType", "value": "Regular" },
+                "__class__": "PlacementConfig"
+              }
+            ],
+            "size": { "type": "size", "x": 2, "y": 2, "z": 2, "__class__": "SizeComponent" },
+            "__class__": "PlacementComponent"
+          }
+        },
+        "IronAge": {
+          "boosts": {
+            "type": "boosts",
+            "boosts": [
+              { "type": "att_boost_attacker", "value": 11, "targetedFeature": "all", "__class__": "BoostHint" },
+              { "type": "att_boost_defender", "value": 11, "targetedFeature": "all", "__class__": "BoostHint" }
+            ],
+            "__class__": "BoostsComponent"
+          },
+          "production": {
+            "type": "production",
+            "options": [
+              {
+                "asset": "bazaar_5",
+                "name": "Option 1",
+                "time": 86400,
+                "products": [
+                  {
+                    "type": "resources",
+                    "flags": [],
+                    "playerResources": { "resources": { "strategy_points": 5 }, "__class__": "Resources" },
+                    "__class__": "ResourceProduct"
+                  }
+                ],
+                "__class__": "ProductionOption"
+              }
+            ],
+            "autoStart": true,
+            "__class__": "ProductionsComponent"
+          }
+        },
         "IndustrialAge": {
           "boosts": {
             "type": "boosts",
@@ -6826,7 +7643,137 @@
       "__class__": "GenericCityEntity",
       "abilities": [],
       "components": {
-        "AllAge": {},
+        "AllAge": {
+          "placement": {
+            "type": "placement",
+            "allowedPlacements": [
+              {
+                "gridId": "main",
+                "content": "main",
+                "sector": { "__enum__": "GridSectorType", "value": "Regular" },
+                "__class__": "PlacementConfig"
+              }
+            ],
+            "size": { "type": "size", "x": 3, "y": 2, "z": 2, "__class__": "SizeComponent" },
+            "__class__": "PlacementComponent"
+          }
+        },
+        "IronAge": {
+          "boosts": {
+            "type": "boosts",
+            "boosts": [
+              { "type": "att_def_boost_attacker", "value": 8, "targetedFeature": "all", "__class__": "BoostHint" },
+              {
+                "type": "att_def_boost_attacker",
+                "value": 8,
+                "targetedFeature": "battleground",
+                "__class__": "BoostHint"
+              }
+            ],
+            "__class__": "BoostsComponent"
+          },
+          "production": {
+            "type": "production",
+            "options": [
+              {
+                "asset": "bazaar_1",
+                "name": "M\u00fcnzen",
+                "time": 300,
+                "products": [
+                  {
+                    "type": "resources",
+                    "flags": [],
+                    "playerResources": { "resources": { "money": 90 }, "__class__": "Resources" },
+                    "__class__": "ResourceProduct"
+                  }
+                ],
+                "instantFinishAllowed": true,
+                "__class__": "ProductionOption"
+              },
+              {
+                "index": 1,
+                "asset": "bazaar_0",
+                "name": "Vorr\u00e4te",
+                "time": 900,
+                "products": [
+                  {
+                    "type": "resources",
+                    "flags": [],
+                    "playerResources": { "resources": { "supplies": 270 }, "__class__": "Resources" },
+                    "__class__": "ResourceProduct"
+                  }
+                ],
+                "instantFinishAllowed": true,
+                "__class__": "ProductionOption"
+              },
+              {
+                "index": 2,
+                "asset": "bazaar_1",
+                "name": "M\u00fcnzen",
+                "time": 3600,
+                "products": [
+                  {
+                    "type": "resources",
+                    "flags": [],
+                    "playerResources": { "resources": { "money": 530 }, "__class__": "Resources" },
+                    "__class__": "ResourceProduct"
+                  }
+                ],
+                "instantFinishAllowed": true,
+                "__class__": "ProductionOption"
+              },
+              {
+                "index": 3,
+                "asset": "bazaar_2",
+                "name": "Macht der Gilde",
+                "time": 14400,
+                "products": [
+                  {
+                    "type": "guildResources",
+                    "flags": [],
+                    "guildResources": { "resources": { "clan_power": 10 }, "__class__": "Resources" },
+                    "__class__": "GuildResourceProduct"
+                  }
+                ],
+                "instantFinishAllowed": true,
+                "__class__": "ProductionOption"
+              },
+              {
+                "index": 4,
+                "asset": "bazaar_3",
+                "name": "Medaillen",
+                "time": 28800,
+                "products": [
+                  {
+                    "type": "resources",
+                    "flags": [],
+                    "playerResources": { "resources": { "medals": 50 }, "__class__": "Resources" },
+                    "__class__": "ResourceProduct"
+                  }
+                ],
+                "instantFinishAllowed": true,
+                "__class__": "ProductionOption"
+              },
+              {
+                "index": 5,
+                "asset": "bazaar_4",
+                "name": "G\u00fcter",
+                "time": 86400,
+                "products": [
+                  {
+                    "type": "resources",
+                    "flags": [],
+                    "playerResources": { "resources": { "all_goods_of_age": 50 }, "__class__": "Resources" },
+                    "__class__": "ResourceProduct"
+                  }
+                ],
+                "instantFinishAllowed": true,
+                "__class__": "ProductionOption"
+              }
+            ],
+            "__class__": "ProductionsComponent"
+          }
+        },
         "IndustrialAge": {
           "boosts": {
             "type": "boosts",
@@ -6952,10 +7899,85 @@
       "abilities": [],
       "components": {
         "AllAge": {
+          "placement": {
+            "type": "placement",
+            "allowedPlacements": [
+              {
+                "gridId": "main",
+                "content": "main",
+                "sector": { "__enum__": "GridSectorType", "value": "Regular" },
+                "__class__": "PlacementConfig"
+              }
+            ],
+            "size": { "type": "size", "x": 4, "y": 4, "z": 2, "__class__": "SizeComponent" },
+            "__class__": "PlacementComponent"
+          },
           "socialInteraction": {
             "type": "socialInteraction",
             "interactionType": "motivate",
             "__class__": "SocialInteractionComponent"
+          }
+        },
+        "IronAge": {
+          "boosts": {
+            "type": "boosts",
+            "boosts": [
+              { "type": "att_boost_attacker", "value": 26, "targetedFeature": "all", "__class__": "BoostHint" },
+              { "type": "att_boost_attacker", "value": 5, "targetedFeature": "battleground", "__class__": "BoostHint" },
+              { "type": "att_boost_defender", "value": 29, "targetedFeature": "all", "__class__": "BoostHint" },
+              {
+                "type": "att_boost_defender",
+                "value": 9,
+                "targetedFeature": "guild_expedition",
+                "__class__": "BoostHint"
+              }
+            ],
+            "__class__": "BoostsComponent"
+          },
+          "production": {
+            "type": "production",
+            "options": [
+              {
+                "asset": "bazaar_0",
+                "name": "Option 1",
+                "time": 86400,
+                "products": [
+                  {
+                    "type": "resources",
+                    "flags": [],
+                    "playerResources": { "resources": { "supplies": 4800 }, "__class__": "Resources" },
+                    "__class__": "ResourceProduct"
+                  },
+                  {
+                    "type": "resources",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "playerResources": {
+                      "resources": { "strategy_points": 16, "random_good_of_age": 45 },
+                      "__class__": "Resources"
+                    },
+                    "__class__": "ResourceProduct"
+                  },
+                  {
+                    "type": "genericReward",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "reward": { "id": "genb_random_unit_chest12", "flags": [], "__class__": "GenericReward" },
+                    "__class__": "GenericRewardProduct"
+                  },
+                  {
+                    "type": "genericReward",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "reward": { "id": "fragment#selection_kit_WIN23EF#3", "flags": [], "__class__": "GenericReward" },
+                    "__class__": "GenericRewardProduct"
+                  }
+                ],
+                "__class__": "ProductionOption"
+              }
+            ],
+            "autoStart": true,
+            "__class__": "ProductionsComponent"
           }
         },
         "IndustrialAge": {
@@ -7029,10 +8051,83 @@
       "abilities": [],
       "components": {
         "AllAge": {
+          "placement": {
+            "type": "placement",
+            "allowedPlacements": [
+              {
+                "gridId": "main",
+                "content": "main",
+                "sector": { "__enum__": "GridSectorType", "value": "Regular" },
+                "__class__": "PlacementConfig"
+              }
+            ],
+            "size": { "type": "size", "x": 2, "y": 3, "z": 2, "__class__": "SizeComponent" },
+            "__class__": "PlacementComponent"
+          },
           "socialInteraction": {
             "type": "socialInteraction",
             "interactionType": "motivate",
             "__class__": "SocialInteractionComponent"
+          }
+        },
+        "IronAge": {
+          "boosts": {
+            "type": "boosts",
+            "boosts": [
+              { "type": "att_boost_attacker", "value": 6, "targetedFeature": "all", "__class__": "BoostHint" },
+              { "type": "def_boost_attacker", "value": 8, "targetedFeature": "all", "__class__": "BoostHint" },
+              { "type": "att_boost_defender", "value": 21, "targetedFeature": "all", "__class__": "BoostHint" }
+            ],
+            "__class__": "BoostsComponent"
+          },
+          "production": {
+            "type": "production",
+            "options": [
+              {
+                "asset": "bazaar_4",
+                "name": "Option 1",
+                "time": 86400,
+                "products": [
+                  {
+                    "type": "resources",
+                    "flags": [],
+                    "playerResources": { "resources": { "random_good_of_previous_age": 30 }, "__class__": "Resources" },
+                    "__class__": "ResourceProduct"
+                  },
+                  {
+                    "type": "random",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "products": [
+                      {
+                        "product": {
+                          "type": "genericReward",
+                          "flags": [],
+                          "reward": { "id": "fragment#renovation_kit#1", "flags": [], "__class__": "GenericReward" },
+                          "__class__": "GenericRewardProduct"
+                        },
+                        "dropChance": 0.75,
+                        "__class__": "RandomProductEntry"
+                      },
+                      {
+                        "product": {
+                          "type": "genericReward",
+                          "flags": [],
+                          "reward": { "id": "fragment#one_up_kit#5", "flags": [], "__class__": "GenericReward" },
+                          "__class__": "GenericRewardProduct"
+                        },
+                        "dropChance": 0.25,
+                        "__class__": "RandomProductEntry"
+                      }
+                    ],
+                    "__class__": "RandomProduct"
+                  }
+                ],
+                "__class__": "ProductionOption"
+              }
+            ],
+            "autoStart": true,
+            "__class__": "ProductionsComponent"
           }
         },
         "IndustrialAge": {
@@ -7104,10 +8199,83 @@
       "abilities": [],
       "components": {
         "AllAge": {
+          "placement": {
+            "type": "placement",
+            "allowedPlacements": [
+              {
+                "gridId": "main",
+                "content": "main",
+                "sector": { "__enum__": "GridSectorType", "value": "Regular" },
+                "__class__": "PlacementConfig"
+              }
+            ],
+            "size": { "type": "size", "x": 4, "y": 4, "z": 2, "__class__": "SizeComponent" },
+            "__class__": "PlacementComponent"
+          },
           "socialInteraction": {
             "type": "socialInteraction",
             "interactionType": "motivate",
             "__class__": "SocialInteractionComponent"
+          }
+        },
+        "IronAge": {
+          "boosts": {
+            "type": "boosts",
+            "boosts": [
+              { "type": "att_boost_attacker", "value": 62, "targetedFeature": "all", "__class__": "BoostHint" },
+              { "type": "att_boost_defender", "value": 62, "targetedFeature": "all", "__class__": "BoostHint" }
+            ],
+            "__class__": "BoostsComponent"
+          },
+          "production": {
+            "type": "production",
+            "options": [
+              {
+                "asset": "bazaar_3",
+                "name": "Option 1",
+                "time": 86400,
+                "products": [
+                  {
+                    "type": "resources",
+                    "flags": [],
+                    "playerResources": { "resources": { "medals": 700 }, "__class__": "Resources" },
+                    "__class__": "ResourceProduct"
+                  },
+                  {
+                    "type": "resources",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "playerResources": { "resources": { "strategy_points": 89 }, "__class__": "Resources" },
+                    "__class__": "ResourceProduct"
+                  },
+                  {
+                    "type": "unit",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "unitTypeId": "rogue",
+                    "amount": 10,
+                    "__class__": "UnitProduct"
+                  },
+                  {
+                    "type": "genericReward",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "reward": { "id": "fragment#selection_kit_WIN24BC#3", "flags": [], "__class__": "GenericReward" },
+                    "__class__": "GenericRewardProduct"
+                  },
+                  {
+                    "type": "genericReward",
+                    "onlyWhenMotivated": true,
+                    "flags": [],
+                    "reward": { "id": "fragment#selection_kit_WIN18B#3", "flags": [], "__class__": "GenericReward" },
+                    "__class__": "GenericRewardProduct"
+                  }
+                ],
+                "__class__": "ProductionOption"
+              }
+            ],
+            "autoStart": true,
+            "__class__": "ProductionsComponent"
           }
         },
         "IndustrialAge": {
@@ -7179,6 +8347,19 @@
       "abilities": [],
       "components": {
         "AllAge": {
+          "placement": {
+            "type": "placement",
+            "allowedPlacements": [
+              {
+                "gridId": "main",
+                "content": "main",
+                "sector": { "__enum__": "GridSectorType", "value": "Regular" },
+                "__class__": "PlacementConfig"
+              }
+            ],
+            "size": { "type": "size", "x": 3, "y": 2, "z": 2, "__class__": "SizeComponent" },
+            "__class__": "PlacementComponent"
+          },
           "socialInteraction": {
             "type": "socialInteraction",
             "interactionType": "motivate",
@@ -7242,6 +8423,21 @@
             "__class__": "ProductionsComponent"
           }
         },
+        "IronAge": {
+          "boosts": {
+            "type": "boosts",
+            "boosts": [
+              { "type": "att_def_boost_attacker", "value": 9, "targetedFeature": "all", "__class__": "BoostHint" },
+              {
+                "type": "att_def_boost_attacker",
+                "value": 9,
+                "targetedFeature": "battleground",
+                "__class__": "BoostHint"
+              }
+            ],
+            "__class__": "BoostsComponent"
+          }
+        },
         "IndustrialAge": {
           "boosts": {
             "type": "boosts",
@@ -7264,6 +8460,8 @@
       "name": "Observatorium",
       "__class__": "CityEntityGreatBuilding",
       "type": "greatbuilding",
+      "width": 3,
+      "length": 3,
       "abilities": []
     },
     {
@@ -7271,6 +8469,8 @@
       "name": "Zeusstatue",
       "__class__": "CityEntityGreatBuilding",
       "type": "greatbuilding",
+      "width": 3,
+      "length": 2,
       "abilities": []
     },
     {
@@ -7278,6 +8478,8 @@
       "name": "Aachener Dom",
       "__class__": "CityEntityGreatBuilding",
       "type": "greatbuilding",
+      "width": 6,
+      "length": 4,
       "abilities": []
     }
   ]

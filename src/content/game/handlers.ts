@@ -1,5 +1,5 @@
 // Which game response feeds which store. One place, so every response has exactly one owner.
-import type { WorldId } from '../../shared/ids';
+import { eraId, type WorldId } from '../../shared/ids';
 import type { Ingestion } from '../core/ingestion';
 import type { CatalogStore } from '../stores/catalog';
 import type { CityStore } from '../stores/cities';
@@ -72,10 +72,10 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   });
 
   ingestion.onMeta('research_eras', (file) => {
-    const names: Record<string, string> = {};
-    for (const e of (Array.isArray(file.json) ? file.json : []) as GameEra[])
-      if (e.era && e.name) names[e.era] = e.name;
-    catalog.setEraNames(names);
+    const eras = ((Array.isArray(file.json) ? file.json : []) as GameEra[]).flatMap((e) =>
+      e.era ? [{ id: eraId(e.era), name: e.name ?? e.era }] : [],
+    );
+    catalog.setEras(eras);
   });
 
   // debt: own city ignores placeBuilding, removeBuilding and moveEntity. ceiling: own city is stale after building

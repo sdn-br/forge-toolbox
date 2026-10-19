@@ -15,7 +15,9 @@ import type {
   GameUserData,
 } from './game-types';
 
-const seconds = (s: number | undefined) => (typeof s === 'number' && s > 0 ? s * 1000 : undefined);
+// In visited cities the game hides all times behind the largest 32 bit integer (seen 2026-10-19).
+const HIDDEN = 2147483647;
+const seconds = (s: number | undefined) => (typeof s === 'number' && s > 0 && s < HIDDEN ? s * 1000 : undefined);
 
 function resourcesOf(r: GameResources | undefined): Record<string, number> {
   const out: Record<string, number> = {};

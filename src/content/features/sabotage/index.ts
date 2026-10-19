@@ -31,7 +31,10 @@ export const sabotageFeature: Feature = {
     const refresh = () => {
       const city = ctx.cities.visited();
       if (!city) return;
-      const assessment = assessCity(city, (id) => ctx.catalog.get(id));
+      const assessment = assessCity(city, {
+        def: (id) => ctx.catalog.get(id),
+        eraByLevel: (l) => ctx.catalog.eraByLevel(l),
+      });
       vm = sabotageViewModel(
         city,
         ctx.players.get(city.owner),

@@ -1,7 +1,8 @@
 // Derived values of a city: army boosts, plunder repel, what can be plundered. Pure, so fixtures test it.
-import type { BuildingDefId } from '../../shared/ids';
-import { type BuildingDef, boostsFor, productFor } from '../stores/catalog';
+import type { BuildingDefId, EraId } from '../../shared/ids';
+import { type Boost, type BuildingDef, boostsAt, boostsFor, type LevelBonus, productFor } from '../stores/catalog';
 import type { Building, City, Product } from '../stores/city-model';
+import { connectedLinks, type Placed, place, setLevels } from './city-layout';
 
 export interface ArmyValues {
   attack: number;
@@ -12,7 +13,8 @@ export interface Plunderable {
   building: number;
   name: string;
   resources: Record<string, number>;
-  /** undefined: ready now */
+  ready: boolean;
+  /** only known in the own city, the game hides times of other cities */
   readyAt?: number;
 }
 
@@ -21,8 +23,8 @@ export interface CityAssessment {
   plunderRepel: number;
   plunderable: Plunderable[];
   missingDefs: BuildingDefId[];
-  /** the city has set or chain buildings, whose bonuses are not counted yet */
-  ignoresSetsAndChains: boolean;
+  /** boosts of buildings, sets and chains by game type, feature `all`; same scope as the game's own boost list */
+  boostTotals: Record<string, number>;
 }
 
 type Side = 'aa' | 'ad' | 'da' | 'dd';
@@ -44,7 +46,20 @@ const GREAT_BUILDING_SIDES: Record<string, Side[]> = {
   advanced_tactics: ['aa', 'ad', 'da', 'dd'],
 };
 
-export type DefLookup = (id: BuildingDefId) => BuildingDef | undefined;
+export interface AssessContext {
+  def(id: BuildingDefId): BuildingDef | undefined;
+  /** era of a level, in game order (0 = StoneAge) */
+  eraByLevel(level: number): EraId | undefined;
+}
+
+/**
+ * Classic multi-age buildings keep the era they were built or last upgraded in, as `level` (index into the era
+ * order). Everything else counts with the city era. Checked 2026-10-19 against the game's own boosts.
+ */
+function eraOf(b: Building, def: BuildingDef, ctx: AssessContext, cityEra: EraId): EraId {
+  if (def.generic || b.type === 'greatbuilding' || b.level === undefined) return cityEra;
+  return ctx.eraByLevel(b.level) ?? cityEra;
+}
 
 function givesBoosts(b: Building): boolean {
   if (b.state.kind === 'constructing') return false;
@@ -62,45 +77,69 @@ function plunderableOf(b: Building, def: BuildingDef, city: City): Plunderable |
   const product: Product | undefined = s.product ?? productFor(def, city.era);
   const resources = Object.fromEntries(Object.entries(product?.resources ?? {}).filter(([, n]) => n > 0));
   if (Object.keys(resources).length === 0) return null;
-  return { building: b.id, name: def.name, resources, readyAt: s.kind === 'producing' ? s.readyAt : undefined };
+  return {
+    building: b.id,
+    name: def.name,
+    resources,
+    ready: s.kind === 'finished',
+    readyAt: s.kind === 'producing' ? s.readyAt : undefined,
+  };
 }
 
-export function assessCity(city: City, defs: DefLookup): CityAssessment {
+const bonusesUpTo = (bonuses: LevelBonus[], level: number, era: EraId): Boost[] =>
+  bonuses.filter((b) => b.level <= level).flatMap((b) => boostsAt(b.boosts, era));
+
+export function assessCity(city: City, ctx: AssessContext): CityAssessment {
   const sums: Record<Side, number> = { aa: 0, ad: 0, da: 0, dd: 0 };
   let plunderRepel = 0;
   const plunderable: Plunderable[] = [];
   const missing = new Set<BuildingDefId>();
-  let ignoresSetsAndChains = false;
+  const placed: Placed[] = [];
 
   for (const b of city.buildings.values()) {
-    const def = defs(b.def);
-    if (!def) {
-      missing.add(b.def);
-      continue;
+    const def = ctx.def(b.def);
+    if (def) placed.push(place(b, def));
+    else missing.add(b.def);
+  }
+  const active = placed.filter((p) => givesBoosts(p.building));
+  const setLevel = setLevels(active);
+  const linked = connectedLinks(active);
+
+  const boostTotals: Record<string, number> = {};
+  const addBoosts = (boosts: Boost[]) => {
+    for (const boost of boosts) {
+      if (boost.feature !== 'all') continue;
+      boostTotals[boost.type] = (boostTotals[boost.type] ?? 0) + boost.value;
+      for (const side of BOOST_SIDES[boost.type] ?? []) sums[side] += boost.value;
+      if (boost.type === 'plunder_repel') plunderRepel += boost.value;
     }
-    if (givesBoosts(b)) {
-      for (const boost of boostsFor(def, city.era)) {
-        if (boost.feature !== 'all') continue;
-        for (const side of BOOST_SIDES[boost.type] ?? []) sums[side] += boost.value;
-        if (boost.type === 'plunder_repel') plunderRepel += boost.value;
-      }
-      const bonus = b.greatBuilding?.bonus;
-      if (bonus) {
-        for (const side of GREAT_BUILDING_SIDES[bonus.type] ?? []) sums[side] += bonus.value;
-        if (bonus.type === 'plunder_repel') plunderRepel += bonus.value;
-      }
-      if (def.hasSetOrChain) ignoresSetsAndChains = true;
+  };
+
+  for (const { building: b, def } of active) {
+    const era = eraOf(b, def, ctx, city.era);
+    addBoosts(boostsFor(def, era));
+    if (def.set) addBoosts(bonusesUpTo(def.set.bonuses, setLevel.get(b.id) ?? 0, era));
+    // debt: a connected link adds its level 1 bonus only. ceiling: chains whose links grow with chain length.
+    // upgrade: when the game shows a higher chain bonus than the box for such a chain.
+    if (def.chain && linked.has(b.id)) addBoosts(bonusesUpTo(def.chain.bonuses, 1, era));
+    const bonus = b.greatBuilding?.bonus;
+    if (bonus) {
+      for (const side of GREAT_BUILDING_SIDES[bonus.type] ?? []) sums[side] += bonus.value;
+      if (bonus.type === 'plunder_repel') plunderRepel += bonus.value;
     }
+  }
+
+  for (const { building: b, def } of placed) {
     const p = plunderableOf(b, def, city);
     if (p) plunderable.push(p);
   }
 
-  plunderable.sort((a, b) => (a.readyAt ?? 0) - (b.readyAt ?? 0));
+  plunderable.sort((a, b) => Number(b.ready) - Number(a.ready) || (a.readyAt ?? Infinity) - (b.readyAt ?? Infinity));
   return {
     army: { attacker: { attack: sums.aa, defense: sums.ad }, defender: { attack: sums.da, defense: sums.dd } },
     plunderRepel: Math.round(plunderRepel * 100) / 100,
     plunderable,
     missingDefs: [...missing],
-    ignoresSetsAndChains,
+    boostTotals,
   };
 }
