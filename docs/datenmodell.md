@@ -156,7 +156,13 @@ interface Boost {
 
 Dazu kommen Zeitalter (Reihenfolge, Namen), Güter (aus `goodsList` beim Start) und Ressourcen-Definitionen.
 
-**Offene Frage für Phase 1:** Der Helfer lädt Gebäude-Definitionen einzeln vom Inno-CDN, offenbar weil das Spiel sie nicht mehr gesammelt beim Start lädt. Der Prototyp hat nur `game/json` mitgeschnitten, keine Metadaten. Phase 1 schneidet auch Metadaten mit und prüft, was das Spiel selbst lädt. Reicht das nicht, holt die Toolbox fehlende Definitionen vom CDN, wie es die Repo-Regel als Ausnahme erlaubt, und hält sie mit dem Hash des Spiels als Cache in der DB.
+**Woher die Definitionen kommen (geprüft am 2026-10-19 auf de20):** Das Spiel lädt zuerst `building_entity_lookup` (Liste aller Gebäude mit URL und Hash). Danach lädt es einzeln per XHR nur die Definitionen, die es braucht: beim Start rund 110 für die eigene Stadt, beim Besuch einer Stadt die noch fehlenden (beim ersten Besuch 18). Der Helfer lädt dagegen alle rund 2.900 selbst vom CDN.
+
+Daraus folgt:
+
+- Der Catalog liest nur mit, was das Spiel lädt. Eigene CDN-Abrufe braucht es nicht.
+- Definitionen werden mit ihrem Hash in der DB gehalten. So sind sie nach dem nächsten Start sofort da, auch bevor das Spiel sie erneut lädt. Ändert sich der Hash, gilt die neue Fassung.
+- Beim Stadtbesuch kommen fehlende Definitionen kurz nach `visitPlayer`. Der Catalog meldet `catalog.updated { defs }`, und wer eine Stadt bewertet, rechnet dann neu. Bis dahin markiert `CityAssessment` die Bewertung als unvollständig.
 
 ## Abgeleitete Werte: CityAssessment
 
@@ -172,6 +178,7 @@ interface CityAssessment {
   };
   plunderRepel: number;
   plunderable: { building: number; product: Product; readyAt?: number }[];
+  missingDefs: BuildingDefId[];   // noch nicht geladen, Bewertung unvollständig
 }
 ```
 
@@ -186,10 +193,9 @@ Sabotage ruft sie nach `city.visited` auf und baut daraus sein ViewModel. Andere
 | `OtherPlayerService.visitPlayer` | Player, City | Spieler aktualisieren, besuchte Stadt setzen |
 | `CityMapService.updateEntity`, `reset` | City | eigene oder besuchte Stadt je nach Spieler-ID |
 | `CityMapService.placeBuilding`, `removeBuilding`, `moveEntity` | City | eigene Stadt ändern |
-| Metadaten `city_entities` | Catalog | Gebäude-Definitionen |
+| Metadaten `building_entity_lookup` und `building_entity_<id>` | Catalog | Gebäude-Definitionen |
 
 ## Offene Punkte
 
-- Metadaten-Verkehr des Spiels mitschneiden und prüfen (siehe Catalog).
 - Besuchte Städte bleiben vorerst nur im Speicher. Sobald ein Feature einen Verlauf braucht (etwa wann ein Nachbar wieder plünderbar war), bekommen sie eine Tabelle.
 - Genaue Namen der Spiel-Methoden für Bauen, Abreißen und Verschieben aus einer Aufnahme bestätigen.
