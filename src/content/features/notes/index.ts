@@ -87,7 +87,11 @@ export const notesFeature: Feature = {
         const confirm = ui.confirm;
         ui.confirm = undefined;
         if (confirm?.kind === 'group') notes.deleteGroup(confirm.id);
-        if (confirm?.kind === 'page') notes.deletePage(confirm.id);
+        if (confirm?.kind === 'page') {
+          notes.deletePage(confirm.id);
+          // a deleted player page would stay selected as an empty draft and look as if nothing happened
+          if (ui.page === confirm.id) ui.page = undefined;
+        }
         box.update();
       },
       relation: (relation) => set({ relation }),

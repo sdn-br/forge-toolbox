@@ -196,6 +196,17 @@ describe('notes feature', () => {
     expect(box.text).toContain('🏘️ Berta Neu');
   });
 
+  it('removes a deleted player page from the list instead of keeping it as an empty draft', () => {
+    const { box, root, notes, ctx } = setup();
+    ctx.players.apply(world, [obs(2, 'Bert')], 'visit');
+    notes.setPlayerText(playerId(2), 'stark');
+    [...root.querySelectorAll<HTMLElement>('.side li')].find((l) => l.textContent?.includes('Bert'))?.click();
+    box.click('Seite löschen');
+    box.click('Löschen');
+    expect(notes.playerPage(playerId(2))).toBeUndefined();
+    expect([...root.querySelectorAll('.side li')].some((l) => l.textContent?.includes('Bert'))).toBe(false);
+  });
+
   it('filters the player pages by relation', () => {
     const { box, root, notes, ctx } = setup();
     ctx.players.apply(world, [obs(2, 'Bert'), obs(3, 'Berta')], 'visit');
