@@ -137,3 +137,16 @@ export interface GameBattle {
   battleType?: { type?: string; era?: string };
   state?: GameBattleState;
 }
+
+/** response of OtherPlayerService.plunderById */
+export interface GamePlunderResult {
+  /** only "success" is known */
+  result?: string;
+  product?: GameProduct;
+}
+
+/** an icon over a building, from CityMapService.showEntityIcons */
+export interface GameEntityIcon {
+  id?: number;
+  type?: string;
+}

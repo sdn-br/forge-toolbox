@@ -6,19 +6,31 @@ import type { CatalogStore } from '../stores/catalog';
 import type { CityStore } from '../stores/cities';
 import type { Building } from '../stores/city-model';
 import type { PlayerObservation, PlayerStore } from '../stores/players';
+import type { PlunderStore } from '../stores/plunders';
 import type { SessionStore } from '../stores/session';
 import { toBuildingDef } from './building-defs';
 import {
   isBattleState,
   isOwnPvpBattle,
+  isPlunderedEntity,
+  plunderLoot,
   toBattle,
   toBuilding,
   toCity,
   toObservation,
+  toPlunder,
   toSession,
   toVisitInfo,
 } from './convert';
-import type { GameBattle, GameCityEntity, GameEra, GameSocialList, GameStartup, GameVisit } from './game-types';
+import type {
+  GameBattle,
+  GameCityEntity,
+  GameEntityIcon,
+  GameEra,
+  GameSocialList,
+  GameStartup,
+  GameVisit,
+} from './game-types';
 
 export interface GameHandlerDeps {
   world: WorldId;
@@ -28,13 +40,14 @@ export interface GameHandlerDeps {
   cities: CityStore;
   catalog: CatalogStore;
   battles: BattleStore;
+  plunders: PlunderStore;
 }
 
 const observations = (list: unknown) =>
   (Array.isArray(list) ? list : []).map(toObservation).filter((o): o is PlayerObservation => o !== null);
 
 export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps): void {
-  const { world, now, session, players, cities, catalog, battles } = deps;
+  const { world, now, session, players, cities, catalog, battles, plunders } = deps;
 
   ingestion.on('StartupService', 'getData', ({ data }) => {
     const d = data as GameStartup;
@@ -90,6 +103,34 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     if (!battle) return;
     battles.record(battle);
     running = null;
+  });
+
+  // A plunder comes as several entries of one response (seen 2026-10-19): plunderById has the loot, the reset the
+  // plundered building with its owner, and showEntityIcons marks the building when Double Loot doubled the loot.
+  // The order varies, so they are joined once the response is done. rewardPlunder repeats the loot and is ignored.
+  let loot: Record<string, number> | null = null;
+  let plundered: GameCityEntity | undefined;
+  const doubled = new Set<number>();
+  ingestion.on('OtherPlayerService', 'plunderById', ({ data }) => {
+    loot = plunderLoot(data);
+  });
+  ingestion.on('CityMapService', 'reset', ({ data }) => {
+    const me = session.current?.playerId;
+    if (me === undefined || !Array.isArray(data)) return;
+    plundered = (data as GameCityEntity[]).find((e) => isPlunderedEntity(e, me)) ?? plundered;
+  });
+  ingestion.on('CityMapService', 'showEntityIcons', ({ data }) => {
+    for (const icon of (Array.isArray(data) ? data : []) as GameEntityIcon[]) {
+      if (icon.type === 'citymap_icon_plunder_and_pillage' && typeof icon.id === 'number') doubled.add(icon.id);
+    }
+  });
+  ingestion.onBatchEnd(() => {
+    if (loot && plundered) {
+      plunders.record(toPlunder(world, now(), plundered, loot, doubled.has(plundered.id as number)));
+    }
+    loot = null;
+    plundered = undefined;
+    doubled.clear();
   });
 
   const updateBuildings = ({ data }: { data: unknown }) => {

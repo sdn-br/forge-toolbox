@@ -2,6 +2,7 @@
 
 import { battlePersistence } from '../persistence/battles/client';
 import { playerPersistence } from '../persistence/players/client';
+import { plunderPersistence } from '../persistence/plunders/client';
 import { worldId } from '../shared/ids';
 import { createBus } from './core/events';
 import { boxFactory, type Feature, type FeatureContext } from './core/feature';
@@ -20,6 +21,7 @@ import { BattleStore } from './stores/battles';
 import { CatalogStore } from './stores/catalog';
 import { CityStore } from './stores/cities';
 import { PlayerStore } from './stores/players';
+import { PlunderStore } from './stores/plunders';
 import { SessionStore } from './stores/session';
 import { Menu } from './ui/menu';
 import { UiState } from './ui/ui-state';
@@ -36,12 +38,13 @@ async function main() {
   const session = new SessionStore(bus);
   const players = new PlayerStore(bus, playerPersistence(callBackground));
   const battles = new BattleStore(bus, world, battlePersistence(callBackground));
+  const plunders = new PlunderStore(bus, world, plunderPersistence(callBackground));
   const cities = new CityStore(bus);
   const catalog = new CatalogStore(bus);
   const recorder = new Recorder(() => settings.get('core.record'));
   const menu = new Menu();
 
-  registerGameHandlers(ingestion, { world, now, session, players, cities, catalog, battles });
+  registerGameHandlers(ingestion, { world, now, session, players, cities, catalog, battles, plunders });
   // the proxy buffers game traffic until we connect, so loading first loses nothing
   await Promise.all([
     settings.load(),
@@ -59,6 +62,7 @@ async function main() {
     cities,
     catalog,
     battles,
+    plunders,
     recorder,
     createBox: boxFactory(ui),
   };

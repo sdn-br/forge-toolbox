@@ -1,6 +1,6 @@
 // Game format → own model. Nothing outside src/content/game sees the game format.
 import { buildingDefId, eraId, guildId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
-import type { Battle, BattleResult, BattleSide, GuildRef } from '../../shared/model';
+import type { Battle, BattleResult, BattleSide, GuildRef, Plunder } from '../../shared/model';
 import type { VisitInfo } from '../stores/cities';
 import type { Building, BuildingState, City, Product } from '../stores/city-model';
 import type { PlayerObservation } from '../stores/players';
@@ -11,6 +11,7 @@ import type {
   GameBattleUnit,
   GameCityEntity,
   GamePlayer,
+  GamePlunderResult,
   GameProduct,
   GameProductionOption,
   GameResources,
@@ -237,5 +238,41 @@ export function toBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: Game
     era: eraId(b.battleType?.era ?? ''),
     attacker: toSide(b.state.unitsOrder ?? [], final.unitsOrder ?? [], ATTACKER_TEAM),
     defender: toSide(b.state.unitsOrder ?? [], final.unitsOrder ?? [], DEFENDER_TEAM),
+  };
+}
+
+/** The loot of a successful plunder; other results are unknown and give null. */
+export function plunderLoot(data: unknown): Record<string, number> | null {
+  const r = data as GamePlunderResult | null;
+  return r?.result === 'success' ? resourcesOf(r.product?.product) : null;
+}
+
+/** A building in another player's city that the game reports as just plundered. */
+export function isPlunderedEntity(e: GameCityEntity, me: PlayerId): boolean {
+  return (
+    e.state?.__class__ === 'PlunderedState' &&
+    typeof e.id === 'number' &&
+    typeof e.player_id === 'number' &&
+    e.player_id !== me &&
+    typeof e.cityentity_id === 'string'
+  );
+}
+
+/** `entity` must pass isPlunderedEntity. The loot comes already doubled with Double Loot. */
+export function toPlunder(
+  world: WorldId,
+  at: number,
+  entity: GameCityEntity,
+  resources: Record<string, number>,
+  doubleLoot: boolean,
+): Plunder {
+  return {
+    world,
+    at,
+    opponent: playerId(entity.player_id as number),
+    entityId: entity.id as number,
+    cityEntityId: buildingDefId(entity.cityentity_id as string),
+    resources,
+    doubleLoot,
   };
 }

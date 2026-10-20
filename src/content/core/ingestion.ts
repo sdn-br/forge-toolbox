@@ -26,6 +26,7 @@ export class Ingestion {
   private game = new Map<string, GameHandler[]>();
   private services = new Map<string, GameHandler[]>();
   private meta: { prefix: string; handler: MetaHandler }[] = [];
+  private batchEnds: (() => void)[] = [];
 
   on(service: string, method: string, handler: GameHandler): void {
     const key = `${service}.${method}`;
@@ -35,6 +36,11 @@ export class Ingestion {
   /** every method of a service, for responses whose method is not known in advance */
   onService(service: string, handler: GameHandler): void {
     this.services.set(service, [...(this.services.get(service) ?? []), handler]);
+  }
+
+  /** after all entries of one game response, for things the game splits over several entries of it */
+  onBatchEnd(handler: () => void): void {
+    this.batchEnds.push(handler);
   }
 
   onMeta(prefix: string, handler: MetaHandler): void {
@@ -59,6 +65,7 @@ export class Ingestion {
       };
       for (const handler of handlers) this.run(key(entry), () => handler(message));
     }
+    for (const handler of this.batchEnds) this.run('batch end', handler);
   }
 
   private acceptMeta(url: string, response: string): void {

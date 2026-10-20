@@ -12,6 +12,7 @@ export interface ToolboxEvents {
   'city.visitedChanged': { owner: PlayerId; buildingIds: number[] };
   'catalog.updated': { defs: BuildingDefId[] };
   'battle.recorded': { opponent: PlayerId };
+  'plunder.recorded': { opponent: PlayerId };
 }
 
 export type ToolboxBus = EventBus<ToolboxEvents>;

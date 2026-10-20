@@ -8,6 +8,7 @@ import { type BattlePersistence, BattleStore } from '../../src/content/stores/ba
 import { CatalogStore } from '../../src/content/stores/catalog';
 import { CityStore } from '../../src/content/stores/cities';
 import { PlayerStore } from '../../src/content/stores/players';
+import { type PlunderPersistence, PlunderStore } from '../../src/content/stores/plunders';
 import { SessionStore } from '../../src/content/stores/session';
 import type { Box, BoxOptions } from '../../src/content/ui/box';
 import type { Menu, MenuItem } from '../../src/content/ui/menu';
@@ -56,7 +57,8 @@ export function recordingBox(options: BoxOptions) {
 }
 
 /** Real stores, bus and settings; persistence is the real handlers on in-memory Dexie unless a test passes its own. */
-export function featureContext(persistence: BattlePersistence = testDb().persistence) {
+export function featureContext(persistence?: BattlePersistence, plunders?: PlunderPersistence) {
+  const db = testDb();
   const world = worldId('de20');
   const bus = createBus();
   const boxes = new Map<string, ReturnType<typeof recordingBox>>();
@@ -71,7 +73,8 @@ export function featureContext(persistence: BattlePersistence = testDb().persist
     players: new PlayerStore(bus, { load: async () => [], put: async () => {} }),
     cities: new CityStore(bus),
     catalog: new CatalogStore(bus),
-    battles: new BattleStore(bus, world, persistence),
+    battles: new BattleStore(bus, world, persistence ?? db.persistence),
+    plunders: new PlunderStore(bus, world, plunders ?? db.plunders),
     recorder: new Recorder(() => false),
     createBox: (options) => {
       const recording = recordingBox(options);

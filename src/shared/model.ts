@@ -1,5 +1,5 @@
 // Domain types that cross the content script / service worker boundary.
-import type { EraId, GuildId, PlayerId, WorldId } from './ids';
+import type { BuildingDefId, EraId, GuildId, PlayerId, WorldId } from './ids';
 
 export interface GuildRef {
   id: GuildId;
@@ -58,4 +58,23 @@ export interface Battle {
   era: EraId;
   attacker: BattleSide;
   defender: BattleSide;
+}
+
+/** A building in another city the session player plundered. */
+export interface Plunder {
+  world: WorldId;
+  at: number;
+  opponent: PlayerId;
+  /** the building in the opponent's city */
+  entityId: number;
+  cityEntityId: BuildingDefId;
+  /** loot as the game reports it, Double Loot already included */
+  resources: Record<string, number>;
+  doubleLoot: boolean;
+}
+
+export interface PlunderTotals {
+  count: number;
+  /** Forge points over all counted plunders */
+  fp: number;
 }
