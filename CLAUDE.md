@@ -10,7 +10,7 @@ Code, comments, tests, README, commit and PR text in English. Concept and archit
 
 ## Repo rules
 
-- No brodos-dev skills or agents in this repo.
+- Do not reach for brodos-dev skills or agents on your own. Its GitLab and compliance workflows (mr-flow, harden-spec, afk-pipeline and similar) do not fit here. A brodos-dev skill the user invokes explicitly is fine, with the agents it needs.
 - No `Co-Authored-By: Claude` trailer in commits.
 - Never commit directly to `main`. Feature branch plus PR. Push and PR only with explicit approval.
 - No own requests to the Inno game servers. The extension only listens to game traffic. Exception: metadata and assets from the Inno CDN, as the game loads them.
