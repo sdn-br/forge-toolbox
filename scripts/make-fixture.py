@@ -4,6 +4,8 @@
 # keeps the first PvP battle and the opponent's updatePlayer, with fake ids and names.
 # Manual battle: python3 -I scripts/make-fixture.py manual-battle <recording.json> <out.json>
 # keeps the first PvP battle that starts without a result and the BattlefieldService response that ends it.
+# Plunder: python3 -I scripts/make-fixture.py plunder <recording.json> <world> <out.json>
+# keeps the plunder entries of the first batch with a plunderById, with fake ids and names.
 
 import json,sys
 
@@ -77,6 +79,25 @@ def manual_battle_fixture(rec,out):
         {'requestClass':'BattlefieldService','requestMethod':move,'responseData':state(end)}]}
     json.dump(fixture,open(out,'w'),indent=1)
 
+def plunder_fixture(rec,world,out):
+    ME,OPP=1000,1001
+    batch=next(b for b in (json.loads(r['response']) for r in rec if r['kind']=='json')
+        if isinstance(b,list) and any(e.get('requestMethod')=='plunderById' for e in b))
+    KEEP={'plunderById','rewardPlunder','reset','showEntityIcons','updatePlayer'}
+    def entry(e):
+        d=e['responseData']; m=e['requestMethod']
+        if m=='updatePlayer':
+            d=[{'player_id':OPP,'name':'Testgegner','avatar':'','city_name':'Gegnerstadt','era':p.get('era'),'score':1,'rank':1,
+              'is_neighbor':True,'is_active':True,'__class__':p.get('__class__')} for p in d]
+        if m=='reset':
+            d=[dict(x,player_id=OPP) for x in d]
+        return {'requestClass':e['requestClass'],'requestMethod':m,'responseData':d}
+    fixture={'note':f'Plunder recorded on {world} 2026-10-19 with the response batch it came in, players anonymized (me 1000, opponent 1001), unrelated entries dropped.',
+      'me':ME,'batch':[entry(e) for e in batch if e.get('requestMethod') in KEEP]}
+    json.dump(fixture,open(out,'w'),indent=1)
+
+if sys.argv[1]=='plunder':
+    plunder_fixture(json.load(open(sys.argv[2])),sys.argv[3],sys.argv[4]); sys.exit()
 if sys.argv[1]=='battle':
     battle_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
 if sys.argv[1]=='manual-battle':
