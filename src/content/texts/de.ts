@@ -4,6 +4,7 @@ export const de = {
   'box.pin': 'Fixieren',
   'box.unpin': 'Lösen',
   'box.popout': 'In eigenem Fenster öffnen',
+  'core.extensionLost': 'Die Toolbox wurde aktualisiert. Bitte das Spiel neu laden, bis dahin wird nichts gespeichert.',
   'menu.settings': 'Einstellungen',
   'settings.title': 'Einstellungen',
   'settings.core': 'Allgemein',

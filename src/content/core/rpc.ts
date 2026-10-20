@@ -1,8 +1,10 @@
 import type { Arg, Method, Result, RpcRequest, RpcResponse } from '../../shared/rpc';
+import { assertAlive } from './extension-context';
 
 export type Call = <M extends Method>(rpc: M, arg: Arg<M>) => Promise<Result<M>>;
 
 export const callBackground: Call = async (rpc, arg) => {
+  assertAlive();
   const res: RpcResponse | undefined = await chrome.runtime.sendMessage({ rpc, arg } satisfies RpcRequest);
   if (!res) throw new Error(`no response for ${rpc}`);
   if (!res.ok) throw new Error(res.error);

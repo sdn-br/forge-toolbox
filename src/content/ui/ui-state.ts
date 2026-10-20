@@ -1,4 +1,5 @@
 import type { KeyValue } from '../core/kv';
+import { logError } from '../core/log';
 
 export interface BoxState {
   x?: number;
@@ -23,6 +24,6 @@ export class UiState {
 
   saveBox(id: string, patch: BoxState): void {
     this.boxes = { ...this.boxes, [id]: { ...this.box(id), ...patch } };
-    void this.kv.set('ui.boxes', this.boxes);
+    this.kv.set('ui.boxes', this.boxes).catch((error) => logError('saving box state failed', error));
   }
 }

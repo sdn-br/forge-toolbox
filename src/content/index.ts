@@ -5,6 +5,7 @@ import { playerPersistence } from '../persistence/players/client';
 import { plunderPersistence } from '../persistence/plunders/client';
 import { worldId } from '../shared/ids';
 import { createBus } from './core/events';
+import { extensionAlive, onExtensionLost } from './core/extension-context';
 import { boxFactory, type Feature, type FeatureContext } from './core/feature';
 import { Ingestion } from './core/ingestion';
 import { chromeLocal } from './core/kv';
@@ -13,6 +14,7 @@ import { connectProxy } from './core/proxy-link';
 import { Recorder } from './core/recorder';
 import { callBackground } from './core/rpc';
 import { Settings } from './core/settings';
+import { t } from './core/texts';
 import { pvpFeature } from './features/pvp';
 import { sabotageFeature } from './features/sabotage';
 import { settingsFeature } from './features/settings-feature';
@@ -77,7 +79,10 @@ async function main() {
     }
   }
 
+  onExtensionLost(() => menu.showNotice(t('core.extensionLost')));
   connectProxy((traffic) => {
+    // without the extension nothing can be saved; the notice asks for a reload instead of failing on every message
+    if (!extensionAlive()) return;
     recorder.add(traffic);
     ingestion.accept(traffic);
   });

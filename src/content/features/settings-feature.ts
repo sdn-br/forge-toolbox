@@ -1,15 +1,19 @@
 import { html } from 'lit-html';
 import type { Feature } from '../core/feature';
+import { logError } from '../core/log';
 import { isChoice, type SettingDef, type Settings } from '../core/settings';
 import { t } from '../core/texts';
 
+const save = (settings: Settings, key: string, value: boolean | string) =>
+  settings.set(key, value).catch((error) => logError('saving settings failed', error));
+
 const control = (settings: Settings, d: SettingDef) =>
   isChoice(d)
-    ? html`<label>${t(d.label)}<select @change=${(e: Event) => settings.set(d.key, (e.target as HTMLSelectElement).value)}>
+    ? html`<label>${t(d.label)}<select @change=${(e: Event) => save(settings, d.key, (e.target as HTMLSelectElement).value)}>
         ${d.choices.map((c) => html`<option value=${c.value} .selected=${settings.choice(d.key) === c.value}>${t(c.label)}</option>`)}
       </select></label>`
     : html`<label><input type="checkbox" .checked=${settings.get(d.key)}
-        @change=${(e: Event) => settings.set(d.key, (e.target as HTMLInputElement).checked)} />${t(d.label)}</label>`;
+        @change=${(e: Event) => save(settings, d.key, (e.target as HTMLInputElement).checked)} />${t(d.label)}</label>`;
 
 export const settingsFeature: Feature = {
   id: 'settings',
