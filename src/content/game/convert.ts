@@ -1,5 +1,13 @@
 // Game format → own model. Nothing outside src/content/game sees the game format.
-import { buildingDefId, eraId, guildId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
+import {
+  type BuildingDefId,
+  buildingDefId,
+  eraId,
+  guildId,
+  type PlayerId,
+  playerId,
+  type WorldId,
+} from '../../shared/ids';
 import type { Battle, BattleResult, BattleSide, GuildRef, Plunder } from '../../shared/model';
 import type { VisitInfo } from '../stores/cities';
 import type { Building, BuildingState, City, Product } from '../stores/city-model';
@@ -261,11 +269,26 @@ export function isPlunderedEntity(e: GameCityEntity, me: PlayerId): boolean {
 /** A plunder the opponent's defense repelled; the game sends neither building nor loot with it. */
 export const isRepelledPlunder = (data: unknown) => (data as GamePlunderResult | null)?.result === 'repelled';
 
-export const toRepelledPlunder = (world: WorldId, at: number, opponent: PlayerId): Plunder => ({
+/** `[playerId, entityId]` the player sends with plunderById */
+export function plunderTarget(request: unknown): { opponent: PlayerId; entityId: number } | null {
+  if (!Array.isArray(request)) return null;
+  const [opponent, entityId] = request;
+  return typeof opponent === 'number' && typeof entityId === 'number'
+    ? { opponent: playerId(opponent), entityId }
+    : null;
+}
+
+export const toRepelledPlunder = (
+  world: WorldId,
+  at: number,
+  opponent: PlayerId,
+  building?: { entityId: number; cityEntityId?: BuildingDefId },
+): Plunder => ({
   world,
   at,
   opponent,
   outcome: 'repelled',
+  ...building,
   resources: {},
   doubleLoot: false,
 });

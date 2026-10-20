@@ -20,7 +20,7 @@ export interface SabotageVm {
   plundered?: {
     last?:
       | { when: string; repelled: false; building: string; loot: string; doubleLoot: boolean }
-      | { when: string; repelled: true };
+      | { when: string; repelled: true; building?: string };
     /** count and Forge points of all plunders here */
     totals: string;
   };
@@ -31,11 +31,12 @@ export interface SabotageVm {
 
 function lastPlunder(p: Plunder, catalog: CatalogStore, now: number): NonNullable<SabotageVm['plundered']>['last'] {
   const when = formatWhen(p.at, now);
-  if (p.outcome === 'repelled' || p.cityEntityId === undefined) return { when, repelled: true };
+  const building = p.cityEntityId && (catalog.get(p.cityEntityId)?.name ?? p.cityEntityId);
+  if (p.outcome === 'repelled' || !building) return { when, repelled: true, ...(building && { building }) };
   return {
     when,
     repelled: false,
-    building: catalog.get(p.cityEntityId)?.name ?? p.cityEntityId,
+    building,
     loot: formatResources(p.resources, catalog),
     doubleLoot: p.doubleLoot,
   };

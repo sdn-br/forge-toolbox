@@ -35,6 +35,7 @@ export const de = {
   'sabotage.neverPlundered': 'Hier hast du noch nicht geplündert.',
   'sabotage.lastPlunder': 'Zuletzt {when}, {building}',
   'sabotage.lastRepelled': 'Zuletzt {when}: abgewehrt',
+  'sabotage.lastRepelledAt': 'Zuletzt {when}, {building}: abgewehrt',
   'plunder.doubleLoot': 'Double Loot',
   'plunder.repelled': 'abgewehrt',
   'plunder.count': '{count} Plünderungen',

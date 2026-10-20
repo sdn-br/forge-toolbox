@@ -118,5 +118,15 @@ describe('sabotage view model', () => {
       last: { when: 'heute 14:05', repelled: true },
       totals: '5 Plünderungen, 2 abgewehrt, 120 FP',
     });
+    const at = { ...last, entityId: 904, cityEntityId: buildingDefId('R_MultiAge_PatrickBonusSet20b') };
+    const named = sabotageViewModel(city, undefined, assessment, new CatalogStore(createBus()), false, now, undefined, {
+      last: at,
+      totals: { count: 0, repelled: 1, fp: 0 },
+    });
+    expect(named.plundered?.last).toEqual({
+      when: 'heute 14:05',
+      repelled: true,
+      building: 'R_MultiAge_PatrickBonusSet20b',
+    });
   });
 });

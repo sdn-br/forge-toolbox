@@ -8,7 +8,7 @@ import { CityStore } from '../src/content/stores/cities';
 import { PlayerStore } from '../src/content/stores/players';
 import { PlunderStore } from '../src/content/stores/plunders';
 import { SessionStore } from '../src/content/stores/session';
-import { buildingDefId, type PlayerId, playerId, worldId } from '../src/shared/ids';
+import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { Plunder } from '../src/shared/model';
 import fixture from './fixtures/pvp-plunder.json';
 import doubleLoot from './fixtures/pvp-plunder-double-loot.json';
@@ -25,26 +25,33 @@ function setup(me: number | null = fixture.me) {
   const session = new SessionStore(bus);
   const { db, persistence, plunders: plunderDb } = testDb();
   const plunders = new PlunderStore(bus, world, plunderDb);
+  const cities = new CityStore(bus);
   let now = AT;
   registerGameHandlers(ingestion, {
     world,
     now: () => now,
     session,
     players: new PlayerStore(bus, { load: async () => [], put: async () => {} }),
-    cities: new CityStore(bus),
+    cities,
     catalog: new CatalogStore(bus),
     battles: new BattleStore(bus, world, persistence),
     plunders,
   });
   const recorded: PlayerId[] = [];
   bus.on('plunder.recorded', (e) => recorded.push(e.opponent));
-  const send = (entries: unknown[]) =>
-    ingestion.accept({ kind: 'json', url: '/game/json?h=1', request: null, response: JSON.stringify(entries), at: 0 });
+  const send = (entries: unknown[], request: unknown[] | null = null) =>
+    ingestion.accept({
+      kind: 'json',
+      url: '/game/json?h=1',
+      request: request && JSON.stringify(request),
+      response: JSON.stringify(entries),
+      at: 0,
+    });
   if (me !== null)
     send([
       { requestClass: 'StartupService', requestMethod: 'getData', responseData: { user_data: { player_id: me } } },
     ]);
-  return { db, plunderDb, plunders, recorded, send, setNow: (at: number) => (now = at) };
+  return { db, plunderDb, plunders, recorded, send, cities, setNow: (at: number) => (now = at) };
 }
 
 /** the fixture batch with the plunderById response changed */
@@ -135,6 +142,55 @@ describe('recording plunders', () => {
       doubleLoot: false,
     });
     expect(recorded).toEqual([opponent]);
+  });
+
+  // the request as the game sends it (seen 2026-10-20): `[playerId, entityId]`
+  const plunderRequest = (opp: number, entityId: number) => [
+    { requestClass: 'OtherPlayerService', requestMethod: 'plunderById', requestData: [opp, entityId] },
+  ];
+
+  it('takes opponent and building of a repelled plunder from the request', async () => {
+    const result = repelled.batch.filter((e) => e.requestMethod === 'plunderById');
+    const { plunders, recorded, send, cities } = setup(repelled.me);
+    cities.setVisited({
+      world,
+      owner: opponent,
+      map: 'main',
+      era: eraId('ColonialAge'),
+      takenAt: AT,
+      buildings: new Map([
+        [
+          904,
+          {
+            id: 904,
+            owner: opponent,
+            def: buildingDefId('R_MultiAge_PatrickBonusSet20b'),
+            type: 'residential',
+            x: 0,
+            y: 0,
+            connected: true,
+            state: { kind: 'idle' },
+          },
+        ],
+      ]),
+      visit: { neighbor: true, friend: false, guildMember: false },
+    });
+    send(result, plunderRequest(1001, 904));
+    expect(await plunders.latest(opponent)).toMatchObject({
+      outcome: 'repelled',
+      entityId: 904,
+      cityEntityId: 'R_MultiAge_PatrickBonusSet20b',
+    });
+    expect(recorded).toEqual([opponent]);
+  });
+
+  it('keeps a repelled plunder without definition when the city of the opponent is not the visited one', async () => {
+    const result = repelled.batch.filter((e) => e.requestMethod === 'plunderById');
+    const { plunders, send } = setup(repelled.me);
+    send(result, plunderRequest(1001, 904));
+    const stored = await plunders.latest(opponent);
+    expect(stored).toMatchObject({ outcome: 'repelled', entityId: 904 });
+    expect(stored).not.toHaveProperty('cityEntityId');
   });
 
   it('ignores a repelled plunder unless its response names exactly one other player', async () => {
