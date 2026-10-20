@@ -38,9 +38,15 @@ interface Player {
   active: boolean;
   guild?: GuildRef;
   relations: Relations;
+  attack?: AttackTimer;         // fehlt, bis eine Quelle mit Zeitgebern den Spieler gemeldet hat
   firstSeenAt: number;
   seenAt: number;
   source: PlayerSource;
+}
+
+interface AttackTimer {
+  canPlunder: boolean;          // canSabotage: Kampf gewonnen, noch nicht geplündert
+  nextInteractionAt?: number;   // jetzt + next_interaction_in (Sekunden), in ms
 }
 
 interface GuildRef { id: GuildId; name: string; flag?: string }
@@ -58,6 +64,9 @@ type PlayerSource = 'socialList' | 'visit' | 'update' | 'ranking' | 'gbg' | 'eve
 
 - `getSocialList` ist für Beziehungen die vollständige Quelle. Wer in der neuen Liste nicht mehr als Nachbar steht, verliert `neighbor`. So erkennt die Toolbox, wenn sich die Nachbarschaft neu mischt.
 - Andere Quellen (Stadtbesuch, `OtherPlayerService.updatePlayer`, Rangliste, GbG) aktualisieren nur die Felder, die sie mitbringen, und ändern Beziehungen nie.
+- **Angriffs-Zeitgeber** (`canSabotage`, `next_interaction_in`, gesehen 2026-10-21): Direkt nach einem gewonnenen Kampf bringt `updatePlayer` `next_interaction_in: 86400` und `canSabotage: true`, direkt nach dem Plündern `next_interaction_in: 86345` und kein `canSabotage` mehr. In `getSocialList` hatten 30 von 75 Nachbarn `next_interaction_in`, 28 davon `canSabotage`. `visitPlayer` bringt keine Zeitgeber. Gespeichert wird der absolute Zeitpunkt (`nextInteractionAt`), so stimmt er auch nach einem Neuladen.
+- Nur Quellen, die den ganzen Spieler bringen, setzen die Zeitgeber, und dort heißt ein fehlendes Feld „nicht gesetzt“: `updatePlayer` und die Nachbarn aus `getSocialList`. So verschwindet `canPlunder` nach dem Plündern. Freunde und Gildenmitglieder aus `getSocialList`, `visitPlayer` und die Spieler in Ereignissen lassen die bekannten Zeitgeber stehen.
+- Die Plünderfrist ist derselbe Zeitgeber wie `next_interaction_in`. So rechnet auch die alte Toolbox, im Spiel ist es nicht belegt. Ohne Frist gilt `canPlunder` nicht.
 - Gildenmitglieder bringen mehr mit (Titel, Rechte, gewonnene Kämpfe). Das gehört in einen späteren Guild-Store, nicht in Player.
 - Notizen, PvP-Verlauf und LG-Daten verweisen auf `PlayerId`, liegen aber in ihren eigenen Stores.
 
@@ -281,14 +290,38 @@ Ein Kampf misst nur die verteidigende Armee des Gegners. Seine angreifende Armee
 
 **Spieler:** Ein Kampf verweist auf `opponent`. Eine Bereinigung der Spieler gibt es noch nicht. Kommt sie, muss sie Spieler behalten, auf die ein Kampf verweist. Den Namen des Gegners liefert meist das `OtherPlayerService.updatePlayer`, das in derselben Antwort wie der Kampf kommt.
 
+## CityShield (Schilde)
+
+Stand 2026-10-21. **Format laut alter Toolbox, nicht selbst gesehen.** Quelle: `OtherPlayerService.getCityProtections`, `responseData` ist eine Liste von `{ playerId, expireTime }`. `expireTime` ist in Unix-Sekunden, `-1` heißt, der Spieler kann gar nicht angegriffen werden. Vermutung: Die Liste kommt beim Start, wenn ein Nachbar schon einen Schild hat, und über den Websocket, wenn ein Nachbar einen Schild aktiviert (24, 48 oder 72 Stunden aus dem Laden der Freundesschenke). Die Ingestion behandelt `json` und `ws` gleich.
+
+```ts
+interface CityShield {
+  world: WorldId;
+  player: PlayerId;
+  expiresAt: number;            // expireTime * 1000
+}
+```
+
+**Regeln**
+
+- Nur Einträge mit numerischer `playerId` und `expireTime > 0` zählen. `-1` und Einträge in fremdem Format werden übersprungen.
+- Ein neuer Eintrag ersetzt den Schild des Spielers. Ein Start ohne Liste löscht nichts.
+- Abgelaufene Schilde werden beim Lesen ignoriert und einmal beim Start der Session gelöscht (`shields.prune`).
+- Bis Format und Auslöser im Spiel bestätigt sind, schreibt die Toolbox jede `getCityProtections`-Nachricht roh in die Konsole (`[Forge Toolbox] getCityProtections (format unconfirmed)`).
+
+**Abfragen:** `active(player)`. **Events:** `shield.recorded { players: PlayerId[] }`.
+
+**Persistenz:** Tabelle `cityShields` (Dexie Version 8), Schlüssel `[world+player]`, Index `expiresAt`.
+
 ## Zuordnung Spielantwort → Store
 
 | Spielantwort | Store | Wirkung |
 |---|---|---|
 | `StartupService.getData` | Session, City, Catalog | Session anlegen, eigene Stadt setzen, Güter laden |
-| `OtherPlayerService.getSocialList` | Player | alle Spieler aktualisieren, Beziehungen neu setzen |
+| `OtherPlayerService.getSocialList` | Player | alle Spieler aktualisieren, Beziehungen neu setzen, Angriffs-Zeitgeber der Nachbarn setzen |
 | `OtherPlayerService.visitPlayer` | Player, City | Spieler aktualisieren, besuchte Stadt setzen |
-| `OtherPlayerService.updatePlayer` | Player | Spieler aktualisieren |
+| `OtherPlayerService.updatePlayer` | Player | Spieler aktualisieren, Angriffs-Zeitgeber setzen |
+| `OtherPlayerService.getCityProtections` (laut alter Toolbox) | CityShield | Schilde ersetzen |
 | `BattlefieldService.startByBattleType` | Battle | eigenen PvP-Angriff speichern, manuellen Kampf bis zum Ende vormerken |
 | `BattlefieldService.*` mit `BattleRealmState` (gesehen: `submitMove`) | Battle | vorgemerkten manuellen Kampf mit dem Ergebnis speichern |
 | `CityMapService.updateEntity`, `reset` | City | eigene oder besuchte Stadt je nach Spieler-ID |
