@@ -20,6 +20,7 @@ function setup() {
   const cities = new CityStore(bus);
   registerGameHandlers(ingestion, {
     world: worldId('de20'),
+    bus,
     now: () => 1_000_000,
     session,
     players,
@@ -33,11 +34,12 @@ function setup() {
   bus.on('city.visited', () => events.push('visited'));
   bus.on('city.visitedChanged', () => events.push('visitedChanged'));
   bus.on('city.ownChanged', (e) => events.push(e.reset ? 'ownReset' : 'ownChanged'));
-  const send = (requestClass: string, requestMethod: string, responseData: unknown) =>
+  bus.on('army.opened', (e) => events.push(`army:${e.battleType}`));
+  const send = (requestClass: string, requestMethod: string, responseData: unknown, requestData?: unknown) =>
     ingestion.accept({
       kind: 'json',
       url: '/game/json?h=1',
-      request: null,
+      request: requestData === undefined ? null : JSON.stringify([{ requestClass, requestMethod, requestData }]),
       response: JSON.stringify([{ requestClass, requestMethod, responseData }]),
       at: 0,
     });
@@ -126,5 +128,14 @@ describe('game handlers', () => {
     expect(cities.visited()?.buildings.get(10)?.state).toEqual({ kind: 'plundered' });
     expect(cities.own()?.buildings.get(1)?.state).toEqual({ kind: 'idle' });
     expect(events).toEqual(['visitedChanged']);
+  });
+
+  it('announces the army window with the battle type the request names', () => {
+    const { events, send } = setup();
+    send('ArmyUnitManagementService', 'getArmyInfo', {}, [{ __class__: 'ArmyContext', battleType: 'pvp' }]);
+    send('ArmyUnitManagementService', 'getArmyInfo', {}, [{ __class__: 'ArmyContext', battleType: 'gvg' }]);
+    send('ArmyUnitManagementService', 'getArmyInfo', {});
+    send('ArmyUnitManagementService', 'getArmyInfo', {}, [{ __class__: 'Other' }]);
+    expect(events).toEqual(['army:pvp', 'army:gvg']);
   });
 });

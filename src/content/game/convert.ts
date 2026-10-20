@@ -14,6 +14,7 @@ import type { Building, BuildingState, City, Product } from '../stores/city-mode
 import type { PlayerObservation } from '../stores/players';
 import type { Session } from '../stores/session';
 import type {
+  GameArmyContext,
   GameBattle,
   GameBattleState,
   GameBattleUnit,
@@ -248,6 +249,14 @@ export function toBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: Game
     attacker: toSide(b.state.unitsOrder ?? [], final.unitsOrder ?? [], ATTACKER_TEAM),
     defender: toSide(b.state.unitsOrder ?? [], final.unitsOrder ?? [], DEFENDER_TEAM),
   };
+}
+
+/** The battle type the army window is opened for, from the request of getArmyInfo. */
+export function armyBattleType(request: unknown): string | undefined {
+  const context = (Array.isArray(request) ? request : []).find(
+    (r): r is GameArmyContext => (r as GameArmyContext | null)?.__class__ === 'ArmyContext',
+  );
+  return typeof context?.battleType === 'string' ? context.battleType : undefined;
 }
 
 /** The loot of a successful plunder; other results are unknown and give null. */

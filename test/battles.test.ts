@@ -31,6 +31,7 @@ function setup(me: number | null = fixture.me) {
   const battles = new BattleStore(bus, world, persistence);
   registerGameHandlers(ingestion, {
     world,
+    bus,
     now: () => 0,
     session,
     players,
