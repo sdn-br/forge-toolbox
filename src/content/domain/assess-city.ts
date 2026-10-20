@@ -1,6 +1,6 @@
 // Derived values of a city: army boosts, plunder repel, what can be plundered. Pure, so fixtures test it.
 import type { BuildingDefId, EraId } from '../../shared/ids';
-import { type Boost, type BuildingDef, boostsAt, boostsFor, type LevelBonus, productFor } from '../stores/catalog';
+import { type Boost, type BuildingDef, boostsAt, boostsFor, type LevelBonus } from '../stores/catalog';
 import type { Building, City } from '../stores/city-model';
 import { connectedLinks, type Placed, place, setLevels } from './city-layout';
 
@@ -66,10 +66,7 @@ function givesBoosts(b: Building): boolean {
   return true;
 }
 
-/** a building whose production at its level has medals can never be plundered (confirmed by the user) */
-const PROTECTING_RESOURCES = ['medals'];
-
-function plunderableOf(b: Building, def: BuildingDef, city: City): Plunderable | null {
+function plunderableOf(b: Building, def: BuildingDef): Plunderable | null {
   if (!def.flags.plunderable) return null;
   const s = b.state;
   if (s.kind !== 'finished') return null;
@@ -78,9 +75,8 @@ function plunderableOf(b: Building, def: BuildingDef, city: City): Plunderable |
   // checked in the game: without a product in the visit there is nothing to plunder
   if (!s.product) return null;
   const resources = Object.fromEntries(Object.entries(s.product.resources ?? {}).filter(([, n]) => n > 0));
-  // the definition also knows medals the visit may leave out
-  const levelProduct = { ...productFor(def, city.era)?.resources, ...resources };
-  if (PROTECTING_RESOURCES.some((id) => (levelProduct[id] ?? 0) > 0)) return null;
+  // Medals do not protect: a Mondtor (R_MultiAge_PatrickBonusSet20b) St. 6 was plundered with its 17 medals
+  // (2026-10-20). Some buildings with medals seem protected, by a property not found yet.
   if (Object.keys(resources).length === 0) return null;
   return { building: b.id, name: def.name, resources };
 }
@@ -129,7 +125,7 @@ export function assessCity(city: City, ctx: AssessContext): CityAssessment {
   }
 
   for (const { building: b, def } of placed) {
-    const p = plunderableOf(b, def, city);
+    const p = plunderableOf(b, def);
     if (p) plunderable.push(p);
   }
 
