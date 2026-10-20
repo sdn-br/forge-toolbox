@@ -4,9 +4,10 @@ import { pvpFeature } from '../src/content/features/pvp/index';
 import { KEEP_SETTING } from '../src/content/features/pvp/retention';
 import { PAGE_SIZE } from '../src/content/features/pvp/view-model';
 import type { BattlePersistence, BattleQuery } from '../src/content/stores/battles';
+import type { IncomingPersistence } from '../src/content/stores/incoming';
 import type { PlunderPersistence } from '../src/content/stores/plunders';
 import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
-import type { Battle, Plunder } from '../src/shared/model';
+import type { Battle, IncomingAttack, Plunder } from '../src/shared/model';
 import { featureContext } from './helpers/feature-context';
 
 const battle = (battleId: number, opponent: number): Battle => ({
@@ -33,6 +34,15 @@ const plunder = (opponent: number): Plunder => ({
   doubleLoot: true,
 });
 
+const attack = (attacker: number): IncomingAttack => ({
+  world: worldId('de20'),
+  kind: 'battle',
+  key: 1,
+  at: Date.now(),
+  attacker: playerId(attacker),
+  defense: 'broken',
+});
+
 /** Persistence whose list calls stay open until the test resolves them. */
 function controlled(total = 1) {
   const lists: { query: BattleQuery; resolve: (rows: Battle[]) => void }[] = [];
@@ -50,15 +60,22 @@ function controlled(total = 1) {
     totals: async () => ({ count: 1, repelled: 0, fp: 12 }),
     prune: vi.fn(async () => 0),
   };
+  const incoming: IncomingPersistence = {
+    add: async () => {},
+    latest: async () => undefined,
+    list: vi.fn(async () => [attack(555)]),
+    totals: async () => ({ battles: 1, held: 0, plunders: 0 }),
+    prune: vi.fn(async () => 0),
+  };
   const state = { total };
-  return { persistence, plunders, lists, state };
+  return { persistence, plunders, incoming, lists, state };
 }
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 function setup(total = 1) {
   const stub = controlled(total);
-  const env = featureContext(stub.persistence, stub.plunders);
+  const env = featureContext(stub.persistence, stub.plunders, stub.incoming);
   pvpFeature.setup(env.ctx);
   env.menu('pvp');
   return { ...stub, ...env, box: env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>> };
@@ -194,6 +211,59 @@ describe('pvp feature', () => {
     await ctx.settings.set(KEEP_SETTING.key, '30');
     await tick();
     expect(plunders.prune).toHaveBeenCalledOnce();
+    expect(lists.length).toBe(loads + 1);
+  });
+
+  it('switches to the attacks on the own city with their totals and pages over them', async () => {
+    const { box, incoming, lists } = setup();
+    await tick();
+    lists[0]?.resolve([battle(1, 111)]);
+    await tick();
+    expect(box.text).not.toContain('Kampf: durchbrochen');
+
+    box.click('Angriffe auf mich');
+    await tick();
+    expect(incoming.list).toHaveBeenCalledWith(worldId('de20'), { limit: PAGE_SIZE, offset: 0 });
+    expect(box.text).toContain('1 Angriff, 0 Plünderungen');
+    expect(box.text).toContain('555');
+    expect(box.text).toContain('Kampf: durchbrochen');
+    expect(box.text).not.toContain('111');
+    expect(box.text).not.toContain('FP');
+  });
+
+  it('filters attacks on the own city by the picked player and follows new ones', async () => {
+    const stub = controlled();
+    const env = featureContext(stub.persistence, stub.plunders);
+    pvpFeature.setup(env.ctx);
+    env.menu('pvp');
+    const box = env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>>;
+    box.click('Angriffe auf mich');
+    await vi.waitFor(() => expect(box.text).toContain('Noch keine Angriffe auf dich gespeichert.'));
+    env.ctx.incoming.record(attack(555));
+    env.ctx.incoming.record({
+      ...attack(666),
+      kind: 'plunder',
+      key: 2,
+      defense: undefined,
+      cityEntityId: buildingDefId('R_X'),
+    });
+    await vi.waitFor(() => expect(box.text).toContain('1 Angriff, 1 Plünderung'));
+    expect(box.text).toContain('Plünderung: R_X');
+
+    box.follow('666');
+    await vi.waitFor(() => expect(box.text).toContain('Nur 666'));
+    expect(box.text).toContain('0 Angriffe, 1 Plünderung');
+    expect(box.text).not.toContain('Kampf: durchbrochen');
+  });
+
+  it('prunes attacks on the own city with the battle retention and reloads when that deleted something', async () => {
+    const { ctx, incoming, lists } = setup();
+    await tick();
+    const loads = lists.length;
+    vi.mocked(incoming.prune).mockResolvedValueOnce(1);
+    await ctx.settings.set(KEEP_SETTING.key, '30');
+    await tick();
+    expect(incoming.prune).toHaveBeenCalledOnce();
     expect(lists.length).toBe(loads + 1);
   });
 });

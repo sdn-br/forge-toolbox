@@ -2,7 +2,7 @@ import { html, type TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
 import { formatNumber, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
-import type { PlunderRow, PvpRow, PvpTab, PvpVm } from './view-model';
+import type { IncomingRow, PlunderRow, PvpRow, PvpTab, PvpVm } from './view-model';
 
 export interface PvpActions {
   tab(tab: PvpTab): void;
@@ -19,6 +19,9 @@ const opponentLink = (r: { opponent: PlayerId; name: string }, actions: PvpActio
     e.preventDefault();
     actions.pick(r.opponent);
   }}>${r.name}</a></td>`;
+
+const incomingRow = (r: IncomingRow, actions: PvpActions) => html`<tr>
+  ${opponentLink({ opponent: r.attacker, name: r.name }, actions)}<td>${r.when}</td><td>${r.what}</td></tr>`;
 
 const row = (r: PvpRow, actions: PvpActions) => html`<tr>
   ${opponentLink(r, actions)}
@@ -42,13 +45,21 @@ const plunderTable = (vm: PvpVm, actions: PvpActions) => html`<table>
     ${vm.plunders.map((r) => plunderRow(r, actions))}
   </table>`;
 
+const incomingTable = (vm: PvpVm, actions: PvpActions) => html`<table>
+    <tr><th>${t('pvp.attacker')}</th><th>${t('pvp.when')}</th><th>${t('pvp.kind')}</th></tr>
+    ${vm.incoming.map((r) => incomingRow(r, actions))}
+  </table>`;
+
+const TABLES = { battles: battleTable, plunders: plunderTable, incoming: incomingTable };
+
 const EMPTY = {
   battles: { none: 'pvp.none', noMatch: 'pvp.noMatch' },
   plunders: { none: 'pvp.noPlunders', noMatch: 'pvp.noPlunderMatch' },
+  incoming: { none: 'pvp.noIncoming', noMatch: 'pvp.noIncomingMatch' },
 } as const;
 
 const tabs = (current: PvpTab | undefined, actions: PvpActions) =>
-  html`<p>${(['battles', 'plunders'] as const).map(
+  html`<p>${(['battles', 'plunders', 'incoming'] as const).map(
     (tab) =>
       html`<button class="action" ?disabled=${tab === (current ?? 'battles')} @click=${() => actions.tab(tab)}>${t(`pvp.tab.${tab}`)}</button> `,
   )}</p>`;
@@ -73,9 +84,9 @@ export function pvpView(vm: PvpVm | undefined, actions: PvpActions): TemplateRes
     }</p>`;
   const head = html`${tabs(vm?.tab, actions)}${filter}`;
   if (!vm) return head;
-  const totals = html`<p>${vm.plunderTotals}</p>`;
+  const totals = html`<p>${vm.tab === 'incoming' ? vm.incomingTotals : vm.plunderTotals}</p>`;
   if (vm.empty) return html`${head}${totals}<p class="muted">${t(EMPTY[vm.tab][vm.empty])}</p>`;
   return html`${head}${totals}
-    ${vm.tab === 'battles' ? battleTable(vm, actions) : plunderTable(vm, actions)}
+    ${TABLES[vm.tab](vm, actions)}
     ${paging(vm, actions)}`;
 }

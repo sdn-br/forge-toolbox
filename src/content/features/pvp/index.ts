@@ -32,12 +32,21 @@ export const pvpFeature: Feature = {
         ctx.players.list().filter((p) => p.world === ctx.world),
       );
       const plunderTotals = await ctx.plunders.totals(opponents);
+      const incomingTotals = await ctx.incoming.totals(opponents);
       const total =
-        tab === 'battles' ? await ctx.battles.count(opponents) : plunderTotals.count + plunderTotals.repelled;
+        tab === 'battles'
+          ? await ctx.battles.count(opponents)
+          : tab === 'plunders'
+            ? plunderTotals.count + plunderTotals.repelled
+            : incomingTotals.battles + incomingTotals.plunders;
       page = Math.min(page, pageCount(total) - 1);
       const onPage = { opponents, limit: PAGE_SIZE, offset: page * PAGE_SIZE };
       const battles = tab === 'battles' ? await ctx.battles.list(onPage) : [];
       const plunders = tab === 'plunders' ? await ctx.plunders.list(onPage) : [];
+      const incoming =
+        tab === 'incoming'
+          ? await ctx.incoming.list({ attackers: opponents, limit: PAGE_SIZE, offset: onPage.offset })
+          : [];
       // a newer query started meanwhile and will render
       if (current !== query) return;
       vm = pvpViewModel({
@@ -46,6 +55,8 @@ export const pvpFeature: Feature = {
         plunders,
         total,
         plunderTotals,
+        incoming,
+        incomingTotals,
         page,
         filter,
         name: (id) => ctx.players.get(id)?.name,
@@ -90,11 +101,11 @@ export const pvpFeature: Feature = {
     const prune = () => {
       const before = pruneBefore(ctx.settings.choice(KEEP_SETTING.key), Date.now());
       if (before === undefined) return;
-      Promise.all([ctx.battles.prune(before), ctx.plunders.prune(before)])
-        .then(([battles, plunders]) => {
-          if (battles + plunders > 0) show();
+      Promise.all([ctx.battles.prune(before), ctx.plunders.prune(before), ctx.incoming.prune(before)])
+        .then((deleted) => {
+          if (deleted.some((n) => n > 0)) show();
         })
-        .catch((error) => logError('pruning battles and plunders failed', error));
+        .catch((error) => logError('pruning battles, plunders and attacks failed', error));
     };
     ctx.bus.on('session.started', prune);
     ctx.settings.onChange((key) => {
@@ -103,6 +114,7 @@ export const pvpFeature: Feature = {
 
     ctx.bus.on('battle.recorded', show);
     ctx.bus.on('plunder.recorded', show);
+    ctx.bus.on('incoming.recorded', show);
     ctx.bus.on('player.updated', show);
     ctx.menu.add({
       id: 'pvp',

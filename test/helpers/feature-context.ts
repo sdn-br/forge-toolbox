@@ -54,6 +54,12 @@ export function recordingBox(options: BoxOptions) {
       if (!button) throw new Error(`no button "${label}"`);
       button.click();
     },
+    /** clicks the link with exactly this text, for example a player name */
+    follow(text: string) {
+      const link = [...container.querySelectorAll('a')].find((a) => a.textContent === text);
+      if (!link) throw new Error(`no link "${text}"`);
+      link.click();
+    },
   };
 }
 

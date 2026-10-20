@@ -16,7 +16,7 @@ export const KEEP_SETTING: ChoiceSettingDef = {
 
 const DAY = 86_400_000;
 
-/** Battles and plunders before this time are deleted; undefined keeps all. */
+/** Battles, plunders and attacks on the own city before this time are deleted; undefined keeps all. */
 export function pruneBefore(keep: string, now: number): number | undefined {
   const days = Number(keep);
   return Number.isFinite(days) && days > 0 ? now - days * DAY : undefined;

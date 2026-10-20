@@ -1,3 +1,5 @@
+import type { BuildingDefId } from '../../shared/ids';
+import type { IncomingAttack, IncomingTotals } from '../../shared/model';
 import { de, type TextKey } from '../texts/de';
 
 export type { TextKey };
@@ -52,3 +54,20 @@ export const formatPlunderTotals = ({ count, repelled, fp }: { count: number; re
   ]
     .filter(Boolean)
     .join(', ');
+
+/** "3 Angriffe, 1 abgewehrt, 2 Plünderungen": battles with the held ones among them, then plunders */
+export const formatIncomingTotals = ({ battles, held, plunders }: IncomingTotals) =>
+  [
+    battles === 1 ? t('incoming.countOne') : t('incoming.count', { count: formatNumber(battles) }),
+    held > 0 ? t('incoming.heldCount', { count: formatNumber(held) }) : '',
+    plunders === 1 ? t('plunder.countOne') : t('plunder.count', { count: formatNumber(plunders) }),
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+/** "Kampf: durchbrochen", "Plünderung: Strohdachhaus" */
+export function formatIncoming(a: IncomingAttack, building: (id: BuildingDefId) => string | undefined): string {
+  if (a.kind === 'battle') return t(a.defense === 'held' ? 'incoming.held' : 'incoming.broken');
+  const id = a.cityEntityId;
+  return t('incoming.plunder', { building: id === undefined ? '–' : (building(id) ?? id) });
+}

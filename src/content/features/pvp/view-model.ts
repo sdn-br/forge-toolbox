@@ -1,6 +1,13 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
-import type { Battle, Player, Plunder, PlunderTotals } from '../../../shared/model';
-import { formatPlunderTotals, formatResources, formatWhen, t } from '../../core/texts';
+import type { Battle, IncomingAttack, IncomingTotals, Player, Plunder, PlunderTotals } from '../../../shared/model';
+import {
+  formatIncoming,
+  formatIncomingTotals,
+  formatPlunderTotals,
+  formatResources,
+  formatWhen,
+  t,
+} from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { measuredArmy } from '../../domain/measured-army';
 
@@ -23,7 +30,7 @@ export interface PvpRow {
   defender: ArmyValues;
 }
 
-export type PvpTab = 'battles' | 'plunders';
+export type PvpTab = 'battles' | 'plunders' | 'incoming';
 
 export interface PlunderRow {
   opponent: PlayerId;
@@ -34,6 +41,15 @@ export interface PlunderRow {
   doubleLoot: boolean;
 }
 
+/** an attack on the own city */
+export interface IncomingRow {
+  attacker: PlayerId;
+  name: string;
+  when: string;
+  /** kind and outcome, e.g. "Kampf: durchbrochen" */
+  what: string;
+}
+
 export interface PvpVm {
   tab: PvpTab;
   /** the rows of the battles tab */
@@ -42,6 +58,10 @@ export interface PvpVm {
   plunders: PlunderRow[];
   /** count and Forge points of the plunders the filter matches */
   plunderTotals: string;
+  /** the rows of the tab of attacks on the own city */
+  incoming: IncomingRow[];
+  /** battles, held ones and plunders of the attacks on the own city the filter matches */
+  incomingTotals: string;
   search: string;
   /** name of the picked player */
   picked?: string;
@@ -72,6 +92,8 @@ export function pvpViewModel(input: {
   /** number of rows of the shown tab over all pages */
   total: number;
   plunderTotals: PlunderTotals;
+  incoming: IncomingAttack[];
+  incomingTotals: IncomingTotals;
   page: number;
   filter: PvpFilter;
   name: (id: PlayerId) => string | undefined;
@@ -106,6 +128,13 @@ export function pvpViewModel(input: {
       doubleLoot: p.doubleLoot,
     })),
     plunderTotals: formatPlunderTotals(input.plunderTotals),
+    incoming: input.incoming.map((a) => ({
+      attacker: a.attacker,
+      name: nameOf(a.attacker),
+      when: formatWhen(a.at, now),
+      what: formatIncoming(a, building),
+    })),
+    incomingTotals: formatIncomingTotals(input.incomingTotals),
     search: filter.text,
     picked: filter.opponent === undefined ? undefined : nameOf(filter.opponent),
     page,
