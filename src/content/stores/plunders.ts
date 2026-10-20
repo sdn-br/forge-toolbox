@@ -19,7 +19,7 @@ export interface PlunderPersistence {
   prune(before: number): Promise<number>;
 }
 
-const keyOf = (p: Plunder) => `${p.opponent}:${p.entityId}:${p.at}`;
+const keyOf = (p: Plunder) => `${p.opponent}:${p.at}`;
 
 /** Plunders of the session player. Lives in the database, queries ask it after pending writes. */
 export class PlunderStore {

@@ -36,6 +36,7 @@ const plunder = (opponent: number, at: number, change: Partial<Plunder> = {}): P
   world,
   at,
   opponent: playerId(opponent),
+  outcome: 'plundered',
   entityId: 350,
   cityEntityId: buildingDefId('R_IronAge_Residential2'),
   resources: { strategy_points: 4 },
@@ -103,6 +104,18 @@ describe('sabotage feature', () => {
     ctx.plunders.record(plunder(1, Date.now() + 1000, { doubleLoot: true, resources: { money: 20 } }));
     await vi.waitFor(() => expect(box.text).toContain('2 Plünderungen, 4 FP'));
     expect(box.text).toMatch(/20 Münzen\s+Double Loot/);
+  });
+
+  it('tells when the last plunder of the visited player was repelled', async () => {
+    const { ctx, box } = setup();
+    ctx.plunders.record(plunder(1, Date.now() - 1000));
+    ctx.plunders.record(
+      plunder(1, Date.now(), { outcome: 'repelled', entityId: undefined, cityEntityId: undefined, resources: {} }),
+    );
+    ctx.cities.setVisited(city(1));
+    await vi.waitFor(() => expect(box.text).toContain('1 Plünderung, 1 abgewehrt, 4 FP'));
+    expect(box.text).toMatch(/Zuletzt heute \d\d:\d\d: abgewehrt/);
+    expect(box.text).not.toContain('R_IronAge_Residential2');
   });
 
   it('tells when the visited player was never plundered', async () => {

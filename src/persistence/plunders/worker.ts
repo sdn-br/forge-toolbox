@@ -24,8 +24,12 @@ export function plundersHandlers(db: PlundersTables): Handlers<PlundersApi> {
     'plunders.list': ({ world, opponents, limit, offset }) =>
       newestFirst(world, opponents).offset(offset).limit(limit).toArray(),
     'plunders.totals': async ({ world, opponents }) => {
-      const totals = { count: 0, fp: 0 };
+      const totals = { count: 0, repelled: 0, fp: 0 };
       await newestFirst(world, opponents).each((p) => {
+        if (p.outcome === 'repelled') {
+          totals.repelled++;
+          return;
+        }
         totals.count++;
         totals.fp += p.resources.strategy_points ?? 0;
       });

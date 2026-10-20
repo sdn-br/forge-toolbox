@@ -12,6 +12,7 @@ import { buildingDefId, type PlayerId, playerId, worldId } from '../src/shared/i
 import type { Plunder } from '../src/shared/model';
 import fixture from './fixtures/pvp-plunder.json';
 import doubleLoot from './fixtures/pvp-plunder-double-loot.json';
+import repelled from './fixtures/pvp-plunder-repelled.json';
 import { testDb } from './helpers/battle-db';
 
 const world = worldId('de20');
@@ -58,11 +59,21 @@ const plunder = (entityId: number, at: number, opp = 1001, change: Partial<Plund
   world,
   at,
   opponent: playerId(opp),
+  outcome: 'plundered',
   entityId,
   cityEntityId: buildingDefId('R_IronAge_Residential2'),
   resources: { money: 110 },
   doubleLoot: false,
   ...change,
+});
+
+const repelledAt = (at: number): Plunder => ({
+  world,
+  at,
+  opponent,
+  outcome: 'repelled',
+  resources: {},
+  doubleLoot: false,
 });
 
 describe('recording plunders', () => {
@@ -73,6 +84,7 @@ describe('recording plunders', () => {
       world,
       at: AT,
       opponent,
+      outcome: 'plundered',
       entityId: 350,
       cityEntityId: 'R_IronAge_Residential2',
       resources: { money: 110 },
@@ -101,11 +113,66 @@ describe('recording plunders', () => {
     expect((await plunders.latest(opponent))?.doubleLoot).toBe(false);
   });
 
-  it('ignores results other than success', async () => {
+  it('ignores unknown results', async () => {
     const { plunders, recorded, send } = setup();
     send(batchWith({ result: 'failed' }));
-    expect((await plunders.totals()).count).toBe(0);
+    const unknown = structuredClone(repelled.batch);
+    Object.assign(unknown.find((e) => e.requestMethod === 'plunderById')?.responseData ?? {}, { result: 'failed' });
+    send(unknown);
+    expect(await plunders.totals()).toEqual({ count: 0, repelled: 0, fp: 0 });
     expect(recorded).toEqual([]);
+  });
+
+  it('records a repelled plunder against the player of the same response, without building and loot', async () => {
+    const { plunders, recorded, send } = setup(repelled.me);
+    send(repelled.batch);
+    expect(await plunders.latest(opponent)).toEqual({
+      world,
+      at: AT,
+      opponent,
+      outcome: 'repelled',
+      resources: {},
+      doubleLoot: false,
+    });
+    expect(recorded).toEqual([opponent]);
+  });
+
+  it('ignores a repelled plunder unless its response names exactly one other player', async () => {
+    const result = repelled.batch.filter((e) => e.requestMethod === 'plunderById');
+    const update = repelled.batch.filter((e) => e.requestMethod === 'updatePlayer');
+    const players = [
+      {
+        requestClass: 'OtherPlayerService',
+        requestMethod: 'updatePlayer',
+        responseData: [{ player_id: 1001 }, { player_id: 1002 }],
+      },
+    ];
+    const { plunders, recorded, send } = setup(repelled.me);
+    send(result);
+    send([...players, ...result]);
+    send([...update, ...update, ...result]);
+    // updatePlayer in an earlier response does not count
+    send(update);
+    send(result);
+    expect((await plunders.totals()).repelled).toBe(0);
+    expect(recorded).toEqual([]);
+    const own = setup(1001);
+    own.send(repelled.batch);
+    expect((await own.plunders.totals()).repelled).toBe(0);
+    const noSession = setup(null);
+    noSession.send(repelled.batch);
+    expect((await noSession.plunders.totals()).repelled).toBe(0);
+  });
+
+  it('stores a repelled plunder seen twice once', async () => {
+    const { plunders, recorded, send, plunderDb } = setup(repelled.me);
+    send(repelled.batch);
+    send(repelled.batch);
+    expect((await plunders.totals()).repelled).toBe(1);
+    expect(recorded).toHaveLength(1);
+    const later = new PlunderStore(createBus(), world, plunderDb);
+    later.record(repelledAt(AT));
+    expect((await later.totals()).repelled).toBe(1);
   });
 
   it('needs the loot and the building from the same response', async () => {
@@ -154,6 +221,7 @@ describe('plunder queries', () => {
       plunder(1, 100, 1001, { resources: { strategy_points: 10, money: 5 } }),
       plunder(2, 300, 1002, { resources: { strategy_points: 7 } }),
       plunder(3, 200),
+      repelledAt(250),
     ]) {
       plunders.record(p);
     }
@@ -165,28 +233,29 @@ describe('plunder queries', () => {
   it('lists newest first with paging and an opponent filter', async () => {
     const { plunders } = await filled();
     const ids = async (q: Parameters<PlunderStore['list']>[0]) => (await plunders.list(q)).map((p) => p.entityId);
-    expect(await ids({ limit: 10, offset: 0 })).toEqual([2, 3, 1]);
-    expect(await ids({ limit: 2, offset: 1 })).toEqual([3, 1]);
-    expect(await ids({ opponents: [opponent], limit: 10, offset: 0 })).toEqual([3, 1]);
+    expect(await ids({ limit: 10, offset: 0 })).toEqual([2, undefined, 3, 1]);
+    expect(await ids({ limit: 2, offset: 2 })).toEqual([3, 1]);
+    expect(await ids({ opponents: [opponent], limit: 10, offset: 0 })).toEqual([undefined, 3, 1]);
     expect(await ids({ opponents: [], limit: 10, offset: 0 })).toEqual([]);
   });
 
-  it('counts plunders and sums their Forge points', async () => {
+  it('counts plunders and repelled ones apart and sums the Forge points of plunders', async () => {
     const { plunders } = await filled();
-    expect(await plunders.totals()).toEqual({ count: 3, fp: 17 });
-    expect(await plunders.totals([opponent])).toEqual({ count: 2, fp: 10 });
-    expect(await plunders.totals([])).toEqual({ count: 0, fp: 0 });
+    expect(await plunders.totals()).toEqual({ count: 3, repelled: 1, fp: 17 });
+    expect(await plunders.totals([opponent])).toEqual({ count: 2, repelled: 1, fp: 10 });
+    expect(await plunders.totals([])).toEqual({ count: 0, repelled: 0, fp: 0 });
   });
 
-  it('finds the latest plunder of a player', async () => {
+  it('finds the latest plunder of a player, repelled ones included', async () => {
     const { plunders } = await filled();
-    expect((await plunders.latest(opponent))?.entityId).toBe(3);
+    expect(await plunders.latest(opponent)).toEqual(repelledAt(250));
+    expect((await plunders.latest(playerId(1002)))?.entityId).toBe(2);
     expect(await plunders.latest(playerId(9999))).toBeUndefined();
   });
 
   it('prunes plunders older than the limit in every world', async () => {
     const { plunders, db } = await filled();
-    expect(await plunders.prune(250)).toBe(2);
+    expect(await plunders.prune(260)).toBe(3);
     expect((await db.plunders.toArray()).map((p) => p.entityId).sort()).toEqual([2, 4]);
   });
 });

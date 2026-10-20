@@ -316,11 +316,28 @@ describe('database upgrade', () => {
       world,
       at: 100,
       opponent,
+      outcome: 'plundered',
       entityId: 1,
       cityEntityId: buildingDefId('R_X'),
       resources: {},
       doubleLoot: false,
     });
+    expect(await db.plunders.count()).toBe(1);
+  });
+
+  it('rebuilds the unreleased plunders table of version 3 with a key a repelled plunder fits', async () => {
+    const name = 'upgrade-v3-test';
+    const v3 = new Dexie(name);
+    v3.version(1).stores({ players: '[world+id], world, seenAt' });
+    v3.version(2).stores({ battles: '[world+battleId], [world+at], [world+opponent+at], at' });
+    v3.version(3).stores({ plunders: '[world+opponent+entityId+at], [world+at], [world+opponent+at], at' });
+    await v3.table('players').put({ world, id: 7, seenAt: 1 });
+    await v3.table('battles').put(battle(1, 100));
+    v3.close();
+    const db = openDb(name);
+    expect(await db.players.count()).toBe(1);
+    expect(await db.battles.count()).toBe(1);
+    await db.plunders.put({ world, at: 100, opponent, outcome: 'repelled', resources: {}, doubleLoot: false });
     expect(await db.plunders.count()).toBe(1);
   });
 });

@@ -76,6 +76,7 @@ describe('sabotage view model', () => {
       world: city.world,
       at: new Date(2026, 9, 19, 14, 5).getTime(),
       opponent: city.owner,
+      outcome: 'plundered',
       entityId: 350,
       cityEntityId: buildingDefId('R_IronAge_Residential2'),
       resources: { marble: 30, strategy_points: 2 },
@@ -83,11 +84,39 @@ describe('sabotage view model', () => {
     };
     const vm = (plunders?: Parameters<typeof sabotageViewModel>[7]) =>
       sabotageViewModel(city, undefined, assessment, catalog, false, now, undefined, plunders).plundered;
-    expect(vm({ last, totals: { count: 3, fp: 9 } })).toEqual({
-      last: { when: 'heute 14:05', building: 'Strohdachhaus', loot: '30 Marmor, 2 Forge-Punkte', doubleLoot: true },
+    expect(vm({ last, totals: { count: 3, repelled: 0, fp: 9 } })).toEqual({
+      last: {
+        when: 'heute 14:05',
+        repelled: false,
+        building: 'Strohdachhaus',
+        loot: '30 Marmor, 2 Forge-Punkte',
+        doubleLoot: true,
+      },
       totals: '3 Plünderungen, 9 FP',
     });
-    expect(vm({ totals: { count: 0, fp: 0 } })).toEqual({ last: undefined, totals: '0 Plünderungen, 0 FP' });
+    expect(vm({ totals: { count: 0, repelled: 0, fp: 0 } })).toEqual({
+      last: undefined,
+      totals: '0 Plünderungen, 0 FP',
+    });
     expect(vm()).toBeUndefined();
+  });
+
+  it('tells when the last own plunder here was repelled and counts repelled ones apart', () => {
+    const last: Plunder = {
+      world: city.world,
+      at: new Date(2026, 9, 19, 14, 5).getTime(),
+      opponent: city.owner,
+      outcome: 'repelled',
+      resources: {},
+      doubleLoot: false,
+    };
+    const vm = sabotageViewModel(city, undefined, assessment, new CatalogStore(createBus()), false, now, undefined, {
+      last,
+      totals: { count: 5, repelled: 2, fp: 120 },
+    });
+    expect(vm.plundered).toEqual({
+      last: { when: 'heute 14:05', repelled: true },
+      totals: '5 Plünderungen, 2 abgewehrt, 120 FP',
+    });
   });
 });

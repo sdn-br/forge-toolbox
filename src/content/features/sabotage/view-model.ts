@@ -18,13 +18,27 @@ export interface SabotageVm {
   measured?: { defender: ArmyValues; when: string };
   /** own plunders in this city */
   plundered?: {
-    last?: { when: string; building: string; loot: string; doubleLoot: boolean };
+    last?:
+      | { when: string; repelled: false; building: string; loot: string; doubleLoot: boolean }
+      | { when: string; repelled: true };
     /** count and Forge points of all plunders here */
     totals: string;
   };
   plunderRepel: number;
   plunderable: PlunderItem[];
   incomplete: boolean;
+}
+
+function lastPlunder(p: Plunder, catalog: CatalogStore, now: number): NonNullable<SabotageVm['plundered']>['last'] {
+  const when = formatWhen(p.at, now);
+  if (p.outcome === 'repelled' || p.cityEntityId === undefined) return { when, repelled: true };
+  return {
+    when,
+    repelled: false,
+    building: catalog.get(p.cityEntityId)?.name ?? p.cityEntityId,
+    loot: formatResources(p.resources, catalog),
+    doubleLoot: p.doubleLoot,
+  };
 }
 
 export function sabotageViewModel(
@@ -54,12 +68,7 @@ export function sabotageViewModel(
         ? { defender: measuredArmy(lastBattle).defender, when: formatWhen(lastBattle.at, now) }
         : undefined,
     plundered: plunders && {
-      last: plunders.last && {
-        when: formatWhen(plunders.last.at, now),
-        building: catalog.get(plunders.last.cityEntityId)?.name ?? plunders.last.cityEntityId,
-        loot: formatResources(plunders.last.resources, catalog),
-        doubleLoot: plunders.last.doubleLoot,
-      },
+      last: plunders.last && lastPlunder(plunders.last, catalog, now),
       totals: formatPlunderTotals(plunders.totals),
     },
     plunderRepel: assessment.plunderRepel,

@@ -26,6 +26,7 @@ const plunder = (opponent: number): Plunder => ({
   world: worldId('de20'),
   at: Date.now(),
   opponent: playerId(opponent),
+  outcome: 'plundered',
   entityId: 350,
   cityEntityId: buildingDefId('R_IronAge_Residential2'),
   resources: { strategy_points: 12 },
@@ -46,7 +47,7 @@ function controlled(total = 1) {
     put: async () => {},
     latest: async () => undefined,
     list: vi.fn(async () => [plunder(333)]),
-    totals: async () => ({ count: 1, fp: 12 }),
+    totals: async () => ({ count: 1, repelled: 0, fp: 12 }),
     prune: vi.fn(async () => 0),
   };
   const state = { total };
@@ -165,6 +166,24 @@ describe('pvp feature', () => {
     expect(box.text).toContain('12 Forge-Punkte Double Loot');
     expect(box.text).not.toContain('111');
     expect(lists).toHaveLength(1);
+  });
+
+  it('lists repelled plunders and pages over plunders and repelled ones together', async () => {
+    const stub = controlled();
+    const env = featureContext(stub.persistence);
+    pvpFeature.setup(env.ctx);
+    env.menu('pvp');
+    const box = env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>>;
+    const at = Date.now();
+    env.ctx.plunders.record({ ...plunder(333), at: at - PAGE_SIZE - 1 });
+    for (let i = 0; i < PAGE_SIZE; i++) {
+      env.ctx.plunders.record({ ...plunder(444), at: at - i, outcome: 'repelled', resources: {}, doubleLoot: false });
+    }
+    box.click('Plünderungen');
+    await vi.waitFor(() => expect(box.text).toContain('1 Plünderung, 20 abgewehrt, 12 FP'));
+    expect(box.text).toContain('Seite 1 von 2');
+    expect(box.text).toContain('abgewehrt');
+    expect(box.text).not.toContain('333');
   });
 
   it('prunes plunders with the battle retention and reloads when that deleted something', async () => {

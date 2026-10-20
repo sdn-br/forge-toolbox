@@ -1,5 +1,5 @@
 // Which game response feeds which store. One place, so every response has exactly one owner.
-import { eraId, type WorldId } from '../../shared/ids';
+import { eraId, type PlayerId, type WorldId } from '../../shared/ids';
 import type { Ingestion } from '../core/ingestion';
 import type { BattleStore } from '../stores/battles';
 import type { CatalogStore } from '../stores/catalog';
@@ -13,12 +13,14 @@ import {
   isBattleState,
   isOwnPvpBattle,
   isPlunderedEntity,
+  isRepelledPlunder,
   plunderLoot,
   toBattle,
   toBuilding,
   toCity,
   toObservation,
   toPlunder,
+  toRepelledPlunder,
   toSession,
   toVisitInfo,
 } from './convert';
@@ -108,11 +110,19 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   // A plunder comes as several entries of one response (seen 2026-10-19): plunderById has the loot, the reset the
   // plundered building with its owner, and showEntityIcons marks the building when Double Loot doubled the loot.
   // The order varies, so they are joined once the response is done. rewardPlunder repeats the loot and is ignored.
+  // A repelled plunder (seen 2026-10-20) has no reset and no loot; only the updatePlayer of the same response names
+  // the opponent, so it counts only when that names exactly one player.
   let loot: Record<string, number> | null = null;
+  let repelled = false;
   let plundered: GameCityEntity | undefined;
   const doubled = new Set<number>();
+  const updated: PlayerId[] = [];
   ingestion.on('OtherPlayerService', 'plunderById', ({ data }) => {
     loot = plunderLoot(data);
+    repelled = isRepelledPlunder(data);
+  });
+  ingestion.on('OtherPlayerService', 'updatePlayer', ({ data }) => {
+    updated.push(...observations(data).map((o) => o.id));
   });
   ingestion.on('CityMapService', 'reset', ({ data }) => {
     const me = session.current?.playerId;
@@ -128,9 +138,16 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     if (loot && plundered) {
       plunders.record(toPlunder(world, now(), plundered, loot, doubled.has(plundered.id as number)));
     }
+    const [opponent, ...more] = updated;
+    const me = session.current?.playerId;
+    if (repelled && opponent !== undefined && more.length === 0 && me !== undefined && opponent !== me) {
+      plunders.record(toRepelledPlunder(world, now(), opponent));
+    }
     loot = null;
+    repelled = false;
     plundered = undefined;
     doubled.clear();
+    updated.length = 0;
   });
 
   const updateBuildings = ({ data }: { data: unknown }) => {

@@ -258,6 +258,18 @@ export function isPlunderedEntity(e: GameCityEntity, me: PlayerId): boolean {
   );
 }
 
+/** A plunder the opponent's defense repelled; the game sends neither building nor loot with it. */
+export const isRepelledPlunder = (data: unknown) => (data as GamePlunderResult | null)?.result === 'repelled';
+
+export const toRepelledPlunder = (world: WorldId, at: number, opponent: PlayerId): Plunder => ({
+  world,
+  at,
+  opponent,
+  outcome: 'repelled',
+  resources: {},
+  doubleLoot: false,
+});
+
 /** `entity` must pass isPlunderedEntity. The loot comes already doubled with Double Loot. */
 export function toPlunder(
   world: WorldId,
@@ -270,6 +282,7 @@ export function toPlunder(
     world,
     at,
     opponent: playerId(entity.player_id as number),
+    outcome: 'plundered',
     entityId: entity.id as number,
     cityEntityId: buildingDefId(entity.cityentity_id as string),
     resources,

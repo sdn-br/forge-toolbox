@@ -14,9 +14,15 @@ export function openDb(name = 'forge-toolbox'): ToolboxDb {
   db.version(2).stores({
     battles: '[world+battleId], [world+at], [world+opponent+at], at',
   });
-  // the game sends no id with a plunder; the building and the time make it one
   db.version(3).stores({
     plunders: '[world+opponent+entityId+at], [world+at], [world+opponent+at], at',
+  });
+  // version 3 keyed plunders by their building, which a repelled plunder lacks. Dexie cannot change a primary key, so
+  // version 4 drops the table (it was never released, nothing is lost) and version 5 builds it anew.
+  db.version(4).stores({ plunders: null });
+  // the game sends no id with a plunder and allows one per neighbour and day, so opponent and time make it one
+  db.version(5).stores({
+    plunders: '[world+opponent+at], [world+at], at',
   });
   return db;
 }

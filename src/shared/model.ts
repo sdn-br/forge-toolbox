@@ -60,21 +60,26 @@ export interface Battle {
   defender: BattleSide;
 }
 
-/** A building in another city the session player plundered. */
+export type PlunderOutcome = 'plundered' | 'repelled';
+
+/** A plunder of the session player in another city, successful or repelled. */
 export interface Plunder {
   world: WorldId;
   at: number;
   opponent: PlayerId;
-  /** the building in the opponent's city */
-  entityId: number;
-  cityEntityId: BuildingDefId;
-  /** loot as the game reports it, Double Loot already included */
+  outcome: PlunderOutcome;
+  /** the building in the opponent's city; the game names none for a repelled plunder */
+  entityId?: number;
+  cityEntityId?: BuildingDefId;
+  /** loot as the game reports it, Double Loot already included; empty when repelled */
   resources: Record<string, number>;
   doubleLoot: boolean;
 }
 
 export interface PlunderTotals {
+  /** successful plunders */
   count: number;
-  /** Forge points over all counted plunders */
+  repelled: number;
+  /** Forge points over all counted successful plunders */
   fp: number;
 }

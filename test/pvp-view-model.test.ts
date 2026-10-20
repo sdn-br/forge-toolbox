@@ -28,6 +28,7 @@ const plunder = (opponent: number, change: Partial<Plunder> = {}): Plunder => ({
   world: worldId('de20'),
   at: new Date(2026, 9, 19, 14, 5).getTime(),
   opponent: playerId(opponent),
+  outcome: 'plundered',
   entityId: 350,
   cityEntityId: buildingDefId('R_IronAge_Residential2'),
   resources: { money: 1220, strategy_points: 5 },
@@ -43,7 +44,12 @@ const lookups = {
   building: (id: string) => (id === 'R_IronAge_Residential2' ? 'Strohdachhaus' : undefined),
   resourceName: () => undefined,
 };
-const battlesTab = { tab: 'battles' as const, plunders: [], plunderTotals: { count: 0, fp: 0 }, ...lookups };
+const battlesTab = {
+  tab: 'battles' as const,
+  plunders: [],
+  plunderTotals: { count: 0, repelled: 0, fp: 0 },
+  ...lookups,
+};
 
 describe('pvp view model', () => {
   it('shows one row per battle with name, time, result and measured armies', () => {
@@ -96,7 +102,7 @@ describe('pvp view model', () => {
       battles: [],
       plunders: [plunder(1001, { doubleLoot: true }), plunder(1002, { cityEntityId: buildingDefId('R_Unknown') })],
       total: 2,
-      plunderTotals: { count: 2, fp: 10 },
+      plunderTotals: { count: 2, repelled: 0, fp: 10 },
       page: 0,
       filter: { text: '' },
       now,
@@ -115,13 +121,40 @@ describe('pvp view model', () => {
     expect(vm).toMatchObject({ tab: 'plunders', rows: [], plunderTotals: '2 Plünderungen, 10 FP', pages: 1 });
   });
 
+  it('shows a repelled plunder without building and loot, and counts repelled ones in the totals', () => {
+    const vm = pvpViewModel({
+      ...lookups,
+      tab: 'plunders',
+      battles: [],
+      plunders: [
+        {
+          world: worldId('de20'),
+          at: plunder(1001).at,
+          opponent: playerId(1001),
+          outcome: 'repelled',
+          resources: {},
+          doubleLoot: false,
+        },
+      ],
+      total: 7,
+      plunderTotals: { count: 5, repelled: 2, fp: 120 },
+      page: 0,
+      filter: { text: '' },
+      now,
+    });
+    expect(vm.plunders).toEqual([
+      { opponent: 1001, name: 'Testgegner', when: 'heute 14:05', building: '–', loot: 'abgewehrt', doubleLoot: false },
+    ]);
+    expect(vm.plunderTotals).toBe('5 Plünderungen, 2 abgewehrt, 120 FP');
+  });
+
   it('names one plunder in singular', () => {
     const vm = pvpViewModel({ ...battlesTab, battles: [], total: 0, page: 0, filter: { text: '' }, now });
     expect(vm.plunderTotals).toBe('0 Plünderungen, 0 FP');
     expect(
       pvpViewModel({
         ...battlesTab,
-        plunderTotals: { count: 1, fp: 1234 },
+        plunderTotals: { count: 1, repelled: 0, fp: 1234 },
         battles: [],
         total: 0,
         page: 0,

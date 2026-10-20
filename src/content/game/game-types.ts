@@ -140,7 +140,7 @@ export interface GameBattle {
 
 /** response of OtherPlayerService.plunderById */
 export interface GamePlunderResult {
-  /** only "success" is known */
+  /** known: "success", "repelled" */
   result?: string;
   product?: GameProduct;
 }

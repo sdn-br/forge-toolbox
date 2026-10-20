@@ -43,8 +43,12 @@ export const formatResources = (
     .map(([id, amount]) => `${formatNumber(amount)} ${resourceLabel(id, catalog)}`)
     .join(', ');
 
-/** "3 Plünderungen, 120 FP" */
-export const formatPlunderTotals = ({ count, fp }: { count: number; fp: number }) =>
-  count === 1
-    ? t('plunder.totalsOne', { fp: formatNumber(fp) })
-    : t('plunder.totals', { count: formatNumber(count), fp: formatNumber(fp) });
+/** "3 Plünderungen, 2 abgewehrt, 120 FP"; the repelled part only when there are some */
+export const formatPlunderTotals = ({ count, repelled, fp }: { count: number; repelled: number; fp: number }) =>
+  [
+    count === 1 ? t('plunder.countOne') : t('plunder.count', { count: formatNumber(count) }),
+    repelled > 0 ? t('plunder.repelledCount', { count: formatNumber(repelled) }) : '',
+    t('plunder.fp', { fp: formatNumber(fp) }),
+  ]
+    .filter(Boolean)
+    .join(', ');

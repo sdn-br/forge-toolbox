@@ -32,7 +32,8 @@ export const pvpFeature: Feature = {
         ctx.players.list().filter((p) => p.world === ctx.world),
       );
       const plunderTotals = await ctx.plunders.totals(opponents);
-      const total = tab === 'battles' ? await ctx.battles.count(opponents) : plunderTotals.count;
+      const total =
+        tab === 'battles' ? await ctx.battles.count(opponents) : plunderTotals.count + plunderTotals.repelled;
       page = Math.min(page, pageCount(total) - 1);
       const onPage = { opponents, limit: PAGE_SIZE, offset: page * PAGE_SIZE };
       const battles = tab === 'battles' ? await ctx.battles.list(onPage) : [];
