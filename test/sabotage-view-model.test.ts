@@ -5,7 +5,7 @@ import { sabotageViewModel } from '../src/content/features/sabotage/view-model';
 import { type BuildingDef, CatalogStore } from '../src/content/stores/catalog';
 import type { VisitedCity } from '../src/content/stores/cities';
 import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
-import type { Battle, Plunder } from '../src/shared/model';
+import type { Battle, IncomingAttack, Plunder } from '../src/shared/model';
 
 const city: VisitedCity = {
   world: worldId('de20'),
@@ -128,5 +128,34 @@ describe('sabotage view model', () => {
       repelled: true,
       building: 'R_MultiAge_PatrickBonusSet20b',
     });
+  });
+
+  it('tells when this player last attacked the own city, with the totals of their attacks', () => {
+    const catalog = new CatalogStore(createBus());
+    catalog.add({ id: buildingDefId('R_IronAge_Residential2'), name: 'Strohdachhaus' } as BuildingDef);
+    const last: IncomingAttack = {
+      world: city.world,
+      kind: 'battle',
+      key: 1,
+      at: new Date(2026, 9, 19, 14, 5).getTime(),
+      attacker: city.owner,
+      defense: 'broken',
+    };
+    const vm = (incoming?: Parameters<typeof sabotageViewModel>[8]) =>
+      sabotageViewModel(city, undefined, assessment, catalog, false, now, undefined, undefined, incoming).attackedMe;
+    expect(vm({ last, totals: { battles: 2, held: 1, plunders: 1 } })).toEqual({
+      when: 'heute 14:05',
+      what: 'Kampf: durchbrochen',
+      totals: '2 Angriffe, 1 abgewehrt, 1 Plünderung',
+    });
+    const plunder = {
+      ...last,
+      kind: 'plunder' as const,
+      defense: undefined,
+      cityEntityId: buildingDefId('R_IronAge_Residential2'),
+    };
+    expect(vm({ last: plunder, totals: { battles: 0, held: 0, plunders: 1 } })?.what).toBe('Plünderung: Strohdachhaus');
+    expect(vm({ totals: { battles: 0, held: 0, plunders: 0 } })).toBeUndefined();
+    expect(vm()).toBeUndefined();
   });
 });

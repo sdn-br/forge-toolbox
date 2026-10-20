@@ -1,5 +1,12 @@
-import type { Battle, Player, Plunder, PlunderTotals } from '../../../shared/model';
-import { formatPlunderTotals, formatResources, formatWhen, resourceLabel } from '../../core/texts';
+import type { Battle, IncomingAttack, IncomingTotals, Player, Plunder, PlunderTotals } from '../../../shared/model';
+import {
+  formatIncoming,
+  formatIncomingTotals,
+  formatPlunderTotals,
+  formatResources,
+  formatWhen,
+  resourceLabel,
+} from '../../core/texts';
 import type { ArmyValues, CityAssessment, Plunderable } from '../../domain/assess-city';
 import { measuredArmy } from '../../domain/measured-army';
 import type { CatalogStore } from '../../stores/catalog';
@@ -24,6 +31,8 @@ export interface SabotageVm {
     /** count and Forge points of all plunders here */
     totals: string;
   };
+  /** attacks of this player on the own city; missing when there were none */
+  attackedMe?: { when: string; what: string; totals: string };
   plunderRepel: number;
   plunderable: PlunderItem[];
   incomplete: boolean;
@@ -51,6 +60,7 @@ export function sabotageViewModel(
   now: number,
   lastBattle?: Battle,
   plunders?: { last?: Plunder; totals: PlunderTotals },
+  incoming?: { last?: IncomingAttack; totals: IncomingTotals },
 ): SabotageVm {
   const friend = city.visit.friend || player?.relations.friend === true;
   const guildMember = city.visit.guildMember || player?.relations.guildMember === true;
@@ -71,6 +81,11 @@ export function sabotageViewModel(
     plundered: plunders && {
       last: plunders.last && lastPlunder(plunders.last, catalog, now),
       totals: formatPlunderTotals(plunders.totals),
+    },
+    attackedMe: incoming?.last && {
+      when: formatWhen(incoming.last.at, now),
+      what: formatIncoming(incoming.last, (id) => catalog.get(id)?.name),
+      totals: formatIncomingTotals(incoming.totals),
     },
     plunderRepel: assessment.plunderRepel,
     plunderable: assessment.plunderable.map(item),

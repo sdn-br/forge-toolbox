@@ -53,6 +53,12 @@ export function sabotageView(vm: SabotageVm | undefined): TemplateResult {
     <p><b>${vm.player.name}</b>${vm.player.guild ? html` <span class="muted">[${vm.player.guild}]</span>` : ''}
       <br /><span class="muted">${t('sabotage.era')}: ${vm.player.era}</span></p>
     ${vm.lootable ? '' : html`<p class="warn">${t('sabotage.notLootable')}</p>`}
+    ${
+      vm.attackedMe
+        ? html`<p>${t('sabotage.attackedMe', { when: vm.attackedMe.when, result: vm.attackedMe.what })}
+          <br />${vm.attackedMe.totals}</p>`
+        : ''
+    }
     ${vm.army ? armyTable(vm.army, vm.plunderRepel, vm.measured) : ''}
     ${vm.plundered ? html`<h2>${t('sabotage.plundered')}</h2>${plunderedPart(vm.plundered)}` : ''}
     <h2>${t('sabotage.plunderable')}</h2>

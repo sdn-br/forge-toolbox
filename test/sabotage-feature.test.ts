@@ -4,7 +4,7 @@ import { sabotageFeature } from '../src/content/features/sabotage/index';
 import type { BattlePersistence } from '../src/content/stores/battles';
 import type { VisitedCity } from '../src/content/stores/cities';
 import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
-import type { Battle, Plunder } from '../src/shared/model';
+import type { Battle, IncomingAttack, Plunder } from '../src/shared/model';
 import { featureContext } from './helpers/feature-context';
 
 const world = worldId('de20');
@@ -123,5 +123,33 @@ describe('sabotage feature', () => {
     ctx.plunders.record(plunder(2, Date.now()));
     ctx.cities.setVisited(city(1));
     await vi.waitFor(() => expect(box.text).toContain('Hier hast du noch nicht geplündert.'));
+  });
+
+  it('tells when the visited player last attacked the own city and follows new attacks, nothing when never', async () => {
+    const { ctx, box } = setup();
+    const attack = (attacker: number, key: number, change: Partial<IncomingAttack> = {}): IncomingAttack => ({
+      world,
+      kind: 'battle',
+      key,
+      at: Date.now(),
+      attacker: playerId(attacker),
+      defense: 'held',
+      ...change,
+    });
+    ctx.incoming.record(attack(2, 1));
+    ctx.cities.setVisited(city(1));
+    await vi.waitFor(() => expect(box.text).toContain('Hier hast du noch nicht geplündert.'));
+    expect(box.text).not.toContain('angegriffen');
+
+    ctx.incoming.record(attack(1, 2, { defense: 'broken' }));
+    await vi.waitFor(() =>
+      expect(box.text).toMatch(/Hat dich zuletzt heute \d\d:\d\d angegriffen \(Kampf: durchbrochen\)/),
+    );
+    expect(box.text).toContain('1 Angriff, 0 Plünderungen');
+    expect(box.text).not.toContain('abgewehrt');
+
+    ctx.cities.setVisited(city(2));
+    await vi.waitFor(() => expect(box.text).toContain('(Kampf: gehalten)'));
+    expect(box.text).toContain('1 Angriff, 1 abgewehrt, 0 Plünderungen');
   });
 });
