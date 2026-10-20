@@ -20,6 +20,12 @@ export const settingsFeature: Feature = {
       label: 'settings.recordTraffic',
       default: false,
     });
+    ctx.settings.register({
+      key: 'core.recordRequests',
+      group: 'settings.core',
+      label: 'settings.recordRequests',
+      default: false,
+    });
 
     const box = ctx.createBox({
       id: 'settings',

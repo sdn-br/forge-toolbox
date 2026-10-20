@@ -22,4 +22,24 @@ describe('Recorder', () => {
     expect(recorder.count).toBe(2);
     expect(counts).toEqual([1, 2]);
   });
+
+  it('keeps requests only when asked to', () => {
+    let withRequests = false;
+    const recorder = new Recorder(
+      () => true,
+      () => withRequests,
+    );
+    const json = {
+      kind: 'json' as const,
+      url: 'u',
+      request: '[{"requestMethod":"plunderById"}]',
+      response: '[]',
+      at: 0,
+    };
+    recorder.add(json);
+    withRequests = true;
+    recorder.add(json);
+    const saved: { request: string | null }[] = JSON.parse(recorder.serialize());
+    expect(saved.map((t) => t.request)).toEqual([null, json.request]);
+  });
 });

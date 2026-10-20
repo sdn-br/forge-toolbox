@@ -8,6 +8,7 @@ export const de = {
   'settings.title': 'Einstellungen',
   'settings.core': 'Allgemein',
   'settings.recordTraffic': 'Spielverkehr aufzeichnen (für Testdaten)',
+  'settings.recordRequests': 'Requests mitschreiben',
   'settings.saveRecording': 'Aufnahme speichern ({count} Nachrichten)',
   'sabotage.title': 'Stadtinformationen',
   'sabotage.menu': 'Stadtinformationen',

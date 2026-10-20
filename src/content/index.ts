@@ -41,7 +41,10 @@ async function main() {
   const plunders = new PlunderStore(bus, world, plunderPersistence(callBackground));
   const cities = new CityStore(bus);
   const catalog = new CatalogStore(bus);
-  const recorder = new Recorder(() => settings.get('core.record'));
+  const recorder = new Recorder(
+    () => settings.get('core.record'),
+    () => settings.get('core.recordRequests'),
+  );
   const menu = new Menu();
 
   registerGameHandlers(ingestion, { world, now, session, players, cities, catalog, battles, plunders });

@@ -1,6 +1,7 @@
 // Runs in the page (MAIN world) at document_start, before the game code.
 // Only listens: forwards raw game traffic, all parsing happens in the content script.
 import { type ContentMessage, PROXY_TAG, type ProxyMessage, type Traffic } from '../shared/proxy-protocol';
+import { bodyText } from './body';
 
 const queue: Traffic[] = [];
 let contentReady = false;
@@ -34,7 +35,7 @@ XMLHttpRequest.prototype.open = function (this: XMLHttpRequest, method: string, 
 XMLHttpRequest.prototype.send = function (this: XMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null) {
   const url = urls.get(this);
   if (url?.includes('/game/json?h=')) {
-    const request = typeof body === 'string' ? body : null;
+    const request = bodyText(body);
     this.addEventListener('load', () => {
       const response = textOf(this);
       if (response !== null) emit({ kind: 'json', url, request, response, at: Date.now() });

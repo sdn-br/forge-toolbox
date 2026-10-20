@@ -5,12 +5,15 @@ export class Recorder {
   private traffic: Traffic[] = [];
   private listeners = new Set<() => void>();
 
-  /** `enabled` is asked for every message, so switching the setting takes effect at once */
-  constructor(private enabled: () => boolean) {}
+  /** both settings are asked for every message, so switching them takes effect at once */
+  constructor(
+    private enabled: () => boolean,
+    private withRequests: () => boolean = () => false,
+  ) {}
 
   add(traffic: Traffic): void {
     if (!this.enabled()) return;
-    this.traffic.push(traffic);
+    this.traffic.push(traffic.kind === 'json' && !this.withRequests() ? { ...traffic, request: null } : traffic);
     for (const listener of this.listeners) listener();
   }
 
@@ -23,8 +26,12 @@ export class Recorder {
     return this.traffic.length;
   }
 
+  serialize(): string {
+    return JSON.stringify(this.traffic);
+  }
+
   save(): void {
-    const blob = new Blob([JSON.stringify(this.traffic)], { type: 'application/json' });
+    const blob = new Blob([this.serialize()], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `forge-toolbox-recording-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
