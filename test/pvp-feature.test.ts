@@ -355,4 +355,72 @@ describe('pvp feature', () => {
       expect(ctx.settings.get('pvp.openWithArmy')).toBe(true);
     });
   });
+
+  describe('name search', () => {
+    const seen = (id: number, name: string) => ({
+      id: playerId(id),
+      name,
+      avatar: '',
+      cityName: '',
+      era: eraId('ColonialAge'),
+      score: 0,
+      rank: 0,
+      active: true,
+      guild: null,
+    });
+
+    it('lists only battles against players whose name contains the text', async () => {
+      const env = featureContext();
+      pvpFeature.setup(env.ctx);
+      env.ctx.players.apply(worldId('de20'), [seen(111, 'Alpha'), seen(222, 'Beta')], 'visit');
+      env.ctx.battles.record(battle(1, 111));
+      env.ctx.battles.record(battle(2, 222));
+      env.menu('pvp');
+      const box = env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>>;
+      await vi.waitFor(() => expect(box.text).toContain('Beta'));
+      const input = box.root.querySelector('input[type=search]') as HTMLInputElement;
+      input.value = 'ALP';
+      input.dispatchEvent(new Event('input'));
+      await vi.waitFor(() => expect(box.text).not.toContain('Beta'));
+      expect(box.text).toContain('Alpha');
+    });
+
+    it('keeps the field while the list turns empty, so it keeps its focus', async () => {
+      const { box, lists, state } = setup();
+      await tick();
+      lists[0]?.resolve([battle(1, 111)]);
+      await tick();
+      const input = box.root.querySelector('input[type=search]') as HTMLInputElement;
+      state.total = 0;
+      input.value = 'xyz';
+      input.dispatchEvent(new Event('input'));
+      await tick();
+      lists.at(-1)?.resolve([]);
+      await tick();
+      expect(box.text).toContain('Keine Kämpfe zu diesem Filter.');
+      expect(box.root.querySelector('input[type=search]')).toBe(input);
+      state.total = 1;
+      input.value = '';
+      input.dispatchEvent(new Event('input'));
+      await tick();
+      lists.at(-1)?.resolve([battle(1, 111)]);
+      await tick();
+      expect(box.text).toContain('111');
+      expect(box.root.querySelector('input[type=search]')).toBe(input);
+    });
+
+    it('keeps typed keys from the game', async () => {
+      const { box } = setup();
+      await tick();
+      const input = box.root.querySelector('input[type=search]') as HTMLInputElement;
+      const game = vi.fn();
+      box.root.addEventListener('keydown', game);
+      box.root.addEventListener('keyup', game);
+      box.root.addEventListener('keypress', game);
+      for (const type of ['keydown', 'keypress', 'keyup']) {
+        input.dispatchEvent(new KeyboardEvent(type, { key: 'a', bubbles: true }));
+      }
+      expect(game).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -2,6 +2,7 @@ import { html, type TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
 import { formatNumber, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
+import { keepKeys } from '../../ui/inputs';
 import type { IncomingRow, PlunderRow, PvpRow, PvpTab, PvpVm } from './view-model';
 
 export interface PvpActions {
@@ -85,17 +86,19 @@ const paging = (vm: PvpVm, actions: PvpActions) =>
 export function pvpView(vm: PvpVm | undefined, actions: PvpActions, note?: TemplateResult): TemplateResult {
   const filter = html`<p>
     <input type="search" placeholder=${t('pvp.search')} .value=${vm?.search ?? ''}
-      @input=${(e: Event) => actions.search((e.target as HTMLInputElement).value)} />
+      @input=${(e: Event) => actions.search((e.target as HTMLInputElement).value)}
+      @keydown=${keepKeys} @keypress=${keepKeys} @keyup=${keepKeys} />
     ${
       vm?.picked
         ? html`<button class="action" title=${t('pvp.clearFilter')} @click=${() => actions.clearPick()}>${t('pvp.onlyPlayer', { name: vm.picked })} ✕</button>`
         : ''
     }</p>`;
-  const head = html`${tabs(vm?.tab, actions)}${filter}${note ?? ''}`;
-  if (!vm) return head;
+  // the search field stays in one outer template: swapping templates would replace it and take its focus mid-typing
+  return html`${tabs(vm?.tab, actions)}${filter}${note ?? ''}${vm ? list(vm, actions) : ''}`;
+}
+
+function list(vm: PvpVm, actions: PvpActions) {
   const totals = html`<p>${vm.tab === 'incoming' ? vm.incomingTotals : vm.plunderTotals}</p>`;
-  if (vm.empty) return html`${head}${totals}<p class="muted">${t(EMPTY[vm.tab][vm.empty])}</p>`;
-  return html`${head}${totals}
-    ${TABLES[vm.tab](vm, actions)}
-    ${paging(vm, actions)}`;
+  if (vm.empty) return html`${totals}<p class="muted">${t(EMPTY[vm.tab][vm.empty])}</p>`;
+  return html`${totals}${TABLES[vm.tab](vm, actions)}${paging(vm, actions)}`;
 }
