@@ -1,6 +1,7 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
+import { battleDetailsView } from '../../ui/battle-details';
 import type { PlunderItem, SabotageVm } from './view-model';
 
 const percent = (n: number) => `${formatNumber(n)} %`;
@@ -62,6 +63,12 @@ export function sabotageView(vm: SabotageVm | undefined, note?: TemplateResult):
         : ''
     }
     ${vm.army ? armyTable(vm.army, vm.plunderRepel, vm.measured) : ''}
+    ${
+      vm.lastBattle
+        ? html`<details><summary>${t('sabotage.lastBattle', { when: vm.lastBattle.when, result: vm.lastBattle.result })}</summary>
+            ${battleDetailsView(vm.lastBattle.details)}</details>`
+        : ''
+    }
     ${vm.plundered ? html`<h2>${t('sabotage.plundered')}</h2>${plunderedPart(vm.plundered)}` : ''}
     <h2>${t('sabotage.plunderable')}</h2>
     ${

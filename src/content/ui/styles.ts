@@ -49,5 +49,7 @@ button.marker { all: unset; cursor: pointer; }
 tr.battle-row { cursor: pointer; }
 tr.battle-row.expanded, tr.details { background: #3a2a16; }
 .battle p { margin: 2px 0 4px; }
+details { margin: 6px 0; }
+summary { cursor: pointer; color: #f0c060; }
 button.marker.dim { opacity: .3; }
 `;

@@ -6,11 +6,13 @@ import {
   formatResources,
   formatWhen,
   resourceLabel,
+  t,
 } from '../../core/texts';
 import type { ArmyValues, CityAssessment, Plunderable } from '../../domain/assess-city';
 import { measuredArmy } from '../../domain/measured-army';
 import type { CatalogStore } from '../../stores/catalog';
 import type { VisitedCity } from '../../stores/cities';
+import { type BattleDetailsVm, battleDetails } from '../../ui/battle-details';
 
 export interface PlunderItem {
   name: string;
@@ -23,6 +25,8 @@ export interface SabotageVm {
   army?: CityAssessment['army'];
   /** the defending army as the last own attack on this player met it; a battle never shows their attacking army */
   measured?: { defender: ArmyValues; when: string };
+  /** the last own attack on this player; the measured armies in it only when the army values are shown */
+  lastBattle?: { when: string; result: string; details: BattleDetailsVm };
   /** own plunders in this city */
   plundered?: {
     last?:
@@ -78,6 +82,11 @@ export function sabotageViewModel(
       showArmy && lastBattle
         ? { defender: measuredArmy(lastBattle).defender, when: formatWhen(lastBattle.at, now) }
         : undefined,
+    lastBattle: lastBattle && {
+      when: formatWhen(lastBattle.at, now),
+      result: t(`pvp.${lastBattle.result}`),
+      details: battleDetails(lastBattle, { army: showArmy }),
+    },
     plundered: plunders && {
       last: plunders.last && lastPlunder(plunders.last, catalog, now),
       totals: formatPlunderTotals(plunders.totals),

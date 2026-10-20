@@ -31,6 +31,7 @@ export const de = {
   'sabotage.measured': 'Gemessen {when}',
   'sabotage.measuredHint':
     'Gemessen im letzten eigenen Angriff. Die angreifende Armee des Gegners zeigt der Kampf nicht.',
+  'sabotage.lastBattle': 'Letzter Kampf {when}: {result}',
   'sabotage.plundered': 'Deine Plünderungen',
   'sabotage.neverPlundered': 'Hier hast du noch nicht geplündert.',
   'sabotage.lastPlunder': 'Zuletzt {when}, {building}',
