@@ -56,4 +56,17 @@ describe('Recorder', () => {
     recorder.add(out);
     expect(JSON.parse(recorder.serialize())).toEqual([traffic, out]);
   });
+
+  it('masks the session token of the websocket login', () => {
+    const recorder = new Recorder(
+      () => true,
+      () => true,
+    );
+    const data =
+      '{"requestClass":"SocketAuthenticationService","requestMethod":"authWithToken","requestData":["secret"]}';
+    recorder.add({ kind: 'ws', direction: 'out', data, at: 0 });
+    expect(JSON.parse(recorder.serialize())[0].data).toBe(
+      '{"requestClass":"SocketAuthenticationService","requestMethod":"authWithToken","requestData":["*****"]}',
+    );
+  });
 });
