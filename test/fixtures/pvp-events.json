@@ -1,0 +1,92 @@
+{
+  "note": "Event history recorded 2026-10-20 (Tuesday): one getEventsPaginated page with the battle against the session player and one event of each other kind, and a websocket newEvent; players anonymized (me 1000, others from 1001), event and battle ids replaced, unrelated fields dropped.",
+  "me": 1000,
+  "page": [
+    {
+      "requestClass": "OtherPlayerService",
+      "requestMethod": "getEventsPaginated",
+      "responseData": {
+        "page": 7,
+        "amountPerPage": 10,
+        "events": [
+          {
+            "date": "Sonntag um 05:11",
+            "type": "friend_tavern_sat_down",
+            "__class__": "FriendTavernSatDownEvent",
+            "id": 9001,
+            "player_id": 1000,
+            "other_player": {
+              "player_id": 1001,
+              "name": "Testspieler 1001",
+              "avatar": "",
+              "city_name": "Teststadt",
+              "is_friend": true,
+              "is_active": true,
+              "__class__": "OtherPlayer"
+            }
+          },
+          {
+            "date": "Sonntag um 00:50",
+            "type": "social_interaction",
+            "interaction_type": "motivate",
+            "entity_id": "R_MultiAge_SportBonus20j",
+            "__class__": "SocialInteractionEvent",
+            "id": 9002,
+            "player_id": 1000,
+            "other_player": {
+              "player_id": 1002,
+              "name": "Testspieler 1002",
+              "avatar": "",
+              "city_name": "Teststadt",
+              "is_active": true,
+              "__class__": "OtherPlayer"
+            }
+          },
+          {
+            "date": "Samstag um 20:25",
+            "type": "battle",
+            "status": "lost",
+            "__class__": "BattleEvent",
+            "id": 9003,
+            "player_id": 1000,
+            "other_player": {
+              "player_id": 1003,
+              "name": "Testspieler 1003",
+              "avatar": "",
+              "city_name": "Teststadt",
+              "is_neighbor": true,
+              "is_active": true,
+              "__class__": "OtherPlayer"
+            },
+            "battle_id": 5003
+          }
+        ],
+        "__class__": "EventHistoryOverview"
+      }
+    }
+  ],
+  "live": [
+    {
+      "requestClass": "OtherPlayerService",
+      "requestMethod": "newEvent",
+      "responseData": {
+        "date": "heute um 16:23 Uhr",
+        "type": "social_interaction",
+        "interaction_type": "polish",
+        "entity_id": "A_MultiAge_ArcheologyBonus19",
+        "__class__": "SocialInteractionEvent",
+        "id": 9004,
+        "player_id": 1000,
+        "other_player": {
+          "player_id": 1004,
+          "name": "Testspieler 1004",
+          "avatar": "",
+          "city_name": "Teststadt",
+          "is_neighbor": true,
+          "is_active": true,
+          "__class__": "OtherPlayer"
+        }
+      }
+    }
+  ]
+}

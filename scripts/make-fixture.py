@@ -6,6 +6,9 @@
 # keeps the first PvP battle that starts without a result and the BattlefieldService response that ends it.
 # Plunder: python3 -I scripts/make-fixture.py plunder <recording.json> <world> <out.json> [<date>]
 # keeps the plunder entries of the first batch with a plunderById, with fake ids and names. Also for a repelled one.
+# Events: python3 -I scripts/make-fixture.py events <list-recording.json> <live-recording.json> <out.json>
+# keeps the getEventsPaginated page with the first battle event (the battle and one event of each other kind) and the
+# first websocket newEvent, with fake ids and names.
 
 import json,sys
 
@@ -98,6 +101,42 @@ def plunder_fixture(rec,world,out,date='2026-10-19'):
       'me':ME,'batch':[entry(e) for e in batch if e.get('requestMethod') in KEEP]}
     json.dump(fixture,open(out,'w'),indent=1)
 
+def events_fixture(listed,live,out):
+    ME=1000
+    others={}
+    def other(p):
+        if p['player_id'] not in others: others[p['player_id']]=1001+len(others)
+        o={'player_id':others[p['player_id']],'name':f'Testspieler {others[p["player_id"]]}','avatar':'','city_name':'Teststadt'}
+        return dict(o,**{k:p[k] for k in ('is_neighbor','is_friend','is_guild_member','is_active','__class__') if k in p})
+    ids=iter(range(9001,10000))
+    def event(e):
+        o={k:v for k,v in e.items() if k not in ('other_player','id','player_id','battle_id')}
+        o['id']=next(ids)
+        if 'player_id' in e: o['player_id']=ME
+        if 'other_player' in e: o['other_player']=other(e['other_player'])
+        if 'battle_id' in e: o['battle_id']=5003
+        return o
+    def entries(r):
+        try: parsed=json.loads(r.get('response') or r.get('data'))
+        except (TypeError,ValueError): return []
+        return parsed if isinstance(parsed,list) else []
+    page=next(e['responseData'] for r in listed if r['kind']=='json' for e in entries(r)
+        if e.get('requestMethod')=='getEventsPaginated' and any(x.get('type')=='battle' for x in e['responseData']['events']))
+    kinds=set(); keep=[]
+    for e in page['events']:
+        kind=(e.get('type'),e.get('interaction_type'))
+        if e.get('type')=='battle' or kind not in kinds: keep.append(e)
+        kinds.add(kind)
+    new=next(e['responseData'] for r in live if r['kind']=='ws' for e in entries(r) if e.get('requestMethod')=='newEvent')
+    fixture={'note':'Event history recorded 2026-10-20 (Tuesday): one getEventsPaginated page with the battle against the session player and one event of each other kind, and a websocket newEvent; players anonymized (me 1000, others from 1001), event and battle ids replaced, unrelated fields dropped.',
+      'me':ME,
+      'page':[{'requestClass':'OtherPlayerService','requestMethod':'getEventsPaginated',
+        'responseData':{'page':page['page'],'amountPerPage':page['amountPerPage'],'events':[event(e) for e in keep],'__class__':page.get('__class__')}}],
+      'live':[{'requestClass':'OtherPlayerService','requestMethod':'newEvent','responseData':event(new)}]}
+    json.dump(fixture,open(out,'w'),indent=1)
+
+if sys.argv[1]=='events':
+    events_fixture(json.load(open(sys.argv[2])),json.load(open(sys.argv[3])),sys.argv[4]); sys.exit()
 if sys.argv[1]=='plunder':
     plunder_fixture(json.load(open(sys.argv[2])),sys.argv[3],sys.argv[4],*sys.argv[5:6]); sys.exit()
 if sys.argv[1]=='battle':
