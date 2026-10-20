@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import type { CityAssessment } from '../src/content/domain/assess-city';
 import { sabotageViewModel } from '../src/content/features/sabotage/view-model';
-import { CatalogStore } from '../src/content/stores/catalog';
+import { type BuildingDef, CatalogStore } from '../src/content/stores/catalog';
 import type { VisitedCity } from '../src/content/stores/cities';
-import { eraId, playerId, worldId } from '../src/shared/ids';
-import type { Battle } from '../src/shared/model';
+import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
+import type { Battle, Plunder } from '../src/shared/model';
 
 const city: VisitedCity = {
   world: worldId('de20'),
@@ -66,5 +66,28 @@ describe('sabotage view model', () => {
       now,
     );
     expect(vm.plunderable).toEqual([{ name: 'Haus', items: [{ label: 'Münzen', amount: 20 }] }]);
+  });
+
+  it('shows the last own plunder here with building, loot and Double Loot, and the totals', () => {
+    const catalog = new CatalogStore(createBus());
+    catalog.setResourceNames({ marble: 'Marmor' });
+    catalog.add({ id: buildingDefId('R_IronAge_Residential2'), name: 'Strohdachhaus' } as BuildingDef);
+    const last: Plunder = {
+      world: city.world,
+      at: new Date(2026, 9, 19, 14, 5).getTime(),
+      opponent: city.owner,
+      entityId: 350,
+      cityEntityId: buildingDefId('R_IronAge_Residential2'),
+      resources: { marble: 30, strategy_points: 2 },
+      doubleLoot: true,
+    };
+    const vm = (plunders?: Parameters<typeof sabotageViewModel>[7]) =>
+      sabotageViewModel(city, undefined, assessment, catalog, false, now, undefined, plunders).plundered;
+    expect(vm({ last, totals: { count: 3, fp: 9 } })).toEqual({
+      last: { when: 'heute 14:05', building: 'Strohdachhaus', loot: '30 Marmor, 2 Forge-Punkte', doubleLoot: true },
+      totals: '3 Plünderungen, 9 FP',
+    });
+    expect(vm({ totals: { count: 0, fp: 0 } })).toEqual({ last: undefined, totals: '0 Plünderungen, 0 FP' });
+    expect(vm()).toBeUndefined();
   });
 });

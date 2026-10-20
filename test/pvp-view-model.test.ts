@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { pruneBefore } from '../src/content/features/pvp/retention';
 import { opponentsFor, pageCount, pvpViewModel } from '../src/content/features/pvp/view-model';
-import { eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
-import type { Battle, Player } from '../src/shared/model';
+import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
+import type { Battle, Player, Plunder } from '../src/shared/model';
 
 const now = new Date(2026, 9, 19, 15, 0).getTime();
 const DAY = 86_400_000;
@@ -24,9 +24,26 @@ const battle = (battleId: number, opponent: number, change: Partial<Battle> = {}
   ...change,
 });
 
+const plunder = (opponent: number, change: Partial<Plunder> = {}): Plunder => ({
+  world: worldId('de20'),
+  at: new Date(2026, 9, 19, 14, 5).getTime(),
+  opponent: playerId(opponent),
+  entityId: 350,
+  cityEntityId: buildingDefId('R_IronAge_Residential2'),
+  resources: { money: 1220, strategy_points: 5 },
+  doubleLoot: false,
+  ...change,
+});
+
 const player = (id: number, name: string) => ({ id: playerId(id), name }) as Player;
 const names: Record<number, string> = { 1001: 'Testgegner' };
 const name = (id: PlayerId) => names[id];
+const lookups = {
+  name,
+  building: (id: string) => (id === 'R_IronAge_Residential2' ? 'Strohdachhaus' : undefined),
+  resourceName: () => undefined,
+};
+const battlesTab = { tab: 'battles' as const, plunders: [], plunderTotals: { count: 0, fp: 0 }, ...lookups };
 
 describe('pvp view model', () => {
   it('shows one row per battle with name, time, result and measured armies', () => {
@@ -35,7 +52,7 @@ describe('pvp view model', () => {
       total: 2,
       page: 0,
       filter: { text: '' },
-      name,
+      ...battlesTab,
       now,
     });
     expect(vm.rows[0]).toEqual({
@@ -58,18 +75,60 @@ describe('pvp view model', () => {
       total: 2,
       page: 0,
       filter: { text: '' },
-      name,
+      ...battlesTab,
       now,
     });
     expect(vm.rows.map((r) => r.battle)).toEqual(['1 Runde', '4 Runden']);
   });
 
   it('tells no battles from no match and names the picked player', () => {
-    const base = { battles: [], total: 0, page: 0, name, now };
+    const base = { ...battlesTab, battles: [], total: 0, page: 0, now };
     expect(pvpViewModel({ ...base, filter: { text: '' } }).empty).toBe('none');
     expect(pvpViewModel({ ...base, filter: { text: 'xy' } }).empty).toBe('noMatch');
     const picked = pvpViewModel({ ...base, filter: { text: '', opponent: playerId(1001) } });
     expect(picked).toMatchObject({ empty: 'noMatch', picked: 'Testgegner' });
+  });
+
+  it('shows one row per plunder with building, loot and Double Loot, and the plunder totals', () => {
+    const vm = pvpViewModel({
+      ...lookups,
+      tab: 'plunders',
+      battles: [],
+      plunders: [plunder(1001, { doubleLoot: true }), plunder(1002, { cityEntityId: buildingDefId('R_Unknown') })],
+      total: 2,
+      plunderTotals: { count: 2, fp: 10 },
+      page: 0,
+      filter: { text: '' },
+      now,
+    });
+    expect(vm.plunders).toEqual([
+      {
+        opponent: 1001,
+        name: 'Testgegner',
+        when: 'heute 14:05',
+        building: 'Strohdachhaus',
+        loot: '1.220 Münzen, 5 Forge-Punkte',
+        doubleLoot: true,
+      },
+      expect.objectContaining({ name: '1002', building: 'R_Unknown', doubleLoot: false }),
+    ]);
+    expect(vm).toMatchObject({ tab: 'plunders', rows: [], plunderTotals: '2 Plünderungen, 10 FP', pages: 1 });
+  });
+
+  it('names one plunder in singular', () => {
+    const vm = pvpViewModel({ ...battlesTab, battles: [], total: 0, page: 0, filter: { text: '' }, now });
+    expect(vm.plunderTotals).toBe('0 Plünderungen, 0 FP');
+    expect(
+      pvpViewModel({
+        ...battlesTab,
+        plunderTotals: { count: 1, fp: 1234 },
+        battles: [],
+        total: 0,
+        page: 0,
+        filter: { text: '' },
+        now,
+      }).plunderTotals,
+    ).toBe('1 Plünderung, 1.234 FP');
   });
 
   it('counts pages of 20', () => {

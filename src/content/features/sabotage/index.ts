@@ -1,5 +1,5 @@
 import type { PlayerId } from '../../../shared/ids';
-import type { Battle } from '../../../shared/model';
+import type { Battle, Plunder, PlunderTotals } from '../../../shared/model';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
@@ -25,6 +25,7 @@ export const sabotageFeature: Feature = {
 
     let vm: SabotageVm | undefined;
     let lastBattle: Battle | undefined;
+    let plunders: { owner: PlayerId; last?: Plunder; totals: PlunderTotals } | undefined;
     const box = ctx.createBox({
       id: 'sabotage',
       title: () => t('sabotage.title'),
@@ -47,6 +48,7 @@ export const sabotageFeature: Feature = {
         ctx.settings.get('sabotage.showArmy'),
         Date.now(),
         lastBattle?.opponent === city.owner ? lastBattle : undefined,
+        plunders?.owner === city.owner ? plunders : undefined,
       );
       box.update();
     };
@@ -61,13 +63,27 @@ export const sabotageFeature: Feature = {
         (error) => logError('loading the last battle failed', error),
       );
 
+    const loadPlunders = (owner: PlayerId) =>
+      Promise.all([ctx.plunders.latest(owner), ctx.plunders.totals([owner])]).then(
+        ([last, totals]) => {
+          if (ctx.cities.visited()?.owner !== owner) return;
+          plunders = { owner, last, totals };
+          refresh();
+        },
+        (error) => logError('loading plunders failed', error),
+      );
+
     ctx.bus.on('city.visited', ({ owner }) => {
       refresh();
       loadLastBattle(owner);
+      loadPlunders(owner);
       if (ctx.settings.get('sabotage.autoOpen')) box.open();
     });
     ctx.bus.on('battle.recorded', ({ opponent }) => {
       if (ctx.cities.visited()?.owner === opponent) loadLastBattle(opponent);
+    });
+    ctx.bus.on('plunder.recorded', ({ opponent }) => {
+      if (ctx.cities.visited()?.owner === opponent) loadPlunders(opponent);
     });
     ctx.bus.on('city.visitedChanged', refresh);
     ctx.bus.on('catalog.updated', ({ defs }) => {

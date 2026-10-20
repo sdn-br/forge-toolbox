@@ -1,6 +1,6 @@
-import type { PlayerId } from '../../../shared/ids';
-import type { Battle, Player } from '../../../shared/model';
-import { formatWhen, t } from '../../core/texts';
+import type { BuildingDefId, PlayerId } from '../../../shared/ids';
+import type { Battle, Player, Plunder, PlunderTotals } from '../../../shared/model';
+import { formatPlunderTotals, formatResources, formatWhen, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { measuredArmy } from '../../domain/measured-army';
 
@@ -23,8 +23,25 @@ export interface PvpRow {
   defender: ArmyValues;
 }
 
+export type PvpTab = 'battles' | 'plunders';
+
+export interface PlunderRow {
+  opponent: PlayerId;
+  name: string;
+  when: string;
+  building: string;
+  loot: string;
+  doubleLoot: boolean;
+}
+
 export interface PvpVm {
+  tab: PvpTab;
+  /** the rows of the battles tab */
   rows: PvpRow[];
+  /** the rows of the plunders tab */
+  plunders: PlunderRow[];
+  /** count and Forge points of the plunders the filter matches */
+  plunderTotals: string;
   search: string;
   /** name of the picked player */
   picked?: string;
@@ -49,17 +66,24 @@ function battleKind(b: Battle): string {
 }
 
 export function pvpViewModel(input: {
+  tab: PvpTab;
   battles: Battle[];
+  plunders: Plunder[];
+  /** number of rows of the shown tab over all pages */
   total: number;
+  plunderTotals: PlunderTotals;
   page: number;
   filter: PvpFilter;
   name: (id: PlayerId) => string | undefined;
+  building: (id: BuildingDefId) => string | undefined;
+  resourceName: (id: string) => string | undefined;
   now: number;
 }): PvpVm {
-  const { battles, total, page, filter, name, now } = input;
+  const { tab, battles, plunders, total, page, filter, name, building, resourceName, now } = input;
   const nameOf = (id: PlayerId) => name(id) || String(id);
   const filtered = filter.opponent !== undefined || filter.text.trim() !== '';
   return {
+    tab,
     rows: battles.map((b) => {
       const army = measuredArmy(b);
       return {
@@ -73,6 +97,15 @@ export function pvpViewModel(input: {
         defender: army.defender,
       };
     }),
+    plunders: plunders.map((p) => ({
+      opponent: p.opponent,
+      name: nameOf(p.opponent),
+      when: formatWhen(p.at, now),
+      building: building(p.cityEntityId) ?? p.cityEntityId,
+      loot: formatResources(p.resources, { resourceName }),
+      doubleLoot: p.doubleLoot,
+    })),
+    plunderTotals: formatPlunderTotals(input.plunderTotals),
     search: filter.text,
     picked: filter.opponent === undefined ? undefined : nameOf(filter.opponent),
     page,

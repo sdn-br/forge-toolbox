@@ -4,8 +4,9 @@ import { pvpFeature } from '../src/content/features/pvp/index';
 import { KEEP_SETTING } from '../src/content/features/pvp/retention';
 import { PAGE_SIZE } from '../src/content/features/pvp/view-model';
 import type { BattlePersistence, BattleQuery } from '../src/content/stores/battles';
-import { eraId, playerId, worldId } from '../src/shared/ids';
-import type { Battle } from '../src/shared/model';
+import type { PlunderPersistence } from '../src/content/stores/plunders';
+import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
+import type { Battle, Plunder } from '../src/shared/model';
 import { featureContext } from './helpers/feature-context';
 
 const battle = (battleId: number, opponent: number): Battle => ({
@@ -21,6 +22,16 @@ const battle = (battleId: number, opponent: number): Battle => ({
   defender: { bonuses: {}, units: [] },
 });
 
+const plunder = (opponent: number): Plunder => ({
+  world: worldId('de20'),
+  at: Date.now(),
+  opponent: playerId(opponent),
+  entityId: 350,
+  cityEntityId: buildingDefId('R_IronAge_Residential2'),
+  resources: { strategy_points: 12 },
+  doubleLoot: true,
+});
+
 /** Persistence whose list calls stay open until the test resolves them. */
 function controlled(total = 1) {
   const lists: { query: BattleQuery; resolve: (rows: Battle[]) => void }[] = [];
@@ -31,15 +42,22 @@ function controlled(total = 1) {
     count: async () => state.total,
     prune: vi.fn(async () => 0),
   };
+  const plunders: PlunderPersistence = {
+    put: async () => {},
+    latest: async () => undefined,
+    list: vi.fn(async () => [plunder(333)]),
+    totals: async () => ({ count: 1, fp: 12 }),
+    prune: vi.fn(async () => 0),
+  };
   const state = { total };
-  return { persistence, lists, state };
+  return { persistence, plunders, lists, state };
 }
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 function setup(total = 1) {
   const stub = controlled(total);
-  const env = featureContext(stub.persistence);
+  const env = featureContext(stub.persistence, stub.plunders);
   pvpFeature.setup(env.ctx);
   env.menu('pvp');
   return { ...stub, ...env, box: env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>> };
@@ -128,6 +146,35 @@ describe('pvp feature', () => {
     expect(lists.length).toBe(loads + 1);
     await ctx.settings.set(KEEP_SETTING.key, '90');
     await tick();
+    expect(lists.length).toBe(loads + 1);
+  });
+
+  it('switches to the plunder list and shows the plunder totals of the filter', async () => {
+    const { box, lists, plunders } = setup();
+    await tick();
+    lists[0]?.resolve([battle(1, 111)]);
+    await tick();
+    expect(box.text).toContain('1 Plünderung, 12 FP');
+    expect(box.text).toContain('111');
+    expect(plunders.list).not.toHaveBeenCalled();
+
+    box.click('Plünderungen');
+    await tick();
+    expect(plunders.list).toHaveBeenCalledWith(worldId('de20'), { limit: PAGE_SIZE, offset: 0 });
+    expect(box.text).toContain('333');
+    expect(box.text).toContain('12 Forge-Punkte Double Loot');
+    expect(box.text).not.toContain('111');
+    expect(lists).toHaveLength(1);
+  });
+
+  it('prunes plunders with the battle retention and reloads when that deleted something', async () => {
+    const { ctx, plunders, lists } = setup();
+    await tick();
+    const loads = lists.length;
+    vi.mocked(plunders.prune).mockResolvedValueOnce(2);
+    await ctx.settings.set(KEEP_SETTING.key, '30');
+    await tick();
+    expect(plunders.prune).toHaveBeenCalledOnce();
     expect(lists.length).toBe(loads + 1);
   });
 });

@@ -27,3 +27,24 @@ export function formatWhen(epochMs: number, now: number): string {
   if (day(epochMs) === day(now + 86_400_000)) return t('time.tomorrow', { time: formatTime(epochMs) });
   return dateTimeFormat.format(epochMs);
 }
+
+/** Own name of a resource, else the game's name from the startup data, else its id. */
+export function resourceLabel(id: string, catalog: { resourceName(id: string): string | undefined }): string {
+  const key = `resource.${id}`;
+  return key in de ? t(key as TextKey) : (catalog.resourceName(id) ?? id);
+}
+
+/** "1.220 Münzen, 5 Forge-Punkte" */
+export const formatResources = (
+  resources: Record<string, number>,
+  catalog: { resourceName(id: string): string | undefined },
+) =>
+  Object.entries(resources)
+    .map(([id, amount]) => `${formatNumber(amount)} ${resourceLabel(id, catalog)}`)
+    .join(', ');
+
+/** "3 Plünderungen, 120 FP" */
+export const formatPlunderTotals = ({ count, fp }: { count: number; fp: number }) =>
+  count === 1
+    ? t('plunder.totalsOne', { fp: formatNumber(fp) })
+    : t('plunder.totals', { count: formatNumber(count), fp: formatNumber(fp) });
