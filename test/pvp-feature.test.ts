@@ -73,11 +73,11 @@ function controlled(total = 1) {
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-function setup(total = 1) {
+function setup(total = 1, open = true) {
   const stub = controlled(total);
   const env = featureContext(stub.persistence, stub.plunders, stub.incoming);
   pvpFeature.setup(env.ctx);
-  env.menu('pvp');
+  if (open) env.menu('pvp');
   return { ...stub, ...env, box: env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>> };
 }
 
@@ -301,5 +301,58 @@ describe('pvp feature', () => {
     box.click('Angriffe auf mich');
     await vi.waitFor(() => expect(box.text).toContain('Kampf: durchbrochen'));
     expect(box.root.querySelector('button.marker')?.getAttribute('title')).toBe('Angreifer');
+  });
+
+  describe('with the army window', () => {
+    it('opens the box on the battles tab for a pvp battle', async () => {
+      const { ctx, box, lists } = setup(1, false);
+      expect(box.box.isOpen).toBe(false);
+      ctx.bus.emit('army.opened', { battleType: 'pvp' });
+      expect(box.box.isOpen).toBe(true);
+      await tick();
+      lists[0]?.resolve([battle(1, 111)]);
+      await tick();
+      expect(box.text).toContain('111');
+    });
+
+    it('only switches an open box to the battles tab', async () => {
+      const { ctx, box, lists, plunders } = setup();
+      await tick();
+      lists[0]?.resolve([battle(1, 111)]);
+      await tick();
+      box.click('Plünderungen');
+      await tick();
+      expect(box.text).toContain('333');
+      ctx.bus.emit('army.opened', { battleType: 'pvp' });
+      await tick();
+      lists.at(-1)?.resolve([battle(1, 111)]);
+      await tick();
+      expect(box.box.isOpen).toBe(true);
+      expect(box.text).toContain('111');
+      expect(box.text).not.toContain('333');
+      expect(plunders.list).toHaveBeenCalledOnce();
+    });
+
+    it.each(['gvg', 'guild_expedition', 'campaign', 'pvp_arena'])('stays closed for a %s battle', (battleType) => {
+      const { ctx, box } = setup(1, false);
+      ctx.bus.emit('army.opened', { battleType });
+      expect(box.box.isOpen).toBe(false);
+    });
+
+    it('stays closed when the setting is off', async () => {
+      const { ctx, box } = setup(1, false);
+      await ctx.settings.set('pvp.openWithArmy', false);
+      ctx.bus.emit('army.opened', { battleType: 'pvp' });
+      expect(box.box.isOpen).toBe(false);
+    });
+
+    it('is a setting that is on by default', () => {
+      const { ctx } = setup(1, false);
+      expect(ctx.settings.defs.find((d) => d.key === 'pvp.openWithArmy')).toMatchObject({
+        label: 'pvp.openWithArmy',
+        default: true,
+      });
+      expect(ctx.settings.get('pvp.openWithArmy')).toBe(true);
+    });
   });
 });

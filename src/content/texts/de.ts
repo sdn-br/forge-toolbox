@@ -57,6 +57,7 @@ export const de = {
   'pvp.keep90': '90 Tage',
   'pvp.keep180': '180 Tage',
   'pvp.keep365': '365 Tage',
+  'pvp.openWithArmy': 'PvP-Box beim Kampffenster öffnen',
   'pvp.search': 'Spieler suchen',
   'pvp.onlyPlayer': 'Nur {name}',
   'pvp.clearFilter': 'Filter entfernen',
