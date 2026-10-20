@@ -5,6 +5,7 @@ import type { BattleStore } from '../stores/battles';
 import type { CatalogStore } from '../stores/catalog';
 import type { CityStore } from '../stores/cities';
 import type { Building } from '../stores/city-model';
+import type { IncomingStore } from '../stores/incoming';
 import type { PlayerObservation, PlayerStore } from '../stores/players';
 import type { PlunderStore } from '../stores/plunders';
 import type { SessionStore } from '../stores/session';
@@ -19,17 +20,21 @@ import {
   toBattle,
   toBuilding,
   toCity,
+  toIncoming,
   toObservation,
   toPlunder,
   toRepelledPlunder,
   toSession,
   toVisitInfo,
 } from './convert';
+import { parseEventDate } from './event-date';
 import type {
   GameBattle,
   GameCityEntity,
   GameEntityIcon,
   GameEra,
+  GameEvent,
+  GameEventPage,
   GameSocialList,
   GameStartup,
   GameVisit,
@@ -44,13 +49,14 @@ export interface GameHandlerDeps {
   catalog: CatalogStore;
   battles: BattleStore;
   plunders: PlunderStore;
+  incoming: IncomingStore;
 }
 
 const observations = (list: unknown) =>
   (Array.isArray(list) ? list : []).map(toObservation).filter((o): o is PlayerObservation => o !== null);
 
 export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps): void {
-  const { world, now, session, players, cities, catalog, battles, plunders } = deps;
+  const { world, now, session, players, cities, catalog, battles, plunders, incoming } = deps;
 
   ingestion.on('StartupService', 'getData', ({ data }) => {
     const d = data as GameStartup;
@@ -160,6 +166,26 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     plundered = undefined;
     doubled.clear();
     updated.length = 0;
+  });
+
+  // Attacks on the own city come live over the websocket (newEvent, one event) and in the event history the player
+  // opens (getEventsPaginated, a page of events). The history names its times only as text relative to today.
+  // other_player of an event lacks era, score and guild, so it would blank out what the player store knows; skipped.
+  const recordIncoming = (events: GameEvent[], at: (e: GameEvent) => number | undefined) => {
+    const me = session.current?.playerId;
+    if (me === undefined) return;
+    for (const e of events) {
+      const time = at(e);
+      const attack = time === undefined ? null : toIncoming(world, e, me, time);
+      if (attack) incoming.record(attack);
+    }
+  };
+  ingestion.on('OtherPlayerService', 'newEvent', ({ data }) => {
+    if (data && typeof data === 'object') recordIncoming([data as GameEvent], () => now());
+  });
+  ingestion.on('OtherPlayerService', 'getEventsPaginated', ({ data }) => {
+    const events = (data as GameEventPage | null)?.events;
+    if (Array.isArray(events)) recordIncoming(events, (e) => (e.date ? parseEventDate(e.date, now()) : undefined));
   });
 
   const updateBuildings = ({ data }: { data: unknown }) => {

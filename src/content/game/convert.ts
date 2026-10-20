@@ -8,7 +8,7 @@ import {
   playerId,
   type WorldId,
 } from '../../shared/ids';
-import type { Battle, BattleResult, BattleSide, GuildRef, Plunder } from '../../shared/model';
+import type { Battle, BattleResult, BattleSide, GuildRef, IncomingAttack, Plunder } from '../../shared/model';
 import type { VisitInfo } from '../stores/cities';
 import type { Building, BuildingState, City, Product } from '../stores/city-model';
 import type { PlayerObservation } from '../stores/players';
@@ -18,6 +18,7 @@ import type {
   GameBattleState,
   GameBattleUnit,
   GameCityEntity,
+  GameEvent,
   GamePlayer,
   GamePlunderResult,
   GameProduct,
@@ -311,4 +312,25 @@ export function toPlunder(
     resources,
     doubleLoot,
   };
+}
+
+// A battle event tells the result from the attacked player's view. "lost": the defense was broken (seen 2026-10-20,
+// the game says "Leider wurde deine Verteidigung durchbrochen"). "won" is assumed to mean the defense held.
+const DEFENSE: Record<string, IncomingAttack['defense']> = { lost: 'broken', won: 'held' };
+
+/**
+ * An attack on the session player's city from an event; any other event is null. Assumption, not yet seen: a plunder
+ * comes like a polish of an own building (seen 2026-10-20), as a social_interaction with interaction_type "plunder"
+ * and the building definition as entity_id.
+ */
+export function toIncoming(world: WorldId, e: GameEvent, me: PlayerId, at: number): IncomingAttack | null {
+  const attacker = e.other_player?.player_id;
+  if (typeof attacker !== 'number' || attacker === me || (e.player_id !== undefined && e.player_id !== me)) return null;
+  const base = { world, at, attacker: playerId(attacker) };
+  const defense = e.type === 'battle' && e.status ? DEFENSE[e.status] : undefined;
+  if (defense && typeof e.battle_id === 'number') return { ...base, kind: 'battle', key: e.battle_id, defense };
+  if (e.type === 'social_interaction' && e.interaction_type === 'plunder' && typeof e.id === 'number' && e.entity_id) {
+    return { ...base, kind: 'plunder', key: e.id, cityEntityId: buildingDefId(e.entity_id) };
+  }
+  return null;
 }

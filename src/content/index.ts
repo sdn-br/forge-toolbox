@@ -1,6 +1,7 @@
 // Content script entry: wires stores, ingestion and features, then connects to the proxy.
 
 import { battlePersistence } from '../persistence/battles/client';
+import { incomingPersistence } from '../persistence/incoming/client';
 import { playerPersistence } from '../persistence/players/client';
 import { plunderPersistence } from '../persistence/plunders/client';
 import { worldId } from '../shared/ids';
@@ -22,6 +23,7 @@ import { registerGameHandlers } from './game/handlers';
 import { BattleStore } from './stores/battles';
 import { CatalogStore } from './stores/catalog';
 import { CityStore } from './stores/cities';
+import { IncomingStore } from './stores/incoming';
 import { PlayerStore } from './stores/players';
 import { PlunderStore } from './stores/plunders';
 import { SessionStore } from './stores/session';
@@ -41,6 +43,7 @@ async function main() {
   const players = new PlayerStore(bus, playerPersistence(callBackground));
   const battles = new BattleStore(bus, world, battlePersistence(callBackground));
   const plunders = new PlunderStore(bus, world, plunderPersistence(callBackground));
+  const incoming = new IncomingStore(bus, world, incomingPersistence(callBackground));
   const cities = new CityStore(bus);
   const catalog = new CatalogStore(bus);
   const recorder = new Recorder(
@@ -49,7 +52,7 @@ async function main() {
   );
   const menu = new Menu();
 
-  registerGameHandlers(ingestion, { world, now, session, players, cities, catalog, battles, plunders });
+  registerGameHandlers(ingestion, { world, now, session, players, cities, catalog, battles, plunders, incoming });
   // the proxy buffers game traffic until we connect, so loading first loses nothing
   await Promise.all([
     settings.load(),
@@ -68,6 +71,7 @@ async function main() {
     catalog,
     battles,
     plunders,
+    incoming,
     recorder,
     createBox: boxFactory(ui),
   };

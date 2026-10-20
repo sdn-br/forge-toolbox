@@ -83,3 +83,26 @@ export interface PlunderTotals {
   /** Forge points over all counted successful plunders */
   fp: number;
 }
+
+export type IncomingKind = 'battle' | 'plunder';
+
+/** An attack of another player on the session player's city: a battle against its defense or a plunder. */
+export interface IncomingAttack {
+  world: WorldId;
+  kind: IncomingKind;
+  /** the game's battle id of a battle, the event id of a plunder */
+  key: number;
+  at: number;
+  attacker: PlayerId;
+  /** battle only: whether the own defense held */
+  defense?: 'held' | 'broken';
+  /** plunder only: the plundered own building */
+  cityEntityId?: BuildingDefId;
+}
+
+export interface IncomingTotals {
+  /** battles against the own defense, held ones included */
+  battles: number;
+  held: number;
+  plunders: number;
+}

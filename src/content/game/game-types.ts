@@ -150,3 +150,26 @@ export interface GameEntityIcon {
   id?: number;
   type?: string;
 }
+
+/** an entry of the event history (OtherPlayerService.getEventsPaginated) or a live one (newEvent) */
+export interface GameEvent {
+  id?: number;
+  /** the player the event happened to; missing in some guild events */
+  player_id?: number;
+  /** German text relative to today, see event-date.ts */
+  date?: string;
+  /** known: "battle", "social_interaction", "friend_tavern_sat_down", "friend_request", "clan_member_joined" */
+  type?: string;
+  /** social_interaction only; known: "motivate", "polish" */
+  interaction_type?: string;
+  entity_id?: string;
+  other_player?: GamePlayer;
+  battle_id?: number;
+  /** battle only, from the attacked player's view; known: "lost" */
+  status?: string;
+}
+
+export interface GameEventPage {
+  page?: number;
+  events?: GameEvent[];
+}

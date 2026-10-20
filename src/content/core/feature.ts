@@ -2,6 +2,7 @@ import type { WorldId } from '../../shared/ids';
 import type { BattleStore } from '../stores/battles';
 import type { CatalogStore } from '../stores/catalog';
 import type { CityStore } from '../stores/cities';
+import type { IncomingStore } from '../stores/incoming';
 import type { PlayerStore } from '../stores/players';
 import type { PlunderStore } from '../stores/plunders';
 import type { SessionStore } from '../stores/session';
@@ -24,6 +25,7 @@ export interface FeatureContext {
   catalog: CatalogStore;
   battles: BattleStore;
   plunders: PlunderStore;
+  incoming: IncomingStore;
   recorder: Recorder;
   createBox(options: BoxOptions): Box;
 }

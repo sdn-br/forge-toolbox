@@ -13,6 +13,7 @@ export interface ToolboxEvents {
   'catalog.updated': { defs: BuildingDefId[] };
   'battle.recorded': { opponent: PlayerId };
   'plunder.recorded': { opponent: PlayerId };
+  'incoming.recorded': { attacker: PlayerId };
 }
 
 export type ToolboxBus = EventBus<ToolboxEvents>;

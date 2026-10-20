@@ -5,6 +5,7 @@ import { registerGameHandlers } from '../src/content/game/handlers';
 import { BattleStore } from '../src/content/stores/battles';
 import { CatalogStore } from '../src/content/stores/catalog';
 import { CityStore } from '../src/content/stores/cities';
+import { IncomingStore } from '../src/content/stores/incoming';
 import { PlayerStore } from '../src/content/stores/players';
 import { PlunderStore } from '../src/content/stores/plunders';
 import { SessionStore } from '../src/content/stores/session';
@@ -23,7 +24,7 @@ function setup(me: number | null = fixture.me) {
   const bus = createBus();
   const ingestion = new Ingestion();
   const session = new SessionStore(bus);
-  const { db, persistence, plunders: plunderDb } = testDb();
+  const { db, persistence, plunders: plunderDb, incoming } = testDb();
   const plunders = new PlunderStore(bus, world, plunderDb);
   const cities = new CityStore(bus);
   let now = AT;
@@ -36,6 +37,7 @@ function setup(me: number | null = fixture.me) {
     catalog: new CatalogStore(bus),
     battles: new BattleStore(bus, world, persistence),
     plunders,
+    incoming: new IncomingStore(bus, world, incoming),
   });
   const recorded: PlayerId[] = [];
   bus.on('plunder.recorded', (e) => recorded.push(e.opponent));
