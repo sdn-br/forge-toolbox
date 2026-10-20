@@ -423,4 +423,51 @@ describe('pvp feature', () => {
       expect(game).not.toHaveBeenCalled();
     });
   });
+
+  describe('battle details', () => {
+    const fought = (battleId: number, opponent: number): Battle => ({
+      ...battle(battleId, opponent),
+      attacker: { bonuses: { attack_boost: 50 }, units: [{ unitTypeId: 'rogue', startHp: 10, endHp: 8 }] },
+      defender: { bonuses: { defense_boost: 70 }, units: [{ unitTypeId: 'feudal_knight', startHp: 10, endHp: 0 }] },
+    });
+
+    async function shown() {
+      const env = setup();
+      await tick();
+      env.lists[0]?.resolve([fought(1, 111), fought(2, 222)]);
+      await tick();
+      const row = (n: number) => env.box.root.querySelectorAll('tr.battle-row')[n] as HTMLElement;
+      return { ...env, row };
+    }
+
+    it('expands a clicked row with both armies and the result, and collapses it again', async () => {
+      const { box, row, lists } = await shown();
+      expect(box.text).not.toContain('Deine Einheiten');
+
+      row(1).click();
+      expect(box.text).toContain('Deine Einheiten');
+      expect(box.text).toContain('rogue');
+      expect(box.text).toContain('8/10 LP');
+      expect(box.text).toContain('feudal_knight');
+      expect(box.text).toContain('gefallen');
+      expect(box.text).toContain('gewonnen, Autokampf, 1 Runde');
+      expect(box.text).toContain('50 % / 0 %');
+      expect(box.text).toContain('0 % / 70 %');
+      expect(box.root.querySelectorAll('.battle')).toHaveLength(1);
+      // the details come from the loaded page, no new query
+      expect(lists).toHaveLength(1);
+
+      row(0).click();
+      expect(box.root.querySelectorAll('.battle')).toHaveLength(2);
+      row(1).click();
+      expect(box.root.querySelectorAll('.battle')).toHaveLength(1);
+    });
+
+    it('does not expand a row when its player link or note marker is clicked', async () => {
+      const { box } = await shown();
+      (box.root.querySelector('button.marker') as HTMLElement).click();
+      box.follow('222');
+      expect(box.root.querySelector('.battle')).toBeNull();
+    });
+  });
 });

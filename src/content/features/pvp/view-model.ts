@@ -10,6 +10,7 @@ import {
 } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { measuredArmy } from '../../domain/measured-army';
+import { type BattleDetailsVm, battleDetails } from '../../ui/battle-details';
 import { plainText } from '../../ui/markdown';
 
 export const PAGE_SIZE = 20;
@@ -31,6 +32,9 @@ export interface PvpRow {
   defender: ArmyValues;
   /** the opponent's note as plain text, empty when there is none */
   note: string;
+  expanded: boolean;
+  /** units, measured armies and result; only for an expanded row */
+  details?: BattleDetailsVm;
 }
 
 export type PvpTab = 'battles' | 'plunders' | 'incoming';
@@ -101,6 +105,8 @@ export function pvpViewModel(input: {
   incomingTotals: IncomingTotals;
   page: number;
   filter: PvpFilter;
+  /** battle ids whose rows show their details */
+  expanded?: ReadonlySet<number>;
   name: (id: PlayerId) => string | undefined;
   building: (id: BuildingDefId) => string | undefined;
   resourceName: (id: string) => string | undefined;
@@ -116,6 +122,7 @@ export function pvpViewModel(input: {
     tab,
     rows: battles.map((b) => {
       const army = measuredArmy(b);
+      const expanded = input.expanded?.has(b.battleId) === true;
       return {
         battleId: b.battleId,
         opponent: b.opponent,
@@ -126,6 +133,8 @@ export function pvpViewModel(input: {
         attacker: army.attacker,
         defender: army.defender,
         note: noteOf(b.opponent),
+        expanded,
+        ...(expanded && { details: battleDetails(b) }),
       };
     }),
     plunders: plunders.map((p) => ({

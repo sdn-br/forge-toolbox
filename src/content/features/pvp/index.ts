@@ -30,6 +30,8 @@ export const pvpFeature: Feature = {
     let filter: PvpFilter = { text: '' };
     let page = 0;
     let query = 0;
+    const expanded = new Set<number>();
+    let shown: Parameters<typeof pvpViewModel>[0] | undefined;
 
     const refresh = async () => {
       if (!box.isOpen) return;
@@ -56,7 +58,7 @@ export const pvpFeature: Feature = {
           : [];
       // a newer query started meanwhile and will render
       if (current !== query) return;
-      vm = pvpViewModel({
+      shown = {
         tab,
         battles,
         plunders,
@@ -71,7 +73,9 @@ export const pvpFeature: Feature = {
         resourceName: (id) => ctx.catalog.resourceName(id),
         note: (id) => ctx.notes.playerPage(id)?.text,
         now: Date.now(),
-      });
+        expanded,
+      };
+      vm = pvpViewModel(shown);
       box.update();
     };
     const show = () => refresh().catch((error) => logError('loading battles failed', error));
@@ -96,6 +100,12 @@ export const pvpFeature: Feature = {
       page: (p) => {
         page = p;
         show();
+      },
+      expand: (battleId) => {
+        if (!expanded.delete(battleId)) expanded.add(battleId);
+        // the battles of the page are loaded already
+        if (shown) vm = pvpViewModel(shown);
+        box.update();
       },
       note: (opponent) => {
         actions.pick(opponent);

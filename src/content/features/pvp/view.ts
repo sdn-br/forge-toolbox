@@ -2,6 +2,7 @@ import { html, type TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
 import { formatNumber, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
+import { battleDetailsView } from '../../ui/battle-details';
 import { keepKeys } from '../../ui/inputs';
 import type { IncomingRow, PlunderRow, PvpRow, PvpTab, PvpVm } from './view-model';
 
@@ -11,6 +12,8 @@ export interface PvpActions {
   pick(opponent: PlayerId): void;
   clearPick(): void;
   page(page: number): void;
+  /** shows or hides the details of a battle row */
+  expand(battleId: number): void;
   /** filters to this player and opens their note for typing */
   note(opponent: PlayerId): void;
 }
@@ -32,10 +35,17 @@ const incomingRow = (r: IncomingRow, actions: PvpActions) => html`<tr>
   ${noteMarker(r.attacker, r.note, actions)}${opponentLink({ opponent: r.attacker, name: r.name }, actions)}
   <td>${r.when}</td><td>${r.what}</td></tr>`;
 
-const row = (r: PvpRow, actions: PvpActions) => html`<tr>
+/** a click on the row shows its details, a click on its link or note marker does what they do */
+const expandOnClick = (battleId: number, actions: PvpActions) => (e: Event) => {
+  if (!(e.target as Element).closest('a, button')) actions.expand(battleId);
+};
+
+const row = (r: PvpRow, actions: PvpActions) => html`<tr class=${r.expanded ? 'battle-row expanded' : 'battle-row'}
+    title=${t('pvp.details')} @click=${expandOnClick(r.battleId, actions)}>
   ${noteMarker(r.opponent, r.note, actions)}${opponentLink(r, actions)}
   <td>${r.when}</td><td>${r.result}</td><td>${r.battle}</td>
-  <td class="num">${army(r.attacker)}</td><td class="num">${army(r.defender)}</td></tr>`;
+  <td class="num">${army(r.attacker)}</td><td class="num">${army(r.defender)}</td></tr>
+  ${r.details ? html`<tr class="details"><td colspan="7">${battleDetailsView(r.details)}</td></tr>` : ''}`;
 
 const plunderRow = (r: PlunderRow, actions: PvpActions) => html`<tr>
   ${noteMarker(r.opponent, r.note, actions)}${opponentLink(r, actions)}

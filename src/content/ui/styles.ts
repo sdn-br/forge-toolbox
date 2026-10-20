@@ -46,5 +46,8 @@ ul.rows li.dragging { opacity: .4; }
 textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
 input.title { width: 100%; font-weight: 600; }
 button.marker { all: unset; cursor: pointer; }
+tr.battle-row { cursor: pointer; }
+tr.battle-row.expanded, tr.details { background: #3a2a16; }
+.battle p { margin: 2px 0 4px; }
 button.marker.dim { opacity: .3; }
 `;
