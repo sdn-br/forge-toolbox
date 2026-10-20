@@ -43,6 +43,7 @@ const lookups = {
   name,
   building: (id: string) => (id === 'R_IronAge_Residential2' ? 'Strohdachhaus' : undefined),
   resourceName: () => undefined,
+  note: (id: PlayerId) => (id === 1001 ? '**stark**\n- *Schilde*' : undefined),
 };
 const noIncoming = { incoming: [], incomingTotals: { battles: 0, held: 0, plunders: 0 } };
 const battlesTab = {
@@ -72,8 +73,9 @@ describe('pvp view model', () => {
       battle: 'Autokampf',
       attacker: { attack: 368, defense: 269 },
       defender: { attack: 406, defense: 443 },
+      note: 'stark\n• Schilde',
     });
-    expect(vm.rows[1]).toMatchObject({ name: '1002', result: 'aufgegeben', battle: '5 Runden' });
+    expect(vm.rows[1]).toMatchObject({ name: '1002', result: 'aufgegeben', battle: '5 Runden', note: '' });
     expect(vm).toMatchObject({ page: 0, pages: 1, empty: undefined, picked: undefined });
   });
 
@@ -118,8 +120,9 @@ describe('pvp view model', () => {
         building: 'Strohdachhaus',
         loot: '1.220 Münzen, 5 Forge-Punkte',
         doubleLoot: true,
+        note: 'stark\n• Schilde',
       },
-      expect.objectContaining({ name: '1002', building: 'R_Unknown', doubleLoot: false }),
+      expect.objectContaining({ name: '1002', building: 'R_Unknown', doubleLoot: false, note: '' }),
     ]);
     expect(vm).toMatchObject({ tab: 'plunders', rows: [], plunderTotals: '2 Plünderungen, 10 FP', pages: 1 });
   });
@@ -147,7 +150,15 @@ describe('pvp view model', () => {
       now,
     });
     expect(vm.plunders).toEqual([
-      { opponent: 1001, name: 'Testgegner', when: 'heute 14:05', building: '–', loot: 'abgewehrt', doubleLoot: false },
+      {
+        opponent: 1001,
+        name: 'Testgegner',
+        when: 'heute 14:05',
+        building: '–',
+        loot: 'abgewehrt',
+        doubleLoot: false,
+        note: 'stark\n• Schilde',
+      },
     ]);
     expect(vm.plunderTotals).toBe('5 Plünderungen, 2 abgewehrt, 120 FP');
   });
@@ -195,8 +206,14 @@ describe('pvp view model', () => {
       now,
     });
     expect(vm.incoming).toEqual([
-      { attacker: 1001, name: 'Testgegner', when: 'heute 14:05', what: 'Kampf: durchbrochen' },
-      { attacker: 1002, name: '1002', when: '16.10., 14:05', what: 'Kampf: gehalten' },
+      {
+        attacker: 1001,
+        name: 'Testgegner',
+        when: 'heute 14:05',
+        what: 'Kampf: durchbrochen',
+        note: 'stark\n• Schilde',
+      },
+      { attacker: 1002, name: '1002', when: '16.10., 14:05', what: 'Kampf: gehalten', note: '' },
       expect.objectContaining({ what: 'Plünderung: Strohdachhaus' }),
       expect.objectContaining({ what: 'Plünderung: R_Unknown' }),
     ]);

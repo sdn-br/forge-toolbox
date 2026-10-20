@@ -10,6 +10,8 @@ export interface PvpActions {
   pick(opponent: PlayerId): void;
   clearPick(): void;
   page(page: number): void;
+  /** filters to this player and opens their note for typing */
+  note(opponent: PlayerId): void;
 }
 
 const army = (a: ArmyValues) => `${formatNumber(a.attack)} / ${formatNumber(a.defense)}`;
@@ -20,33 +22,39 @@ const opponentLink = (r: { opponent: PlayerId; name: string }, actions: PvpActio
     actions.pick(r.opponent);
   }}>${r.name}</a></td>`;
 
+/** 📝 per row: dim without a note, the note as tooltip */
+const noteMarker = (opponent: PlayerId, note: string, actions: PvpActions) =>
+  html`<td><button class=${note ? 'marker' : 'marker dim'} title=${note || t('notes.add')}
+    @click=${() => actions.note(opponent)}>📝</button></td>`;
+
 const incomingRow = (r: IncomingRow, actions: PvpActions) => html`<tr>
-  ${opponentLink({ opponent: r.attacker, name: r.name }, actions)}<td>${r.when}</td><td>${r.what}</td></tr>`;
+  ${noteMarker(r.attacker, r.note, actions)}${opponentLink({ opponent: r.attacker, name: r.name }, actions)}
+  <td>${r.when}</td><td>${r.what}</td></tr>`;
 
 const row = (r: PvpRow, actions: PvpActions) => html`<tr>
-  ${opponentLink(r, actions)}
+  ${noteMarker(r.opponent, r.note, actions)}${opponentLink(r, actions)}
   <td>${r.when}</td><td>${r.result}</td><td>${r.battle}</td>
   <td class="num">${army(r.attacker)}</td><td class="num">${army(r.defender)}</td></tr>`;
 
 const plunderRow = (r: PlunderRow, actions: PvpActions) => html`<tr>
-  ${opponentLink(r, actions)}
+  ${noteMarker(r.opponent, r.note, actions)}${opponentLink(r, actions)}
   <td>${r.when}</td><td>${r.building}</td>
   <td>${r.loot}${r.doubleLoot ? html` <b>${t('plunder.doubleLoot')}</b>` : ''}</td></tr>`;
 
 const battleTable = (vm: PvpVm, actions: PvpActions) => html`<table>
-    <tr><th>${t('pvp.opponent')}</th><th>${t('pvp.when')}</th><th>${t('pvp.result')}</th><th>${t('pvp.battle')}</th>
+    <tr><th></th><th>${t('pvp.opponent')}</th><th>${t('pvp.when')}</th><th>${t('pvp.result')}</th><th>${t('pvp.battle')}</th>
       <th class="num">${t('pvp.attacker')}</th><th class="num">${t('pvp.defender')}</th></tr>
     ${vm.rows.map((r) => row(r, actions))}
   </table>
   <p class="muted">${t('pvp.armyHint')}</p>`;
 
 const plunderTable = (vm: PvpVm, actions: PvpActions) => html`<table>
-    <tr><th>${t('pvp.opponent')}</th><th>${t('pvp.when')}</th><th>${t('pvp.building')}</th><th>${t('pvp.loot')}</th></tr>
+    <tr><th></th><th>${t('pvp.opponent')}</th><th>${t('pvp.when')}</th><th>${t('pvp.building')}</th><th>${t('pvp.loot')}</th></tr>
     ${vm.plunders.map((r) => plunderRow(r, actions))}
   </table>`;
 
 const incomingTable = (vm: PvpVm, actions: PvpActions) => html`<table>
-    <tr><th>${t('pvp.attacker')}</th><th>${t('pvp.when')}</th><th>${t('pvp.kind')}</th></tr>
+    <tr><th></th><th>${t('pvp.attacker')}</th><th>${t('pvp.when')}</th><th>${t('pvp.kind')}</th></tr>
     ${vm.incoming.map((r) => incomingRow(r, actions))}
   </table>`;
 
@@ -73,7 +81,8 @@ const paging = (vm: PvpVm, actions: PvpActions) =>
       <button class="action" ?disabled=${vm.page >= vm.pages - 1} @click=${() => actions.page(vm.page + 1)}>${t('pvp.next')}</button>
     </p>`;
 
-export function pvpView(vm: PvpVm | undefined, actions: PvpActions): TemplateResult {
+/** `note` is the note card of the picked player */
+export function pvpView(vm: PvpVm | undefined, actions: PvpActions, note?: TemplateResult): TemplateResult {
   const filter = html`<p>
     <input type="search" placeholder=${t('pvp.search')} .value=${vm?.search ?? ''}
       @input=${(e: Event) => actions.search((e.target as HTMLInputElement).value)} />
@@ -82,7 +91,7 @@ export function pvpView(vm: PvpVm | undefined, actions: PvpActions): TemplateRes
         ? html`<button class="action" title=${t('pvp.clearFilter')} @click=${() => actions.clearPick()}>${t('pvp.onlyPlayer', { name: vm.picked })} ✕</button>`
         : ''
     }</p>`;
-  const head = html`${tabs(vm?.tab, actions)}${filter}`;
+  const head = html`${tabs(vm?.tab, actions)}${filter}${note ?? ''}`;
   if (!vm) return head;
   const totals = html`<p>${vm.tab === 'incoming' ? vm.incomingTotals : vm.plunderTotals}</p>`;
   if (vm.empty) return html`${head}${totals}<p class="muted">${t(EMPTY[vm.tab][vm.empty])}</p>`;

@@ -10,6 +10,7 @@ import {
 } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { measuredArmy } from '../../domain/measured-army';
+import { plainText } from '../../ui/markdown';
 
 export const PAGE_SIZE = 20;
 
@@ -28,6 +29,8 @@ export interface PvpRow {
   battle: string;
   attacker: ArmyValues;
   defender: ArmyValues;
+  /** the opponent's note as plain text, empty when there is none */
+  note: string;
 }
 
 export type PvpTab = 'battles' | 'plunders' | 'incoming';
@@ -39,6 +42,7 @@ export interface PlunderRow {
   building: string;
   loot: string;
   doubleLoot: boolean;
+  note: string;
 }
 
 /** an attack on the own city */
@@ -48,6 +52,7 @@ export interface IncomingRow {
   when: string;
   /** kind and outcome, e.g. "Kampf: durchbrochen" */
   what: string;
+  note: string;
 }
 
 export interface PvpVm {
@@ -99,10 +104,13 @@ export function pvpViewModel(input: {
   name: (id: PlayerId) => string | undefined;
   building: (id: BuildingDefId) => string | undefined;
   resourceName: (id: string) => string | undefined;
+  /** the Markdown note of a player, if any */
+  note: (id: PlayerId) => string | undefined;
   now: number;
 }): PvpVm {
   const { tab, battles, plunders, total, page, filter, name, building, resourceName, now } = input;
   const nameOf = (id: PlayerId) => name(id) || String(id);
+  const noteOf = (id: PlayerId) => plainText(input.note(id) ?? '');
   const filtered = filter.opponent !== undefined || filter.text.trim() !== '';
   return {
     tab,
@@ -117,6 +125,7 @@ export function pvpViewModel(input: {
         battle: battleKind(b),
         attacker: army.attacker,
         defender: army.defender,
+        note: noteOf(b.opponent),
       };
     }),
     plunders: plunders.map((p) => ({
@@ -126,6 +135,7 @@ export function pvpViewModel(input: {
       building: p.cityEntityId === undefined ? '–' : (building(p.cityEntityId) ?? p.cityEntityId),
       loot: p.outcome === 'repelled' ? t('plunder.repelled') : formatResources(p.resources, { resourceName }),
       doubleLoot: p.doubleLoot,
+      note: noteOf(p.opponent),
     })),
     plunderTotals: formatPlunderTotals(input.plunderTotals),
     incoming: input.incoming.map((a) => ({
@@ -133,6 +143,7 @@ export function pvpViewModel(input: {
       name: nameOf(a.attacker),
       when: formatWhen(a.at, now),
       what: formatIncoming(a, building),
+      note: noteOf(a.attacker),
     })),
     incomingTotals: formatIncomingTotals(input.incomingTotals),
     search: filter.text,
