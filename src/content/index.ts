@@ -2,6 +2,7 @@
 
 import { battlePersistence } from '../persistence/battles/client';
 import { incomingPersistence } from '../persistence/incoming/client';
+import { notePersistence } from '../persistence/notes/client';
 import { playerPersistence } from '../persistence/players/client';
 import { plunderPersistence } from '../persistence/plunders/client';
 import { worldId } from '../shared/ids';
@@ -24,6 +25,7 @@ import { BattleStore } from './stores/battles';
 import { CatalogStore } from './stores/catalog';
 import { CityStore } from './stores/cities';
 import { IncomingStore } from './stores/incoming';
+import { NoteStore } from './stores/notes';
 import { PlayerStore } from './stores/players';
 import { PlunderStore } from './stores/plunders';
 import { SessionStore } from './stores/session';
@@ -44,6 +46,7 @@ async function main() {
   const battles = new BattleStore(bus, world, battlePersistence(callBackground));
   const plunders = new PlunderStore(bus, world, plunderPersistence(callBackground));
   const incoming = new IncomingStore(bus, world, incomingPersistence(callBackground));
+  const notes = new NoteStore(bus, world, notePersistence(callBackground));
   const cities = new CityStore(bus);
   const catalog = new CatalogStore(bus);
   const recorder = new Recorder(
@@ -58,6 +61,7 @@ async function main() {
     settings.load(),
     ui.load(),
     players.load(world).catch((e) => logError('loading players failed', e)),
+    notes.load().catch((e) => logError('loading notes failed', e)),
   ]);
 
   const ctx: FeatureContext = {
@@ -72,6 +76,7 @@ async function main() {
     battles,
     plunders,
     incoming,
+    notes,
     recorder,
     createBox: boxFactory(ui),
   };

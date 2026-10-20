@@ -14,6 +14,8 @@ export interface ToolboxEvents {
   'battle.recorded': { opponent: PlayerId };
   'plunder.recorded': { opponent: PlayerId };
   'incoming.recorded': { attacker: PlayerId };
+  /** any change of the notes; `player` when it was the note of that player */
+  'note.changed': { player?: PlayerId };
 }
 
 export type ToolboxBus = EventBus<ToolboxEvents>;

@@ -1,10 +1,11 @@
 import Dexie from 'dexie';
 import type { BattlesTables } from '../persistence/battles/worker';
 import type { IncomingTables } from '../persistence/incoming/worker';
+import type { NotesTables } from '../persistence/notes/worker';
 import type { PlayersTables } from '../persistence/players/worker';
 import type { PlundersTables } from '../persistence/plunders/worker';
 
-export type ToolboxDb = Dexie & PlayersTables & BattlesTables & PlundersTables & IncomingTables;
+export type ToolboxDb = Dexie & PlayersTables & BattlesTables & PlundersTables & IncomingTables & NotesTables;
 
 /** The whole version history lives here; the domains in src/persistence only bring their tables. */
 export function openDb(name = 'forge-toolbox'): ToolboxDb {
@@ -28,6 +29,11 @@ export function openDb(name = 'forge-toolbox'): ToolboxDb {
   // attacks on the own city: a battle is keyed by its battle id, a plunder by its event id
   db.version(6).stores({
     incoming: '[world+kind+key], [world+at], [world+attacker+at], at',
+  });
+  // notes per world; the content script keeps them all in memory, so the world is the only index
+  db.version(7).stores({
+    noteGroups: '[world+id], world',
+    notePages: '[world+id], world',
   });
   return db;
 }

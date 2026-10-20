@@ -106,3 +106,25 @@ export interface IncomingTotals {
   held: number;
   plunders: number;
 }
+
+/** A tab of the notes; the player group is not stored, it always exists. */
+export interface NoteGroup {
+  world: WorldId;
+  id: string;
+  name: string;
+  sort: number;
+}
+
+/** A page of the notes. A player page belongs to the player group, one per player. */
+export interface NotePage {
+  world: WorldId;
+  id: string;
+  group: string;
+  /** a player page keeps the last known name here, shown only when the player store does not know the player */
+  title: string;
+  /** Markdown source */
+  text: string;
+  sort: number;
+  updatedAt: number;
+  player?: PlayerId;
+}

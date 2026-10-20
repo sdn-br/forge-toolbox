@@ -8,6 +8,7 @@ import { type BattlePersistence, BattleStore } from '../../src/content/stores/ba
 import { CatalogStore } from '../../src/content/stores/catalog';
 import { CityStore } from '../../src/content/stores/cities';
 import { type IncomingPersistence, IncomingStore } from '../../src/content/stores/incoming';
+import { NoteStore } from '../../src/content/stores/notes';
 import { PlayerStore } from '../../src/content/stores/players';
 import { type PlunderPersistence, PlunderStore } from '../../src/content/stores/plunders';
 import { SessionStore } from '../../src/content/stores/session';
@@ -87,6 +88,7 @@ export function featureContext(
     battles: new BattleStore(bus, world, persistence ?? db.persistence),
     plunders: new PlunderStore(bus, world, plunders ?? db.plunders),
     incoming: new IncomingStore(bus, world, incoming ?? db.incoming),
+    notes: new NoteStore(bus, world, db.notes),
     recorder: new Recorder(() => false),
     createBox: (options) => {
       const recording = recordingBox(options);
