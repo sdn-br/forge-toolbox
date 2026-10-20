@@ -1,0 +1,88 @@
+import { render } from 'lit-html';
+import { createBus } from '../../src/content/core/events';
+import type { FeatureContext } from '../../src/content/core/feature';
+import { memoryKv } from '../../src/content/core/kv';
+import { Recorder } from '../../src/content/core/recorder';
+import { Settings } from '../../src/content/core/settings';
+import { type BattlePersistence, BattleStore } from '../../src/content/stores/battles';
+import { CatalogStore } from '../../src/content/stores/catalog';
+import { CityStore } from '../../src/content/stores/cities';
+import { PlayerStore } from '../../src/content/stores/players';
+import { SessionStore } from '../../src/content/stores/session';
+import type { Box, BoxOptions } from '../../src/content/ui/box';
+import type { Menu, MenuItem } from '../../src/content/ui/menu';
+import { worldId } from '../../src/shared/ids';
+import { testDb } from './battle-db';
+
+/** A box that records every update as the text it would show, instead of drawing a window. */
+export function recordingBox(options: BoxOptions) {
+  const container = document.createElement('div');
+  const updates: string[] = [];
+  let open = false;
+  const box = {
+    get isOpen() {
+      return open;
+    },
+    open() {
+      open = true;
+      box.update();
+    },
+    close() {
+      open = false;
+    },
+    toggle() {
+      if (open) box.close();
+      else box.open();
+    },
+    update() {
+      if (!open) return;
+      render(options.render(), container);
+      updates.push(container.textContent ?? '');
+    },
+  };
+  return {
+    box: box as unknown as Box,
+    updates,
+    /** the box as it looks right now */
+    get text() {
+      return container.textContent ?? '';
+    },
+    click(label: string) {
+      const button = [...container.querySelectorAll('button')].find((b) => b.textContent?.includes(label));
+      if (!button) throw new Error(`no button "${label}"`);
+      button.click();
+    },
+  };
+}
+
+/** Real stores, bus and settings; persistence is the real handlers on in-memory Dexie unless a test passes its own. */
+export function featureContext(persistence: BattlePersistence = testDb().persistence) {
+  const world = worldId('de20');
+  const bus = createBus();
+  const boxes = new Map<string, ReturnType<typeof recordingBox>>();
+  const menuItems = new Map<string, MenuItem>();
+  const settings = new Settings(memoryKv());
+  const ctx: FeatureContext = {
+    world,
+    bus,
+    settings,
+    menu: { add: (item: MenuItem) => menuItems.set(item.id, item) } as unknown as Menu,
+    session: new SessionStore(bus),
+    players: new PlayerStore(bus, { load: async () => [], put: async () => {} }),
+    cities: new CityStore(bus),
+    catalog: new CatalogStore(bus),
+    battles: new BattleStore(bus, world, persistence),
+    recorder: new Recorder(() => false),
+    createBox: (options) => {
+      const recording = recordingBox(options);
+      boxes.set(options.id, recording);
+      return recording.box;
+    },
+  };
+  return {
+    ctx,
+    boxes,
+    /** clicks the menu entry of a feature */
+    menu: (id: string) => menuItems.get(id)?.action(),
+  };
+}
