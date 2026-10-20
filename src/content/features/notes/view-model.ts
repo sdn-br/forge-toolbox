@@ -48,7 +48,6 @@ export interface RowVm {
 export interface PlayerVm {
   id: PlayerId;
   name: string;
-  avatar?: string;
   guild?: string;
   icons: string;
 }
@@ -117,13 +116,6 @@ export function matchesRelation(filter: RelationFilter, r: Relations | undefined
   if (filter === 'all') return true;
   if (filter === 'other') return !r || (!r.neighbor && !r.guildMember && !r.friend);
   return r?.[filter] === true;
-}
-
-/** Portrait from the Inno CDN, as the game loads it. Assumed path, not seen in a recording yet. */
-export function avatarUrl(world: WorldId, avatar: string): string | undefined {
-  const lang = world.replace(/\d+$/, '');
-  if (!/^[\w-]+$/.test(avatar) || !/^[a-z]+$/.test(lang)) return undefined;
-  return `https://foe${lang}.innogamescdn.com/assets/shared/avatars/${avatar}.jpg`;
 }
 
 /** a short piece of the plain text around the first match, or its start */
@@ -228,7 +220,6 @@ export function notesViewModel(input: NotesInput): NotesVm {
       player: {
         id: playerId,
         name,
-        avatar: known?.avatar ? avatarUrl(input.world, known.avatar) : undefined,
         guild: known?.guild?.name,
         icons: relationIcons(known?.relations),
       },

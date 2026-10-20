@@ -104,11 +104,7 @@ function side(vm: NotesVm, actions: NotesActions) {
 function pageHead(page: PageVm, actions: NotesActions) {
   if (page.player) {
     const p = page.player;
-    return html`<p>${
-      p.avatar
-        ? html`<img class="avatar" src=${p.avatar} alt="" @error=${(e: Event) => (e.target as HTMLElement).remove()} />`
-        : ''
-    }<b>${p.name}</b> ${p.icons}${p.guild ? html`<br /><span class="muted">[${p.guild}]</span>` : ''}
+    return html`<p><b>${p.name}</b> ${p.icons}${p.guild ? html`<br /><span class="muted">[${p.guild}]</span>` : ''}
       ${page.when ? html`<br /><span class="muted">${t('notes.changed', { when: page.when })}</span>` : ''}</p>`;
   }
   return html`<p><input class="title" .value=${page.title}

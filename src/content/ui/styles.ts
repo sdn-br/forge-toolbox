@@ -47,5 +47,4 @@ textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
 input.title { width: 100%; font-weight: 600; }
 button.marker { all: unset; cursor: pointer; }
 button.marker.dim { opacity: .3; }
-img.avatar { width: 40px; height: 40px; border-radius: 4px; float: left; margin: 0 6px 4px 0; }
 `;

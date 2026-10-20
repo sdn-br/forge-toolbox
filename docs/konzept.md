@@ -204,7 +204,7 @@ Stand 2026-10-21. Notizen gelten je Welt.
 
 - `noteGroups` (`[world+id]`, Index `world`): Gruppe mit `name` und `sort`. Gruppen erscheinen als Reiter, eine neue kommt ans Ende.
 - `notePages` (`[world+id]`, Index `world`): Seite mit `group`, `title`, `text` (Markdown), `sort` und `updatedAt`. Eine neue Seite kommt oben in ihre Gruppe.
-- **Spielergruppe:** wird nicht gespeichert, steht immer vorn, lässt sich nicht umbenennen, löschen oder verschieben. Sie hält höchstens eine Seite je Spieler mit der ID `player:<Spieler-ID>` und dem Feld `player`. Name, Avatar, Gilde und Beziehungen kommen live aus dem PlayerStore. Der Titel der Seite hält nur den zuletzt bekannten Namen, für Spieler, die der Store nicht kennt. Die Seite entsteht mit dem ersten Text und verschwindet, wenn der Text geleert wird. Sortiert wird sie alphabetisch nach Namen, die übrigen Gruppen und Seiten von Hand per Drag and Drop.
+- **Spielergruppe:** wird nicht gespeichert, steht immer vorn, lässt sich nicht umbenennen, löschen oder verschieben. Sie hält höchstens eine Seite je Spieler mit der ID `player:<Spieler-ID>` und dem Feld `player`. Name, Gilde und Beziehungen kommen live aus dem PlayerStore. Der Titel der Seite hält nur den zuletzt bekannten Namen, für Spieler, die der Store nicht kennt. Die Seite entsteht mit dem ersten Text und verschwindet, wenn der Text geleert wird. Sortiert wird sie alphabetisch nach Namen, die übrigen Gruppen und Seiten von Hand per Drag and Drop.
 - Der NoteStore hält alle Notizen der Welt im Speicher. Suche und Liste brauchen keine DB-Abfrage. Jede Änderung meldet `note.changed {player?}`.
 
 **Markdown:** Entscheidung: eigener kleiner Renderer, der lit-html-Templates baut. Er kennt Überschriften (`#` bis `###`), fett, kursiv, Aufzählungen, nummerierte Listen, Links nur auf `http:` und `https:` (neuer Tab, `rel="noopener noreferrer"`), nackte URLs, Absätze und Zeilenumbrüche. Alles andere bleibt Text.
@@ -221,7 +221,7 @@ Stand 2026-10-21. Notizen gelten je Welt.
 
 **Noch nicht enthalten:** Übernahme alter Notizen (kommt mit dem Altdaten-Import, siehe dort), Notizen in der PvP-Arena (Phase 6), Export (eigenes Feature).
 
-**Angenommen, noch ohne Prüfung im Spiel:** Avatare liegen auf dem Inno-CDN unter `https://foe<Sprache>.innogamescdn.com/assets/shared/avatars/<avatar>.jpg`. Fehlt das Bild, bleibt der Platz leer.
+**Avatare fehlen noch:** Das Spiel lädt Porträts mit Hash im Dateinamen (`assets/shared/avatars/portrait_413-42cc9bb44.jpg`), die Spielerdaten nennen nur `portrait_id_111`. Die Zuordnung braucht die Asset-Liste des Spiels und kommt mit dem Design-Durchgang oder einem Feature, das Porträts sowieso braucht.
 
 ## Feature-Checkliste
 
