@@ -1,7 +1,7 @@
 // Derived values of a city: army boosts, plunder repel, what can be plundered. Pure, so fixtures test it.
 import type { BuildingDefId, EraId } from '../../shared/ids';
 import { type Boost, type BuildingDef, boostsAt, boostsFor, type LevelBonus, productFor } from '../stores/catalog';
-import type { Building, City, Product } from '../stores/city-model';
+import type { Building, City } from '../stores/city-model';
 import { connectedLinks, type Placed, place, setLevels } from './city-layout';
 
 export interface ArmyValues {
