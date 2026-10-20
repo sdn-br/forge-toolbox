@@ -38,6 +38,13 @@ export const de = {
   'sabotage.lastRepelled': 'Zuletzt {when}: abgewehrt',
   'sabotage.lastRepelledAt': 'Zuletzt {when}, {building}: abgewehrt',
   'sabotage.attackedMe': 'Hat dich zuletzt {when} angegriffen ({result})',
+  'attack.plunderable': 'Plünderbar noch {duration} (bis {when})',
+  'attack.waiting': 'Wieder angreifbar in {duration} (ab {when})',
+  'attack.shielded': 'Stadt geschützt bis {when} (noch {duration})',
+  'attack.attackable': 'angreifbar',
+  'attack.friend': 'Freund, nicht angreifbar',
+  'attack.guildMember': 'Gildenmitglied, nicht angreifbar',
+  'attack.notNeighbor': 'Kein Nachbar, nicht angreifbar',
   'plunder.doubleLoot': 'Double Loot',
   'plunder.repelled': 'abgewehrt',
   'plunder.count': '{count} Plünderungen',
@@ -150,6 +157,9 @@ export const de = {
   'resource.random_good_of_next_age': 'zufällige Güter des nächsten Zeitalters',
   'time.today': 'heute {time}',
   'time.tomorrow': 'morgen {time}',
+  'duration.days': '{days} T.',
+  'duration.hours': '{hours} Std.',
+  'duration.minutes': '{minutes} Min.',
 } as const;
 
 export type TextKey = keyof typeof de;

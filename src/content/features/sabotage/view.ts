@@ -53,7 +53,8 @@ export function sabotageView(vm: SabotageVm | undefined, note?: TemplateResult):
   if (!vm) return html`<p class="muted">${t('sabotage.noVisit')}</p>`;
   return html`
     <p><b>${vm.player.name}</b>${vm.player.guild ? html` <span class="muted">[${vm.player.guild}]</span>` : ''}
-      <br /><span class="muted">${t('sabotage.era')}: ${vm.player.era}</span></p>
+      <br /><span class="muted">${t('sabotage.era')}: ${vm.player.era}</span>
+      <br />${vm.attack.kind === 'plunderable' ? html`<b>${vm.attack.text}</b>` : vm.attack.text}</p>
     ${note ?? ''}
     ${vm.lootable ? '' : html`<p class="warn">${t('sabotage.notLootable')}</p>`}
     ${

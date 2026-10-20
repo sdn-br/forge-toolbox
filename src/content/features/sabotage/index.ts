@@ -1,5 +1,5 @@
 import type { PlayerId } from '../../../shared/ids';
-import type { Battle, IncomingAttack, IncomingTotals, Plunder, PlunderTotals } from '../../../shared/model';
+import type { Battle, CityShield, IncomingAttack, IncomingTotals, Plunder, PlunderTotals } from '../../../shared/model';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
@@ -7,6 +7,8 @@ import { assessCity } from '../../domain/assess-city';
 import { PlayerNoteCard } from '../../ui/note-card';
 import { sabotageView } from './view';
 import { type SabotageVm, sabotageViewModel } from './view-model';
+
+const TICK = 30_000;
 
 export const sabotageFeature: Feature = {
   id: 'sabotage',
@@ -28,11 +30,22 @@ export const sabotageFeature: Feature = {
     let lastBattle: Battle | undefined;
     let plunders: { owner: PlayerId; last?: Plunder; totals: PlunderTotals } | undefined;
     let incoming: { owner: PlayerId; last?: IncomingAttack; totals: IncomingTotals } | undefined;
+    let shield: { owner: PlayerId; active?: CityShield } | undefined;
+    // the countdowns of the attack line run on while the box is open; the ticker stops with the box
+    let ticker: ReturnType<typeof setInterval> | undefined;
+    const keepTicking = () => {
+      ticker ??= setInterval(() => {
+        if (box.isOpen) return refresh();
+        clearInterval(ticker);
+        ticker = undefined;
+      }, TICK);
+    };
     const box = ctx.createBox({
       id: 'sabotage',
       title: () => t('sabotage.title'),
       width: 400,
       render: () => {
+        keepTicking();
         const owner = ctx.cities.visited()?.owner;
         const note = vm && owner !== undefined ? card.render(owner, ctx.players.get(owner)?.name) : undefined;
         return sabotageView(vm, note);
@@ -57,6 +70,7 @@ export const sabotageFeature: Feature = {
         lastBattle?.opponent === city.owner ? lastBattle : undefined,
         plunders?.owner === city.owner ? plunders : undefined,
         incoming?.owner === city.owner ? incoming : undefined,
+        shield?.owner === city.owner ? shield.active : undefined,
       );
       box.update();
     };
@@ -91,11 +105,22 @@ export const sabotageFeature: Feature = {
         (error) => logError('loading attacks on the own city failed', error),
       );
 
+    const loadShield = (owner: PlayerId) =>
+      ctx.shields.active(owner).then(
+        (active) => {
+          if (ctx.cities.visited()?.owner !== owner) return;
+          shield = { owner, active };
+          refresh();
+        },
+        (error) => logError('loading the city shield failed', error),
+      );
+
     ctx.bus.on('city.visited', ({ owner }) => {
       refresh();
       loadLastBattle(owner);
       loadPlunders(owner);
       loadIncoming(owner);
+      loadShield(owner);
       if (ctx.settings.get('sabotage.autoOpen')) box.open();
     });
     ctx.bus.on('battle.recorded', ({ opponent }) => {
@@ -106,6 +131,18 @@ export const sabotageFeature: Feature = {
     });
     ctx.bus.on('incoming.recorded', ({ attacker }) => {
       if (ctx.cities.visited()?.owner === attacker) loadIncoming(attacker);
+    });
+    ctx.bus.on('shield.recorded', ({ players }) => {
+      const owner = ctx.cities.visited()?.owner;
+      if (owner !== undefined && players.includes(owner)) loadShield(owner);
+    });
+    // the attack timers come with updatePlayer, for example after a battle or a plunder
+    ctx.bus.on('player.updated', ({ ids }) => {
+      const owner = ctx.cities.visited()?.owner;
+      if (owner !== undefined && ids.includes(owner)) refresh();
+    });
+    ctx.bus.on('session.started', () => {
+      ctx.shields.prune().catch((error) => logError('pruning city shields failed', error));
     });
     ctx.bus.on('city.visitedChanged', refresh);
     ctx.bus.on('note.changed', ({ player }) => {
