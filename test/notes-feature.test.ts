@@ -158,7 +158,10 @@ describe('notes feature', () => {
     notes.setPlayerText(playerId(7), 'plündert zurück');
     notes.addPage(group.id, 'Anderes');
 
-    typeInto(root.querySelector('input[type=search]') as HTMLInputElement, 'PLÜNDER');
+    const field = root.querySelector('input[type=search]') as HTMLInputElement;
+    typeInto(field, 'PLÜNDER');
+    // the same field stays, so it keeps its focus while the results replace the tabs
+    expect(root.querySelector('input[type=search]')).toBe(field);
     expect(box.text).toContain('Gilde › Regeln');
     expect(box.text).toContain('Wir plündern nur Inaktive');
     expect(box.text).toContain('Spieler › Anna');

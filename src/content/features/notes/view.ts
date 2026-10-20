@@ -173,8 +173,12 @@ export function notesView(vm: NotesVm, editor: TemplateResult | undefined, actio
         <button class="action" @click=${actions.confirmDelete}>${t('notes.delete')}</button>
         <button class="action" @click=${actions.cancel}>${t('notes.cancel')}</button></p>`
     : '';
-  if (vm.results) return html`${search}${results(vm.results, actions)}`;
-  if (vm.picker) return html`${search}${tabs(vm, actions)}${picker(vm.picker, actions)}`;
-  return html`${search}${tabs(vm, actions)}${confirm}
-    <div class="split">${side(vm, actions)}${main(vm, editor, actions)}</div>`;
+  // the search field stays in one outer template: swapping templates would replace it and take its focus mid-typing
+  const body = vm.results
+    ? results(vm.results, actions)
+    : vm.picker
+      ? html`${tabs(vm, actions)}${picker(vm.picker, actions)}`
+      : html`${tabs(vm, actions)}${confirm}
+          <div class="split">${side(vm, actions)}${main(vm, editor, actions)}</div>`;
+  return html`${search}${body}`;
 }
