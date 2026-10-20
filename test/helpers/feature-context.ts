@@ -46,6 +46,8 @@ export function recordingBox(options: BoxOptions) {
   return {
     box: box as unknown as Box,
     updates,
+    /** the drawn content, for inputs and lists */
+    root: container,
     /** the box as it looks right now */
     get text() {
       return container.textContent ?? '';

@@ -25,4 +25,27 @@ td.num, th.num { text-align: right; }
 button.action { font: inherit; cursor: pointer; margin: 2px 4px 2px 0; }
 label { display: flex; gap: 6px; align-items: center; padding: 2px 0; }
 h2 { font-size: 12px; margin: 8px 0 4px; color: #f0c060; }
+input, select, textarea { font: inherit; }
+.tabs { display: flex; flex-wrap: wrap; gap: 2px; margin: 0 0 6px; }
+.tabs button { font: inherit; cursor: pointer; }
+.tabs button.active { font-weight: 600; }
+.split { display: flex; gap: 8px; align-items: flex-start; }
+.split > .side { flex: 0 0 150px; min-width: 0; }
+.split > .main { flex: 1; min-width: 0; }
+ul.rows { list-style: none; margin: 4px 0; padding: 0; }
+ul.rows li { padding: 2px 4px; cursor: pointer; border-bottom: 1px solid #4a3620; }
+ul.rows li.active { background: #4a3620; }
+ul.rows li.dragging { opacity: .4; }
+.card { border: 1px solid #8a6a3a; border-radius: 4px; padding: 0 6px 4px; margin: 6px 0; }
+.note { cursor: text; min-height: 2em; overflow-wrap: anywhere; }
+.note h3, .note h4, .note h5 { margin: 6px 0 2px; color: #f0c060; }
+.note h3 { font-size: 14px; } .note h4 { font-size: 13px; } .note h5 { font-size: 12px; }
+.note p, .note ul, .note ol { margin: 2px 0; }
+.note ul, .note ol { padding-left: 18px; }
+.note a, a { color: #f0c060; }
+textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
+input.title { width: 100%; font-weight: 600; }
+button.marker { all: unset; cursor: pointer; }
+button.marker.dim { opacity: .3; }
+img.avatar { width: 40px; height: 40px; border-radius: 4px; float: left; margin: 0 6px 4px 0; }
 `;

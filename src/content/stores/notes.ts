@@ -1,5 +1,5 @@
 import type { NoteChanges } from '../../persistence/notes/contract';
-import type { PlayerId, WorldId } from '../../shared/ids';
+import { type PlayerId, playerId, type WorldId } from '../../shared/ids';
 import type { NoteGroup, NotePage } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
@@ -13,6 +13,12 @@ export interface NotePersistence {
 export const PLAYER_GROUP = 'players';
 
 export const playerPageId = (player: PlayerId) => `player:${player}`;
+
+/** the player of a player page id, also when that page is not stored */
+export function playerOfPage(id: string | undefined): PlayerId | undefined {
+  const match = id?.match(/^player:(\d+)$/);
+  return match ? playerId(Number(match[1])) : undefined;
+}
 
 const bySort = <T extends { sort: number }>(a: T, b: T) => a.sort - b.sort;
 
