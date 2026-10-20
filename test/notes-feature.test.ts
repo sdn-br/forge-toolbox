@@ -36,7 +36,14 @@ function setup() {
     el.dispatchEvent(new Event('input'));
   };
   const row = (text: string) => {
-    const li = [...root.querySelectorAll('li')].find((l) => l.textContent?.includes(text));
+    // only the row's own text: its timestamp ("heute 00:13") and lit's comment markers ("?lit$4711$") hold digits too
+    const own = (l: Element) =>
+      [...l.childNodes]
+        .filter((n) => n.nodeType === Node.TEXT_NODE)
+        .map((n) => n.textContent)
+        .join('')
+        .trim();
+    const li = [...root.querySelectorAll('li')].find((l) => own(l).includes(text));
     if (!li) throw new Error(`no row "${text}"`);
     return li;
   };
