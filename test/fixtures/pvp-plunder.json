@@ -1,0 +1,84 @@
+{
+  "note": "Plunder recorded on de20 2026-10-19 with the response batch it came in, players anonymized (me 1000, opponent 1001), unrelated entries dropped.",
+  "me": 1000,
+  "batch": [
+    {
+      "requestClass": "OtherPlayerService",
+      "requestMethod": "rewardPlunder",
+      "responseData": [
+        {
+          "name": "money",
+          "production_time": 14400,
+          "asset_name": "production_icon_money",
+          "product": {
+            "resources": {
+              "money": 110
+            },
+            "__class__": "Resources"
+          },
+          "__class__": "CityEntityProductionProduct"
+        }
+      ]
+    },
+    {
+      "requestClass": "OtherPlayerService",
+      "requestMethod": "updatePlayer",
+      "responseData": [
+        {
+          "player_id": 1001,
+          "name": "Testgegner",
+          "avatar": "",
+          "city_name": "Gegnerstadt",
+          "era": "ColonialAge",
+          "score": 1,
+          "rank": 1,
+          "is_neighbor": true,
+          "is_active": true,
+          "__class__": "Player"
+        }
+      ]
+    },
+    {
+      "requestClass": "CityMapService",
+      "requestMethod": "reset",
+      "responseData": [
+        {
+          "id": 350,
+          "player_id": 1001,
+          "cityentity_id": "R_IronAge_Residential2",
+          "type": "residential",
+          "x": 20,
+          "y": 16,
+          "connected": 1,
+          "state": {
+            "next_state_transition_in": 2147483647,
+            "next_state_transition_at": 2147483647,
+            "__class__": "PlunderedState"
+          },
+          "bonuses": [],
+          "__class__": "CityMapEntity"
+        }
+      ]
+    },
+    {
+      "requestClass": "OtherPlayerService",
+      "requestMethod": "plunderById",
+      "responseData": {
+        "result": "success",
+        "product": {
+          "name": "money",
+          "production_time": 14400,
+          "asset_name": "production_icon_money",
+          "product": {
+            "resources": {
+              "money": 110
+            },
+            "__class__": "Resources"
+          },
+          "__class__": "CityEntityProductionProduct"
+        },
+        "__class__": "PlunderResult"
+      }
+    }
+  ]
+}

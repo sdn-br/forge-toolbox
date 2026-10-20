@@ -2,7 +2,6 @@ import type { PlayerId, WorldId } from '../../shared/ids';
 import type { Battle } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
-import type { Call } from '../core/rpc';
 
 export interface BattleQuery {
   /** only battles against these players; missing means all */
@@ -18,17 +17,6 @@ export interface BattlePersistence {
   count(world: WorldId, opponents?: PlayerId[]): Promise<number>;
   /** deletes battles of all worlds older than `before`, returns how many */
   prune(before: number): Promise<number>;
-}
-
-/** Persistence through the service worker, which owns the database. */
-export function battlePersistence(call: Call): BattlePersistence {
-  return {
-    put: (rows) => call('battles.put', { rows }),
-    latest: async (world, opponent) => (await call('battles.latest', { world, opponent })) ?? undefined,
-    list: (world, query) => call('battles.list', { world, ...query }),
-    count: (world, opponents) => call('battles.count', { world, opponents }),
-    prune: (before) => call('battles.prune', { before }),
-  };
 }
 
 /** PvP battles of the session player as attacker. Lives in the database, queries ask it after pending writes. */

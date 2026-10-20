@@ -1,0 +1,32 @@
+{
+  "note": "Plunder (repelled) recorded on de20 2026-10-20 with the response batch it came in, players anonymized (me 1000, opponent 1001), unrelated entries dropped.",
+  "me": 1000,
+  "batch": [
+    {
+      "requestClass": "OtherPlayerService",
+      "requestMethod": "updatePlayer",
+      "responseData": [
+        {
+          "player_id": 1001,
+          "name": "Testgegner",
+          "avatar": "",
+          "city_name": "Gegnerstadt",
+          "era": "ColonialAge",
+          "score": 1,
+          "rank": 1,
+          "is_neighbor": true,
+          "is_active": true,
+          "__class__": "Player"
+        }
+      ]
+    },
+    {
+      "requestClass": "OtherPlayerService",
+      "requestMethod": "plunderById",
+      "responseData": {
+        "result": "repelled",
+        "__class__": "PlunderResult"
+      }
+    }
+  ]
+}

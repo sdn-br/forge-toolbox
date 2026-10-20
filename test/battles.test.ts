@@ -9,9 +9,11 @@ import { registerGameHandlers } from '../src/content/game/handlers';
 import { BattleStore } from '../src/content/stores/battles';
 import { CatalogStore } from '../src/content/stores/catalog';
 import { CityStore } from '../src/content/stores/cities';
+import { IncomingStore } from '../src/content/stores/incoming';
 import { PlayerStore } from '../src/content/stores/players';
+import { PlunderStore } from '../src/content/stores/plunders';
 import { SessionStore } from '../src/content/stores/session';
-import { eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
+import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { Battle } from '../src/shared/model';
 import fixture from './fixtures/pvp-battle.json';
 import manual from './fixtures/pvp-manual-battle.json';
@@ -25,7 +27,7 @@ function setup(me: number | null = fixture.me) {
   const ingestion = new Ingestion();
   const session = new SessionStore(bus);
   const players = new PlayerStore(bus, { load: async () => [], put: async () => {} });
-  const { db, persistence } = testDb();
+  const { db, persistence, plunders, incoming } = testDb();
   const battles = new BattleStore(bus, world, persistence);
   registerGameHandlers(ingestion, {
     world,
@@ -35,6 +37,8 @@ function setup(me: number | null = fixture.me) {
     cities: new CityStore(bus),
     catalog: new CatalogStore(bus),
     battles,
+    plunders: new PlunderStore(bus, world, plunders),
+    incoming: new IncomingStore(bus, world, incoming),
   });
   const recorded: PlayerId[] = [];
   bus.on('battle.recorded', (e) => recorded.push(e.opponent));
@@ -296,15 +300,63 @@ describe('battle queries', () => {
 });
 
 describe('database upgrade', () => {
-  it('keeps the players of version 1 when adding the battles table', async () => {
+  it('keeps the players of version 1 and the battles of version 2', async () => {
     const name = 'upgrade-test';
     const v1 = new Dexie(name);
     v1.version(1).stores({ players: '[world+id], world, seenAt' });
     await v1.table('players').put({ world, id: 7, seenAt: 1 });
     v1.close();
+    const v2 = new Dexie(name);
+    v2.version(1).stores({ players: '[world+id], world, seenAt' });
+    v2.version(2).stores({ battles: '[world+battleId], [world+at], [world+opponent+at], at' });
+    await v2.table('battles').put(battle(1, 100));
+    v2.close();
     const db = openDb(name);
     expect(await db.players.count()).toBe(1);
-    await db.battles.put(battle(1, 100));
     expect(await db.battles.count()).toBe(1);
+    await db.plunders.put({
+      world,
+      at: 100,
+      opponent,
+      outcome: 'plundered',
+      entityId: 1,
+      cityEntityId: buildingDefId('R_X'),
+      resources: {},
+      doubleLoot: false,
+    });
+    expect(await db.plunders.count()).toBe(1);
+  });
+
+  it('rebuilds the unreleased plunders table of version 3 with a key a repelled plunder fits', async () => {
+    const name = 'upgrade-v3-test';
+    const v3 = new Dexie(name);
+    v3.version(1).stores({ players: '[world+id], world, seenAt' });
+    v3.version(2).stores({ battles: '[world+battleId], [world+at], [world+opponent+at], at' });
+    v3.version(3).stores({ plunders: '[world+opponent+entityId+at], [world+at], [world+opponent+at], at' });
+    await v3.table('players').put({ world, id: 7, seenAt: 1 });
+    await v3.table('battles').put(battle(1, 100));
+    v3.close();
+    const db = openDb(name);
+    expect(await db.players.count()).toBe(1);
+    expect(await db.battles.count()).toBe(1);
+    await db.plunders.put({ world, at: 100, opponent, outcome: 'repelled', resources: {}, doubleLoot: false });
+    expect(await db.plunders.count()).toBe(1);
+  });
+
+  it('adds attacks on the own city to version 5 and keeps the plunders', async () => {
+    const name = 'upgrade-v5-test';
+    const v5 = new Dexie(name);
+    v5.version(1).stores({ players: '[world+id], world, seenAt' });
+    v5.version(2).stores({ battles: '[world+battleId], [world+at], [world+opponent+at], at' });
+    v5.version(3).stores({ plunders: '[world+opponent+entityId+at], [world+at], [world+opponent+at], at' });
+    v5.version(4).stores({ plunders: null });
+    v5.version(5).stores({ plunders: '[world+opponent+at], [world+at], at' });
+    await v5.table('plunders').put({ world, at: 100, opponent, outcome: 'repelled', resources: {}, doubleLoot: false });
+    v5.close();
+    const db = openDb(name);
+    expect(await db.plunders.count()).toBe(1);
+    await db.incoming.put({ world, kind: 'battle', key: 1, at: 100, attacker: opponent, defense: 'broken' });
+    await db.incoming.put({ world, kind: 'plunder', key: 1, at: 100, attacker: opponent });
+    expect(await db.incoming.count()).toBe(2);
   });
 });

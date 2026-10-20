@@ -1,5 +1,5 @@
 import type { PlayerId } from '../../../shared/ids';
-import type { Battle } from '../../../shared/model';
+import type { Battle, IncomingAttack, IncomingTotals, Plunder, PlunderTotals } from '../../../shared/model';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
@@ -25,6 +25,8 @@ export const sabotageFeature: Feature = {
 
     let vm: SabotageVm | undefined;
     let lastBattle: Battle | undefined;
+    let plunders: { owner: PlayerId; last?: Plunder; totals: PlunderTotals } | undefined;
+    let incoming: { owner: PlayerId; last?: IncomingAttack; totals: IncomingTotals } | undefined;
     const box = ctx.createBox({
       id: 'sabotage',
       title: () => t('sabotage.title'),
@@ -47,6 +49,8 @@ export const sabotageFeature: Feature = {
         ctx.settings.get('sabotage.showArmy'),
         Date.now(),
         lastBattle?.opponent === city.owner ? lastBattle : undefined,
+        plunders?.owner === city.owner ? plunders : undefined,
+        incoming?.owner === city.owner ? incoming : undefined,
       );
       box.update();
     };
@@ -61,13 +65,41 @@ export const sabotageFeature: Feature = {
         (error) => logError('loading the last battle failed', error),
       );
 
+    const loadPlunders = (owner: PlayerId) =>
+      Promise.all([ctx.plunders.latest(owner), ctx.plunders.totals([owner])]).then(
+        ([last, totals]) => {
+          if (ctx.cities.visited()?.owner !== owner) return;
+          plunders = { owner, last, totals };
+          refresh();
+        },
+        (error) => logError('loading plunders failed', error),
+      );
+
+    const loadIncoming = (owner: PlayerId) =>
+      Promise.all([ctx.incoming.latest(owner), ctx.incoming.totals([owner])]).then(
+        ([last, totals]) => {
+          if (ctx.cities.visited()?.owner !== owner) return;
+          incoming = { owner, last, totals };
+          refresh();
+        },
+        (error) => logError('loading attacks on the own city failed', error),
+      );
+
     ctx.bus.on('city.visited', ({ owner }) => {
       refresh();
       loadLastBattle(owner);
+      loadPlunders(owner);
+      loadIncoming(owner);
       if (ctx.settings.get('sabotage.autoOpen')) box.open();
     });
     ctx.bus.on('battle.recorded', ({ opponent }) => {
       if (ctx.cities.visited()?.owner === opponent) loadLastBattle(opponent);
+    });
+    ctx.bus.on('plunder.recorded', ({ opponent }) => {
+      if (ctx.cities.visited()?.owner === opponent) loadPlunders(opponent);
+    });
+    ctx.bus.on('incoming.recorded', ({ attacker }) => {
+      if (ctx.cities.visited()?.owner === attacker) loadIncoming(attacker);
     });
     ctx.bus.on('city.visitedChanged', refresh);
     ctx.bus.on('catalog.updated', ({ defs }) => {

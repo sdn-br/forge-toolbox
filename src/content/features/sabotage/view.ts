@@ -34,13 +34,33 @@ const plunderTable = (items: PlunderItem[]) =>
     <td>${p.items.map((i) => html`${formatNumber(i.amount)} ${i.label}<br />`)}</td></tr>`,
   )}</table>`;
 
+function plunderedPart({ last, totals }: NonNullable<SabotageVm['plundered']>) {
+  if (!last) return html`<p class="muted">${t('sabotage.neverPlundered')}</p>`;
+  if (last.repelled) {
+    const text = last.building
+      ? t('sabotage.lastRepelledAt', { when: last.when, building: last.building })
+      : t('sabotage.lastRepelled', { when: last.when });
+    return html`<p>${text}<br />${totals}</p>`;
+  }
+  return html`<p>${t('sabotage.lastPlunder', { when: last.when, building: last.building })}: ${last.loot}
+      ${last.doubleLoot ? html`<b>${t('plunder.doubleLoot')}</b>` : ''}
+    <br />${totals}</p>`;
+}
+
 export function sabotageView(vm: SabotageVm | undefined): TemplateResult {
   if (!vm) return html`<p class="muted">${t('sabotage.noVisit')}</p>`;
   return html`
     <p><b>${vm.player.name}</b>${vm.player.guild ? html` <span class="muted">[${vm.player.guild}]</span>` : ''}
       <br /><span class="muted">${t('sabotage.era')}: ${vm.player.era}</span></p>
     ${vm.lootable ? '' : html`<p class="warn">${t('sabotage.notLootable')}</p>`}
+    ${
+      vm.attackedMe
+        ? html`<p>${t('sabotage.attackedMe', { when: vm.attackedMe.when, result: vm.attackedMe.what })}
+          <br />${vm.attackedMe.totals}</p>`
+        : ''
+    }
     ${vm.army ? armyTable(vm.army, vm.plunderRepel, vm.measured) : ''}
+    ${vm.plundered ? html`<h2>${t('sabotage.plundered')}</h2>${plunderedPart(vm.plundered)}` : ''}
     <h2>${t('sabotage.plunderable')}</h2>
     ${
       vm.plunderable.length === 0

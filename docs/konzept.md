@@ -61,6 +61,9 @@ Spielseite (MAIN world)          Content Script (isolated world)               S
 - Der Proxy liefert jede Spielantwort als Nachricht `(service, method, payload, request)`.
 - Pro Service gibt es genau einen Parser. Er übersetzt das Spielformat in das eigene Datenmodell und gibt es an den zuständigen Store. Features sehen das Spielformat nie.
 - Pufferung wie bei FoEproxy: Antworten vor dem Start (etwa `StartupService.getData`) gehen nicht verloren.
+- Der Request kommt als `ArrayBuffer` mit JSON. Der Proxy dekodiert ihn, und jeder Handler bekommt die `requestData` des passenden Requests (etwa `plunderById` mit `[Spieler-ID, Gebäude-ID]`).
+- Was das Spiel auf mehrere Einträge einer Antwort verteilt (eine Plünderung: Beute, Gebäude, Double-Loot-Symbol), sammeln die Handler und werten es am Ende der Antwort aus (`onBatchEnd`). Die Reihenfolge der Einträge ist nicht fest.
+- Nach einem Neuladen der Extension laufen Content Scripts in offenen Tabs ohne Extension weiter. Die Toolbox erkennt das, verarbeitet nichts mehr und bittet um Neuladen des Spiels.
 - Der Proxy kann Antworten aufzeichnen. Die Aufnahmen sind Testdaten (siehe Tests).
 
 ### Domain-Stores
@@ -136,7 +139,8 @@ Entscheidung: Hauptspeicher ist IndexedDB im Origin der Extension, mit Sicherung
 - Daten pro Welt und Spieler getrennt, ein gemeinsamer Speicher für alle Welten.
 - **Sicherungskopie:** Unwiederbringliche Daten (Notizen, PvP-Verlauf, Statistiken, GbG- und GEX-Historie, keine Caches) gehen gesammelt in die IndexedDB der Spielseite, etwa eine Minute nach der letzten Änderung und beim Schließen. Nach einer Neuinstallation bietet die Toolbox die Wiederherstellung an. Die Sicherung lässt sich abschalten, weil Spiel und andere Extensions sie lesen könnten.
 - **Export als Datei** ab der ersten Version, für Rechnerwechsel und echte Backups.
-- **Eine Form je gespeicherter Domäne** (Architektur-Review 2026-10-20): Was eine Domäne zum Speichern braucht, liegt zusammen in `src/persistence/<domäne>/`. `contract.ts` enthält die RPC-Typen, `worker.ts` Tabellendefinition und Handler im Service Worker, `client.ts` den Adapter auf der Content-Seite. `rpc.ts` und die Handler im Service Worker setzen sich daraus zusammen. Die Versionsgeschichte von Dexie bleibt zentral in `db.ts`, die Domänen liefern nur ihre Tabellen. Im Test läuft dieselbe Domäne gegen Dexie im Speicher. Umgesetzt wird das zu Beginn von PvP Teil B, zuerst für Players und Battles.
+- **Eine Form je gespeicherter Domäne** (Architektur-Review 2026-10-20): Was eine Domäne zum Speichern braucht, liegt zusammen in `src/persistence/<domäne>/`. `contract.ts` enthält die RPC-Typen, `worker.ts` Tabellendefinition und Handler im Service Worker, `client.ts` den Adapter auf der Content-Seite. `rpc.ts` und die Handler im Service Worker setzen sich daraus zusammen. Die Versionsgeschichte von Dexie bleibt zentral in `db.ts`, die Domänen liefern nur ihre Tabellen. Im Test läuft dieselbe Domäne gegen Dexie im Speicher. Umgesetzt mit PvP Teil B für Players, Battles, Plunders und Incoming.
+- **Primärschlüssel ändern:** Dexie kann den Primärschlüssel einer bestehenden Tabelle nicht ändern. Eine Version löscht die Tabelle, die nächste legt sie mit neuem Schlüssel an (so bei `plunders`, Versionen 4 und 5).
 
 Begründung: Im Origin der Spielseite kann fremder Code die Daten lesen, ändern und löschen (der Helfer löscht in `mergeDatabases` alte DBs), und Chrome darf ihn bei Platzmangel leeren. Mit der Sicherung gehen Daten nur verloren, wenn Deinstallation und Löschen der Website-Daten zusammenkommen.
 
@@ -180,8 +184,14 @@ Features, die an Spielereignisse gebunden sind (GbG, Minispiele der Events), wer
 PvP-Angriffe in Phase 2 kommt in drei Teilen:
 
 - **A:** Kämpfe speichern, gemessene Boni, Box „PvP-Angriffe“, gemessene Werte in den Stadtinformationen.
-- **B:** Plünderung, Abwehr, Double Loot, FP-Summen. Braucht eine Aufnahme einer Plünderung.
-- **C:** Schilde. Braucht eine Aufnahme.
+- **B (umgesetzt):**
+  - **Plünderungen:** eigene Tabelle, nicht am Kampf, denn das Spiel schickt keine `battleId` mit. Jede Plünderung ist geplündert oder abgewehrt. Bei einer Abwehr kommen Gegner und Gebäude aus dem Request.
+  - **Double Loot:** nur ein Kennzeichen. Das Spiel liefert die Beute schon verdoppelt.
+  - **Anzeige der Plünderungen:** Reiter „Plünderungen“ in der PvP-Box mit Summenzeile (Anzahl, abgewehrt, FP), Abschnitt „Deine Plünderungen“ in den Stadtinformationen.
+  - **Angriffe auf die eigene Stadt (Abwehr):** eigene Tabelle `incoming` mit Kämpfen (`battle_id`, `status` aus eigener Sicht, `lost` heißt durchbrochen) und Plünderungen (Ereignis-`id`). Sie kommen live über `OtherPlayerService.newEvent` (Websocket) und nachträglich über die Ereignisliste (`getEventsPaginated`). Das Datum steht dort nur als Text („heute/gestern/Wochentag um HH:MM“).
+  - **Anzeige der Angriffe:** Reiter „Angriffe auf mich“ in der PvP-Box und eine Zeile in den Stadtinformationen beim Angreifer.
+  - **Angenommen, noch ohne Aufnahme:** Eine Plünderung an der eigenen Stadt sieht aus wie das Polieren-Ereignis (`interaction_type: plunder`, `entity_id`), und `won` heißt gehalten. Außerdem könnten Live-Ereignisse und Ereignisliste verschiedene IDs tragen, dann zählt eine Plünderung doppelt. Ausweich-Schlüssel wäre Angreifer + Gebäude + Minute.
+- **C:** Schilde. Braucht eine Aufnahme. Quelle vermutlich `OtherPlayerService.getCityProtections` (`playerId`, `expireTime`).
 
 Kämpfe in der PvP-Arena kommen mit dem Arena-Protokoll in Phase 6. Die Notizkarte in der Box kommt mit dem Feature Notizen.
 

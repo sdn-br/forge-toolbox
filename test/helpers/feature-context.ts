@@ -7,7 +7,9 @@ import { Settings } from '../../src/content/core/settings';
 import { type BattlePersistence, BattleStore } from '../../src/content/stores/battles';
 import { CatalogStore } from '../../src/content/stores/catalog';
 import { CityStore } from '../../src/content/stores/cities';
+import { type IncomingPersistence, IncomingStore } from '../../src/content/stores/incoming';
 import { PlayerStore } from '../../src/content/stores/players';
+import { type PlunderPersistence, PlunderStore } from '../../src/content/stores/plunders';
 import { SessionStore } from '../../src/content/stores/session';
 import type { Box, BoxOptions } from '../../src/content/ui/box';
 import type { Menu, MenuItem } from '../../src/content/ui/menu';
@@ -52,11 +54,22 @@ export function recordingBox(options: BoxOptions) {
       if (!button) throw new Error(`no button "${label}"`);
       button.click();
     },
+    /** clicks the link with exactly this text, for example a player name */
+    follow(text: string) {
+      const link = [...container.querySelectorAll('a')].find((a) => a.textContent === text);
+      if (!link) throw new Error(`no link "${text}"`);
+      link.click();
+    },
   };
 }
 
 /** Real stores, bus and settings; persistence is the real handlers on in-memory Dexie unless a test passes its own. */
-export function featureContext(persistence: BattlePersistence = testDb().persistence) {
+export function featureContext(
+  persistence?: BattlePersistence,
+  plunders?: PlunderPersistence,
+  incoming?: IncomingPersistence,
+) {
+  const db = testDb();
   const world = worldId('de20');
   const bus = createBus();
   const boxes = new Map<string, ReturnType<typeof recordingBox>>();
@@ -71,7 +84,9 @@ export function featureContext(persistence: BattlePersistence = testDb().persist
     players: new PlayerStore(bus, { load: async () => [], put: async () => {} }),
     cities: new CityStore(bus),
     catalog: new CatalogStore(bus),
-    battles: new BattleStore(bus, world, persistence),
+    battles: new BattleStore(bus, world, persistence ?? db.persistence),
+    plunders: new PlunderStore(bus, world, plunders ?? db.plunders),
+    incoming: new IncomingStore(bus, world, incoming ?? db.incoming),
     recorder: new Recorder(() => false),
     createBox: (options) => {
       const recording = recordingBox(options);

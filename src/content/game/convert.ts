@@ -1,6 +1,14 @@
 // Game format → own model. Nothing outside src/content/game sees the game format.
-import { buildingDefId, eraId, guildId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
-import type { Battle, BattleResult, BattleSide, GuildRef } from '../../shared/model';
+import {
+  type BuildingDefId,
+  buildingDefId,
+  eraId,
+  guildId,
+  type PlayerId,
+  playerId,
+  type WorldId,
+} from '../../shared/ids';
+import type { Battle, BattleResult, BattleSide, GuildRef, IncomingAttack, Plunder } from '../../shared/model';
 import type { VisitInfo } from '../stores/cities';
 import type { Building, BuildingState, City, Product } from '../stores/city-model';
 import type { PlayerObservation } from '../stores/players';
@@ -10,7 +18,9 @@ import type {
   GameBattleState,
   GameBattleUnit,
   GameCityEntity,
+  GameEvent,
   GamePlayer,
+  GamePlunderResult,
   GameProduct,
   GameProductionOption,
   GameResources,
@@ -238,4 +248,89 @@ export function toBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: Game
     attacker: toSide(b.state.unitsOrder ?? [], final.unitsOrder ?? [], ATTACKER_TEAM),
     defender: toSide(b.state.unitsOrder ?? [], final.unitsOrder ?? [], DEFENDER_TEAM),
   };
+}
+
+/** The loot of a successful plunder; other results are unknown and give null. */
+export function plunderLoot(data: unknown): Record<string, number> | null {
+  const r = data as GamePlunderResult | null;
+  return r?.result === 'success' ? resourcesOf(r.product?.product) : null;
+}
+
+/** A building in another player's city that the game reports as just plundered. */
+export function isPlunderedEntity(e: GameCityEntity, me: PlayerId): boolean {
+  return (
+    e.state?.__class__ === 'PlunderedState' &&
+    typeof e.id === 'number' &&
+    typeof e.player_id === 'number' &&
+    e.player_id !== me &&
+    typeof e.cityentity_id === 'string'
+  );
+}
+
+/** A plunder the opponent's defense repelled; the game sends neither building nor loot with it. */
+export const isRepelledPlunder = (data: unknown) => (data as GamePlunderResult | null)?.result === 'repelled';
+
+/** `[playerId, entityId]` the player sends with plunderById */
+export function plunderTarget(request: unknown): { opponent: PlayerId; entityId: number } | null {
+  if (!Array.isArray(request)) return null;
+  const [opponent, entityId] = request;
+  return typeof opponent === 'number' && typeof entityId === 'number'
+    ? { opponent: playerId(opponent), entityId }
+    : null;
+}
+
+export const toRepelledPlunder = (
+  world: WorldId,
+  at: number,
+  opponent: PlayerId,
+  building?: { entityId: number; cityEntityId?: BuildingDefId },
+): Plunder => ({
+  world,
+  at,
+  opponent,
+  outcome: 'repelled',
+  ...building,
+  resources: {},
+  doubleLoot: false,
+});
+
+/** `entity` must pass isPlunderedEntity. The loot comes already doubled with Double Loot. */
+export function toPlunder(
+  world: WorldId,
+  at: number,
+  entity: GameCityEntity,
+  resources: Record<string, number>,
+  doubleLoot: boolean,
+): Plunder {
+  return {
+    world,
+    at,
+    opponent: playerId(entity.player_id as number),
+    outcome: 'plundered',
+    entityId: entity.id as number,
+    cityEntityId: buildingDefId(entity.cityentity_id as string),
+    resources,
+    doubleLoot,
+  };
+}
+
+// A battle event tells the result from the attacked player's view. "lost": the defense was broken (seen 2026-10-20,
+// the game says "Leider wurde deine Verteidigung durchbrochen"). "won" is assumed to mean the defense held.
+const DEFENSE: Record<string, IncomingAttack['defense']> = { lost: 'broken', won: 'held' };
+
+/**
+ * An attack on the session player's city from an event; any other event is null. Assumption, not yet seen: a plunder
+ * comes like a polish of an own building (seen 2026-10-20), as a social_interaction with interaction_type "plunder"
+ * and the building definition as entity_id.
+ */
+export function toIncoming(world: WorldId, e: GameEvent, me: PlayerId, at: number): IncomingAttack | null {
+  const attacker = e.other_player?.player_id;
+  if (typeof attacker !== 'number' || attacker === me || (e.player_id !== undefined && e.player_id !== me)) return null;
+  const base = { world, at, attacker: playerId(attacker) };
+  const defense = e.type === 'battle' && e.status ? DEFENSE[e.status] : undefined;
+  if (defense && typeof e.battle_id === 'number') return { ...base, kind: 'battle', key: e.battle_id, defense };
+  if (e.type === 'social_interaction' && e.interaction_type === 'plunder' && typeof e.id === 'number' && e.entity_id) {
+    return { ...base, kind: 'plunder', key: e.id, cityEntityId: buildingDefId(e.entity_id) };
+  }
+  return null;
 }

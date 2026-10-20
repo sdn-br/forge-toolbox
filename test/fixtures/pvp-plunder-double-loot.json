@@ -1,0 +1,95 @@
+{
+  "note": "Plunder recorded on de10 2026-10-19 with the response batch it came in, players anonymized (me 1000, opponent 1001), unrelated entries dropped.",
+  "me": 1000,
+  "batch": [
+    {
+      "requestClass": "CityMapService",
+      "requestMethod": "showEntityIcons",
+      "responseData": [
+        {
+          "id": 1230,
+          "type": "citymap_icon_plunder_and_pillage",
+          "__class__": "CityEntityIcon"
+        }
+      ]
+    },
+    {
+      "requestClass": "OtherPlayerService",
+      "requestMethod": "rewardPlunder",
+      "responseData": [
+        {
+          "name": "money",
+          "production_time": 3600,
+          "asset_name": "production_icon_money",
+          "product": {
+            "resources": {
+              "money": 1220
+            },
+            "__class__": "Resources"
+          },
+          "__class__": "CityEntityProductionProduct"
+        }
+      ]
+    },
+    {
+      "requestClass": "OtherPlayerService",
+      "requestMethod": "updatePlayer",
+      "responseData": [
+        {
+          "player_id": 1001,
+          "name": "Testgegner",
+          "avatar": "",
+          "city_name": "Gegnerstadt",
+          "era": "VirtualFuture",
+          "score": 1,
+          "rank": 1,
+          "is_neighbor": true,
+          "is_active": true,
+          "__class__": "Player"
+        }
+      ]
+    },
+    {
+      "requestClass": "CityMapService",
+      "requestMethod": "reset",
+      "responseData": [
+        {
+          "id": 1230,
+          "player_id": 1001,
+          "cityentity_id": "R_ProgressiveEra_Residential2",
+          "type": "residential",
+          "x": 45,
+          "y": 21,
+          "connected": 1,
+          "state": {
+            "next_state_transition_in": 2147483647,
+            "next_state_transition_at": 2147483647,
+            "__class__": "PlunderedState"
+          },
+          "bonuses": [],
+          "__class__": "CityMapEntity"
+        }
+      ]
+    },
+    {
+      "requestClass": "OtherPlayerService",
+      "requestMethod": "plunderById",
+      "responseData": {
+        "result": "success",
+        "product": {
+          "name": "money",
+          "production_time": 3600,
+          "asset_name": "production_icon_money",
+          "product": {
+            "resources": {
+              "money": 1220
+            },
+            "__class__": "Resources"
+          },
+          "__class__": "CityEntityProductionProduct"
+        },
+        "__class__": "PlunderResult"
+      }
+    }
+  ]
+}

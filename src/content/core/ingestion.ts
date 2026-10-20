@@ -6,6 +6,8 @@ export interface GameMessage {
   service: string;
   method: string;
   data: unknown;
+  /** `requestData` of the request with the same service and method, when the response answers one */
+  request?: unknown;
   via: 'json' | 'ws';
 }
 
@@ -26,6 +28,7 @@ export class Ingestion {
   private game = new Map<string, GameHandler[]>();
   private services = new Map<string, GameHandler[]>();
   private meta: { prefix: string; handler: MetaHandler }[] = [];
+  private batchEnds: (() => void)[] = [];
 
   on(service: string, method: string, handler: GameHandler): void {
     const key = `${service}.${method}`;
@@ -35,6 +38,11 @@ export class Ingestion {
   /** every method of a service, for responses whose method is not known in advance */
   onService(service: string, handler: GameHandler): void {
     this.services.set(service, [...(this.services.get(service) ?? []), handler]);
+  }
+
+  /** after all entries of one game response, for things the game splits over several entries of it */
+  onBatchEnd(handler: () => void): void {
+    this.batchEnds.push(handler);
   }
 
   onMeta(prefix: string, handler: MetaHandler): void {
@@ -47,6 +55,10 @@ export class Ingestion {
       return;
     }
     const entries = parseEntries(traffic.kind === 'json' ? traffic.response : traffic.data);
+    const requests = new Map<string, unknown>();
+    if (traffic.kind === 'json' && traffic.request) {
+      for (const r of parseEntries(traffic.request)) if (!requests.has(key(r))) requests.set(key(r), r.requestData);
+    }
     entries.sort((a, b) => Number(key(b) === FIRST) - Number(key(a) === FIRST));
     for (const entry of entries) {
       const handlers = [...(this.game.get(key(entry)) ?? []), ...(this.services.get(entry.requestClass) ?? [])];
@@ -55,10 +67,12 @@ export class Ingestion {
         service: entry.requestClass,
         method: entry.requestMethod,
         data: entry.responseData,
+        request: requests.get(key(entry)),
         via: traffic.kind,
       };
       for (const handler of handlers) this.run(key(entry), () => handler(message));
     }
+    for (const handler of this.batchEnds) this.run('batch end', handler);
   }
 
   private acceptMeta(url: string, response: string): void {
@@ -87,7 +101,8 @@ export class Ingestion {
 interface Entry {
   requestClass: string;
   requestMethod: string;
-  responseData: unknown;
+  responseData?: unknown;
+  requestData?: unknown;
 }
 
 const key = (e: Entry) => `${e.requestClass}.${e.requestMethod}`;

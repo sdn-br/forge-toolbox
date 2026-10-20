@@ -1,10 +1,10 @@
 // @vitest-environment happy-dom
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { sabotageFeature } from '../src/content/features/sabotage/index';
 import type { BattlePersistence } from '../src/content/stores/battles';
 import type { VisitedCity } from '../src/content/stores/cities';
-import { eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
-import type { Battle } from '../src/shared/model';
+import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
+import type { Battle, IncomingAttack, Plunder } from '../src/shared/model';
 import { featureContext } from './helpers/feature-context';
 
 const world = worldId('de20');
@@ -30,6 +30,18 @@ const battle = (opponent: number, defense: number): Battle => ({
   era: eraId('ColonialAge'),
   attacker: { bonuses: {}, units: [] },
   defender: { bonuses: { defense_boost: defense }, units: [] },
+});
+
+const plunder = (opponent: number, at: number, change: Partial<Plunder> = {}): Plunder => ({
+  world,
+  at,
+  opponent: playerId(opponent),
+  outcome: 'plundered',
+  entityId: 350,
+  cityEntityId: buildingDefId('R_IronAge_Residential2'),
+  resources: { strategy_points: 4 },
+  doubleLoot: false,
+  ...change,
 });
 
 function setup() {
@@ -78,5 +90,66 @@ describe('sabotage feature', () => {
     latest.get(playerId(1))?.(battle(1, 111));
     await tick();
     expect(box.text).toContain('111');
+  });
+
+  it('shows the last plunder and the totals of the visited player, and follows new plunders', async () => {
+    const { ctx, box } = setup();
+    ctx.plunders.record(plunder(1, Date.now() - 1000));
+    ctx.plunders.record(plunder(2, Date.now()));
+    ctx.cities.setVisited(city(1));
+    await vi.waitFor(() => expect(box.text).toContain('1 Plünderung, 4 FP'));
+    expect(box.text).toContain('R_IronAge_Residential2: 4 Forge-Punkte');
+    expect(box.text).not.toContain('Double Loot');
+
+    ctx.plunders.record(plunder(1, Date.now() + 1000, { doubleLoot: true, resources: { money: 20 } }));
+    await vi.waitFor(() => expect(box.text).toContain('2 Plünderungen, 4 FP'));
+    expect(box.text).toMatch(/20 Münzen\s+Double Loot/);
+  });
+
+  it('tells when the last plunder of the visited player was repelled', async () => {
+    const { ctx, box } = setup();
+    ctx.plunders.record(plunder(1, Date.now() - 1000));
+    ctx.plunders.record(
+      plunder(1, Date.now(), { outcome: 'repelled', entityId: undefined, cityEntityId: undefined, resources: {} }),
+    );
+    ctx.cities.setVisited(city(1));
+    await vi.waitFor(() => expect(box.text).toContain('1 Plünderung, 1 abgewehrt, 4 FP'));
+    expect(box.text).toMatch(/Zuletzt heute \d\d:\d\d: abgewehrt/);
+    expect(box.text).not.toContain('R_IronAge_Residential2');
+  });
+
+  it('tells when the visited player was never plundered', async () => {
+    const { ctx, box } = setup();
+    ctx.plunders.record(plunder(2, Date.now()));
+    ctx.cities.setVisited(city(1));
+    await vi.waitFor(() => expect(box.text).toContain('Hier hast du noch nicht geplündert.'));
+  });
+
+  it('tells when the visited player last attacked the own city and follows new attacks, nothing when never', async () => {
+    const { ctx, box } = setup();
+    const attack = (attacker: number, key: number, change: Partial<IncomingAttack> = {}): IncomingAttack => ({
+      world,
+      kind: 'battle',
+      key,
+      at: Date.now(),
+      attacker: playerId(attacker),
+      defense: 'held',
+      ...change,
+    });
+    ctx.incoming.record(attack(2, 1));
+    ctx.cities.setVisited(city(1));
+    await vi.waitFor(() => expect(box.text).toContain('Hier hast du noch nicht geplündert.'));
+    expect(box.text).not.toContain('angegriffen');
+
+    ctx.incoming.record(attack(1, 2, { defense: 'broken' }));
+    await vi.waitFor(() =>
+      expect(box.text).toMatch(/Hat dich zuletzt heute \d\d:\d\d angegriffen \(Kampf: durchbrochen\)/),
+    );
+    expect(box.text).toContain('1 Angriff, 0 Plünderungen');
+    expect(box.text).not.toContain('abgewehrt');
+
+    ctx.cities.setVisited(city(2));
+    await vi.waitFor(() => expect(box.text).toContain('(Kampf: gehalten)'));
+    expect(box.text).toContain('1 Angriff, 1 abgewehrt, 0 Plünderungen');
   });
 });

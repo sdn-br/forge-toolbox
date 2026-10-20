@@ -3,7 +3,15 @@ import { logError } from '../../core/log';
 import { t } from '../../core/texts';
 import { KEEP_SETTING, pruneBefore } from './retention';
 import { type PvpActions, pvpView } from './view';
-import { opponentsFor, PAGE_SIZE, type PvpFilter, type PvpVm, pageCount, pvpViewModel } from './view-model';
+import {
+  opponentsFor,
+  PAGE_SIZE,
+  type PvpFilter,
+  type PvpTab,
+  type PvpVm,
+  pageCount,
+  pvpViewModel,
+} from './view-model';
 
 export const pvpFeature: Feature = {
   id: 'pvp',
@@ -11,6 +19,7 @@ export const pvpFeature: Feature = {
     ctx.settings.register(KEEP_SETTING);
 
     let vm: PvpVm | undefined;
+    let tab: PvpTab = 'battles';
     let filter: PvpFilter = { text: '' };
     let page = 0;
     let query = 0;
@@ -22,17 +31,49 @@ export const pvpFeature: Feature = {
         filter,
         ctx.players.list().filter((p) => p.world === ctx.world),
       );
-      const total = await ctx.battles.count(opponents);
+      const plunderTotals = await ctx.plunders.totals(opponents);
+      const incomingTotals = await ctx.incoming.totals(opponents);
+      const total =
+        tab === 'battles'
+          ? await ctx.battles.count(opponents)
+          : tab === 'plunders'
+            ? plunderTotals.count + plunderTotals.repelled
+            : incomingTotals.battles + incomingTotals.plunders;
       page = Math.min(page, pageCount(total) - 1);
-      const battles = await ctx.battles.list({ opponents, limit: PAGE_SIZE, offset: page * PAGE_SIZE });
+      const onPage = { opponents, limit: PAGE_SIZE, offset: page * PAGE_SIZE };
+      const battles = tab === 'battles' ? await ctx.battles.list(onPage) : [];
+      const plunders = tab === 'plunders' ? await ctx.plunders.list(onPage) : [];
+      const incoming =
+        tab === 'incoming'
+          ? await ctx.incoming.list({ attackers: opponents, limit: PAGE_SIZE, offset: onPage.offset })
+          : [];
       // a newer query started meanwhile and will render
       if (current !== query) return;
-      vm = pvpViewModel({ battles, total, page, filter, name: (id) => ctx.players.get(id)?.name, now: Date.now() });
+      vm = pvpViewModel({
+        tab,
+        battles,
+        plunders,
+        total,
+        plunderTotals,
+        incoming,
+        incomingTotals,
+        page,
+        filter,
+        name: (id) => ctx.players.get(id)?.name,
+        building: (id) => ctx.catalog.get(id)?.name,
+        resourceName: (id) => ctx.catalog.resourceName(id),
+        now: Date.now(),
+      });
       box.update();
     };
     const show = () => refresh().catch((error) => logError('loading battles failed', error));
 
     const actions: PvpActions = {
+      tab: (next) => {
+        tab = next;
+        page = 0;
+        show();
+      },
       search: (text) => {
         filter = { text };
         page = 0;
@@ -60,12 +101,11 @@ export const pvpFeature: Feature = {
     const prune = () => {
       const before = pruneBefore(ctx.settings.choice(KEEP_SETTING.key), Date.now());
       if (before === undefined) return;
-      ctx.battles
-        .prune(before)
+      Promise.all([ctx.battles.prune(before), ctx.plunders.prune(before), ctx.incoming.prune(before)])
         .then((deleted) => {
-          if (deleted > 0) show();
+          if (deleted.some((n) => n > 0)) show();
         })
-        .catch((error) => logError('pruning battles failed', error));
+        .catch((error) => logError('pruning battles, plunders and attacks failed', error));
     };
     ctx.bus.on('session.started', prune);
     ctx.settings.onChange((key) => {
@@ -73,6 +113,8 @@ export const pvpFeature: Feature = {
     });
 
     ctx.bus.on('battle.recorded', show);
+    ctx.bus.on('plunder.recorded', show);
+    ctx.bus.on('incoming.recorded', show);
     ctx.bus.on('player.updated', show);
     ctx.menu.add({
       id: 'pvp',

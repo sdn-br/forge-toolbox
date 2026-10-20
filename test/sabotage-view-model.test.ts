@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import type { CityAssessment } from '../src/content/domain/assess-city';
 import { sabotageViewModel } from '../src/content/features/sabotage/view-model';
-import { CatalogStore } from '../src/content/stores/catalog';
+import { type BuildingDef, CatalogStore } from '../src/content/stores/catalog';
 import type { VisitedCity } from '../src/content/stores/cities';
-import { eraId, playerId, worldId } from '../src/shared/ids';
-import type { Battle } from '../src/shared/model';
+import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
+import type { Battle, IncomingAttack, Plunder } from '../src/shared/model';
 
 const city: VisitedCity = {
   world: worldId('de20'),
@@ -66,5 +66,96 @@ describe('sabotage view model', () => {
       now,
     );
     expect(vm.plunderable).toEqual([{ name: 'Haus', items: [{ label: 'Münzen', amount: 20 }] }]);
+  });
+
+  it('shows the last own plunder here with building, loot and Double Loot, and the totals', () => {
+    const catalog = new CatalogStore(createBus());
+    catalog.setResourceNames({ marble: 'Marmor' });
+    catalog.add({ id: buildingDefId('R_IronAge_Residential2'), name: 'Strohdachhaus' } as BuildingDef);
+    const last: Plunder = {
+      world: city.world,
+      at: new Date(2026, 9, 19, 14, 5).getTime(),
+      opponent: city.owner,
+      outcome: 'plundered',
+      entityId: 350,
+      cityEntityId: buildingDefId('R_IronAge_Residential2'),
+      resources: { marble: 30, strategy_points: 2 },
+      doubleLoot: true,
+    };
+    const vm = (plunders?: Parameters<typeof sabotageViewModel>[7]) =>
+      sabotageViewModel(city, undefined, assessment, catalog, false, now, undefined, plunders).plundered;
+    expect(vm({ last, totals: { count: 3, repelled: 0, fp: 9 } })).toEqual({
+      last: {
+        when: 'heute 14:05',
+        repelled: false,
+        building: 'Strohdachhaus',
+        loot: '30 Marmor, 2 Forge-Punkte',
+        doubleLoot: true,
+      },
+      totals: '3 Plünderungen, 9 FP',
+    });
+    expect(vm({ totals: { count: 0, repelled: 0, fp: 0 } })).toEqual({
+      last: undefined,
+      totals: '0 Plünderungen, 0 FP',
+    });
+    expect(vm()).toBeUndefined();
+  });
+
+  it('tells when the last own plunder here was repelled and counts repelled ones apart', () => {
+    const last: Plunder = {
+      world: city.world,
+      at: new Date(2026, 9, 19, 14, 5).getTime(),
+      opponent: city.owner,
+      outcome: 'repelled',
+      resources: {},
+      doubleLoot: false,
+    };
+    const vm = sabotageViewModel(city, undefined, assessment, new CatalogStore(createBus()), false, now, undefined, {
+      last,
+      totals: { count: 5, repelled: 2, fp: 120 },
+    });
+    expect(vm.plundered).toEqual({
+      last: { when: 'heute 14:05', repelled: true },
+      totals: '5 Plünderungen, 2 abgewehrt, 120 FP',
+    });
+    const at = { ...last, entityId: 904, cityEntityId: buildingDefId('R_MultiAge_PatrickBonusSet20b') };
+    const named = sabotageViewModel(city, undefined, assessment, new CatalogStore(createBus()), false, now, undefined, {
+      last: at,
+      totals: { count: 0, repelled: 1, fp: 0 },
+    });
+    expect(named.plundered?.last).toEqual({
+      when: 'heute 14:05',
+      repelled: true,
+      building: 'R_MultiAge_PatrickBonusSet20b',
+    });
+  });
+
+  it('tells when this player last attacked the own city, with the totals of their attacks', () => {
+    const catalog = new CatalogStore(createBus());
+    catalog.add({ id: buildingDefId('R_IronAge_Residential2'), name: 'Strohdachhaus' } as BuildingDef);
+    const last: IncomingAttack = {
+      world: city.world,
+      kind: 'battle',
+      key: 1,
+      at: new Date(2026, 9, 19, 14, 5).getTime(),
+      attacker: city.owner,
+      defense: 'broken',
+    };
+    const vm = (incoming?: Parameters<typeof sabotageViewModel>[8]) =>
+      sabotageViewModel(city, undefined, assessment, catalog, false, now, undefined, undefined, incoming).attackedMe;
+    expect(vm({ last, totals: { battles: 2, held: 1, plunders: 1 } })).toEqual({
+      when: 'heute 14:05',
+      what: 'Kampf: durchbrochen',
+      totals: '2 Angriffe, 1 abgewehrt, 1 Plünderung',
+    });
+    const plunder = {
+      ...last,
+      kind: 'plunder' as const,
+      defense: undefined,
+      cityEntityId: buildingDefId('R_IronAge_Residential2'),
+    };
+    expect(vm({ last: plunder, totals: { battles: 0, held: 0, plunders: 1 } })?.what).toBe('Plünderung: Strohdachhaus');
+    expect(vm({ totals: { battles: 0, held: 0, plunders: 0 } })).toBeUndefined();
+    expect(vm()).toBeUndefined();
   });
 });

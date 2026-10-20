@@ -71,6 +71,16 @@ describe('Ingestion', () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
+  it('tells when all entries of one response are handled', () => {
+    const ingestion = new Ingestion();
+    const order: string[] = [];
+    ingestion.on('A', 'b', () => order.push('entry'));
+    ingestion.onBatchEnd(() => order.push('end'));
+    ingestion.accept(json([entry('A', 'b'), entry('A', 'b')]));
+    ingestion.accept(json([]));
+    expect(order).toEqual(['entry', 'entry', 'end', 'end']);
+  });
+
   it('passes metadata files with name and hash to prefix handlers', () => {
     const ingestion = new Ingestion();
     const handler = vi.fn();

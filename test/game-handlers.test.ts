@@ -5,7 +5,9 @@ import { registerGameHandlers } from '../src/content/game/handlers';
 import { BattleStore } from '../src/content/stores/battles';
 import { CatalogStore } from '../src/content/stores/catalog';
 import { CityStore } from '../src/content/stores/cities';
+import { IncomingStore } from '../src/content/stores/incoming';
 import { PlayerStore } from '../src/content/stores/players';
+import { PlunderStore } from '../src/content/stores/plunders';
 import { SessionStore } from '../src/content/stores/session';
 import { playerId, worldId } from '../src/shared/ids';
 import { testDb } from './helpers/battle-db';
@@ -24,6 +26,8 @@ function setup() {
     cities,
     catalog: new CatalogStore(bus),
     battles: new BattleStore(bus, worldId('de20'), testDb().persistence),
+    plunders: new PlunderStore(bus, worldId('de20'), testDb().plunders),
+    incoming: new IncomingStore(bus, worldId('de20'), testDb().incoming),
   });
   const events: string[] = [];
   bus.on('city.visited', () => events.push('visited'));

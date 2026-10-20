@@ -15,16 +15,25 @@ const menuCss = `
 .menu button { all: unset; cursor: pointer; width: 30px; height: 30px; display: grid; place-items: center;
   font-size: 18px; border-radius: 4px; background: #4a3620; }
 .menu button:hover { background: #6a5030; }
+.notice { position: fixed; right: 44px; top: 50%; transform: translateY(-50%); z-index: 2147479999; max-width: 240px;
+  padding: 6px 8px; background: #6a2010; color: #f3e3c3; border: 1px solid #8a6a3a; border-radius: 6px; }
 `;
 
 /** Vertical button bar at the right edge. Features add their entry, the menu never knows them. */
 export class Menu {
   private items: MenuItem[] = [];
+  private notice = '';
   private host = document.createElement('div');
   private shadow = this.host.attachShadow({ mode: 'open' });
 
   add(item: MenuItem): void {
     this.items.push(item);
+    this.render();
+  }
+
+  /** a message next to the menu that stays until the page reloads */
+  showNotice(text: string): void {
+    this.notice = text;
     this.render();
   }
 
@@ -39,7 +48,8 @@ export class Menu {
       html`<style>${baseCss}${menuCss}</style>
         <nav class="menu">
           ${this.items.map((i) => html`<button title=${i.label()} @click=${i.action}>${i.icon}</button>`)}
-        </nav>`,
+        </nav>
+        ${this.notice ? html`<p class="notice">${this.notice}</p>` : ''}`,
       this.shadow,
     );
   }
