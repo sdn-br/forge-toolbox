@@ -228,18 +228,18 @@ describe('assessCity rules', () => {
     expect(result.plunderable).toEqual([]);
   });
 
-  it('never lists a building whose production has medals', () => {
+  // checked in the game: a Mondtor St. 6 was plundered with 5,100 coins, 2 FP and 17 medals
+  it('lists a building whose production has medals', () => {
     const result = assessCity(
       cityOf([
         house(1, {
           __class__: 'ProductionFinishedState',
-          current_product: { product: { resources: { medals: 30, money: 20 } } },
+          current_product: { product: { resources: { money: 5100, strategy_points: 2, medals: 17 } } },
         }),
-        house(2, { __class__: 'ProductionFinishedState', current_product: { product: { resources: { medals: 30 } } } }),
       ]),
       defs,
     );
-    expect(result.plunderable).toEqual([]);
+    expect(result.plunderable[0]?.resources).toEqual({ money: 5100, strategy_points: 2, medals: 17 });
   });
 
   it('counts only boosts for all features and none of unconnected buildings', () => {

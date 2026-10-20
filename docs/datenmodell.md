@@ -205,17 +205,17 @@ Ein Gebäude steht unter „Jetzt plünderbar“, wenn alles zutrifft:
 1. **Die Definition erlaubt es.** Klassische Definitionen: Typ `production`, `goods`, `residential` oder `clan_power_production`, keine der Fähigkeiten `AddResourcesToGuildTreasuryAbility`, `RandomChestRewardAbility`, `NotPlunderableAbility`, nur auf dem Hauptgitter. Generische Definitionen (`GenericCityEntity`): nur, wenn das Gebäude motivierbar ist (`socialInteraction` mit `interactionType: 'motivate'` oder `MotivatableAbility`).
 2. **Die Produktion ist fertig** (`ProductionFinishedState`).
 3. **Das Gebäude ist nicht motiviert** (`is_motivated`, in fremden Städten `socialInteractionId: 'motivate'`).
-4. **Keine Medaillen:** Hat die Produktion des Gebäudes in seiner Stufe Medaillen, ist das ganze Gebäude nie plünderbar. Sonst muss etwas zu holen sein.
+4. **Es ist etwas zu holen:** Der Besuch schickt ein Produkt mit mindestens einer Ressource.
 
 Woher das Produkt kommt:
 
 - Klassische Gebäude schicken es im Besuch als `current_product`. Alle 52 fertigen Wohnhäuser im de10-Besuch tun das.
-- Fertige generische Gebäude schickt der Besuch oft ohne Produkt. Dann gibt es nichts zu plündern, geprüft im Spiel am Keltischen Goldschmied St. 5, am Handelsposten St. 8 und an Atem des Drachen St. 9 derselben Stadt (alle fertig, nicht motiviert, ohne Produkt, Plünderung noch frei, im Spiel nichts zu holen). Das inoffizielle Wiki nennt Yggdrasil unmotiviert plünderbar, was dem widerspricht, vermutlich veraltet. Die alte Toolbox listet solche Gebäude ebenfalls nicht. Die Definition dient nur noch dazu, Medaillen der Stufe zu erkennen.
+- Fertige generische Gebäude schickt der Besuch oft ohne Produkt. Dann gibt es nichts zu plündern, geprüft im Spiel am Keltischen Goldschmied St. 5, am Handelsposten St. 8 und an Atem des Drachen St. 9 derselben Stadt (alle fertig, nicht motiviert, ohne Produkt, Plünderung noch frei, im Spiel nichts zu holen). Das inoffizielle Wiki nennt Yggdrasil unmotiviert plünderbar, was dem widerspricht, vermutlich veraltet. Die alte Toolbox listet solche Gebäude ebenfalls nicht.
 
 Belege:
 
 - **Motivierbarkeit:** Laut Spieler sind nicht motivierbare Spezialgebäude nie plünderbar, schon ab Stufe 1: Siegesturm, Wunschbrunnen, Druidentempel, Piratenversteck, Goldenes Orrery. In der de10-Aufnahme sind das genau die 6 generischen Produktionsgebäude ohne `motivate`. Alle 18 motivierbaren (etwa Handelsposten, Yggdrasil, Adlerberg) sind unmotiviert plünderbar. Ein Kennzeichen im Bauteil `flags` (Wert 23 statt 19) trifft nur Siegesturm und Wunschbrunnen und reicht deshalb nicht.
-- **Medaillen:** Laut Spieler sind Gebäude, die in ihrer Stufe Medaillen produzieren, nie plünderbar. Manche Gebäude waren deshalb ab einer bestimmten Stufe nicht mehr plünderbar. Jede Stufe ist eine eigene Definition, die Regel greift also je Stufe. Medaillen, die nur mit Motivation entstehen (`onlyWhenMotivated`, etwa Yggdrasil St. 9, Adlerberg, Fiore-Dorf St. 10), schützen nicht: Diese Gebäude sind laut Spieler unmotiviert plünderbar.
+- **Medaillen schützen nicht:** Eine frühere Regel schloss Gebäude mit Medaillen in ihrer Stufe aus. Widerlegt am 2026-10-20: Ein Mondtor (`R_MultiAge_PatrickBonusSet20b`) St. 6 wurde mit 5.100 Münzen, 2 FP und 17 Medaillen geplündert. Laut Spieler sind viele Gebäude mit Medaillen trotzdem geschützt, der Grund ist aber eine andere, noch unbekannte Eigenschaft des Gebäudes. Bis sie gefunden ist, zeigt die Box solche Gebäude an.
 - **Handelsposten:** Seine Definition gleicht der der Zeitlosen Kreuzung (Flags 19, `motivate`, Produkt ohne `onlyWhenMotivated`). Im de10-Besuch war er motiviert, das allein schließt ihn aus. Laut Spieler ist er unmotiviert plünderbar.
 - **Plünderbar:** Wohnhaus mit 610 Münzen, geplündert 1.220 (doppelte Beute, de10). Domizil mit 110 Münzen, geplündert 110 (de20). Rosarium (klassisch, Typ `production`) und Zeitlose Kreuzung laut Spieler.
 - **Ergebnis de10-Besuch:** vorher 52 Einträge (50 fertige Wohnhäuser, dazu Siegesturm St. 1 und St. 2 unter „In Produktion“), danach 50, nur die fertigen Wohnhäuser.
