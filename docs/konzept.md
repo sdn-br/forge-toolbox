@@ -136,6 +136,7 @@ Entscheidung: Hauptspeicher ist IndexedDB im Origin der Extension, mit Sicherung
 - Daten pro Welt und Spieler getrennt, ein gemeinsamer Speicher für alle Welten.
 - **Sicherungskopie:** Unwiederbringliche Daten (Notizen, PvP-Verlauf, Statistiken, GbG- und GEX-Historie, keine Caches) gehen gesammelt in die IndexedDB der Spielseite, etwa eine Minute nach der letzten Änderung und beim Schließen. Nach einer Neuinstallation bietet die Toolbox die Wiederherstellung an. Die Sicherung lässt sich abschalten, weil Spiel und andere Extensions sie lesen könnten.
 - **Export als Datei** ab der ersten Version, für Rechnerwechsel und echte Backups.
+- **Eine Form je gespeicherter Domäne** (Architektur-Review 2026-10-20): Was eine Domäne zum Speichern braucht, liegt zusammen in `src/persistence/<domäne>/`. `contract.ts` enthält die RPC-Typen, `worker.ts` Tabellendefinition und Handler im Service Worker, `client.ts` den Adapter auf der Content-Seite. `rpc.ts` und die Handler im Service Worker setzen sich daraus zusammen. Die Versionsgeschichte von Dexie bleibt zentral in `db.ts`, die Domänen liefern nur ihre Tabellen. Im Test läuft dieselbe Domäne gegen Dexie im Speicher. Umgesetzt wird das zu Beginn von PvP Teil B, zuerst für Players und Battles.
 
 Begründung: Im Origin der Spielseite kann fremder Code die Daten lesen, ändern und löschen (der Helfer löscht in `mergeDatabases` alte DBs), und Chrome darf ihn bei Platzmangel leeren. Mit der Sicherung gehen Daten nur verloren, wenn Deinstallation und Löschen der Website-Daten zusammenkommen.
 
