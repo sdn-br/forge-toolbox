@@ -7,6 +7,7 @@ import type { NoteStore } from '../stores/notes';
 import type { PlayerStore } from '../stores/players';
 import type { PlunderStore } from '../stores/plunders';
 import type { SessionStore } from '../stores/session';
+import type { ShieldStore } from '../stores/shields';
 import { Box, type BoxOptions } from '../ui/box';
 import type { Menu } from '../ui/menu';
 import type { UiState } from '../ui/ui-state';
@@ -27,6 +28,7 @@ export interface FeatureContext {
   battles: BattleStore;
   plunders: PlunderStore;
   incoming: IncomingStore;
+  shields: ShieldStore;
   notes: NoteStore;
   recorder: Recorder;
   createBox(options: BoxOptions): Box;

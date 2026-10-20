@@ -13,6 +13,7 @@ import { IncomingStore } from '../src/content/stores/incoming';
 import { PlayerStore } from '../src/content/stores/players';
 import { PlunderStore } from '../src/content/stores/plunders';
 import { SessionStore } from '../src/content/stores/session';
+import { ShieldStore } from '../src/content/stores/shields';
 import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { Battle } from '../src/shared/model';
 import fixture from './fixtures/pvp-battle.json';
@@ -27,7 +28,7 @@ function setup(me: number | null = fixture.me) {
   const ingestion = new Ingestion();
   const session = new SessionStore(bus);
   const players = new PlayerStore(bus, { load: async () => [], put: async () => {} });
-  const { db, persistence, plunders, incoming } = testDb();
+  const { db, persistence, plunders, incoming, shields } = testDb();
   const battles = new BattleStore(bus, world, persistence);
   registerGameHandlers(ingestion, {
     world,
@@ -40,6 +41,7 @@ function setup(me: number | null = fixture.me) {
     battles,
     plunders: new PlunderStore(bus, world, plunders),
     incoming: new IncomingStore(bus, world, incoming),
+    shields: new ShieldStore(bus, world, shields),
   });
   const recorded: PlayerId[] = [];
   bus.on('battle.recorded', (e) => recorded.push(e.opponent));

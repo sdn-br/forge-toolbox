@@ -110,6 +110,13 @@ export interface IncomingAttack {
   cityEntityId?: BuildingDefId;
 }
 
+/** A city shield of another player: until `expiresAt` the city cannot be attacked. */
+export interface CityShield {
+  world: WorldId;
+  player: PlayerId;
+  expiresAt: number;
+}
+
 export interface IncomingTotals {
   /** battles against the own defense, held ones included */
   battles: number;

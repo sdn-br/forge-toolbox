@@ -2,6 +2,7 @@
 import { eraId, type PlayerId, type WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import type { Ingestion } from '../core/ingestion';
+import { logInfo } from '../core/log';
 import type { BattleStore } from '../stores/battles';
 import type { CatalogStore } from '../stores/catalog';
 import type { CityStore } from '../stores/cities';
@@ -10,6 +11,7 @@ import type { IncomingStore } from '../stores/incoming';
 import type { PlayerObservation, PlayerStore } from '../stores/players';
 import type { PlunderStore } from '../stores/plunders';
 import type { SessionStore } from '../stores/session';
+import type { ShieldStore } from '../stores/shields';
 import { toBuildingDef } from './building-defs';
 import {
   armyBattleType,
@@ -28,6 +30,7 @@ import {
   toPlunder,
   toRepelledPlunder,
   toSession,
+  toShields,
   toVisitInfo,
 } from './convert';
 import { parseEventDate } from './event-date';
@@ -54,6 +57,7 @@ export interface GameHandlerDeps {
   battles: BattleStore;
   plunders: PlunderStore;
   incoming: IncomingStore;
+  shields: ShieldStore;
 }
 
 const observations = (list: unknown) =>
@@ -66,7 +70,7 @@ const withAttack = (list: unknown, now: number) =>
     .filter((o): o is PlayerObservation => o !== null);
 
 export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps): void {
-  const { world, bus, now, session, players, cities, catalog, battles, plunders, incoming } = deps;
+  const { world, bus, now, session, players, cities, catalog, battles, plunders, incoming, shields } = deps;
 
   ingestion.on('StartupService', 'getData', ({ data }) => {
     const d = data as GameStartup;
@@ -207,6 +211,16 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   ingestion.on('OtherPlayerService', 'getEventsPaginated', ({ data }) => {
     const events = (data as GameEventPage | null)?.events;
     if (Array.isArray(events)) recordIncoming(events, (e) => (e.date ? parseEventDate(e.date, now()) : undefined));
+  });
+
+  // City shields of other players. Only the old toolbox's concept names this method; assumed: it comes at the start
+  // when a neighbour has a shield, and over the websocket when one buys a shield. Ingestion routes both the same way.
+  // A start without the list deletes nothing, ended shields are ignored when read.
+  ingestion.on('OtherPlayerService', 'getCityProtections', ({ data, via }) => {
+    // debt: logs every getCityProtections raw. ceiling: console noise once the format is confirmed.
+    // upgrade: remove after the format and the trigger are confirmed in the game.
+    logInfo('getCityProtections (format unconfirmed)', via, data);
+    shields.record(toShields(world, data));
   });
 
   const updateBuildings = ({ data }: { data: unknown }) => {

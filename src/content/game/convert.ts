@@ -13,6 +13,7 @@ import type {
   Battle,
   BattleResult,
   BattleSide,
+  CityShield,
   GuildRef,
   IncomingAttack,
   Plunder,
@@ -27,6 +28,7 @@ import type {
   GameBattleState,
   GameBattleUnit,
   GameCityEntity,
+  GameCityProtection,
   GameEvent,
   GamePlayer,
   GamePlunderResult,
@@ -367,4 +369,17 @@ export function toIncoming(world: WorldId, e: GameEvent, me: PlayerId, at: numbe
     return { ...base, kind: 'plunder', key: e.id, cityEntityId: buildingDefId(e.entity_id) };
   }
   return null;
+}
+
+/**
+ * City shields from getCityProtections. The format is unconfirmed, so entries without a numeric player and end are
+ * skipped, as is `expireTime` -1 (cannot be attacked at all, which is no shield).
+ */
+export function toShields(world: WorldId, data: unknown): CityShield[] {
+  return (Array.isArray(data) ? data : []).flatMap((e: GameCityProtection | null) => {
+    const player = e?.playerId;
+    const end = e?.expireTime;
+    if (typeof player !== 'number' || typeof end !== 'number' || !(end > 0)) return [];
+    return [{ world, player: playerId(player), expiresAt: end * 1000 }];
+  });
 }
