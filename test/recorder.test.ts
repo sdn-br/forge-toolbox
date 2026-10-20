@@ -42,4 +42,18 @@ describe('Recorder', () => {
     const saved: { request: string | null }[] = JSON.parse(recorder.serialize());
     expect(saved.map((t) => t.request)).toEqual([null, json.request]);
   });
+
+  it('keeps outgoing websocket messages only with requests', () => {
+    let withRequests = false;
+    const recorder = new Recorder(
+      () => true,
+      () => withRequests,
+    );
+    const out = { kind: 'ws' as const, direction: 'out' as const, data: '[]', at: 0 };
+    recorder.add(out);
+    recorder.add(traffic);
+    withRequests = true;
+    recorder.add(out);
+    expect(JSON.parse(recorder.serialize())).toEqual([traffic, out]);
+  });
 });

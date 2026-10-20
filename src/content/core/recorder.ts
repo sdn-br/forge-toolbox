@@ -13,7 +13,11 @@ export class Recorder {
 
   add(traffic: Traffic): void {
     if (!this.enabled()) return;
-    this.traffic.push(traffic.kind === 'json' && !this.withRequests() ? { ...traffic, request: null } : traffic);
+    if (!this.withRequests()) {
+      if (traffic.kind === 'ws' && traffic.direction === 'out') return;
+      if (traffic.kind === 'json') traffic = { ...traffic, request: null };
+    }
+    this.traffic.push(traffic);
     for (const listener of this.listeners) listener();
   }
 

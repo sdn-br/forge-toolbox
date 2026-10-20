@@ -68,6 +68,8 @@ WebSocket.prototype.send = function (this: WebSocket, data: Parameters<WebSocket
       if (typeof event.data === 'string') emit({ kind: 'ws', data: event.data, at: Date.now() });
     });
   }
+  const text = bodyText(data);
+  if (text !== null) emit({ kind: 'ws', direction: 'out', data: text, at: Date.now() });
   return originalWsSend.call(this, data);
 };
 

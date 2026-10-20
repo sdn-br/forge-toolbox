@@ -54,6 +54,8 @@ export class Ingestion {
       this.acceptMeta(traffic.url, traffic.response);
       return;
     }
+    // outgoing websocket messages are requests without responseData, no handler reads them yet
+    if (traffic.kind === 'ws' && traffic.direction === 'out') return;
     const entries = parseEntries(traffic.kind === 'json' ? traffic.response : traffic.data);
     const requests = new Map<string, unknown>();
     if (traffic.kind === 'json' && traffic.request) {

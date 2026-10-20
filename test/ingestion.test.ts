@@ -71,6 +71,17 @@ describe('Ingestion', () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
+  it('skips outgoing websocket messages', () => {
+    const ingestion = new Ingestion();
+    const handler = vi.fn();
+    const batchEnd = vi.fn();
+    ingestion.on('A', 'b', handler);
+    ingestion.onBatchEnd(batchEnd);
+    ingestion.accept({ kind: 'ws', direction: 'out', data: JSON.stringify([entry('A', 'b')]), at: 0 });
+    expect(handler).not.toHaveBeenCalled();
+    expect(batchEnd).not.toHaveBeenCalled();
+  });
+
   it('tells when all entries of one response are handled', () => {
     const ingestion = new Ingestion();
     const order: string[] = [];
