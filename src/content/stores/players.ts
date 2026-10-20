@@ -1,5 +1,5 @@
 import type { EraId, PlayerId, WorldId } from '../../shared/ids';
-import type { GuildRef, Player, PlayerSource, Relations } from '../../shared/model';
+import type { AttackTimer, GuildRef, Player, PlayerSource, Relations } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
 
@@ -14,6 +14,8 @@ export interface PlayerObservation {
   rank: number;
   active: boolean;
   guild: GuildRef | null;
+  /** only from sources that carry the whole player with its timers; missing keeps what is known */
+  attack?: AttackTimer;
 }
 
 export interface PlayerPersistence {
@@ -85,12 +87,14 @@ export class PlayerStore {
   ) {
     const old = this.players.get(o.id);
     const now = this.now();
-    const { guild, ...fields } = o;
+    const { guild, attack, ...fields } = o;
+    const known = attack ?? old?.attack;
     this.players.set(o.id, {
       ...fields,
       world,
       guild: guild ?? undefined,
       relations: relations ?? old?.relations ?? NO_RELATIONS,
+      ...(known && { attack: known }),
       firstSeenAt: old?.firstSeenAt ?? now,
       seenAt: now,
       source,

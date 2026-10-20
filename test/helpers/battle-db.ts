@@ -4,6 +4,7 @@ import type { Call } from '../../src/content/core/rpc';
 import { battlePersistence } from '../../src/persistence/battles/client';
 import { incomingPersistence } from '../../src/persistence/incoming/client';
 import { notePersistence } from '../../src/persistence/notes/client';
+import { playerPersistence } from '../../src/persistence/players/client';
 import { plunderPersistence } from '../../src/persistence/plunders/client';
 
 let dbCount = 0;
@@ -17,6 +18,7 @@ export function testDb() {
     db,
     call,
     persistence: battlePersistence(call),
+    players: playerPersistence(call),
     plunders: plunderPersistence(call),
     incoming: incomingPersistence(call),
     notes: notePersistence(call),

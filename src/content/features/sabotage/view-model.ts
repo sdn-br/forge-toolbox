@@ -68,8 +68,8 @@ export function sabotageViewModel(
 ): SabotageVm {
   const friend = city.visit.friend || player?.relations.friend === true;
   const guildMember = city.visit.guildMember || player?.relations.guildMember === true;
-  const waiting =
-    city.visit.nextInteractionAt !== undefined && city.visit.nextInteractionAt > now && !city.visit.canPlunder;
+  const timer = player?.attack;
+  const waiting = timer?.nextInteractionAt !== undefined && timer.nextInteractionAt > now && !timer.canPlunder;
   const item = (p: Plunderable): PlunderItem => ({
     name: p.name,
     items: Object.entries(p.resources).map(([id, amount]) => ({ label: resourceLabel(id, catalog), amount })),
