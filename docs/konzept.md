@@ -51,7 +51,7 @@ Spielseite (MAIN world)          Content Script (isolated world)               S
 ### Shell
 
 - Manifest V3, TypeScript mit Build.
-- Nur der Proxy läuft im Seitenkontext, weil er XHR und WebSocket vor dem Spielcode patchen muss. Er reicht Nachrichten an das Content Script weiter.
+- Nur der Proxy läuft im Seitenkontext, weil er XHR und WebSocket vor dem Spielcode patchen muss. Er reicht Nachrichten an das Content Script weiter. Beim WebSocket meldet er beide Richtungen, ausgehende mit `direction: 'out'`. Die Ingestion wertet sie noch nicht aus, Aufnahmen behalten sie nur mit „Requests mitschreiben“.
 - Alles andere läuft im Content Script. Es teilt das DOM mit der Spielseite, aber keine JS-Globals. Kollisionen mit Spiel oder Helfer entfallen.
 - Der Service Worker hält Speicher, Alarme und Notifications.
 - Fester `key` im Manifest, damit die Extension-ID stabil bleibt. Eigene ID, damit Forge Toolbox parallel zur FoE Toolbox laufen kann.
