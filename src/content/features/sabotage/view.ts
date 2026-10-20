@@ -47,11 +47,13 @@ function plunderedPart({ last, totals }: NonNullable<SabotageVm['plundered']>) {
     <br />${totals}</p>`;
 }
 
-export function sabotageView(vm: SabotageVm | undefined): TemplateResult {
+/** `note` is the note card of the visited player */
+export function sabotageView(vm: SabotageVm | undefined, note?: TemplateResult): TemplateResult {
   if (!vm) return html`<p class="muted">${t('sabotage.noVisit')}</p>`;
   return html`
     <p><b>${vm.player.name}</b>${vm.player.guild ? html` <span class="muted">[${vm.player.guild}]</span>` : ''}
       <br /><span class="muted">${t('sabotage.era')}: ${vm.player.era}</span></p>
+    ${note ?? ''}
     ${vm.lootable ? '' : html`<p class="warn">${t('sabotage.notLootable')}</p>`}
     ${
       vm.attackedMe

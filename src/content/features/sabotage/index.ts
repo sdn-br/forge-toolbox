@@ -4,6 +4,7 @@ import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
 import { assessCity } from '../../domain/assess-city';
+import { PlayerNoteCard } from '../../ui/note-card';
 import { sabotageView } from './view';
 import { type SabotageVm, sabotageViewModel } from './view-model';
 
@@ -31,8 +32,13 @@ export const sabotageFeature: Feature = {
       id: 'sabotage',
       title: () => t('sabotage.title'),
       width: 400,
-      render: () => sabotageView(vm),
+      render: () => {
+        const owner = ctx.cities.visited()?.owner;
+        const note = vm && owner !== undefined ? card.render(owner, ctx.players.get(owner)?.name) : undefined;
+        return sabotageView(vm, note);
+      },
     });
+    const card = new PlayerNoteCard(ctx.notes, () => box.update());
 
     const refresh = () => {
       const city = ctx.cities.visited();
@@ -102,6 +108,9 @@ export const sabotageFeature: Feature = {
       if (ctx.cities.visited()?.owner === attacker) loadIncoming(attacker);
     });
     ctx.bus.on('city.visitedChanged', refresh);
+    ctx.bus.on('note.changed', ({ player }) => {
+      if (player === undefined || player === ctx.cities.visited()?.owner) box.update();
+    });
     ctx.bus.on('catalog.updated', ({ defs }) => {
       const city = ctx.cities.visited();
       if (city && [...city.buildings.values()].some((b) => defs.includes(b.def))) refresh();

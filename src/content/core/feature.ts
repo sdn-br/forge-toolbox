@@ -3,6 +3,7 @@ import type { BattleStore } from '../stores/battles';
 import type { CatalogStore } from '../stores/catalog';
 import type { CityStore } from '../stores/cities';
 import type { IncomingStore } from '../stores/incoming';
+import type { NoteStore } from '../stores/notes';
 import type { PlayerStore } from '../stores/players';
 import type { PlunderStore } from '../stores/plunders';
 import type { SessionStore } from '../stores/session';
@@ -26,6 +27,7 @@ export interface FeatureContext {
   battles: BattleStore;
   plunders: PlunderStore;
   incoming: IncomingStore;
+  notes: NoteStore;
   recorder: Recorder;
   createBox(options: BoxOptions): Box;
 }

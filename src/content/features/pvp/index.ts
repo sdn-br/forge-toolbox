@@ -1,6 +1,7 @@
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
+import { PlayerNoteCard } from '../../ui/note-card';
 import { KEEP_SETTING, pruneBefore } from './retention';
 import { type PvpActions, pvpView } from './view';
 import {
@@ -62,6 +63,7 @@ export const pvpFeature: Feature = {
         name: (id) => ctx.players.get(id)?.name,
         building: (id) => ctx.catalog.get(id)?.name,
         resourceName: (id) => ctx.catalog.resourceName(id),
+        note: (id) => ctx.notes.playerPage(id)?.text,
         now: Date.now(),
       });
       box.update();
@@ -89,14 +91,23 @@ export const pvpFeature: Feature = {
         page = p;
         show();
       },
+      note: (opponent) => {
+        actions.pick(opponent);
+        card.edit(opponent);
+      },
     };
 
     const box = ctx.createBox({
       id: 'pvp',
       title: () => t('pvp.title'),
       width: 520,
-      render: () => pvpView(vm, actions),
+      render: () => {
+        const picked = filter.opponent;
+        const note = picked === undefined ? undefined : card.render(picked, ctx.players.get(picked)?.name);
+        return pvpView(vm, actions, note);
+      },
     });
+    const card = new PlayerNoteCard(ctx.notes, () => box.update());
 
     const prune = () => {
       const before = pruneBefore(ctx.settings.choice(KEEP_SETTING.key), Date.now());
@@ -116,6 +127,8 @@ export const pvpFeature: Feature = {
     ctx.bus.on('plunder.recorded', show);
     ctx.bus.on('incoming.recorded', show);
     ctx.bus.on('player.updated', show);
+    // the markers in the rows show the notes
+    ctx.bus.on('note.changed', show);
     ctx.menu.add({
       id: 'pvp',
       icon: '⚔️',

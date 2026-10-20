@@ -152,4 +152,23 @@ describe('sabotage feature', () => {
     await vi.waitFor(() => expect(box.text).toContain('(Kampf: gehalten)'));
     expect(box.text).toContain('1 Angriff, 1 abgewehrt, 0 Plünderungen');
   });
+
+  it('shows the note card of the visited player, saves into it and follows changes from elsewhere', async () => {
+    const { ctx, box } = setup();
+    ctx.cities.setVisited(city(1));
+    await tick();
+    expect(box.text).toContain('Notiz zu diesem Spieler');
+    (box.root.querySelector('.note') as HTMLElement).click();
+    const textarea = box.root.querySelector('textarea') as HTMLTextAreaElement;
+    textarea.value = 'hat **Schilde**';
+    textarea.dispatchEvent(new Event('input'));
+    textarea.dispatchEvent(new Event('blur'));
+    expect(ctx.notes.playerPage(playerId(1))?.text).toBe('hat **Schilde**');
+    expect(box.root.querySelector('strong')?.textContent).toBe('Schilde');
+
+    ctx.notes.setPlayerText(playerId(1), '*neu*');
+    expect(box.root.querySelector('em')?.textContent).toBe('neu');
+    ctx.notes.setPlayerText(playerId(2), 'other player');
+    expect(box.text).not.toContain('other player');
+  });
 });

@@ -266,4 +266,40 @@ describe('pvp feature', () => {
     expect(incoming.prune).toHaveBeenCalledOnce();
     expect(lists.length).toBe(loads + 1);
   });
+
+  it('marks each row with the note of the opponent and opens the note card from the marker', async () => {
+    const { ctx, box, lists } = setup();
+    ctx.notes.setPlayerText(playerId(111), '**stark**');
+    await tick();
+    for (const list of lists) list.resolve([battle(1, 111), battle(2, 222)]);
+    await tick();
+    const markers = () => [...box.root.querySelectorAll('button.marker')];
+    expect(markers().map((m) => [m.className, m.getAttribute('title')])).toEqual([
+      ['marker', 'stark'],
+      ['marker dim', 'Notiz hinzufügen'],
+    ]);
+    expect(box.text).not.toContain('Notiz zu diesem Spieler');
+
+    (markers()[1] as HTMLElement).click();
+    const textarea = box.root.querySelector('textarea') as HTMLTextAreaElement;
+    expect(textarea).not.toBeNull();
+    textarea.value = 'neu';
+    textarea.dispatchEvent(new Event('input'));
+    textarea.dispatchEvent(new Event('blur'));
+    expect(ctx.notes.playerPage(playerId(222))?.text).toBe('neu');
+    await tick();
+    expect(lists.at(-1)?.query.opponents).toEqual([playerId(222)]);
+    lists.at(-1)?.resolve([battle(2, 222)]);
+    await tick();
+    expect(box.text).toContain('Nur 222');
+    expect(markers().map((m) => m.getAttribute('title'))).toEqual(['neu']);
+  });
+
+  it('marks the attackers on the own city with their note', async () => {
+    const { ctx, box } = setup();
+    ctx.notes.setPlayerText(playerId(555), 'Angreifer');
+    box.click('Angriffe auf mich');
+    await vi.waitFor(() => expect(box.text).toContain('Kampf: durchbrochen'));
+    expect(box.root.querySelector('button.marker')?.getAttribute('title')).toBe('Angreifer');
+  });
 });
