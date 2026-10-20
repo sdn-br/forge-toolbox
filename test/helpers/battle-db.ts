@@ -1,7 +1,7 @@
 import { openDb } from '../../src/background/db';
 import { createHandlers } from '../../src/background/handlers';
 import type { Call } from '../../src/content/core/rpc';
-import { battlePersistence } from '../../src/content/stores/battles';
+import { battlePersistence } from '../../src/persistence/battles/client';
 
 let dbCount = 0;
 

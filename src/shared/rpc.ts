@@ -1,23 +1,17 @@
 // Typed calls from the content script to the service worker, which owns the database.
-import type { PlayerId, WorldId } from './ids';
-import type { Battle, Player } from './model';
+// Each stored domain declares its calls in src/persistence/<domain>/contract.ts.
+import type { BattlesApi } from '../persistence/battles/contract';
+import type { PlayersApi } from '../persistence/players/contract';
 
-export interface BackgroundApi {
-  'players.load': { arg: { world: WorldId }; result: Player[] };
-  'players.put': { arg: { rows: Player[] }; result: undefined };
-  'battles.put': { arg: { rows: Battle[] }; result: undefined };
-  'battles.latest': { arg: { world: WorldId; opponent: PlayerId }; result: Battle | null };
-  'battles.list': {
-    arg: { world: WorldId; opponents?: PlayerId[]; limit: number; offset: number };
-    result: Battle[];
-  };
-  'battles.count': { arg: { world: WorldId; opponents?: PlayerId[] }; result: number };
-  'battles.prune': { arg: { before: number }; result: number };
-}
+export interface BackgroundApi extends PlayersApi, BattlesApi {}
 
 export type Method = keyof BackgroundApi;
 export type Arg<M extends Method> = BackgroundApi[M]['arg'];
 export type Result<M extends Method> = BackgroundApi[M]['result'];
+
+export type Handlers<A extends { [M in keyof A]: { arg: unknown; result: unknown } }> = {
+  [M in keyof A]: (arg: A[M]['arg']) => Promise<A[M]['result']>;
+};
 
 export interface RpcRequest<M extends Method = Method> {
   rpc: M;

@@ -1,4 +1,7 @@
 // Content script entry: wires stores, ingestion and features, then connects to the proxy.
+
+import { battlePersistence } from '../persistence/battles/client';
+import { playerPersistence } from '../persistence/players/client';
 import { worldId } from '../shared/ids';
 import { createBus } from './core/events';
 import { boxFactory, type Feature, type FeatureContext } from './core/feature';
@@ -13,7 +16,7 @@ import { pvpFeature } from './features/pvp';
 import { sabotageFeature } from './features/sabotage';
 import { settingsFeature } from './features/settings-feature';
 import { registerGameHandlers } from './game/handlers';
-import { BattleStore, battlePersistence } from './stores/battles';
+import { BattleStore } from './stores/battles';
 import { CatalogStore } from './stores/catalog';
 import { CityStore } from './stores/cities';
 import { PlayerStore } from './stores/players';
@@ -31,10 +34,7 @@ async function main() {
   const settings = new Settings(chromeLocal);
   const ui = new UiState(chromeLocal);
   const session = new SessionStore(bus);
-  const players = new PlayerStore(bus, {
-    load: (w) => callBackground('players.load', { world: w }),
-    put: (rows) => callBackground('players.put', { rows }),
-  });
+  const players = new PlayerStore(bus, playerPersistence(callBackground));
   const battles = new BattleStore(bus, world, battlePersistence(callBackground));
   const cities = new CityStore(bus);
   const catalog = new CatalogStore(bus);
