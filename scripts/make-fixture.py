@@ -4,8 +4,8 @@
 # keeps the first PvP battle and the opponent's updatePlayer, with fake ids and names.
 # Manual battle: python3 -I scripts/make-fixture.py manual-battle <recording.json> <out.json>
 # keeps the first PvP battle that starts without a result and the BattlefieldService response that ends it.
-# Plunder: python3 -I scripts/make-fixture.py plunder <recording.json> <world> <out.json>
-# keeps the plunder entries of the first batch with a plunderById, with fake ids and names.
+# Plunder: python3 -I scripts/make-fixture.py plunder <recording.json> <world> <out.json> [<date>]
+# keeps the plunder entries of the first batch with a plunderById, with fake ids and names. Also for a repelled one.
 
 import json,sys
 
@@ -79,7 +79,7 @@ def manual_battle_fixture(rec,out):
         {'requestClass':'BattlefieldService','requestMethod':move,'responseData':state(end)}]}
     json.dump(fixture,open(out,'w'),indent=1)
 
-def plunder_fixture(rec,world,out):
+def plunder_fixture(rec,world,out,date='2026-10-19'):
     ME,OPP=1000,1001
     batch=next(b for b in (json.loads(r['response']) for r in rec if r['kind']=='json')
         if isinstance(b,list) and any(e.get('requestMethod')=='plunderById' for e in b))
@@ -92,12 +92,14 @@ def plunder_fixture(rec,world,out):
         if m=='reset':
             d=[dict(x,player_id=OPP) for x in d]
         return {'requestClass':e['requestClass'],'requestMethod':m,'responseData':d}
-    fixture={'note':f'Plunder recorded on {world} 2026-10-19 with the response batch it came in, players anonymized (me 1000, opponent 1001), unrelated entries dropped.',
+    result=next(e['responseData'].get('result') for e in batch if e.get('requestMethod')=='plunderById')
+    what='Plunder' if result=='success' else f'Plunder ({result})'
+    fixture={'note':f'{what} recorded on {world} {date} with the response batch it came in, players anonymized (me 1000, opponent 1001), unrelated entries dropped.',
       'me':ME,'batch':[entry(e) for e in batch if e.get('requestMethod') in KEEP]}
     json.dump(fixture,open(out,'w'),indent=1)
 
 if sys.argv[1]=='plunder':
-    plunder_fixture(json.load(open(sys.argv[2])),sys.argv[3],sys.argv[4]); sys.exit()
+    plunder_fixture(json.load(open(sys.argv[2])),sys.argv[3],sys.argv[4],*sys.argv[5:6]); sys.exit()
 if sys.argv[1]=='battle':
     battle_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
 if sys.argv[1]=='manual-battle':
