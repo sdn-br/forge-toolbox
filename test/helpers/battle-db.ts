@@ -2,6 +2,7 @@ import { openDb } from '../../src/background/db';
 import { createHandlers } from '../../src/background/handlers';
 import type { Call } from '../../src/content/core/rpc';
 import { battlePersistence } from '../../src/persistence/battles/client';
+import { greatBuildingPersistence } from '../../src/persistence/great-buildings/client';
 import { incomingPersistence } from '../../src/persistence/incoming/client';
 import { notePersistence } from '../../src/persistence/notes/client';
 import { playerPersistence } from '../../src/persistence/players/client';
@@ -24,5 +25,6 @@ export function testDb() {
     incoming: incomingPersistence(call),
     notes: notePersistence(call),
     shields: shieldPersistence(call),
+    greatBuildings: greatBuildingPersistence(call),
   };
 }

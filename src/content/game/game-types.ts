@@ -203,6 +203,10 @@ export interface GameEvent {
   battle_id?: number;
   /** battle only, from the attacked player's view; known: "lost" */
   status?: string;
+  /** great_building_contribution only (not recorded yet): display name of the building, its new level, own rank */
+  great_building_name?: string;
+  level?: number;
+  rank?: number;
 }
 
 /**
@@ -237,4 +241,44 @@ export interface GameResearchTechnology {
 /** ResearchService.getProgress; `unlockedNodes` are technology ids (seen 2026-10-21). */
 export interface GameResearchProgress {
   unlockedNodes?: string[];
+}
+
+/** What a place of a great building pays (GreatBuildingRankingRowReward, seen 2026-10-21). */
+export interface GameGreatBuildingReward {
+  strategy_point_amount?: number;
+  blueprints?: number;
+  blueprintRewards?: { amount?: number; tier?: { value?: string } }[];
+  resources?: { medals?: number };
+}
+
+/**
+ * A row of the ranking of a great building (GreatBuildingRankingRow, seen 2026-10-21). The owner's row has no `rank`,
+ * an empty place no `forge_points`, a place without pay no `reward`. Empty places and deleted players lack `player_id`.
+ */
+export interface GameGreatBuildingRankingRow {
+  rank?: number;
+  player?: { player_id?: number; name?: string; is_self?: boolean };
+  forge_points?: number;
+  reward?: GameGreatBuildingReward;
+}
+
+/** GreatBuildingsService.getConstruction (seen 2026-10-21) */
+export interface GameGreatBuildingConstruction {
+  rankings?: GameGreatBuildingRankingRow[];
+  ownerEra?: string;
+}
+
+/** a great building in InventoryService.getGreatBuildings (`cityentity_id`) or getOtherPlayerOverview (`city_entity_id`) */
+export interface GameGreatBuildingName {
+  cityentity_id?: string;
+  city_entity_id?: string;
+  name?: string;
+}
+
+/** an entry of BonusService.getLimitedBonuses (seen 2026-10-21, none of type contribution_boost then) */
+export interface GameLimitedBonus {
+  type?: string;
+  value?: number;
+  entityId?: number;
+  isActive?: boolean;
 }

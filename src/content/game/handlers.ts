@@ -10,6 +10,8 @@ import type { PlayerObservation } from '../stores/players';
 import { toBuildingDef } from './building-defs';
 import {
   armyBattleType,
+  greatBuildingOf,
+  greatBuildingRequest,
   isBattleState,
   isOwnPvpBattle,
   isPlunderedEntity,
@@ -20,10 +22,15 @@ import {
   toBuilding,
   toCity,
   toCityGrid,
+  toGreatBuildingEntity,
+  toGreatBuildingLevelUp,
+  toGreatBuildingNames,
   toIncoming,
+  toLimitedBonuses,
   toObservation,
   toObservationWithAttack,
   toPlunder,
+  toRankingRows,
   toRepelledPlunder,
   toResearchExpansions,
   toResourceBag,
@@ -40,6 +47,7 @@ import type {
   GameEra,
   GameEvent,
   GameEventPage,
+  GameGreatBuildingConstruction,
   GameSocialList,
   GameStartup,
   GameVisit,
@@ -76,6 +84,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     plunders,
     incoming,
     shields,
+    greatBuildings,
   } = deps;
 
   ingestion.on('StartupService', 'getData', ({ data }) => {
@@ -277,6 +286,52 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   ingestion.on('ResearchService', 'getProgress', ({ data }) => {
     const nodes = toUnlockedNodes(data);
     if (nodes) research.setUnlocked(nodes);
+  });
+
+  // Great buildings. Opening one of another player sends the building (getOtherPlayerCityMapEntity) and then its
+  // construction, both with the request [entityId, playerId] (seen 2026-10-21). An own one comes without the building,
+  // which the own city knows. Without the request a construction cannot be placed and is skipped.
+  ingestion.on('OtherPlayerService', 'getOtherPlayerCityMapEntity', ({ data }) => {
+    const entity = toGreatBuildingEntity(data as GameCityEntity);
+    if (entity) greatBuildings.noteEntity(entity);
+  });
+  ingestion.on('GreatBuildingsService', 'getConstruction', ({ data, request }) => {
+    const target = greatBuildingRequest(request);
+    const rows = toRankingRows((data as GameGreatBuildingConstruction | null)?.rankings);
+    if (!target || !rows) return;
+    const own = target.owner === session.current?.playerId;
+    const city = own ? cities.own() : cities.visited();
+    const known = city?.owner === target.owner ? greatBuildingOf(city.buildings.get(target.entityId)) : undefined;
+    greatBuildings.openConstruction(target.owner, target.entityId, own, rows, known);
+  });
+  // [entityId, playerId, level]: the level being built repeats the current rankings, a lower one is finished
+  ingestion.on('GreatBuildingsService', 'getConstructionRanking', ({ data, request }) => {
+    const target = greatBuildingRequest(request);
+    const rows = toRankingRows(data);
+    if (target?.level !== undefined && rows)
+      greatBuildings.levelRanking(target.owner, target.entityId, target.level, rows);
+  });
+  // Not recorded yet. Assumed: the answer is the new rankings list of the building contributed to, and the request
+  // starts with [entityId, playerId] like the others; without it the open construction is meant.
+  ingestion.on('GreatBuildingsService', 'contributeForgePoints', ({ data, request }) => {
+    const rows = toRankingRows(Array.isArray(data) ? data : (data as GameGreatBuildingConstruction | null)?.rankings);
+    const target = greatBuildingRequest(request);
+    if (rows) greatBuildings.contributed(rows, target ?? undefined);
+  });
+  // names of great buildings, which the level up event uses instead of an id; the definitions may not be loaded
+  ingestion.on('InventoryService', 'getGreatBuildings', ({ data }) => {
+    catalog.setGreatBuildingNames(toGreatBuildingNames(data));
+  });
+  ingestion.on('GreatBuildingsService', 'getOtherPlayerOverview', ({ data }) => {
+    catalog.setGreatBuildingNames(toGreatBuildingNames(data));
+  });
+  ingestion.on('BonusService', 'getLimitedBonuses', ({ data }) => {
+    greatBuildings.setLimitedBonuses(toLimitedBonuses(data));
+  });
+  // Not recorded yet: a great building the player invested in levelled up, named by owner and display name only.
+  ingestion.on('OtherPlayerService', 'newEvent', ({ data }) => {
+    const up = toGreatBuildingLevelUp(data as GameEvent);
+    if (up) greatBuildings.leveled(up.owner, catalog.greatBuildingsNamed(up.name), up.level, up.rank);
   });
 
   // debt: own city ignores placeBuilding, removeBuilding and moveEntity. ceiling: own city is stale after building

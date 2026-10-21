@@ -18,9 +18,11 @@ import type {
   IncomingAttack,
   Plunder,
 } from '../../shared/model';
+import type { LimitedBonus } from '../domain/gb-calculator';
 import type { CityGrid } from '../stores/catalog';
 import type { VisitInfo } from '../stores/cities';
 import type { Area, Building, BuildingState, City, ExpansionOffer, Product } from '../stores/city-model';
+import type { GreatBuildingEntity, PlaceReward, RankingRow } from '../stores/great-building-model';
 import type { PlayerObservation } from '../stores/players';
 import type { ResearchExpansion } from '../stores/research';
 import type { Session } from '../stores/session';
@@ -34,7 +36,11 @@ import type {
   GameCityMapArea,
   GameCityProtection,
   GameEvent,
+  GameGreatBuildingName,
+  GameGreatBuildingRankingRow,
+  GameGreatBuildingReward,
   GameGrid,
+  GameLimitedBonus,
   GamePlayer,
   GamePlunderResult,
   GameProduct,
@@ -467,4 +473,113 @@ export function toShields(world: WorldId, data: unknown): CityShield[] {
     if (typeof player !== 'number' || typeof end !== 'number' || !(end > 0)) return [];
     return [{ world, player: playerId(player), expiresAt: end * 1000 }];
   });
+}
+
+const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
+
+function toPlaceReward(r: GameGreatBuildingReward | undefined): PlaceReward | undefined {
+  if (!r || typeof r !== 'object') return undefined;
+  const pieces = (r.blueprintRewards ?? []).reduce((sum, b) => sum + (num(b?.amount) ?? 0), 0);
+  return {
+    fp: num(r.strategy_point_amount) ?? 0,
+    blueprints: num(r.blueprints) ?? pieces,
+    medals: num(r.resources?.medals) ?? 0,
+  };
+}
+
+/** The ranking rows of a construction, in the order the game sends them; null when `data` is no list. */
+export function toRankingRows(data: unknown): RankingRow[] | null {
+  if (!Array.isArray(data)) return null;
+  return data.flatMap((r: GameGreatBuildingRankingRow | null) => {
+    if (!r || typeof r !== 'object') return [];
+    const id = num(r.player?.player_id);
+    const rank = num(r.rank);
+    const fp = num(r.forge_points);
+    const reward = toPlaceReward(r.reward);
+    const row: RankingRow = { name: r.player?.name ?? '', self: r.player?.is_self === true };
+    if (rank !== undefined) row.rank = rank;
+    if (id !== undefined) row.player = playerId(id);
+    if (fp !== undefined) row.fp = fp;
+    if (reward) row.reward = reward;
+    return [row];
+  });
+}
+
+/**
+ * A great building from a city entity, for example `OtherPlayerService.getOtherPlayerCityMapEntity`. The game leaves
+ * out fields that are 0 (seen: `y`, `invested_forge_points`), so a missing `connected` means not connected.
+ */
+export function toGreatBuildingEntity(e: GameCityEntity | null | undefined): GreatBuildingEntity | null {
+  const id = num(e?.id);
+  const owner = num(e?.player_id);
+  if (e?.type !== 'greatbuilding' || id === undefined || owner === undefined || !e.cityentity_id) return null;
+  return {
+    owner: playerId(owner),
+    entityId: id,
+    def: buildingDefId(e.cityentity_id),
+    level: num(e.level) ?? 0,
+    maxLevel: num(e.max_level) ?? 0,
+    invested: num(e.state?.invested_forge_points) ?? 0,
+    required: num(e.state?.forge_points_for_level_up) ?? 0,
+    connected: (num(e.connected) ?? 0) > 0,
+  };
+}
+
+/** A great building of a known city, for constructions that come without an opening (the own ones). */
+export function greatBuildingOf(b: Building | undefined): GreatBuildingEntity | undefined {
+  const gb = b?.greatBuilding;
+  if (!b || !gb) return undefined;
+  return {
+    owner: b.owner,
+    entityId: b.id,
+    def: b.def,
+    level: gb.level,
+    maxLevel: gb.maxLevel,
+    invested: gb.investedFp ?? 0,
+    required: gb.fpForLevelUp ?? 0,
+    connected: b.connected,
+  };
+}
+
+/** `[entityId, playerId, level?]` of the GreatBuildingsService requests (seen 2026-10-21) */
+export function greatBuildingRequest(request: unknown): { entityId: number; owner: PlayerId; level?: number } | null {
+  if (!Array.isArray(request)) return null;
+  const [entityId, owner, level] = request.map(num);
+  if (entityId === undefined || owner === undefined) return null;
+  return { entityId, owner: playerId(owner), ...(level !== undefined && { level }) };
+}
+
+/** Display names of great buildings by definition, from the inventory list or the overview of a player. */
+export function toGreatBuildingNames(data: unknown): Record<string, string> {
+  const names: Record<string, string> = {};
+  for (const g of (Array.isArray(data) ? data : []) as (GameGreatBuildingName | null)[]) {
+    const id = g?.cityentity_id ?? g?.city_entity_id;
+    if (id && typeof g?.name === 'string') names[id] = g.name;
+  }
+  return names;
+}
+
+/** The active limited bonuses; `isActive: false` ones are dropped. */
+export function toLimitedBonuses(data: unknown): LimitedBonus[] {
+  return ((Array.isArray(data) ? data : []) as (GameLimitedBonus | null)[]).flatMap((b) => {
+    const value = num(b?.value);
+    if (!b?.type || value === undefined || b.isActive === false) return [];
+    const entityId = num(b.entityId);
+    return [{ type: b.type, value, ...(entityId !== undefined && { entityId }) }];
+  });
+}
+
+/**
+ * A great building the session player invested in levelled up (`newEvent` of type great_building_contribution). Not
+ * recorded yet, the fields are assumed. The event names the building only by its display name.
+ */
+export function toGreatBuildingLevelUp(
+  e: GameEvent | null,
+): { owner: PlayerId; name: string; level: number; rank?: number } | null {
+  const owner = num(e?.other_player?.player_id);
+  const level = num(e?.level);
+  if (e?.type !== 'great_building_contribution' || owner === undefined || level === undefined) return null;
+  if (typeof e.great_building_name !== 'string') return null;
+  const rank = num(e.rank);
+  return { owner: playerId(owner), name: e.great_building_name, level, ...(rank !== undefined && { rank }) };
 }

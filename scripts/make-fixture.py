@@ -9,6 +9,10 @@
 # Events: python3 -I scripts/make-fixture.py events <list-recording.json> <live-recording.json> <out.json>
 # keeps the getEventsPaginated page with the first battle event (the battle and one event of each other kind) and the
 # first websocket newEvent, with fake ids and names.
+# Great buildings: python3 -I scripts/make-fixture.py gb <recording.json> <out.json>
+# keeps every opening of another player's great building (the building and its construction), the overview of each
+# owner for the names, the first getConstructionRanking, the own construction and the own great buildings with a
+# contribution_boost from the startup data, with fake player ids and names.
 
 import json,sys
 
@@ -135,6 +139,78 @@ def events_fixture(listed,live,out):
       'live':[{'requestClass':'OtherPlayerService','requestMethod':'newEvent','responseData':event(new)}]}
     json.dump(fixture,open(out,'w'),indent=1)
 
+def gb_fixture(rec,out):
+    ME=1000
+    batches=[]
+    for r in rec:
+        if r['kind']!='json': continue
+        try: res=json.loads(r['response']); req=json.loads(r['request'] or '[]')
+        except (TypeError,ValueError): continue
+        if not isinstance(res,list): continue
+        reqs={(q.get('requestClass'),q.get('requestMethod')):q.get('requestData') for q in req if isinstance(q,dict)}
+        batches.append([dict(e,requestData=reqs.get((e.get('requestClass'),e.get('requestMethod')))) for e in res if isinstance(e,dict)])
+    startup=next(e['responseData'] for b in batches for e in b if e.get('requestMethod')=='getData' and e.get('requestClass')=='StartupService')
+    me_real=startup['user_data']['player_id']
+    ids={me_real:ME}; owners=iter(range(1001,1100)); others=iter(range(2001,3000))
+    def pid(p,owner=False):
+        if p not in ids: ids[p]=next(owners if owner else others)
+        return ids[p]
+    def name(p): return 'Ich' if p==ME else (f'Eigentümer {p}' if p<2000 else f'Spieler {p}')
+    def entity(x):
+        st=x.get('state',{})
+        o={k:x[k] for k in ('id','cityentity_id','type','x','y','connected','level','max_level') if k in x}
+        o['player_id']=pid(x['player_id'],True)
+        o['state']={k:st[k] for k in ('invested_forge_points','forge_points_for_level_up','__class__') if k in st}
+        if x.get('bonus'): o['bonus']={k:x['bonus'][k] for k in ('type','value','amount','__class__') if k in x['bonus']}
+        return o
+    def row(x):
+        o={k:x[k] for k in ('rank','forge_points','reward','__class__') if k in x}
+        p=x.get('player',{})
+        if 'player_id' in p:
+            n=pid(p['player_id']); player={'player_id':n,'name':name(n),'avatar':''}
+        elif 'forge_points' in x: player={'name':'Gelöschter Spieler','avatar':''}
+        else: player={'name':p.get('name',''),'avatar':''}
+        if p.get('is_self'): player['is_self']=True
+        o['player']=dict(player,__class__=p.get('__class__'))
+        return o
+    def entry(e,data,req):
+        return {'requestClass':e['requestClass'],'requestMethod':e['requestMethod'],'requestData':req,'responseData':data}
+    flat=[e for b in batches for e in b]
+    openings=[]; own=None; ranking=None; overviews={}
+    for i,e in enumerate(flat):
+        m=e.get('requestMethod'); req=e.get('requestData')
+        if m=='getConstruction':
+            ent_id,owner=req[0],req[1]
+            if owner!=me_real: pid(owner,True)
+            d=dict(e['responseData'],rankings=[row(x) for x in e['responseData']['rankings']])
+            d={k:v for k,v in d.items() if k in ('rankings','ownerEra','__class__')}
+            if owner==me_real:
+                if own is None: own=entry(e,d,[ent_id,ME])
+                continue
+            ent=next(x for x in reversed(flat[:i]) if x.get('requestMethod')=='getOtherPlayerCityMapEntity' and x.get('requestData')==req)
+            o=pid(owner,True)
+            openings.append({'entity':entry(ent,entity(ent['responseData']),[ent_id,o]),'construction':entry(e,d,[ent_id,o])})
+        elif m=='getConstructionRanking' and ranking is None and req[1]!=me_real:
+            pid(req[1],True)
+            ranking=entry(e,[row(x) for x in e['responseData']],[req[0],pid(req[1],True),req[2]])
+        elif m=='getOtherPlayerOverview' and req and req[0] not in overviews:
+            overviews[req[0]]=e
+    names=[]
+    for real,e in overviews.items():
+        if real not in ids: continue
+        names.append(entry(e,[{k:x[k] for k in ('entity_id','city_entity_id','name','level') if k in x} for x in e['responseData']],[ids[real]]))
+    arc=[entity(x) for x in startup['city_map']['entities'] if x.get('type')=='greatbuilding' and (x.get('bonus') or {}).get('type')=='contribution_boost']
+    ids[me_real]=ME
+    fixture={'note':'Great building openings recorded on de20 2026-10-21: four buildings of other players (the building and its construction), the overview of each owner for the names, a finished level (getConstructionRanking), the own Arc construction and the own Arc from the startup data. Player ids and names replaced (me 1000, owners from 1001, others from 2001), unrelated fields dropped.',
+      'me':ME,
+      'startup':[{'requestClass':'StartupService','requestMethod':'getData','requestData':None,'responseData':{
+        'user_data':{'player_id':ME,'user_name':'Ich','era':startup['user_data'].get('era')},
+        'city_map':{'gridId':'main','entities':arc}}}],
+      'openings':openings,'overviews':names,'ranking':ranking,'own':own}
+    json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
+
+if sys.argv[1]=='gb':
+    gb_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
 if sys.argv[1]=='events':
     events_fixture(json.load(open(sys.argv[2])),json.load(open(sys.argv[3])),sys.argv[4]); sys.exit()
 if sys.argv[1]=='plunder':

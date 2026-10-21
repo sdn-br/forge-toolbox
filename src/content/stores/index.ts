@@ -1,5 +1,6 @@
 // All stores of one world, built in one place: a new store touches this file and nothing else in the wiring.
 import { battlePersistence } from '../../persistence/battles/client';
+import { greatBuildingPersistence } from '../../persistence/great-buildings/client';
 import { incomingPersistence } from '../../persistence/incoming/client';
 import { notePersistence } from '../../persistence/notes/client';
 import { playerPersistence } from '../../persistence/players/client';
@@ -11,6 +12,7 @@ import type { Call } from '../core/rpc';
 import { BattleStore } from './battles';
 import { CatalogStore } from './catalog';
 import { CityStore } from './cities';
+import { GreatBuildingStore } from './great-buildings';
 import { IncomingStore } from './incoming';
 import { NoteStore } from './notes';
 import { PlayerStore } from './players';
@@ -32,6 +34,7 @@ export interface Stores {
   incoming: IncomingStore;
   shields: ShieldStore;
   notes: NoteStore;
+  greatBuildings: GreatBuildingStore;
 }
 
 /** `call` reaches the persistence in the service worker; `now` is the clock of the stores that keep times. */
@@ -48,5 +51,6 @@ export function createStores(world: WorldId, bus: ToolboxBus, call: Call, now: (
     incoming: new IncomingStore(bus, world, incomingPersistence(call)),
     shields: new ShieldStore(bus, world, shieldPersistence(call), now),
     notes: new NoteStore(bus, world, notePersistence(call), now),
+    greatBuildings: new GreatBuildingStore(bus, world, greatBuildingPersistence(call), now),
   };
 }

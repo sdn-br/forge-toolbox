@@ -1,13 +1,21 @@
 // Typed calls from the content script to the service worker, which owns the database.
 // Each stored domain declares its calls in src/persistence/<domain>/contract.ts.
 import type { BattlesApi } from '../persistence/battles/contract';
+import type { GreatBuildingsApi } from '../persistence/great-buildings/contract';
 import type { IncomingApi } from '../persistence/incoming/contract';
 import type { NotesApi } from '../persistence/notes/contract';
 import type { PlayersApi } from '../persistence/players/contract';
 import type { PlundersApi } from '../persistence/plunders/contract';
 import type { ShieldsApi } from '../persistence/shields/contract';
 
-export interface BackgroundApi extends PlayersApi, BattlesApi, PlundersApi, IncomingApi, NotesApi, ShieldsApi {}
+export interface BackgroundApi
+  extends PlayersApi,
+    BattlesApi,
+    PlundersApi,
+    IncomingApi,
+    NotesApi,
+    ShieldsApi,
+    GreatBuildingsApi {}
 
 export type Method = keyof BackgroundApi;
 export type Arg<M extends Method> = BackgroundApi[M]['arg'];
