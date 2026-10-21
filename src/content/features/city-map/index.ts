@@ -26,6 +26,7 @@ export const cityMapFeature: Feature = {
       id: 'cityMap',
       title: () => t('cityMap.title'),
       width: 500,
+      fill: true,
       render: () => {
         const city = ctx.cities.own();
         if (!city) return cityMapView(undefined, ui, actions);

@@ -100,4 +100,47 @@ describe('city map', () => {
     expect(outside).not.toHaveBeenCalled();
     document.removeEventListener('wheel', outside);
   });
+
+  it.each(['top', 'iso'] as const)('centers a building it is asked to focus (%s)', (mode) => {
+    const { map } = mount(new CityMap({ mode }));
+    expect(map.tileIndexAt(100, 50)).not.toBe(0);
+    map.focus(data.tiles[0] as CityMapData['tiles'][number]);
+    expect(map.tileIndexAt(100, 50)).toBe(0);
+  });
+
+  it('focuses once the canvas has a size when asked before', () => {
+    const map = new CityMap();
+    const root = document.createElement('div');
+    document.body.append(root);
+    render(map.render(data), root);
+    map.focus({ x: 0, y: 0, width: 3, length: 2 });
+    const canvas = root.querySelector('canvas') as HTMLCanvasElement;
+    Object.defineProperty(canvas, 'clientWidth', { value: 200 });
+    Object.defineProperty(canvas, 'clientHeight', { value: 100 });
+    // what the size observer does once the box is laid out
+    map.draw();
+    expect(map.tileIndexAt(100, 50)).toBe(0);
+  });
+});
+
+describe('city map in another window', () => {
+  it('watches its size with the observer of the window it was moved to and redraws on a resize there', async () => {
+    const { Window } = await import('happy-dom');
+    const popup = new Window() as unknown as globalThis.Window & { ResizeObserver: unknown };
+    const observed: { target: Element; redraw: () => void }[] = [];
+    popup.ResizeObserver = class {
+      constructor(private redraw: () => void) {}
+      observe(target: Element) {
+        observed.push({ target, redraw: this.redraw });
+      }
+      disconnect() {}
+    };
+    const { map, canvas, root } = mount();
+    popup.document.body.append(root);
+    map.draw();
+    expect(observed.map((o) => o.target)).toEqual([canvas]);
+    const draw = vi.spyOn(map, 'draw');
+    observed[0]?.redraw();
+    expect(draw).toHaveBeenCalled();
+  });
 });

@@ -6,6 +6,9 @@ export interface BoxState {
   y?: number;
   pinned?: boolean;
   minimized?: boolean;
+  /** size set by the viewer, in pixels; without it the box has its default width and the height of its content */
+  width?: number;
+  height?: number;
 }
 
 /** Remembers position and flags of each box, and small view choices of features, across page loads. */

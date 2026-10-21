@@ -74,7 +74,46 @@ describe('sabotage view model', () => {
       now,
       record: {},
     });
-    expect(vm.plunderable).toEqual([{ name: 'Haus', items: [{ label: 'Münzen', amount: 20 }] }]);
+    expect(vm.plunderable).toEqual([
+      { building: 1, name: 'Haus', important: false, items: [{ label: 'Münzen', amount: 20 }] },
+    ]);
+  });
+
+  it('lists important plunders first, by Forge points, then other loot, then coins and supplies, then by name', () => {
+    const p = (building: number, name: string, resources: Record<string, number>) => ({ building, name, resources });
+    const vm = sabotageViewModel({
+      city,
+      player: undefined,
+      assessment: {
+        ...assessment,
+        plunderable: [
+          p(1, 'Münzhaus', { money: 20_000 }),
+          p(2, 'Güterlager', { marble: 500 }),
+          p(3, 'Kleines FP-Haus', { strategy_points: 4 }),
+          p(4, 'Vorratshof', { supplies: 300 }),
+          p(5, 'Großes FP-Haus', { strategy_points: 10, money: 5 }),
+          p(6, 'Gildenhalle', { guild_power: 120 }),
+          p(7, 'Andere Münzen', { money: 300 }),
+          p(8, 'Aaa Münzen', { money: 300 }),
+          p(9, 'FP und Güter', { strategy_points: 4, marble: 5 }),
+        ],
+      },
+      catalog: new CatalogStore(createBus()),
+      showArmy: false,
+      now,
+      record: {},
+    });
+    expect(vm.plunderable.map((i) => [i.name, i.important])).toEqual([
+      ['Großes FP-Haus', true],
+      ['FP und Güter', true],
+      ['Kleines FP-Haus', true],
+      ['Güterlager', true],
+      ['Gildenhalle', true],
+      ['Münzhaus', false],
+      ['Aaa Münzen', false],
+      ['Andere Münzen', false],
+      ['Vorratshof', false],
+    ]);
   });
 
   it('shows the last own plunder here with building, loot and Double Loot, and the totals', () => {

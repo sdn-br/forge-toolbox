@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   backToFront,
+  centerOn,
   fromPlane,
   type MapMode,
   project,
@@ -82,5 +83,37 @@ describe('map projection', () => {
     const middle = { x: 4, y: 0, width: 1, length: 1 };
     expect(backToFront('iso', [front, back, middle])).toEqual([back, middle, front]);
     expect(backToFront('top', [front, back, middle])).toEqual([front, back, middle]);
+  });
+
+  const middleOf = (mode: MapMode, view: Parameters<typeof project>[4], r: { x: number; y: number }) =>
+    toScreen(project(mode, bounds, 300, 200, view), r.x, r.y);
+
+  it.each<MapMode>(['top', 'iso'])(
+    'centers a building in the view and keeps the zoom when it is big enough (%s)',
+    (mode) => {
+      const rect = { x: 7, y: 2, width: 3, length: 2 };
+      const view = centerOn(mode, bounds, 300, 200, { zoom: 2, panX: 40, panY: -10 }, rect, 20);
+      expect(view.zoom).toBe(2);
+      const middle = middleOf(mode, view, { x: 8.5, y: 3 });
+      expect(middle.x).toBeCloseTo(150);
+      expect(middle.y).toBeCloseTo(100);
+    },
+  );
+
+  it.each<MapMode>(['top', 'iso'])('zooms in until a small building is wide enough (%s)', (mode) => {
+    const rect = { x: 1, y: 8, width: 1, length: 1 };
+    const view = centerOn(mode, bounds, 300, 200, WHOLE_MAP, rect, 40);
+    const p = project(mode, bounds, 300, 200, view);
+    const left = toScreen(p, 1, 9);
+    const right = toScreen(p, 2, 8);
+    // from above the tile is a square, isometric a diamond with its left and right corner on one line
+    expect(Math.max(right.x - left.x, toScreen(p, 2, 9).x - toScreen(p, 1, 8).x)).toBeCloseTo(40);
+    const middle = toScreen(p, 1.5, 8.5);
+    expect(middle.x).toBeCloseTo(150);
+    expect(middle.y).toBeCloseTo(100);
+  });
+
+  it('zooms no further in than the largest zoom', () => {
+    expect(centerOn('top', bounds, 300, 200, WHOLE_MAP, { x: 0, y: 0, width: 1, length: 1 }, 10_000).zoom).toBe(12);
   });
 });

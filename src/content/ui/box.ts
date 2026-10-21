@@ -8,11 +8,18 @@ export interface BoxOptions {
   id: string;
   title: () => string;
   render: () => TemplateResult;
+  /** default width in pixels until the viewer resizes the box */
   width?: number;
+  /** the content fills the body once the box has a height (resized or popped out), e.g. a map */
+  fill?: boolean;
   onClose?: () => void;
 }
 
 let topZ = 2147480000;
+
+/** the smallest size a box can be dragged to */
+export const MIN_WIDTH = 260;
+export const MIN_HEIGHT = 150;
 
 export class Box {
   private host = document.createElement('div');
@@ -38,7 +45,10 @@ export class Box {
   }
 
   close(): void {
-    this.popup?.close();
+    // the window reports pagehide only after this; without the popup that handler leaves the closed box alone
+    const popup = this.popup;
+    this.popup = null;
+    popup?.close();
     this.host.remove();
     this.options.onClose?.();
   }
@@ -61,13 +71,25 @@ export class Box {
   private template(): TemplateResult {
     const state = this.ui.box(this.options.id);
     const popped = this.popup !== null;
-    const width = this.options.width ?? 320;
+    const width = this.width();
     const x = state.x ?? Math.max(0, window.innerWidth - width - 90);
     const y = state.y ?? 90;
-    const classes = ['box', state.pinned && 'pinned', state.minimized && 'minimized', popped && 'popped']
+    // a saved height counts only while the box shows its body; minimized it is just the header
+    const height =
+      state.height !== undefined && !state.minimized ? clamp(state.height, MIN_HEIGHT, window.innerHeight) : undefined;
+    const classes = [
+      'box',
+      state.pinned && 'pinned',
+      state.minimized && 'minimized',
+      popped && 'popped',
+      !popped && state.width !== undefined && 'sized',
+      !popped && height !== undefined && 'tall',
+    ]
       .filter(Boolean)
       .join(' ');
-    const style = popped ? '' : `left:${x}px;top:${y}px;width:${width}px;z-index:${this.z}`;
+    const size = `width:${width}px${height === undefined ? '' : `;height:${height}px`}`;
+    const style = popped ? '' : `left:${x}px;top:${y}px;${size};z-index:${this.z}`;
+    const resizable = !popped && !state.minimized;
     return html`<style>${baseCss}</style>
       <div class=${classes} style=${style} @pointerdown=${() => this.raise()}>
         <header @pointerdown=${(e: PointerEvent) => this.startDrag(e)}>
@@ -83,8 +105,22 @@ export class Box {
           }
           <button title=${t('box.close')} @click=${() => this.close()}>✕</button>
         </header>
-        <div class="body">${this.options.render()}</div>
+        <div class=${this.options.fill ? 'body fill' : 'body'}>${this.options.render()}</div>
+        ${
+          resizable
+            ? html`<div class="resize-handle" title=${t('box.resize')}
+              @pointerdown=${(e: PointerEvent) => this.startResize(e)}
+              @dblclick=${() => this.set({ width: undefined, height: undefined })}></div>`
+            : ''
+        }
       </div>`;
+  }
+
+  /** the saved width, else the configured one; never wider than the window */
+  private width(): number {
+    const saved = this.ui.box(this.options.id).width;
+    if (saved === undefined) return this.options.width ?? 320;
+    return clamp(saved, MIN_WIDTH, window.innerWidth);
   }
 
   private z = ++topZ;
@@ -122,8 +158,34 @@ export class Box {
     frame.addEventListener('pointerup', up);
   }
 
+  /** Drags the bottom right corner. Independent of moving: the header moves, the handle sizes. */
+  private startResize(event: PointerEvent) {
+    event.stopPropagation();
+    const handle = event.currentTarget as HTMLElement;
+    const box = handle.parentElement as HTMLElement;
+    const start = box.getBoundingClientRect();
+    const size = (e: PointerEvent) => ({
+      width: Math.round(clamp(start.width + e.clientX - event.clientX, MIN_WIDTH, window.innerWidth - start.left)),
+      height: Math.round(clamp(start.height + e.clientY - event.clientY, MIN_HEIGHT, window.innerHeight - start.top)),
+    });
+    handle.setPointerCapture?.(event.pointerId);
+    const move = (e: PointerEvent) => {
+      const { width, height } = size(e);
+      box.style.width = `${width}px`;
+      box.style.height = `${height}px`;
+      box.classList.add('sized', 'tall');
+    };
+    const up = (e: PointerEvent) => {
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      this.set(size(e));
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+  }
+
   private async popOut() {
-    const width = (this.options.width ?? 320) + 20;
+    const width = this.width() + 20;
     const height = Math.min(Math.max(this.host.shadowRoot?.querySelector('.box')?.scrollHeight ?? 300, 220), 800);
     const pip = (window as { documentPictureInPicture?: { requestWindow(o: object): Promise<Window> } })
       .documentPictureInPicture;
@@ -140,8 +202,9 @@ export class Box {
     win.document.body.style.margin = '0';
     win.document.body.append(this.host);
     win.addEventListener('pagehide', () => {
+      if (this.popup !== win) return;
       this.popup = null;
-      if (this.host.ownerDocument !== document) {
+      if (this.host.isConnected && this.host.ownerDocument !== document) {
         document.documentElement.append(this.host);
         this.update();
       }
@@ -149,3 +212,6 @@ export class Box {
     this.update();
   }
 }
+
+/** `value` within `min` and `max`; a max below the min gives the min */
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));

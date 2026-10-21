@@ -51,14 +51,20 @@ export interface Projection {
   originY: number;
 }
 
+/** The smallest box around a rectangle of tiles in the plane of the mode. */
+function planeBox(mode: MapMode, r: TileRect) {
+  const plane = corners(r).map((c) => toPlane(mode, c.x, c.y));
+  const minX = Math.min(...plane.map((p) => p.x));
+  const minY = Math.min(...plane.map((p) => p.y));
+  const maxX = Math.max(...plane.map((p) => p.x));
+  const maxY = Math.max(...plane.map((p) => p.y));
+  return { minX, minY, maxX, maxY };
+}
+
 /** Fits the bounds into a box of `width` × `height` pixels, centered, then applies zoom and pan. */
 export function project(mode: MapMode, bounds: Bounds, width: number, height: number, view: MapView): Projection {
   const rect = { x: bounds.x1, y: bounds.y1, width: bounds.x2 - bounds.x1 + 1, length: bounds.y2 - bounds.y1 + 1 };
-  const plane = corners(rect).map((c) => toPlane(mode, c.x, c.y));
-  const minX = Math.min(...plane.map((p) => p.x));
-  const maxX = Math.max(...plane.map((p) => p.x));
-  const minY = Math.min(...plane.map((p) => p.y));
-  const maxY = Math.max(...plane.map((p) => p.y));
+  const { minX, minY, maxX, maxY } = planeBox(mode, rect);
   const scale = Math.min(width / (maxX - minX), height / (maxY - minY)) * view.zoom;
   return {
     mode,
@@ -106,4 +112,31 @@ export function zoomAt(
 export function backToFront<T extends TileRect>(mode: MapMode, rects: T[]): T[] {
   if (mode === 'top') return rects;
   return [...rects].sort((a, b) => a.x + a.width + a.y + a.length - (b.x + b.width + b.y + b.length));
+}
+
+/**
+ * Puts the middle of `rect` into the middle of the screen. Keeps the zoom, unless the building would show narrower
+ * than `minSize` pixels; then it zooms in until it is that wide (or as far as the zoom goes).
+ */
+export function centerOn(
+  mode: MapMode,
+  bounds: Bounds,
+  width: number,
+  height: number,
+  view: MapView,
+  rect: TileRect,
+  minSize: number,
+): MapView {
+  const box = planeBox(mode, rect);
+  const extent = Math.max(box.maxX - box.minX, box.maxY - box.minY);
+  const whole = project(mode, bounds, width, height, WHOLE_MAP);
+  const needed = extent > 0 ? minSize / (extent * whole.scale) : 1;
+  const zoom = Math.min(MAX_ZOOM, Math.max(1, view.zoom, needed));
+  const base = project(mode, bounds, width, height, { zoom, panX: 0, panY: 0 });
+  const middle = { x: (box.minX + box.maxX) / 2, y: (box.minY + box.maxY) / 2 };
+  return {
+    zoom,
+    panX: width / 2 - base.originX - middle.x * base.scale,
+    panY: height / 2 - base.originY - middle.y * base.scale,
+  };
 }

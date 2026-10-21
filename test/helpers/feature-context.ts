@@ -39,6 +39,10 @@ export function recordingBox(options: BoxOptions) {
     updates,
     /** the drawn content, for inputs and lists */
     root: container,
+    /** the title the box shows right now */
+    get title() {
+      return options.title();
+    },
     /** the box as it looks right now */
     get text() {
       return container.textContent ?? '';

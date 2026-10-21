@@ -1,9 +1,13 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { FOCUS_OUTLINE } from '../src/content/features/sabotage/city-map';
 import { sabotageFeature } from '../src/content/features/sabotage/index';
 import { type BattlePersistence, BattleStore } from '../src/content/stores/battles';
+import type { BuildingDef } from '../src/content/stores/catalog';
 import type { VisitedCity } from '../src/content/stores/cities';
+import type { Building } from '../src/content/stores/city-model';
 import type { PlayerObservation } from '../src/content/stores/players';
+import { CityMap, type CityMapData } from '../src/content/ui/city-map';
 import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { AttackTimer, Battle, IncomingAttack, Plunder } from '../src/shared/model';
 import { featureContext } from './helpers/feature-context';
@@ -80,7 +84,48 @@ const observed = (id: number, attack: AttackTimer): PlayerObservation => ({
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
+
+const houseDef = (id: string, name: string): BuildingDef => ({
+  id: buildingDefId(id),
+  name,
+  generic: false,
+  size: { width: 2, length: 2 },
+  flags: { motivatable: false, polishable: false, plunderable: true },
+  boostsByEra: {},
+  productByEra: {},
+});
+
+const house = (id: number, owner: number, def: string, x: number, resources?: Record<string, number>): Building => ({
+  id,
+  owner: playerId(owner),
+  def: buildingDefId(def),
+  type: 'residential',
+  x,
+  y: 0,
+  connected: true,
+  state: resources ? { kind: 'finished', product: { resources } } : { kind: 'idle' },
+});
+
+const withBuildings = (owner: number, buildings: Building[]): VisitedCity => ({
+  ...city(owner),
+  buildings: new Map(buildings.map((b) => [b.id, b])),
+});
+
+/** the sabotage feature with a catalog for two plunderable houses, and the map data it draws */
+function mapSetup() {
+  const env = setup();
+  env.ctx.catalog.add(houseDef('Coins', 'Münzhaus'));
+  env.ctx.catalog.add(houseDef('Points', 'Punktehaus'));
+  const render = vi.spyOn(CityMap.prototype, 'render');
+  const focus = vi.spyOn(CityMap.prototype, 'focus');
+  const mapBox = env.boxes.get('visitedCityMap') as NonNullable<ReturnType<typeof env.boxes.get>>;
+  const drawn = () => render.mock.lastCall?.[0] as CityMapData;
+  const row = (name: string) =>
+    [...env.box.root.querySelectorAll('tr.plunder-row')].find((r) => r.textContent?.includes(name)) as HTMLElement;
+  return { ...env, mapBox, drawn, focus, row };
+}
 
 describe('sabotage feature', () => {
   it.each([
@@ -103,41 +148,70 @@ describe('sabotage feature', () => {
     expect(box.text).not.toContain('111');
   });
 
-  it('shows the city map as a collapsed section and remembers its view mode', async () => {
-    const { ctx, box } = setup();
-    ctx.cities.setVisited({
-      ...city(1),
-      buildings: new Map([
-        [
-          5,
-          {
-            id: 5,
-            owner: playerId(1),
-            def: buildingDefId('R_Test_House'),
-            type: 'residential',
-            x: 0,
-            y: 0,
-            connected: true,
-            state: { kind: 'idle' },
-          },
-        ],
-      ]),
-    });
+  it('opens the city map of the visited player in its own box and remembers its view mode', async () => {
+    const { ctx, box, mapBox } = mapSetup();
+    ctx.players.apply(world, [observed(1, { canPlunder: false })], 'update');
+    ctx.cities.setVisited(withBuildings(1, [house(5, 1, 'R_Test_House', 0)]));
     await tick();
-    const section = box.root.querySelector('details.city-map-section') as HTMLDetailsElement;
-    expect(section.open).toBe(false);
-    expect(section.querySelector('summary')?.textContent).toBe('Stadtplan');
-    expect(section.querySelector('canvas')).not.toBeNull();
-    const iso = [...section.querySelectorAll('button')].find((b) => b.textContent === 'Isometrisch');
-    iso?.click();
+    expect(box.root.querySelector('canvas')).toBeNull();
+    expect(mapBox.box.isOpen).toBe(false);
+
+    (box.root.querySelector('button.map-button') as HTMLButtonElement).click();
+    expect(mapBox.box.isOpen).toBe(true);
+    expect(mapBox.title).toBe('Stadtplan P1');
+    expect(mapBox.root.querySelector('canvas')).not.toBeNull();
+    mapBox.click('Isometrisch');
     expect(ctx.ui.pref('cityMap.visited.mode')).toBe('iso');
   });
 
-  it('shows no city map for a city without buildings', async () => {
+  it('offers no city map for a city without buildings', async () => {
     const { ctx, box } = setup();
     ctx.cities.setVisited(city(1));
     await tick();
-    expect(box.root.querySelector('canvas')).toBeNull();
+    expect(box.root.querySelector('button.map-button')).toBeNull();
+  });
+
+  it('opens the map from a plunderable row, frames and centers that building, and moves to the next one', async () => {
+    const { ctx, box, mapBox, drawn, focus, row } = mapSetup();
+    ctx.cities.setVisited(
+      withBuildings(1, [house(5, 1, 'Coins', 0, { money: 900 }), house(6, 1, 'Points', 4, { strategy_points: 3 })]),
+    );
+    await tick();
+    expect([...box.root.querySelectorAll('tr.plunder-row')].map((r) => r.className)).toEqual([
+      'plunder-row',
+      'plunder-row muted',
+    ]);
+
+    row('Münzhaus').click();
+    expect(mapBox.box.isOpen).toBe(true);
+    const coins = { x: 0, y: 0, width: 2, length: 2 };
+    expect(focus).toHaveBeenLastCalledWith(coins);
+    await tick();
+    expect(drawn().focus).toEqual({ rect: coins, color: FOCUS_OUTLINE });
+
+    row('Punktehaus').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    const points = { x: 4, y: 0, width: 2, length: 2 };
+    expect(focus).toHaveBeenLastCalledWith(points);
+    await tick();
+    expect(drawn().focus?.rect).toEqual(points);
+  });
+
+  it('follows the visited city in the map box and drops the framed building', async () => {
+    const { ctx, box, mapBox, drawn, row } = mapSetup();
+    ctx.players.apply(world, [observed(2, { canPlunder: false })], 'update');
+    ctx.cities.setVisited(withBuildings(1, [house(5, 1, 'Coins', 0, { money: 900 })]));
+    await tick();
+    row('Münzhaus').click();
+    await tick();
+    expect(drawn().focus).toBeDefined();
+
+    ctx.cities.setVisited(withBuildings(2, [house(7, 2, 'Points', 8)]));
+    await tick();
+    expect(mapBox.box.isOpen).toBe(true);
+    expect(mapBox.title).toBe('Stadtplan P2');
+    expect(drawn().focus).toBeUndefined();
+    expect(drawn().tiles.map((t) => t.x)).toEqual([8]);
+    expect(box.root.querySelector('tr.plunder-row')).toBeNull();
   });
 
   it('shows the last battle when the city did not change meanwhile', async () => {

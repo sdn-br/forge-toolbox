@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createBus } from '../src/content/core/events';
-import { PLUNDERABLE_FILL, visitedCityMap } from '../src/content/features/sabotage/city-map';
+import { FOCUS_OUTLINE, PLUNDERABLE_FILL, visitedCityMap } from '../src/content/features/sabotage/city-map';
 import { type BuildingDef, CatalogStore } from '../src/content/stores/catalog';
 import type { Building, City } from '../src/content/stores/city-model';
 import { mutedColor } from '../src/content/ui/city-colors';
@@ -65,5 +65,17 @@ describe('visited city map', () => {
   it('explains the colors', () => {
     expect(vm.legend[0]).toEqual({ color: PLUNDERABLE_FILL, label: 'Plünderbar' });
     expect(vm.legend.map((l) => l.label)).toContain('Wohnhaus');
+  });
+
+  it('frames the focused building and names the frame in the legend', () => {
+    const focused = visitedCityMap(visited, [{ building: 1, name: 'Hof', resources: { money: 120 } }], catalog, 1);
+    expect(focused.data.focus).toEqual({ rect: { x: 0, y: 0, width: 3, length: 2 }, color: FOCUS_OUTLINE });
+    expect(focused.legend).toContainEqual({ color: FOCUS_OUTLINE, label: 'Ausgewählt', outline: true });
+    expect(vm.data.focus).toBeUndefined();
+    expect(vm.legend.map((l) => l.label)).not.toContain('Ausgewählt');
+  });
+
+  it('frames nothing when the focused building is gone', () => {
+    expect(visitedCityMap(visited, [], catalog, 99).data.focus).toBeUndefined();
   });
 });
