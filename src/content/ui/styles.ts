@@ -83,7 +83,6 @@ button.marker.dim { opacity: .3; }
 .stats-panel p { margin: 2px 0; }
 .stats-panel .swatch { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: -1px; }
 .stats-list { list-style: none; margin: 2px 0; padding: 0; }
-.footnote { font-size: 10px; }
 /* popped out: no room beside the window, so the panel takes a column beside the map */
 .box.popped .stats-drawer { position: static; flex: 0 0 auto; flex-direction: row; }
 .box.popped .stats-tab { border: 2px solid #8a6a3a; border-radius: 6px; }

@@ -208,14 +208,10 @@ export const de = {
   'cityMap.kind.quantum': 'Quanten-Erweiterungen',
   'cityMap.expOpenUnknown': 'Offene Erweiterungen unbekannt.',
   'cityMap.expResourcesUnknown': 'Ressourcen noch nicht bekannt, kaufbar zählt erst danach.',
-  'cityMap.expAssumed':
-    'Annahmen: Jeder Eintrag der Startdaten ist eine offene Erweiterung. Kaufbar heißt: Zeitalter erreicht und Preis aus den aktuellen Ressourcen gedeckt, günstigste zuerst, nacheinander. Belohnungs-Erweiterungen gibt es nur als Belohnung, sie zählen nicht als kaufbar. „Nächste“ ist der Preis der ersten, die nicht mehr reicht. „Von der Kontinentkarte“ ist der Rest, den die Forschung nicht erklärt (die Provinzbelohnungen kennen wir noch nicht). Der Forschungsstand ist der vom Spielstart.',
   'cityMap.expBlocks': 'Erweiterungsflächen',
   'cityMap.expNow': 'Jetzt setzbar: {count}',
   'cityMap.expLater': 'Später: {count}',
   'cityMap.expBlocksUnknown': 'Gitter der Stadt noch nicht geladen.',
-  'cityMap.expBlocksAssumed':
-    'Frei: Blöcke des Stadtgitters, die weder freigeschaltet noch gesperrt sind. Gesperrte gelten als nicht kaufbar. Jetzt setzbar: grenzt über eine Seitenkante an die Stadt, wie die eingezäunten Flächen im Baumodus.',
   'cityMap.zoneNow': 'Erweiterungsfläche, jetzt setzbar',
   'cityMap.zoneLater': 'Erweiterungsfläche, später',
   'cityMap.legendNow': 'Erweiterung jetzt setzbar',

@@ -98,7 +98,6 @@ function statsPanel(s: OwnStatsVm) {
     </ul>
     ${e.offers ? '' : html`<p class="muted">${t('cityMap.expOpenUnknown')}</p>`}
     ${e.offers && !e.resourcesKnown ? html`<p class="muted">${t('cityMap.expResourcesUnknown')}</p>` : ''}
-    <p class="footnote muted">${t('cityMap.expAssumed')}</p>
     ${
       e.blocks
         ? html`<ul class="stats-list">
@@ -106,7 +105,6 @@ function statsPanel(s: OwnStatsVm) {
           <li>${t('cityMap.expLater', { count: formatNumber(e.blocks.later) })}</li></ul>`
         : html`<p class="muted">${t('cityMap.expBlocksUnknown')}</p>`
     }
-    <p class="footnote muted">${t('cityMap.expBlocksAssumed')}</p>
   </div>`;
 }
 
