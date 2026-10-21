@@ -34,6 +34,16 @@ export interface CityMapData {
   tiles: MapTile[];
   /** single tiles to mark, e.g. free ones */
   marked?: { tiles: Tile[]; color: string };
+  /** ground beside or under the city, e.g. free expansion blocks; the map widens to show them */
+  zones?: MapZone[];
+}
+
+export interface MapZone {
+  rects: TileRect[];
+  fill: string;
+  outline?: string;
+  /** shown on hover where no building stands */
+  tooltip?: string;
 }
 
 export interface LegendItem {
@@ -72,6 +82,8 @@ export class CityMap {
   private bounds?: Bounds;
   /** tile key → index into data.tiles */
   private index = new Map<string, number>();
+  /** tile key → tooltip of the zone there */
+  private zoneIndex = new Map<string, string>();
   private indexed?: CityMapData;
   private view: MapView = WHOLE_MAP;
   private hovered = -1;
@@ -114,7 +126,7 @@ export class CityMap {
 
   private setData(data: CityMapData) {
     this.data = data;
-    const bounds = gridBounds([...data.areas, ...data.tiles]);
+    const bounds = gridBounds([...data.areas, ...data.tiles, ...(data.zones ?? []).flatMap((z) => z.rects)]);
     // a city that grew or shrank shows whole again
     if (!sameBounds(bounds, this.bounds)) this.view = WHOLE_MAP;
     this.bounds = bounds;
@@ -145,6 +157,15 @@ export class CityMap {
   private indexTiles() {
     if (this.indexed === this.data) return;
     this.index.clear();
+    this.zoneIndex.clear();
+    for (const zone of this.data.zones ?? []) {
+      if (zone.tooltip === undefined) continue;
+      for (const r of zone.rects) {
+        for (let dx = 0; dx < r.width; dx++) {
+          for (let dy = 0; dy < r.length; dy++) this.zoneIndex.set(`${r.x + dx},${r.y + dy}`, zone.tooltip);
+        }
+      }
+    }
     this.data.tiles.forEach((tile, i) => {
       for (let dx = 0; dx < tile.width; dx++) {
         for (let dy = 0; dy < tile.length; dy++) this.index.set(`${tile.x + dx},${tile.y + dy}`, i);
@@ -193,6 +214,12 @@ export class CityMap {
     ctx.fillRect(0, 0, size.width, size.height);
     if (!p) return;
     for (const area of this.data.areas) this.shape(ctx, p, area, GROUND);
+    for (const zone of this.data.zones ?? []) {
+      for (const r of zone.rects) {
+        this.shape(ctx, p, r, zone.fill);
+        if (zone.outline) this.outline(ctx, p, r, zone.outline, 1);
+      }
+    }
     const marked = this.data.marked;
     if (marked) for (const tile of marked.tiles) this.shape(ctx, p, { ...tile, width: 1, length: 1 }, marked.color);
     const gaps = p.scale >= (this.mode === 'iso' ? 8 : 5);
@@ -244,11 +271,22 @@ export class CityMap {
 
   /** the index of the building under a point of the canvas, -1 for none */
   tileIndexAt(x: number, y: number): number {
+    const key = this.keyAt(x, y);
+    return key === undefined ? -1 : (this.index.get(key) ?? -1);
+  }
+
+  private keyAt(x: number, y: number): string | undefined {
     const p = this.projection();
-    if (!p) return -1;
+    if (!p) return undefined;
     this.indexTiles();
     const tile = tileAt(p, x, y);
-    return this.index.get(`${tile.x},${tile.y}`) ?? -1;
+    return `${tile.x},${tile.y}`;
+  }
+
+  /** the tooltip of the zone under a point of the canvas */
+  private zoneTipAt(x: number, y: number): string | undefined {
+    const key = this.keyAt(x, y);
+    return key === undefined ? undefined : this.zoneIndex.get(key);
   }
 
   private pointerMove(e: PointerEvent) {
@@ -259,7 +297,7 @@ export class CityMap {
       if (Math.abs(dx) + Math.abs(dy) > 3) this.drag.moved = true;
       if (this.drag.moved) {
         this.view = { ...this.drag.view, panX: this.drag.view.panX + dx, panY: this.drag.view.panY + dy };
-        this.hover(-1, at);
+        this.hover(-1);
         this.draw();
         return;
       }
@@ -282,10 +320,11 @@ export class CityMap {
   private hover(index: number, at?: { x: number; y: number }) {
     const tip = this.tip;
     const tile = this.data.tiles[index];
+    const text = tile ? tile.tooltip : at && this.zoneTipAt(at.x, at.y);
     if (tip) {
-      tip.hidden = !tile;
-      if (tile && at) {
-        tip.textContent = tile.tooltip;
+      tip.hidden = text === undefined;
+      if (text !== undefined && at) {
+        tip.textContent = text;
         const frame = this.canvas?.clientWidth ?? 0;
         // keep the tooltip inside the map: right of the pointer, left of it near the right edge
         const left = at.x + 14 + 200 > frame ? Math.max(0, at.x - 14 - 200) : at.x + 14;

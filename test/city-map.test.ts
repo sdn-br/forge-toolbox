@@ -71,6 +71,25 @@ describe('city map', () => {
     expect(root.querySelector('.map-legend')?.textContent).toContain('Rot');
   });
 
+  it('widens the map to its zones and shows their tooltip where no building stands', () => {
+    const map = new CityMap();
+    const { move, tip, root } = mount(map);
+    const zoned: CityMapData = {
+      ...data,
+      zones: [{ rects: [{ x: 12, y: 0, width: 4, length: 4 }], fill: '#0f0', tooltip: 'Erweiterungsfläche' }],
+    };
+    render(map.render(zoned), root);
+    // the bounds now reach x 15, so the zone lies inside the canvas
+    const p = project('top', { x1: 0, y1: 0, x2: 15, y2: 9 }, 200, 100, { zoom: 1, panX: 0, panY: 0 });
+    const inZone = toScreen(p, 14, 2);
+    move(inZone.x, inZone.y);
+    expect(tip.hidden).toBe(false);
+    expect(tip.textContent).toBe('Erweiterungsfläche');
+    const inHall = toScreen(p, 1.5, 1);
+    move(inHall.x, inHall.y);
+    expect(tip.textContent).toBe('Rathaus');
+  });
+
   it('keeps the wheel away from the box and the game', () => {
     const { canvas } = mount();
     const outside = vi.fn();
