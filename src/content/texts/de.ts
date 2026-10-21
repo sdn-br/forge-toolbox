@@ -37,6 +37,7 @@ export const de = {
   'sabotage.lastPlunder': 'Zuletzt {when}, {building}',
   'sabotage.lastRepelled': 'Zuletzt {when}: abgewehrt',
   'sabotage.lastRepelledAt': 'Zuletzt {when}, {building}: abgewehrt',
+  'sabotage.cityMap': 'Stadtplan',
   'sabotage.attackedMe': 'Hat dich zuletzt {when} angegriffen ({result})',
   'attack.plunderable': 'Plünderbar noch {duration} (bis {when})',
   'attack.waiting': 'Wieder angreifbar in {duration} (ab {when})',

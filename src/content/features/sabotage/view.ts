@@ -48,8 +48,12 @@ function plunderedPart({ last, totals }: NonNullable<SabotageVm['plundered']>) {
     <br />${totals}</p>`;
 }
 
-/** `note` is the note card of the visited player */
-export function sabotageView(vm: SabotageVm | undefined, note?: TemplateResult): TemplateResult {
+/** `note` is the note card of the visited player, `cityMap` the map of the visited city */
+export function sabotageView(
+  vm: SabotageVm | undefined,
+  note?: TemplateResult,
+  cityMap?: TemplateResult,
+): TemplateResult {
   if (!vm) return html`<p class="muted">${t('sabotage.noVisit')}</p>`;
   return html`
     <p><b>${vm.player.name}</b>${vm.player.guild ? html` <span class="muted">[${vm.player.guild}]</span>` : ''}
@@ -77,5 +81,6 @@ export function sabotageView(vm: SabotageVm | undefined, note?: TemplateResult):
         ? html`<p class="muted">${t('sabotage.nothingPlunderable')}</p>`
         : plunderTable(vm.plunderable)
     }
-    ${vm.incomplete ? html`<p class="warn">${t('sabotage.incomplete')}</p>` : ''}`;
+    ${vm.incomplete ? html`<p class="warn">${t('sabotage.incomplete')}</p>` : ''}
+    ${cityMap ? html`<details class="city-map-section"><summary>${t('sabotage.cityMap')}</summary>${cityMap}</details>` : ''}`;
 }

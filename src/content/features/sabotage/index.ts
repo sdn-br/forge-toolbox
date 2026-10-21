@@ -4,7 +4,10 @@ import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
 import { assessCity } from '../../domain/assess-city';
+import { CityMap, legendView } from '../../ui/city-map';
+import { toMode } from '../../ui/map-projection';
 import { PlayerNoteCard } from '../../ui/note-card';
+import { type VisitedMapVm, visitedCityMap } from './city-map';
 import { sabotageView } from './view';
 import { type SabotageVm, sabotageViewModel } from './view-model';
 
@@ -27,6 +30,9 @@ export const sabotageFeature: Feature = {
     });
 
     let vm: SabotageVm | undefined;
+    let mapVm: VisitedMapVm | undefined;
+    const MODE = 'cityMap.visited.mode';
+    const map = new CityMap({ mode: toMode(ctx.ui.pref(MODE)), onMode: (mode) => ctx.ui.savePref(MODE, mode) });
     let lastBattle: Battle | undefined;
     let plunders: { owner: PlayerId; last?: Plunder; totals: PlunderTotals } | undefined;
     let incoming: { owner: PlayerId; last?: IncomingAttack; totals: IncomingTotals } | undefined;
@@ -48,7 +54,8 @@ export const sabotageFeature: Feature = {
         keepTicking();
         const owner = ctx.cities.visited()?.owner;
         const note = vm && owner !== undefined ? card.render(owner, ctx.players.get(owner)?.name) : undefined;
-        return sabotageView(vm, note);
+        const cityMap = mapVm && map.render(mapVm.data, legendView(mapVm.legend));
+        return sabotageView(vm, note, cityMap);
       },
     });
     const card = new PlayerNoteCard(ctx.notes, () => box.update());
@@ -72,6 +79,7 @@ export const sabotageFeature: Feature = {
         incoming?.owner === city.owner ? incoming : undefined,
         shield?.owner === city.owner ? shield.active : undefined,
       );
+      mapVm = city.buildings.size > 0 ? visitedCityMap(city, assessment.plunderable, ctx.catalog) : undefined;
       box.update();
     };
 

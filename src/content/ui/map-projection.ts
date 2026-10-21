@@ -8,6 +8,9 @@ import type { Bounds, TileRect } from '../domain/city-grid';
  */
 export type MapMode = 'top' | 'iso';
 
+/** a remembered mode; anything else is the view from above */
+export const toMode = (value: string | undefined): MapMode => (value === 'iso' ? 'iso' : 'top');
+
 export interface Point {
   x: number;
   y: number;
