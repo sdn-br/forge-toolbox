@@ -94,6 +94,7 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Parser aktualisiert d
 - **Tabelle:** sortieren, filtern, exportieren.
 - **Tooltip:** ein Mechanismus für alle Features.
 - **Chart:** kapselt ECharts mit Lazy-Load, Theme, Resize, Export als PNG und CSV. Bekommt ein eigenes Datenformat für Serien, nicht ECharts-Optionen. Lässt sich in jede View einbetten, so muss kein Feature Chart-Code wiederholen.
+- **Stadtplan:** zeichnet ein Stadtgitter mit Gebäuden aus einfachen Daten (siehe Abschnitt Stadtplan).
 - **Menü:** Leiste mit den Knöpfen der angemeldeten Features, sortierbar, einzeln ausblendbar.
 - Styles so gekapselt, dass Spiel-CSS und Toolbox-CSS sich nicht beeinflussen (zu prüfen: Shadow DOM).
 
@@ -225,6 +226,24 @@ Stand 2026-10-21. Notizen gelten je Welt.
 **Noch nicht enthalten:** Übernahme alter Notizen (kommt mit dem Altdaten-Import, siehe dort), Notizen in der PvP-Arena (Phase 6), Export (eigenes Feature).
 
 **Avatare fehlen noch:** Das Spiel lädt Porträts mit Hash im Dateinamen (`assets/shared/avatars/portrait_413-42cc9bb44.jpg`), die Spielerdaten nennen nur `portrait_id_111`. Die Zuordnung braucht die Asset-Liste des Spiels und kommt mit dem Design-Durchgang oder einem Feature, das Porträts sowieso braucht.
+
+## Stadtplan
+
+Stand 2026-10-21.
+
+**Komponente** (`src/content/ui/city-map.ts`): bekommt die freigeschalteten Gebiete, je Gebäude Position, Größe, Füllfarbe, optional einen Rahmen und einen Tooltip-Text, dazu optional markierte Einzelfelder und eine Legende. Farben, Rahmen und Tooltips bestimmt der Aufrufer, die Komponente kennt weder Gebäudetypen noch Plündern.
+
+- Entscheidung: ein `<canvas>` statt SVG. Mehrere hundert Gebäude und Straßen sind ein paar hundert Flächen, für Hover reicht das Feld unter dem Zeiger (Nachschlagen über einen Index je Feld). SVG hätte ein DOM-Element je Gebäude, das lit-html bei jedem Render abgleicht. Kosten: Tooltips und Rahmen zeichnet die Komponente selbst.
+- Passt sich der Box an (Höhe per Ziehen am Rand änderbar), Zoom mit Mausrad oder +/−, Verschieben per Ziehen, ⤢ zeigt wieder die ganze Stadt. Größe beobachtet ein `ResizeObserver` des Fensters, in dem die Karte gerade steckt, damit sie auch im Pop-out mitwächst.
+- Zwei Ansichten, umschaltbar, je Verwendung gemerkt: „Draufsicht“ (x nach rechts, y nach unten) und „Isometrisch“ (wie im Spiel, Gitter um 45° gedreht und auf halbe Höhe gestaucht, ein Feld ist eine Raute). Die Projektion (`map-projection.ts`) rechnet Gitter in Bildschirm und zurück, Hover funktioniert in beiden. Isometrisch wird von hinten nach vorn gezeichnet. Später kann ein Gebäude unter dem Zeiger sein Spielbild in seine Fläche zeichnen.
+- Größe eines Gebäudes: `width` entlang x, `length` entlang y aus der Definition. Die Gebäude tragen keine Drehung. Die aufgezeichnete eigene Stadt passt so ohne Überlappung zusammen, vertauscht gäbe es 153 überlappende Felder. Gebäude neben dem Gitter (`off_grid`, `outpost_ship`, `friends_tavern`) fehlen auf der Karte, Gebäude ohne bekannte Definition belegen ein Feld.
+- Freigeschaltete Gebiete kommen als `city_map.unlocked_areas` mit Start und Besuch. **Angenommen, noch ohne Aufnahme.** Fehlen sie, zeigt die Karte nur die Gebäude, und freie Felder sind unbekannt.
+
+**Stadtinformationen:** eingeklappter Abschnitt „Stadtplan“ zum besuchten Spieler. Plünderbare Gebäude (`assessCity(...).plunderable`) sind hervorgehoben, alle anderen nach Gebäudegruppe gedämpft. Tooltip: Name, bei plünderbaren die Beute.
+
+**Box „Stadtplan“ (🗺️):** die eigene Stadt, Farben nach Gebäudegruppe (Wohnhaus, Produktion, Güter, Kultur und Deko, Militär, Legendäres Bauwerk, Straße, Sondergebäude, Sonstiges) mit Legende. Zuschaltbar: fertige Produktionen, Gebäude ohne Straßenanbindung, freie Felder. Suche nach Teil des Namens hebt Treffer hervor und zählt sie. Freie Felder: Felder der freigeschalteten Gebiete, die kein Gebäude und keine Straße belegt.
+
+**Noch nicht enthalten:** Ertrag je Feld (braucht Produktion je Tag), Planungsmodus. Die eigene Stadt folgt `CityMapService.updateEntity` und `reset` (Zustand, Ausbau). Bauen, Abreißen und Verschieben (`placeBuilding`, `removeBuilding`, `moveEntity`) wertet die Ingestion noch nicht aus, ebenso neu freigeschaltete Gebiete. Bis zum Neuladen bleibt die Karte dann alt. Kommt mit Aufnahmen dieser Antworten.
 
 ## Feature-Checkliste
 

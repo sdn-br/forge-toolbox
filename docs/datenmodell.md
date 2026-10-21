@@ -95,7 +95,10 @@ interface City {
   era: EraId;
   takenAt: number;
   buildings: Map<number, Building>;
+  areas?: Area[];               // freigeschaltete Gebiete, fehlt, wenn das Spiel keine schickt
 }
+
+interface Area { x: number; y: number; width: number; length: number }
 
 interface Building {
   id: number;                   // Entity-ID, eindeutig innerhalb der Stadt
