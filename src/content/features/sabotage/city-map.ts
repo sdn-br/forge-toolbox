@@ -10,6 +10,8 @@ import type { CityMapData, LegendItem, MapTile } from '../../ui/city-map';
 
 export const PLUNDERABLE_FILL = '#ffd23f';
 export const PLUNDERABLE_OUTLINE = '#ffffff';
+/** the building picked in the list of plunderable ones */
+export const FOCUS_OUTLINE = '#ff3df0';
 
 export interface VisitedMapVm {
   data: CityMapData;
@@ -21,7 +23,8 @@ interface Catalog {
   resourceName(id: string): string | undefined;
 }
 
-export function visitedCityMap(city: City, plunderable: Plunderable[], catalog: Catalog): VisitedMapVm {
+/** `focus` is the id of a building to frame, picked in the list of plunderable ones */
+export function visitedCityMap(city: City, plunderable: Plunderable[], catalog: Catalog, focus?: number): VisitedMapVm {
   const loot = new Map(plunderable.map((p) => [p.building, p]));
   const fps = footprints(city.buildings.values(), (id) => catalog.get(id));
   // plunderable ones last, so from above nothing covers their frame
@@ -36,8 +39,20 @@ export function visitedCityMap(city: City, plunderable: Plunderable[], catalog: 
     }
     return { ...rect, fill: mutedColor(buildingCategory(f.building.type)), tooltip: name };
   });
+  const focused = fps.find((f) => f.building.id === focus);
+  const legend: LegendItem[] = [{ color: PLUNDERABLE_FILL, label: t('cityMap.plunderable') }];
+  if (focused) legend.push({ color: FOCUS_OUTLINE, label: t('cityMap.focused'), outline: true });
   return {
-    data: { areas: city.areas ?? [], tiles },
-    legend: [{ color: PLUNDERABLE_FILL, label: t('cityMap.plunderable') }, ...categoryLegend(true)],
+    data: {
+      areas: city.areas ?? [],
+      tiles,
+      ...(focused && {
+        focus: {
+          rect: { x: focused.x, y: focused.y, width: focused.width, length: focused.length },
+          color: FOCUS_OUTLINE,
+        },
+      }),
+    },
+    legend: [...legend, ...categoryLegend(true)],
   };
 }

@@ -174,6 +174,7 @@ export const de = {
   'cityMap.incomplete': 'Noch nicht alle Gebäudedaten geladen, Größen können fehlen.',
   'cityMap.searchHit': 'Suchtreffer',
   'cityMap.plunderable': 'Plünderbar',
+  'cityMap.focused': 'Ausgewählt',
   'cityMap.stats': 'Statistik',
   'cityMap.statsOpen': 'Statistik zeigen',
   'cityMap.statsClose': 'Statistik ausblenden',
