@@ -136,6 +136,31 @@ describe('LG-Rechner', () => {
     expect(rows()[0]?.querySelectorAll('td')[1]?.className).toBe('num short');
   });
 
+  it('counts the Forge point packages into the available Forge points', async () => {
+    const { box, ctx, send, open, rows } = setup();
+    ctx.resources.set({ strategy_points: 1 });
+    send(...(fixture.inventory as Entry[]));
+    open(1909);
+    await tick();
+    expect(box.text).toContain('Verfügbare FP: 108.454');
+    expect(box.root.querySelector('.gb-fp')?.getAttribute('title')).toBe('Leiste 1 + Pakete 108.453');
+    expect(rows()[0]?.querySelectorAll('td')[1]?.className).toBe('num');
+    // packages alone enough or not: 1000 on the bar plus 200 in packages is short of 1406
+    ctx.inventory.set([
+      {
+        id: 1,
+        name: '',
+        inStock: 100,
+        gameClass: 'ForgePointPackagePayload',
+        payload: { kind: 'forgePoints', gain: 2 },
+      },
+    ]);
+    ctx.resources.set({ strategy_points: 1000 });
+    await tick();
+    expect(box.text).toContain('Verfügbare FP: 1.200');
+    expect(rows()[0]?.querySelectorAll('td')[1]?.className).toBe('num short');
+  });
+
   it('colours the own place and shows the extra above it', async () => {
     const { open, rows } = setup();
     open(2434);

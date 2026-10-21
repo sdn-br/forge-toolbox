@@ -17,8 +17,12 @@ export interface GbHeader {
   level: number;
   next: number;
   owner: string;
-  /** undefined while the game has not sent the resources */
+  /** Forge points of the bar plus those in packages, which the game opens when contributing; undefined while neither
+   * the resources nor the inventory are known */
   availableFp?: number;
+  /** the parts of `availableFp`; a part is undefined while its source is not known */
+  fpBar?: number;
+  fpPackages?: number;
   arcBonus: number;
 }
 
@@ -75,7 +79,10 @@ export interface GbCalculatorInput {
   greatBuildingName(def: BuildingDefId): string | undefined;
   /** the owner's name when the rankings do not tell it */
   playerName(id: Construction['owner']): string | undefined;
-  availableFp?: number;
+  /** Forge points of the bar; undefined while the resources are not known */
+  fpBar?: number;
+  /** Forge points in the packages of the inventory; undefined while the inventory is not known */
+  fpPackages?: number;
   arcBonus: number;
   factor: FactorChoice;
 }
@@ -95,12 +102,18 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
   const owner = ownerName(c, c.rankings, input.playerName);
   const entity = c.entity;
   if (!entity) return { kind: 'noEntity', owner };
+  const availableFp =
+    input.fpBar === undefined && input.fpPackages === undefined
+      ? undefined
+      : (input.fpBar ?? 0) + (input.fpPackages ?? 0);
   const header: GbHeader = {
     name: input.greatBuildingName(entity.def) ?? entity.def,
     level: entity.level,
     next: entity.level + 1,
     owner,
-    availableFp: input.availableFp,
+    availableFp,
+    fpBar: input.fpBar,
+    fpPackages: input.fpPackages,
     arcBonus: input.arcBonus,
   };
   if (c.past) {
@@ -123,8 +136,8 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
   const places: PlaceRow[] = calc.places.map((p) => ({
     rank: p.rank,
     ...(p.holder !== undefined && { holder: { name: p.holder, fp: p.holderFp } }),
-    safe: cell(p.safeCost, p.safeExtra, input.availableFp),
-    demand: cell(p.demandCost, p.demandExtra, input.availableFp),
+    safe: cell(p.safeCost, p.safeExtra, availableFp),
+    demand: cell(p.demandCost, p.demandExtra, availableFp),
     gross: p.gross,
     profit: p.profit,
     rate: p.rate,

@@ -61,7 +61,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           construction: shown,
           greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
           playerName: (id) => ctx.players.get(id)?.name,
-          availableFp: ctx.resources.known ? ctx.resources.amount(FP) : undefined,
+          fpBar: ctx.resources.known ? ctx.resources.amount(FP) : undefined,
+          fpPackages: ctx.inventory.known ? ctx.inventory.forgePointPackages() : undefined,
           arcBonus: arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses()),
           factor: { value: ctx.settings.number(FACTOR), arc: ctx.settings.get(FACTOR_ARC) },
         });
@@ -99,6 +100,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         maybeTone(reason === 'leveled');
       });
       ctx.bus.on('resources.changed', refresh);
+      ctx.bus.on('inventory.changed', refresh);
       ctx.bus.on('city.ownChanged', refresh);
       ctx.bus.on('catalog.updated', refresh);
       ctx.bus.on('player.updated', refresh);

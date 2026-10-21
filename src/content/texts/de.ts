@@ -160,6 +160,7 @@ export const de = {
   'gbCalc.owner': 'Eigentümer: {name}',
   'gbCalc.availableFp': 'Verfügbare FP: {fp}',
   'gbCalc.availableUnknown': 'Verfügbare FP: unbekannt',
+  'gbCalc.fpSplit': 'Leiste {bar} + Pakete {packages}',
   'gbCalc.arc': 'Arche-Bonus: {arc} %',
   'gbCalc.factor': 'Faktor',
   'gbCalc.factorArc': 'Arche',

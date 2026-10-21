@@ -17,9 +17,12 @@ function header(h: GbHeader) {
     h.availableFp === undefined
       ? t('gbCalc.availableUnknown')
       : t('gbCalc.availableFp', { fp: formatNumber(h.availableFp) });
+  const part = (n: number | undefined) => (n === undefined ? '?' : formatNumber(n));
+  const split = t('gbCalc.fpSplit', { bar: part(h.fpBar), packages: part(h.fpPackages) });
   return html`<p><b>${t('gbCalc.heading', { name: h.name, level: h.level, next: h.next })}</b>
     <br />${t('gbCalc.owner', { name: h.owner })}
-    <br /><span class="muted">${fp} · ${t('gbCalc.arc', { arc: formatNumber(h.arcBonus) })}</span></p>`;
+    <br /><span class="muted"><span class="gb-fp" title=${split}>${fp}</span> ·
+      ${t('gbCalc.arc', { arc: formatNumber(h.arcBonus) })}</span></p>`;
 }
 
 function factorBar(vm: Extract<GbCalculatorVm, { kind: 'current' }>, actions: GbCalculatorActions) {

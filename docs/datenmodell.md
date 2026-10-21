@@ -188,6 +188,31 @@ Dazu kommen Zeitalter (Reihenfolge, Namen), Güter (aus `goodsList` beim Start) 
 
 `ResourceService.getPlayerResourceBag` kommt mit den Startdaten. Format (geprüft 2026-10-21): `{ type, resources: { resources: { money, premium, expansions, guild_raids_medals, … } } }`, die Mengen stecken also eine Ebene tiefer. Der `ResourceStore` hält den Beutel im Speicher (nicht persistiert) und meldet `resources.changed`. Spätere Änderungen der Ressourcen liest er noch nicht mit, kaufbare Erweiterungen bleiben bis zum Neuladen auf dem Stand des Starts.
 
+## Inventar
+
+Stand 2026-10-21. `InventoryService.getItems` kommt mit den Startdaten, eine Liste aller Gegenstände (in der Aufnahme 298). Je Eintrag (gesehen): `id` (Stapel im Inventar), `name`, `description`, `inStock`, `itemAssetName`, `item` (die Nutzlast, ihr `__class__` sagt, was der Gegenstand tut) und Felder für Tausch und Sortierung. Gesehene Klassen: `BuildingItemPayload`, `SelectionKitPayload`, `UpgradeKitPayload`, `FragmentItemPayload`, `BoostItemPayload`, `SpeedupPayload`, `RewardItemPayload`, `ForgePointPackagePayload`, dazu einzelne Kits.
+
+```ts
+interface InventoryItem {
+  id: number;
+  name: string;
+  inStock: number;
+  gameClass: string;            // Klasse der Nutzlast, z.B. 'ForgePointPackagePayload'
+  asset?: string;               // itemAssetName
+  payload:
+    | { kind: 'forgePoints'; gain: number }                        // item.resource_package.gain
+    | { kind: 'building'; def: BuildingDefId; level?: number }      // item.cityEntityId, item.level
+    | { kind: 'boost'; boostType: string; value: number; duration?: number }
+    | { kind: 'other' };        // alle übrigen Klassen, bis ein Feature sie braucht
+}
+```
+
+Der `InventoryStore` hält die Liste im Speicher (nicht persistiert, kommt bei jedem Start neu) und meldet `inventory.changed`. Abfragen: `items()`, `item(id)`, `forgePointPackages()`.
+
+**FP-Pakete:** Gegenstände mit `ForgePointPackagePayload`. Ihr Wert ist `inStock × gain`. Referenz (Aufnahme 2026-10-21): 9.931 × 10 + 401 × 5 + 3.569 × 2 = 108.453 FP. Der LG-Rechner zählt sie zu den verfügbaren FP, weil das Spiel beim Einzahlen Pakete selbst öffnet.
+
+**Updates folgen nach Aufnahme mit Einzahlung:** Änderungen am Inventar (`InventoryService.updateItem`, `getItem`, `getItemAmount`) und an den Ressourcen sind noch nicht aufgezeichnet und werden nicht gelesen. Bis dahin bleiben Bestand und FP-Pakete auf dem Stand vom Start.
+
 ## Erweiterungen (abgeleitet)
 
 Reine Funktionen in `src/content/domain/expansions.ts`. Referenz eigene Stadt (Aufnahme 2026-10-21): 324 Blöcke im Gitter, 190 freigeschaltet, 49 gesperrt, 85 frei, davon 32 angrenzend, `tilesets` mit genau 85 Einträgen (23 `tileset_reward`, 9 `raidMedals`, 53 `tileset_premium`).
@@ -435,7 +460,7 @@ Reine Funktion `calculateConstruction` in `src/content/domain/gb-calculator.ts`.
 
 **Annahme Netto:** `strategy_point_amount` ist die Belohnung ohne Arche-Bonus, der Empfänger bekommt sie mit seinem Bonus. Nicht im Spiel geprüft.
 
-**Verfügbare FP:** `strategy_points` aus dem `ResourceStore`. Der liest nur den Stand vom Start, siehe Ressourcen.
+**Verfügbare FP:** `strategy_points` aus dem `ResourceStore` plus die FP in Paketen aus dem `InventoryStore` (siehe Inventar). Beide lesen nur den Stand vom Start.
 
 ### Unter Vorbehalt, nicht aufgezeichnet
 
@@ -463,6 +488,7 @@ Reine Funktion `calculateConstruction` in `src/content/domain/gb-calculator.ts`.
 | `OtherPlayerService.newEvent` mit `great_building_contribution` (nicht aufgezeichnet) | GreatBuilding | offene Konstruktion als gelevelt markieren |
 | `InventoryService.getGreatBuildings`, `GreatBuildingsService.getOtherPlayerOverview` | Catalog | Namen der LGs |
 | `BonusService.getLimitedBonuses` | GreatBuilding | befristete Boni für den Arche-Bonus |
+| `InventoryService.getItems` | Inventory | Inventar setzen (alle Gegenstände) |
 
 ## Offene Punkte
 
@@ -471,4 +497,5 @@ Reine Funktion `calculateConstruction` in `src/content/domain/gb-calculator.ts`.
 - LG: Annahme Netto (`strategy_point_amount` ohne Arche-Bonus) im Spiel prüfen.
 - LG: `contributeForgePoints` und das Level-up-Ereignis `great_building_contribution` aufnehmen und Format bestätigen.
 - LG: Antwort des Spiels nach einer eigenen Einzahlung auf ein fremdes LG aufnehmen (kommt dazu ein `reset` oder `updateEntity` des Gebäudes, und ändern sich die Ressourcen?). Bis dahin bleiben die verfügbaren FP auf dem Stand vom Start.
+- Inventar und Ressourcen: Updates folgen nach Aufnahme mit Einzahlung (`InventoryService.updateItem`, `getItem`, `getItemAmount` und die Ressourcen-Updates).
 - LG: FP aus Quests (Zeile im LG-Rechner) braucht Quest-Daten, die die Ingestion noch nicht liest (`QuestService.getUpdates`).
