@@ -1,5 +1,6 @@
 // Which game response feeds which store. One place, so every response has exactly one owner.
 import { eraId, type PlayerId, type WorldId } from '../../shared/ids';
+import type { ToolboxBus } from '../core/events';
 import type { Ingestion } from '../core/ingestion';
 import type { BattleStore } from '../stores/battles';
 import type { CatalogStore } from '../stores/catalog';
@@ -11,6 +12,7 @@ import type { PlunderStore } from '../stores/plunders';
 import type { SessionStore } from '../stores/session';
 import { toBuildingDef } from './building-defs';
 import {
+  armyBattleType,
   isBattleState,
   isOwnPvpBattle,
   isPlunderedEntity,
@@ -42,6 +44,7 @@ import type {
 
 export interface GameHandlerDeps {
   world: WorldId;
+  bus: ToolboxBus;
   now: () => number;
   session: SessionStore;
   players: PlayerStore;
@@ -56,7 +59,7 @@ const observations = (list: unknown) =>
   (Array.isArray(list) ? list : []).map(toObservation).filter((o): o is PlayerObservation => o !== null);
 
 export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps): void {
-  const { world, now, session, players, cities, catalog, battles, plunders, incoming } = deps;
+  const { world, bus, now, session, players, cities, catalog, battles, plunders, incoming } = deps;
 
   ingestion.on('StartupService', 'getData', ({ data }) => {
     const d = data as GameStartup;
@@ -112,6 +115,13 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     if (!battle) return;
     battles.record(battle);
     running = null;
+  });
+
+  // The army window before a battle asks for the army with the battle type in the request. It names no opponent;
+  // that comes only with startByBattleType once the battle runs.
+  ingestion.on('ArmyUnitManagementService', 'getArmyInfo', ({ request }) => {
+    const battleType = armyBattleType(request);
+    if (battleType) bus.emit('army.opened', { battleType });
   });
 
   // A plunder comes as several entries of one response (seen 2026-10-19): plunderById has the loot, the reset the

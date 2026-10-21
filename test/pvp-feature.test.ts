@@ -73,11 +73,11 @@ function controlled(total = 1) {
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-function setup(total = 1) {
+function setup(total = 1, open = true) {
   const stub = controlled(total);
   const env = featureContext(stub.persistence, stub.plunders, stub.incoming);
   pvpFeature.setup(env.ctx);
-  env.menu('pvp');
+  if (open) env.menu('pvp');
   return { ...stub, ...env, box: env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>> };
 }
 
@@ -301,5 +301,173 @@ describe('pvp feature', () => {
     box.click('Angriffe auf mich');
     await vi.waitFor(() => expect(box.text).toContain('Kampf: durchbrochen'));
     expect(box.root.querySelector('button.marker')?.getAttribute('title')).toBe('Angreifer');
+  });
+
+  describe('with the army window', () => {
+    it('opens the box on the battles tab for a pvp battle', async () => {
+      const { ctx, box, lists } = setup(1, false);
+      expect(box.box.isOpen).toBe(false);
+      ctx.bus.emit('army.opened', { battleType: 'pvp' });
+      expect(box.box.isOpen).toBe(true);
+      await tick();
+      lists[0]?.resolve([battle(1, 111)]);
+      await tick();
+      expect(box.text).toContain('111');
+    });
+
+    it('only switches an open box to the battles tab', async () => {
+      const { ctx, box, lists, plunders } = setup();
+      await tick();
+      lists[0]?.resolve([battle(1, 111)]);
+      await tick();
+      box.click('Plünderungen');
+      await tick();
+      expect(box.text).toContain('333');
+      ctx.bus.emit('army.opened', { battleType: 'pvp' });
+      await tick();
+      lists.at(-1)?.resolve([battle(1, 111)]);
+      await tick();
+      expect(box.box.isOpen).toBe(true);
+      expect(box.text).toContain('111');
+      expect(box.text).not.toContain('333');
+      expect(plunders.list).toHaveBeenCalledOnce();
+    });
+
+    it.each(['gvg', 'guild_expedition', 'campaign', 'pvp_arena'])('stays closed for a %s battle', (battleType) => {
+      const { ctx, box } = setup(1, false);
+      ctx.bus.emit('army.opened', { battleType });
+      expect(box.box.isOpen).toBe(false);
+    });
+
+    it('stays closed when the setting is off', async () => {
+      const { ctx, box } = setup(1, false);
+      await ctx.settings.set('pvp.openWithArmy', false);
+      ctx.bus.emit('army.opened', { battleType: 'pvp' });
+      expect(box.box.isOpen).toBe(false);
+    });
+
+    it('is a setting that is on by default', () => {
+      const { ctx } = setup(1, false);
+      expect(ctx.settings.defs.find((d) => d.key === 'pvp.openWithArmy')).toMatchObject({
+        label: 'pvp.openWithArmy',
+        default: true,
+      });
+      expect(ctx.settings.get('pvp.openWithArmy')).toBe(true);
+    });
+  });
+
+  describe('name search', () => {
+    const seen = (id: number, name: string) => ({
+      id: playerId(id),
+      name,
+      avatar: '',
+      cityName: '',
+      era: eraId('ColonialAge'),
+      score: 0,
+      rank: 0,
+      active: true,
+      guild: null,
+    });
+
+    it('lists only battles against players whose name contains the text', async () => {
+      const env = featureContext();
+      pvpFeature.setup(env.ctx);
+      env.ctx.players.apply(worldId('de20'), [seen(111, 'Alpha'), seen(222, 'Beta')], 'visit');
+      env.ctx.battles.record(battle(1, 111));
+      env.ctx.battles.record(battle(2, 222));
+      env.menu('pvp');
+      const box = env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>>;
+      await vi.waitFor(() => expect(box.text).toContain('Beta'));
+      const input = box.root.querySelector('input[type=search]') as HTMLInputElement;
+      input.value = 'ALP';
+      input.dispatchEvent(new Event('input'));
+      await vi.waitFor(() => expect(box.text).not.toContain('Beta'));
+      expect(box.text).toContain('Alpha');
+    });
+
+    it('keeps the field while the list turns empty, so it keeps its focus', async () => {
+      const { box, lists, state } = setup();
+      await tick();
+      lists[0]?.resolve([battle(1, 111)]);
+      await tick();
+      const input = box.root.querySelector('input[type=search]') as HTMLInputElement;
+      state.total = 0;
+      input.value = 'xyz';
+      input.dispatchEvent(new Event('input'));
+      await tick();
+      lists.at(-1)?.resolve([]);
+      await tick();
+      expect(box.text).toContain('Keine Kämpfe zu diesem Filter.');
+      expect(box.root.querySelector('input[type=search]')).toBe(input);
+      state.total = 1;
+      input.value = '';
+      input.dispatchEvent(new Event('input'));
+      await tick();
+      lists.at(-1)?.resolve([battle(1, 111)]);
+      await tick();
+      expect(box.text).toContain('111');
+      expect(box.root.querySelector('input[type=search]')).toBe(input);
+    });
+
+    it('keeps typed keys from the game', async () => {
+      const { box } = setup();
+      await tick();
+      const input = box.root.querySelector('input[type=search]') as HTMLInputElement;
+      const game = vi.fn();
+      box.root.addEventListener('keydown', game);
+      box.root.addEventListener('keyup', game);
+      box.root.addEventListener('keypress', game);
+      for (const type of ['keydown', 'keypress', 'keyup']) {
+        input.dispatchEvent(new KeyboardEvent(type, { key: 'a', bubbles: true }));
+      }
+      expect(game).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('battle details', () => {
+    const fought = (battleId: number, opponent: number): Battle => ({
+      ...battle(battleId, opponent),
+      attacker: { bonuses: { attack_boost: 50 }, units: [{ unitTypeId: 'rogue', startHp: 10, endHp: 8 }] },
+      defender: { bonuses: { defense_boost: 70 }, units: [{ unitTypeId: 'feudal_knight', startHp: 10, endHp: 0 }] },
+    });
+
+    async function shown() {
+      const env = setup();
+      await tick();
+      env.lists[0]?.resolve([fought(1, 111), fought(2, 222)]);
+      await tick();
+      const row = (n: number) => env.box.root.querySelectorAll('tr.battle-row')[n] as HTMLElement;
+      return { ...env, row };
+    }
+
+    it('expands a clicked row with both armies and the result, and collapses it again', async () => {
+      const { box, row, lists } = await shown();
+      expect(box.text).not.toContain('Deine Einheiten');
+
+      row(1).click();
+      expect(box.text).toContain('Deine Einheiten');
+      expect(box.text).toContain('rogue');
+      expect(box.text).toContain('8/10 LP');
+      expect(box.text).toContain('feudal_knight');
+      expect(box.text).toContain('gefallen');
+      expect(box.text).toContain('gewonnen, Autokampf, 1 Runde');
+      expect(box.text).toContain('50 % / 0 %');
+      expect(box.text).toContain('0 % / 70 %');
+      expect(box.root.querySelectorAll('.battle')).toHaveLength(1);
+      // the details come from the loaded page, no new query
+      expect(lists).toHaveLength(1);
+
+      row(0).click();
+      expect(box.root.querySelectorAll('.battle')).toHaveLength(2);
+      row(1).click();
+      expect(box.root.querySelectorAll('.battle')).toHaveLength(1);
+    });
+
+    it('does not expand a row when its player link or note marker is clicked', async () => {
+      const { box } = await shown();
+      (box.root.querySelector('button.marker') as HTMLElement).click();
+      box.follow('222');
+      expect(box.root.querySelector('.battle')).toBeNull();
+    });
   });
 });

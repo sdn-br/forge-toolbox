@@ -30,6 +30,7 @@ function setup(me: number | null = fixture.me) {
   let now = AT;
   registerGameHandlers(ingestion, {
     world,
+    bus,
     now: () => now,
     session,
     players: new PlayerStore(bus, { load: async () => [], put: async () => {} }),

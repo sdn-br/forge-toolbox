@@ -55,6 +55,28 @@ const battlesTab = {
 };
 
 describe('pvp view model', () => {
+  it('adds the details to the expanded rows only', () => {
+    const units = { units: [{ unitTypeId: 'rogue', startHp: 10, endHp: 8 }] };
+    const first = battle(1, 1001);
+    const vm = pvpViewModel({
+      battles: [{ ...first, attacker: { ...first.attacker, ...units } }, battle(2, 1002)],
+      total: 2,
+      page: 0,
+      filter: { text: '' },
+      expanded: new Set([1]),
+      ...battlesTab,
+      now,
+    });
+    expect(vm.rows[0]).toMatchObject({ expanded: true });
+    expect(vm.rows[0]?.details).toMatchObject({
+      summary: 'gewonnen, Autokampf, 2 Runden',
+      own: [{ unit: 'rogue', hp: '8/10 LP', dead: false }],
+      army: { own: { attack: 368, defense: 269 }, opponent: { attack: 406, defense: 443 } },
+    });
+    expect(vm.rows[1]).toMatchObject({ expanded: false });
+    expect(vm.rows[1]?.details).toBeUndefined();
+  });
+
   it('shows one row per battle with name, time, result and measured armies', () => {
     const vm = pvpViewModel({
       battles: [battle(1, 1001), battle(2, 1002, { result: 'surrendered', auto: false, rounds: 5 })],
@@ -74,6 +96,7 @@ describe('pvp view model', () => {
       attacker: { attack: 368, defense: 269 },
       defender: { attack: 406, defense: 443 },
       note: 'stark\n• Schilde',
+      expanded: false,
     });
     expect(vm.rows[1]).toMatchObject({ name: '1002', result: 'aufgegeben', battle: '5 Runden', note: '' });
     expect(vm).toMatchObject({ page: 0, pages: 1, empty: undefined, picked: undefined });

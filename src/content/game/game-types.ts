@@ -128,6 +128,12 @@ export interface GameBattleState {
   unitsOrder?: GameBattleUnit[];
 }
 
+/** request data of ArmyUnitManagementService.getArmyInfo (seen: `[{ __class__: 'ArmyContext', battleType: 'pvp' }]`) */
+export interface GameArmyContext {
+  __class__?: string;
+  battleType?: string;
+}
+
 export interface GameBattle {
   battleId?: number;
   startTime?: number;

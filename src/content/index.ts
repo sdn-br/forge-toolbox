@@ -56,7 +56,7 @@ async function main() {
   );
   const menu = new Menu();
 
-  registerGameHandlers(ingestion, { world, now, session, players, cities, catalog, battles, plunders, incoming });
+  registerGameHandlers(ingestion, { world, bus, now, session, players, cities, catalog, battles, plunders, incoming });
   // the proxy buffers game traffic until we connect, so loading first loses nothing
   await Promise.all([
     settings.load(),

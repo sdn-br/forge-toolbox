@@ -171,4 +171,34 @@ describe('sabotage feature', () => {
     ctx.notes.setPlayerText(playerId(2), 'other player');
     expect(box.text).not.toContain('other player');
   });
+
+  it('shows the last battle against the visited player as collapsible details', async () => {
+    const { ctx, box, latest } = setup();
+    ctx.cities.setVisited(city(1));
+    await tick();
+    expect(box.root.querySelector('details')).toBeNull();
+    latest.get(playerId(1))?.({
+      ...battle(1, 111),
+      result: 'lost',
+      auto: false,
+      rounds: 4,
+      attacker: { bonuses: {}, units: [{ unitTypeId: 'rogue', startHp: 10, endHp: 0 }] },
+      defender: { bonuses: { defense_boost: 111 }, units: [{ unitTypeId: 'feudal_knight', startHp: 10, endHp: 3 }] },
+    });
+    await tick();
+    const details = box.root.querySelector('details') as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+    expect(details.querySelector('summary')?.textContent).toMatch(/Letzter Kampf heute \d\d:\d\d: verloren/);
+    expect(details.textContent).toContain('verloren, manuell, 4 Runden');
+    expect(details.textContent).toContain('feudal_knight');
+    expect(details.textContent).toContain('3/10 LP');
+    expect(details.textContent).toContain('0 % / 111 %');
+
+    details.open = true;
+    await ctx.settings.set('sabotage.showArmy', false);
+    expect(box.root.querySelector('details')).toBe(details);
+    expect(details.open).toBe(true);
+    expect(details.textContent).toContain('feudal_knight');
+    expect(details.textContent).not.toContain('Angriff / Verteidigung');
+  });
 });
