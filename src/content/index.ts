@@ -31,6 +31,7 @@ import { IncomingStore } from './stores/incoming';
 import { NoteStore } from './stores/notes';
 import { PlayerStore } from './stores/players';
 import { PlunderStore } from './stores/plunders';
+import { ResourceStore } from './stores/resources';
 import { SessionStore } from './stores/session';
 import { ShieldStore } from './stores/shields';
 import { Menu } from './ui/menu';
@@ -54,6 +55,7 @@ async function main() {
   const notes = new NoteStore(bus, world, notePersistence(callBackground));
   const cities = new CityStore(bus);
   const catalog = new CatalogStore(bus);
+  const resources = new ResourceStore(bus);
   const recorder = new Recorder(
     () => settings.get('core.record'),
     () => settings.get('core.recordRequests'),
@@ -68,6 +70,7 @@ async function main() {
     players,
     cities,
     catalog,
+    resources,
     battles,
     plunders,
     incoming,
@@ -90,6 +93,7 @@ async function main() {
     players,
     cities,
     catalog,
+    resources,
     battles,
     plunders,
     incoming,

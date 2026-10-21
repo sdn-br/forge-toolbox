@@ -47,6 +47,17 @@ export interface Area {
   length: number;
 }
 
+/**
+ * An expansion the player has not obtained yet, from `city_map.tilesets` of the startup data. `kind` is the game type,
+ * known: `tileset_reward` (coins or diamonds), `raidMedals` (medals of the Quantum Incursions), `tileset_premium`
+ * (diamonds). `cost` lists every price the game names; whether they are alternatives is assumed, not checked.
+ */
+export interface ExpansionOffer {
+  kind: string;
+  minEra?: EraId;
+  cost: Record<ResourceId, number>;
+}
+
 export interface City {
   world: WorldId;
   owner: PlayerId;
@@ -56,4 +67,8 @@ export interface City {
   buildings: Map<number, Building>;
   /** unlocked areas of the grid; missing when the game did not send them */
   areas?: Area[];
+  /** blocked areas of the grid, assumed not to be buyable; own city only */
+  blocked?: Area[];
+  /** expansions not obtained yet; own city only */
+  expansions?: ExpansionOffer[];
 }

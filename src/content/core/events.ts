@@ -11,6 +11,10 @@ export interface ToolboxEvents {
   'city.visited': { owner: PlayerId };
   'city.visitedChanged': { owner: PlayerId; buildingIds: number[] };
   'catalog.updated': { defs: BuildingDefId[] };
+  /** the main city grid arrived */
+  'catalog.grid': Record<string, never>;
+  /** the resources of the player changed */
+  'resources.changed': Record<string, never>;
   'battle.recorded': { opponent: PlayerId };
   'plunder.recorded': { opponent: PlayerId };
   'incoming.recorded': { attacker: PlayerId };

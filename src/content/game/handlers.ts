@@ -10,6 +10,7 @@ import type { Building } from '../stores/city-model';
 import type { IncomingStore } from '../stores/incoming';
 import type { PlayerObservation, PlayerStore } from '../stores/players';
 import type { PlunderStore } from '../stores/plunders';
+import type { ResourceStore } from '../stores/resources';
 import type { SessionStore } from '../stores/session';
 import type { ShieldStore } from '../stores/shields';
 import { toBuildingDef } from './building-defs';
@@ -24,11 +25,13 @@ import {
   toBattle,
   toBuilding,
   toCity,
+  toCityGrid,
   toIncoming,
   toObservation,
   toObservationWithAttack,
   toPlunder,
   toRepelledPlunder,
+  toResourceBag,
   toSession,
   toShields,
   toVisitInfo,
@@ -54,6 +57,7 @@ export interface GameHandlerDeps {
   players: PlayerStore;
   cities: CityStore;
   catalog: CatalogStore;
+  resources: ResourceStore;
   battles: BattleStore;
   plunders: PlunderStore;
   incoming: IncomingStore;
@@ -70,7 +74,7 @@ const withAttack = (list: unknown, now: number) =>
     .filter((o): o is PlayerObservation => o !== null);
 
 export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps): void {
-  const { world, bus, now, session, players, cities, catalog, battles, plunders, incoming, shields } = deps;
+  const { world, bus, now, session, players, cities, catalog, resources, battles, plunders, incoming, shields } = deps;
 
   ingestion.on('StartupService', 'getData', ({ data }) => {
     const d = data as GameStartup;
@@ -237,6 +241,20 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     if (file.name === 'building_entity_lookup') return;
     const def = toBuildingDef(file.json);
     if (def) catalog.add(def);
+  });
+
+  // comes with the startup data; assumed format `{ resources: { money, expansions, guild_raids_medals, … } }`.
+  // debt: later changes of the resources are not followed. ceiling: buyable expansions stay as at the start.
+  // upgrade: follow the responses that carry resource changes once they are recorded.
+  ingestion.on('ResourceService', 'getPlayerResourceBag', ({ data }) => {
+    const bag = toResourceBag(data);
+    if (bag) resources.set(bag);
+  });
+
+  ingestion.onMeta('grid', (file) => {
+    if (file.name !== 'grid') return;
+    const grid = toCityGrid(file.json);
+    if (grid) catalog.setCityGrid(grid);
   });
 
   ingestion.onMeta('research_eras', (file) => {

@@ -64,6 +64,13 @@ export function productFor(def: BuildingDef, era: EraId): Product | undefined {
   return key ? def.productByEra[key] : def.productByEra.AllAge;
 }
 
+/** The main city grid from the metadata `grid-<hash>`: top left tiles of its 4 × 4 blocks. */
+export interface CityGrid {
+  width: number;
+  height: number;
+  blocks: { x: number; y: number }[];
+}
+
 /**
  * Definitions the game loaded in this session. The game loads every definition it needs again in each session
  * (seen 2026-10-19: ~110 at start, the missing ones on each city visit), so nothing is persisted.
@@ -96,6 +103,23 @@ export class CatalogStore {
   setEras(eras: { id: EraId; name: string }[]): void {
     this.eraOrder = eras.map((e) => e.id);
     for (const e of eras) this.eras.set(e.id, e.name);
+  }
+
+  /** position of an era in game order; undefined while the eras or this era are unknown */
+  eraIndex(era: EraId): number | undefined {
+    const i = this.eraOrder.indexOf(era);
+    return i < 0 ? undefined : i;
+  }
+
+  private grid?: CityGrid;
+
+  cityGrid(): CityGrid | undefined {
+    return this.grid;
+  }
+
+  setCityGrid(grid: CityGrid): void {
+    this.grid = grid;
+    this.bus.emit('catalog.grid', {});
   }
 
   eraByLevel(level: number): EraId | undefined {

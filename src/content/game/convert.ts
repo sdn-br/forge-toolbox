@@ -18,8 +18,9 @@ import type {
   IncomingAttack,
   Plunder,
 } from '../../shared/model';
+import type { CityGrid } from '../stores/catalog';
 import type { VisitInfo } from '../stores/cities';
-import type { Area, Building, BuildingState, City, Product } from '../stores/city-model';
+import type { Area, Building, BuildingState, City, ExpansionOffer, Product } from '../stores/city-model';
 import type { PlayerObservation } from '../stores/players';
 import type { Session } from '../stores/session';
 import type {
@@ -32,12 +33,14 @@ import type {
   GameCityMapArea,
   GameCityProtection,
   GameEvent,
+  GameGrid,
   GamePlayer,
   GamePlunderResult,
   GameProduct,
   GameProductionOption,
   GameResources,
   GameState,
+  GameTileset,
   GameUserData,
 } from './game-types';
 
@@ -150,6 +153,8 @@ export function toCity(world: WorldId, owner: PlayerId, era: string, map: GameCi
     if (b) buildings.set(b.id, b);
   }
   const areas = toAreas(map?.unlocked_areas);
+  const blocked = toAreas(map?.blocked_areas);
+  const expansions = Array.isArray(map?.tilesets) ? toExpansionOffers(map.tilesets) : undefined;
   return {
     world,
     owner,
@@ -158,7 +163,42 @@ export function toCity(world: WorldId, owner: PlayerId, era: string, map: GameCi
     takenAt: now,
     buildings,
     ...(areas && { areas }),
+    ...(blocked && { blocked }),
+    ...(expansions && { expansions }),
   };
+}
+
+const numbers = (v: unknown): Record<string, number> => {
+  const out: Record<string, number> = {};
+  if (v && typeof v === 'object' && !Array.isArray(v)) {
+    for (const [k, n] of Object.entries(v)) if (typeof n === 'number') out[k] = n;
+  }
+  return out;
+};
+
+function toExpansionOffers(tilesets: GameTileset[]): ExpansionOffer[] {
+  return tilesets.flatMap((t) => {
+    if (typeof t?.type !== 'string') return [];
+    const cost = numbers((t.requirements?.cost ?? t.cost)?.resources);
+    const minEra = t.requirements?.min_era;
+    return [{ kind: t.type, ...(minEra && { minEra: eraId(minEra) }), cost }];
+  });
+}
+
+/** The resource bag of the player, `{ resources: { money: … } }`; null when it is not one. */
+export function toResourceBag(data: unknown): Record<string, number> | null {
+  const resources = (data as { resources?: unknown } | null)?.resources;
+  return resources && typeof resources === 'object' && !Array.isArray(resources) ? numbers(resources) : null;
+}
+
+/** The main grid of the metadata file `grid-<hash>`, its blocks from the sectors of type `Regular`. */
+export function toCityGrid(json: unknown): CityGrid | null {
+  const grid = (Array.isArray(json) ? (json as GameGrid[]) : []).find((g) => g?.id === 'main');
+  if (!grid) return null;
+  const blocks = (grid.sectors ?? [])
+    .filter((s) => s?.type === 'Regular')
+    .flatMap((s) => (s.tilePositions ?? []).map((p) => ({ x: p?.x ?? 0, y: p?.y ?? 0 })));
+  return { width: grid.width ?? 0, height: grid.height ?? 0, blocks };
 }
 
 function toGuild(p: GamePlayer): GuildRef | null {

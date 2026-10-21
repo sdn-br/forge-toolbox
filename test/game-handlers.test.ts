@@ -8,6 +8,7 @@ import { CityStore } from '../src/content/stores/cities';
 import { IncomingStore } from '../src/content/stores/incoming';
 import { PlayerStore } from '../src/content/stores/players';
 import { PlunderStore } from '../src/content/stores/plunders';
+import { ResourceStore } from '../src/content/stores/resources';
 import { SessionStore } from '../src/content/stores/session';
 import { ShieldStore } from '../src/content/stores/shields';
 import { playerId, worldId } from '../src/shared/ids';
@@ -19,6 +20,8 @@ function setup() {
   const session = new SessionStore(bus);
   const players = new PlayerStore(bus, { load: async () => [], put: async () => {} });
   const cities = new CityStore(bus);
+  const catalog = new CatalogStore(bus);
+  const resources = new ResourceStore(bus);
   registerGameHandlers(ingestion, {
     world: worldId('de20'),
     bus,
@@ -26,7 +29,8 @@ function setup() {
     session,
     players,
     cities,
-    catalog: new CatalogStore(bus),
+    catalog,
+    resources,
     battles: new BattleStore(bus, worldId('de20'), testDb().persistence),
     plunders: new PlunderStore(bus, worldId('de20'), testDb().plunders),
     incoming: new IncomingStore(bus, worldId('de20'), testDb().incoming),
@@ -37,6 +41,8 @@ function setup() {
   bus.on('city.visitedChanged', () => events.push('visitedChanged'));
   bus.on('city.ownChanged', (e) => events.push(e.reset ? 'ownReset' : 'ownChanged'));
   bus.on('army.opened', (e) => events.push(`army:${e.battleType}`));
+  bus.on('catalog.grid', () => events.push('grid'));
+  bus.on('resources.changed', () => events.push('resources'));
   const send = (requestClass: string, requestMethod: string, responseData: unknown, requestData?: unknown) =>
     ingestion.accept({
       kind: 'json',
@@ -45,7 +51,14 @@ function setup() {
       response: JSON.stringify([{ requestClass, requestMethod, responseData }]),
       at: 0,
     });
-  return { session, players, cities, events, send };
+  const meta = (id: string, json: unknown) =>
+    ingestion.accept({
+      kind: 'meta',
+      url: `https://cdn/start/metadata?id=${id}`,
+      response: JSON.stringify(json),
+      at: 0,
+    });
+  return { session, players, cities, catalog, resources, events, send, meta };
 }
 
 const house = (id: number, owner: number, state: object) => ({
@@ -88,6 +101,87 @@ describe('game handlers', () => {
       { x: 0, y: 0, width: 16, length: 16 },
       { x: 16, y: 4, width: 4, length: 4 },
     ]);
+  });
+
+  it('keeps the blocked areas and the open expansions of the own city', () => {
+    const { cities, send } = setup();
+    send('StartupService', 'getData', {
+      user_data: { player_id: 7 },
+      city_map: {
+        entities: [],
+        blocked_areas: [
+          { width: 4, length: 4 },
+          { x: 64, y: 8, width: 4, length: 4 },
+        ],
+        tilesets: [
+          {
+            type: 'tileset_reward',
+            available: true,
+            requirements: { cost: { resources: { money: 20_000_000, premium: 1500 } } },
+          },
+          {
+            type: 'raidMedals',
+            available: true,
+            requirements: { cost: { resources: { guild_raids_medals: 600_000 } } },
+          },
+          {
+            type: 'tileset_premium',
+            available: true,
+            requirements: { min_era: 'MarsAge', cost: { resources: { premium: 2000 } } },
+          },
+          { available: true },
+        ],
+      },
+    });
+    const city = cities.own();
+    expect(city?.blocked).toEqual([
+      { x: 0, y: 0, width: 4, length: 4 },
+      { x: 64, y: 8, width: 4, length: 4 },
+    ]);
+    expect(city?.expansions).toEqual([
+      { kind: 'tileset_reward', cost: { money: 20_000_000, premium: 1500 } },
+      { kind: 'raidMedals', cost: { guild_raids_medals: 600_000 } },
+      { kind: 'tileset_premium', minEra: 'MarsAge', cost: { premium: 2000 } },
+    ]);
+  });
+
+  it('keeps the resources of the player from the resource bag', () => {
+    const { resources, events, send } = setup();
+    send('ResourceService', 'getPlayerResourceBag', {
+      __class__: 'ResourceBag',
+      resources: { money: 45_000_000, expansions: 2, guild_raids_medals: 700_000 },
+    });
+    expect(resources.amount('money')).toBe(45_000_000);
+    expect(resources.amount('expansions')).toBe(2);
+    expect(resources.amount('premium')).toBe(0);
+    expect(resources.known).toBe(true);
+    expect(events).toEqual(['resources']);
+  });
+
+  it('keeps the main grid of the city from the grid metadata, with positions the game leaves out as 0', () => {
+    const { catalog, events, meta } = setup();
+    meta('grid-ab12', [
+      { id: 'other', width: 10, height: 10, sectors: [] },
+      {
+        id: 'main',
+        width: 72,
+        height: 72,
+        sectors: [
+          { type: 'Regular', tilePositions: [{}, { x: 4 }, { x: 4, y: 4 }] },
+          { type: 'Water', tilePositions: [{ x: 8 }] },
+        ],
+      },
+    ]);
+    expect(catalog.cityGrid()).toEqual({
+      width: 72,
+      height: 72,
+      blocks: [
+        { x: 0, y: 0 },
+        { x: 4, y: 0 },
+        { x: 4, y: 4 },
+      ],
+    });
+    expect(events).toEqual(['grid']);
   });
 
   it('leaves the areas unknown when the game sends none', () => {

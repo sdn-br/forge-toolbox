@@ -11,6 +11,7 @@ import { type IncomingPersistence, IncomingStore } from '../../src/content/store
 import { NoteStore } from '../../src/content/stores/notes';
 import { PlayerStore } from '../../src/content/stores/players';
 import { type PlunderPersistence, PlunderStore } from '../../src/content/stores/plunders';
+import { ResourceStore } from '../../src/content/stores/resources';
 import { SessionStore } from '../../src/content/stores/session';
 import { ShieldStore } from '../../src/content/stores/shields';
 import type { Box, BoxOptions } from '../../src/content/ui/box';
@@ -89,6 +90,7 @@ export function featureContext(
     players: new PlayerStore(bus, { load: async () => [], put: async () => {} }),
     cities: new CityStore(bus),
     catalog: new CatalogStore(bus),
+    resources: new ResourceStore(bus),
     battles: new BattleStore(bus, world, persistence ?? db.persistence),
     plunders: new PlunderStore(bus, world, plunders ?? db.plunders),
     incoming: new IncomingStore(bus, world, incoming ?? db.incoming),

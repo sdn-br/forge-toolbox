@@ -12,6 +12,7 @@ import { CityStore } from '../src/content/stores/cities';
 import { IncomingStore } from '../src/content/stores/incoming';
 import { PlayerStore } from '../src/content/stores/players';
 import { PlunderStore } from '../src/content/stores/plunders';
+import { ResourceStore } from '../src/content/stores/resources';
 import { SessionStore } from '../src/content/stores/session';
 import { ShieldStore } from '../src/content/stores/shields';
 import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
@@ -38,6 +39,7 @@ function setup(me: number | null = fixture.me) {
     players,
     cities: new CityStore(bus),
     catalog: new CatalogStore(bus),
+    resources: new ResourceStore(bus),
     battles,
     plunders: new PlunderStore(bus, world, plunders),
     incoming: new IncomingStore(bus, world, incoming),

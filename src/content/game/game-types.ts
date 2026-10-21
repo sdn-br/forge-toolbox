@@ -55,6 +55,26 @@ export interface GameCityMap {
   entities?: GameCityEntity[];
   /** assumed from the game format, not in a recording yet: the unlocked areas of the grid */
   unlocked_areas?: GameCityMapArea[];
+  /** own city: blocks of the grid that cannot be unlocked (assumed) */
+  blocked_areas?: GameCityMapArea[];
+  /** own city: one entry per expansion not obtained yet */
+  tilesets?: GameTileset[];
+}
+
+/** An open expansion. Where the price sits is assumed: `requirements.cost.resources`, else `cost.resources`. */
+export interface GameTileset {
+  type?: string;
+  available?: boolean;
+  requirements?: { min_era?: string; cost?: GameResources };
+  cost?: GameResources;
+}
+
+/** a grid of the metadata file `grid-<hash>`: sectors list the top left tiles of their 4 × 4 blocks */
+export interface GameGrid {
+  id?: string;
+  width?: number;
+  height?: number;
+  sectors?: { type?: string; tilePositions?: { x?: number; y?: number }[] }[];
 }
 
 export interface GameClan {
