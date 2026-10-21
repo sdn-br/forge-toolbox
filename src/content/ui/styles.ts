@@ -66,4 +66,26 @@ button.marker.dim { opacity: .3; }
 .map-legend .swatch { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: -1px;
   border: 2px solid transparent; }
 .map-legend .swatch.outline { background: none; }
+.map-stats-layout { display: flex; align-items: flex-start; gap: 6px; }
+.map-main { flex: 1; min-width: 0; }
+/* docked: the statistics hang out of the side of the box and leave the map whole; the body's overflow does not clip
+   them because their containing block is the box itself */
+.stats-drawer { position: absolute; top: 34px; right: 100%; display: flex; flex-direction: row-reverse;
+  align-items: flex-start; }
+.stats-drawer[data-side=right] { right: auto; left: 100%; flex-direction: row; }
+.stats-tab { font: inherit; cursor: pointer; writing-mode: vertical-rl; padding: 8px 2px; background: #4a3620;
+  color: #f3e3c3; border: 2px solid #8a6a3a; border-right: 0; border-radius: 6px 0 0 6px; }
+.stats-drawer[data-side=right] .stats-tab { border: 2px solid #8a6a3a; border-left: 0; border-radius: 0 6px 6px 0; }
+.stats-drawer.open .stats-tab { color: #f0c060; }
+.stats-panel { width: 250px; max-height: 70vh; overflow: auto; padding: 4px 8px; background: #2b1d10;
+  border: 2px solid #8a6a3a; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.5); }
+.stats-panel h2:first-child { margin-top: 2px; }
+.stats-panel p { margin: 2px 0; }
+.stats-panel .swatch { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: -1px; }
+.stats-list { list-style: none; margin: 2px 0; padding: 0; }
+.footnote { font-size: 10px; }
+/* popped out: no room beside the window, so the panel takes a column beside the map */
+.box.popped .stats-drawer { position: static; flex: 0 0 auto; flex-direction: row; }
+.box.popped .stats-tab { border: 2px solid #8a6a3a; border-radius: 6px; }
+.box.popped .stats-panel { max-height: none; width: 230px; box-shadow: none; }
 `;

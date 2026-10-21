@@ -2,7 +2,8 @@
 import type { BuildingDefId } from '../../../shared/ids';
 import { t } from '../../core/texts';
 import { buildingCategory, footprints, freeTiles, matchesName, needsRoad } from '../../domain/city-grid';
-import type { BuildingDef } from '../../stores/catalog';
+import { expansionBlocks } from '../../domain/expansions';
+import type { BuildingDef, CityGrid } from '../../stores/catalog';
 import type { City } from '../../stores/city-model';
 import { CATEGORY_COLORS, categoryLegend, mutedColor } from '../../ui/city-colors';
 import type { CityMapData, LegendItem, MapTile } from '../../ui/city-map';
@@ -15,6 +16,10 @@ export interface OwnMapUi {
   unconnected: boolean;
   /** show the free tiles */
   free: boolean;
+  /** the statistics panel is open; it shows the groups, so the legend leaves them out */
+  stats: boolean;
+  /** draw the free expansion blocks of the grid */
+  expansions: boolean;
 }
 
 export interface OwnMapVm {
@@ -29,8 +34,19 @@ export interface OwnMapVm {
 }
 
 export const MARK = { search: '#ffe04a', unconnected: '#ff4040', finished: '#7cff7c', free: '#5c7a34' };
+/** free expansion blocks: adjacent ones strong, the others faint */
+export const ZONE = {
+  now: { fill: '#2f6f8f', outline: '#8fd8ff' },
+  later: { fill: '#26343c' },
+};
 
-export function ownCityMapViewModel(city: City, def: (id: BuildingDefId) => BuildingDef | undefined, ui: OwnMapUi) {
+/** `grid` is the city grid; without it, or without areas, no expansion blocks are drawn */
+export function ownCityMapViewModel(
+  city: City,
+  def: (id: BuildingDefId) => BuildingDef | undefined,
+  ui: OwnMapUi,
+  grid?: CityGrid,
+) {
   const fps = footprints(city.buildings.values(), def);
   const searching = ui.search.trim() !== '';
   let matches = 0;
@@ -59,17 +75,30 @@ export function ownCityMapViewModel(city: City, def: (id: BuildingDefId) => Buil
     return tile;
   });
   const free = city.areas && freeTiles(city.areas, fps);
+  const blocks = ui.expansions && grid && city.areas && expansionBlocks(grid, city.areas, city.blocked);
   const data: CityMapData = {
     areas: city.areas ?? [],
     tiles,
     ...(free && ui.free && { marked: { tiles: free, color: MARK.free } }),
+    ...(blocks && {
+      zones: [
+        { rects: blocks.now, ...ZONE.now, tooltip: t('cityMap.zoneNow') },
+        { rects: blocks.later, ...ZONE.later, tooltip: t('cityMap.zoneLater') },
+      ],
+    }),
   };
   const legend: LegendItem[] = [
-    ...categoryLegend(),
+    ...(ui.stats ? [] : categoryLegend()),
     ...(ui.finished ? [{ color: MARK.finished, label: t('cityMap.finished'), outline: true }] : []),
     ...(ui.unconnected ? [{ color: MARK.unconnected, label: t('cityMap.unconnected'), outline: true }] : []),
     ...(searching ? [{ color: MARK.search, label: t('cityMap.searchHit'), outline: true }] : []),
     ...(free && ui.free ? [{ color: MARK.free, label: t('cityMap.free') }] : []),
+    ...(blocks
+      ? [
+          { color: ZONE.now.fill, label: t('cityMap.legendNow') },
+          { color: ZONE.later.fill, label: t('cityMap.legendLater') },
+        ]
+      : []),
   ];
   const vm: OwnMapVm = { data, legend, incomplete: fps.some((f) => !f.known) };
   if (searching) vm.matches = matches;

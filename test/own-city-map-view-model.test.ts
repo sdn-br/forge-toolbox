@@ -45,7 +45,7 @@ const city = (buildings: Building[], areas?: City['areas']): City => ({
   ...(areas && { areas }),
 });
 
-const ui: OwnMapUi = { search: '', finished: true, unconnected: true, free: true };
+const ui: OwnMapUi = { search: '', finished: true, unconnected: true, free: true, stats: false, expansions: false };
 const town = city(
   [
     building(1, 'House', 'residential', 0, 0),
@@ -101,5 +101,28 @@ describe('own city map view model', () => {
     expect(vm.data.marked).toBeUndefined();
     expect(vm.incomplete).toBe(true);
     expect(tileOf(vm, 0, 0)?.tooltip).toBe('Castle');
+  });
+
+  it('leaves the groups out of the legend while the statistics show them', () => {
+    const vm = ownCityMapViewModel(town, lookup, { ...ui, stats: true });
+    expect(vm.legend.map((l) => l.label)).not.toContain('Wohnhaus');
+    expect(vm.legend.map((l) => l.label)).toContain('Produktion fertig');
+  });
+
+  it('draws the free expansion blocks on demand, adjacent ones strong', () => {
+    // 3 × 3 blocks, the city holds the top left one
+    const grid = {
+      width: 12,
+      height: 12,
+      blocks: Array.from({ length: 9 }, (_, i) => ({ x: (i % 3) * 4, y: Math.floor(i / 3) * 4 })),
+    };
+    expect(ownCityMapViewModel(town, lookup, ui, grid).data.zones).toBeUndefined();
+    const vm = ownCityMapViewModel(town, lookup, { ...ui, expansions: true }, grid);
+    const [now, later] = vm.data.zones ?? [];
+    expect(now?.rects).toHaveLength(2);
+    expect(now?.tooltip).toBe('Erweiterungsfläche, jetzt setzbar');
+    expect(later?.rects).toHaveLength(6);
+    expect(vm.legend.map((l) => l.label)).toContain('Erweiterung jetzt setzbar');
+    expect(ownCityMapViewModel(town, lookup, { ...ui, expansions: true }).data.zones).toBeUndefined();
   });
 });

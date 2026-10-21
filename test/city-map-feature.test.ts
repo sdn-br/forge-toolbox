@@ -9,8 +9,9 @@ import { buildingDefId, playerId, worldId } from '../src/shared/ids';
 import ownCity from './fixtures/own-city.json';
 import { featureContext } from './helpers/feature-context';
 
-function setup() {
+function setup(prefs: Record<string, string> = {}) {
   const env = featureContext();
+  for (const [key, value] of Object.entries(prefs)) env.ctx.ui.savePref(key, value);
   cityMapFeature.setup(env.ctx);
   const box = env.boxes.get('cityMap') as NonNullable<ReturnType<typeof env.boxes.get>>;
   return { ...env, box };
@@ -30,6 +31,18 @@ const loadOwnCity = (ctx: ReturnType<typeof setup>['ctx'], areas = true) => {
   );
   // the recording has no unlocked areas; the bounding box of the buildings stands in for them
   ctx.cities.setOwn(areas ? { ...city, areas: [{ x: 8, y: 8, width: 36, length: 44 }] } : city);
+};
+
+const checkbox = (box: ReturnType<typeof setup>['box'], label: string) =>
+  [...box.root.querySelectorAll('label')]
+    .find((l) => l.textContent?.includes(label))
+    ?.querySelector('input') as HTMLInputElement;
+
+/** a 72 × 72 grid of 4 × 4 blocks, as the game sends it */
+const grid = {
+  width: 72,
+  height: 72,
+  blocks: Array.from({ length: 324 }, (_, i) => ({ x: (i % 18) * 4, y: Math.floor(i / 18) * 4 })),
 };
 
 const input = (box: ReturnType<typeof setup>['box']) =>
@@ -84,11 +97,9 @@ describe('city map feature', () => {
     loadOwnCity(ctx);
     menu('cityMap');
     expect(box.text).toContain('Produktion fertig');
-    const checkbox = [...box.root.querySelectorAll('label')]
-      .find((l) => l.textContent?.includes('Produktion fertig'))
-      ?.querySelector('input') as HTMLInputElement;
-    checkbox.checked = false;
-    checkbox.dispatchEvent(new Event('change'));
+    const finished = checkbox(box, 'Produktion fertig');
+    finished.checked = false;
+    finished.dispatchEvent(new Event('change'));
     expect(box.root.querySelector('.map-legend')?.textContent).not.toContain('Produktion fertig');
   });
 
@@ -100,5 +111,67 @@ describe('city map feature', () => {
     const house = ctx.cities.own()?.buildings.get(ownCity.entities[1]?.id as number) as Building;
     ctx.cities.updateBuildings([{ ...house, state: { kind: 'idle' }, def: buildingDefId(house.def) }]);
     expect(box.updates.length).toBeGreaterThan(before);
+  });
+
+  it('opens the statistics beside the map and remembers that', () => {
+    const { ctx, box, menu } = setup();
+    loadOwnCity(ctx);
+    menu('cityMap');
+    expect(box.root.querySelector('.stats-panel')).toBeNull();
+    expect(box.root.querySelector('.map-legend')?.textContent).toContain('Wohnhaus');
+    box.click('Statistik');
+    expect(ctx.ui.pref('cityMap.own.stats')).toBe('open');
+    const panel = box.root.querySelector('.stats-panel')?.textContent ?? '';
+    expect(panel).toContain(`${36 * 44 - 1428} von 1.584 Feldern frei`);
+    expect(panel).toContain('Gebäude: 353');
+    expect(panel).toContain('Wohnhaus');
+    // the groups move from the legend into the panel
+    expect(box.root.querySelector('.map-legend')?.textContent).not.toContain('Wohnhaus');
+    box.click('Statistik');
+    expect(ctx.ui.pref('cityMap.own.stats')).toBe('closed');
+    expect(box.root.querySelector('.stats-panel')).toBeNull();
+  });
+
+  it('starts with the statistics open when the viewer left them open', () => {
+    const { ctx, box, menu } = setup({ 'cityMap.own.stats': 'open' });
+    loadOwnCity(ctx);
+    menu('cityMap');
+    expect(box.root.querySelector('.stats-panel')).not.toBeNull();
+  });
+
+  it('counts the expansions and draws the free expansion blocks on demand', () => {
+    const { ctx, box, menu } = setup({ 'cityMap.own.stats': 'open' });
+    ctx.catalog.setCityGrid(grid);
+    ctx.resources.set({ money: 30e6, expansions: 2 });
+    const city = toCity(worldId('de20'), playerId(1), 'IronAge', { entities: [] }, 0);
+    ctx.cities.setOwn({
+      ...city,
+      // start area and one expansion to its right
+      areas: [
+        { x: 0, y: 0, width: 16, length: 16 },
+        { x: 16, y: 0, width: 4, length: 4 },
+      ],
+      blocked: [{ x: 0, y: 16, width: 4, length: 4 }],
+      expansions: [
+        { kind: 'tileset_reward', cost: { money: 20e6, premium: 1500 } },
+        { kind: 'tileset_reward', cost: { money: 45e6, premium: 3000 } },
+        { kind: 'raidMedals', cost: { guild_raids_medals: 6e5 } },
+      ],
+    });
+    menu('cityMap');
+    const panel = () => box.root.querySelector('.stats-panel')?.textContent ?? '';
+    expect(panel()).toContain('Gesetzt: 1');
+    expect(panel()).toContain('Ungesetzt: 2');
+    expect(panel()).toContain('Münzen: 1 von 2 kaufbar (nächste 45 Mio.)');
+    expect(panel()).toContain('QI-Medaillen: 0 von 1 kaufbar (nächste 0,6 Mio.)');
+    // right of the start area 3 below the expansion, right of the expansion 1, below the start area 3 of 4
+    expect(panel()).toContain('Jetzt setzbar: 7');
+    expect(panel()).toContain(`Später: ${324 - 17 - 1 - 7}`);
+    const toggle = checkbox(box, 'Erweiterungsflächen');
+    expect(toggle.checked).toBe(false);
+    expect(box.root.querySelector('.map-legend')?.textContent).not.toContain('Erweiterung jetzt setzbar');
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event('change'));
+    expect(box.root.querySelector('.map-legend')?.textContent).toContain('Erweiterung jetzt setzbar');
   });
 });
