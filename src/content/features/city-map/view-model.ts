@@ -1,0 +1,78 @@
+// The own city as a map: colors by building group, switchable marks, name search and free tiles.
+import type { BuildingDefId } from '../../../shared/ids';
+import { t } from '../../core/texts';
+import { buildingCategory, footprints, freeTiles, matchesName, needsRoad } from '../../domain/city-grid';
+import type { BuildingDef } from '../../stores/catalog';
+import type { City } from '../../stores/city-model';
+import { CATEGORY_COLORS, categoryLegend, mutedColor } from '../../ui/city-colors';
+import type { CityMapData, LegendItem, MapTile } from '../../ui/city-map';
+
+export interface OwnMapUi {
+  search: string;
+  /** mark finished productions */
+  finished: boolean;
+  /** mark buildings without road connection */
+  unconnected: boolean;
+  /** show the free tiles */
+  free: boolean;
+}
+
+export interface OwnMapVm {
+  data: CityMapData;
+  legend: LegendItem[];
+  /** number of buildings whose name matches; only while searching */
+  matches?: number;
+  /** free tiles in the unlocked areas; undefined when the areas are unknown */
+  free?: number;
+  /** some definitions are missing, so some sizes are guessed */
+  incomplete: boolean;
+}
+
+export const MARK = { search: '#ffe04a', unconnected: '#ff4040', finished: '#7cff7c', free: '#5c7a34' };
+
+export function ownCityMapViewModel(city: City, def: (id: BuildingDefId) => BuildingDef | undefined, ui: OwnMapUi) {
+  const fps = footprints(city.buildings.values(), def);
+  const searching = ui.search.trim() !== '';
+  let matches = 0;
+  const tiles: MapTile[] = fps.map((f) => {
+    const b = f.building;
+    const name = f.def?.name ?? b.def;
+    const category = buildingCategory(b.type);
+    const hit = matchesName(name, ui.search);
+    if (hit) matches++;
+    const finished = b.state.kind === 'finished';
+    const unconnected = needsRoad(b);
+    const lines = [name];
+    if (finished) lines.push(t('cityMap.finished'));
+    if (unconnected) lines.push(t('cityMap.unconnected'));
+    const tile: MapTile = {
+      x: f.x,
+      y: f.y,
+      width: f.width,
+      length: f.length,
+      fill: searching && !hit ? mutedColor(category) : CATEGORY_COLORS[category],
+      tooltip: lines.join('\n'),
+    };
+    if (hit) Object.assign(tile, { outline: MARK.search, strong: true });
+    else if (ui.unconnected && unconnected) Object.assign(tile, { outline: MARK.unconnected, strong: true });
+    else if (ui.finished && finished) Object.assign(tile, { outline: MARK.finished });
+    return tile;
+  });
+  const free = city.areas && freeTiles(city.areas, fps);
+  const data: CityMapData = {
+    areas: city.areas ?? [],
+    tiles,
+    ...(free && ui.free && { marked: { tiles: free, color: MARK.free } }),
+  };
+  const legend: LegendItem[] = [
+    ...categoryLegend(),
+    ...(ui.finished ? [{ color: MARK.finished, label: t('cityMap.finished'), outline: true }] : []),
+    ...(ui.unconnected ? [{ color: MARK.unconnected, label: t('cityMap.unconnected'), outline: true }] : []),
+    ...(searching ? [{ color: MARK.search, label: t('cityMap.searchHit'), outline: true }] : []),
+    ...(free && ui.free ? [{ color: MARK.free, label: t('cityMap.free') }] : []),
+  ];
+  const vm: OwnMapVm = { data, legend, incomplete: fps.some((f) => !f.known) };
+  if (searching) vm.matches = matches;
+  if (free) vm.free = free.length;
+  return vm;
+}

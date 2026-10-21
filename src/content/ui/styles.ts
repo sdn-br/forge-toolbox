@@ -53,6 +53,7 @@ details { margin: 6px 0; }
 summary { cursor: pointer; color: #f0c060; }
 button.marker.dim { opacity: .3; }
 .city-map { margin: 4px 0; }
+.map-marks { display: flex; flex-wrap: wrap; gap: 0 12px; }
 .map-frame { position: relative; height: 55vh; min-height: 180px; resize: vertical; overflow: hidden;
   border: 1px solid #8a6a3a; }
 .map-frame canvas { display: block; width: 100%; height: 100%; touch-action: none; }

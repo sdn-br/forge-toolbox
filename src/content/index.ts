@@ -18,6 +18,7 @@ import { Recorder } from './core/recorder';
 import { callBackground } from './core/rpc';
 import { Settings } from './core/settings';
 import { t } from './core/texts';
+import { cityMapFeature } from './features/city-map';
 import { notesFeature } from './features/notes';
 import { pvpFeature } from './features/pvp';
 import { sabotageFeature } from './features/sabotage';
@@ -35,7 +36,7 @@ import { ShieldStore } from './stores/shields';
 import { Menu } from './ui/menu';
 import { UiState } from './ui/ui-state';
 
-const features: Feature[] = [sabotageFeature, pvpFeature, notesFeature, settingsFeature];
+const features: Feature[] = [sabotageFeature, pvpFeature, notesFeature, cityMapFeature, settingsFeature];
 
 async function main() {
   const world = worldId(location.hostname.split('.')[0] ?? 'unknown');
