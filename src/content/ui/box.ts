@@ -38,7 +38,10 @@ export class Box {
   }
 
   close(): void {
-    this.popup?.close();
+    // the window reports pagehide only after this; without the popup that handler leaves the closed box alone
+    const popup = this.popup;
+    this.popup = null;
+    popup?.close();
     this.host.remove();
     this.options.onClose?.();
   }
@@ -140,8 +143,9 @@ export class Box {
     win.document.body.style.margin = '0';
     win.document.body.append(this.host);
     win.addEventListener('pagehide', () => {
+      if (this.popup !== win) return;
       this.popup = null;
-      if (this.host.ownerDocument !== document) {
+      if (this.host.isConnected && this.host.ownerDocument !== document) {
         document.documentElement.append(this.host);
         this.update();
       }
