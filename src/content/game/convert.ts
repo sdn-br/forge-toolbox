@@ -22,6 +22,7 @@ import type { CityGrid } from '../stores/catalog';
 import type { VisitInfo } from '../stores/cities';
 import type { Area, Building, BuildingState, City, ExpansionOffer, Product } from '../stores/city-model';
 import type { PlayerObservation } from '../stores/players';
+import type { ResearchExpansion } from '../stores/research';
 import type { Session } from '../stores/session';
 import type {
   GameArmyContext,
@@ -38,6 +39,8 @@ import type {
   GamePlunderResult,
   GameProduct,
   GameProductionOption,
+  GameResearchProgress,
+  GameResearchTechnology,
   GameResources,
   GameState,
   GameTileset,
@@ -195,6 +198,27 @@ function toExpansionOffers(tilesets: GameTileset[]): ExpansionOffer[] {
 export function toResourceBag(data: unknown): Record<string, number> | null {
   const resources = (data as { resources?: { resources?: unknown } } | null)?.resources?.resources;
   return resources && typeof resources === 'object' && !Array.isArray(resources) ? numbers(resources) : null;
+}
+
+/**
+ * The technologies of the metadata file `research-<hash>` that reward main city expansions, in the order of the file.
+ * Only `type: 'expansion'` with `subType: 'main'` counts; outposts and other cities have their own types.
+ */
+export function toResearchExpansions(json: unknown): ResearchExpansion[] {
+  return (Array.isArray(json) ? (json as GameResearchTechnology[]) : []).flatMap((tech) => {
+    if (typeof tech?.id !== 'string') return [];
+    const amount = (tech.rewards ?? [])
+      .filter((r) => r?.type === 'expansion' && r.subType === 'main' && typeof r.amount === 'number')
+      .reduce((sum, r) => sum + (r.amount as number), 0);
+    return amount > 0 ? [{ tech: tech.id, name: tech.name ?? tech.id, amount }] : [];
+  });
+}
+
+/** The unlocked technologies from ResearchService.getProgress; null when the response is no progress object. */
+export function toUnlockedNodes(data: unknown): string[] | null {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+  const nodes = (data as GameResearchProgress).unlockedNodes;
+  return Array.isArray(nodes) ? nodes.filter((n): n is string => typeof n === 'string') : null;
 }
 
 /** The main grid of the metadata file `grid-<hash>`, its blocks from the sectors of type `Regular`. */

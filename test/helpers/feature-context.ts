@@ -11,6 +11,7 @@ import { type IncomingPersistence, IncomingStore } from '../../src/content/store
 import { NoteStore } from '../../src/content/stores/notes';
 import { PlayerStore } from '../../src/content/stores/players';
 import { type PlunderPersistence, PlunderStore } from '../../src/content/stores/plunders';
+import { ResearchStore } from '../../src/content/stores/research';
 import { ResourceStore } from '../../src/content/stores/resources';
 import { SessionStore } from '../../src/content/stores/session';
 import { ShieldStore } from '../../src/content/stores/shields';
@@ -91,6 +92,7 @@ export function featureContext(
     cities: new CityStore(bus),
     catalog: new CatalogStore(bus),
     resources: new ResourceStore(bus),
+    research: new ResearchStore(bus),
     battles: new BattleStore(bus, world, persistence ?? db.persistence),
     plunders: new PlunderStore(bus, world, plunders ?? db.plunders),
     incoming: new IncomingStore(bus, world, incoming ?? db.incoming),

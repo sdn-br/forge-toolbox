@@ -218,3 +218,23 @@ export interface GameEventPage {
   page?: number;
   events?: GameEvent[];
 }
+
+/** A reward of a technology in the metadata `research-<hash>`; main city expansions are `expansion` / `main`. */
+export interface GameResearchReward {
+  type?: string;
+  subType?: string;
+  amount?: number;
+}
+
+/** A technology of the metadata `research-<hash>`, an array in the order of the tree (seen 2026-10-21). */
+export interface GameResearchTechnology {
+  id?: string;
+  name?: string;
+  era?: string;
+  rewards?: GameResearchReward[];
+}
+
+/** ResearchService.getProgress; `unlockedNodes` are technology ids (seen 2026-10-21). */
+export interface GameResearchProgress {
+  unlockedNodes?: string[];
+}

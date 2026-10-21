@@ -31,6 +31,7 @@ import { IncomingStore } from './stores/incoming';
 import { NoteStore } from './stores/notes';
 import { PlayerStore } from './stores/players';
 import { PlunderStore } from './stores/plunders';
+import { ResearchStore } from './stores/research';
 import { ResourceStore } from './stores/resources';
 import { SessionStore } from './stores/session';
 import { ShieldStore } from './stores/shields';
@@ -56,6 +57,7 @@ async function main() {
   const cities = new CityStore(bus);
   const catalog = new CatalogStore(bus);
   const resources = new ResourceStore(bus);
+  const research = new ResearchStore(bus);
   const recorder = new Recorder(
     () => settings.get('core.record'),
     () => settings.get('core.recordRequests'),
@@ -71,6 +73,7 @@ async function main() {
     cities,
     catalog,
     resources,
+    research,
     battles,
     plunders,
     incoming,
@@ -94,6 +97,7 @@ async function main() {
     cities,
     catalog,
     resources,
+    research,
     battles,
     plunders,
     incoming,

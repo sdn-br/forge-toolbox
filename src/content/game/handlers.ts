@@ -10,6 +10,7 @@ import type { Building } from '../stores/city-model';
 import type { IncomingStore } from '../stores/incoming';
 import type { PlayerObservation, PlayerStore } from '../stores/players';
 import type { PlunderStore } from '../stores/plunders';
+import type { ResearchStore } from '../stores/research';
 import type { ResourceStore } from '../stores/resources';
 import type { SessionStore } from '../stores/session';
 import type { ShieldStore } from '../stores/shields';
@@ -31,9 +32,11 @@ import {
   toObservationWithAttack,
   toPlunder,
   toRepelledPlunder,
+  toResearchExpansions,
   toResourceBag,
   toSession,
   toShields,
+  toUnlockedNodes,
   toVisitInfo,
 } from './convert';
 import { parseEventDate } from './event-date';
@@ -58,6 +61,7 @@ export interface GameHandlerDeps {
   cities: CityStore;
   catalog: CatalogStore;
   resources: ResourceStore;
+  research: ResearchStore;
   battles: BattleStore;
   plunders: PlunderStore;
   incoming: IncomingStore;
@@ -74,7 +78,21 @@ const withAttack = (list: unknown, now: number) =>
     .filter((o): o is PlayerObservation => o !== null);
 
 export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps): void {
-  const { world, bus, now, session, players, cities, catalog, resources, battles, plunders, incoming, shields } = deps;
+  const {
+    world,
+    bus,
+    now,
+    session,
+    players,
+    cities,
+    catalog,
+    resources,
+    research,
+    battles,
+    plunders,
+    incoming,
+    shields,
+  } = deps;
 
   ingestion.on('StartupService', 'getData', ({ data }) => {
     const d = data as GameStartup;
@@ -262,6 +280,19 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
       e.era ? [{ id: eraId(e.era), name: e.name ?? e.era }] : [],
     );
     catalog.setEras(eras);
+  });
+
+  // `research_eras` shares the prefix and is another file
+  ingestion.onMeta('research', (file) => {
+    if (file.name === 'research') research.setExpansions(toResearchExpansions(file.json));
+  });
+
+  // comes with the startup data; some batches carry a getProgress that is no object, those are skipped.
+  // debt: only the progress of the start is read. ceiling: a technology finished during play still counts as open
+  // until reload. upgrade: follow the response that reports a finished technology once it is recorded.
+  ingestion.on('ResearchService', 'getProgress', ({ data }) => {
+    const nodes = toUnlockedNodes(data);
+    if (nodes) research.setUnlocked(nodes);
   });
 
   // debt: own city ignores placeBuilding, removeBuilding and moveEntity. ceiling: own city is stale after building

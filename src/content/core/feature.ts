@@ -6,6 +6,7 @@ import type { IncomingStore } from '../stores/incoming';
 import type { NoteStore } from '../stores/notes';
 import type { PlayerStore } from '../stores/players';
 import type { PlunderStore } from '../stores/plunders';
+import type { ResearchStore } from '../stores/research';
 import type { ResourceStore } from '../stores/resources';
 import type { SessionStore } from '../stores/session';
 import type { ShieldStore } from '../stores/shields';
@@ -27,6 +28,7 @@ export interface FeatureContext {
   cities: CityStore;
   catalog: CatalogStore;
   resources: ResourceStore;
+  research: ResearchStore;
   battles: BattleStore;
   plunders: PlunderStore;
   incoming: IncomingStore;
