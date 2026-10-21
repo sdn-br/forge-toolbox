@@ -243,7 +243,15 @@ Stand 2026-10-21.
 
 **Box „Stadtplan“ (🗺️):** die eigene Stadt, Farben nach Gebäudegruppe (Wohnhaus, Produktion, Güter, Kultur und Deko, Militär, Legendäres Bauwerk, Straße, Sondergebäude, Sonstiges) mit Legende. Zuschaltbar: fertige Produktionen, Gebäude ohne Straßenanbindung, freie Felder. Suche nach Teil des Namens hebt Treffer hervor und zählt sie. Freie Felder: Felder der freigeschalteten Gebiete, die kein Gebäude und keine Straße belegt.
 
-**Noch nicht enthalten:** Ertrag je Feld (braucht Produktion je Tag), Planungsmodus. Die eigene Stadt folgt `CityMapService.updateEntity` und `reset` (Zustand, Ausbau). Bauen, Abreißen und Verschieben (`placeBuilding`, `removeBuilding`, `moveEntity`) wertet die Ingestion noch nicht aus, ebenso neu freigeschaltete Gebiete. Bis zum Neuladen bleibt die Karte dann alt. Kommt mit Aufnahmen dieser Antworten.
+**Statistik (Seitenpanel der Box „Stadtplan“):** ein Reiter „Statistik“ am Rand der Box klappt ein Panel aus, offen oder zu wird je Betrachter gemerkt. Angedockt hängt es links aus der Box heraus (rechts, wenn die Box am linken Bildschirmrand steht) und lässt die Karte ganz frei. Entscheidung: herausklappen statt die Box zu verbreitern oder die Karte zu überdecken, denn die Box steht standardmäßig am rechten Rand, und die Karte bleibt so groß wie ohne Panel. Im Pop-out-Fenster ist daneben kein Platz, dort bekommt das Panel eine eigene Spalte neben der Karte. Inhalt:
+
+- Fläche: freie von allen freigeschalteten Feldern.
+- Gebäude je Gruppe: Anzahl, Anteil, belegte Felder, nach Anzahl sortiert, mit der Farbe der Legende. Solange das Panel offen ist, zeigt die Legende unter der Karte nur noch die Markierungen.
+- Straßen-Effizienz: benötigte ÷ gebaute Straßenfelder. Benötigt je Gebäude mit Straßenbedarf: die Hälfte der kürzeren Seite, aufgerundet. Eine Näherung, das Spiel nennt nur, ob und welche Straße ein Gebäude braucht (siehe Datenmodell). Ohne diese Angabe in den Definitionen fehlt der Wert.
+- Erweiterungen: gesetzte, ungesetzte (nur wenn vorhanden), offene je Art mit „kaufbar“ für Münzen und QI-Medaillen, Diamanten nur mit Anzahl und Zeitalter. Annahmen stehen als Fußnote im Panel und im Datenmodell.
+- Schalter „Erweiterungsflächen“ (aus beim Start): zeichnet die freien Blöcke des Stadtgitters, angrenzende kräftig („jetzt setzbar“), die übrigen blass („später“). Die Karte wird dafür bis zu diesen Blöcken erweitert, ohne Schalter bleibt sie eng um die Stadt.
+
+**Noch nicht enthalten:** Hervorhebungen der alten Toolbox (GbG, QI, limitiert, aufstiegsfähig, verfallen, Ketten, Sets, veraltet nach Zeitalter, ineffizient), Ertrag je Feld (braucht Produktion je Tag), Planungsmodus. Die eigene Stadt folgt `CityMapService.updateEntity` und `reset` (Zustand, Ausbau). Bauen, Abreißen und Verschieben (`placeBuilding`, `removeBuilding`, `moveEntity`) wertet die Ingestion noch nicht aus, ebenso neu freigeschaltete Gebiete. Bis zum Neuladen bleibt die Karte dann alt. Kommt mit Aufnahmen dieser Antworten.
 
 ## Feature-Checkliste
 

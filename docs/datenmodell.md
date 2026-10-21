@@ -96,6 +96,14 @@ interface City {
   takenAt: number;
   buildings: Map<number, Building>;
   areas?: Area[];               // freigeschaltete Gebiete, fehlt, wenn das Spiel keine schickt
+  blocked?: Area[];             // nur eigene Stadt: city_map.blocked_areas
+  expansions?: ExpansionOffer[];// nur eigene Stadt: city_map.tilesets, offene Erweiterungen
+}
+
+interface ExpansionOffer {
+  kind: string;                 // Spieltyp: 'tileset_reward' | 'raidMedals' | 'tileset_premium' | …
+  minEra?: EraId;               // requirements.min_era
+  cost: Record<ResourceId, number>;
 }
 
 interface Area { x: number; y: number; width: number; length: number }
@@ -167,6 +175,25 @@ interface Boost {
 ```
 
 Dazu kommen Zeitalter (Reihenfolge, Namen), Güter (aus `goodsList` beim Start) und Ressourcen-Definitionen.
+
+**Straßenbedarf (`BuildingDef.street`, angenommenes Format):** Stufe der Straße, die ein Gebäude braucht, 0 für keine. Klassische Definitionen: `requirements.street_connection_level`, generische: Komponente `streetConnectionRequirement.requiredLevel` in irgendeinem Zeitalter. Fehlt `requirements` bei einer klassischen Definition ganz, bleibt der Wert unbekannt. Die Fixtures sind gekürzt und enthalten beides nicht, im Spiel noch nicht geprüft.
+
+**Stadtgitter:** Metadatei `grid-<hash>` vom CDN, die das Spiel selbst lädt (über `onMeta` wie die übrigen Metadaten). Eine Liste von Gittern, verwendet wird `id: 'main'` (72 × 72). `sectors[].tilePositions` sind die linken oberen Ecken der 4 × 4-Blöcke, nur Sektoren vom Typ `Regular` zählen, fehlende `x`/`y` sind 0. Der Catalog hält es als `CityGrid { width, height, blocks }` und meldet `catalog.grid`.
+
+## Ressourcen
+
+`ResourceService.getPlayerResourceBag` kommt mit den Startdaten. Angenommenes Format `{ resources: { money, premium, expansions, guild_raids_medals, … } }`. Der `ResourceStore` hält den Beutel im Speicher (nicht persistiert) und meldet `resources.changed`. Spätere Änderungen der Ressourcen liest er noch nicht mit, kaufbare Erweiterungen bleiben bis zum Neuladen auf dem Stand des Starts.
+
+## Erweiterungen (abgeleitet)
+
+Reine Funktionen in `src/content/domain/expansions.ts`. Referenz eigene Stadt (Aufnahme 2026-10-21): 324 Blöcke im Gitter, 190 freigeschaltet, 49 gesperrt, 85 frei, davon 32 angrenzend, `tilesets` mit genau 85 Einträgen (23 `tileset_reward`, 9 `raidMedals`, 53 `tileset_premium`).
+
+- **Gesetzt:** freigeschaltete Felder ÷ 16 − 16 (der Startbereich 16 × 16 sind 16 Blöcke).
+- **Ungesetzt:** Ressource `expansions`.
+- **Freie Blöcke:** Block des Gitters, dessen linkes oberes Feld weder in `unlocked_areas` noch in `blocked_areas` liegt. „Jetzt setzbar“, wenn er eine Kante mit einem freigeschalteten Block teilt, sonst „später“.
+- **Kaufbar je Art:** Münzen (`tileset_reward`, Preis `money`) und QI-Medaillen (`raidMedals`, Preis `guild_raids_medals`). Gezählt werden nur Einträge eines erreichten Zeitalters, günstigste zuerst, nacheinander, solange die aktuellen Ressourcen reichen. „Nächste“ ist der Preis des ersten Eintrags, der nicht mehr reicht. Diamanten (`premium`) zählen nie als Bezahlweg, `tileset_premium` erscheint nur mit Anzahl und frühestem `min_era`.
+
+**Annahmen, im Spiel ungeprüft:** Jeder Eintrag in `tilesets` ist eine offene Erweiterung, `available: true` sagt nichts. `tileset_reward` nennt Münzen und Diamanten als Alternativen. Der Preis steht unter `requirements.cost.resources` (sonst `cost.resources`). Gesperrte Blöcke sind nicht kaufbar. Ob nur angrenzende Blöcke setzbar sind, ist offen.
 
 **Woher die Definitionen kommen (geprüft am 2026-10-19 auf de20):** Das Spiel lädt zuerst `building_entity_lookup` (Liste aller Gebäude mit URL und Hash). Danach lädt es einzeln per XHR nur die Definitionen, die es braucht: beim Start rund 110 für die eigene Stadt, beim Besuch einer Stadt die noch fehlenden (beim ersten Besuch 18). Der Helfer lädt dagegen alle rund 2.900 selbst vom CDN.
 
