@@ -188,11 +188,11 @@ Dazu kommen Zeitalter (Reihenfolge, Namen), Güter (aus `goodsList` beim Start) 
 
 `ResourceService.getPlayerResourceBag` kommt mit den Startdaten. Format (geprüft 2026-10-21): `{ type, resources: { resources: { money, premium, expansions, guild_raids_medals, … } } }`, die Mengen stecken also eine Ebene tiefer. Der `ResourceStore` hält den Beutel im Speicher (nicht persistiert) und meldet `resources.changed`. In der Aufnahme ist `type` ein Enum `{ __enum__: 'ResourceBagType', value: 'PlayerMain' }`. Nur Beutel ohne Typ oder mit `PlayerMain` zählen, andere Typen gehören zu anderen Beständen und werden übergangen.
 
-**Updates, unter Vorbehalt, nicht aufgezeichnet:** Alle kommen als normale Antwort oder über den Websocket, ein Websocket-Rahmen kann mehrere Nachrichten bündeln.
+**Updates:** Alle können als normale Antwort oder über den Websocket kommen, ein Websocket-Rahmen kann mehrere Nachrichten bündeln.
 
-- `ResourceService.getPlayerResources`: `responseData.resources` ersetzt den ganzen Bestand.
-- `ResourceService.getPlayerResourceBag` später im Spiel: wie beim Start, mit demselben Typ-Filter.
-- `OtherPlayerService.newEvent` mit `type: trade_accepted`: Ein anderer Spieler hat ein eigenes Handelsangebot angenommen, `need.value` des Guts `need.good_id` kommt zum Bestand dazu. Nur, wenn der Bestand schon bekannt ist.
+- `ResourceService.getPlayerResourceBag` später im Spiel, **aufgezeichnet 2026-10-21:** wie beim Start (`PlayerMain`), etwa in der Antwort auf eine eigene LG-Einzahlung (dort `strategy_points` 0) und nach Quest-Aktionen und Ereignissen der Karte. Ersetzt den Bestand.
+- `ResourceService.getPlayerResources`, **unter Vorbehalt, nicht aufgezeichnet:** `responseData.resources` ersetzt den ganzen Bestand.
+- `OtherPlayerService.newEvent`, **unter Vorbehalt, nicht aufgezeichnet:** mit `type: trade_accepted`: Ein anderer Spieler hat ein eigenes Handelsangebot angenommen, `need.value` des Guts `need.good_id` kommt zum Bestand dazu. Nur, wenn der Bestand schon bekannt ist.
 
 ## Inventar
 
@@ -213,17 +213,21 @@ interface InventoryItem {
 }
 ```
 
-Der `InventoryStore` hält die Liste im Speicher (nicht persistiert, kommt bei jedem Start neu) und meldet `inventory.changed`. Abfragen: `items()`, `item(id)`, `forgePointPackages()`.
+Der `InventoryStore` hält die Liste im Speicher (nicht persistiert, kommt bei jedem Start neu) und meldet `inventory.changed`. Abfragen: `items()`, `item(id)`, `forgePointPackages()` (Summe des Spiels oder gerechnet, siehe unten), `computedForgePointPackages()`.
 
 **FP-Pakete:** Gegenstände mit `ForgePointPackagePayload`. Ihr Wert ist `inStock × gain`. Referenz (Aufnahme 2026-10-21): 9.931 × 10 + 401 × 5 + 3.569 × 2 = 108.453 FP. Der LG-Rechner zählt sie zu den verfügbaren FP, weil das Spiel beim Einzahlen Pakete selbst öffnet.
 
-**Updates, unter Vorbehalt, nicht aufgezeichnet:** Alle kommen als normale Antwort oder über den Websocket, ein Websocket-Rahmen kann mehrere Nachrichten bündeln.
+**Updates:** Alle können als normale Antwort oder über den Websocket kommen, ein Websocket-Rahmen kann mehrere Nachrichten bündeln.
 
 - `getItems` (ganze Liste) ersetzt das Inventar.
+- `updateItem`, **aufgezeichnet 2026-10-21:** `{ id, amount, __class__: 'InventoryItemUpdate' }`, `amount` ist der neue Bestand, keine Differenz. Bei einer eigenen LG-Einzahlung von 301 FP kamen zwei getrennte Nachrichten in derselben Antwort (10er-Pakete 9.931 → 9.906, 5er-Pakete 401 → 400). Eine Liste solcher Einträge wird ebenfalls gelesen (unter Vorbehalt).
+- `GreatBuildingsService.getAvailablePackageForgePoints`, **aufgezeichnet 2026-10-21:** `[108198]`, die Summe der FP in Paketen, die das Spiel selbst rechnet. Sie stimmte mit `inStock × gain` überein. Entscheidung: Der Store nimmt diese Summe, solange sich danach nichts am Inventar geändert hat, sonst rechnet er selbst. So zählt im Zweifel der Wert des Spiels, und eine spätere Änderung ohne neue Summe macht ihn nicht falsch. Kennt der Store noch keine Liste (kein Start in der Sitzung), reicht die Summe allein für die verfügbaren FP.
+
+**Unter Vorbehalt, nicht aufgezeichnet:**
+
 - `getItemsByType`: ganze Gegenstände eines Typs, sie werden nach `id` eingefügt oder ersetzt. Gegenstände anderer Typen bleiben.
 - `getItem`: ein ganzer Gegenstand, eingefügt oder ersetzt. So kommen neue Gegenstände an, etwa FP-Pakete aus einem gelevelten LG, Quest- oder Kartenbelohnungen.
 - `getItemAmount`: `responseData` ist das Paar `[id, Menge]`, die Menge ist der neue Bestand.
-- `updateItem`: `{ id, amount, __class__: 'InventoryItemUpdate' }` oder eine Liste davon. `amount` ist der neue Bestand, keine Differenz.
 - Unbekannte `id` bei `getItemAmount` und `updateItem` werden übergangen, bis die nächste ganze Liste kommt.
 - `inventory.changed` kommt einmal je Spielantwort oder Websocket-Rahmen und nur, wenn sich etwas geändert hat. Das Öffnen von Paketen schickt mehrere Updates hintereinander.
 
@@ -474,11 +478,24 @@ Reine Funktion `calculateConstruction` in `src/content/domain/gb-calculator.ts`.
 
 **Annahme Netto:** `strategy_point_amount` ist die Belohnung ohne Arche-Bonus, der Empfänger bekommt sie mit seinem Bonus. Nicht im Spiel geprüft.
 
-**Verfügbare FP:** `strategy_points` aus dem `ResourceStore` plus die FP in Paketen aus dem `InventoryStore` (siehe Inventar). Beide folgen den Updates, deren Format noch nicht aufgezeichnet ist (siehe Ressourcen und Inventar).
+**Verfügbare FP:** `strategy_points` aus dem `ResourceStore` plus die FP in Paketen aus dem `InventoryStore` (siehe Inventar). Beide folgen den Updates (siehe Ressourcen und Inventar). Nach der aufgezeichneten Einzahlung zeigt der Rechner 0 + 108.198.
+
+### Eigene Einzahlung (aufgezeichnet 2026-10-21)
+
+Testfall `test/fixtures/gb-contribution.json` (gebaut mit `scripts/make-fixture.py gb-contribution`). `GreatBuildingsService.contributeForgePoints` hat den Request `[Entity-ID, Spieler-ID, Stufe, Betrag, false]`, die Antwort ist die neue Rangliste als Liste (eigene Zeile mit `is_self`, im Beispiel Platz 2 mit 301 FP). Dieselbe Antwort bringt:
+
+- `CityMapService.reset` mit dem fremden LG, wie es jetzt ist (`invested_forge_points` 1455 → 1756, `level`, `max_level`),
+- `ResourceService.getPlayerResourceBag` (`PlayerMain`) mit dem neuen Bestand,
+- je geöffnetem Pakettyp ein `InventoryService.updateItem`,
+- `GreatBuildingsService.getAvailablePackageForgePoints` mit der neuen Paketsumme,
+- `ResourceService.getPlayerAutoRefills` (nicht ausgewertet).
+
+Die Reihenfolge ist nicht fest, deshalb wendet der Handler die Einzahlung erst am Ende der Antwort an: Rangliste aus der Antwort, Gebäude aus dem `reset`. Fehlt der `reset`, wächst `invested` um das, was die eigene Einzahlung gewachsen ist (unter Vorbehalt). Ein `reset` oder `updateEntity` des offenen LGs ohne Einzahlung hält es ebenfalls aktuell. Danach fragt das Spiel `getConstructionRanking` für die Stufen 63, 62, 63 und 64 ab (LG auf Stufe 63, also ist 64 die laufende Liste).
+
+Die Kopfzeile des LG-Rechners zeigt neben der Stufe die freigeschaltete Höchststufe aus `max_level`.
 
 ### Unter Vorbehalt, nicht aufgezeichnet
 
-- **Eigene Einzahlung** `GreatBuildingsService.contributeForgePoints`: Die Antwort ist die neue Rangliste des LGs (als Liste oder als Objekt mit `rankings`). Der Request beginnt wie die anderen mit `[Entity-ID, Spieler-ID]`, sonst gilt die offene Konstruktion. `invested` wächst um das, was die eigene Einzahlung gewachsen ist.
 - **Level-up eines fremden LGs** über den Websocket `OtherPlayerService.newEvent` mit `type: great_building_contribution` und `other_player { player_id, name }`, `great_building_name` (Anzeigename, keine Entity-ID), `level` (neue Stufe), `rank`. Passt Eigentümer und Name (über den Catalog) zur offenen Konstruktion, wird sie als gelevelt markiert.
 
 ## Zuordnung Spielantwort → Store
@@ -498,13 +515,16 @@ Reine Funktion `calculateConstruction` in `src/content/domain/gb-calculator.ts`.
 | `OtherPlayerService.getOtherPlayerCityMapEntity` | GreatBuilding | fremdes LG vormerken, bis die Konstruktion kommt |
 | `GreatBuildingsService.getConstruction` | GreatBuilding | Konstruktion öffnen, fremdes LG speichern |
 | `GreatBuildingsService.getConstructionRanking` | GreatBuilding | vergangene Stufe zeigen oder laufende Rangliste erneuern |
-| `GreatBuildingsService.contributeForgePoints` (nicht aufgezeichnet) | GreatBuilding | neue Rangliste, `invested` um die eigene Einzahlung erhöhen |
+| `GreatBuildingsService.contributeForgePoints` | GreatBuilding | am Ende der Antwort: neue Rangliste, Gebäude aus dem `reset` derselben Antwort |
+| `CityMapService.reset`, `updateEntity` mit dem offenen fremden LG | GreatBuilding (und City) | Stand des LGs, bei einer Einzahlung mit ihr zusammen |
+| `GreatBuildingsService.getAvailablePackageForgePoints` | Inventory | Summe der FP in Paketen laut Spiel |
 | `OtherPlayerService.newEvent` mit `great_building_contribution` (nicht aufgezeichnet) | GreatBuilding | offene Konstruktion als gelevelt markieren |
 | `InventoryService.getGreatBuildings`, `GreatBuildingsService.getOtherPlayerOverview` | Catalog | Namen der LGs |
 | `BonusService.getLimitedBonuses` | GreatBuilding | befristete Boni für den Arche-Bonus |
 | `InventoryService.getItems` | Inventory | Inventar ersetzen (alle Gegenstände) |
 | `InventoryService.getItemsByType`, `getItem` (nicht aufgezeichnet) | Inventory | Gegenstände einfügen oder ersetzen |
-| `InventoryService.getItemAmount`, `updateItem` (nicht aufgezeichnet) | Inventory | neuen Bestand bekannter Gegenstände setzen |
+| `InventoryService.updateItem` | Inventory | neuen Bestand bekannter Gegenstände setzen |
+| `InventoryService.getItemAmount` (nicht aufgezeichnet) | Inventory | neuen Bestand bekannter Gegenstände setzen |
 | `ResourceService.getPlayerResourceBag` (nur `PlayerMain`) | Resource | Bestand ersetzen |
 | `ResourceService.getPlayerResources` (nicht aufgezeichnet) | Resource | Bestand ersetzen |
 | `OtherPlayerService.newEvent` mit `trade_accepted` (nicht aufgezeichnet) | Resource | angenommenes Handelsangebot: Gut dazuzählen |
@@ -514,7 +534,6 @@ Reine Funktion `calculateConstruction` in `src/content/domain/gb-calculator.ts`.
 - Besuchte Städte bleiben vorerst nur im Speicher. Sobald ein Feature einen Verlauf braucht (etwa wann ein Nachbar wieder plünderbar war), bekommen sie eine Tabelle.
 - Genaue Namen der Spiel-Methoden für Bauen, Abreißen und Verschieben aus einer Aufnahme bestätigen.
 - LG: Annahme Netto (`strategy_point_amount` ohne Arche-Bonus) im Spiel prüfen.
-- LG: `contributeForgePoints` und das Level-up-Ereignis `great_building_contribution` aufnehmen und Format bestätigen.
-- LG: Antwort des Spiels nach einer eigenen Einzahlung auf ein fremdes LG aufnehmen (kommt dazu ein `reset` oder `updateEntity` des Gebäudes, und welche Ressourcen- und Inventar-Updates folgen?).
-- Inventar und Ressourcen: Die Updates (`InventoryService.getItemsByType`, `getItem`, `getItemAmount`, `updateItem`, `ResourceService.getPlayerResources`, `trade_accepted`) sind unter Vorbehalt umgesetzt. Ihr Format mit einer Aufnahme bestätigen, etwa einer Einzahlung mit Paketen.
+- LG: das Level-up-Ereignis `great_building_contribution` aufnehmen und Format bestätigen.
+- Inventar und Ressourcen: Die Updates `InventoryService.getItemsByType`, `getItem`, `getItemAmount`, `ResourceService.getPlayerResources` und `trade_accepted` sind unter Vorbehalt umgesetzt. Ihr Format mit einer Aufnahme bestätigen, etwa einer Belohnung mit neuen Paketen.
 - LG: FP aus Quests (Zeile im LG-Rechner) braucht Quest-Daten, die die Ingestion noch nicht liest (`QuestService.getUpdates`).
