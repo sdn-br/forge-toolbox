@@ -186,7 +186,13 @@ Dazu kommen Zeitalter (Reihenfolge, Namen), Güter (aus `goodsList` beim Start) 
 
 ## Ressourcen
 
-`ResourceService.getPlayerResourceBag` kommt mit den Startdaten. Format (geprüft 2026-10-21): `{ type, resources: { resources: { money, premium, expansions, guild_raids_medals, … } } }`, die Mengen stecken also eine Ebene tiefer. Der `ResourceStore` hält den Beutel im Speicher (nicht persistiert) und meldet `resources.changed`. Spätere Änderungen der Ressourcen liest er noch nicht mit, kaufbare Erweiterungen bleiben bis zum Neuladen auf dem Stand des Starts.
+`ResourceService.getPlayerResourceBag` kommt mit den Startdaten. Format (geprüft 2026-10-21): `{ type, resources: { resources: { money, premium, expansions, guild_raids_medals, … } } }`, die Mengen stecken also eine Ebene tiefer. Der `ResourceStore` hält den Beutel im Speicher (nicht persistiert) und meldet `resources.changed`. In der Aufnahme ist `type` ein Enum `{ __enum__: 'ResourceBagType', value: 'PlayerMain' }`. Nur Beutel ohne Typ oder mit `PlayerMain` zählen, andere Typen gehören zu anderen Beständen und werden übergangen.
+
+**Updates, unter Vorbehalt, nicht aufgezeichnet:** Alle kommen als normale Antwort oder über den Websocket, ein Websocket-Rahmen kann mehrere Nachrichten bündeln.
+
+- `ResourceService.getPlayerResources`: `responseData.resources` ersetzt den ganzen Bestand.
+- `ResourceService.getPlayerResourceBag` später im Spiel: wie beim Start, mit demselben Typ-Filter.
+- `OtherPlayerService.newEvent` mit `type: trade_accepted`: Ein anderer Spieler hat ein eigenes Handelsangebot angenommen, `need.value` des Guts `need.good_id` kommt zum Bestand dazu. Nur, wenn der Bestand schon bekannt ist.
 
 ## Inventar
 
@@ -211,7 +217,15 @@ Der `InventoryStore` hält die Liste im Speicher (nicht persistiert, kommt bei j
 
 **FP-Pakete:** Gegenstände mit `ForgePointPackagePayload`. Ihr Wert ist `inStock × gain`. Referenz (Aufnahme 2026-10-21): 9.931 × 10 + 401 × 5 + 3.569 × 2 = 108.453 FP. Der LG-Rechner zählt sie zu den verfügbaren FP, weil das Spiel beim Einzahlen Pakete selbst öffnet.
 
-**Updates folgen nach Aufnahme mit Einzahlung:** Änderungen am Inventar (`InventoryService.updateItem`, `getItem`, `getItemAmount`) und an den Ressourcen sind noch nicht aufgezeichnet und werden nicht gelesen. Bis dahin bleiben Bestand und FP-Pakete auf dem Stand vom Start.
+**Updates, unter Vorbehalt, nicht aufgezeichnet:** Alle kommen als normale Antwort oder über den Websocket, ein Websocket-Rahmen kann mehrere Nachrichten bündeln.
+
+- `getItems` (ganze Liste) ersetzt das Inventar.
+- `getItemsByType`: ganze Gegenstände eines Typs, sie werden nach `id` eingefügt oder ersetzt. Gegenstände anderer Typen bleiben.
+- `getItem`: ein ganzer Gegenstand, eingefügt oder ersetzt. So kommen neue Gegenstände an, etwa FP-Pakete aus einem gelevelten LG, Quest- oder Kartenbelohnungen.
+- `getItemAmount`: `responseData` ist das Paar `[id, Menge]`, die Menge ist der neue Bestand.
+- `updateItem`: `{ id, amount, __class__: 'InventoryItemUpdate' }` oder eine Liste davon. `amount` ist der neue Bestand, keine Differenz.
+- Unbekannte `id` bei `getItemAmount` und `updateItem` werden übergangen, bis die nächste ganze Liste kommt.
+- `inventory.changed` kommt einmal je Spielantwort oder Websocket-Rahmen und nur, wenn sich etwas geändert hat. Das Öffnen von Paketen schickt mehrere Updates hintereinander.
 
 ## Erweiterungen (abgeleitet)
 
@@ -460,7 +474,7 @@ Reine Funktion `calculateConstruction` in `src/content/domain/gb-calculator.ts`.
 
 **Annahme Netto:** `strategy_point_amount` ist die Belohnung ohne Arche-Bonus, der Empfänger bekommt sie mit seinem Bonus. Nicht im Spiel geprüft.
 
-**Verfügbare FP:** `strategy_points` aus dem `ResourceStore` plus die FP in Paketen aus dem `InventoryStore` (siehe Inventar). Beide lesen nur den Stand vom Start.
+**Verfügbare FP:** `strategy_points` aus dem `ResourceStore` plus die FP in Paketen aus dem `InventoryStore` (siehe Inventar). Beide folgen den Updates, deren Format noch nicht aufgezeichnet ist (siehe Ressourcen und Inventar).
 
 ### Unter Vorbehalt, nicht aufgezeichnet
 
@@ -488,7 +502,12 @@ Reine Funktion `calculateConstruction` in `src/content/domain/gb-calculator.ts`.
 | `OtherPlayerService.newEvent` mit `great_building_contribution` (nicht aufgezeichnet) | GreatBuilding | offene Konstruktion als gelevelt markieren |
 | `InventoryService.getGreatBuildings`, `GreatBuildingsService.getOtherPlayerOverview` | Catalog | Namen der LGs |
 | `BonusService.getLimitedBonuses` | GreatBuilding | befristete Boni für den Arche-Bonus |
-| `InventoryService.getItems` | Inventory | Inventar setzen (alle Gegenstände) |
+| `InventoryService.getItems` | Inventory | Inventar ersetzen (alle Gegenstände) |
+| `InventoryService.getItemsByType`, `getItem` (nicht aufgezeichnet) | Inventory | Gegenstände einfügen oder ersetzen |
+| `InventoryService.getItemAmount`, `updateItem` (nicht aufgezeichnet) | Inventory | neuen Bestand bekannter Gegenstände setzen |
+| `ResourceService.getPlayerResourceBag` (nur `PlayerMain`) | Resource | Bestand ersetzen |
+| `ResourceService.getPlayerResources` (nicht aufgezeichnet) | Resource | Bestand ersetzen |
+| `OtherPlayerService.newEvent` mit `trade_accepted` (nicht aufgezeichnet) | Resource | angenommenes Handelsangebot: Gut dazuzählen |
 
 ## Offene Punkte
 
@@ -496,6 +515,6 @@ Reine Funktion `calculateConstruction` in `src/content/domain/gb-calculator.ts`.
 - Genaue Namen der Spiel-Methoden für Bauen, Abreißen und Verschieben aus einer Aufnahme bestätigen.
 - LG: Annahme Netto (`strategy_point_amount` ohne Arche-Bonus) im Spiel prüfen.
 - LG: `contributeForgePoints` und das Level-up-Ereignis `great_building_contribution` aufnehmen und Format bestätigen.
-- LG: Antwort des Spiels nach einer eigenen Einzahlung auf ein fremdes LG aufnehmen (kommt dazu ein `reset` oder `updateEntity` des Gebäudes, und ändern sich die Ressourcen?). Bis dahin bleiben die verfügbaren FP auf dem Stand vom Start.
-- Inventar und Ressourcen: Updates folgen nach Aufnahme mit Einzahlung (`InventoryService.updateItem`, `getItem`, `getItemAmount` und die Ressourcen-Updates).
+- LG: Antwort des Spiels nach einer eigenen Einzahlung auf ein fremdes LG aufnehmen (kommt dazu ein `reset` oder `updateEntity` des Gebäudes, und welche Ressourcen- und Inventar-Updates folgen?).
+- Inventar und Ressourcen: Die Updates (`InventoryService.getItemsByType`, `getItem`, `getItemAmount`, `updateItem`, `ResourceService.getPlayerResources`, `trade_accepted`) sind unter Vorbehalt umgesetzt. Ihr Format mit einer Aufnahme bestätigen, etwa einer Einzahlung mit Paketen.
 - LG: FP aus Quests (Zeile im LG-Rechner) braucht Quest-Daten, die die Ingestion noch nicht liest (`QuestService.getUpdates`).

@@ -161,6 +161,28 @@ describe('LG-Rechner', () => {
     expect(rows()[0]?.querySelectorAll('td')[1]?.className).toBe('num short');
   });
 
+  it('follows live updates of the resources and the inventory in the header', async () => {
+    const { box, send, open } = setup();
+    const message = (requestClass: string, requestMethod: string, responseData: unknown): Entry => ({
+      requestClass,
+      requestMethod,
+      requestData: [],
+      responseData,
+    });
+    send(message('ResourceService', 'getPlayerResourceBag', { resources: { resources: { strategy_points: 1 } } }));
+    send(...(fixture.inventory as Entry[]));
+    open(1909);
+    await tick();
+    expect(box.text).toContain('Verfügbare FP: 108.454');
+    send(message('ResourceService', 'getPlayerResources', { resources: { strategy_points: 11 } }));
+    await tick();
+    expect(box.text).toContain('Verfügbare FP: 108.464');
+    // 9931 → 9930 packages of 10
+    send(message('InventoryService', 'updateItem', { id: 9001, amount: 9930 }));
+    await tick();
+    expect(box.text).toContain('Verfügbare FP: 108.454');
+  });
+
   it('colours the own place and shows the extra above it', async () => {
     const { open, rows } = setup();
     open(2434);

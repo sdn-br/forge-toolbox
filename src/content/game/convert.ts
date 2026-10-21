@@ -204,7 +204,17 @@ function toExpansionOffers(tilesets: GameTileset[]): ExpansionOffer[] {
 
 /** The resource bag of the player, `{ resources: { resources: { money: … } } }` (seen 2026-10-21); null when it is not one. */
 export function toResourceBag(data: unknown): Record<string, number> | null {
-  const resources = (data as { resources?: { resources?: unknown } } | null)?.resources?.resources;
+  const bag = data as { type?: { value?: unknown }; resources?: { resources?: unknown } } | null;
+  // other bag types (seen only PlayerMain) belong to other stocks, not the player's
+  const type = bag?.type?.value;
+  if (type !== undefined && type !== 'PlayerMain') return null;
+  const resources = bag?.resources?.resources;
+  return resources && typeof resources === 'object' && !Array.isArray(resources) ? numbers(resources) : null;
+}
+
+/** ResourceService.getPlayerResources (not recorded yet): `{ resources: { money, strategy_points, … } }`, the full stock */
+export function toPlayerResources(data: unknown): Record<string, number> | null {
+  const resources = (data as { resources?: unknown } | null)?.resources;
   return resources && typeof resources === 'object' && !Array.isArray(resources) ? numbers(resources) : null;
 }
 
@@ -608,6 +618,31 @@ function toItemPayload(p: GameInventoryItem['item']): ItemPayload {
   }
 }
 
+/** One full item (InventoryService.getItem); null when it has no id. */
+export function toInventoryItem(data: unknown): InventoryItem | null {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+  return toInventory([data])?.[0] ?? null;
+}
+
+/** `[id, amount]` of InventoryService.getItemAmount (not recorded yet) */
+export function toItemAmount(data: unknown): { id: number; inStock: number } | null {
+  if (!Array.isArray(data)) return null;
+  const [id, inStock] = data.map(num);
+  return id === undefined || inStock === undefined ? null : { id, inStock };
+}
+
+/**
+ * InventoryService.updateItem (not recorded yet): one `{ id, amount }` or a list of them; `amount` is the new stock,
+ * not a difference.
+ */
+export function toItemUpdates(data: unknown): { id: number; inStock: number }[] {
+  return (Array.isArray(data) ? data : [data]).flatMap((u: { id?: unknown; amount?: unknown } | null) => {
+    const id = num(u?.id);
+    const inStock = num(u?.amount);
+    return id === undefined || inStock === undefined ? [] : [{ id, inStock }];
+  });
+}
+
 /** The items of InventoryService.getItems; null when `data` is no list. Items without id are skipped. */
 export function toInventory(data: unknown): InventoryItem[] | null {
   if (!Array.isArray(data)) return null;
@@ -625,4 +660,14 @@ export function toInventory(data: unknown): InventoryItem[] | null {
       },
     ];
   });
+}
+
+/**
+ * Another player accepted a trade offer of the session player (`newEvent` of type trade_accepted, not recorded yet):
+ * the player gets the good he asked for.
+ */
+export function toAcceptedTrade(e: GameEvent | null): { good: string; amount: number } | null {
+  const amount = num(e?.need?.value);
+  if (e?.type !== 'trade_accepted' || !e.need?.good_id || amount === undefined) return null;
+  return { good: e.need.good_id, amount };
 }

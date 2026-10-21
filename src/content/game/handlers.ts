@@ -18,6 +18,7 @@ import {
   isRepelledPlunder,
   plunderLoot,
   plunderTarget,
+  toAcceptedTrade,
   toBattle,
   toBuilding,
   toCity,
@@ -27,9 +28,13 @@ import {
   toGreatBuildingNames,
   toIncoming,
   toInventory,
+  toInventoryItem,
+  toItemAmount,
+  toItemUpdates,
   toLimitedBonuses,
   toObservation,
   toObservationWithAttack,
+  toPlayerResources,
   toPlunder,
   toRankingRows,
   toRepelledPlunder,
@@ -256,12 +261,21 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     if (def) catalog.add(def);
   });
 
-  // comes with the startup data; assumed format `{ resources: { money, expansions, guild_raids_medals, … } }`.
-  // debt: later changes of the resources are not followed. ceiling: buyable expansions stay as at the start.
-  // upgrade: follow the responses that carry resource changes once they are recorded.
+  // The resource bag comes with the startup data: `{ type: PlayerMain, resources: { resources: { … } } }` (seen
+  // 2026-10-21); other bag types are skipped. Not recorded yet: getPlayerResources `{ resources: { … } }` with the full
+  // stock, as a response or over the websocket.
   ingestion.on('ResourceService', 'getPlayerResourceBag', ({ data }) => {
     const bag = toResourceBag(data);
     if (bag) resources.set(bag);
+  });
+  ingestion.on('ResourceService', 'getPlayerResources', ({ data }) => {
+    const bag = toPlayerResources(data);
+    if (bag) resources.set(bag);
+  });
+  // not recorded yet: an accepted own trade offer brings the good asked for
+  ingestion.on('OtherPlayerService', 'newEvent', ({ data }) => {
+    const trade = toAcceptedTrade(data as GameEvent);
+    if (trade) resources.add(trade.good, trade.amount);
   });
 
   ingestion.onMeta('grid', (file) => {
@@ -320,13 +334,30 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     const target = greatBuildingRequest(request);
     if (rows) greatBuildings.contributed(rows, target ?? undefined);
   });
-  // comes with the startup data (seen 2026-10-21, 298 items).
-  // debt: later changes (updateItem, getItem, getItemAmount) are not followed. ceiling: the stock stays as at the start.
-  // upgrade: follow them once a recording with a contribution shows their format.
+  // The full list comes with the startup data (seen 2026-10-21, 298 items) and replaces the inventory. Not recorded yet,
+  // shapes as described: getItemsByType brings the full items of one type, getItem one full item (new ones arrive so,
+  // e.g. rewards), getItemAmount `[id, amount]`, updateItem `{ id, amount }` or a list with the new stock. All may come as
+  // a response or over the websocket; listeners hear once per response.
   ingestion.on('InventoryService', 'getItems', ({ data }) => {
     const items = toInventory(data);
-    if (items) inventory.set(items);
+    if (items) inventory.replace(items);
   });
+  ingestion.on('InventoryService', 'getItemsByType', ({ data }) => {
+    inventory.upsert(toInventory(data) ?? []);
+  });
+  ingestion.on('InventoryService', 'getItem', ({ data }) => {
+    const item = toInventoryItem(data);
+    if (item) inventory.upsert([item]);
+  });
+  ingestion.on('InventoryService', 'getItemAmount', ({ data }) => {
+    const amount = toItemAmount(data);
+    if (amount) inventory.setStock(amount.id, amount.inStock);
+  });
+  ingestion.on('InventoryService', 'updateItem', ({ data }) => {
+    for (const u of toItemUpdates(data)) inventory.setStock(u.id, u.inStock);
+  });
+  ingestion.onBatchEnd(() => inventory.commit());
+
   // names of great buildings, which the level up event uses instead of an id; the definitions may not be loaded
   ingestion.on('InventoryService', 'getGreatBuildings', ({ data }) => {
     catalog.setGreatBuildingNames(toGreatBuildingNames(data));

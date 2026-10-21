@@ -205,6 +205,8 @@ export interface GameEvent {
   status?: string;
   /** great_building_contribution only (not recorded yet): display name of the building, its new level, own rank */
   great_building_name?: string;
+  /** trade_accepted only (not recorded yet): the good the session player asked for and gets now */
+  need?: { good_id?: string; value?: number };
   level?: number;
   rank?: number;
 }

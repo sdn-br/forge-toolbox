@@ -23,27 +23,62 @@ export interface InventoryItem {
   payload: ItemPayload;
 }
 
-/** The inventory of the player as the game reported it at the start. Nothing is persisted, every start sends it. */
+/**
+ * The inventory of the player: the full list from the start, kept current by the updates the game sends. Nothing is
+ * persisted, every start sends it. Changes are collected and announced once per game response (`commit`), because
+ * opening packages sends several updates in a row.
+ */
 export class InventoryStore {
-  private list?: InventoryItem[];
+  private byId?: Map<number, InventoryItem>;
+  private dirty = false;
 
   constructor(private bus: ToolboxBus) {}
 
   /** false until the game sent the inventory */
   get known(): boolean {
-    return this.list !== undefined;
+    return this.byId !== undefined;
   }
 
   items(): InventoryItem[] {
-    return this.list ?? [];
+    return [...(this.byId?.values() ?? [])];
   }
 
   item(id: number): InventoryItem | undefined {
-    return this.list?.find((i) => i.id === id);
+    return this.byId?.get(id);
   }
 
+  /** the full list replaces the inventory and announces it at once */
   set(items: InventoryItem[]): void {
-    this.list = [...items];
+    this.replace(items);
+    this.commit();
+  }
+
+  /** the full list replaces the inventory; announced with the next `commit` */
+  replace(items: InventoryItem[]): void {
+    this.byId = new Map(items.map((i) => [i.id, i]));
+    this.dirty = true;
+  }
+
+  /** adds or replaces these items and leaves all others; announced with the next `commit` */
+  upsert(items: InventoryItem[]): void {
+    if (items.length === 0) return;
+    this.byId ??= new Map();
+    for (const i of items) this.byId.set(i.id, i);
+    this.dirty = true;
+  }
+
+  /** the new stock of a known item; an unknown one waits for the next full list. Announced with the next `commit`. */
+  setStock(id: number, inStock: number): void {
+    const item = this.byId?.get(id);
+    if (!item || item.inStock === inStock) return;
+    this.byId?.set(id, { ...item, inStock });
+    this.dirty = true;
+  }
+
+  /** announces the changes since the last commit, if there were any */
+  commit(): void {
+    if (!this.dirty) return;
+    this.dirty = false;
     this.bus.emit('inventory.changed', {});
   }
 
