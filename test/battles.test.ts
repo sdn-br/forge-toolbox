@@ -7,46 +7,21 @@ import { measuredArmy } from '../src/content/domain/measured-army';
 import type { GameBattle, GameBattleState } from '../src/content/game/game-types';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import { BattleStore } from '../src/content/stores/battles';
-import { CatalogStore } from '../src/content/stores/catalog';
-import { CityStore } from '../src/content/stores/cities';
-import { IncomingStore } from '../src/content/stores/incoming';
-import { PlayerStore } from '../src/content/stores/players';
-import { PlunderStore } from '../src/content/stores/plunders';
-import { ResearchStore } from '../src/content/stores/research';
-import { ResourceStore } from '../src/content/stores/resources';
-import { SessionStore } from '../src/content/stores/session';
-import { ShieldStore } from '../src/content/stores/shields';
 import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { Battle } from '../src/shared/model';
 import fixture from './fixtures/pvp-battle.json';
 import manual from './fixtures/pvp-manual-battle.json';
-import { testDb } from './helpers/battle-db';
+import { testStores } from './helpers/stores';
 
 const world = worldId('de20');
 const opponent = playerId(1001);
 
 function setup(me: number | null = fixture.me) {
-  const bus = createBus();
   const ingestion = new Ingestion();
-  const session = new SessionStore(bus);
-  const players = new PlayerStore(bus, { load: async () => [], put: async () => {} });
-  const { db, persistence, plunders, incoming, shields } = testDb();
-  const battles = new BattleStore(bus, world, persistence);
-  registerGameHandlers(ingestion, {
-    world,
-    bus,
-    now: () => 0,
-    session,
-    players,
-    cities: new CityStore(bus),
-    catalog: new CatalogStore(bus),
-    resources: new ResourceStore(bus),
-    research: new ResearchStore(bus),
-    battles,
-    plunders: new PlunderStore(bus, world, plunders),
-    incoming: new IncomingStore(bus, world, incoming),
-    shields: new ShieldStore(bus, world, shields),
-  });
+  const { db, bus, now, stores } = testStores({ now: () => 0 });
+  registerGameHandlers(ingestion, { world, bus, now, ...stores });
+  const { battles, players } = stores;
+  const persistence = db.persistence;
   const recorded: PlayerId[] = [];
   bus.on('battle.recorded', (e) => recorded.push(e.opponent));
   const send = (entries: unknown[]) =>
@@ -55,7 +30,7 @@ function setup(me: number | null = fixture.me) {
     send([
       { requestClass: 'StartupService', requestMethod: 'getData', responseData: { user_data: { player_id: me } } },
     ]);
-  return { db, persistence, battles, players, recorded, send };
+  return { db: db.db, persistence, battles, players, recorded, send };
 }
 
 /** the fixture batch with the battle response changed */

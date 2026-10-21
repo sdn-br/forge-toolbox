@@ -2,50 +2,25 @@ import { describe, expect, it } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import { Ingestion } from '../src/content/core/ingestion';
 import { registerGameHandlers } from '../src/content/game/handlers';
-import { BattleStore } from '../src/content/stores/battles';
-import { CatalogStore } from '../src/content/stores/catalog';
-import { CityStore } from '../src/content/stores/cities';
-import { IncomingStore } from '../src/content/stores/incoming';
-import { PlayerStore } from '../src/content/stores/players';
 import { PlunderStore } from '../src/content/stores/plunders';
-import { ResearchStore } from '../src/content/stores/research';
-import { ResourceStore } from '../src/content/stores/resources';
-import { SessionStore } from '../src/content/stores/session';
-import { ShieldStore } from '../src/content/stores/shields';
 import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { Plunder } from '../src/shared/model';
 import fixture from './fixtures/pvp-plunder.json';
 import doubleLoot from './fixtures/pvp-plunder-double-loot.json';
 import repelled from './fixtures/pvp-plunder-repelled.json';
-import { testDb } from './helpers/battle-db';
+import { testStores } from './helpers/stores';
 
 const world = worldId('de20');
 const opponent = playerId(1001);
 const AT = 1_792_438_656_000;
 
 function setup(me: number | null = fixture.me) {
-  const bus = createBus();
   const ingestion = new Ingestion();
-  const session = new SessionStore(bus);
-  const { db, persistence, plunders: plunderDb, incoming, shields } = testDb();
-  const plunders = new PlunderStore(bus, world, plunderDb);
-  const cities = new CityStore(bus);
   let now = AT;
-  registerGameHandlers(ingestion, {
-    world,
-    bus,
-    now: () => now,
-    session,
-    players: new PlayerStore(bus, { load: async () => [], put: async () => {} }),
-    cities,
-    catalog: new CatalogStore(bus),
-    resources: new ResourceStore(bus),
-    research: new ResearchStore(bus),
-    battles: new BattleStore(bus, world, persistence),
-    plunders,
-    incoming: new IncomingStore(bus, world, incoming),
-    shields: new ShieldStore(bus, world, shields),
-  });
+  const { db, bus, stores } = testStores({ now: () => now });
+  registerGameHandlers(ingestion, { world, bus, now: () => now, ...stores });
+  const { plunders, cities } = stores;
+  const plunderDb = db.plunders;
   const recorded: PlayerId[] = [];
   bus.on('plunder.recorded', (e) => recorded.push(e.opponent));
   const send = (entries: unknown[], request: unknown[] | null = null) =>
@@ -60,7 +35,7 @@ function setup(me: number | null = fixture.me) {
     send([
       { requestClass: 'StartupService', requestMethod: 'getData', responseData: { user_data: { player_id: me } } },
     ]);
-  return { db, plunderDb, plunders, recorded, send, cities, setNow: (at: number) => (now = at) };
+  return { db: db.db, plunderDb, plunders, recorded, send, cities, setNow: (at: number) => (now = at) };
 }
 
 /** the fixture batch with the plunderById response changed */

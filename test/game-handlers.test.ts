@@ -1,44 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { createBus } from '../src/content/core/events';
 import { Ingestion } from '../src/content/core/ingestion';
 import { registerGameHandlers } from '../src/content/game/handlers';
-import { BattleStore } from '../src/content/stores/battles';
-import { CatalogStore } from '../src/content/stores/catalog';
-import { CityStore } from '../src/content/stores/cities';
-import { IncomingStore } from '../src/content/stores/incoming';
-import { PlayerStore } from '../src/content/stores/players';
-import { PlunderStore } from '../src/content/stores/plunders';
-import { ResearchStore } from '../src/content/stores/research';
-import { ResourceStore } from '../src/content/stores/resources';
-import { SessionStore } from '../src/content/stores/session';
-import { ShieldStore } from '../src/content/stores/shields';
-import { playerId, worldId } from '../src/shared/ids';
-import { testDb } from './helpers/battle-db';
+import { playerId } from '../src/shared/ids';
+import { testStores } from './helpers/stores';
 
 function setup() {
-  const bus = createBus();
   const ingestion = new Ingestion();
-  const session = new SessionStore(bus);
-  const players = new PlayerStore(bus, { load: async () => [], put: async () => {} });
-  const cities = new CityStore(bus);
-  const catalog = new CatalogStore(bus);
-  const resources = new ResourceStore(bus);
-  const research = new ResearchStore(bus);
-  registerGameHandlers(ingestion, {
-    world: worldId('de20'),
-    bus,
-    now: () => 1_000_000,
-    session,
-    players,
-    cities,
-    catalog,
-    resources,
-    research,
-    battles: new BattleStore(bus, worldId('de20'), testDb().persistence),
-    plunders: new PlunderStore(bus, worldId('de20'), testDb().plunders),
-    incoming: new IncomingStore(bus, worldId('de20'), testDb().incoming),
-    shields: new ShieldStore(bus, worldId('de20'), testDb().shields),
-  });
+  const { world, bus, now, stores } = testStores({ now: () => 1_000_000 });
+  registerGameHandlers(ingestion, { world, bus, now, ...stores });
+  const { session, players, cities, catalog, resources, research } = stores;
   const events: string[] = [];
   bus.on('city.visited', () => events.push('visited'));
   bus.on('city.visitedChanged', () => events.push('visitedChanged'));

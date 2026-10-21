@@ -1,25 +1,12 @@
 import { render } from 'lit-html';
-import { createBus } from '../../src/content/core/events';
 import type { FeatureContext } from '../../src/content/core/feature';
 import { memoryKv } from '../../src/content/core/kv';
 import { Recorder } from '../../src/content/core/recorder';
 import { Settings } from '../../src/content/core/settings';
-import { type BattlePersistence, BattleStore } from '../../src/content/stores/battles';
-import { CatalogStore } from '../../src/content/stores/catalog';
-import { CityStore } from '../../src/content/stores/cities';
-import { type IncomingPersistence, IncomingStore } from '../../src/content/stores/incoming';
-import { NoteStore } from '../../src/content/stores/notes';
-import { PlayerStore } from '../../src/content/stores/players';
-import { type PlunderPersistence, PlunderStore } from '../../src/content/stores/plunders';
-import { ResearchStore } from '../../src/content/stores/research';
-import { ResourceStore } from '../../src/content/stores/resources';
-import { SessionStore } from '../../src/content/stores/session';
-import { ShieldStore } from '../../src/content/stores/shields';
 import type { Box, BoxOptions } from '../../src/content/ui/box';
 import type { Menu, MenuItem } from '../../src/content/ui/menu';
 import { UiState } from '../../src/content/ui/ui-state';
-import { worldId } from '../../src/shared/ids';
-import { testDb } from './battle-db';
+import { type TestStoresOptions, testStores } from './stores';
 
 /** A box that records every update as the text it would show, instead of drawing a window. */
 export function recordingBox(options: BoxOptions) {
@@ -70,15 +57,9 @@ export function recordingBox(options: BoxOptions) {
   };
 }
 
-/** Real stores, bus and settings; persistence is the real handlers on in-memory Dexie unless a test passes its own. */
-export function featureContext(
-  persistence?: BattlePersistence,
-  plunders?: PlunderPersistence,
-  incoming?: IncomingPersistence,
-) {
-  const db = testDb();
-  const world = worldId('de20');
-  const bus = createBus();
+/** Real stores, bus and settings; persistence is the real handlers on in-memory Dexie unless a test overrides stores. */
+export function featureContext(options: TestStoresOptions = {}) {
+  const { world, bus, stores } = testStores(options);
   const boxes = new Map<string, ReturnType<typeof recordingBox>>();
   const menuItems = new Map<string, MenuItem>();
   const settings = new Settings(memoryKv());
@@ -87,17 +68,7 @@ export function featureContext(
     bus,
     settings,
     menu: { add: (item: MenuItem) => menuItems.set(item.id, item) } as unknown as Menu,
-    session: new SessionStore(bus),
-    players: new PlayerStore(bus, { load: async () => [], put: async () => {} }),
-    cities: new CityStore(bus),
-    catalog: new CatalogStore(bus),
-    resources: new ResourceStore(bus),
-    research: new ResearchStore(bus),
-    battles: new BattleStore(bus, world, persistence ?? db.persistence),
-    plunders: new PlunderStore(bus, world, plunders ?? db.plunders),
-    incoming: new IncomingStore(bus, world, incoming ?? db.incoming),
-    shields: new ShieldStore(bus, world, db.shields),
-    notes: new NoteStore(bus, world, db.notes),
+    ...stores,
     recorder: new Recorder(() => false),
     ui: new UiState(memoryKv()),
     createBox: (options) => {

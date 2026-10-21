@@ -2,20 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import { Ingestion } from '../src/content/core/ingestion';
 import { registerGameHandlers } from '../src/content/game/handlers';
-import { BattleStore } from '../src/content/stores/battles';
-import { CatalogStore } from '../src/content/stores/catalog';
-import { CityStore } from '../src/content/stores/cities';
 import { IncomingStore } from '../src/content/stores/incoming';
-import { PlayerStore } from '../src/content/stores/players';
-import { PlunderStore } from '../src/content/stores/plunders';
-import { ResearchStore } from '../src/content/stores/research';
-import { ResourceStore } from '../src/content/stores/resources';
-import { SessionStore } from '../src/content/stores/session';
-import { ShieldStore } from '../src/content/stores/shields';
 import { buildingDefId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { IncomingAttack } from '../src/shared/model';
 import fixture from './fixtures/pvp-events.json';
-import { testDb } from './helpers/battle-db';
+import { testStores } from './helpers/stores';
 
 const world = worldId('de20');
 const attacker = playerId(1003);
@@ -24,27 +15,11 @@ const NOW = new Date(2026, 9, 20, 16, 31).getTime();
 const SATURDAY = new Date(2026, 9, 17, 20, 25).getTime();
 
 function setup(me: number | null = fixture.me) {
-  const bus = createBus();
   const ingestion = new Ingestion();
-  const session = new SessionStore(bus);
-  const db = testDb();
-  const incoming = new IncomingStore(bus, world, db.incoming);
   let now = NOW;
-  registerGameHandlers(ingestion, {
-    world,
-    bus,
-    now: () => now,
-    session,
-    players: new PlayerStore(bus, { load: async () => [], put: async () => {} }),
-    cities: new CityStore(bus),
-    catalog: new CatalogStore(bus),
-    resources: new ResourceStore(bus),
-    research: new ResearchStore(bus),
-    battles: new BattleStore(bus, world, db.persistence),
-    plunders: new PlunderStore(bus, world, db.plunders),
-    incoming,
-    shields: new ShieldStore(bus, world, db.shields),
-  });
+  const { db, bus, stores } = testStores({ now: () => now });
+  registerGameHandlers(ingestion, { world, bus, now: () => now, ...stores });
+  const { incoming } = stores;
   const recorded: PlayerId[] = [];
   bus.on('incoming.recorded', (e) => recorded.push(e.attacker));
   const page = (entries: unknown[]) =>
