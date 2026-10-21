@@ -6,24 +6,38 @@ import type { Ingestion } from '../core/ingestion';
 import { logInfo } from '../core/log';
 import type { Stores } from '../stores';
 import type { Building } from '../stores/city-model';
+import type { GreatBuildingEntity, RankingRow } from '../stores/great-building-model';
 import type { PlayerObservation } from '../stores/players';
 import { toBuildingDef } from './building-defs';
 import {
   armyBattleType,
+  greatBuildingOf,
+  greatBuildingRequest,
   isBattleState,
   isOwnPvpBattle,
   isPlunderedEntity,
   isRepelledPlunder,
   plunderLoot,
   plunderTarget,
+  toAcceptedTrade,
   toBattle,
   toBuilding,
   toCity,
   toCityGrid,
+  toGreatBuildingEntity,
+  toGreatBuildingLevelUp,
+  toGreatBuildingNames,
   toIncoming,
+  toInventory,
+  toInventoryItem,
+  toItemAmount,
+  toItemUpdates,
+  toLimitedBonuses,
   toObservation,
   toObservationWithAttack,
+  toPlayerResources,
   toPlunder,
+  toRankingRows,
   toRepelledPlunder,
   toResearchExpansions,
   toResourceBag,
@@ -40,6 +54,7 @@ import type {
   GameEra,
   GameEvent,
   GameEventPage,
+  GameGreatBuildingConstruction,
   GameSocialList,
   GameStartup,
   GameVisit,
@@ -76,6 +91,8 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     plunders,
     incoming,
     shields,
+    greatBuildings,
+    inventory,
   } = deps;
 
   ingestion.on('StartupService', 'getData', ({ data }) => {
@@ -245,12 +262,21 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     if (def) catalog.add(def);
   });
 
-  // comes with the startup data; assumed format `{ resources: { money, expansions, guild_raids_medals, … } }`.
-  // debt: later changes of the resources are not followed. ceiling: buyable expansions stay as at the start.
-  // upgrade: follow the responses that carry resource changes once they are recorded.
+  // The resource bag comes with the startup data: `{ type: PlayerMain, resources: { resources: { … } } }` (seen
+  // 2026-10-21); other bag types are skipped. Not recorded yet: getPlayerResources `{ resources: { … } }` with the full
+  // stock, as a response or over the websocket.
   ingestion.on('ResourceService', 'getPlayerResourceBag', ({ data }) => {
     const bag = toResourceBag(data);
     if (bag) resources.set(bag);
+  });
+  ingestion.on('ResourceService', 'getPlayerResources', ({ data }) => {
+    const bag = toPlayerResources(data);
+    if (bag) resources.set(bag);
+  });
+  // not recorded yet: an accepted own trade offer brings the good asked for
+  ingestion.on('OtherPlayerService', 'newEvent', ({ data }) => {
+    const trade = toAcceptedTrade(data as GameEvent);
+    if (trade) resources.add(trade.good, trade.amount);
   });
 
   ingestion.onMeta('grid', (file) => {
@@ -277,6 +303,102 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   ingestion.on('ResearchService', 'getProgress', ({ data }) => {
     const nodes = toUnlockedNodes(data);
     if (nodes) research.setUnlocked(nodes);
+  });
+
+  // Great buildings. Opening one of another player sends the building (getOtherPlayerCityMapEntity) and then its
+  // construction, both with the request [entityId, playerId] (seen 2026-10-21). An own one comes without the building,
+  // which the own city knows. Without the request a construction cannot be placed and is skipped.
+  ingestion.on('OtherPlayerService', 'getOtherPlayerCityMapEntity', ({ data }) => {
+    const entity = toGreatBuildingEntity(data as GameCityEntity);
+    if (entity) greatBuildings.noteEntity(entity);
+  });
+  ingestion.on('GreatBuildingsService', 'getConstruction', ({ data, request }) => {
+    const target = greatBuildingRequest(request);
+    const rows = toRankingRows((data as GameGreatBuildingConstruction | null)?.rankings);
+    if (!target || !rows) return;
+    const own = target.owner === session.current?.playerId;
+    const city = own ? cities.own() : cities.visited();
+    const known = city?.owner === target.owner ? greatBuildingOf(city.buildings.get(target.entityId)) : undefined;
+    greatBuildings.openConstruction(target.owner, target.entityId, own, rows, known);
+  });
+  // [entityId, playerId, level]: the level being built repeats the current rankings, a lower one is finished
+  ingestion.on('GreatBuildingsService', 'getConstructionRanking', ({ data, request }) => {
+    const target = greatBuildingRequest(request);
+    const rows = toRankingRows(data);
+    if (target?.level !== undefined && rows)
+      greatBuildings.levelRanking(target.owner, target.entityId, target.level, rows);
+  });
+  // An own contribution (seen 2026-10-21): request [entityId, playerId, level, amount, false], the answer is the new
+  // rankings list. The same response brings the building as it is now in a CityMapService.reset, the new resources, the
+  // inventory updates of the packages opened and getAvailablePackageForgePoints. The order varies, so the contribution
+  // is applied once the response is done, with the building from the reset when there is one. A reset of the open
+  // great building without a contribution keeps it current as well.
+  let contribution: { rows: RankingRow[]; target?: { owner: PlayerId; entityId: number } } | null = null;
+  const resetBuildings: GreatBuildingEntity[] = [];
+  ingestion.on('GreatBuildingsService', 'contributeForgePoints', ({ data, request }) => {
+    const rows = toRankingRows(Array.isArray(data) ? data : (data as GameGreatBuildingConstruction | null)?.rankings);
+    if (rows) contribution = { rows, target: greatBuildingRequest(request) ?? undefined };
+  });
+  const noteGreatBuildings = ({ data }: { data: unknown }) => {
+    for (const e of Array.isArray(data) ? (data as GameCityEntity[]) : []) {
+      const building = toGreatBuildingEntity(e);
+      if (building) resetBuildings.push(building);
+    }
+  };
+  ingestion.on('CityMapService', 'reset', noteGreatBuildings);
+  ingestion.on('CityMapService', 'updateEntity', noteGreatBuildings);
+  ingestion.onBatchEnd(() => {
+    const open = greatBuildings.current();
+    const target = contribution?.target ?? open;
+    const building = resetBuildings.find((b) => b.owner === target?.owner && b.entityId === target.entityId);
+    if (contribution) greatBuildings.contributed(contribution.rows, contribution.target, building);
+    else if (building && !open?.own) greatBuildings.noteEntity(building);
+    contribution = null;
+    resetBuildings.length = 0;
+  });
+  // The full list comes with the startup data (seen 2026-10-21, 298 items) and replaces the inventory. Not recorded yet,
+  // shapes as described: getItemsByType brings the full items of one type, getItem one full item (new ones arrive so,
+  // e.g. rewards), getItemAmount `[id, amount]`, updateItem `{ id, amount }` or a list with the new stock. All may come as
+  // a response or over the websocket; listeners hear once per response.
+  ingestion.on('InventoryService', 'getItems', ({ data }) => {
+    const items = toInventory(data);
+    if (items) inventory.replace(items);
+  });
+  ingestion.on('InventoryService', 'getItemsByType', ({ data }) => {
+    inventory.upsert(toInventory(data) ?? []);
+  });
+  ingestion.on('InventoryService', 'getItem', ({ data }) => {
+    const item = toInventoryItem(data);
+    if (item) inventory.upsert([item]);
+  });
+  ingestion.on('InventoryService', 'getItemAmount', ({ data }) => {
+    const amount = toItemAmount(data);
+    if (amount) inventory.setStock(amount.id, amount.inStock);
+  });
+  ingestion.on('InventoryService', 'updateItem', ({ data }) => {
+    for (const u of toItemUpdates(data)) inventory.setStock(u.id, u.inStock);
+  });
+  // the game's own sum of Forge points in packages (seen 2026-10-21 after a contribution: `[108198]`)
+  ingestion.on('GreatBuildingsService', 'getAvailablePackageForgePoints', ({ data }) => {
+    const fp = Array.isArray(data) ? data[0] : undefined;
+    if (typeof fp === 'number' && Number.isFinite(fp)) inventory.reportPackageForgePoints(fp);
+  });
+  ingestion.onBatchEnd(() => inventory.commit());
+
+  // names of great buildings, which the level up event uses instead of an id; the definitions may not be loaded
+  ingestion.on('InventoryService', 'getGreatBuildings', ({ data }) => {
+    catalog.setGreatBuildingNames(toGreatBuildingNames(data));
+  });
+  ingestion.on('GreatBuildingsService', 'getOtherPlayerOverview', ({ data }) => {
+    catalog.setGreatBuildingNames(toGreatBuildingNames(data));
+  });
+  ingestion.on('BonusService', 'getLimitedBonuses', ({ data }) => {
+    greatBuildings.setLimitedBonuses(toLimitedBonuses(data));
+  });
+  // Not recorded yet: a great building the player invested in levelled up, named by owner and display name only.
+  ingestion.on('OtherPlayerService', 'newEvent', ({ data }) => {
+    const up = toGreatBuildingLevelUp(data as GameEvent);
+    if (up) greatBuildings.leveled(up.owner, catalog.greatBuildingsNamed(up.name), up.level, up.rank);
   });
 
   // debt: own city ignores placeBuilding, removeBuilding and moveEntity. ceiling: own city is stale after building

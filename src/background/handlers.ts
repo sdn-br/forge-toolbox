@@ -1,4 +1,5 @@
 import { battlesHandlers } from '../persistence/battles/worker';
+import { greatBuildingsHandlers } from '../persistence/great-buildings/worker';
 import { incomingHandlers } from '../persistence/incoming/worker';
 import { notesHandlers } from '../persistence/notes/worker';
 import { playersHandlers } from '../persistence/players/worker';
@@ -15,5 +16,6 @@ export function createHandlers(db: ToolboxDb): Handlers<BackgroundApi> {
     ...incomingHandlers(db),
     ...notesHandlers(db),
     ...shieldsHandlers(db),
+    ...greatBuildingsHandlers(db),
   };
 }

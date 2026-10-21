@@ -1,5 +1,6 @@
 import Dexie from 'dexie';
 import type { BattlesTables } from '../persistence/battles/worker';
+import type { GreatBuildingsTables } from '../persistence/great-buildings/worker';
 import type { IncomingTables } from '../persistence/incoming/worker';
 import type { NotesTables } from '../persistence/notes/worker';
 import type { PlayersTables } from '../persistence/players/worker';
@@ -12,7 +13,8 @@ export type ToolboxDb = Dexie &
   PlundersTables &
   IncomingTables &
   NotesTables &
-  ShieldsTables;
+  ShieldsTables &
+  GreatBuildingsTables;
 
 /** The whole version history lives here; the domains in src/persistence only bring their tables. */
 export function openDb(name = 'forge-toolbox'): ToolboxDb {
@@ -45,6 +47,10 @@ export function openDb(name = 'forge-toolbox'): ToolboxDb {
   // city shields of other players, one per player; a new one replaces it, ended ones are pruned by their end
   db.version(8).stores({
     cityShields: '[world+player], expiresAt',
+  });
+  // last known state of other players' great buildings for the snipe helper, one row per building
+  db.version(9).stores({
+    greatBuildings: '[world+owner+entityId], [world+owner], world, seenAt',
   });
   return db;
 }

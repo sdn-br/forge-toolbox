@@ -1,18 +1,29 @@
 import { html } from 'lit-html';
 import type { Feature } from '../core/feature';
 import { logError } from '../core/log';
-import { isChoice, type SettingDef, type Settings } from '../core/settings';
+import { isChoice, isNumber, type SettingDef, type Settings } from '../core/settings';
 import { t } from '../core/texts';
+import { keepKeys } from '../ui/inputs';
 
-const save = (settings: Settings, key: string, value: boolean | string) =>
+const save = (settings: Settings, key: string, value: boolean | string | number) =>
   settings.set(key, value).catch((error) => logError('saving settings failed', error));
 
+/** an empty or broken number keeps the stored value */
+function saveNumber(settings: Settings, key: string, input: HTMLInputElement) {
+  const value = input.valueAsNumber;
+  if (Number.isFinite(value)) save(settings, key, value);
+  else input.value = String(settings.number(key));
+}
+
 const control = (settings: Settings, d: SettingDef) =>
-  isChoice(d)
-    ? html`<label>${t(d.label)}<select @change=${(e: Event) => save(settings, d.key, (e.target as HTMLSelectElement).value)}>
+  isNumber(d)
+    ? html`<label>${t(d.label)}<input type="number" min=${d.min} max=${d.max} step="1" .value=${String(settings.number(d.key))}
+        @keydown=${keepKeys} @change=${(e: Event) => saveNumber(settings, d.key, e.target as HTMLInputElement)} /></label>`
+    : isChoice(d)
+      ? html`<label>${t(d.label)}<select @change=${(e: Event) => save(settings, d.key, (e.target as HTMLSelectElement).value)}>
         ${d.choices.map((c) => html`<option value=${c.value} .selected=${settings.choice(d.key) === c.value}>${t(c.label)}</option>`)}
       </select></label>`
-    : html`<label><input type="checkbox" .checked=${settings.get(d.key)}
+      : html`<label><input type="checkbox" .checked=${settings.get(d.key)}
         @change=${(e: Event) => save(settings, d.key, (e.target as HTMLInputElement).checked)} />${t(d.label)}</label>`;
 
 export const settingsFeature: Feature = {

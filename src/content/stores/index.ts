@@ -1,5 +1,6 @@
 // All stores of one world, built in one place: a new store touches this file and nothing else in the wiring.
 import { battlePersistence } from '../../persistence/battles/client';
+import { greatBuildingPersistence } from '../../persistence/great-buildings/client';
 import { incomingPersistence } from '../../persistence/incoming/client';
 import { notePersistence } from '../../persistence/notes/client';
 import { playerPersistence } from '../../persistence/players/client';
@@ -11,7 +12,9 @@ import type { Call } from '../core/rpc';
 import { BattleStore } from './battles';
 import { CatalogStore } from './catalog';
 import { CityStore } from './cities';
+import { GreatBuildingStore } from './great-buildings';
 import { IncomingStore } from './incoming';
+import { InventoryStore } from './inventory';
 import { NoteStore } from './notes';
 import { PlayerStore } from './players';
 import { PlunderStore } from './plunders';
@@ -26,12 +29,14 @@ export interface Stores {
   cities: CityStore;
   catalog: CatalogStore;
   resources: ResourceStore;
+  inventory: InventoryStore;
   research: ResearchStore;
   battles: BattleStore;
   plunders: PlunderStore;
   incoming: IncomingStore;
   shields: ShieldStore;
   notes: NoteStore;
+  greatBuildings: GreatBuildingStore;
 }
 
 /** `call` reaches the persistence in the service worker; `now` is the clock of the stores that keep times. */
@@ -42,11 +47,13 @@ export function createStores(world: WorldId, bus: ToolboxBus, call: Call, now: (
     cities: new CityStore(bus),
     catalog: new CatalogStore(bus),
     resources: new ResourceStore(bus),
+    inventory: new InventoryStore(bus),
     research: new ResearchStore(bus),
     battles: new BattleStore(bus, world, battlePersistence(call)),
     plunders: new PlunderStore(bus, world, plunderPersistence(call)),
     incoming: new IncomingStore(bus, world, incomingPersistence(call)),
     shields: new ShieldStore(bus, world, shieldPersistence(call), now),
     notes: new NoteStore(bus, world, notePersistence(call), now),
+    greatBuildings: new GreatBuildingStore(bus, world, greatBuildingPersistence(call), now),
   };
 }

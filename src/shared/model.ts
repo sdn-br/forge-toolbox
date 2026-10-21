@@ -145,3 +145,21 @@ export interface NotePage {
   updatedAt: number;
   player?: PlayerId;
 }
+
+/**
+ * The last known state of a great building of another player, kept for the snipe helper. Written whenever the
+ * session player opens or updates the construction of that building.
+ */
+export interface KnownGreatBuilding {
+  world: WorldId;
+  owner: PlayerId;
+  /** the building in the owner's city */
+  entityId: number;
+  cityEntityId: BuildingDefId;
+  level: number;
+  invested: number;
+  required: number;
+  /** lowest rate in percent of all places the session player could take then; missing when none was free */
+  bestRate?: number;
+  seenAt: number;
+}

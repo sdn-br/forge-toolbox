@@ -1,0 +1,554 @@
+{
+  "note": "Own contribution to a great building of another player recorded on de20 2026-10-21: the opening (building and construction) and the whole response batch of contributeForgePoints in the order the game sent it. Inventory before: the Forge point packages of the start recording of the same day. Players anonymized (me 1000, owner 1001, others from 2001), item ids as in great-buildings.json, resources trimmed.",
+  "me": 1000,
+  "startup": [
+    {
+      "requestClass": "StartupService",
+      "requestMethod": "getData",
+      "requestData": null,
+      "responseData": {
+        "user_data": {
+          "player_id": 1000,
+          "user_name": "Ich",
+          "era": "VirtualFuture"
+        },
+        "city_map": {
+          "gridId": "main",
+          "entities": []
+        }
+      }
+    }
+  ],
+  "inventory": [
+    {
+      "requestClass": "InventoryService",
+      "requestMethod": "getItems",
+      "requestData": [],
+      "responseData": [
+        {
+          "name": "10 Forge-Punkte",
+          "inStock": 9931,
+          "item": {
+            "resource_package": {
+              "cost": {
+                "__class__": "CityResource"
+              },
+              "gain": 10,
+              "__class__": "PremiumPackage"
+            },
+            "__class__": "ForgePointPackagePayload"
+          },
+          "itemAssetName": "large_forgepoints",
+          "__class__": "InventoryItem",
+          "id": 9001
+        },
+        {
+          "name": "5 Forge-Punkte",
+          "inStock": 401,
+          "item": {
+            "resource_package": {
+              "cost": {
+                "__class__": "CityResource"
+              },
+              "gain": 5,
+              "__class__": "PremiumPackage"
+            },
+            "__class__": "ForgePointPackagePayload"
+          },
+          "itemAssetName": "medium_forgepoints",
+          "__class__": "InventoryItem",
+          "id": 9002
+        },
+        {
+          "name": "2 Forge-Punkte",
+          "inStock": 3569,
+          "item": {
+            "resource_package": {
+              "cost": {
+                "__class__": "CityResource"
+              },
+              "gain": 2,
+              "__class__": "PremiumPackage"
+            },
+            "__class__": "ForgePointPackagePayload"
+          },
+          "itemAssetName": "small_forgepoints",
+          "__class__": "InventoryItem",
+          "id": 9003
+        }
+      ]
+    }
+  ],
+  "opening": [
+    {
+      "requestClass": "OtherPlayerService",
+      "requestMethod": "getOtherPlayerCityMapEntity",
+      "requestData": [222, 1001],
+      "responseData": {
+        "id": 222,
+        "cityentity_id": "X_BronzeAge_Landmark2",
+        "type": "greatbuilding",
+        "x": 36,
+        "y": 8,
+        "connected": 1,
+        "level": 63,
+        "max_level": 64,
+        "__class__": "CityMapEntity",
+        "player_id": 1001,
+        "state": {
+          "invested_forge_points": 1455,
+          "forge_points_for_level_up": 1935,
+          "__class__": "IdleState"
+        },
+        "bonus": {
+          "type": "military_boost",
+          "value": 56.5,
+          "__class__": "GreatBuildingUnitBonus"
+        }
+      }
+    },
+    {
+      "requestClass": "GreatBuildingsService",
+      "requestMethod": "getConstruction",
+      "requestData": [222, 1001],
+      "responseData": {
+        "rankings": [
+          {
+            "rank": 1,
+            "forge_points": 900,
+            "reward": {
+              "blueprints": 13,
+              "blueprintRewards": [
+                {
+                  "building_id": "X_BronzeAge_Landmark2",
+                  "amount": 13,
+                  "tier": {
+                    "__enum__": "GreatBuildingTier",
+                    "value": "copper"
+                  },
+                  "__class__": "GreatBuildingBlueprint"
+                }
+              ],
+              "strategy_point_amount": 505,
+              "resources": {
+                "medals": 557,
+                "__class__": "CityResource"
+              },
+              "__class__": "GreatBuildingRankingRowReward"
+            },
+            "__class__": "GreatBuildingRankingRow",
+            "player": {
+              "player_id": 2001,
+              "name": "Spieler 2001",
+              "avatar": "",
+              "__class__": "OtherPlayer"
+            }
+          },
+          {
+            "forge_points": 350,
+            "__class__": "GreatBuildingRankingRow",
+            "player": {
+              "player_id": 1001,
+              "name": "Eigentümer 1001",
+              "avatar": "",
+              "__class__": "OtherPlayer"
+            }
+          },
+          {
+            "rank": 2,
+            "forge_points": 121,
+            "reward": {
+              "blueprints": 9,
+              "blueprintRewards": [
+                {
+                  "building_id": "X_BronzeAge_Landmark2",
+                  "amount": 9,
+                  "tier": {
+                    "__enum__": "GreatBuildingTier",
+                    "value": "copper"
+                  },
+                  "__class__": "GreatBuildingBlueprint"
+                }
+              ],
+              "strategy_point_amount": 255,
+              "resources": {
+                "medals": 279,
+                "__class__": "CityResource"
+              },
+              "__class__": "GreatBuildingRankingRowReward"
+            },
+            "__class__": "GreatBuildingRankingRow",
+            "player": {
+              "player_id": 2002,
+              "name": "Spieler 2002",
+              "avatar": "",
+              "__class__": "OtherPlayer"
+            }
+          },
+          {
+            "rank": 3,
+            "forge_points": 84,
+            "reward": {
+              "blueprints": 7,
+              "blueprintRewards": [
+                {
+                  "building_id": "X_BronzeAge_Landmark2",
+                  "amount": 7,
+                  "tier": {
+                    "__enum__": "GreatBuildingTier",
+                    "value": "copper"
+                  },
+                  "__class__": "GreatBuildingBlueprint"
+                }
+              ],
+              "strategy_point_amount": 85,
+              "resources": {
+                "medals": 139,
+                "__class__": "CityResource"
+              },
+              "__class__": "GreatBuildingRankingRowReward"
+            },
+            "__class__": "GreatBuildingRankingRow",
+            "player": {
+              "player_id": 2003,
+              "name": "Spieler 2003",
+              "avatar": "",
+              "__class__": "OtherPlayer"
+            }
+          },
+          {
+            "rank": 4,
+            "reward": {
+              "blueprints": 6,
+              "blueprintRewards": [
+                {
+                  "building_id": "X_BronzeAge_Landmark2",
+                  "amount": 6,
+                  "tier": {
+                    "__enum__": "GreatBuildingTier",
+                    "value": "copper"
+                  },
+                  "__class__": "GreatBuildingBlueprint"
+                }
+              ],
+              "strategy_point_amount": 20,
+              "resources": {
+                "medals": 56,
+                "__class__": "CityResource"
+              },
+              "__class__": "GreatBuildingRankingRowReward"
+            },
+            "__class__": "GreatBuildingRankingRow",
+            "player": {
+              "name": "Noch kein Mäzen",
+              "avatar": "",
+              "__class__": "OtherPlayer"
+            }
+          },
+          {
+            "rank": 5,
+            "reward": {
+              "blueprints": 5,
+              "blueprintRewards": [
+                {
+                  "building_id": "X_BronzeAge_Landmark2",
+                  "amount": 5,
+                  "tier": {
+                    "__enum__": "GreatBuildingTier",
+                    "value": "copper"
+                  },
+                  "__class__": "GreatBuildingBlueprint"
+                }
+              ],
+              "strategy_point_amount": 5,
+              "resources": {
+                "medals": 28,
+                "__class__": "CityResource"
+              },
+              "__class__": "GreatBuildingRankingRowReward"
+            },
+            "__class__": "GreatBuildingRankingRow",
+            "player": {
+              "name": "Noch kein Mäzen",
+              "avatar": "",
+              "__class__": "OtherPlayer"
+            }
+          }
+        ],
+        "__class__": "GreatBuildingConstruction"
+      }
+    }
+  ],
+  "contribution": [
+    {
+      "requestClass": "ResourceService",
+      "requestMethod": "getPlayerResourceBag",
+      "requestData": null,
+      "responseData": {
+        "type": {
+          "__enum__": "ResourceBagType",
+          "value": "PlayerMain"
+        },
+        "resources": {
+          "resources": {
+            "strategy_points": 0,
+            "money": 8259540925
+          },
+          "__class__": "Resources"
+        },
+        "__class__": "ResourceBag"
+      }
+    },
+    {
+      "requestClass": "TimeService",
+      "requestMethod": "updateTime",
+      "requestData": null,
+      "responseData": {
+        "time": 1792611744,
+        "__class__": "Time"
+      }
+    },
+    {
+      "requestClass": "InventoryService",
+      "requestMethod": "updateItem",
+      "requestData": null,
+      "responseData": {
+        "id": 9001,
+        "amount": 9906,
+        "__class__": "InventoryItemUpdate"
+      }
+    },
+    {
+      "requestClass": "InventoryService",
+      "requestMethod": "updateItem",
+      "requestData": null,
+      "responseData": {
+        "id": 9002,
+        "amount": 400,
+        "__class__": "InventoryItemUpdate"
+      }
+    },
+    {
+      "requestClass": "GreatBuildingsService",
+      "requestMethod": "contributeForgePoints",
+      "requestData": [222, 1001, 63, 301, false],
+      "responseData": [
+        {
+          "rank": 1,
+          "forge_points": 900,
+          "reward": {
+            "blueprints": 13,
+            "blueprintRewards": [
+              {
+                "building_id": "X_BronzeAge_Landmark2",
+                "amount": 13,
+                "tier": {
+                  "__enum__": "GreatBuildingTier",
+                  "value": "copper"
+                },
+                "__class__": "GreatBuildingBlueprint"
+              }
+            ],
+            "strategy_point_amount": 505,
+            "resources": {
+              "medals": 557,
+              "__class__": "CityResource"
+            },
+            "__class__": "GreatBuildingRankingRowReward"
+          },
+          "__class__": "GreatBuildingRankingRow",
+          "player": {
+            "player_id": 2001,
+            "name": "Spieler 2001",
+            "avatar": "",
+            "__class__": "OtherPlayer"
+          }
+        },
+        {
+          "forge_points": 350,
+          "__class__": "GreatBuildingRankingRow",
+          "player": {
+            "player_id": 1001,
+            "name": "Eigentümer 1001",
+            "avatar": "",
+            "__class__": "OtherPlayer"
+          }
+        },
+        {
+          "rank": 2,
+          "forge_points": 301,
+          "reward": {
+            "blueprints": 9,
+            "blueprintRewards": [
+              {
+                "building_id": "X_BronzeAge_Landmark2",
+                "amount": 9,
+                "tier": {
+                  "__enum__": "GreatBuildingTier",
+                  "value": "copper"
+                },
+                "__class__": "GreatBuildingBlueprint"
+              }
+            ],
+            "strategy_point_amount": 255,
+            "resources": {
+              "medals": 279,
+              "__class__": "CityResource"
+            },
+            "__class__": "GreatBuildingRankingRowReward"
+          },
+          "__class__": "GreatBuildingRankingRow",
+          "player": {
+            "player_id": 1000,
+            "name": "Ich",
+            "avatar": "",
+            "is_self": true,
+            "__class__": "OtherPlayer"
+          }
+        },
+        {
+          "rank": 3,
+          "forge_points": 121,
+          "reward": {
+            "blueprints": 7,
+            "blueprintRewards": [
+              {
+                "building_id": "X_BronzeAge_Landmark2",
+                "amount": 7,
+                "tier": {
+                  "__enum__": "GreatBuildingTier",
+                  "value": "copper"
+                },
+                "__class__": "GreatBuildingBlueprint"
+              }
+            ],
+            "strategy_point_amount": 85,
+            "resources": {
+              "medals": 139,
+              "__class__": "CityResource"
+            },
+            "__class__": "GreatBuildingRankingRowReward"
+          },
+          "__class__": "GreatBuildingRankingRow",
+          "player": {
+            "player_id": 2002,
+            "name": "Spieler 2002",
+            "avatar": "",
+            "__class__": "OtherPlayer"
+          }
+        },
+        {
+          "rank": 4,
+          "forge_points": 84,
+          "reward": {
+            "blueprints": 6,
+            "blueprintRewards": [
+              {
+                "building_id": "X_BronzeAge_Landmark2",
+                "amount": 6,
+                "tier": {
+                  "__enum__": "GreatBuildingTier",
+                  "value": "copper"
+                },
+                "__class__": "GreatBuildingBlueprint"
+              }
+            ],
+            "strategy_point_amount": 20,
+            "resources": {
+              "medals": 56,
+              "__class__": "CityResource"
+            },
+            "__class__": "GreatBuildingRankingRowReward"
+          },
+          "__class__": "GreatBuildingRankingRow",
+          "player": {
+            "player_id": 2003,
+            "name": "Spieler 2003",
+            "avatar": "",
+            "__class__": "OtherPlayer"
+          }
+        },
+        {
+          "rank": 5,
+          "reward": {
+            "blueprints": 5,
+            "blueprintRewards": [
+              {
+                "building_id": "X_BronzeAge_Landmark2",
+                "amount": 5,
+                "tier": {
+                  "__enum__": "GreatBuildingTier",
+                  "value": "copper"
+                },
+                "__class__": "GreatBuildingBlueprint"
+              }
+            ],
+            "strategy_point_amount": 5,
+            "resources": {
+              "medals": 28,
+              "__class__": "CityResource"
+            },
+            "__class__": "GreatBuildingRankingRowReward"
+          },
+          "__class__": "GreatBuildingRankingRow",
+          "player": {
+            "name": "Noch kein Mäzen",
+            "avatar": "",
+            "__class__": "OtherPlayer"
+          }
+        }
+      ]
+    },
+    {
+      "requestClass": "ResourceService",
+      "requestMethod": "getPlayerAutoRefills",
+      "requestData": null,
+      "responseData": {
+        "resources": {
+          "guild_raids_action_points": 1792611744,
+          "wildlife_tickets": 1792611744,
+          "history_tickets": 1792611744,
+          "guild_expedition_attempt": 1792611744,
+          "pvp_arena_attempt": 1792610244,
+          "strategy_points": 1792610288
+        },
+        "__class__": "ResourceAutoRefill"
+      }
+    },
+    {
+      "requestClass": "CityMapService",
+      "requestMethod": "reset",
+      "requestData": null,
+      "responseData": [
+        {
+          "id": 222,
+          "cityentity_id": "X_BronzeAge_Landmark2",
+          "type": "greatbuilding",
+          "x": 36,
+          "y": 8,
+          "connected": 1,
+          "level": 63,
+          "max_level": 64,
+          "__class__": "CityMapEntity",
+          "player_id": 1001,
+          "state": {
+            "invested_forge_points": 1756,
+            "forge_points_for_level_up": 1935,
+            "__class__": "IdleState"
+          },
+          "bonus": {
+            "type": "military_boost",
+            "value": 56.5,
+            "__class__": "GreatBuildingUnitBonus"
+          }
+        }
+      ]
+    },
+    {
+      "requestClass": "GreatBuildingsService",
+      "requestMethod": "getAvailablePackageForgePoints",
+      "requestData": null,
+      "responseData": [108198]
+    }
+  ]
+}

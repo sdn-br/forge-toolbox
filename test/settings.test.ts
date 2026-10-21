@@ -46,3 +46,26 @@ describe('Settings', () => {
     expect(settings.choice('a.toggle')).toBe('');
   });
 });
+
+describe('number settings', () => {
+  it('returns the default, keeps stored values within bounds and ignores other types', async () => {
+    const { settings } = setup();
+    settings.register({
+      key: 'a.number',
+      group: 'settings.core',
+      label: 'settings.recordTraffic',
+      default: 90,
+      min: -100,
+      max: 200,
+    });
+    expect(settings.number('a.number')).toBe(90);
+    await settings.set('a.number', 85.4);
+    expect(settings.number('a.number')).toBe(85);
+    await settings.set('a.number', 500);
+    expect(settings.number('a.number')).toBe(200);
+    await settings.set('a.number', 'x');
+    expect(settings.number('a.number')).toBe(90);
+    expect(settings.get('a.number')).toBe(false);
+    expect(settings.number('a.toggle')).toBe(0);
+  });
+});

@@ -16,11 +16,20 @@ export interface ChoiceSettingDef extends BaseSettingDef {
   choices: { value: string; label: TextKey }[];
 }
 
-export type SettingDef = ToggleSettingDef | ChoiceSettingDef;
+/** a whole number within `min` and `max` */
+export interface NumberSettingDef extends BaseSettingDef {
+  default: number;
+  min: number;
+  max: number;
+}
+
+export type SettingDef = ToggleSettingDef | ChoiceSettingDef | NumberSettingDef;
 
 export const isChoice = (def: SettingDef): def is ChoiceSettingDef => 'choices' in def;
+export const isNumber = (def: SettingDef): def is NumberSettingDef => 'min' in def;
 
-type Values = Record<string, boolean | string>;
+type Value = boolean | string | number;
+type Values = Record<string, Value>;
 
 export class Settings {
   readonly defs: SettingDef[] = [];
@@ -42,7 +51,16 @@ export class Settings {
     const value = this.values[key];
     if (typeof value === 'boolean') return value;
     const def = this.def(key);
-    return def && !isChoice(def) ? def.default : false;
+    return def && !isChoice(def) && !isNumber(def) ? def.default : false;
+  }
+
+  /** value of a number setting, rounded and kept within its bounds; a stored value of another type gives the default */
+  number(key: string): number {
+    const def = this.def(key);
+    if (!def || !isNumber(def)) return 0;
+    const value = this.values[key];
+    if (typeof value !== 'number' || !Number.isFinite(value)) return def.default;
+    return Math.min(def.max, Math.max(def.min, Math.round(value)));
   }
 
   /** value of a choice; a stored value that is no longer a choice falls back to the default */
@@ -53,7 +71,7 @@ export class Settings {
     return typeof value === 'string' && def.choices.some((c) => c.value === value) ? value : def.default;
   }
 
-  async set(key: string, value: boolean | string): Promise<void> {
+  async set(key: string, value: Value): Promise<void> {
     this.values = { ...this.values, [key]: value };
     await this.kv.set('settings', this.values);
     for (const listener of this.listeners) listener(key);

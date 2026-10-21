@@ -1,0 +1,1481 @@
+{
+  "note": "Great building openings recorded on de20 2026-10-21: four buildings of other players (the building and its construction), the overview of each owner for the names, a finished level (getConstructionRanking), the own Arc construction and the own Arc from the startup data. Player ids and names replaced (me 1000, owners from 1001, others from 2001), unrelated fields dropped.",
+  "me": 1000,
+  "startup": [
+    {
+      "requestClass": "StartupService",
+      "requestMethod": "getData",
+      "requestData": null,
+      "responseData": {
+        "user_data": {
+          "player_id": 1000,
+          "user_name": "Ich",
+          "era": "VirtualFuture"
+        },
+        "city_map": {
+          "gridId": "main",
+          "entities": [
+            {
+              "id": 1769,
+              "cityentity_id": "X_FutureEra_Landmark1",
+              "type": "greatbuilding",
+              "x": 31,
+              "connected": 1,
+              "level": 135,
+              "max_level": 180,
+              "player_id": 1000,
+              "state": {
+                "invested_forge_points": 5145,
+                "forge_points_for_level_up": 21777,
+                "__class__": "ProducingState"
+              },
+              "bonus": {
+                "type": "contribution_boost",
+                "value": 95.5,
+                "amount": -1,
+                "__class__": "GreatBuildingCityMapBonus"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "inventory": [
+    {
+      "requestClass": "InventoryService",
+      "requestMethod": "getItems",
+      "requestData": [],
+      "responseData": [
+        {
+          "name": "10 Forge-Punkte",
+          "inStock": 9931,
+          "item": {
+            "resource_package": {
+              "cost": {
+                "__class__": "CityResource"
+              },
+              "gain": 10,
+              "__class__": "PremiumPackage"
+            },
+            "__class__": "ForgePointPackagePayload"
+          },
+          "itemAssetName": "large_forgepoints",
+          "__class__": "InventoryItem",
+          "id": 9001
+        },
+        {
+          "name": "5 Forge-Punkte",
+          "inStock": 401,
+          "item": {
+            "resource_package": {
+              "cost": {
+                "__class__": "CityResource"
+              },
+              "gain": 5,
+              "__class__": "PremiumPackage"
+            },
+            "__class__": "ForgePointPackagePayload"
+          },
+          "itemAssetName": "medium_forgepoints",
+          "__class__": "InventoryItem",
+          "id": 9002
+        },
+        {
+          "name": "2 Forge-Punkte",
+          "inStock": 3569,
+          "item": {
+            "resource_package": {
+              "cost": {
+                "__class__": "CityResource"
+              },
+              "gain": 2,
+              "__class__": "PremiumPackage"
+            },
+            "__class__": "ForgePointPackagePayload"
+          },
+          "itemAssetName": "small_forgepoints",
+          "__class__": "InventoryItem",
+          "id": 9003
+        },
+        {
+          "name": "20%-Angriffs-Trank",
+          "inStock": 83,
+          "item": {
+            "boostType": "att_boost_attacker",
+            "value": 20,
+            "duration": 28800,
+            "__class__": "BoostItemPayload"
+          },
+          "itemAssetName": "boost_attack_large",
+          "__class__": "InventoryItem",
+          "id": 9004
+        }
+      ]
+    }
+  ],
+  "openings": [
+    {
+      "entity": {
+        "requestClass": "OtherPlayerService",
+        "requestMethod": "getOtherPlayerCityMapEntity",
+        "requestData": [1909, 1001],
+        "responseData": {
+          "id": 1909,
+          "cityentity_id": "X_EarlyMiddleAge_Landmark2",
+          "type": "greatbuilding",
+          "x": 30,
+          "connected": 1,
+          "level": 75,
+          "max_level": 76,
+          "player_id": 1001,
+          "state": {
+            "invested_forge_points": 251,
+            "forge_points_for_level_up": 3062,
+            "__class__": "ProducingState"
+          },
+          "bonus": {
+            "type": "military_boost",
+            "value": 62.5,
+            "__class__": "GreatBuildingUnitBonus"
+          }
+        }
+      },
+      "construction": {
+        "requestClass": "GreatBuildingsService",
+        "requestMethod": "getConstruction",
+        "requestData": [1909, 1001],
+        "responseData": {
+          "ownerEra": "VirtualFuture",
+          "rankings": [
+            {
+              "forge_points": 251,
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "player_id": 1001,
+                "name": "Eigentümer 1001",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 1,
+              "reward": {
+                "blueprints": 15,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_EarlyMiddleAge_Landmark2",
+                    "amount": 15,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 730,
+                "resources": {
+                  "medals": 1080,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "name": "Noch kein Mäzen",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 2,
+              "reward": {
+                "blueprints": 11,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_EarlyMiddleAge_Landmark2",
+                    "amount": 11,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 365,
+                "resources": {
+                  "medals": 540,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "name": "Noch kein Mäzen",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 3,
+              "reward": {
+                "blueprints": 8,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_EarlyMiddleAge_Landmark2",
+                    "amount": 8,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 120,
+                "resources": {
+                  "medals": 270,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "name": "Noch kein Mäzen",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 4,
+              "reward": {
+                "blueprints": 7,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_EarlyMiddleAge_Landmark2",
+                    "amount": 7,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 30,
+                "resources": {
+                  "medals": 108,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "name": "Noch kein Mäzen",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 5,
+              "reward": {
+                "blueprints": 6,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_EarlyMiddleAge_Landmark2",
+                    "amount": 6,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 5,
+                "resources": {
+                  "medals": 54,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "name": "Noch kein Mäzen",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            }
+          ],
+          "__class__": "GreatBuildingConstruction"
+        }
+      }
+    },
+    {
+      "entity": {
+        "requestClass": "OtherPlayerService",
+        "requestMethod": "getOtherPlayerCityMapEntity",
+        "requestData": [650, 1002],
+        "responseData": {
+          "id": 650,
+          "cityentity_id": "X_EarlyMiddleAge_Landmark2",
+          "type": "greatbuilding",
+          "x": 8,
+          "y": 21,
+          "connected": 2,
+          "level": 49,
+          "max_level": 55,
+          "player_id": 1002,
+          "state": {
+            "invested_forge_points": 917,
+            "forge_points_for_level_up": 1612,
+            "__class__": "ProducingState"
+          },
+          "bonus": {
+            "type": "military_boost",
+            "value": 49.5,
+            "__class__": "GreatBuildingUnitBonus"
+          }
+        }
+      },
+      "construction": {
+        "requestClass": "GreatBuildingsService",
+        "requestMethod": "getConstruction",
+        "requestData": [650, 1002],
+        "responseData": {
+          "ownerEra": "VirtualFuture",
+          "rankings": [
+            {
+              "rank": 1,
+              "forge_points": 696,
+              "reward": {
+                "blueprints": 11,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_EarlyMiddleAge_Landmark2",
+                    "amount": 11,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 440,
+                "resources": {
+                  "medals": 650,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "player_id": 1000,
+                "name": "Ich",
+                "avatar": "",
+                "is_self": true,
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "forge_points": 220,
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "player_id": 1002,
+                "name": "Eigentümer 1002",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 2,
+              "forge_points": 1,
+              "reward": {
+                "blueprints": 8,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_EarlyMiddleAge_Landmark2",
+                    "amount": 8,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 220,
+                "resources": {
+                  "medals": 325,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "player_id": 2001,
+                "name": "Spieler 2001",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 3,
+              "reward": {
+                "blueprints": 6,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_EarlyMiddleAge_Landmark2",
+                    "amount": 6,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 75,
+                "resources": {
+                  "medals": 163,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "name": "Noch kein Mäzen",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 4,
+              "reward": {
+                "blueprints": 5,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_EarlyMiddleAge_Landmark2",
+                    "amount": 5,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 20,
+                "resources": {
+                  "medals": 65,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "name": "Noch kein Mäzen",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 5,
+              "reward": {
+                "blueprints": 4,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_EarlyMiddleAge_Landmark2",
+                    "amount": 4,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 5,
+                "resources": {
+                  "medals": 33,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "name": "Noch kein Mäzen",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            }
+          ],
+          "__class__": "GreatBuildingConstruction"
+        }
+      }
+    },
+    {
+      "entity": {
+        "requestClass": "OtherPlayerService",
+        "requestMethod": "getOtherPlayerCityMapEntity",
+        "requestData": [1500, 1002],
+        "responseData": {
+          "id": 1500,
+          "cityentity_id": "X_FutureEra_Landmark1",
+          "type": "greatbuilding",
+          "x": 16,
+          "y": 54,
+          "connected": 2,
+          "level": 100,
+          "max_level": 101,
+          "player_id": 1002,
+          "state": {
+            "invested_forge_points": 6279,
+            "forge_points_for_level_up": 9176,
+            "__class__": "ProducingState"
+          },
+          "bonus": {
+            "type": "contribution_boost",
+            "value": 92.0,
+            "amount": -1,
+            "__class__": "GreatBuildingCityMapBonus"
+          }
+        }
+      },
+      "construction": {
+        "requestClass": "GreatBuildingsService",
+        "requestMethod": "getConstruction",
+        "requestData": [1500, 1002],
+        "responseData": {
+          "ownerEra": "VirtualFuture",
+          "rankings": [
+            {
+              "rank": 1,
+              "forge_points": 3397,
+              "reward": {
+                "blueprints": 18,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_FutureEra_Landmark1",
+                    "amount": 18,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 1820,
+                "resources": {
+                  "medals": 46305,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "player_id": 1000,
+                "name": "Ich",
+                "avatar": "",
+                "is_self": true,
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "forge_points": 1050,
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "player_id": 1002,
+                "name": "Eigentümer 1002",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 2,
+              "forge_points": 500,
+              "reward": {
+                "blueprints": 13,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_FutureEra_Landmark1",
+                    "amount": 13,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 910,
+                "resources": {
+                  "medals": 23153,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "player_id": 2002,
+                "name": "Spieler 2002",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 3,
+              "forge_points": 500,
+              "reward": {
+                "blueprints": 10,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_FutureEra_Landmark1",
+                    "amount": 10,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 305,
+                "resources": {
+                  "medals": 11576,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "player_id": 2003,
+                "name": "Spieler 2003",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 4,
+              "forge_points": 500,
+              "reward": {
+                "blueprints": 8,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_FutureEra_Landmark1",
+                    "amount": 8,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 75,
+                "resources": {
+                  "medals": 4631,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "player_id": 2004,
+                "name": "Spieler 2004",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 5,
+              "forge_points": 300,
+              "reward": {
+                "blueprints": 7,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_FutureEra_Landmark1",
+                    "amount": 7,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 15,
+                "resources": {
+                  "medals": 2315,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "player_id": 2005,
+                "name": "Spieler 2005",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 6,
+              "forge_points": 30,
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "player_id": 2006,
+                "name": "Spieler 2006",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 7,
+              "forge_points": 2,
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "player_id": 2007,
+                "name": "Spieler 2007",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            }
+          ],
+          "__class__": "GreatBuildingConstruction"
+        }
+      }
+    },
+    {
+      "entity": {
+        "requestClass": "OtherPlayerService",
+        "requestMethod": "getOtherPlayerCityMapEntity",
+        "requestData": [2434, 1002],
+        "responseData": {
+          "id": 2434,
+          "cityentity_id": "X_ProgressiveEra_Landmark1",
+          "type": "greatbuilding",
+          "x": 8,
+          "y": 54,
+          "connected": 2,
+          "level": 52,
+          "max_level": 60,
+          "player_id": 1002,
+          "state": {
+            "invested_forge_points": 2189,
+            "forge_points_for_level_up": 2400,
+            "__class__": "ProducingState"
+          },
+          "bonus": {
+            "type": "happiness",
+            "value": 25768.0,
+            "amount": -1,
+            "__class__": "GreatBuildingCityMapBonus"
+          }
+        }
+      },
+      "construction": {
+        "requestClass": "GreatBuildingsService",
+        "requestMethod": "getConstruction",
+        "requestData": [2434, 1002],
+        "responseData": {
+          "ownerEra": "VirtualFuture",
+          "rankings": [
+            {
+              "rank": 1,
+              "forge_points": 1150,
+              "reward": {
+                "blueprints": 11,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_ProgressiveEra_Landmark1",
+                    "amount": 11,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 655,
+                "resources": {
+                  "medals": 5623,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "player_id": 2010,
+                "name": "Spieler 2010",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 2,
+              "forge_points": 575,
+              "reward": {
+                "blueprints": 8,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_ProgressiveEra_Landmark1",
+                    "amount": 8,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 330,
+                "resources": {
+                  "medals": 2812,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "player_id": 1000,
+                "name": "Ich",
+                "avatar": "",
+                "is_self": true,
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 3,
+              "forge_points": 363,
+              "reward": {
+                "blueprints": 6,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_ProgressiveEra_Landmark1",
+                    "amount": 6,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 110,
+                "resources": {
+                  "medals": 1406,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "player_id": 2011,
+                "name": "Spieler 2011",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "forge_points": 100,
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "player_id": 1002,
+                "name": "Eigentümer 1002",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 4,
+              "forge_points": 1,
+              "reward": {
+                "blueprints": 5,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_ProgressiveEra_Landmark1",
+                    "amount": 5,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 30,
+                "resources": {
+                  "medals": 562,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "player_id": 2001,
+                "name": "Spieler 2001",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            },
+            {
+              "rank": 5,
+              "reward": {
+                "blueprints": 4,
+                "blueprintRewards": [
+                  {
+                    "building_id": "X_ProgressiveEra_Landmark1",
+                    "amount": 4,
+                    "tier": {
+                      "__enum__": "GreatBuildingTier",
+                      "value": "copper"
+                    },
+                    "__class__": "GreatBuildingBlueprint"
+                  }
+                ],
+                "strategy_point_amount": 5,
+                "resources": {
+                  "medals": 281,
+                  "__class__": "CityResource"
+                },
+                "__class__": "GreatBuildingRankingRowReward"
+              },
+              "__class__": "GreatBuildingRankingRow",
+              "player": {
+                "name": "Noch kein Mäzen",
+                "avatar": "",
+                "__class__": "OtherPlayer"
+              }
+            }
+          ],
+          "__class__": "GreatBuildingConstruction"
+        }
+      }
+    }
+  ],
+  "overviews": [
+    {
+      "requestClass": "GreatBuildingsService",
+      "requestMethod": "getOtherPlayerOverview",
+      "requestData": [1001],
+      "responseData": [
+        {
+          "entity_id": 1909,
+          "city_entity_id": "X_EarlyMiddleAge_Landmark2",
+          "name": "Aachener Dom",
+          "level": 75
+        },
+        {
+          "entity_id": 2699,
+          "city_entity_id": "X_ProgressiveEra_Landmark2",
+          "name": "Château Frontenac",
+          "level": 41
+        },
+        {
+          "entity_id": 95,
+          "city_entity_id": "X_AllAge_Oracle",
+          "name": "Orakel von Delphi",
+          "level": 26
+        },
+        {
+          "entity_id": 983,
+          "city_entity_id": "X_BronzeAge_Landmark1",
+          "name": "Turm zu Babel",
+          "level": 31
+        },
+        {
+          "entity_id": 2177,
+          "city_entity_id": "X_IronAge_Landmark2",
+          "name": "Leuchtturm von Alexandria",
+          "level": 39
+        },
+        {
+          "entity_id": 2521,
+          "city_entity_id": "X_LateMiddleAge_Landmark1",
+          "name": "Basilius-Kathedrale",
+          "level": 26
+        },
+        {
+          "entity_id": 3559,
+          "city_entity_id": "X_TomorrowEra_Landmark2",
+          "name": "Friedensturm",
+          "level": 20
+        },
+        {
+          "entity_id": 3725,
+          "city_entity_id": "X_ColonialAge_Landmark2",
+          "name": "Deal Castle",
+          "level": 10
+        },
+        {
+          "entity_id": 3093,
+          "city_entity_id": "X_FutureEra_Landmark1",
+          "name": "Die Arche",
+          "level": 77
+        },
+        {
+          "entity_id": 285,
+          "city_entity_id": "X_BronzeAge_Landmark2",
+          "name": "Zeusstatue",
+          "level": 99
+        },
+        {
+          "entity_id": 3464,
+          "city_entity_id": "X_ColonialAge_Landmark1",
+          "name": "Dresdner Frauenkirche",
+          "level": 15
+        },
+        {
+          "entity_id": 1108,
+          "city_entity_id": "X_LateMiddleAge_Landmark3",
+          "name": "Castel del Monte",
+          "level": 53
+        },
+        {
+          "entity_id": 2962,
+          "city_entity_id": "X_AllAge_EasterBonus4",
+          "name": "Observatorium",
+          "level": 45
+        }
+      ]
+    },
+    {
+      "requestClass": "GreatBuildingsService",
+      "requestMethod": "getOtherPlayerOverview",
+      "requestData": [1002],
+      "responseData": [
+        {
+          "entity_id": 650,
+          "city_entity_id": "X_EarlyMiddleAge_Landmark2",
+          "name": "Aachener Dom",
+          "level": 49
+        },
+        {
+          "entity_id": 4923,
+          "city_entity_id": "X_OceanicFuture_Landmark2",
+          "name": "Der Kraken",
+          "level": 39
+        },
+        {
+          "entity_id": 906,
+          "city_entity_id": "X_LateMiddleAge_Landmark3",
+          "name": "Castel del Monte",
+          "level": 53
+        },
+        {
+          "entity_id": 1500,
+          "city_entity_id": "X_FutureEra_Landmark1",
+          "name": "Die Arche",
+          "level": 100
+        },
+        {
+          "entity_id": 2434,
+          "city_entity_id": "X_ProgressiveEra_Landmark1",
+          "name": "Alcatraz",
+          "level": 52
+        },
+        {
+          "entity_id": 4475,
+          "city_entity_id": "X_VirtualFuture_Landmark1",
+          "name": "Terrakotta-Armee",
+          "level": 67
+        },
+        {
+          "entity_id": 3411,
+          "city_entity_id": "X_EarlyMiddleAge_Landmark3",
+          "name": "Galataturm",
+          "level": 30
+        },
+        {
+          "entity_id": 5117,
+          "city_entity_id": "X_ProgressiveEra_Landmark2",
+          "name": "Château Frontenac",
+          "level": 38
+        },
+        {
+          "entity_id": 3071,
+          "city_entity_id": "X_VirtualFuture_Landmark2",
+          "name": "Burg Himeji",
+          "level": 44
+        },
+        {
+          "entity_id": 5011,
+          "city_entity_id": "X_LateMiddleAge_Landmark1",
+          "name": "Basilius-Kathedrale",
+          "level": 30
+        },
+        {
+          "entity_id": 5700,
+          "city_entity_id": "X_ArcticFuture_Landmark2",
+          "name": "Arktische Orangerie",
+          "level": 27
+        },
+        {
+          "entity_id": 659,
+          "city_entity_id": "X_AllAge_Expedition",
+          "name": "Relikttempel",
+          "level": 23
+        },
+        {
+          "entity_id": 460,
+          "city_entity_id": "X_BronzeAge_Landmark2",
+          "name": "Zeusstatue",
+          "level": 65
+        },
+        {
+          "entity_id": 6391,
+          "city_entity_id": "X_AllAge_EasterBonus4",
+          "name": "Observatorium",
+          "level": 10
+        },
+        {
+          "entity_id": 657,
+          "city_entity_id": "X_IronAge_Landmark2",
+          "name": "Leuchtturm von Alexandria",
+          "level": 10
+        }
+      ]
+    }
+  ],
+  "ranking": {
+    "requestClass": "GreatBuildingsService",
+    "requestMethod": "getConstructionRanking",
+    "requestData": [2434, 1002, 52],
+    "responseData": [
+      {
+        "rank": 1,
+        "forge_points": 1020,
+        "reward": {
+          "blueprints": 11,
+          "blueprintRewards": [
+            {
+              "building_id": "X_ProgressiveEra_Landmark1",
+              "amount": 11,
+              "tier": {
+                "__enum__": "GreatBuildingTier",
+                "value": "copper"
+              },
+              "__class__": "GreatBuildingBlueprint"
+            }
+          ],
+          "strategy_point_amount": 640,
+          "resources": {
+            "medals": 5485,
+            "__class__": "CityResource"
+          },
+          "__class__": "GreatBuildingRankingRowReward"
+        },
+        "__class__": "GreatBuildingRankingRow",
+        "player": {
+          "player_id": 2011,
+          "name": "Spieler 2011",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      },
+      {
+        "rank": 2,
+        "forge_points": 500,
+        "reward": {
+          "blueprints": 8,
+          "blueprintRewards": [
+            {
+              "building_id": "X_ProgressiveEra_Landmark1",
+              "amount": 8,
+              "tier": {
+                "__enum__": "GreatBuildingTier",
+                "value": "copper"
+              },
+              "__class__": "GreatBuildingBlueprint"
+            }
+          ],
+          "strategy_point_amount": 320,
+          "resources": {
+            "medals": 2743,
+            "__class__": "CityResource"
+          },
+          "__class__": "GreatBuildingRankingRowReward"
+        },
+        "__class__": "GreatBuildingRankingRow",
+        "player": {
+          "player_id": 2004,
+          "name": "Spieler 2004",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      },
+      {
+        "forge_points": 300,
+        "__class__": "GreatBuildingRankingRow",
+        "player": {
+          "player_id": 1002,
+          "name": "Eigentümer 1002",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      },
+      {
+        "rank": 3,
+        "forge_points": 246,
+        "reward": {
+          "blueprints": 6,
+          "blueprintRewards": [
+            {
+              "building_id": "X_ProgressiveEra_Landmark1",
+              "amount": 6,
+              "tier": {
+                "__enum__": "GreatBuildingTier",
+                "value": "copper"
+              },
+              "__class__": "GreatBuildingBlueprint"
+            }
+          ],
+          "strategy_point_amount": 105,
+          "resources": {
+            "medals": 1371,
+            "__class__": "CityResource"
+          },
+          "__class__": "GreatBuildingRankingRowReward"
+        },
+        "__class__": "GreatBuildingRankingRow",
+        "player": {
+          "player_id": 2012,
+          "name": "Spieler 2012",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      },
+      {
+        "rank": 4,
+        "forge_points": 150,
+        "reward": {
+          "blueprints": 5,
+          "blueprintRewards": [
+            {
+              "building_id": "X_ProgressiveEra_Landmark1",
+              "amount": 5,
+              "tier": {
+                "__enum__": "GreatBuildingTier",
+                "value": "copper"
+              },
+              "__class__": "GreatBuildingBlueprint"
+            }
+          ],
+          "strategy_point_amount": 25,
+          "resources": {
+            "medals": 549,
+            "__class__": "CityResource"
+          },
+          "__class__": "GreatBuildingRankingRowReward"
+        },
+        "__class__": "GreatBuildingRankingRow",
+        "player": {
+          "player_id": 2005,
+          "name": "Spieler 2005",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      },
+      {
+        "rank": 5,
+        "forge_points": 116,
+        "reward": {
+          "blueprints": 4,
+          "blueprintRewards": [
+            {
+              "building_id": "X_ProgressiveEra_Landmark1",
+              "amount": 4,
+              "tier": {
+                "__enum__": "GreatBuildingTier",
+                "value": "copper"
+              },
+              "__class__": "GreatBuildingBlueprint"
+            }
+          ],
+          "strategy_point_amount": 5,
+          "resources": {
+            "medals": 274,
+            "__class__": "CityResource"
+          },
+          "__class__": "GreatBuildingRankingRowReward"
+        },
+        "__class__": "GreatBuildingRankingRow",
+        "player": {
+          "player_id": 2013,
+          "name": "Spieler 2013",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      },
+      {
+        "rank": 6,
+        "forge_points": 10,
+        "__class__": "GreatBuildingRankingRow",
+        "player": {
+          "player_id": 2014,
+          "name": "Spieler 2014",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      }
+    ]
+  },
+  "own": {
+    "requestClass": "GreatBuildingsService",
+    "requestMethod": "getConstruction",
+    "requestData": [1769, 1000],
+    "responseData": {
+      "ownerEra": "VirtualFuture",
+      "rankings": [
+        {
+          "forge_points": 5132,
+          "__class__": "GreatBuildingRankingRow",
+          "player": {
+            "player_id": 1000,
+            "name": "Ich",
+            "avatar": "",
+            "is_self": true,
+            "__class__": "OtherPlayer"
+          }
+        },
+        {
+          "rank": 1,
+          "forge_points": 10,
+          "reward": {
+            "blueprints": 23,
+            "blueprintRewards": [
+              {
+                "building_id": "X_FutureEra_Landmark1",
+                "amount": 23,
+                "tier": {
+                  "__enum__": "GreatBuildingTier",
+                  "value": "copper"
+                },
+                "__class__": "GreatBuildingBlueprint"
+              }
+            ],
+            "strategy_point_amount": 2605,
+            "resources": {
+              "medals": 66273,
+              "__class__": "CityResource"
+            },
+            "__class__": "GreatBuildingRankingRowReward"
+          },
+          "__class__": "GreatBuildingRankingRow",
+          "player": {
+            "player_id": 2008,
+            "name": "Spieler 2008",
+            "avatar": "",
+            "__class__": "OtherPlayer"
+          }
+        },
+        {
+          "rank": 2,
+          "forge_points": 3,
+          "reward": {
+            "blueprints": 17,
+            "blueprintRewards": [
+              {
+                "building_id": "X_FutureEra_Landmark1",
+                "amount": 17,
+                "tier": {
+                  "__enum__": "GreatBuildingTier",
+                  "value": "copper"
+                },
+                "__class__": "GreatBuildingBlueprint"
+              }
+            ],
+            "strategy_point_amount": 1305,
+            "resources": {
+              "medals": 33137,
+              "__class__": "CityResource"
+            },
+            "__class__": "GreatBuildingRankingRowReward"
+          },
+          "__class__": "GreatBuildingRankingRow",
+          "player": {
+            "player_id": 2009,
+            "name": "Spieler 2009",
+            "avatar": "",
+            "__class__": "OtherPlayer"
+          }
+        },
+        {
+          "rank": 3,
+          "reward": {
+            "blueprints": 13,
+            "blueprintRewards": [
+              {
+                "building_id": "X_FutureEra_Landmark1",
+                "amount": 13,
+                "tier": {
+                  "__enum__": "GreatBuildingTier",
+                  "value": "copper"
+                },
+                "__class__": "GreatBuildingBlueprint"
+              }
+            ],
+            "strategy_point_amount": 435,
+            "resources": {
+              "medals": 16568,
+              "__class__": "CityResource"
+            },
+            "__class__": "GreatBuildingRankingRowReward"
+          },
+          "__class__": "GreatBuildingRankingRow",
+          "player": {
+            "name": "Noch kein Mäzen",
+            "avatar": "",
+            "__class__": "OtherPlayer"
+          }
+        },
+        {
+          "rank": 4,
+          "reward": {
+            "blueprints": 11,
+            "blueprintRewards": [
+              {
+                "building_id": "X_FutureEra_Landmark1",
+                "amount": 11,
+                "tier": {
+                  "__enum__": "GreatBuildingTier",
+                  "value": "copper"
+                },
+                "__class__": "GreatBuildingBlueprint"
+              }
+            ],
+            "strategy_point_amount": 110,
+            "resources": {
+              "medals": 6627,
+              "__class__": "CityResource"
+            },
+            "__class__": "GreatBuildingRankingRowReward"
+          },
+          "__class__": "GreatBuildingRankingRow",
+          "player": {
+            "name": "Noch kein Mäzen",
+            "avatar": "",
+            "__class__": "OtherPlayer"
+          }
+        },
+        {
+          "rank": 5,
+          "reward": {
+            "blueprints": 9,
+            "blueprintRewards": [
+              {
+                "building_id": "X_FutureEra_Landmark1",
+                "amount": 9,
+                "tier": {
+                  "__enum__": "GreatBuildingTier",
+                  "value": "copper"
+                },
+                "__class__": "GreatBuildingBlueprint"
+              }
+            ],
+            "strategy_point_amount": 20,
+            "resources": {
+              "medals": 3314,
+              "__class__": "CityResource"
+            },
+            "__class__": "GreatBuildingRankingRowReward"
+          },
+          "__class__": "GreatBuildingRankingRow",
+          "player": {
+            "name": "Noch kein Mäzen",
+            "avatar": "",
+            "__class__": "OtherPlayer"
+          }
+        }
+      ],
+      "__class__": "GreatBuildingConstruction"
+    }
+  }
+}
