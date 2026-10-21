@@ -29,11 +29,32 @@ function armyTable(army: NonNullable<SabotageVm['army']>, repel: number, measure
   ${measured ? html`<p class="muted">${t('sabotage.measuredHint')}</p>` : ''}`;
 }
 
-const plunderTable = (items: PlunderItem[]) =>
-  html`<table>${items.map(
-    (p) => html`<tr class=${p.important ? '' : 'muted'}><td>${p.name}</td>
-    <td>${p.items.map((i) => html`${formatNumber(i.amount)} ${i.label}<br />`)}</td></tr>`,
-  )}</table>`;
+export interface SabotageActions {
+  /** opens the box with the map of the visited city */
+  openMap(): void;
+  /** opens that box and points at a building there */
+  showOnMap(building: number): void;
+}
+
+/** Enter and space press a row like a button; the keys are not meant for the game. */
+const pressKeys = (action: () => void) => (e: KeyboardEvent) => {
+  e.stopPropagation();
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  e.preventDefault();
+  action();
+};
+
+/** without actions there is no map, so the rows are plain */
+const plunderTable = (items: PlunderItem[], actions?: SabotageActions) =>
+  html`<table>${items.map((p) => {
+    const loot = html`<td>${p.name}</td>
+      <td>${p.items.map((i) => html`${formatNumber(i.amount)} ${i.label}<br />`)}</td>`;
+    const muted = p.important ? '' : ' muted';
+    if (!actions) return html`<tr class=${muted.trim()}>${loot}</tr>`;
+    const show = () => actions.showOnMap(p.building);
+    return html`<tr class=${`plunder-row${muted}`} role="button" tabindex="0" title=${t('sabotage.showOnMap')}
+      @click=${show} @keydown=${pressKeys(show)}>${loot}</tr>`;
+  })}</table>`;
 
 function plunderedPart({ last, totals }: NonNullable<SabotageVm['plundered']>) {
   if (!last) return html`<p class="muted">${t('sabotage.neverPlundered')}</p>`;
@@ -48,15 +69,19 @@ function plunderedPart({ last, totals }: NonNullable<SabotageVm['plundered']>) {
     <br />${totals}</p>`;
 }
 
-/** `note` is the note card of the visited player, `cityMap` the map of the visited city */
+/** `note` is the note card of the visited player; `actions` only when the visited city has a map */
 export function sabotageView(
   vm: SabotageVm | undefined,
   note?: TemplateResult,
-  cityMap?: TemplateResult,
+  actions?: SabotageActions,
 ): TemplateResult {
   if (!vm) return html`<p class="muted">${t('sabotage.noVisit')}</p>`;
   return html`
-    <p><b>${vm.player.name}</b>${vm.player.guild ? html` <span class="muted">[${vm.player.guild}]</span>` : ''}
+    <p><b>${vm.player.name}</b>${vm.player.guild ? html` <span class="muted">[${vm.player.guild}]</span>` : ''}${
+      actions
+        ? html` <button class="map-button" title=${t('sabotage.openMap')} @click=${() => actions.openMap()}>🗺️</button>`
+        : ''
+    }
       <br /><span class="muted">${t('sabotage.era')}: ${vm.player.era}</span>
       <br />${vm.attack.kind === 'plunderable' ? html`<b>${vm.attack.text}</b>` : vm.attack.text}</p>
     ${note ?? ''}
@@ -79,8 +104,7 @@ export function sabotageView(
     ${
       vm.plunderable.length === 0
         ? html`<p class="muted">${t('sabotage.nothingPlunderable')}</p>`
-        : plunderTable(vm.plunderable)
+        : plunderTable(vm.plunderable, actions)
     }
-    ${vm.incomplete ? html`<p class="warn">${t('sabotage.incomplete')}</p>` : ''}
-    ${cityMap ? html`<details class="city-map-section"><summary>${t('sabotage.cityMap')}</summary>${cityMap}</details>` : ''}`;
+    ${vm.incomplete ? html`<p class="warn">${t('sabotage.incomplete')}</p>` : ''}`;
 }

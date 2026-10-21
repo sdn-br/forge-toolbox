@@ -47,6 +47,9 @@ textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
 input.title { width: 100%; font-weight: 600; }
 button.marker { all: unset; cursor: pointer; }
 tr.battle-row { cursor: pointer; }
+tr.plunder-row { cursor: pointer; }
+tr.plunder-row:hover, tr.plunder-row:focus-visible { background: #3a2a16; outline: none; }
+button.map-button { all: unset; cursor: pointer; }
 tr.battle-row.expanded, tr.details { background: #3a2a16; }
 .battle p { margin: 2px 0 4px; }
 details { margin: 6px 0; }
