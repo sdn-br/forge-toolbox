@@ -1,19 +1,12 @@
-// Which game response feeds which store. One place, so every response has exactly one owner.
+// Which game response feeds which store, all in one place. A response may have several handlers that each feed their
+// own part, for example `updatePlayer` (players, plunder) and `CityMapService.reset` (plunder, own buildings).
 import { eraId, type PlayerId, type WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import type { Ingestion } from '../core/ingestion';
 import { logInfo } from '../core/log';
-import type { BattleStore } from '../stores/battles';
-import type { CatalogStore } from '../stores/catalog';
-import type { CityStore } from '../stores/cities';
+import type { Stores } from '../stores';
 import type { Building } from '../stores/city-model';
-import type { IncomingStore } from '../stores/incoming';
-import type { PlayerObservation, PlayerStore } from '../stores/players';
-import type { PlunderStore } from '../stores/plunders';
-import type { ResearchStore } from '../stores/research';
-import type { ResourceStore } from '../stores/resources';
-import type { SessionStore } from '../stores/session';
-import type { ShieldStore } from '../stores/shields';
+import type { PlayerObservation } from '../stores/players';
 import { toBuildingDef } from './building-defs';
 import {
   armyBattleType,
@@ -52,21 +45,12 @@ import type {
   GameVisit,
 } from './game-types';
 
-export interface GameHandlerDeps {
+/** The stores the responses feed, plus what the handlers need besides them. */
+export type GameHandlerDeps = Stores & {
   world: WorldId;
   bus: ToolboxBus;
   now: () => number;
-  session: SessionStore;
-  players: PlayerStore;
-  cities: CityStore;
-  catalog: CatalogStore;
-  resources: ResourceStore;
-  research: ResearchStore;
-  battles: BattleStore;
-  plunders: PlunderStore;
-  incoming: IncomingStore;
-  shields: ShieldStore;
-}
+};
 
 const observations = (list: unknown) =>
   (Array.isArray(list) ? list : []).map(toObservation).filter((o): o is PlayerObservation => o !== null);

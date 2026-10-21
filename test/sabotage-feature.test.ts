@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { sabotageFeature } from '../src/content/features/sabotage/index';
-import type { BattlePersistence } from '../src/content/stores/battles';
+import { type BattlePersistence, BattleStore } from '../src/content/stores/battles';
 import type { VisitedCity } from '../src/content/stores/cities';
 import type { PlayerObservation } from '../src/content/stores/players';
 import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
@@ -54,7 +54,9 @@ function setup() {
     count: async () => 0,
     prune: async () => 0,
   };
-  const env = featureContext(persistence);
+  const env = featureContext({
+    overrides: ({ bus, world }) => ({ battles: new BattleStore(bus, world, persistence) }),
+  });
   sabotageFeature.setup(env.ctx);
   const box = env.boxes.get('sabotage') as NonNullable<ReturnType<typeof env.boxes.get>>;
   return { ...env, box, latest };

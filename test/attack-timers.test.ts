@@ -2,43 +2,19 @@ import { describe, expect, it } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import { Ingestion } from '../src/content/core/ingestion';
 import { registerGameHandlers } from '../src/content/game/handlers';
-import { BattleStore } from '../src/content/stores/battles';
-import { CatalogStore } from '../src/content/stores/catalog';
-import { CityStore } from '../src/content/stores/cities';
-import { IncomingStore } from '../src/content/stores/incoming';
 import { PlayerStore } from '../src/content/stores/players';
-import { PlunderStore } from '../src/content/stores/plunders';
-import { ResearchStore } from '../src/content/stores/research';
-import { ResourceStore } from '../src/content/stores/resources';
-import { SessionStore } from '../src/content/stores/session';
-import { ShieldStore } from '../src/content/stores/shields';
 import { playerId, worldId } from '../src/shared/ids';
-import { testDb } from './helpers/battle-db';
+import { testStores } from './helpers/stores';
 
 const world = worldId('de20');
 const NOW = 1_792_000_000_000;
 const DAY = 86_400_000;
 
 function setup() {
-  const bus = createBus();
   const ingestion = new Ingestion();
-  const db = testDb();
-  const players = new PlayerStore(bus, db.players);
-  registerGameHandlers(ingestion, {
-    world,
-    bus,
-    now: () => NOW,
-    session: new SessionStore(bus),
-    players,
-    cities: new CityStore(bus),
-    catalog: new CatalogStore(bus),
-    resources: new ResourceStore(bus),
-    research: new ResearchStore(bus),
-    battles: new BattleStore(bus, world, db.persistence),
-    plunders: new PlunderStore(bus, world, db.plunders),
-    incoming: new IncomingStore(bus, world, db.incoming),
-    shields: new ShieldStore(bus, world, db.shields),
-  });
+  const { db, bus, now, stores } = testStores({ now: () => NOW });
+  registerGameHandlers(ingestion, { world, bus, now, ...stores });
+  const { players } = stores;
   const send = (requestClass: string, requestMethod: string, responseData: unknown) =>
     ingestion.accept({
       kind: 'json',

@@ -1,11 +1,5 @@
 // Content script entry: wires stores, ingestion and features, then connects to the proxy.
 
-import { battlePersistence } from '../persistence/battles/client';
-import { incomingPersistence } from '../persistence/incoming/client';
-import { notePersistence } from '../persistence/notes/client';
-import { playerPersistence } from '../persistence/players/client';
-import { plunderPersistence } from '../persistence/plunders/client';
-import { shieldPersistence } from '../persistence/shields/client';
 import { worldId } from '../shared/ids';
 import { createBus } from './core/events';
 import { extensionAlive, onExtensionLost } from './core/extension-context';
@@ -24,17 +18,7 @@ import { pvpFeature } from './features/pvp';
 import { sabotageFeature } from './features/sabotage';
 import { settingsFeature } from './features/settings-feature';
 import { registerGameHandlers } from './game/handlers';
-import { BattleStore } from './stores/battles';
-import { CatalogStore } from './stores/catalog';
-import { CityStore } from './stores/cities';
-import { IncomingStore } from './stores/incoming';
-import { NoteStore } from './stores/notes';
-import { PlayerStore } from './stores/players';
-import { PlunderStore } from './stores/plunders';
-import { ResearchStore } from './stores/research';
-import { ResourceStore } from './stores/resources';
-import { SessionStore } from './stores/session';
-import { ShieldStore } from './stores/shields';
+import { createStores } from './stores';
 import { Menu } from './ui/menu';
 import { UiState } from './ui/ui-state';
 
@@ -47,44 +31,20 @@ async function main() {
   const ingestion = new Ingestion();
   const settings = new Settings(chromeLocal);
   const ui = new UiState(chromeLocal);
-  const session = new SessionStore(bus);
-  const players = new PlayerStore(bus, playerPersistence(callBackground));
-  const battles = new BattleStore(bus, world, battlePersistence(callBackground));
-  const plunders = new PlunderStore(bus, world, plunderPersistence(callBackground));
-  const incoming = new IncomingStore(bus, world, incomingPersistence(callBackground));
-  const shields = new ShieldStore(bus, world, shieldPersistence(callBackground));
-  const notes = new NoteStore(bus, world, notePersistence(callBackground));
-  const cities = new CityStore(bus);
-  const catalog = new CatalogStore(bus);
-  const resources = new ResourceStore(bus);
-  const research = new ResearchStore(bus);
+  const stores = createStores(world, bus, callBackground, now);
   const recorder = new Recorder(
     () => settings.get('core.record'),
     () => settings.get('core.recordRequests'),
   );
   const menu = new Menu();
 
-  registerGameHandlers(ingestion, {
-    world,
-    bus,
-    now,
-    session,
-    players,
-    cities,
-    catalog,
-    resources,
-    research,
-    battles,
-    plunders,
-    incoming,
-    shields,
-  });
+  registerGameHandlers(ingestion, { world, bus, now, ...stores });
   // the proxy buffers game traffic until we connect, so loading first loses nothing
   await Promise.all([
     settings.load(),
     ui.load(),
-    players.load(world).catch((e) => logError('loading players failed', e)),
-    notes.load().catch((e) => logError('loading notes failed', e)),
+    stores.players.load(world).catch((e) => logError('loading players failed', e)),
+    stores.notes.load().catch((e) => logError('loading notes failed', e)),
   ]);
 
   const ctx: FeatureContext = {
@@ -92,17 +52,7 @@ async function main() {
     bus,
     settings,
     menu,
-    session,
-    players,
-    cities,
-    catalog,
-    resources,
-    research,
-    battles,
-    plunders,
-    incoming,
-    shields,
-    notes,
+    ...stores,
     recorder,
     ui,
     createBox: boxFactory(ui),

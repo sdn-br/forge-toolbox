@@ -62,7 +62,7 @@ export interface StreetEfficiency {
  * tiles it takes. ceiling: buildings that share a street count it twice, so 100 % is not the best possible.
  * upgrade: a better model of shared streets if the number proves misleading.
  */
-export const neededStreets = (f: Footprint): number =>
+const neededStreets = (f: Footprint): number =>
   (f.def?.street ?? 0) > 0 ? Math.ceil(Math.min(f.width, f.length) / 2) : 0;
 
 /** Undefined when no definition names a street requirement, so the data is missing altogether. */

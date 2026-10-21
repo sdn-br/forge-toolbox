@@ -3,12 +3,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { pvpFeature } from '../src/content/features/pvp/index';
 import { KEEP_SETTING } from '../src/content/features/pvp/retention';
 import { PAGE_SIZE } from '../src/content/features/pvp/view-model';
-import type { BattlePersistence, BattleQuery } from '../src/content/stores/battles';
-import type { IncomingPersistence } from '../src/content/stores/incoming';
-import type { PlunderPersistence } from '../src/content/stores/plunders';
+import { type BattlePersistence, type BattleQuery, BattleStore } from '../src/content/stores/battles';
+import { type IncomingPersistence, IncomingStore } from '../src/content/stores/incoming';
+import { type PlunderPersistence, PlunderStore } from '../src/content/stores/plunders';
 import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
 import type { Battle, IncomingAttack, Plunder } from '../src/shared/model';
 import { featureContext } from './helpers/feature-context';
+import type { TestStoresOptions } from './helpers/stores';
 
 const battle = (battleId: number, opponent: number): Battle => ({
   world: worldId('de20'),
@@ -71,11 +72,26 @@ function controlled(total = 1) {
   return { persistence, plunders, incoming, lists, state };
 }
 
+/** stores on the given stub persistence, the others stay on the in-memory database */
+const stubbed =
+  (stub: {
+    battles?: BattlePersistence;
+    plunders?: PlunderPersistence;
+    incoming?: IncomingPersistence;
+  }): TestStoresOptions['overrides'] =>
+  ({ bus, world }) => ({
+    ...(stub.battles && { battles: new BattleStore(bus, world, stub.battles) }),
+    ...(stub.plunders && { plunders: new PlunderStore(bus, world, stub.plunders) }),
+    ...(stub.incoming && { incoming: new IncomingStore(bus, world, stub.incoming) }),
+  });
+
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 function setup(total = 1, open = true) {
   const stub = controlled(total);
-  const env = featureContext(stub.persistence, stub.plunders, stub.incoming);
+  const env = featureContext({
+    overrides: stubbed({ battles: stub.persistence, plunders: stub.plunders, incoming: stub.incoming }),
+  });
   pvpFeature.setup(env.ctx);
   if (open) env.menu('pvp');
   return { ...stub, ...env, box: env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>> };
@@ -187,7 +203,7 @@ describe('pvp feature', () => {
 
   it('lists repelled plunders and pages over plunders and repelled ones together', async () => {
     const stub = controlled();
-    const env = featureContext(stub.persistence);
+    const env = featureContext({ overrides: stubbed({ battles: stub.persistence }) });
     pvpFeature.setup(env.ctx);
     env.menu('pvp');
     const box = env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>>;
@@ -233,7 +249,7 @@ describe('pvp feature', () => {
 
   it('filters attacks on the own city by the picked player and follows new ones', async () => {
     const stub = controlled();
-    const env = featureContext(stub.persistence, stub.plunders);
+    const env = featureContext({ overrides: stubbed({ battles: stub.persistence, plunders: stub.plunders }) });
     pvpFeature.setup(env.ctx);
     env.menu('pvp');
     const box = env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>>;

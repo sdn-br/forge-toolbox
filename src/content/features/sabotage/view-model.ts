@@ -66,18 +66,33 @@ function lastPlunder(p: Plunder, catalog: CatalogStore, now: number): NonNullabl
   };
 }
 
-export function sabotageViewModel(
-  city: VisitedCity,
-  player: Player | undefined,
-  assessment: CityAssessment,
-  catalog: CatalogStore,
-  showArmy: boolean,
-  now: number,
-  lastBattle?: Battle,
-  plunders?: { last?: Plunder; totals: PlunderTotals },
-  incoming?: { last?: IncomingAttack; totals: IncomingTotals },
-  shield?: CityShield,
-): SabotageVm {
+/** What is recorded about the visited player; each part only once it is loaded for this player. */
+export interface VisitedRecord {
+  lastBattle?: Battle;
+  plunders?: { last?: Plunder; totals: PlunderTotals };
+  incoming?: { last?: IncomingAttack; totals: IncomingTotals };
+  shield?: CityShield;
+}
+
+export interface SabotageInput {
+  city: VisitedCity;
+  player: Player | undefined;
+  assessment: CityAssessment;
+  catalog: CatalogStore;
+  showArmy: boolean;
+  now: number;
+  record: VisitedRecord;
+}
+
+export function sabotageViewModel({
+  city,
+  player,
+  assessment,
+  catalog,
+  showArmy,
+  now,
+  record: { lastBattle, plunders, incoming, shield },
+}: SabotageInput): SabotageVm {
   const friend = city.visit.friend || player?.relations.friend === true;
   const guildMember = city.visit.guildMember || player?.relations.guildMember === true;
   const attack = attackStatus({ neighbor: city.visit.neighbor, friend, guildMember }, player?.attack, shield, now);
