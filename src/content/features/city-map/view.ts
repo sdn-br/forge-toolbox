@@ -54,7 +54,7 @@ function streetsView(s: OwnStatsVm['streets']) {
     ${s.partial ? html`<p class="muted">${t('cityMap.streetsPartial')}</p>` : ''}`;
 }
 
-function statsPanel(s: OwnStatsVm, ui: OwnMapUi, actions: CityMapActions) {
+function statsPanel(s: OwnStatsVm) {
   const e = s.expansions;
   return html`<div class="stats-panel">
     <h2>${t('cityMap.area')}</h2>
@@ -84,7 +84,6 @@ function statsPanel(s: OwnStatsVm, ui: OwnMapUi, actions: CityMapActions) {
     ${e.offers ? '' : html`<p class="muted">${t('cityMap.expOpenUnknown')}</p>`}
     ${e.offers && !e.resourcesKnown ? html`<p class="muted">${t('cityMap.expResourcesUnknown')}</p>` : ''}
     <p class="footnote muted">${t('cityMap.expAssumed')}</p>
-    ${toggle(ui, 'expansions', actions, t('cityMap.expBlocks'))}
     ${
       e.blocks
         ? html`<ul class="stats-list">
@@ -114,7 +113,12 @@ export function cityMapView(
           @keydown=${keepKeys} @keypress=${keepKeys} @keyup=${keepKeys} />
         <span class="matches">${vm.matches === undefined ? '' : t('cityMap.matches', { count: formatNumber(vm.matches) })}</span>
       </p>
-      <div class="map-marks">${toggle(ui, 'finished', actions)}${toggle(ui, 'unconnected', actions)}${toggle(ui, 'free', actions)}</div>
+      <div class="map-marks">${toggle(ui, 'finished', actions)}${toggle(ui, 'unconnected', actions)}${toggle(ui, 'free', actions)}${toggle(
+        ui,
+        'expansions',
+        actions,
+        t('cityMap.expBlocks'),
+      )}</div>
       <p class=${vm.free === undefined ? 'muted' : ''}>${
         vm.free === undefined ? t('cityMap.freeUnknown') : t('cityMap.freeCount', { count: formatNumber(vm.free) })
       }</p>
@@ -124,7 +128,7 @@ export function cityMapView(
     <aside class=${ui.stats ? 'stats-drawer open' : 'stats-drawer'} ${ref((el) => placeDrawer(el))}>
       <button class="stats-tab" title=${t(ui.stats ? 'cityMap.statsClose' : 'cityMap.statsOpen')}
         @click=${() => actions.toggleStats()}>${t('cityMap.stats')}</button>
-      ${ui.stats && stats ? statsPanel(stats, ui, actions) : ''}
+      ${ui.stats && stats ? statsPanel(stats) : ''}
     </aside>
   </div>`;
 }
