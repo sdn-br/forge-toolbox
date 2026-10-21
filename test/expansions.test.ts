@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { expansionBlocks, offerStats, placedExpansions } from '../src/content/domain/expansions';
+import { expansionBlocks, offerStats, placedExpansions, rewardSources } from '../src/content/domain/expansions';
 import type { ExpansionOffer } from '../src/content/stores/city-model';
 import { type EraId, eraId } from '../src/shared/ids';
 
@@ -106,5 +106,39 @@ describe('open expansions by kind', () => {
     expect(offerStats([{ kind: 'mystery', cost: {} }], { era: eraId('MarsAge'), eraIndex, amount: () => 0 })).toEqual([
       { kind: 'mystery', total: 1 },
     ]);
+  });
+});
+
+describe('sources of reward expansions', () => {
+  // technologies in the order of the tree, as the research metadata lists them
+  const research = [
+    { tech: 'wheel', name: 'Das Rad', amount: 1 },
+    { tech: 'mars_rules', name: 'Mars-Vorschriften', amount: 2 },
+    { tech: 'mars_more', name: 'Mars-Mehr', amount: 1 },
+  ];
+
+  it('counts the expansions of technologies not unlocked yet, names the first, and leaves the rest to the map', () => {
+    expect(rewardSources(5, research, new Set(['root', 'wheel']))).toEqual({
+      fromResearch: 3,
+      nextTech: 'Mars-Vorschriften',
+      fromMap: 2,
+    });
+  });
+
+  it('names no next technology when all are unlocked', () => {
+    expect(rewardSources(2, research, new Set(['wheel', 'mars_rules', 'mars_more']))).toEqual({
+      fromResearch: 0,
+      fromMap: 2,
+    });
+  });
+
+  it('leaves out the map when nothing is left for it, or when research alone exceeds the open ones', () => {
+    expect(rewardSources(4, research, new Set())).toEqual({ fromResearch: 4, nextTech: 'Das Rad' });
+    expect(rewardSources(1, research, new Set())).toEqual({ fromResearch: 4, nextTech: 'Das Rad' });
+  });
+
+  it('knows nothing without the research metadata or the progress', () => {
+    expect(rewardSources(5, undefined, new Set())).toBeUndefined();
+    expect(rewardSources(5, research, undefined)).toBeUndefined();
   });
 });

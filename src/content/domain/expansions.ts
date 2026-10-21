@@ -2,6 +2,7 @@
 import type { EraId } from '../../shared/ids';
 import type { CityGrid } from '../stores/catalog';
 import type { Area, ExpansionOffer, ResourceId } from '../stores/city-model';
+import type { ResearchExpansion } from '../stores/research';
 import type { TileRect } from './city-grid';
 import { areaTiles } from './city-stats';
 
@@ -123,4 +124,34 @@ export function offerStats(offers: ExpansionOffer[], means: PlayerMeans): OfferS
   for (const o of offers) if (!known.has(o.kind)) others.set(o.kind, (others.get(o.kind) ?? 0) + 1);
   for (const [kind, total] of others) stats.push({ kind, total });
   return stats;
+}
+
+/** Where the open reward expansions come from. */
+export interface RewardSources {
+  /** main city expansions of the technologies not unlocked yet */
+  fromResearch: number;
+  /** name of the first of those technologies along the tree */
+  nextTech?: string;
+  /**
+   * the open ones research does not explain, assumed to come from the provinces of the continent map;
+   * missing when none are left, or when research alone exceeds the open ones (then the assumption is wrong)
+   */
+  fromMap?: number;
+}
+
+/** `open` is the number of `tileset_reward` entries; undefined while research metadata or progress are unknown. */
+export function rewardSources(
+  open: number,
+  research: ResearchExpansion[] | undefined,
+  unlocked: ReadonlySet<string> | undefined,
+): RewardSources | undefined {
+  if (!research || !unlocked) return undefined;
+  const ahead = research.filter((r) => !unlocked.has(r.tech));
+  const fromResearch = ahead.reduce((sum, r) => sum + r.amount, 0);
+  const fromMap = open - fromResearch;
+  return {
+    fromResearch,
+    ...(ahead[0] && { nextTech: ahead[0].name }),
+    ...(fromMap > 0 && { fromMap }),
+  };
 }
