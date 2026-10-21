@@ -162,8 +162,8 @@ describe('city map feature', () => {
     const panel = () => box.root.querySelector('.stats-panel')?.textContent ?? '';
     expect(panel()).toContain('Gesetzt: 1');
     expect(panel()).toContain('Ungesetzt: 2');
-    expect(panel()).toContain('Münzen: 1 von 2 kaufbar (nächste 45 Mio.)');
-    expect(panel()).toContain('QI-Medaillen: 0 von 1 kaufbar (nächste 0,6 Mio.)');
+    expect(panel()).toContain('Belohnungs-Erweiterungen: 2 offen (nur als Belohnung)');
+    expect(panel()).toContain('Quanten-Erweiterungen: 0 von 1 kaufbar (nächste 0,6 Mio.)');
     // right of the start area 3 below the expansion, right of the expansion 1, below the start area 3 of 4
     expect(panel()).toContain('Jetzt setzbar: 7');
     expect(panel()).toContain(`Später: ${324 - 17 - 1 - 7}`);

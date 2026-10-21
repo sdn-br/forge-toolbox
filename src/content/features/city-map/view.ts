@@ -34,9 +34,11 @@ const percent = (n: number) => formatNumber(Math.round(n * 10) / 10);
 
 function offerLine(o: NonNullable<OwnStatsVm['expansions']['offers']>[number], resourcesKnown: boolean) {
   const parts = [
-    o.buyable !== undefined && resourcesKnown
-      ? t('cityMap.expBuyable', { kind: o.label, buyable: formatNumber(o.buyable), total: formatNumber(o.total) })
-      : t('cityMap.expTotal', { kind: o.label, total: formatNumber(o.total) }),
+    o.kind === 'reward'
+      ? t('cityMap.expRewardOnly', { kind: o.label, total: formatNumber(o.total) })
+      : o.buyable !== undefined && resourcesKnown
+        ? t('cityMap.expBuyable', { kind: o.label, buyable: formatNumber(o.buyable), total: formatNumber(o.total) })
+        : t('cityMap.expTotal', { kind: o.label, total: formatNumber(o.total) }),
   ];
   if (o.next !== undefined && resourcesKnown) parts.push(t('cityMap.expNext', { price: formatPrice(o.next) }));
   if (o.eraName) parts.push(t('cityMap.expFrom', { era: o.eraName }));

@@ -82,9 +82,9 @@ describe('statistics of the own city', () => {
     expect(stats.expansions.placed).toBe(2);
     expect(stats.expansions.unplaced).toBe(1);
     expect(stats.expansions.offers).toEqual([
-      { kind: 'coins', label: 'Münzen', total: 2, buyable: 1, next: 45e6 },
-      { kind: 'medals', label: 'QI-Medaillen', total: 1, buyable: 0, next: 6e5 },
-      { kind: 'diamonds', label: 'Diamanten', total: 1, buyable: 0, minEra: 'MarsAge', eraName: 'Mars' },
+      { kind: 'diamonds', label: 'Diamant-Erweiterungen', total: 1, buyable: 0, minEra: 'MarsAge', eraName: 'Mars' },
+      { kind: 'reward', label: 'Belohnungs-Erweiterungen', total: 2 },
+      { kind: 'quantum', label: 'Quanten-Erweiterungen', total: 1, buyable: 0, next: 6e5 },
     ]);
     // 36 blocks: 18 unlocked, 1 blocked; adjacent: 2 right of the start area, 2 right of the expansions and 3 below
     // the start area (the fourth there is blocked)

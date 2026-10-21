@@ -49,13 +49,13 @@ export function expansionBlocks(grid: CityGrid, areas: Area[], blocked: Area[] |
   return out;
 }
 
-export type OfferKind = 'coins' | 'medals' | 'diamonds';
+export type OfferKind = 'diamonds' | 'reward' | 'quantum';
 
 export interface OfferStat {
   /** an own kind, or the game type for kinds the toolbox does not know */
   kind: OfferKind | string;
   total: number;
-  /** how many the player can buy in a row, cheapest first; missing for unknown kinds */
+  /** how many the player can buy in a row, cheapest first; missing for kinds nobody buys and unknown kinds */
   buyable?: number;
   /** price of the first one the player cannot buy yet, among those of a reached era */
   next?: number;
@@ -64,13 +64,13 @@ export interface OfferStat {
 }
 
 /**
- * Kinds in display order with the resource that pays them. `tileset_reward` names coins and diamonds and counts
- * with its coin price, so diamonds count once, for `tileset_premium`.
+ * Kinds in the game's order with the resource that pays them. Reward expansions (`tileset_reward`) come as rewards
+ * only: their entries name coins and diamonds, yet the game sells none of them (seen 2026-10-21).
  */
-const KINDS: { type: string; kind: OfferKind; pay: ResourceId }[] = [
-  { type: 'tileset_reward', kind: 'coins', pay: 'money' },
-  { type: 'raidMedals', kind: 'medals', pay: 'guild_raids_medals' },
+const KINDS: { type: string; kind: OfferKind; pay?: ResourceId }[] = [
   { type: 'tileset_premium', kind: 'diamonds', pay: 'premium' },
+  { type: 'tileset_reward', kind: 'reward' },
+  { type: 'raidMedals', kind: 'quantum', pay: 'guild_raids_medals' },
 ];
 
 export interface PlayerMeans {
@@ -91,6 +91,10 @@ export function offerStats(offers: ExpansionOffer[], means: PlayerMeans): OfferS
   for (const { type, kind, pay } of KINDS) {
     const of = offers.filter((o) => o.kind === type);
     if (of.length === 0) continue;
+    if (!pay) {
+      stats.push({ kind, total: of.length });
+      continue;
+    }
     const later = of.flatMap((o) => (o.minEra && !reached(o) ? [o.minEra] : []));
     later.sort((a, b) => (means.eraIndex(a) ?? Infinity) - (means.eraIndex(b) ?? Infinity));
     const prices = of

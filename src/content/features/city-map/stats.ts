@@ -17,9 +17,9 @@ export interface StatsMeans {
 }
 
 const KIND_LABELS: Record<string, TextKey> = {
-  coins: 'cityMap.kind.coins',
-  medals: 'cityMap.kind.medals',
   diamonds: 'cityMap.kind.diamonds',
+  reward: 'cityMap.kind.reward',
+  quantum: 'cityMap.kind.quantum',
 };
 
 export interface OwnStatsVm {
