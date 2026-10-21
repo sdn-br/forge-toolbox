@@ -39,6 +39,14 @@ export interface Building {
   greatBuilding?: GreatBuildingState;
 }
 
+/** An unlocked rectangle of the city grid: `width` along x, `length` along y, like building sizes. */
+export interface Area {
+  x: number;
+  y: number;
+  width: number;
+  length: number;
+}
+
 export interface City {
   world: WorldId;
   owner: PlayerId;
@@ -46,4 +54,6 @@ export interface City {
   era: EraId;
   takenAt: number;
   buildings: Map<number, Building>;
+  /** unlocked areas of the grid; missing when the game did not send them */
+  areas?: Area[];
 }

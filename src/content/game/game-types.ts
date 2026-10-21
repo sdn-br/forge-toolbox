@@ -42,9 +42,19 @@ export interface GameCityEntity {
   bonus?: { type?: string; value?: number; amount?: number };
 }
 
+/** an unlocked piece of the city grid; the game leaves out coordinates that are 0 */
+export interface GameCityMapArea {
+  x?: number;
+  y?: number;
+  width?: number;
+  length?: number;
+}
+
 export interface GameCityMap {
   gridId?: string;
   entities?: GameCityEntity[];
+  /** assumed from the game format, not in a recording yet: the unlocked areas of the grid */
+  unlocked_areas?: GameCityMapArea[];
 }
 
 export interface GameClan {

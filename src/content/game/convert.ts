@@ -19,7 +19,7 @@ import type {
   Plunder,
 } from '../../shared/model';
 import type { VisitInfo } from '../stores/cities';
-import type { Building, BuildingState, City, Product } from '../stores/city-model';
+import type { Area, Building, BuildingState, City, Product } from '../stores/city-model';
 import type { PlayerObservation } from '../stores/players';
 import type { Session } from '../stores/session';
 import type {
@@ -28,6 +28,8 @@ import type {
   GameBattleState,
   GameBattleUnit,
   GameCityEntity,
+  GameCityMap,
+  GameCityMapArea,
   GameCityProtection,
   GameEvent,
   GamePlayer,
@@ -130,20 +132,33 @@ export function toBuilding(e: GameCityEntity, owner: PlayerId): Building | null 
   return building;
 }
 
-export function toCity(
-  world: WorldId,
-  owner: PlayerId,
-  era: string,
-  map: string | undefined,
-  entities: GameCityEntity[] | undefined,
-  now: number,
-): City {
+function toArea(a: GameCityMapArea): Area | null {
+  if (typeof a.width !== 'number' || typeof a.length !== 'number' || a.width <= 0 || a.length <= 0) return null;
+  return { x: a.x ?? 0, y: a.y ?? 0, width: a.width, length: a.length };
+}
+
+/** `areas` stays undefined when the game sends none, so a map can tell "unknown" from "nothing unlocked". */
+export function toAreas(areas: GameCityMapArea[] | undefined): Area[] | undefined {
+  if (!Array.isArray(areas)) return undefined;
+  return areas.map(toArea).filter((a): a is Area => a !== null);
+}
+
+export function toCity(world: WorldId, owner: PlayerId, era: string, map: GameCityMap | undefined, now: number): City {
   const buildings = new Map<number, Building>();
-  for (const e of entities ?? []) {
+  for (const e of map?.entities ?? []) {
     const b = toBuilding(e, owner);
     if (b) buildings.set(b.id, b);
   }
-  return { world, owner, era: eraId(era), map: map ?? 'main', takenAt: now, buildings };
+  const areas = toAreas(map?.unlocked_areas);
+  return {
+    world,
+    owner,
+    era: eraId(era),
+    map: map?.gridId ?? 'main',
+    takenAt: now,
+    buildings,
+    ...(areas && { areas }),
+  };
 }
 
 function toGuild(p: GamePlayer): GuildRef | null {

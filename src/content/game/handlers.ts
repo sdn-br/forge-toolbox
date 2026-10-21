@@ -80,7 +80,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     for (const g of d.goodsList ?? []) if (g.id && g.name) goods[g.id] = g.name;
     catalog.setResourceNames(goods);
     session.start(s);
-    cities.setOwn(toCity(world, s.playerId, s.era, d.city_map?.gridId, d.city_map?.entities, now()));
+    cities.setOwn(toCity(world, s.playerId, s.era, d.city_map, now()));
   });
 
   // Attack timers come whole with the neighbours (30 of 75 had next_interaction_in, seen 2026-10-21). Friends and
@@ -100,7 +100,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     if (!o || !d.other_player) return;
     players.apply(world, [o], 'visit');
     const era = d.other_player_era ?? d.other_player.era ?? '';
-    const city = toCity(world, o.id, era, d.city_map?.gridId, d.city_map?.entities, now());
+    const city = toCity(world, o.id, era, d.city_map, now());
     cities.setVisited({ ...city, visit: toVisitInfo(d.other_player) });
   });
 

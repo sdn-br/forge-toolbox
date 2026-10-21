@@ -71,6 +71,31 @@ describe('game handlers', () => {
     expect(events).toEqual(['ownReset']);
   });
 
+  it('keeps the unlocked areas of the city, with coordinates the game leaves out as 0', () => {
+    const { cities, send } = setup();
+    send('StartupService', 'getData', {
+      user_data: { player_id: 7 },
+      city_map: {
+        entities: [],
+        unlocked_areas: [
+          { __class__: 'CityMapArea', width: 16, length: 16 },
+          { __class__: 'CityMapArea', x: 16, y: 4, width: 4, length: 4 },
+          { __class__: 'CityMapArea', x: 20 },
+        ],
+      },
+    });
+    expect(cities.own()?.areas).toEqual([
+      { x: 0, y: 0, width: 16, length: 16 },
+      { x: 16, y: 4, width: 4, length: 4 },
+    ]);
+  });
+
+  it('leaves the areas unknown when the game sends none', () => {
+    const { cities, send } = setup();
+    send('StartupService', 'getData', { user_data: { player_id: 7 }, city_map: { entities: [] } });
+    expect(cities.own()?.areas).toBeUndefined();
+  });
+
   it('stores the visited player and city with the visit relation', () => {
     const { players, cities, send } = setup();
     send('OtherPlayerService', 'visitPlayer', {
