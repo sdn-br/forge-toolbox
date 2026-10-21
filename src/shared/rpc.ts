@@ -5,8 +5,9 @@ import type { IncomingApi } from '../persistence/incoming/contract';
 import type { NotesApi } from '../persistence/notes/contract';
 import type { PlayersApi } from '../persistence/players/contract';
 import type { PlundersApi } from '../persistence/plunders/contract';
+import type { ShieldsApi } from '../persistence/shields/contract';
 
-export interface BackgroundApi extends PlayersApi, BattlesApi, PlundersApi, IncomingApi, NotesApi {}
+export interface BackgroundApi extends PlayersApi, BattlesApi, PlundersApi, IncomingApi, NotesApi, ShieldsApi {}
 
 export type Method = keyof BackgroundApi;
 export type Arg<M extends Method> = BackgroundApi[M]['arg'];

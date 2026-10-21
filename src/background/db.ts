@@ -4,8 +4,15 @@ import type { IncomingTables } from '../persistence/incoming/worker';
 import type { NotesTables } from '../persistence/notes/worker';
 import type { PlayersTables } from '../persistence/players/worker';
 import type { PlundersTables } from '../persistence/plunders/worker';
+import type { ShieldsTables } from '../persistence/shields/worker';
 
-export type ToolboxDb = Dexie & PlayersTables & BattlesTables & PlundersTables & IncomingTables & NotesTables;
+export type ToolboxDb = Dexie &
+  PlayersTables &
+  BattlesTables &
+  PlundersTables &
+  IncomingTables &
+  NotesTables &
+  ShieldsTables;
 
 /** The whole version history lives here; the domains in src/persistence only bring their tables. */
 export function openDb(name = 'forge-toolbox'): ToolboxDb {
@@ -34,6 +41,10 @@ export function openDb(name = 'forge-toolbox'): ToolboxDb {
   db.version(7).stores({
     noteGroups: '[world+id], world',
     notePages: '[world+id], world',
+  });
+  // city shields of other players, one per player; a new one replaces it, ended ones are pruned by their end
+  db.version(8).stores({
+    cityShields: '[world+player], expiresAt',
   });
   return db;
 }

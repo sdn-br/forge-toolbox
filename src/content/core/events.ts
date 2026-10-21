@@ -14,6 +14,8 @@ export interface ToolboxEvents {
   'battle.recorded': { opponent: PlayerId };
   'plunder.recorded': { opponent: PlayerId };
   'incoming.recorded': { attacker: PlayerId };
+  /** new city shields of these players */
+  'shield.recorded': { players: PlayerId[] };
   /** the game opened the army window before a battle; the opponent is not known yet */
   'army.opened': { battleType: string };
   /** any change of the notes; `player` when it was the note of that player */

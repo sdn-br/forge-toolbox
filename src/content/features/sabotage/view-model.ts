@@ -1,4 +1,12 @@
-import type { Battle, IncomingAttack, IncomingTotals, Player, Plunder, PlunderTotals } from '../../../shared/model';
+import type {
+  Battle,
+  CityShield,
+  IncomingAttack,
+  IncomingTotals,
+  Player,
+  Plunder,
+  PlunderTotals,
+} from '../../../shared/model';
 import {
   formatIncoming,
   formatIncomingTotals,
@@ -13,6 +21,7 @@ import { measuredArmy } from '../../domain/measured-army';
 import type { CatalogStore } from '../../stores/catalog';
 import type { VisitedCity } from '../../stores/cities';
 import { type BattleDetailsVm, battleDetails } from '../../ui/battle-details';
+import { type AttackStatus, attackStatus } from './attack-status';
 
 export interface PlunderItem {
   name: string;
@@ -21,6 +30,8 @@ export interface PlunderItem {
 
 export interface SabotageVm {
   player: { name: string; guild?: string; era: string };
+  /** whether and when the visited player can be attacked or plundered */
+  attack: AttackStatus;
   lootable: boolean;
   army?: CityAssessment['army'];
   /** the defending army as the last own attack on this player met it; a battle never shows their attacking army */
@@ -65,18 +76,19 @@ export function sabotageViewModel(
   lastBattle?: Battle,
   plunders?: { last?: Plunder; totals: PlunderTotals },
   incoming?: { last?: IncomingAttack; totals: IncomingTotals },
+  shield?: CityShield,
 ): SabotageVm {
   const friend = city.visit.friend || player?.relations.friend === true;
   const guildMember = city.visit.guildMember || player?.relations.guildMember === true;
-  const waiting =
-    city.visit.nextInteractionAt !== undefined && city.visit.nextInteractionAt > now && !city.visit.canPlunder;
+  const attack = attackStatus({ neighbor: city.visit.neighbor, friend, guildMember }, player?.attack, shield, now);
   const item = (p: Plunderable): PlunderItem => ({
     name: p.name,
     items: Object.entries(p.resources).map(([id, amount]) => ({ label: resourceLabel(id, catalog), amount })),
   });
   return {
     player: { name: player?.name ?? '', guild: player?.guild?.name, era: catalog.eraName(city.era) },
-    lootable: city.visit.neighbor && !friend && !guildMember && !waiting,
+    attack,
+    lootable: attack.kind === 'plunderable' || attack.kind === 'attackable',
     army: showArmy ? assessment.army : undefined,
     measured:
       showArmy && lastBattle

@@ -1,10 +1,11 @@
 // @vitest-environment happy-dom
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { sabotageFeature } from '../src/content/features/sabotage/index';
 import type { BattlePersistence } from '../src/content/stores/battles';
 import type { VisitedCity } from '../src/content/stores/cities';
+import type { PlayerObservation } from '../src/content/stores/players';
 import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
-import type { Battle, IncomingAttack, Plunder } from '../src/shared/model';
+import type { AttackTimer, Battle, IncomingAttack, Plunder } from '../src/shared/model';
 import { featureContext } from './helpers/feature-context';
 
 const world = worldId('de20');
@@ -60,6 +61,24 @@ function setup() {
 }
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+const HOUR = 3_600_000;
+const observed = (id: number, attack: AttackTimer): PlayerObservation => ({
+  id: playerId(id),
+  name: `P${id}`,
+  avatar: '',
+  cityName: '',
+  era: eraId('ColonialAge'),
+  score: 0,
+  rank: 0,
+  active: true,
+  guild: null,
+  attack,
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('sabotage feature', () => {
   it.each([
@@ -200,5 +219,53 @@ describe('sabotage feature', () => {
     expect(details.open).toBe(true);
     expect(details.textContent).toContain('feudal_knight');
     expect(details.textContent).not.toContain('Angriff / Verteidigung');
+  });
+
+  it('shows the attack line of the visited player and follows player updates and shields', async () => {
+    const { ctx, box } = setup();
+    ctx.players.apply(world, [observed(1, { canPlunder: false, nextInteractionAt: Date.now() + 2 * HOUR })], 'update');
+    ctx.cities.setVisited(city(1));
+    await vi.waitFor(() => expect(box.text).toMatch(/Wieder angreifbar in (1 Std\. 59 Min\.|2 Std\.) \(ab /));
+
+    ctx.shields.record([{ world, player: playerId(1), expiresAt: Date.now() + 24 * HOUR }]);
+    await vi.waitFor(() => expect(box.text).toMatch(/Stadt geschützt bis \d\d\.\d\d\., \d\d:\d\d \(noch /));
+    expect(box.text).not.toContain('Wieder angreifbar');
+
+    // a shield of another player changes nothing here
+    ctx.shields.record([{ world, player: playerId(2), expiresAt: Date.now() + HOUR }]);
+    ctx.players.apply(world, [observed(1, { canPlunder: true, nextInteractionAt: Date.now() + 24 * HOUR })], 'update');
+    await vi.waitFor(() => expect(box.text).toMatch(/Plünderbar noch (23 Std\. 59 Min\.|1 T\.) \(bis morgen /));
+
+    ctx.players.apply(world, [observed(1, { canPlunder: false })], 'update');
+    await vi.waitFor(() => expect(box.text).toContain('Stadt geschützt bis'));
+  });
+
+  it('tells a visited friend cannot be attacked', async () => {
+    const { ctx, box } = setup();
+    ctx.cities.setVisited({ ...city(1), visit: { neighbor: false, friend: true, guildMember: false } });
+    await vi.waitFor(() => expect(box.text).toContain('Freund, nicht angreifbar'));
+  });
+
+  it('shows a plain neighbour as attackable', async () => {
+    const { ctx, box } = setup();
+    ctx.cities.setVisited(city(1));
+    await vi.waitFor(() => expect(box.text).toContain('angreifbar'));
+    expect(box.text).not.toMatch(/nicht angreifbar|Wieder angreifbar/);
+  });
+
+  it('counts down while the box stays open and drops the line once the timer ran out', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+    vi.setSystemTime(new Date(2026, 9, 19, 15, 0));
+    const { ctx, box } = setup();
+    ctx.players.apply(world, [observed(1, { canPlunder: false, nextInteractionAt: Date.now() + 2 * HOUR })], 'update');
+    ctx.cities.setVisited(city(1));
+    await vi.waitFor(() => expect(box.text).toContain('Wieder angreifbar in 2 Std. (ab heute 17:00)'));
+
+    vi.advanceTimersByTime(31 * 60_000);
+    await vi.waitFor(() => expect(box.text).toContain('Wieder angreifbar in 1 Std. 29 Min. (ab heute 17:00)'));
+
+    vi.advanceTimersByTime(90 * 60_000);
+    await vi.waitFor(() => expect(box.text).not.toContain('Wieder angreifbar'));
+    expect(box.text).toContain('angreifbar');
   });
 });

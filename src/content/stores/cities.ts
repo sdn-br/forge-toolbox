@@ -7,8 +7,6 @@ export interface VisitInfo {
   neighbor: boolean;
   friend: boolean;
   guildMember: boolean;
-  canPlunder?: boolean;
-  nextInteractionAt?: number;
 }
 
 export interface VisitedCity extends City {

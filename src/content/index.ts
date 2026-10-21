@@ -5,6 +5,7 @@ import { incomingPersistence } from '../persistence/incoming/client';
 import { notePersistence } from '../persistence/notes/client';
 import { playerPersistence } from '../persistence/players/client';
 import { plunderPersistence } from '../persistence/plunders/client';
+import { shieldPersistence } from '../persistence/shields/client';
 import { worldId } from '../shared/ids';
 import { createBus } from './core/events';
 import { extensionAlive, onExtensionLost } from './core/extension-context';
@@ -30,6 +31,7 @@ import { NoteStore } from './stores/notes';
 import { PlayerStore } from './stores/players';
 import { PlunderStore } from './stores/plunders';
 import { SessionStore } from './stores/session';
+import { ShieldStore } from './stores/shields';
 import { Menu } from './ui/menu';
 import { UiState } from './ui/ui-state';
 
@@ -47,6 +49,7 @@ async function main() {
   const battles = new BattleStore(bus, world, battlePersistence(callBackground));
   const plunders = new PlunderStore(bus, world, plunderPersistence(callBackground));
   const incoming = new IncomingStore(bus, world, incomingPersistence(callBackground));
+  const shields = new ShieldStore(bus, world, shieldPersistence(callBackground));
   const notes = new NoteStore(bus, world, notePersistence(callBackground));
   const cities = new CityStore(bus);
   const catalog = new CatalogStore(bus);
@@ -56,7 +59,19 @@ async function main() {
   );
   const menu = new Menu();
 
-  registerGameHandlers(ingestion, { world, bus, now, session, players, cities, catalog, battles, plunders, incoming });
+  registerGameHandlers(ingestion, {
+    world,
+    bus,
+    now,
+    session,
+    players,
+    cities,
+    catalog,
+    battles,
+    plunders,
+    incoming,
+    shields,
+  });
   // the proxy buffers game traffic until we connect, so loading first loses nothing
   await Promise.all([
     settings.load(),
@@ -77,6 +92,7 @@ async function main() {
     battles,
     plunders,
     incoming,
+    shields,
     notes,
     recorder,
     createBox: boxFactory(ui),

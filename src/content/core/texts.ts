@@ -22,6 +22,25 @@ const dateTimeFormat = new Intl.DateTimeFormat('de-DE', {
 
 export const formatTime = (epochMs: number) => timeFormat.format(epochMs);
 
+/** "21.10., 18:00" */
+export const formatDateTime = (epochMs: number) => dateTimeFormat.format(epochMs);
+
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+
+const withRest = (big: string, rest: number, small: (n: number) => string) => (rest ? `${big} ${small(rest)}` : big);
+const minutesText = (minutes: number) => t('duration.minutes', { minutes });
+const hoursText = (hours: number) => t('duration.hours', { hours });
+
+/** "5 Std. 3 Min.", "2 T. 3 Std.", "20 Std.": the two largest units, rounded up, so a countdown never shows 0. */
+export function formatDuration(ms: number): string {
+  const minutes = Math.ceil(Math.max(0, ms) / MINUTE);
+  if (minutes < 60) return minutesText(minutes);
+  if (minutes < 24 * 60) return withRest(hoursText(Math.floor(minutes / 60)), minutes % 60, minutesText);
+  const hours = Math.ceil(ms / HOUR);
+  return withRest(t('duration.days', { days: Math.floor(hours / 24) }), hours % 24, hoursText);
+}
+
 /** "heute 14:05", "morgen 04:14", otherwise date and time. */
 export function formatWhen(epochMs: number, now: number): string {
   const day = (ms: number) => new Date(ms).toDateString();

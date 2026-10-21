@@ -8,7 +8,16 @@ import {
   playerId,
   type WorldId,
 } from '../../shared/ids';
-import type { Battle, BattleResult, BattleSide, GuildRef, IncomingAttack, Plunder } from '../../shared/model';
+import type {
+  AttackTimer,
+  Battle,
+  BattleResult,
+  BattleSide,
+  CityShield,
+  GuildRef,
+  IncomingAttack,
+  Plunder,
+} from '../../shared/model';
 import type { VisitInfo } from '../stores/cities';
 import type { Building, BuildingState, City, Product } from '../stores/city-model';
 import type { PlayerObservation } from '../stores/players';
@@ -19,6 +28,7 @@ import type {
   GameBattleState,
   GameBattleUnit,
   GameCityEntity,
+  GameCityProtection,
   GameEvent,
   GamePlayer,
   GamePlunderResult,
@@ -157,13 +167,30 @@ export function toObservation(p: GamePlayer): PlayerObservation | null {
   };
 }
 
-export function toVisitInfo(p: GamePlayer, now: number): VisitInfo {
+/**
+ * The attack timers of a player that the game sends whole. A missing field means it is not set: after a plunder
+ * `canSabotage` is gone (seen 2026-10-21), so the player is no longer plunderable.
+ */
+export function toAttackTimer(p: GamePlayer, now: number): AttackTimer {
+  const seconds = p.next_interaction_in;
+  return {
+    canPlunder: p.canSabotage === true,
+    ...(typeof seconds === 'number' && seconds > 0 && { nextInteractionAt: now + seconds * 1000 }),
+  };
+}
+
+/** An observation with the attack timers, for sources that carry the whole player. */
+export function toObservationWithAttack(p: GamePlayer, now: number): PlayerObservation | null {
+  const o = toObservation(p);
+  return o && { ...o, attack: toAttackTimer(p, now) };
+}
+
+/** The visit carries no attack timers (seen 2026-10-21); they come from the player store. */
+export function toVisitInfo(p: GamePlayer): VisitInfo {
   return {
     neighbor: p.is_neighbor === true,
     friend: p.is_friend === true,
     guildMember: p.is_guild_member === true,
-    canPlunder: p.canSabotage,
-    nextInteractionAt: typeof p.next_interaction_in === 'number' ? now + p.next_interaction_in * 1000 : undefined,
   };
 }
 
@@ -342,4 +369,17 @@ export function toIncoming(world: WorldId, e: GameEvent, me: PlayerId, at: numbe
     return { ...base, kind: 'plunder', key: e.id, cityEntityId: buildingDefId(e.entity_id) };
   }
   return null;
+}
+
+/**
+ * City shields from getCityProtections. The format is unconfirmed, so entries without a numeric player and end are
+ * skipped, as is `expireTime` -1 (cannot be attacked at all, which is no shield).
+ */
+export function toShields(world: WorldId, data: unknown): CityShield[] {
+  return (Array.isArray(data) ? data : []).flatMap((e: GameCityProtection | null) => {
+    const player = e?.playerId;
+    const end = e?.expireTime;
+    if (typeof player !== 'number' || typeof end !== 'number' || !(end > 0)) return [];
+    return [{ world, player: playerId(player), expiresAt: end * 1000 }];
+  });
 }

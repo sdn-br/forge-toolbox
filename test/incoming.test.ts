@@ -9,6 +9,7 @@ import { IncomingStore } from '../src/content/stores/incoming';
 import { PlayerStore } from '../src/content/stores/players';
 import { PlunderStore } from '../src/content/stores/plunders';
 import { SessionStore } from '../src/content/stores/session';
+import { ShieldStore } from '../src/content/stores/shields';
 import { buildingDefId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { IncomingAttack } from '../src/shared/model';
 import fixture from './fixtures/pvp-events.json';
@@ -38,6 +39,7 @@ function setup(me: number | null = fixture.me) {
     battles: new BattleStore(bus, world, db.persistence),
     plunders: new PlunderStore(bus, world, db.plunders),
     incoming,
+    shields: new ShieldStore(bus, world, db.shields),
   });
   const recorded: PlayerId[] = [];
   bus.on('incoming.recorded', (e) => recorded.push(e.attacker));

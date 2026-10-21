@@ -15,6 +15,14 @@ export interface Relations {
 
 export type PlayerSource = 'socialList' | 'visit' | 'update' | 'ranking' | 'gbg' | 'event';
 
+/** When the session player may attack or plunder this player again, as the game last reported it. */
+export interface AttackTimer {
+  /** a won battle that is not plundered yet (the game's `canSabotage`) */
+  canPlunder: boolean;
+  /** until then the player cannot be attacked again; also the end of the plunder window (`next_interaction_in`) */
+  nextInteractionAt?: number;
+}
+
 export interface Player {
   world: WorldId;
   id: PlayerId;
@@ -27,6 +35,8 @@ export interface Player {
   active: boolean;
   guild?: GuildRef;
   relations: Relations;
+  /** missing until a source that carries the timers reported the player */
+  attack?: AttackTimer;
   firstSeenAt: number;
   seenAt: number;
   source: PlayerSource;
@@ -98,6 +108,13 @@ export interface IncomingAttack {
   defense?: 'held' | 'broken';
   /** plunder only: the plundered own building */
   cityEntityId?: BuildingDefId;
+}
+
+/** A city shield of another player: until `expiresAt` the city cannot be attacked. */
+export interface CityShield {
+  world: WorldId;
+  player: PlayerId;
+  expiresAt: number;
 }
 
 export interface IncomingTotals {

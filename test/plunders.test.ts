@@ -9,6 +9,7 @@ import { IncomingStore } from '../src/content/stores/incoming';
 import { PlayerStore } from '../src/content/stores/players';
 import { PlunderStore } from '../src/content/stores/plunders';
 import { SessionStore } from '../src/content/stores/session';
+import { ShieldStore } from '../src/content/stores/shields';
 import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { Plunder } from '../src/shared/model';
 import fixture from './fixtures/pvp-plunder.json';
@@ -24,7 +25,7 @@ function setup(me: number | null = fixture.me) {
   const bus = createBus();
   const ingestion = new Ingestion();
   const session = new SessionStore(bus);
-  const { db, persistence, plunders: plunderDb, incoming } = testDb();
+  const { db, persistence, plunders: plunderDb, incoming, shields } = testDb();
   const plunders = new PlunderStore(bus, world, plunderDb);
   const cities = new CityStore(bus);
   let now = AT;
@@ -39,6 +40,7 @@ function setup(me: number | null = fixture.me) {
     battles: new BattleStore(bus, world, persistence),
     plunders,
     incoming: new IncomingStore(bus, world, incoming),
+    shields: new ShieldStore(bus, world, shields),
   });
   const recorded: PlayerId[] = [];
   bus.on('plunder.recorded', (e) => recorded.push(e.opponent));

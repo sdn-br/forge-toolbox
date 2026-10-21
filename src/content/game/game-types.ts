@@ -175,6 +175,15 @@ export interface GameEvent {
   status?: string;
 }
 
+/**
+ * An entry of OtherPlayerService.getCityProtections, from the concept of the old toolbox, not yet seen ourselves.
+ * `expireTime` in Unix seconds; -1 is said to mean the player cannot be attacked at all.
+ */
+export interface GameCityProtection {
+  playerId?: number;
+  expireTime?: number;
+}
+
 export interface GameEventPage {
   page?: number;
   events?: GameEvent[];
