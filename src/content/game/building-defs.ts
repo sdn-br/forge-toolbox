@@ -76,6 +76,23 @@ function sizeOf(json: Json, components: Json | undefined): { width: number; leng
   return { width: Number(size.x ?? 1), length: Number(size.y ?? 1) };
 }
 
+/**
+ * Street level a building needs, 0 for none. Assumed game format, the recorded definitions are trimmed and lack it:
+ * classic definitions carry `requirements.street_connection_level`, generic ones a `streetConnectionRequirement`
+ * component with `requiredLevel`. Undefined when a classic definition has no `requirements` at all.
+ */
+function streetOf(json: Json, components: Json | undefined, generic: boolean): number | undefined {
+  if (generic) {
+    for (const c of Object.values(components ?? {})) {
+      const r = isObject(c) ? c.streetConnectionRequirement : undefined;
+      if (isObject(r)) return Number(r.requiredLevel ?? 1);
+    }
+    return 0;
+  }
+  if (!isObject(json.requirements)) return undefined;
+  return Number(json.requirements.street_connection_level ?? 0);
+}
+
 const NOT_PLUNDERABLE = ['AddResourcesToGuildTreasuryAbility', 'RandomChestRewardAbility', 'NotPlunderableAbility'];
 const PLUNDERABLE_TYPES = ['production', 'goods', 'residential', 'clan_power_production'];
 
@@ -140,6 +157,7 @@ export function toBuildingDef(json: unknown): BuildingDef | null {
   const type = typeof json.type === 'string' ? json.type : undefined;
   const excluded =
     NOT_PLUNDERABLE.some(has) || abilities.some((a) => typeof a.gridId === 'string' && a.gridId !== 'main');
+  const street = streetOf(json, components, generic);
   const motivatable = has('MotivatableAbility') || interaction === 'motivate';
   return {
     id: buildingDefId(json.id),
@@ -153,6 +171,7 @@ export function toBuildingDef(json: unknown): BuildingDef | null {
       plunderable: !excluded && (generic ? motivatable : type !== undefined && PLUNDERABLE_TYPES.includes(type)),
     },
     size: sizeOf(json, components),
+    ...(street !== undefined && { street }),
     boostsByEra,
     productByEra,
     set,

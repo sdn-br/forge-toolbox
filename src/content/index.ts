@@ -18,6 +18,7 @@ import { Recorder } from './core/recorder';
 import { callBackground } from './core/rpc';
 import { Settings } from './core/settings';
 import { t } from './core/texts';
+import { cityMapFeature } from './features/city-map';
 import { notesFeature } from './features/notes';
 import { pvpFeature } from './features/pvp';
 import { sabotageFeature } from './features/sabotage';
@@ -30,12 +31,14 @@ import { IncomingStore } from './stores/incoming';
 import { NoteStore } from './stores/notes';
 import { PlayerStore } from './stores/players';
 import { PlunderStore } from './stores/plunders';
+import { ResearchStore } from './stores/research';
+import { ResourceStore } from './stores/resources';
 import { SessionStore } from './stores/session';
 import { ShieldStore } from './stores/shields';
 import { Menu } from './ui/menu';
 import { UiState } from './ui/ui-state';
 
-const features: Feature[] = [sabotageFeature, pvpFeature, notesFeature, settingsFeature];
+const features: Feature[] = [sabotageFeature, pvpFeature, notesFeature, cityMapFeature, settingsFeature];
 
 async function main() {
   const world = worldId(location.hostname.split('.')[0] ?? 'unknown');
@@ -53,6 +56,8 @@ async function main() {
   const notes = new NoteStore(bus, world, notePersistence(callBackground));
   const cities = new CityStore(bus);
   const catalog = new CatalogStore(bus);
+  const resources = new ResourceStore(bus);
+  const research = new ResearchStore(bus);
   const recorder = new Recorder(
     () => settings.get('core.record'),
     () => settings.get('core.recordRequests'),
@@ -67,6 +72,8 @@ async function main() {
     players,
     cities,
     catalog,
+    resources,
+    research,
     battles,
     plunders,
     incoming,
@@ -89,12 +96,15 @@ async function main() {
     players,
     cities,
     catalog,
+    resources,
+    research,
     battles,
     plunders,
     incoming,
     shields,
     notes,
     recorder,
+    ui,
     createBox: boxFactory(ui),
   };
   for (const feature of features) {

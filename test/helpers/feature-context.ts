@@ -11,10 +11,13 @@ import { type IncomingPersistence, IncomingStore } from '../../src/content/store
 import { NoteStore } from '../../src/content/stores/notes';
 import { PlayerStore } from '../../src/content/stores/players';
 import { type PlunderPersistence, PlunderStore } from '../../src/content/stores/plunders';
+import { ResearchStore } from '../../src/content/stores/research';
+import { ResourceStore } from '../../src/content/stores/resources';
 import { SessionStore } from '../../src/content/stores/session';
 import { ShieldStore } from '../../src/content/stores/shields';
 import type { Box, BoxOptions } from '../../src/content/ui/box';
 import type { Menu, MenuItem } from '../../src/content/ui/menu';
+import { UiState } from '../../src/content/ui/ui-state';
 import { worldId } from '../../src/shared/ids';
 import { testDb } from './battle-db';
 
@@ -88,12 +91,15 @@ export function featureContext(
     players: new PlayerStore(bus, { load: async () => [], put: async () => {} }),
     cities: new CityStore(bus),
     catalog: new CatalogStore(bus),
+    resources: new ResourceStore(bus),
+    research: new ResearchStore(bus),
     battles: new BattleStore(bus, world, persistence ?? db.persistence),
     plunders: new PlunderStore(bus, world, plunders ?? db.plunders),
     incoming: new IncomingStore(bus, world, incoming ?? db.incoming),
     shields: new ShieldStore(bus, world, db.shields),
     notes: new NoteStore(bus, world, db.notes),
     recorder: new Recorder(() => false),
+    ui: new UiState(memoryKv()),
     createBox: (options) => {
       const recording = recordingBox(options);
       boxes.set(options.id, recording);

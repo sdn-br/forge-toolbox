@@ -13,6 +13,11 @@ const numberFormat = new Intl.NumberFormat('de-DE');
 const timeFormat = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' });
 
 export const formatNumber = (n: number) => numberFormat.format(n);
+const millionFormat = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });
+
+/** "45 Mio.", "0,6 Mio." from 100.000 on, below that the whole number */
+export const formatPrice = (n: number) =>
+  n >= 100_000 ? t('number.millions', { n: millionFormat.format(n / 1_000_000) }) : formatNumber(n);
 const dateTimeFormat = new Intl.DateTimeFormat('de-DE', {
   day: '2-digit',
   month: '2-digit',

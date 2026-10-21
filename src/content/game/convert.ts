@@ -18,9 +18,11 @@ import type {
   IncomingAttack,
   Plunder,
 } from '../../shared/model';
+import type { CityGrid } from '../stores/catalog';
 import type { VisitInfo } from '../stores/cities';
-import type { Building, BuildingState, City, Product } from '../stores/city-model';
+import type { Area, Building, BuildingState, City, ExpansionOffer, Product } from '../stores/city-model';
 import type { PlayerObservation } from '../stores/players';
+import type { ResearchExpansion } from '../stores/research';
 import type { Session } from '../stores/session';
 import type {
   GameArmyContext,
@@ -28,14 +30,20 @@ import type {
   GameBattleState,
   GameBattleUnit,
   GameCityEntity,
+  GameCityMap,
+  GameCityMapArea,
   GameCityProtection,
   GameEvent,
+  GameGrid,
   GamePlayer,
   GamePlunderResult,
   GameProduct,
   GameProductionOption,
+  GameResearchProgress,
+  GameResearchTechnology,
   GameResources,
   GameState,
+  GameTileset,
   GameUserData,
 } from './game-types';
 
@@ -130,20 +138,97 @@ export function toBuilding(e: GameCityEntity, owner: PlayerId): Building | null 
   return building;
 }
 
-export function toCity(
-  world: WorldId,
-  owner: PlayerId,
-  era: string,
-  map: string | undefined,
-  entities: GameCityEntity[] | undefined,
-  now: number,
-): City {
+function toArea(a: GameCityMapArea): Area | null {
+  if (typeof a.width !== 'number' || typeof a.length !== 'number' || a.width <= 0 || a.length <= 0) return null;
+  return { x: a.x ?? 0, y: a.y ?? 0, width: a.width, length: a.length };
+}
+
+/** `areas` stays undefined when the game sends none, so a map can tell "unknown" from "nothing unlocked". */
+export function toAreas(areas: GameCityMapArea[] | undefined): Area[] | undefined {
+  if (!Array.isArray(areas)) return undefined;
+  return areas.map(toArea).filter((a): a is Area => a !== null);
+}
+
+/** Blocked areas come as bare positions of 4 × 4 blocks, x and y left out when 0 (seen 2026-10-21). */
+function toBlockedAreas(positions: { x?: number; y?: number }[] | undefined): Area[] | undefined {
+  if (!Array.isArray(positions)) return undefined;
+  return positions.map((p) => ({ x: p?.x ?? 0, y: p?.y ?? 0, width: 4, length: 4 }));
+}
+
+export function toCity(world: WorldId, owner: PlayerId, era: string, map: GameCityMap | undefined, now: number): City {
   const buildings = new Map<number, Building>();
-  for (const e of entities ?? []) {
+  for (const e of map?.entities ?? []) {
     const b = toBuilding(e, owner);
     if (b) buildings.set(b.id, b);
   }
-  return { world, owner, era: eraId(era), map: map ?? 'main', takenAt: now, buildings };
+  const areas = toAreas(map?.unlocked_areas);
+  const blocked = toBlockedAreas(map?.blocked_areas);
+  const expansions = Array.isArray(map?.tilesets) ? toExpansionOffers(map.tilesets) : undefined;
+  return {
+    world,
+    owner,
+    era: eraId(era),
+    map: map?.gridId ?? 'main',
+    takenAt: now,
+    buildings,
+    ...(areas && { areas }),
+    ...(blocked && { blocked }),
+    ...(expansions && { expansions }),
+  };
+}
+
+const numbers = (v: unknown): Record<string, number> => {
+  const out: Record<string, number> = {};
+  if (v && typeof v === 'object' && !Array.isArray(v)) {
+    for (const [k, n] of Object.entries(v)) if (typeof n === 'number') out[k] = n;
+  }
+  return out;
+};
+
+function toExpansionOffers(tilesets: GameTileset[]): ExpansionOffer[] {
+  return tilesets.flatMap((t) => {
+    if (typeof t?.type !== 'string') return [];
+    const cost = numbers((t.requirements?.cost ?? t.cost)?.resources);
+    const minEra = t.requirements?.min_era;
+    return [{ kind: t.type, ...(minEra && { minEra: eraId(minEra) }), cost }];
+  });
+}
+
+/** The resource bag of the player, `{ resources: { resources: { money: … } } }` (seen 2026-10-21); null when it is not one. */
+export function toResourceBag(data: unknown): Record<string, number> | null {
+  const resources = (data as { resources?: { resources?: unknown } } | null)?.resources?.resources;
+  return resources && typeof resources === 'object' && !Array.isArray(resources) ? numbers(resources) : null;
+}
+
+/**
+ * The technologies of the metadata file `research-<hash>` that reward main city expansions, in the order of the file.
+ * Only `type: 'expansion'` with `subType: 'main'` counts; outposts and other cities have their own types.
+ */
+export function toResearchExpansions(json: unknown): ResearchExpansion[] {
+  return (Array.isArray(json) ? (json as GameResearchTechnology[]) : []).flatMap((tech) => {
+    if (typeof tech?.id !== 'string') return [];
+    const amount = (tech.rewards ?? [])
+      .filter((r) => r?.type === 'expansion' && r.subType === 'main' && typeof r.amount === 'number')
+      .reduce((sum, r) => sum + (r.amount as number), 0);
+    return amount > 0 ? [{ tech: tech.id, name: tech.name ?? tech.id, amount }] : [];
+  });
+}
+
+/** The unlocked technologies from ResearchService.getProgress; null when the response is no progress object. */
+export function toUnlockedNodes(data: unknown): string[] | null {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+  const nodes = (data as GameResearchProgress).unlockedNodes;
+  return Array.isArray(nodes) ? nodes.filter((n): n is string => typeof n === 'string') : null;
+}
+
+/** The main grid of the metadata file `grid-<hash>`, its blocks from the sectors of type `Regular`. */
+export function toCityGrid(json: unknown): CityGrid | null {
+  const grid = (Array.isArray(json) ? (json as GameGrid[]) : []).find((g) => g?.id === 'main');
+  if (!grid) return null;
+  const blocks = (grid.sectors ?? [])
+    .filter((s) => s?.type?.value === 'Regular')
+    .flatMap((s) => (s.tilePositions ?? []).map((p) => ({ x: p?.x ?? 0, y: p?.y ?? 0 })));
+  return { width: grid.width ?? 0, height: grid.height ?? 0, blocks };
 }
 
 function toGuild(p: GamePlayer): GuildRef | null {

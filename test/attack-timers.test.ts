@@ -8,6 +8,8 @@ import { CityStore } from '../src/content/stores/cities';
 import { IncomingStore } from '../src/content/stores/incoming';
 import { PlayerStore } from '../src/content/stores/players';
 import { PlunderStore } from '../src/content/stores/plunders';
+import { ResearchStore } from '../src/content/stores/research';
+import { ResourceStore } from '../src/content/stores/resources';
 import { SessionStore } from '../src/content/stores/session';
 import { ShieldStore } from '../src/content/stores/shields';
 import { playerId, worldId } from '../src/shared/ids';
@@ -30,6 +32,8 @@ function setup() {
     players,
     cities: new CityStore(bus),
     catalog: new CatalogStore(bus),
+    resources: new ResourceStore(bus),
+    research: new ResearchStore(bus),
     battles: new BattleStore(bus, world, db.persistence),
     plunders: new PlunderStore(bus, world, db.plunders),
     incoming: new IncomingStore(bus, world, db.incoming),

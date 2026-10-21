@@ -8,6 +8,8 @@ import { CityStore } from '../src/content/stores/cities';
 import { IncomingStore } from '../src/content/stores/incoming';
 import { PlayerStore } from '../src/content/stores/players';
 import { PlunderStore } from '../src/content/stores/plunders';
+import { ResearchStore } from '../src/content/stores/research';
+import { ResourceStore } from '../src/content/stores/resources';
 import { SessionStore } from '../src/content/stores/session';
 import { ShieldStore } from '../src/content/stores/shields';
 import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
@@ -37,6 +39,8 @@ function setup(me: number | null = fixture.me) {
     players: new PlayerStore(bus, { load: async () => [], put: async () => {} }),
     cities,
     catalog: new CatalogStore(bus),
+    resources: new ResourceStore(bus),
+    research: new ResearchStore(bus),
     battles: new BattleStore(bus, world, persistence),
     plunders,
     incoming: new IncomingStore(bus, world, incoming),

@@ -6,6 +6,8 @@ import type { IncomingStore } from '../stores/incoming';
 import type { NoteStore } from '../stores/notes';
 import type { PlayerStore } from '../stores/players';
 import type { PlunderStore } from '../stores/plunders';
+import type { ResearchStore } from '../stores/research';
+import type { ResourceStore } from '../stores/resources';
 import type { SessionStore } from '../stores/session';
 import type { ShieldStore } from '../stores/shields';
 import { Box, type BoxOptions } from '../ui/box';
@@ -25,12 +27,16 @@ export interface FeatureContext {
   players: PlayerStore;
   cities: CityStore;
   catalog: CatalogStore;
+  resources: ResourceStore;
+  research: ResearchStore;
   battles: BattleStore;
   plunders: PlunderStore;
   incoming: IncomingStore;
   shields: ShieldStore;
   notes: NoteStore;
   recorder: Recorder;
+  /** remembered view choices of the viewer */
+  ui: UiState;
   createBox(options: BoxOptions): Box;
 }
 

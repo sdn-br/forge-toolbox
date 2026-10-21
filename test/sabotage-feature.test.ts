@@ -101,6 +101,43 @@ describe('sabotage feature', () => {
     expect(box.text).not.toContain('111');
   });
 
+  it('shows the city map as a collapsed section and remembers its view mode', async () => {
+    const { ctx, box } = setup();
+    ctx.cities.setVisited({
+      ...city(1),
+      buildings: new Map([
+        [
+          5,
+          {
+            id: 5,
+            owner: playerId(1),
+            def: buildingDefId('R_Test_House'),
+            type: 'residential',
+            x: 0,
+            y: 0,
+            connected: true,
+            state: { kind: 'idle' },
+          },
+        ],
+      ]),
+    });
+    await tick();
+    const section = box.root.querySelector('details.city-map-section') as HTMLDetailsElement;
+    expect(section.open).toBe(false);
+    expect(section.querySelector('summary')?.textContent).toBe('Stadtplan');
+    expect(section.querySelector('canvas')).not.toBeNull();
+    const iso = [...section.querySelectorAll('button')].find((b) => b.textContent === 'Isometrisch');
+    iso?.click();
+    expect(ctx.ui.pref('cityMap.visited.mode')).toBe('iso');
+  });
+
+  it('shows no city map for a city without buildings', async () => {
+    const { ctx, box } = setup();
+    ctx.cities.setVisited(city(1));
+    await tick();
+    expect(box.root.querySelector('canvas')).toBeNull();
+  });
+
   it('shows the last battle when the city did not change meanwhile', async () => {
     const { ctx, box, latest } = setup();
     ctx.cities.setVisited(city(1));

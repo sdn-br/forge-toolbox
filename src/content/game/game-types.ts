@@ -42,9 +42,39 @@ export interface GameCityEntity {
   bonus?: { type?: string; value?: number; amount?: number };
 }
 
+/** an unlocked piece of the city grid; the game leaves out coordinates that are 0 */
+export interface GameCityMapArea {
+  x?: number;
+  y?: number;
+  width?: number;
+  length?: number;
+}
+
 export interface GameCityMap {
   gridId?: string;
   entities?: GameCityEntity[];
+  /** assumed from the game format, not in a recording yet: the unlocked areas of the grid */
+  unlocked_areas?: GameCityMapArea[];
+  /** own city: blocks of the grid that cannot be unlocked (assumed) */
+  blocked_areas?: { x?: number; y?: number }[];
+  /** own city: one entry per expansion not obtained yet */
+  tilesets?: GameTileset[];
+}
+
+/** An open expansion. Where the price sits is assumed: `requirements.cost.resources`, else `cost.resources`. */
+export interface GameTileset {
+  type?: string;
+  available?: boolean;
+  requirements?: { min_era?: string; cost?: GameResources };
+  cost?: GameResources;
+}
+
+/** a grid of the metadata file `grid-<hash>`: sectors list the top left tiles of their 4 × 4 blocks */
+export interface GameGrid {
+  id?: string;
+  width?: number;
+  height?: number;
+  sectors?: { type?: { value?: string }; tilePositions?: { x?: number; y?: number }[] }[];
 }
 
 export interface GameClan {
@@ -187,4 +217,24 @@ export interface GameCityProtection {
 export interface GameEventPage {
   page?: number;
   events?: GameEvent[];
+}
+
+/** A reward of a technology in the metadata `research-<hash>`; main city expansions are `expansion` / `main`. */
+export interface GameResearchReward {
+  type?: string;
+  subType?: string;
+  amount?: number;
+}
+
+/** A technology of the metadata `research-<hash>`, an array in the order of the tree (seen 2026-10-21). */
+export interface GameResearchTechnology {
+  id?: string;
+  name?: string;
+  era?: string;
+  rewards?: GameResearchReward[];
+}
+
+/** ResearchService.getProgress; `unlockedNodes` are technology ids (seen 2026-10-21). */
+export interface GameResearchProgress {
+  unlockedNodes?: string[];
 }

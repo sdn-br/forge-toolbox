@@ -19,7 +19,7 @@ const lookup = (defs: unknown[], eras: string[] = []): AssessContext => {
 };
 
 const cityOf = (entities: GameCityEntity[], era = 'IndustrialAge') =>
-  toCity(worldId('de20'), playerId(1001), era, 'main', entities, 0);
+  toCity(worldId('de20'), playerId(1001), era, { gridId: 'main', entities }, 0);
 
 describe('assessCity with a recorded city', () => {
   const city = cityOf(fixture.visit.city_map.entities as GameCityEntity[], fixture.visit.other_player_era);
