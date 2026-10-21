@@ -31,7 +31,7 @@ export interface Bounds {
 // Entities the game lists with the city but places beside the grid (seen in the own city, 2026-10-19).
 const OFF_GRID = new Set(['off_grid', 'outpost_ship', 'friends_tavern']);
 
-export const onGrid = (b: Building) => !OFF_GRID.has(b.type);
+const onGrid = (b: Building) => !OFF_GRID.has(b.type);
 
 /**
  * Footprints of the buildings on the grid. The entities carry no rotation; the recorded own city fits together

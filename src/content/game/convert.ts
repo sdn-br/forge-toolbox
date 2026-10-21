@@ -59,7 +59,7 @@ function resourcesOf(r: GameResources | undefined): Record<string, number> {
   return out;
 }
 
-export function toProduct(p: GameProduct | undefined): Product | undefined {
+function toProduct(p: GameProduct | undefined): Product | undefined {
   if (!p) return undefined;
   if (p.__class__ === 'CityEntityClanGoodsProduct') {
     const guildGoods: Record<string, number> = {};
@@ -87,7 +87,7 @@ function motivated(s: GameState): boolean | undefined {
   return s.socialInteractionId === 'motivate' ? true : s.is_motivated;
 }
 
-export function toState(s: GameState | undefined): BuildingState {
+function toState(s: GameState | undefined): BuildingState {
   const product = () => toProduct(s?.current_product) ?? productOfOption(s?.productionOption);
   switch (s?.__class__) {
     case 'IdleState':
@@ -144,7 +144,7 @@ function toArea(a: GameCityMapArea): Area | null {
 }
 
 /** `areas` stays undefined when the game sends none, so a map can tell "unknown" from "nothing unlocked". */
-export function toAreas(areas: GameCityMapArea[] | undefined): Area[] | undefined {
+function toAreas(areas: GameCityMapArea[] | undefined): Area[] | undefined {
   if (!Array.isArray(areas)) return undefined;
   return areas.map(toArea).filter((a): a is Area => a !== null);
 }
@@ -256,7 +256,7 @@ export function toObservation(p: GamePlayer): PlayerObservation | null {
  * The attack timers of a player that the game sends whole. A missing field means it is not set: after a plunder
  * `canSabotage` is gone (seen 2026-10-21), so the player is no longer plunderable.
  */
-export function toAttackTimer(p: GamePlayer, now: number): AttackTimer {
+function toAttackTimer(p: GamePlayer, now: number): AttackTimer {
   const seconds = p.next_interaction_in;
   return {
     canPlunder: p.canSabotage === true,

@@ -18,7 +18,7 @@ export const CATEGORY_COLORS: Record<BuildingCategory, string> = {
 const BACKGROUND = '#2b1d10';
 
 /** `color` moved towards `toward` by `amount` (0 keeps it, 1 is `toward`); both as #rrggbb */
-export function mix(color: string, toward: string, amount: number): string {
+function mix(color: string, toward: string, amount: number): string {
   const channel = (hex: string, i: number) => Number.parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
   const parts = [0, 1, 2].map((i) => Math.round(channel(color, i) + (channel(toward, i) - channel(color, i)) * amount));
   return `#${parts.map((n) => n.toString(16).padStart(2, '0')).join('')}`;

@@ -59,11 +59,6 @@ export function boostsFor(def: BuildingDef, era: EraId): Boost[] {
   return boostsAt(def.boostsByEra, era);
 }
 
-export function productFor(def: BuildingDef, era: EraId): Product | undefined {
-  const key = eraKey(def.productByEra, era);
-  return key ? def.productByEra[key] : def.productByEra.AllAge;
-}
-
 /** The main city grid from the metadata `grid-<hash>`: top left tiles of its 4 × 4 blocks. */
 export interface CityGrid {
   width: number;

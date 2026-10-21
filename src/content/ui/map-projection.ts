@@ -24,7 +24,7 @@ export interface MapView {
 }
 
 export const WHOLE_MAP: MapView = { zoom: 1, panX: 0, panY: 0 };
-export const MAX_ZOOM = 12;
+const MAX_ZOOM = 12;
 
 /** Grid point (tile corners at whole numbers) → plane of the mode, one tile wide. */
 export function toPlane(mode: MapMode, gx: number, gy: number): Point {

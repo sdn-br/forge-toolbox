@@ -6,9 +6,9 @@ import type { ResearchExpansion } from '../stores/research';
 import type { TileRect } from './city-grid';
 import { areaTiles } from './city-stats';
 
-export const BLOCK = 4;
+const BLOCK = 4;
 /** the start area of 16 × 16 tiles holds 16 blocks */
-export const START_BLOCKS = 16;
+const START_BLOCKS = 16;
 
 /** Unlocked blocks beyond the start area. */
 export const placedExpansions = (areas: Area[]): number =>
