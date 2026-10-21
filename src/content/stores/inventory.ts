@@ -31,6 +31,9 @@ export interface InventoryItem {
 export class InventoryStore {
   private byId?: Map<number, InventoryItem>;
   private dirty = false;
+  /** the game's own sum of Forge points in packages; dropped when the items change later without a new one */
+  private reported?: number;
+  private reportedNow = false;
 
   constructor(private bus: ToolboxBus) {}
 
@@ -75,15 +78,39 @@ export class InventoryStore {
     this.dirty = true;
   }
 
+  /** the game's sum of Forge points in packages (GreatBuildingsService.getAvailablePackageForgePoints) */
+  reportPackageForgePoints(fp: number): void {
+    this.reportedNow = true;
+    if (fp === this.reported) return;
+    this.reported = fp;
+    this.dirty = true;
+  }
+
   /** announces the changes since the last commit, if there were any */
   commit(): void {
+    // a sum from an earlier response no longer fits items that changed since
+    if (this.dirty && !this.reportedNow) this.reported = undefined;
+    this.reportedNow = false;
     if (!this.dirty) return;
     this.dirty = false;
     this.bus.emit('inventory.changed', {});
   }
 
-  /** Forge points in all Forge point packages: stock times gain of each */
+  /** false while neither the items nor the game's sum of the packages are known */
+  get knowsPackages(): boolean {
+    return this.known || this.reported !== undefined;
+  }
+
+  /**
+   * Forge points in all Forge point packages: the game's own sum when it came with the latest change, else stock times
+   * gain of each package. Both agreed in the recording of 2026-10-21 (108.198).
+   */
   forgePointPackages(): number {
+    return this.reported ?? this.computedForgePointPackages();
+  }
+
+  /** stock times gain of each Forge point package */
+  computedForgePointPackages(): number {
     let sum = 0;
     for (const i of this.items()) if (i.payload.kind === 'forgePoints') sum += i.inStock * i.payload.gain;
     return sum;

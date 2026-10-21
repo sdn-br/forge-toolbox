@@ -14,6 +14,10 @@
 # owner for the names, the first getConstructionRanking, the own construction and the own great buildings with a
 # contribution_boost from the startup data, with fake player ids and names. Also the Forge point packages of the
 # inventory (getItems) and one other item, with fake item ids and without descriptions.
+# Contribution: python3 -I scripts/make-fixture.py gb-contribution <start-recording.json> <contribution-recording.json> <out.json>
+# keeps the opening (building and construction) of the great building contributed to and the whole response batch of
+# the first contributeForgePoints. The Forge point packages of the start recording (getItems) are the inventory before,
+# with the same fake item ids as in the gb mode; resources trimmed to Forge points and coins; fake player ids and names.
 
 import json,sys
 
@@ -215,6 +219,77 @@ def gb_fixture(rec,out):
       'openings':openings,'overviews':names,'ranking':ranking,'own':own}
     json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
 
+def gb_contribution_fixture(start,rec,out):
+    ME=1000
+    items=next(e['responseData'] for r in start if r['kind']=='json' for e in json.loads(r['response'])
+        if e.get('requestClass')=='InventoryService' and e.get('requestMethod')=='getItems')
+    fp=[x for x in items if x.get('item',{}).get('__class__')=='ForgePointPackagePayload']
+    item_ids={x['id']:9001+i for i,x in enumerate(fp)}
+    inventory=[dict({k:x[k] for k in ('name','inStock','item','itemAssetName','__class__') if k in x},id=item_ids[x['id']]) for x in fp]
+    me_real=next(e['responseData']['user_data']['player_id'] for r in start if r['kind']=='json' for e in json.loads(r['response'])
+        if e.get('requestMethod')=='getData' and e.get('requestClass')=='StartupService')
+    batches=[]
+    for r in rec:
+        if r['kind']!='json': continue
+        try: res=json.loads(r['response']); req=json.loads(r['request'] or '[]')
+        except (TypeError,ValueError): continue
+        reqs={(q.get('requestClass'),q.get('requestMethod')):q.get('requestData') for q in req if isinstance(q,dict)}
+        batches.append([dict(e,requestData=reqs.get((e.get('requestClass'),e.get('requestMethod')))) for e in res if isinstance(e,dict)])
+    batch=next(b for b in batches if any(e.get('requestMethod')=='contributeForgePoints' for e in b))
+    target=next(e['requestData'] for e in batch if e.get('requestMethod')=='contributeForgePoints')
+    ent_real,owner_real=target[0],target[1]
+    ids={me_real:ME,owner_real:1001}; others=iter(range(2001,3000))
+    def pid(p):
+        if p not in ids: ids[p]=next(others)
+        return ids[p]
+    def name(p): return 'Ich' if p==ME else (f'Eigentümer {p}' if p<2000 else f'Spieler {p}')
+    def row(x):
+        o={k:x[k] for k in ('rank','forge_points','reward','__class__') if k in x}
+        p=x.get('player',{})
+        if 'player_id' in p:
+            n=pid(p['player_id']); player={'player_id':n,'name':name(n),'avatar':''}
+        else: player={'name':p.get('name',''),'avatar':''}
+        if p.get('is_self'): player['is_self']=True
+        o['player']=dict(player,__class__=p.get('__class__'))
+        return o
+    def entity(x):
+        st=x.get('state',{})
+        o={k:x[k] for k in ('id','cityentity_id','type','x','y','connected','level','max_level','__class__') if k in x}
+        o['player_id']=pid(x['player_id'])
+        o['state']={k:st[k] for k in ('invested_forge_points','forge_points_for_level_up','__class__') if k in st}
+        if x.get('bonus'): o['bonus']={k:x['bonus'][k] for k in ('type','value','__class__') if k in x['bonus']}
+        return o
+    def entry(e,data,req):
+        return {'requestClass':e['requestClass'],'requestMethod':e['requestMethod'],'requestData':req,'responseData':data}
+    flat=[e for b in batches for e in b]
+    ent=next(e for e in flat if e.get('requestMethod')=='getOtherPlayerCityMapEntity' and e['requestData'][:2]==[ent_real,owner_real])
+    con=next(e for e in flat if e.get('requestMethod')=='getConstruction' and e['requestData'][:2]==[ent_real,owner_real])
+    opening=[entry(ent,entity(ent['responseData']),[ent_real,1001]),
+        entry(con,{'rankings':[row(x) for x in con['responseData']['rankings']],'__class__':con['responseData'].get('__class__')},[ent_real,1001])]
+    out_batch=[]
+    for e in batch:
+        m=e.get('requestMethod'); d=e['responseData']
+        if m=='getPlayerResourceBag':
+            res=d['resources']['resources']
+            d={'type':d['type'],'resources':{'resources':{k:res[k] for k in ('strategy_points','money') if k in res},'__class__':d['resources'].get('__class__')},'__class__':d.get('__class__')}
+            out_batch.append(entry(e,d,None))
+        elif m=='updateItem':
+            out_batch.append(entry(e,dict(d,id=item_ids.get(d['id'],d['id'])),None))
+        elif m=='contributeForgePoints':
+            out_batch.append(entry(e,[row(x) for x in d],[ent_real,1001]+e['requestData'][2:]))
+        elif m=='reset':
+            out_batch.append(entry(e,[entity(x) for x in d],None))
+        elif m in ('getAvailablePackageForgePoints','updateTime','getPlayerAutoRefills'):
+            out_batch.append(entry(e,d,e.get('requestData')))
+    fixture={'note':'Own contribution to a great building of another player recorded on de20 2026-10-21: the opening (building and construction) and the whole response batch of contributeForgePoints in the order the game sent it. Inventory before: the Forge point packages of the start recording of the same day. Players anonymized (me 1000, owner 1001, others from 2001), item ids as in great-buildings.json, resources trimmed.',
+      'me':ME,
+      'startup':[{'requestClass':'StartupService','requestMethod':'getData','requestData':None,'responseData':{'user_data':{'player_id':ME,'user_name':'Ich','era':'VirtualFuture'},'city_map':{'gridId':'main','entities':[]}}}],
+      'inventory':[{'requestClass':'InventoryService','requestMethod':'getItems','requestData':[],'responseData':inventory}],
+      'opening':opening,'contribution':out_batch}
+    json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
+
+if sys.argv[1]=='gb-contribution':
+    gb_contribution_fixture(json.load(open(sys.argv[2])),json.load(open(sys.argv[3])),sys.argv[4]); sys.exit()
 if sys.argv[1]=='gb':
     gb_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
 if sys.argv[1]=='events':

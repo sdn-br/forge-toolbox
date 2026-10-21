@@ -95,15 +95,21 @@ export class GreatBuildingStore {
   }
 
   /**
-   * The session player contributed to the open construction; the game answers with its new rankings. Not recorded
-   * yet, the shape is assumed: the invested Forge points grow by what the own deposit grew.
+   * The session player contributed to the open construction; the game answers with its new rankings and the building
+   * as it is now (seen 2026-10-21: a CityMapService.reset in the same response). With that building its numbers count,
+   * without it the invested Forge points grow by what the own deposit grew.
    */
-  contributed(rankings: RankingRow[], target?: { owner: PlayerId; entityId: number }): void {
+  contributed(
+    rankings: RankingRow[],
+    target?: { owner: PlayerId; entityId: number },
+    building?: GreatBuildingEntity,
+  ): void {
     const open = target ? this.matching(target.owner, target.entityId) : this.open;
     if (!open) return;
     const mine = (rows: RankingRow[]) => rows.find((r) => r.self && r.rank !== undefined)?.fp ?? 0;
     const added = mine(rankings) - mine(open.rankings);
-    const entity = open.entity && { ...open.entity, invested: open.entity.invested + added };
+    const fits = building?.owner === open.owner && building.entityId === open.entityId;
+    const entity = fits ? building : open.entity && { ...open.entity, invested: open.entity.invested + added };
     this.open = { ...open, entity, rankings, past: undefined, seenAt: this.now() };
     this.remember();
     this.changed('contributed');

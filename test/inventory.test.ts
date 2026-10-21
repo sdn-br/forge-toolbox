@@ -11,14 +11,12 @@ function setup() {
   registerGameHandlers(ingestion, { world, bus, now, ...stores });
   const events: string[] = [];
   bus.on('inventory.changed', () => events.push('inventory'));
-  const send = (data: unknown) =>
-    ingestion.accept({
-      kind: 'json',
-      url: '/game/json?h=1',
-      request: null,
-      response: JSON.stringify([{ requestClass: 'InventoryService', requestMethod: 'getItems', responseData: data }]),
-      at: 0,
-    });
+  const raw = (entries: object[]) =>
+    ingestion.accept({ kind: 'json', url: '/game/json?h=1', request: null, response: JSON.stringify(entries), at: 0 });
+  const send = Object.assign(
+    (data: unknown) => raw([{ requestClass: 'InventoryService', requestMethod: 'getItems', responseData: data }]),
+    { raw },
+  );
   return { inventory: stores.inventory, events, send };
 }
 
@@ -68,5 +66,32 @@ describe('inventory', () => {
       { id: 3, name: '', inStock: 0, gameClass: 'ForgePointPackagePayload', payload: { kind: 'other' } },
     ]);
     expect(toInventory({})).toBeNull();
+  });
+});
+
+describe('package Forge points reported by the game', () => {
+  const pack = (id: number, inStock: number) => ({
+    id,
+    name: '',
+    inStock,
+    item: { resource_package: { gain: 10 }, __class__: 'ForgePointPackagePayload' },
+  });
+  const sum = (fp: number) => ['GreatBuildingsService', 'getAvailablePackageForgePoints', [fp]] as const;
+
+  it('takes the reported sum until the items change again without one', () => {
+    const { inventory, events, send } = setup();
+    expect(inventory.knowsPackages).toBe(false);
+    const ingestion = (...m: (readonly [string, string, unknown])[]) =>
+      send.raw(m.map(([requestClass, requestMethod, responseData]) => ({ requestClass, requestMethod, responseData })));
+    ingestion(sum(55));
+    expect(inventory.knowsPackages).toBe(true);
+    expect(inventory.forgePointPackages()).toBe(55);
+    send([pack(1, 4)]);
+    // the full list came later without a sum, so the computed one counts
+    expect(inventory.forgePointPackages()).toBe(40);
+    ingestion(['InventoryService', 'updateItem', { id: 1, amount: 3 }], sum(31));
+    expect(inventory.forgePointPackages()).toBe(31);
+    expect(inventory.computedForgePointPackages()).toBe(30);
+    expect(events).toEqual(['inventory', 'inventory', 'inventory']);
   });
 });

@@ -6,6 +6,7 @@ import type { Ingestion } from '../core/ingestion';
 import { logInfo } from '../core/log';
 import type { Stores } from '../stores';
 import type { Building } from '../stores/city-model';
+import type { GreatBuildingEntity, RankingRow } from '../stores/great-building-model';
 import type { PlayerObservation } from '../stores/players';
 import { toBuildingDef } from './building-defs';
 import {
@@ -327,12 +328,33 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     if (target?.level !== undefined && rows)
       greatBuildings.levelRanking(target.owner, target.entityId, target.level, rows);
   });
-  // Not recorded yet. Assumed: the answer is the new rankings list of the building contributed to, and the request
-  // starts with [entityId, playerId] like the others; without it the open construction is meant.
+  // An own contribution (seen 2026-10-21): request [entityId, playerId, level, amount, false], the answer is the new
+  // rankings list. The same response brings the building as it is now in a CityMapService.reset, the new resources, the
+  // inventory updates of the packages opened and getAvailablePackageForgePoints. The order varies, so the contribution
+  // is applied once the response is done, with the building from the reset when there is one. A reset of the open
+  // great building without a contribution keeps it current as well.
+  let contribution: { rows: RankingRow[]; target?: { owner: PlayerId; entityId: number } } | null = null;
+  const resetBuildings: GreatBuildingEntity[] = [];
   ingestion.on('GreatBuildingsService', 'contributeForgePoints', ({ data, request }) => {
     const rows = toRankingRows(Array.isArray(data) ? data : (data as GameGreatBuildingConstruction | null)?.rankings);
-    const target = greatBuildingRequest(request);
-    if (rows) greatBuildings.contributed(rows, target ?? undefined);
+    if (rows) contribution = { rows, target: greatBuildingRequest(request) ?? undefined };
+  });
+  const noteGreatBuildings = ({ data }: { data: unknown }) => {
+    for (const e of Array.isArray(data) ? (data as GameCityEntity[]) : []) {
+      const building = toGreatBuildingEntity(e);
+      if (building) resetBuildings.push(building);
+    }
+  };
+  ingestion.on('CityMapService', 'reset', noteGreatBuildings);
+  ingestion.on('CityMapService', 'updateEntity', noteGreatBuildings);
+  ingestion.onBatchEnd(() => {
+    const open = greatBuildings.current();
+    const target = contribution?.target ?? open;
+    const building = resetBuildings.find((b) => b.owner === target?.owner && b.entityId === target.entityId);
+    if (contribution) greatBuildings.contributed(contribution.rows, contribution.target, building);
+    else if (building && !open?.own) greatBuildings.noteEntity(building);
+    contribution = null;
+    resetBuildings.length = 0;
   });
   // The full list comes with the startup data (seen 2026-10-21, 298 items) and replaces the inventory. Not recorded yet,
   // shapes as described: getItemsByType brings the full items of one type, getItem one full item (new ones arrive so,
@@ -355,6 +377,11 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   });
   ingestion.on('InventoryService', 'updateItem', ({ data }) => {
     for (const u of toItemUpdates(data)) inventory.setStock(u.id, u.inStock);
+  });
+  // the game's own sum of Forge points in packages (seen 2026-10-21 after a contribution: `[108198]`)
+  ingestion.on('GreatBuildingsService', 'getAvailablePackageForgePoints', ({ data }) => {
+    const fp = Array.isArray(data) ? data[0] : undefined;
+    if (typeof fp === 'number' && Number.isFinite(fp)) inventory.reportPackageForgePoints(fp);
   });
   ingestion.onBatchEnd(() => inventory.commit());
 

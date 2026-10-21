@@ -62,7 +62,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
           playerName: (id) => ctx.players.get(id)?.name,
           fpBar: ctx.resources.known ? ctx.resources.amount(FP) : undefined,
-          fpPackages: ctx.inventory.known ? ctx.inventory.forgePointPackages() : undefined,
+          fpPackages: ctx.inventory.knowsPackages ? ctx.inventory.forgePointPackages() : undefined,
           arcBonus: arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses()),
           factor: { value: ctx.settings.number(FACTOR), arc: ctx.settings.get(FACTOR_ARC) },
         });
