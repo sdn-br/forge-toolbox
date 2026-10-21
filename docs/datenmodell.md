@@ -467,6 +467,7 @@ Reine Funktion `calculateConstruction` in `src/content/domain/gb-calculator.ts`.
 - **Fordern:** `max(round(N × (1 + Faktor/100)), Sicher)`, höchstens der Rest. Faktor „Arche“ ist der eigene Arche-Bonus.
 - **Eigener Platz:** `round((Einzahlung des nächsten Rangs + Rest) / 2)`, ohne Nachfolger die Hälfte des Rests.
 - **Nicht zu haben:** wenn Sicher ≤ Einzahlung des Inhabers, wenn der Platz unter dem eigenen liegt oder wenn Sicher gleich dem Wert des Platzes darüber ist.
+- **Unter dem eigenen Platz:** keine Kosten, kein Gewinn, kein Kurs (Anzeige „–“), nur Belohnung, Blaupausen und Medaillen. Die eigene Einzahlung kann keinen zweiten Platz halten, eine Rechnung mit ihr wäre ein Scheinpreis. Solche Plätze zählen weder für den besten Kurs noch für den Ton. Testfall `test/fixtures/gb-contribution-below-own.json` (aufgezeichnet 2026-10-21).
 - **Level-Warnung:** Sicher ist gleich dem Rest, die eigene Einzahlung würde das LG leveln.
 - **Gewinn:** Brutto minus Sicher. **Schlechter:** Gewinn nicht größer als der beste Gewinn eines höheren Platzes, Plätze mit Level-Warnung zählen dafür nicht.
 - **Kurs:** `round(Sicher / N × 1000) / 10` in Prozent.

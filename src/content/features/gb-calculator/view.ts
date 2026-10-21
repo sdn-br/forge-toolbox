@@ -48,7 +48,11 @@ function factorBar(vm: Extract<GbCalculatorVm, { kind: 'current' }>, actions: Gb
   </div>`;
 }
 
-function costCell(c: CostCell) {
+/** stands where a place has no cost, below the own one */
+const NONE = html`<td class="num">–</td>`;
+
+function costCell(c: CostCell | undefined) {
+  if (!c) return NONE;
   const extra = c.extra !== c.cost && c.extra > 0 ? html` <span class="muted">(+${formatNumber(c.extra)})</span>` : '';
   return html`<td class=${c.short ? 'num short' : 'num'} title=${c.short ? t('gbCalc.short') : ''}>${formatNumber(c.cost)}${extra}</td>`;
 }
@@ -65,8 +69,8 @@ const placeRow = (p: PlaceRow) =>
     ${costCell(p.safe)}
     ${costCell(p.demand)}
     <td class="num">${formatNumber(p.gross)}</td>
-    <td class="num">${formatNumber(p.profit)}</td>
-    <td class="num">${p.rate === undefined ? '' : percent(p.rate)}</td>
+    ${p.profit === undefined ? NONE : html`<td class="num">${formatNumber(p.profit)}</td>`}
+    ${p.safe === undefined ? NONE : html`<td class="num">${p.rate === undefined ? '' : percent(p.rate)}</td>`}
     <td class="num">${formatNumber(p.blueprints)}</td>
     <td class="num">${formatNumber(p.medals)}</td>
   </tr>`;

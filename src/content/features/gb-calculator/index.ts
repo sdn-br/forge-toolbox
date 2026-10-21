@@ -72,8 +72,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       /** a tone once per new state of the places that has a profitable one, and once for a level up */
       const maybeTone = (leveled: boolean) => {
         if (vm.kind !== 'current' || !ctx.settings.get(SOUND)) return;
-        const profitable = vm.places.filter((p) => p.status === 'profit' && p.profit > 0);
-        const places = profitable.map((p) => `${p.rank}:${p.safe.cost}`).join(',');
+        const profitable = vm.places.filter((p) => p.status === 'profit' && (p.profit ?? 0) > 0);
+        const places = profitable.map((p) => `${p.rank}:${p.safe?.cost}`).join(',');
         const key = leveled ? `leveled:${vm.leveled}` : vm.profitable ? `${vm.header.name}:${places}` : undefined;
         if (key === undefined || key === toned) return;
         toned = key;

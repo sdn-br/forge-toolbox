@@ -4,6 +4,7 @@ import { Ingestion } from '../src/content/core/ingestion';
 import { createGbCalculatorFeature } from '../src/content/features/gb-calculator';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import fixture from './fixtures/gb-contribution.json';
+import belowOwn from './fixtures/gb-contribution-below-own.json';
 import { featureContext } from './helpers/feature-context';
 
 interface Entry {
@@ -15,7 +16,15 @@ interface Entry {
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-function setup() {
+interface ContributionFixture {
+  startup: unknown[];
+  inventory: unknown[];
+  opening: unknown[];
+  contribution: unknown[];
+  others?: unknown[][];
+}
+
+function setup(f: ContributionFixture = fixture) {
   const env = featureContext();
   const { ctx } = env;
   const ingestion = new Ingestion();
@@ -39,12 +48,12 @@ function setup() {
       ),
       at: 0,
     });
-  send(...(fixture.startup as Entry[]));
-  send(...(fixture.inventory as Entry[]));
-  for (const e of fixture.opening as Entry[]) send(e);
+  send(...(f.startup as Entry[]));
+  send(...(f.inventory as Entry[]));
+  for (const e of f.opening as Entry[]) send(e);
   events.length = 0;
   const rows = () => [...box.root.querySelectorAll('tr')].slice(1);
-  return { ...env, box, send, events, rows, batch: fixture.contribution as Entry[] };
+  return { ...env, box, send, events, rows, batch: f.contribution as Entry[] };
 }
 
 describe('recorded own contribution', () => {
@@ -92,5 +101,57 @@ describe('recorded own contribution', () => {
     send(reset);
     expect(ctx.greatBuildings.current()?.entity?.invested).toBe(1756);
     expect(events).toEqual(['gb:entity']);
+  });
+});
+
+const cells = (row: Element | undefined) =>
+  [...(row?.querySelectorAll('td') ?? [])].map((td) => td.textContent?.trim());
+
+// Basilius-Kathedrale St. 41 of 42 (recorded 2026-10-21): 1543 needed, 986 in (820 on rank 1, owner 166), ranks 2 to 5
+// empty. The own 279 FP went to rank 2; below it nothing can be paid, the own deposit cannot hold a second place.
+describe('recorded contribution to place 2 with empty places below', () => {
+  it('offers place 2 for 279 before', async () => {
+    const { rows } = setup(belowOwn);
+    await tick();
+    // the fixture has no own Arc, so 205 FP for 279 is a loss here
+    expect(rows()[1]?.className).toBe('gb-loss');
+    expect(cells(rows()[1])[1]).toBe('279');
+  });
+
+  it('shows the own place and no cost, profit or rate below it after', async () => {
+    const { ctx, box, send, rows, batch } = setup(belowOwn);
+    send(...batch);
+    await tick();
+    expect(ctx.greatBuildings.current()?.entity?.invested).toBe(1265);
+    expect(rows().map((r) => r.className)).toEqual([
+      'gb-unavailable',
+      'gb-mine',
+      'gb-unavailable',
+      'gb-unavailable',
+      'gb-unavailable',
+    ]);
+    // rest 557, no successor: round(557 / 2) = 279, already paid
+    expect(cells(rows()[1])[1]).toBe('279');
+    for (const row of rows().slice(2)) {
+      const [, safe, demand, gross, profit, rate, blueprints] = cells(row);
+      expect([safe, demand, profit, rate]).toEqual(['–', '–', '–', '–']);
+      expect(gross).toMatch(/^\d/);
+      expect(blueprints).toMatch(/^\d/);
+    }
+    expect(box.text).toContain('Bis Level-Up fehlen 278 FP');
+  });
+
+  it('covers a building at its unlocked level and names a far higher unlocked level', async () => {
+    const { box, send } = setup(belowOwn);
+    const [atMax, farBelow] = (belowOwn.others ?? []) as Entry[][];
+    for (const e of atMax ?? []) send(e);
+    await tick();
+    // 41 of 41, invested_forge_points left out because it is 0
+    expect(box.text).toContain('St. 41 → 42');
+    expect(box.root.querySelector('.gb-overlay')?.textContent).toContain('höchste Stufe');
+    for (const e of farBelow ?? []) send(e);
+    await tick();
+    expect(box.text).toContain('freigeschaltet bis 283');
+    expect(box.root.querySelector('.gb-overlay')).toBeNull();
   });
 });

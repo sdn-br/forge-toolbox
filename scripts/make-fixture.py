@@ -14,10 +14,11 @@
 # owner for the names, the first getConstructionRanking, the own construction and the own great buildings with a
 # contribution_boost from the startup data, with fake player ids and names. Also the Forge point packages of the
 # inventory (getItems) and one other item, with fake item ids and without descriptions.
-# Contribution: python3 -I scripts/make-fixture.py gb-contribution <start-recording.json> <contribution-recording.json> <out.json>
+# Contribution: python3 -I scripts/make-fixture.py gb-contribution <start-recording.json> <contribution-recording.json> <out.json> [<entityId> …]
 # keeps the opening (building and construction) of the great building contributed to and the whole response batch of
 # the first contributeForgePoints. The Forge point packages of the start recording (getItems) are the inventory before,
 # with the same fake item ids as in the gb mode; resources trimmed to Forge points and coins; fake player ids and names.
+# Each further entity id adds the first opening of that great building as `others`.
 
 import json,sys
 
@@ -219,7 +220,7 @@ def gb_fixture(rec,out):
       'openings':openings,'overviews':names,'ranking':ranking,'own':own}
     json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
 
-def gb_contribution_fixture(start,rec,out):
+def gb_contribution_fixture(start,rec,out,extra=()):
     ME=1000
     items=next(e['responseData'] for r in start if r['kind']=='json' for e in json.loads(r['response'])
         if e.get('requestClass')=='InventoryService' and e.get('requestMethod')=='getItems')
@@ -266,6 +267,13 @@ def gb_contribution_fixture(start,rec,out):
     con=next(e for e in flat if e.get('requestMethod')=='getConstruction' and e['requestData'][:2]==[ent_real,owner_real])
     opening=[entry(ent,entity(ent['responseData']),[ent_real,1001]),
         entry(con,{'rankings':[row(x) for x in con['responseData']['rankings']],'__class__':con['responseData'].get('__class__')},[ent_real,1001])]
+    more=[]
+    for x in extra:
+        ent_x=next(e for e in flat if e.get('requestMethod')=='getOtherPlayerCityMapEntity' and e['requestData'][0]==x)
+        con_x=next(e for e in flat if e.get('requestMethod')=='getConstruction' and e['requestData'][:2]==ent_x['requestData'][:2])
+        o=pid(ent_x['requestData'][1])
+        more.append([entry(ent_x,entity(ent_x['responseData']),[x,o]),
+            entry(con_x,{'rankings':[row(r) for r in con_x['responseData']['rankings']],'__class__':con_x['responseData'].get('__class__')},[x,o])])
     out_batch=[]
     for e in batch:
         m=e.get('requestMethod'); d=e['responseData']
@@ -285,11 +293,11 @@ def gb_contribution_fixture(start,rec,out):
       'me':ME,
       'startup':[{'requestClass':'StartupService','requestMethod':'getData','requestData':None,'responseData':{'user_data':{'player_id':ME,'user_name':'Ich','era':'VirtualFuture'},'city_map':{'gridId':'main','entities':[]}}}],
       'inventory':[{'requestClass':'InventoryService','requestMethod':'getItems','requestData':[],'responseData':inventory}],
-      'opening':opening,'contribution':out_batch}
+      'opening':opening,'contribution':out_batch,**({'others':more} if more else {})}
     json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
 
 if sys.argv[1]=='gb-contribution':
-    gb_contribution_fixture(json.load(open(sys.argv[2])),json.load(open(sys.argv[3])),sys.argv[4]); sys.exit()
+    gb_contribution_fixture(json.load(open(sys.argv[2])),json.load(open(sys.argv[3])),sys.argv[4],[int(x) for x in sys.argv[5:]]); sys.exit()
 if sys.argv[1]=='gb':
     gb_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
 if sys.argv[1]=='events':

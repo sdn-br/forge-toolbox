@@ -40,10 +40,11 @@ export interface CostCell {
 export interface PlaceRow {
   rank: number;
   holder?: { name: string; fp: number };
-  safe: CostCell;
-  demand: CostCell;
+  /** missing below the own place, like demand, profit and rate */
+  safe?: CostCell;
+  demand?: CostCell;
   gross: number;
-  profit: number;
+  profit?: number;
   rate?: number;
   blueprints: number;
   medals: number;
@@ -92,11 +93,11 @@ export interface GbCalculatorInput {
 const ownerName = (c: Construction, rows: RankingRow[], playerName: GbCalculatorInput['playerName']) =>
   rows.find((r) => r.rank === undefined && r.player === c.owner)?.name ?? playerName(c.owner) ?? String(c.owner);
 
-const cell = (cost: number, extra: number, available?: number): CostCell => ({
-  cost,
-  extra,
-  short: available !== undefined && extra > available,
-});
+/** no cell below the own place, where nothing can be paid */
+const cell = (cost: number | undefined, extra: number | undefined, available?: number): CostCell | undefined =>
+  cost === undefined || extra === undefined
+    ? undefined
+    : { cost, extra, short: available !== undefined && extra > available };
 
 export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm {
   const c = input.construction;
@@ -157,6 +158,6 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     ...(c.leveled && { leveled: c.leveled.level }),
     places,
     missing: Math.max(0, calc.missing),
-    profitable: !calc.blocked && !c.leveled && places.some((p) => p.status === 'profit' && p.profit > 0),
+    profitable: !calc.blocked && !c.leveled && places.some((p) => p.status === 'profit' && (p.profit ?? 0) > 0),
   };
 }

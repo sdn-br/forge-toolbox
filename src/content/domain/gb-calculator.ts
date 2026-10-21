@@ -31,15 +31,20 @@ export interface PlaceCalc {
   gross: number;
   blueprints: number;
   medals: number;
-  /** total own deposit that nobody can outbid anymore */
-  safeCost: number;
-  /** total own deposit for the factor, at least the safe cost, at most what is left */
-  demandCost: number;
+  /**
+   * below the own place: the player cannot hold a second place, so the place has no cost, profit or rate. The own
+   * deposit cannot move down, a sum with it would only pretend a price.
+   */
+  belowMine: boolean;
+  /** total own deposit that nobody can outbid anymore; missing below the own place */
+  safeCost?: number;
+  /** total own deposit for the factor, at least the safe cost, at most what is left; missing below the own place */
+  demandCost?: number;
   /** what the player still has to add to reach the cost, his deposit subtracted */
-  safeExtra: number;
-  demandExtra: number;
+  safeExtra?: number;
+  demandExtra?: number;
   /** gross minus safe cost */
-  profit: number;
+  profit?: number;
   /** safe cost in percent of the net reward, one decimal */
   rate?: number;
   available: boolean;
@@ -94,21 +99,8 @@ export function calculateConstruction(input: ConstructionInput): ConstructionCal
     const reward = row.reward as NonNullable<RankingRow['reward']>;
     const isMine = row.self;
     const holderFp = depositOf(row);
-    // the own place is safe once the next one cannot pass it; any other once its holder cannot pass the cost
-    const safeCost = roundHalfUp(((isMine ? depositOf(byRank.get(rank + 1)) : holderFp) + rest) / 2);
-    const demandCost = Math.min(rest, Math.max(plusPercent(reward.fp, factor), safeCost));
     const gross = plusPercent(reward.fp, arcBonus);
-    const profit = gross - safeCost;
-    const previous = places.at(-1);
-    const available =
-      !isMine &&
-      (mine?.rank === undefined || rank < mine.rank) &&
-      safeCost > holderFp &&
-      safeCost !== previous?.safeCost;
-    const levelWarning = available && safeCost >= rest;
-    const worse = available && !levelWarning && best !== undefined && profit <= best;
-    if (available && !levelWarning) best = best === undefined ? profit : Math.max(best, profit);
-    places.push({
+    const info = {
       rank,
       holder: row.fp === undefined ? undefined : row.name,
       holderFp,
@@ -117,6 +109,30 @@ export function calculateConstruction(input: ConstructionInput): ConstructionCal
       gross,
       blueprints: plusPercent(reward.blueprints, arcBonus),
       medals: plusPercent(reward.medals, arcBonus),
+    };
+    if (mine?.rank !== undefined && rank > mine.rank) {
+      places.push({
+        ...info,
+        belowMine: true,
+        available: false,
+        levelWarning: false,
+        worse: false,
+        status: 'unavailable',
+      });
+      continue;
+    }
+    // the own place is safe once the next one cannot pass it; any other once its holder cannot pass the cost
+    const safeCost = roundHalfUp(((isMine ? depositOf(byRank.get(rank + 1)) : holderFp) + rest) / 2);
+    const demandCost = Math.min(rest, Math.max(plusPercent(reward.fp, factor), safeCost));
+    const profit = gross - safeCost;
+    const previous = places.at(-1);
+    const available = !isMine && safeCost > holderFp && safeCost !== previous?.safeCost;
+    const levelWarning = available && safeCost >= rest;
+    const worse = available && !levelWarning && best !== undefined && profit <= best;
+    if (available && !levelWarning) best = best === undefined ? profit : Math.max(best, profit);
+    places.push({
+      ...info,
+      belowMine: false,
       safeCost,
       demandCost,
       safeExtra: safeCost - myDeposit,

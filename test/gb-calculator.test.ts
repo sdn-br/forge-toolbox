@@ -171,6 +171,30 @@ describe('calculateConstruction on edge cases', () => {
     expect(calc.places[2]?.status).toBe('unavailable');
   });
 
+  it('gives no cost, profit or rate below the own place, the own deposit cannot hold two places', () => {
+    // like the recorded Basilius-Kathedrale: 1543 needed, owner 166, 820 on 1, mine 279 on 2, places 3 to 5 empty
+    const calc = calculateConstruction(
+      input(1543, [owner(166), place(1, 410, 820), place(2, 205, 279, true), place(3, 70), place(4, 20), place(5, 5)]),
+    );
+    expect(calc).toMatchObject({ rest: 557, missing: 278, myDeposit: 279, myRank: 2 });
+    expect(calc.places[0]).toMatchObject({ safeCost: 689, available: false, belowMine: false });
+    expect(calc.places[1]).toMatchObject({ safeCost: 279, safeExtra: 0, status: 'mine', belowMine: false });
+    for (const p of calc.places.slice(2)) {
+      expect(p).toMatchObject({ belowMine: true, available: false, worse: false, status: 'unavailable' });
+      expect([p.safeCost, p.demandCost, p.safeExtra, p.demandExtra, p.profit, p.rate]).toEqual([
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      ]);
+    }
+    // gross, blueprints and medals stay as information
+    expect(calc.places[2]).toMatchObject({ net: 70, gross: 133 });
+    expect(bestRate(calc)).toBeUndefined();
+  });
+
   it('the own place without a successor needs half of what is left', () => {
     const calc = calculateConstruction(input(500, [place(1, 200, 100, true), place(2, 100)]));
     expect(calc.places[0]).toMatchObject({ safeCost: 250, safeExtra: 150 });
