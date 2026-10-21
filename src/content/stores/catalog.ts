@@ -29,6 +29,8 @@ export interface BuildingDef {
   generic: boolean;
   type?: string;
   size: { width: number; length: number };
+  /** street level the building needs to work, 0 for none; missing when the definition does not tell */
+  street?: number;
   flags: { motivatable: boolean; polishable: boolean; plunderable: boolean };
   boostsByEra: BoostsByEra;
   productByEra: Record<string, Product>;
