@@ -1,4 +1,5 @@
-// Which game response feeds which store. One place, so every response has exactly one owner.
+// Which game response feeds which store, all in one place. A response may have several handlers that each feed their
+// own part, for example `updatePlayer` (players, plunder) and `CityMapService.reset` (plunder, own buildings).
 import { eraId, type PlayerId, type WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import type { Ingestion } from '../core/ingestion';

@@ -59,7 +59,7 @@ Spielseite (MAIN world)          Content Script (isolated world)               S
 ### Ingestion
 
 - Der Proxy liefert jede Spielantwort als Nachricht `(service, method, payload, request)`.
-- Pro Service gibt es genau einen Parser. Er übersetzt das Spielformat in das eigene Datenmodell und gibt es an den zuständigen Store. Features sehen das Spielformat nie.
+- Welche Spielantwort welchen Store füttert, steht an einer Stelle (`game/handlers.ts`). Die Handler übersetzen das Spielformat mit einem gemeinsamen Konvertermodul (`game/convert.ts`) in das eigene Datenmodell und geben es an den zuständigen Store. Eine Antwort kann mehrere Handler haben, etwa `updatePlayer` (Spieler und Plünderung) oder `CityMapService.reset` (Plünderung und eigener Stadtplan). Features sehen das Spielformat nie.
 - Pufferung wie bei FoEproxy: Antworten vor dem Start (etwa `StartupService.getData`) gehen nicht verloren.
 - Der Request kommt als `ArrayBuffer` mit JSON. Der Proxy dekodiert ihn, und jeder Handler bekommt die `requestData` des passenden Requests (etwa `plunderById` mit `[Spieler-ID, Gebäude-ID]`).
 - Was das Spiel auf mehrere Einträge einer Antwort verteilt (eine Plünderung: Beute, Gebäude, Double-Loot-Symbol), sammeln die Handler und werten es am Ende der Antwort aus (`onBatchEnd`). Die Reihenfolge der Einträge ist nicht fest.
@@ -80,6 +80,7 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Parser aktualisiert d
 
 - Typisierte Events mit Payload, etwa `player.updated {id}` oder `city.changed {playerId}`. Jeder Vertrag ist ein TypeScript-Typ.
 - Stores senden Domain-Events. Features senden keine Events an andere Features, sie kennen sich nicht.
+- Bewusste Ausnahme: Der Handler sendet `army.opened` direkt auf den Bus. Das Signal ist flüchtig und hat keinen Zustand, ein Store hätte dafür nichts zu halten.
 - Zusätzlich Lebenszyklus-Events der Shell (bereit, Spieler bekannt, Welt gewechselt).
 
 ### Features als Plugins
