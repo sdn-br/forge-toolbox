@@ -31,7 +31,7 @@ function armyTable(army: NonNullable<SabotageVm['army']>, repel: number, measure
 
 const plunderTable = (items: PlunderItem[]) =>
   html`<table>${items.map(
-    (p) => html`<tr><td>${p.name}</td>
+    (p) => html`<tr class=${p.important ? '' : 'muted'}><td>${p.name}</td>
     <td>${p.items.map((i) => html`${formatNumber(i.amount)} ${i.label}<br />`)}</td></tr>`,
   )}</table>`;
 

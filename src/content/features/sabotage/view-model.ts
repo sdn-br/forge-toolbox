@@ -24,8 +24,44 @@ import { type BattleDetailsVm, battleDetails } from '../../ui/battle-details';
 import { type AttackStatus, attackStatus } from './attack-status';
 
 export interface PlunderItem {
+  /** the building in the city, to find it on the map */
+  building: number;
   name: string;
+  /** loot beyond coins and supplies; the others show muted */
+  important: boolean;
   items: { label: string; amount: number }[];
+}
+
+const FP = 'strategy_points';
+const MINOR = new Set(['money', 'supplies']);
+
+/** Forge points, the other loot besides coins and supplies, and coins plus supplies. */
+function lootWeights(resources: Record<string, number>) {
+  let fp = 0;
+  let other = 0;
+  let minor = 0;
+  for (const [id, amount] of Object.entries(resources)) {
+    if (id === FP) fp += amount;
+    else if (MINOR.has(id)) minor += amount;
+    else other += amount;
+  }
+  return { fp, other, minor, important: fp + other > 0 };
+}
+
+/**
+ * Important plunders first, then Forge points, the other loot and coins plus supplies, each descending, then the name.
+ * Compared in that order, so 4 FP beat 500 goods and 500 goods beat 20,000 coins.
+ */
+export function byPlunderPriority(a: Plunderable, b: Plunderable): number {
+  const wa = lootWeights(a.resources);
+  const wb = lootWeights(b.resources);
+  return (
+    Number(wb.important) - Number(wa.important) ||
+    wb.fp - wa.fp ||
+    wb.other - wa.other ||
+    wb.minor - wa.minor ||
+    a.name.localeCompare(b.name, 'de')
+  );
 }
 
 export interface SabotageVm {
@@ -97,7 +133,9 @@ export function sabotageViewModel({
   const guildMember = city.visit.guildMember || player?.relations.guildMember === true;
   const attack = attackStatus({ neighbor: city.visit.neighbor, friend, guildMember }, player?.attack, shield, now);
   const item = (p: Plunderable): PlunderItem => ({
+    building: p.building,
     name: p.name,
+    important: lootWeights(p.resources).important,
     items: Object.entries(p.resources).map(([id, amount]) => ({ label: resourceLabel(id, catalog), amount })),
   });
   return {
@@ -124,7 +162,7 @@ export function sabotageViewModel({
       totals: formatIncomingTotals(incoming.totals),
     },
     plunderRepel: assessment.plunderRepel,
-    plunderable: assessment.plunderable.map(item),
+    plunderable: [...assessment.plunderable].sort(byPlunderPriority).map(item),
     incomplete: assessment.missingDefs.length > 0,
   };
 }
