@@ -20,6 +20,7 @@ function header(h: GbHeader) {
   const part = (n: number | undefined) => (n === undefined ? '?' : formatNumber(n));
   const split = t('gbCalc.fpSplit', { bar: part(h.fpBar), packages: part(h.fpPackages) });
   return html`<p><b>${t('gbCalc.heading', { name: h.name, level: h.level, next: h.next })}</b>
+    <span class="muted">· ${t('gbCalc.unlocked', { max: h.maxLevel })}</span>
     <br />${t('gbCalc.owner', { name: h.owner })}
     <br /><span class="muted"><span class="gb-fp" title=${split}>${fp}</span> ·
       ${t('gbCalc.arc', { arc: formatNumber(h.arcBonus) })}</span></p>`;

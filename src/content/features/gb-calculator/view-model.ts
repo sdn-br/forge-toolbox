@@ -16,6 +16,8 @@ export interface GbHeader {
   name: string;
   level: number;
   next: number;
+  /** the highest level the owner has unlocked */
+  maxLevel: number;
   owner: string;
   /** Forge points of the bar plus those in packages, which the game opens when contributing; undefined while neither
    * the resources nor the inventory are known */
@@ -110,6 +112,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     name: input.greatBuildingName(entity.def) ?? entity.def,
     level: entity.level,
     next: entity.level + 1,
+    maxLevel: entity.maxLevel,
     owner,
     availableFp,
     fpBar: input.fpBar,

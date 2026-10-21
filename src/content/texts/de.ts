@@ -157,6 +157,7 @@ export const de = {
   'gbCalc.none': 'Noch kein fremdes LG geöffnet.',
   'gbCalc.noEntity': 'Zu diesem LG fehlen Stufe und Forge-Punkte. Bitte das LG im Spiel neu öffnen.',
   'gbCalc.heading': '{name} St. {level} → {next}',
+  'gbCalc.unlocked': 'freigeschaltet bis {max}',
   'gbCalc.owner': 'Eigentümer: {name}',
   'gbCalc.availableFp': 'Verfügbare FP: {fp}',
   'gbCalc.availableUnknown': 'Verfügbare FP: unbekannt',
