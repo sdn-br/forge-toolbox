@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import type { CityAssessment } from '../src/content/domain/assess-city';
-import { sabotageViewModel } from '../src/content/features/sabotage/view-model';
+import { sabotageViewModel, type VisitedRecord } from '../src/content/features/sabotage/view-model';
 import { type BuildingDef, CatalogStore } from '../src/content/stores/catalog';
 import type { VisitedCity } from '../src/content/stores/cities';
 import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
@@ -43,7 +43,15 @@ const battle: Battle = {
 };
 
 const vmOf = (showArmy: boolean, last?: Battle) =>
-  sabotageViewModel(city, undefined, assessment, new CatalogStore(createBus()), showArmy, now, last);
+  sabotageViewModel({
+    city,
+    player: undefined,
+    assessment,
+    catalog: new CatalogStore(createBus()),
+    showArmy,
+    now,
+    record: { lastBattle: last },
+  });
 
 describe('sabotage view model', () => {
   it('shows the measured defending army with the time of the battle', () => {
@@ -57,14 +65,15 @@ describe('sabotage view model', () => {
   });
 
   it('lists the plunderable buildings with named resources', () => {
-    const vm = sabotageViewModel(
+    const vm = sabotageViewModel({
       city,
-      undefined,
-      { ...assessment, plunderable: [{ building: 1, name: 'Haus', resources: { money: 20 } }] },
-      new CatalogStore(createBus()),
-      false,
+      player: undefined,
+      assessment: { ...assessment, plunderable: [{ building: 1, name: 'Haus', resources: { money: 20 } }] },
+      catalog: new CatalogStore(createBus()),
+      showArmy: false,
       now,
-    );
+      record: {},
+    });
     expect(vm.plunderable).toEqual([{ name: 'Haus', items: [{ label: 'Münzen', amount: 20 }] }]);
   });
 
@@ -82,8 +91,9 @@ describe('sabotage view model', () => {
       resources: { marble: 30, strategy_points: 2 },
       doubleLoot: true,
     };
-    const vm = (plunders?: Parameters<typeof sabotageViewModel>[7]) =>
-      sabotageViewModel(city, undefined, assessment, catalog, false, now, undefined, plunders).plundered;
+    const vm = (plunders?: VisitedRecord['plunders']) =>
+      sabotageViewModel({ city, player: undefined, assessment, catalog, showArmy: false, now, record: { plunders } })
+        .plundered;
     expect(vm({ last, totals: { count: 3, repelled: 0, fp: 9 } })).toEqual({
       last: {
         when: 'heute 14:05',
@@ -110,18 +120,28 @@ describe('sabotage view model', () => {
       resources: {},
       doubleLoot: false,
     };
-    const vm = sabotageViewModel(city, undefined, assessment, new CatalogStore(createBus()), false, now, undefined, {
-      last,
-      totals: { count: 5, repelled: 2, fp: 120 },
+    const vm = sabotageViewModel({
+      city,
+      player: undefined,
+      assessment,
+      catalog: new CatalogStore(createBus()),
+      showArmy: false,
+      now,
+      record: { plunders: { last, totals: { count: 5, repelled: 2, fp: 120 } } },
     });
     expect(vm.plundered).toEqual({
       last: { when: 'heute 14:05', repelled: true },
       totals: '5 Plünderungen, 2 abgewehrt, 120 FP',
     });
     const at = { ...last, entityId: 904, cityEntityId: buildingDefId('R_MultiAge_PatrickBonusSet20b') };
-    const named = sabotageViewModel(city, undefined, assessment, new CatalogStore(createBus()), false, now, undefined, {
-      last: at,
-      totals: { count: 0, repelled: 1, fp: 0 },
+    const named = sabotageViewModel({
+      city,
+      player: undefined,
+      assessment,
+      catalog: new CatalogStore(createBus()),
+      showArmy: false,
+      now,
+      record: { plunders: { last: at, totals: { count: 0, repelled: 1, fp: 0 } } },
     });
     expect(named.plundered?.last).toEqual({
       when: 'heute 14:05',
@@ -141,8 +161,9 @@ describe('sabotage view model', () => {
       attacker: city.owner,
       defense: 'broken',
     };
-    const vm = (incoming?: Parameters<typeof sabotageViewModel>[8]) =>
-      sabotageViewModel(city, undefined, assessment, catalog, false, now, undefined, undefined, incoming).attackedMe;
+    const vm = (incoming?: VisitedRecord['incoming']) =>
+      sabotageViewModel({ city, player: undefined, assessment, catalog, showArmy: false, now, record: { incoming } })
+        .attackedMe;
     expect(vm({ last, totals: { battles: 2, held: 1, plunders: 1 } })).toEqual({
       when: 'heute 14:05',
       what: 'Kampf: durchbrochen',
