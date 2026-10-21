@@ -101,4 +101,19 @@ button.marker.dim { opacity: .3; }
 .box.popped .stats-drawer { position: static; flex: 0 0 auto; flex-direction: row; }
 .box.popped .stats-tab { border: 2px solid #8a6a3a; border-radius: 6px; }
 .box.popped .stats-panel { max-height: none; align-self: stretch; width: 230px; box-shadow: none; }
+/* great building calculator: one row per place, coloured by what the place is worth */
+.gb-factor { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 4px 0 6px; }
+.gb-factor button { font: inherit; cursor: pointer; }
+.gb-factor button.active, .gb-factor input.active { font-weight: 600; outline: 1px solid #f0c060; }
+.gb-factor input { width: 5em; }
+.gb-places { position: relative; min-height: 60px; }
+.gb-table td, .gb-table th { white-space: nowrap; }
+tr.gb-profit { background: rgba(90, 170, 90, .28); }
+tr.gb-loss { background: rgba(200, 80, 60, .28); }
+tr.gb-levelWarning { background: rgba(220, 190, 60, .32); }
+tr.gb-mine { background: rgba(80, 140, 220, .32); }
+tr.gb-unavailable, tr.gb-worse { color: #8a7a60; }
+td.short { color: #ff6a50; font-weight: 600; }
+.gb-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 8px;
+  background: rgba(43, 29, 16, .88); text-align: center; color: #f0c060; }
 `;

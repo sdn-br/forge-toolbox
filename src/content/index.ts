@@ -13,6 +13,7 @@ import { callBackground } from './core/rpc';
 import { Settings } from './core/settings';
 import { t } from './core/texts';
 import { cityMapFeature } from './features/city-map';
+import { gbCalculatorFeature } from './features/gb-calculator';
 import { notesFeature } from './features/notes';
 import { pvpFeature } from './features/pvp';
 import { sabotageFeature } from './features/sabotage';
@@ -22,7 +23,14 @@ import { createStores } from './stores';
 import { Menu } from './ui/menu';
 import { UiState } from './ui/ui-state';
 
-const features: Feature[] = [sabotageFeature, pvpFeature, notesFeature, cityMapFeature, settingsFeature];
+const features: Feature[] = [
+  sabotageFeature,
+  pvpFeature,
+  notesFeature,
+  cityMapFeature,
+  gbCalculatorFeature,
+  settingsFeature,
+];
 
 async function main() {
   const world = worldId(location.hostname.split('.')[0] ?? 'unknown');
