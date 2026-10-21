@@ -95,6 +95,7 @@ async function main() {
     shields,
     notes,
     recorder,
+    ui,
     createBox: boxFactory(ui),
   };
   for (const feature of features) {

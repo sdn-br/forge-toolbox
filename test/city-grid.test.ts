@@ -80,7 +80,7 @@ describe('footprints', () => {
     const tiles = fps.reduce((n, f) => n + f.width * f.length, 0);
     const distinct = new Set(fps.flatMap((f) => cells(f)));
     expect(distinct.size).toBe(tiles);
-    expect(gridBounds([], fps)).toEqual({ x1: 8, y1: 8, x2: 43, y2: 51 });
+    expect(gridBounds(fps)).toEqual({ x1: 8, y1: 8, x2: 43, y2: 51 });
   });
 });
 
@@ -112,8 +112,8 @@ describe('free tiles', () => {
 
   it('spans the bounds over areas and buildings', () => {
     const fps = footprints([building('House', 'residential', 5, 6)], lookup);
-    expect(gridBounds([{ x: 0, y: 0, width: 4, length: 4 }], fps)).toEqual({ x1: 0, y1: 0, x2: 6, y2: 7 });
-    expect(gridBounds([], [])).toBeUndefined();
+    expect(gridBounds([{ x: 0, y: 0, width: 4, length: 4 }, ...fps])).toEqual({ x1: 0, y1: 0, x2: 6, y2: 7 });
+    expect(gridBounds([])).toBeUndefined();
   });
 });
 

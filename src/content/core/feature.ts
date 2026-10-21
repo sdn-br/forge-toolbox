@@ -31,6 +31,8 @@ export interface FeatureContext {
   shields: ShieldStore;
   notes: NoteStore;
   recorder: Recorder;
+  /** remembered view choices of the viewer */
+  ui: UiState;
   createBox(options: BoxOptions): Box;
 }
 

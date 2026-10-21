@@ -15,6 +15,7 @@ import { SessionStore } from '../../src/content/stores/session';
 import { ShieldStore } from '../../src/content/stores/shields';
 import type { Box, BoxOptions } from '../../src/content/ui/box';
 import type { Menu, MenuItem } from '../../src/content/ui/menu';
+import { UiState } from '../../src/content/ui/ui-state';
 import { worldId } from '../../src/shared/ids';
 import { testDb } from './battle-db';
 
@@ -94,6 +95,7 @@ export function featureContext(
     shields: new ShieldStore(bus, world, db.shields),
     notes: new NoteStore(bus, world, db.notes),
     recorder: new Recorder(() => false),
+    ui: new UiState(memoryKv()),
     createBox: (options) => {
       const recording = recordingBox(options);
       boxes.set(options.id, recording);

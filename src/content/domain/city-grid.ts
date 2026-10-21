@@ -78,16 +78,25 @@ export function freeTiles(areas: Area[], fps: Footprint[]): Tile[] {
   return free;
 }
 
-/** The tiles the map has to show: all areas and all buildings. Undefined for an empty city. */
-export function gridBounds(areas: Area[], fps: Footprint[]): Bounds | undefined {
-  const rects = [...areas, ...fps];
+/** A rectangle of tiles, `width` along x and `length` along y: an area, a footprint, a tile on a map. */
+export interface TileRect {
+  x: number;
+  y: number;
+  width: number;
+  length: number;
+}
+
+/** The tiles that hold all these rectangles. Undefined when there are none. */
+export function gridBounds(rects: TileRect[]): Bounds | undefined {
   if (rects.length === 0) return undefined;
-  return {
-    x1: Math.min(...rects.map((r) => r.x)),
-    y1: Math.min(...rects.map((r) => r.y)),
-    x2: Math.max(...rects.map((r) => r.x + r.width - 1)),
-    y2: Math.max(...rects.map((r) => r.y + r.length - 1)),
-  };
+  const bounds = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity };
+  for (const r of rects) {
+    bounds.x1 = Math.min(bounds.x1, r.x);
+    bounds.y1 = Math.min(bounds.y1, r.y);
+    bounds.x2 = Math.max(bounds.x2, r.x + r.width - 1);
+    bounds.y2 = Math.max(bounds.y2, r.y + r.length - 1);
+  }
+  return bounds;
 }
 
 export type BuildingCategory =
