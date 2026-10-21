@@ -24,9 +24,15 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 /** a record whose shield lookups stay open until the test answers them */
 function setup() {
   const answers = new Map<PlayerId, (shield: CityShield | undefined) => void>();
+  // every lookup in the order asked, for answering them out of order
+  const asked: ((shield: CityShield | undefined) => void)[] = [];
   const persistence: ShieldPersistence = {
     put: async () => {},
-    get: (_world, player) => new Promise((resolve) => answers.set(player, resolve)),
+    get: (_world, player) =>
+      new Promise((resolve) => {
+        answers.set(player, resolve);
+        asked.push(resolve);
+      }),
     prune: async () => 0,
   };
   const { ctx } = featureContext({
@@ -34,7 +40,7 @@ function setup() {
   });
   let changes = 0;
   const record = visitedRecord(ctx, () => changes++);
-  return { ctx, record, answers, changes: () => changes };
+  return { ctx, record, answers, asked, changes: () => changes };
 }
 
 describe('record of the visited player', () => {
@@ -66,5 +72,41 @@ describe('record of the visited player', () => {
 
     ctx.cities.setVisited(city(2));
     expect(record.current(playerId(2)).shield).toBeUndefined();
+  });
+
+  it('keeps the newer part when an older response for the same player comes in last', async () => {
+    const { ctx, record, asked } = setup();
+    ctx.cities.setVisited(city(1));
+    ctx.bus.emit('shield.recorded', { players: [playerId(1)] });
+    await tick();
+    expect(asked).toHaveLength(2);
+
+    const newer = { ...shield(1), expiresAt: UNTIL + 1000 };
+    asked[1]?.(newer);
+    await tick();
+    asked[0]?.(shield(1));
+    await tick();
+    expect(record.current(playerId(1)).shield).toEqual(newer);
+  });
+
+  it('logs a failing redraw instead of leaving it unhandled', async () => {
+    const { ctx, answers } = setup();
+    const errors: unknown[] = [];
+    const record = visitedRecord(ctx, () => {
+      throw new Error('redraw failed');
+    });
+    const onUnhandled = (e: unknown) => errors.push(e);
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      ctx.cities.setVisited(city(1));
+      await tick();
+      answers.get(playerId(1))?.(shield(1));
+      await tick();
+      await tick();
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+    expect(errors).toEqual([]);
+    expect(record.current(playerId(1)).shield).toEqual(shield(1));
   });
 });

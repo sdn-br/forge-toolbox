@@ -17,7 +17,8 @@ type Loaders = { [K in Part]: Loader<K> };
 
 /**
  * Keeps each part tagged with the player it was loaded for, so a part of a player who is no longer visited never
- * shows, not even when its response comes in after the next visit.
+ * shows, not even when its response comes in after the next visit. Each part also counts its loads: a response
+ * older than the last one applied is dropped, so a slow older answer never overwrites a newer one.
  */
 export function visitedRecord(ctx: FeatureContext, onChange: () => void): { current(owner: PlayerId): VisitedRecord } {
   const loaders: Loaders = {
@@ -51,19 +52,22 @@ export function visitedRecord(ctx: FeatureContext, onChange: () => void): { curr
   // each part with the player it was loaded for
   const loaded: VisitedRecord = {};
   const loadedFor: { [K in Part]?: PlayerId } = {};
+  const asked: { [K in Part]?: number } = {};
   const visitedOwner = () => ctx.cities.visited()?.owner;
 
   const load = <K extends Part>(key: K, owner: PlayerId) => {
     const loader: Loader<K> = loaders[key];
-    return loader.load(owner).then(
-      (value) => {
-        if (visitedOwner() !== owner) return;
+    const nr = (asked[key] ?? 0) + 1;
+    asked[key] = nr;
+    return loader
+      .load(owner)
+      .then((value) => {
+        if (visitedOwner() !== owner || asked[key] !== nr) return;
         loaded[key] = value;
         loadedFor[key] = owner;
         onChange();
-      },
-      (error) => logError(loader.failed, error),
-    );
+      })
+      .catch((error) => logError(loader.failed, error));
   };
 
   const keys = Object.keys(loaders) as Part[];

@@ -39,11 +39,11 @@ Was sich bewährt hat und als Vorbild dient:
 ```
 Spielseite (MAIN world)          Content Script (isolated world)               Service Worker
 ┌──────────────┐  Nachrichten   ┌─────────────────────────────────────────┐   ┌──────────────┐
-│ Proxy        │ ─────────────► │ Ingestion ─► Parser ─► Stores ─► Bus     │   │ Storage      │
-│ (XHR, WS)    │                │                        │        │        │◄─►│ (IndexedDB)  │
-└──────────────┘                │                        ▼        ▼        │   │ Alarme       │
-                                │                     Features (Plugins)   │   │ Notifications│
-                                │                        │                 │   └──────────────┘
+│ Proxy        │ ─────────────► │ Ingestion ─► Handler ─► Stores ─► Bus    │   │ Storage      │
+│ (XHR, WS)    │                │                         │        │       │◄─►│ (IndexedDB)  │
+└──────────────┘                │                         ▼        ▼       │   │ Alarme       │
+                                │                      Features (Plugins)  │   │ Notifications│
+                                │                         │                │   └──────────────┘
                                 │                     UI-Kit ─► DOM der Spielseite
                                 └─────────────────────────────────────────┘
 ```
@@ -74,7 +74,7 @@ Spielseite (MAIN world)          Content Script (isolated world)               S
 - Was persistiert wird, schreibt der Store im Hintergrund. Niemand wartet darauf.
 - Daten, die das Spiel bei jedem Start frisch schickt (Stadtplan, Ressourcen, Inventar), leben nur im Speicher.
 
-Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Parser aktualisiert den PlayerStore. Der Store meldet `player.updated {id}`. Sabotage liest den Spieler aus dem Store und zeichnet die Box. Parallel schreibt der Store den Spieler in die DB.
+Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt die Antwort mit `game/convert.ts` und aktualisiert den PlayerStore. Der Store meldet `player.updated {id}`. Sabotage liest den Spieler aus dem Store und zeichnet die Box. Parallel schreibt der Store den Spieler in die DB.
 
 ### Event-Bus
 
@@ -164,7 +164,7 @@ Verworfen: Spielseite als Hauptspeicher und Extension als Sicherung. Gleicher Sc
 
 Jedes Feature durchläuft zwei Stufen:
 
-1. **Automatisch:** Aufgezeichnete Spielantworten sind Fixtures für Parser, Stores und ViewModels. Die Tests laufen ohne Spiel.
+1. **Automatisch:** Aufgezeichnete Spielantworten sind Fixtures für Handler, Stores und ViewModels. Die Tests laufen ohne Spiel.
 2. **Abnahme im Browser:** Test im echten Spiel durch den Nutzer. Erst danach gilt das Feature als fertig.
 
 ## Vorgehen
@@ -358,7 +358,7 @@ Folgerungen:
 - Gebaut wird mit esbuild (ein Bundle je Einstiegspunkt, kein Dev-Server nötig). TypeScript prüft getrennt mit `tsc --noEmit`.
 - Rendern darf nicht am `requestAnimationFrame` des Spielfensters hängen. Ist der Spiel-Tab im Hintergrund, drosselt Chrome ihn, und ein offenes Pop-out würde nicht mehr aktualisiert. Das Fundament plant Renders über das Fenster, in dem die Box gerade steckt (noch nicht getestet).
 - Schreiben in die DB immer gesammelt, nicht Zeile für Zeile per Nachricht.
-- `postMessage` sieht auch das Spiel. Der Proxy liest ohnehin im Seitenkontext mit, daraus entsteht kein neues Risiko. Fremde Seitenskripte könnten aber Nachrichten fälschen, Parser müssen Eingaben prüfen.
+- `postMessage` sieht auch das Spiel. Der Proxy liest ohnehin im Seitenkontext mit, daraus entsteht kein neues Risiko. Fremde Seitenskripte könnten aber Nachrichten fälschen, Handler und `game/convert.ts` müssen Eingaben prüfen.
 - Aufnahmen enthalten private Spieldaten. Fixtures werden vor dem Commit auf das Nötige gekürzt und anonymisiert.
 
 ## Offene Punkte

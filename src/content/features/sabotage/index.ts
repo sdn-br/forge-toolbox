@@ -55,8 +55,6 @@ export const sabotageFeature: Feature = {
     });
     const card = new PlayerNoteCard(ctx.notes, () => box.update());
 
-    // what is recorded about the visited player; redraws whenever a part of it arrives
-    const record = visitedRecord(ctx, () => refresh());
     const refresh = () => {
       const city = ctx.cities.visited();
       if (!city) return;
@@ -76,6 +74,8 @@ export const sabotageFeature: Feature = {
       mapVm = city.buildings.size > 0 ? visitedCityMap(city, assessment.plunderable, ctx.catalog) : undefined;
       box.update();
     };
+    // what is recorded about the visited player; redraws whenever a part of it arrives
+    const record = visitedRecord(ctx, refresh);
 
     ctx.bus.on('city.visited', () => {
       refresh();
