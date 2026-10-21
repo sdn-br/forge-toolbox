@@ -26,6 +26,7 @@ import {
   toGreatBuildingLevelUp,
   toGreatBuildingNames,
   toIncoming,
+  toInventory,
   toLimitedBonuses,
   toObservation,
   toObservationWithAttack,
@@ -85,6 +86,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     incoming,
     shields,
     greatBuildings,
+    inventory,
   } = deps;
 
   ingestion.on('StartupService', 'getData', ({ data }) => {
@@ -317,6 +319,13 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     const rows = toRankingRows(Array.isArray(data) ? data : (data as GameGreatBuildingConstruction | null)?.rankings);
     const target = greatBuildingRequest(request);
     if (rows) greatBuildings.contributed(rows, target ?? undefined);
+  });
+  // comes with the startup data (seen 2026-10-21, 298 items).
+  // debt: later changes (updateItem, getItem, getItemAmount) are not followed. ceiling: the stock stays as at the start.
+  // upgrade: follow them once a recording with a contribution shows their format.
+  ingestion.on('InventoryService', 'getItems', ({ data }) => {
+    const items = toInventory(data);
+    if (items) inventory.set(items);
   });
   // names of great buildings, which the level up event uses instead of an id; the definitions may not be loaded
   ingestion.on('InventoryService', 'getGreatBuildings', ({ data }) => {

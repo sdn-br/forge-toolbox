@@ -23,6 +23,7 @@ import type { CityGrid } from '../stores/catalog';
 import type { VisitInfo } from '../stores/cities';
 import type { Area, Building, BuildingState, City, ExpansionOffer, Product } from '../stores/city-model';
 import type { GreatBuildingEntity, PlaceReward, RankingRow } from '../stores/great-building-model';
+import type { InventoryItem, ItemPayload } from '../stores/inventory';
 import type { PlayerObservation } from '../stores/players';
 import type { ResearchExpansion } from '../stores/research';
 import type { Session } from '../stores/session';
@@ -40,6 +41,7 @@ import type {
   GameGreatBuildingRankingRow,
   GameGreatBuildingReward,
   GameGrid,
+  GameInventoryItem,
   GameLimitedBonus,
   GamePlayer,
   GamePlunderResult,
@@ -582,4 +584,45 @@ export function toGreatBuildingLevelUp(
   if (typeof e.great_building_name !== 'string') return null;
   const rank = num(e.rank);
   return { owner: playerId(owner), name: e.great_building_name, level, ...(rank !== undefined && { rank }) };
+}
+
+function toItemPayload(p: GameInventoryItem['item']): ItemPayload {
+  switch (p?.__class__) {
+    case 'ForgePointPackagePayload': {
+      const gain = num(p.resource_package?.gain);
+      return gain === undefined ? { kind: 'other' } : { kind: 'forgePoints', gain };
+    }
+    case 'BuildingItemPayload': {
+      if (!p.cityEntityId) return { kind: 'other' };
+      const level = num(p.level);
+      return { kind: 'building', def: buildingDefId(p.cityEntityId), ...(level !== undefined && { level }) };
+    }
+    case 'BoostItemPayload': {
+      const value = num(p.value);
+      if (!p.boostType || value === undefined) return { kind: 'other' };
+      const duration = num(p.duration);
+      return { kind: 'boost', boostType: p.boostType, value, ...(duration !== undefined && { duration }) };
+    }
+    default:
+      return { kind: 'other' };
+  }
+}
+
+/** The items of InventoryService.getItems; null when `data` is no list. Items without id are skipped. */
+export function toInventory(data: unknown): InventoryItem[] | null {
+  if (!Array.isArray(data)) return null;
+  return (data as (GameInventoryItem | null)[]).flatMap((i) => {
+    const id = num(i?.id);
+    if (!i || id === undefined) return [];
+    return [
+      {
+        id,
+        name: i.name ?? '',
+        inStock: num(i.inStock) ?? 0,
+        gameClass: i.item?.__class__ ?? 'missing',
+        ...(i.itemAssetName && { asset: i.itemAssetName }),
+        payload: toItemPayload(i.item),
+      },
+    ];
+  });
 }

@@ -282,3 +282,23 @@ export interface GameLimitedBonus {
   entityId?: number;
   isActive?: boolean;
 }
+
+/** an entry of InventoryService.getItems (seen 2026-10-21); `item` is the payload, its class says what it does */
+export interface GameInventoryItem {
+  id?: number;
+  name?: string;
+  inStock?: number;
+  itemAssetName?: string;
+  item?: {
+    __class__?: string;
+    /** ForgePointPackagePayload */
+    resource_package?: { gain?: number };
+    /** BuildingItemPayload */
+    cityEntityId?: string;
+    level?: number;
+    /** BoostItemPayload */
+    boostType?: string;
+    value?: number;
+    duration?: number;
+  };
+}

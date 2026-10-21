@@ -15,6 +15,8 @@ export interface ToolboxEvents {
   'catalog.grid': Record<string, never>;
   /** the resources of the player changed */
   'resources.changed': Record<string, never>;
+  /** the inventory of the player arrived or changed */
+  'inventory.changed': Record<string, never>;
   /** the research metadata or the research progress of the player arrived */
   'research.changed': Record<string, never>;
   'battle.recorded': { opponent: PlayerId };

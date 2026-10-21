@@ -14,6 +14,7 @@ import { CatalogStore } from './catalog';
 import { CityStore } from './cities';
 import { GreatBuildingStore } from './great-buildings';
 import { IncomingStore } from './incoming';
+import { InventoryStore } from './inventory';
 import { NoteStore } from './notes';
 import { PlayerStore } from './players';
 import { PlunderStore } from './plunders';
@@ -28,6 +29,7 @@ export interface Stores {
   cities: CityStore;
   catalog: CatalogStore;
   resources: ResourceStore;
+  inventory: InventoryStore;
   research: ResearchStore;
   battles: BattleStore;
   plunders: PlunderStore;
@@ -45,6 +47,7 @@ export function createStores(world: WorldId, bus: ToolboxBus, call: Call, now: (
     cities: new CityStore(bus),
     catalog: new CatalogStore(bus),
     resources: new ResourceStore(bus),
+    inventory: new InventoryStore(bus),
     research: new ResearchStore(bus),
     battles: new BattleStore(bus, world, battlePersistence(call)),
     plunders: new PlunderStore(bus, world, plunderPersistence(call)),

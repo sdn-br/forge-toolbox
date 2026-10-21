@@ -41,6 +41,79 @@
       }
     }
   ],
+  "inventory": [
+    {
+      "requestClass": "InventoryService",
+      "requestMethod": "getItems",
+      "requestData": [],
+      "responseData": [
+        {
+          "name": "10 Forge-Punkte",
+          "inStock": 9931,
+          "item": {
+            "resource_package": {
+              "cost": {
+                "__class__": "CityResource"
+              },
+              "gain": 10,
+              "__class__": "PremiumPackage"
+            },
+            "__class__": "ForgePointPackagePayload"
+          },
+          "itemAssetName": "large_forgepoints",
+          "__class__": "InventoryItem",
+          "id": 9001
+        },
+        {
+          "name": "5 Forge-Punkte",
+          "inStock": 401,
+          "item": {
+            "resource_package": {
+              "cost": {
+                "__class__": "CityResource"
+              },
+              "gain": 5,
+              "__class__": "PremiumPackage"
+            },
+            "__class__": "ForgePointPackagePayload"
+          },
+          "itemAssetName": "medium_forgepoints",
+          "__class__": "InventoryItem",
+          "id": 9002
+        },
+        {
+          "name": "2 Forge-Punkte",
+          "inStock": 3569,
+          "item": {
+            "resource_package": {
+              "cost": {
+                "__class__": "CityResource"
+              },
+              "gain": 2,
+              "__class__": "PremiumPackage"
+            },
+            "__class__": "ForgePointPackagePayload"
+          },
+          "itemAssetName": "small_forgepoints",
+          "__class__": "InventoryItem",
+          "id": 9003
+        },
+        {
+          "name": "20%-Angriffs-Trank",
+          "inStock": 83,
+          "item": {
+            "boostType": "att_boost_attacker",
+            "value": 20,
+            "duration": 28800,
+            "__class__": "BoostItemPayload"
+          },
+          "itemAssetName": "boost_attack_large",
+          "__class__": "InventoryItem",
+          "id": 9004
+        }
+      ]
+    }
+  ],
   "openings": [
     {
       "entity": {

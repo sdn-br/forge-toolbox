@@ -12,7 +12,8 @@
 # Great buildings: python3 -I scripts/make-fixture.py gb <recording.json> <out.json>
 # keeps every opening of another player's great building (the building and its construction), the overview of each
 # owner for the names, the first getConstructionRanking, the own construction and the own great buildings with a
-# contribution_boost from the startup data, with fake player ids and names.
+# contribution_boost from the startup data, with fake player ids and names. Also the Forge point packages of the
+# inventory (getItems) and one other item, with fake item ids and without descriptions.
 
 import json,sys
 
@@ -199,6 +200,10 @@ def gb_fixture(rec,out):
     for real,e in overviews.items():
         if real not in ids: continue
         names.append(entry(e,[{k:x[k] for k in ('entity_id','city_entity_id','name','level') if k in x} for x in e['responseData']],[ids[real]]))
+    items=next(e['responseData'] for e in flat if e.get('requestClass')=='InventoryService' and e.get('requestMethod')=='getItems')
+    fp=[x for x in items if x.get('item',{}).get('__class__')=='ForgePointPackagePayload']
+    other=next(x for x in items if x.get('item',{}).get('__class__')=='BoostItemPayload')
+    inventory=[dict({k:x[k] for k in ('name','inStock','item','itemAssetName','__class__') if k in x},id=9001+i) for i,x in enumerate(fp+[other])]
     arc=[entity(x) for x in startup['city_map']['entities'] if x.get('type')=='greatbuilding' and (x.get('bonus') or {}).get('type')=='contribution_boost']
     ids[me_real]=ME
     fixture={'note':'Great building openings recorded on de20 2026-10-21: four buildings of other players (the building and its construction), the overview of each owner for the names, a finished level (getConstructionRanking), the own Arc construction and the own Arc from the startup data. Player ids and names replaced (me 1000, owners from 1001, others from 2001), unrelated fields dropped.',
@@ -206,6 +211,7 @@ def gb_fixture(rec,out):
       'startup':[{'requestClass':'StartupService','requestMethod':'getData','requestData':None,'responseData':{
         'user_data':{'player_id':ME,'user_name':'Ich','era':startup['user_data'].get('era')},
         'city_map':{'gridId':'main','entities':arc}}}],
+      'inventory':[{'requestClass':'InventoryService','requestMethod':'getItems','requestData':[],'responseData':inventory}],
       'openings':openings,'overviews':names,'ranking':ranking,'own':own}
     json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
 
