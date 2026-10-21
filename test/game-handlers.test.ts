@@ -109,10 +109,8 @@ describe('game handlers', () => {
       user_data: { player_id: 7 },
       city_map: {
         entities: [],
-        blocked_areas: [
-          { width: 4, length: 4 },
-          { x: 64, y: 8, width: 4, length: 4 },
-        ],
+        // shape seen 2026-10-21: bare positions of 4 × 4 blocks, x and y left out when 0
+        blocked_areas: [{ __class__: 'Position' }, { x: 64, y: 8, __class__: 'Position' }],
         tilesets: [
           {
             type: 'tileset_reward',

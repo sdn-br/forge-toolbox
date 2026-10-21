@@ -96,7 +96,7 @@ interface City {
   takenAt: number;
   buildings: Map<number, Building>;
   areas?: Area[];               // freigeschaltete Gebiete, fehlt, wenn das Spiel keine schickt
-  blocked?: Area[];             // nur eigene Stadt: city_map.blocked_areas
+  blocked?: Area[];             // nur eigene Stadt: city_map.blocked_areas, kommt als reine Positionen je 4 × 4-Block
   expansions?: ExpansionOffer[];// nur eigene Stadt: city_map.tilesets, offene Erweiterungen
 }
 

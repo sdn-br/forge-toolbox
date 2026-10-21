@@ -146,6 +146,12 @@ export function toAreas(areas: GameCityMapArea[] | undefined): Area[] | undefine
   return areas.map(toArea).filter((a): a is Area => a !== null);
 }
 
+/** Blocked areas come as bare positions of 4 × 4 blocks, x and y left out when 0 (seen 2026-10-21). */
+function toBlockedAreas(positions: { x?: number; y?: number }[] | undefined): Area[] | undefined {
+  if (!Array.isArray(positions)) return undefined;
+  return positions.map((p) => ({ x: p?.x ?? 0, y: p?.y ?? 0, width: 4, length: 4 }));
+}
+
 export function toCity(world: WorldId, owner: PlayerId, era: string, map: GameCityMap | undefined, now: number): City {
   const buildings = new Map<number, Building>();
   for (const e of map?.entities ?? []) {
@@ -153,7 +159,7 @@ export function toCity(world: WorldId, owner: PlayerId, era: string, map: GameCi
     if (b) buildings.set(b.id, b);
   }
   const areas = toAreas(map?.unlocked_areas);
-  const blocked = toAreas(map?.blocked_areas);
+  const blocked = toBlockedAreas(map?.blocked_areas);
   const expansions = Array.isArray(map?.tilesets) ? toExpansionOffers(map.tilesets) : undefined;
   return {
     world,

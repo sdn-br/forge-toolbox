@@ -56,7 +56,7 @@ export interface GameCityMap {
   /** assumed from the game format, not in a recording yet: the unlocked areas of the grid */
   unlocked_areas?: GameCityMapArea[];
   /** own city: blocks of the grid that cannot be unlocked (assumed) */
-  blocked_areas?: GameCityMapArea[];
+  blocked_areas?: { x?: number; y?: number }[];
   /** own city: one entry per expansion not obtained yet */
   tilesets?: GameTileset[];
 }
