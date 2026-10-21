@@ -161,3 +161,38 @@ describe('box resize', () => {
     expect(host?.shadowRoot?.querySelector('.resize-handle')).toBeNull();
   });
 });
+
+describe('box content that fills', () => {
+  const mapLike = html`<div class="city-map"><div class="map-frame"></div></div>`;
+  const frameStyle = (host: Element | null) =>
+    getComputedStyle(host?.shadowRoot?.querySelector('.map-frame') as HTMLElement);
+
+  it('lets a map keep its default height in a box without a saved height', async () => {
+    new Box({ id: 'map', title: () => 'Map', fill: true, render: () => mapLike }, new UiState(memoryKv())).open();
+    await tick();
+    const host = document.querySelector('[data-forge-toolbox=map]');
+    expect(host?.shadowRoot?.querySelector('.box.tall')).toBeNull();
+    expect(Number.parseFloat(frameStyle(host).height)).toBeCloseTo(window.innerHeight * 0.55);
+  });
+
+  it('lets a map fill a box with a saved height', async () => {
+    const ui = new UiState(memoryKv());
+    ui.saveBox('map', { width: 600, height: 500 });
+    new Box({ id: 'map', title: () => 'Map', fill: true, render: () => mapLike }, ui).open();
+    await tick();
+    const host = document.querySelector('[data-forge-toolbox=map]');
+    expect(host?.shadowRoot?.querySelector('.box.tall .body.fill')).not.toBeNull();
+    expect(frameStyle(host).flexGrow).toBe('1');
+    expect(frameStyle(host).height).toBe('auto');
+  });
+
+  it('lets a map fill the pop-out window', async () => {
+    const popup = popupWindow();
+    await poppedBox(popup, { fill: true, render: () => mapLike });
+    const host = popup.document.querySelector('[data-forge-toolbox=test]');
+    expect(host?.shadowRoot?.querySelector('.box.popped .body.fill')).not.toBeNull();
+    const style = popup.getComputedStyle(host?.shadowRoot?.querySelector('.map-frame') as HTMLElement);
+    expect(style.flexGrow).toBe('1');
+    expect(style.height).toBe('auto');
+  });
+});

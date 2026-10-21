@@ -10,6 +10,8 @@ export interface BoxOptions {
   render: () => TemplateResult;
   /** default width in pixels until the viewer resizes the box */
   width?: number;
+  /** the content fills the body once the box has a height (resized or popped out), e.g. a map */
+  fill?: boolean;
   onClose?: () => void;
 }
 
@@ -103,7 +105,7 @@ export class Box {
           }
           <button title=${t('box.close')} @click=${() => this.close()}>✕</button>
         </header>
-        <div class="body">${this.options.render()}</div>
+        <div class=${this.options.fill ? 'body fill' : 'body'}>${this.options.render()}</div>
         ${
           resizable
             ? html`<div class="resize-handle" title=${t('box.resize')}

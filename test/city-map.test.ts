@@ -122,3 +122,25 @@ describe('city map', () => {
     expect(map.tileIndexAt(100, 50)).toBe(0);
   });
 });
+
+describe('city map in another window', () => {
+  it('watches its size with the observer of the window it was moved to and redraws on a resize there', async () => {
+    const { Window } = await import('happy-dom');
+    const popup = new Window() as unknown as globalThis.Window & { ResizeObserver: unknown };
+    const observed: { target: Element; redraw: () => void }[] = [];
+    popup.ResizeObserver = class {
+      constructor(private redraw: () => void) {}
+      observe(target: Element) {
+        observed.push({ target, redraw: this.redraw });
+      }
+      disconnect() {}
+    };
+    const { map, canvas, root } = mount();
+    popup.document.body.append(root);
+    map.draw();
+    expect(observed.map((o) => o.target)).toEqual([canvas]);
+    const draw = vi.spyOn(map, 'draw');
+    observed[0]?.redraw();
+    expect(draw).toHaveBeenCalled();
+  });
+});

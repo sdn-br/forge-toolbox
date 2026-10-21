@@ -44,6 +44,7 @@ export const sabotageFeature: Feature = {
         return name ? t('sabotage.mapTitle', { name }) : t('cityMap.title');
       },
       width: 500,
+      fill: true,
       render: () =>
         mapVm ? map.render(mapVm.data, legendView(mapVm.legend)) : html`<p class="muted">${t('sabotage.noMap')}</p>`,
     });

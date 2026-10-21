@@ -63,8 +63,13 @@ summary { cursor: pointer; color: #f0c060; }
 button.marker.dim { opacity: .3; }
 .city-map { margin: 4px 0; }
 .map-marks { display: flex; flex-wrap: wrap; gap: 0 12px; }
-.map-frame { position: relative; height: 55vh; min-height: 180px; resize: vertical; overflow: hidden;
-  border: 1px solid #8a6a3a; }
+.map-frame { position: relative; height: 55vh; min-height: 180px; overflow: hidden; border: 1px solid #8a6a3a; }
+/* a box with a height, or popped out: the map takes the height the controls above and the legend below leave */
+.box.tall .body.fill, .box.popped .body.fill { display: flex; flex-direction: column; }
+:is(.box.tall, .box.popped) .body.fill :is(.map-stats-layout, .city-map) { flex: 1 1 auto; min-height: 0; }
+:is(.box.tall, .box.popped) .body.fill .map-stats-layout { align-items: stretch; }
+:is(.box.tall, .box.popped) .body.fill :is(.map-main, .city-map) { display: flex; flex-direction: column; }
+:is(.box.tall, .box.popped) .body.fill .map-frame { flex: 1 1 auto; height: auto; }
 .map-frame canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .map-tools { position: absolute; top: 4px; right: 4px; display: flex; gap: 2px; }
 .map-tools button { font: inherit; cursor: pointer; padding: 0 6px; }
@@ -95,5 +100,5 @@ button.marker.dim { opacity: .3; }
 /* popped out: no room beside the window, so the panel takes a column beside the map */
 .box.popped .stats-drawer { position: static; flex: 0 0 auto; flex-direction: row; }
 .box.popped .stats-tab { border: 2px solid #8a6a3a; border-radius: 6px; }
-.box.popped .stats-panel { max-height: none; width: 230px; box-shadow: none; }
+.box.popped .stats-panel { max-height: none; align-self: stretch; width: 230px; box-shadow: none; }
 `;
