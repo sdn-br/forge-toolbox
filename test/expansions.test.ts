@@ -76,10 +76,10 @@ describe('open expansions by kind', () => {
       amount: (id) => have[id as keyof typeof have] ?? 0,
     });
     expect(stats).toEqual([
-      // 20 + 30 Mio. fit into 60 Mio., 45 Mio. more do not; diamonds never pay
+      // 20 + 30 Mio. fit into 60 Mio., 45 Mio. more do not; diamonds pay only for those of a reached era
       { kind: 'coins', total: 3, buyable: 2, next: 45e6 },
       { kind: 'medals', total: 2, buyable: 0, next: 6e5 },
-      { kind: 'diamonds', total: 2, minEra: eraId('IronAge') },
+      { kind: 'diamonds', total: 2, buyable: 1, minEra: eraId('MarsAge') },
     ]);
   });
 
@@ -89,7 +89,7 @@ describe('open expansions by kind', () => {
       { kind: 'raidMedals', cost: { guild_raids_medals: 2 } },
     ];
     const stats = offerStats(gated, { era: eraId('BronzeAge'), eraIndex, amount: () => 100 });
-    expect(stats).toEqual([{ kind: 'medals', total: 2, buyable: 1 }]);
+    expect(stats).toEqual([{ kind: 'medals', total: 2, buyable: 1, minEra: eraId('MarsAge') }]);
   });
 
   it('counts an offer of an unknown era as not reached', () => {
@@ -98,7 +98,7 @@ describe('open expansions by kind', () => {
       eraIndex,
       amount: () => 100,
     });
-    expect(stats).toEqual([{ kind: 'medals', total: 1, buyable: 0 }]);
+    expect(stats).toEqual([{ kind: 'medals', total: 1, buyable: 0, minEra: eraId('FutureAge') }]);
   });
 
   it('lists unknown kinds by their game type without a buy count', () => {

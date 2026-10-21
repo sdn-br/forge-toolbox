@@ -55,22 +55,22 @@ export interface OfferStat {
   /** an own kind, or the game type for kinds the toolbox does not know */
   kind: OfferKind | string;
   total: number;
-  /** how many the player can buy in a row, cheapest first; missing for diamonds and unknown kinds */
+  /** how many the player can buy in a row, cheapest first; missing for unknown kinds */
   buyable?: number;
   /** price of the first one the player cannot buy yet, among those of a reached era */
   next?: number;
-  /** diamonds: the earliest era any of them needs */
+  /** the earliest era of those not reached yet */
   minEra?: EraId;
 }
 
 /**
- * Kinds in display order with the resource that pays them. Diamonds never pay: the player does not spend them,
- * so `tileset_reward`, which names coins and diamonds, counts with its coin price only.
+ * Kinds in display order with the resource that pays them. `tileset_reward` names coins and diamonds and counts
+ * with its coin price, so diamonds count once, for `tileset_premium`.
  */
-const KINDS: { type: string; kind: OfferKind; pay?: ResourceId }[] = [
+const KINDS: { type: string; kind: OfferKind; pay: ResourceId }[] = [
   { type: 'tileset_reward', kind: 'coins', pay: 'money' },
   { type: 'raidMedals', kind: 'medals', pay: 'guild_raids_medals' },
-  { type: 'tileset_premium', kind: 'diamonds' },
+  { type: 'tileset_premium', kind: 'diamonds', pay: 'premium' },
 ];
 
 export interface PlayerMeans {
@@ -91,12 +91,8 @@ export function offerStats(offers: ExpansionOffer[], means: PlayerMeans): OfferS
   for (const { type, kind, pay } of KINDS) {
     const of = offers.filter((o) => o.kind === type);
     if (of.length === 0) continue;
-    if (!pay) {
-      const eras = of.flatMap((o) => (o.minEra ? [o.minEra] : []));
-      eras.sort((a, b) => (means.eraIndex(a) ?? Infinity) - (means.eraIndex(b) ?? Infinity));
-      stats.push({ kind, total: of.length, ...(eras[0] && { minEra: eras[0] }) });
-      continue;
-    }
+    const later = of.flatMap((o) => (o.minEra && !reached(o) ? [o.minEra] : []));
+    later.sort((a, b) => (means.eraIndex(a) ?? Infinity) - (means.eraIndex(b) ?? Infinity));
     const prices = of
       .filter(reached)
       .map((o) => o.cost[pay])
@@ -110,7 +106,13 @@ export function offerStats(offers: ExpansionOffer[], means: PlayerMeans): OfferS
       buyable++;
     }
     const next = prices[buyable];
-    stats.push({ kind, total: of.length, buyable, ...(next !== undefined && { next }) });
+    stats.push({
+      kind,
+      total: of.length,
+      buyable,
+      ...(next !== undefined && { next }),
+      ...(later[0] && { minEra: later[0] }),
+    });
   }
   const known = new Set(KINDS.map((k) => k.type));
   const others = new Map<string, number>();
