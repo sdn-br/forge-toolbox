@@ -9,13 +9,14 @@ export interface MenuItem {
 }
 
 const menuCss = `
-.menu { position: fixed; right: 4px; top: 50%; transform: translateY(-50%); z-index: 2147479999;
+/* bottom right, above the game's bottom bar: the game's own buttons fill the right edge from the top down */
+.menu { position: fixed; right: 4px; bottom: 56px; z-index: 2147479999;
   display: flex; flex-direction: column; gap: 4px; padding: 4px; background: #2b1d10cc;
   border: 1px solid #8a6a3a; border-radius: 6px; }
 .menu button { all: unset; cursor: pointer; width: 30px; height: 30px; display: grid; place-items: center;
   font-size: 18px; border-radius: 4px; background: #4a3620; }
 .menu button:hover { background: #6a5030; }
-.notice { position: fixed; right: 44px; top: 50%; transform: translateY(-50%); z-index: 2147479999; max-width: 240px;
+.notice { position: fixed; right: 44px; bottom: 56px; z-index: 2147479999; max-width: 240px;
   padding: 6px 8px; background: #6a2010; color: #f3e3c3; border: 1px solid #8a6a3a; border-radius: 6px; }
 `;
 
