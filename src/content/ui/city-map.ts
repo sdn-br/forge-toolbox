@@ -6,6 +6,7 @@ import { t } from '../core/texts';
 import { type Bounds, gridBounds, type Tile, type TileRect } from '../domain/city-grid';
 import {
   backToFront,
+  centerOn,
   corners,
   type MapMode,
   type MapView,
@@ -36,6 +37,8 @@ export interface CityMapData {
   marked?: { tiles: Tile[]; color: string };
   /** ground beside or under the city, e.g. free expansion blocks; the map widens to show them */
   zones?: MapZone[];
+  /** one building to point at, framed above everything else; `focus()` brings it into view */
+  focus?: { rect: TileRect; color: string };
 }
 
 export interface MapZone {
@@ -63,6 +66,8 @@ const BACKGROUND = '#1d140a';
 const GROUND = '#3a2c18';
 const HOVER = '#ffffff';
 const ZOOM_STEP = 1.25;
+/** a focused building shows at least this many pixels wide */
+const FOCUS_SIZE = 36;
 
 export const legendView = (items: LegendItem[]) =>
   html`<ul class="map-legend">${items.map(
@@ -90,6 +95,8 @@ export class CityMap {
   private drag?: { x: number; y: number; view: MapView; moved: boolean };
   private observer?: ResizeObserver;
   private observedIn?: Window;
+  /** asked to focus before the canvas had a size */
+  private pendingFocus?: TileRect;
   mode: MapMode;
 
   constructor(private options: CityMapOptions = {}) {
@@ -131,6 +138,23 @@ export class CityMap {
     if (!sameBounds(bounds, this.bounds)) this.view = WHOLE_MAP;
     this.bounds = bounds;
     this.hovered = -1;
+  }
+
+  /**
+   * Centers `rect` and zooms in if it would be tiny. A map that has no size yet (its box just opened) does it as soon
+   * as it is laid out.
+   */
+  focus(rect: TileRect): void {
+    this.pendingFocus = rect;
+    this.draw();
+  }
+
+  private applyFocus() {
+    const size = this.size();
+    const rect = this.pendingFocus;
+    if (!rect || !size || !this.bounds) return;
+    this.view = centerOn(this.mode, this.bounds, size.width, size.height, this.view, rect, FOCUS_SIZE);
+    this.pendingFocus = undefined;
   }
 
   private setMode(mode: MapMode) {
@@ -200,6 +224,7 @@ export class CityMap {
 
   draw(): void {
     this.observe();
+    this.applyFocus();
     const c = this.canvas;
     const size = this.size();
     const p = this.projection();
@@ -224,6 +249,11 @@ export class CityMap {
     if (marked) for (const tile of marked.tiles) this.shape(ctx, p, { ...tile, width: 1, length: 1 }, marked.color);
     const gaps = p.scale >= (this.mode === 'iso' ? 8 : 5);
     for (const tile of backToFront(this.mode, this.data.tiles)) this.drawTile(ctx, p, tile, gaps);
+    const focus = this.data.focus;
+    if (focus) {
+      this.outline(ctx, p, focus.rect, BACKGROUND, 6);
+      this.outline(ctx, p, focus.rect, focus.color, 3.5);
+    }
     const hovered = this.data.tiles[this.hovered];
     if (hovered) this.outline(ctx, p, hovered, HOVER, 2);
   }
