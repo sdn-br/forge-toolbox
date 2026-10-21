@@ -185,9 +185,9 @@ function toExpansionOffers(tilesets: GameTileset[]): ExpansionOffer[] {
   });
 }
 
-/** The resource bag of the player, `{ resources: { money: … } }`; null when it is not one. */
+/** The resource bag of the player, `{ resources: { resources: { money: … } } }` (seen 2026-10-21); null when it is not one. */
 export function toResourceBag(data: unknown): Record<string, number> | null {
-  const resources = (data as { resources?: unknown } | null)?.resources;
+  const resources = (data as { resources?: { resources?: unknown } } | null)?.resources?.resources;
   return resources && typeof resources === 'object' && !Array.isArray(resources) ? numbers(resources) : null;
 }
 
@@ -196,7 +196,7 @@ export function toCityGrid(json: unknown): CityGrid | null {
   const grid = (Array.isArray(json) ? (json as GameGrid[]) : []).find((g) => g?.id === 'main');
   if (!grid) return null;
   const blocks = (grid.sectors ?? [])
-    .filter((s) => s?.type === 'Regular')
+    .filter((s) => s?.type?.value === 'Regular')
     .flatMap((s) => (s.tilePositions ?? []).map((p) => ({ x: p?.x ?? 0, y: p?.y ?? 0 })));
   return { width: grid.width ?? 0, height: grid.height ?? 0, blocks };
 }

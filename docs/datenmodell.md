@@ -176,13 +176,13 @@ interface Boost {
 
 Dazu kommen Zeitalter (Reihenfolge, Namen), Güter (aus `goodsList` beim Start) und Ressourcen-Definitionen.
 
-**Straßenbedarf (`BuildingDef.street`, angenommenes Format):** Stufe der Straße, die ein Gebäude braucht, 0 für keine. Klassische Definitionen: `requirements.street_connection_level`, generische: Komponente `streetConnectionRequirement.requiredLevel` in irgendeinem Zeitalter. Fehlt `requirements` bei einer klassischen Definition ganz, bleibt der Wert unbekannt. Die Fixtures sind gekürzt und enthalten beides nicht, im Spiel noch nicht geprüft.
+**Straßenbedarf (`BuildingDef.street`):** Stufe der Straße, die ein Gebäude braucht, 0 für keine. Klassische Definitionen: `requirements.street_connection_level`, generische: Komponente `streetConnectionRequirement.requiredLevel` in irgendeinem Zeitalter. Fehlt `requirements` bei einer klassischen Definition ganz, bleibt der Wert unbekannt. Beide Felder kommen in echten Definitionen vor (geprüft 2026-10-21 an einer Aufnahme), die Fixtures sind gekürzt und enthalten sie nicht.
 
-**Stadtgitter:** Metadatei `grid-<hash>` vom CDN, die das Spiel selbst lädt (über `onMeta` wie die übrigen Metadaten). Eine Liste von Gittern, verwendet wird `id: 'main'` (72 × 72). `sectors[].tilePositions` sind die linken oberen Ecken der 4 × 4-Blöcke, nur Sektoren vom Typ `Regular` zählen, fehlende `x`/`y` sind 0. Der Catalog hält es als `CityGrid { width, height, blocks }` und meldet `catalog.grid`.
+**Stadtgitter:** Metadatei `grid-<hash>` vom CDN, die das Spiel selbst lädt (über `onMeta` wie die übrigen Metadaten). Eine Liste von Gittern, verwendet wird `id: 'main'` (72 × 72). `sectors[].tilePositions` sind die linken oberen Ecken der 4 × 4-Blöcke, nur Sektoren vom Typ `Regular` zählen (der Typ ist ein Enum-Objekt `{ __enum__: 'GridSectorType', value: 'Regular' }`), fehlende `x`/`y` sind 0. Der Catalog hält es als `CityGrid { width, height, blocks }` und meldet `catalog.grid`.
 
 ## Ressourcen
 
-`ResourceService.getPlayerResourceBag` kommt mit den Startdaten. Angenommenes Format `{ resources: { money, premium, expansions, guild_raids_medals, … } }`. Der `ResourceStore` hält den Beutel im Speicher (nicht persistiert) und meldet `resources.changed`. Spätere Änderungen der Ressourcen liest er noch nicht mit, kaufbare Erweiterungen bleiben bis zum Neuladen auf dem Stand des Starts.
+`ResourceService.getPlayerResourceBag` kommt mit den Startdaten. Format (geprüft 2026-10-21): `{ type, resources: { resources: { money, premium, expansions, guild_raids_medals, … } } }`, die Mengen stecken also eine Ebene tiefer. Der `ResourceStore` hält den Beutel im Speicher (nicht persistiert) und meldet `resources.changed`. Spätere Änderungen der Ressourcen liest er noch nicht mit, kaufbare Erweiterungen bleiben bis zum Neuladen auf dem Stand des Starts.
 
 ## Erweiterungen (abgeleitet)
 

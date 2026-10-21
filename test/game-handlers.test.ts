@@ -145,11 +145,16 @@ describe('game handlers', () => {
     ]);
   });
 
+  // shape seen 2026-10-21: the amounts sit in resources.resources
   it('keeps the resources of the player from the resource bag', () => {
     const { resources, events, send } = setup();
     send('ResourceService', 'getPlayerResourceBag', {
+      type: { __enum__: 'ResourceBagType', value: 'PlayerMain' },
+      resources: {
+        resources: { money: 45_000_000, expansions: 2, guild_raids_medals: 700_000 },
+        __class__: 'Resources',
+      },
       __class__: 'ResourceBag',
-      resources: { money: 45_000_000, expansions: 2, guild_raids_medals: 700_000 },
     });
     expect(resources.amount('money')).toBe(45_000_000);
     expect(resources.amount('expansions')).toBe(2);
@@ -167,8 +172,9 @@ describe('game handlers', () => {
         width: 72,
         height: 72,
         sectors: [
-          { type: 'Regular', tilePositions: [{}, { x: 4 }, { x: 4, y: 4 }] },
-          { type: 'Water', tilePositions: [{ x: 8 }] },
+          // shape seen 2026-10-21: the sector type is an enum object
+          { type: { __enum__: 'GridSectorType', value: 'Regular' }, tilePositions: [{}, { x: 4 }, { x: 4, y: 4 }] },
+          { type: { __enum__: 'GridSectorType', value: 'Water' }, tilePositions: [{ x: 8 }] },
         ],
       },
     ]);

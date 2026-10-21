@@ -74,7 +74,7 @@ export interface GameGrid {
   id?: string;
   width?: number;
   height?: number;
-  sectors?: { type?: string; tilePositions?: { x?: number; y?: number }[] }[];
+  sectors?: { type?: { value?: string }; tilePositions?: { x?: number; y?: number }[] }[];
 }
 
 export interface GameClan {
