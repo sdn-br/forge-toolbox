@@ -37,6 +37,7 @@ export const cityMapFeature: Feature = {
           ownCityStats(city, def, {
             ...(grid && { grid }),
             resources: ctx.resources,
+            research: ctx.research,
             eraIndex: (era) => ctx.catalog.eraIndex(era),
             eraName: (era) => ctx.catalog.eraName(era),
           });
@@ -62,6 +63,7 @@ export const cityMapFeature: Feature = {
     ctx.bus.on('catalog.updated', () => box.update());
     ctx.bus.on('catalog.grid', () => box.update());
     ctx.bus.on('resources.changed', () => box.update());
+    ctx.bus.on('research.changed', () => box.update());
     ctx.menu.add({ id: 'cityMap', icon: '🗺️', label: () => t('cityMap.menu'), action: () => box.toggle() });
   },
 };

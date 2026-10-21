@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { cityMapFeature } from '../src/content/features/city-map/index';
 import { toBuildingDef } from '../src/content/game/building-defs';
-import { toCity } from '../src/content/game/convert';
+import { toCity, toResearchExpansions } from '../src/content/game/convert';
 import type { GameCityEntity } from '../src/content/game/game-types';
 import type { Building } from '../src/content/stores/city-model';
 import { buildingDefId, playerId, worldId } from '../src/shared/ids';
@@ -161,8 +161,8 @@ describe('city map feature', () => {
     menu('cityMap');
     const panel = () => box.root.querySelector('.stats-panel')?.textContent ?? '';
     expect(panel()).toContain('Gesetzt: 1');
-    expect(panel()).toContain('Ungesetzt: 2');
-    expect(panel()).toContain('Belohnungs-Erweiterungen: 2 offen (nur als Belohnung)');
+    expect(panel()).not.toContain('Ungesetzt');
+    expect(panel()).toContain('Belohnungs-Erweiterungen: 2 platzierbar, 2 offen');
     expect(panel()).toContain('Quanten-Erweiterungen: 0 von 1 kaufbar (nächste 0,6 Mio.)');
     // right of the start area 3 below the expansion, right of the expansion 1, below the start area 3 of 4
     expect(panel()).toContain('Jetzt setzbar: 7');
@@ -173,5 +173,42 @@ describe('city map feature', () => {
     toggle.checked = true;
     toggle.dispatchEvent(new Event('change'));
     expect(box.root.querySelector('.map-legend')?.textContent).toContain('Erweiterung jetzt setzbar');
+  });
+
+  it('tells where the open reward expansions come from, as soon as research data arrives', () => {
+    const { ctx, box, menu } = setup({ 'cityMap.own.stats': 'open' });
+    ctx.resources.set({ expansions: 0 });
+    const city = toCity(worldId('de20'), playerId(1), 'SpaceAgeMars', { entities: [] }, 0);
+    ctx.cities.setOwn({
+      ...city,
+      expansions: Array.from({ length: 23 }, () => ({ kind: 'tileset_reward', cost: { money: 20e6 } })),
+    });
+    menu('cityMap');
+    const line = () =>
+      [...box.root.querySelectorAll('.stats-panel li')]
+        .map((li) => li.textContent ?? '')
+        .find((text) => text.startsWith('Belohnungs-Erweiterungen'));
+    expect(line()).toBe('Belohnungs-Erweiterungen: 0 platzierbar, 23 offen');
+    // the reference city: 14 main expansions left in research, the first with "Mars-Vorschriften"
+    const tree = toResearchExpansions([
+      { id: 'wheel', name: 'Das Rad', rewards: [{ type: 'expansion', subType: 'main', amount: 1 }] },
+      {
+        id: 'outpost',
+        name: 'Außenposten',
+        rewards: [{ type: 'era_outpost_expansion', subType: 'era_outpost', amount: 3 }],
+      },
+      { id: 'mars_rules', name: 'Mars-Vorschriften', rewards: [{ type: 'expansion', subType: 'main', amount: 2 }] },
+      { id: 'mars_late', name: 'Mars-Spät', rewards: [{ type: 'expansion', subType: 'main', amount: 12 }] },
+    ]);
+    ctx.research.setExpansions(tree);
+    expect(line()).toBe('Belohnungs-Erweiterungen: 0 platzierbar, 23 offen');
+    ctx.research.setUnlocked(['root', 'wheel', 'outpost']);
+    expect(line()).toBe(
+      'Belohnungs-Erweiterungen: 0 platzierbar, 23 offen (14 aus Forschung, nächste: Mars-Vorschriften; 9 von der Kontinentkarte)',
+    );
+    ctx.research.setUnlocked(['root', 'wheel', 'mars_rules', 'mars_late']);
+    expect(line()).toBe(
+      'Belohnungs-Erweiterungen: 0 platzierbar, 23 offen (0 aus Forschung; 23 von der Kontinentkarte)',
+    );
   });
 });

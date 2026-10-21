@@ -2,7 +2,7 @@ import { html, type TemplateResult } from 'lit-html';
 import { ref } from 'lit-html/directives/ref.js';
 import { formatNumber, formatPrice, t } from '../../core/texts';
 import { keepKeys } from '../../ui/inputs';
-import type { OwnStatsVm } from './stats';
+import type { Offer, OwnStatsVm } from './stats';
 import type { OwnMapUi, OwnMapVm } from './view-model';
 
 export type MapMark = 'finished' | 'unconnected' | 'free' | 'expansions';
@@ -32,13 +32,27 @@ function placeDrawer(el: Element | undefined) {
 
 const percent = (n: number) => formatNumber(Math.round(n * 10) / 10);
 
-function offerLine(o: NonNullable<OwnStatsVm['expansions']['offers']>[number], resourcesKnown: boolean) {
+/** "Belohnungs-Erweiterungen: 0 platzierbar, 23 offen (14 aus Forschung, nächste: …; 9 von der Kontinentkarte)" */
+function rewardLine(o: Offer) {
+  const counts = { kind: o.label, open: formatNumber(o.total) };
+  const head =
+    o.placeable === undefined
+      ? t('cityMap.expRewardOpen', counts)
+      : t('cityMap.expReward', { ...counts, placeable: formatNumber(o.placeable) });
+  const s = o.sources;
+  if (!s) return head;
+  const research = t('cityMap.expFromResearch', { count: formatNumber(s.fromResearch) });
+  const parts = [s.nextTech === undefined ? research : t('cityMap.expNextTech', { research, tech: s.nextTech })];
+  if (s.fromMap !== undefined) parts.push(t('cityMap.expFromMap', { count: formatNumber(s.fromMap) }));
+  return `${head} (${parts.join('; ')})`;
+}
+
+function offerLine(o: Offer, resourcesKnown: boolean) {
+  if (o.kind === 'reward') return html`<li>${rewardLine(o)}</li>`;
   const parts = [
-    o.kind === 'reward'
-      ? t('cityMap.expRewardOnly', { kind: o.label, total: formatNumber(o.total) })
-      : o.buyable !== undefined && resourcesKnown
-        ? t('cityMap.expBuyable', { kind: o.label, buyable: formatNumber(o.buyable), total: formatNumber(o.total) })
-        : t('cityMap.expTotal', { kind: o.label, total: formatNumber(o.total) }),
+    o.buyable !== undefined && resourcesKnown
+      ? t('cityMap.expBuyable', { kind: o.label, buyable: formatNumber(o.buyable), total: formatNumber(o.total) })
+      : t('cityMap.expTotal', { kind: o.label, total: formatNumber(o.total) }),
   ];
   if (o.next !== undefined && resourcesKnown) parts.push(t('cityMap.expNext', { price: formatPrice(o.next) }));
   if (o.eraName) parts.push(t('cityMap.expFrom', { era: o.eraName }));
@@ -80,7 +94,6 @@ function statsPanel(s: OwnStatsVm) {
     <h2>${t('cityMap.expansions')}</h2>
     <ul class="stats-list">
       ${e.placed === undefined ? '' : html`<li>${t('cityMap.expPlaced', { count: formatNumber(e.placed) })}</li>`}
-      ${e.unplaced === undefined ? '' : html`<li>${t('cityMap.expUnplaced', { count: formatNumber(e.unplaced) })}</li>`}
       ${(e.offers ?? []).map((o) => offerLine(o, e.resourcesKnown))}
     </ul>
     ${e.offers ? '' : html`<p class="muted">${t('cityMap.expOpenUnknown')}</p>`}

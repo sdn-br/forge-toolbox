@@ -55,8 +55,13 @@ const grid = {
   blocks: Array.from({ length: 36 }, (_, i) => ({ x: (i % 6) * 4, y: Math.floor(i / 6) * 4 })),
 };
 const eras = ['IronAge', 'MarsAge'].map(eraId);
-const means = (have: Record<string, number> | undefined, withGrid = true) => ({
+const means = (
+  have: Record<string, number> | undefined,
+  withGrid = true,
+  research: { expansions?: { tech: string; name: string; amount: number }[]; unlocked?: string[] } = {},
+) => ({
   ...(withGrid && { grid }),
+  research: { expansions: () => research.expansions, unlocked: () => research.unlocked && new Set(research.unlocked) },
   resources: { known: have !== undefined, amount: (id: string) => have?.[id] ?? 0 },
   eraIndex: (era: EraId) => (eras.includes(era) ? eras.indexOf(era) : undefined),
   eraName: (era: EraId) => (era === 'MarsAge' ? 'Mars' : era),
@@ -77,13 +82,12 @@ describe('statistics of the own city', () => {
     expect(stats.streets).toEqual({ needed: 1, placed: 2, percent: 50, partial: false });
   });
 
-  it('counts placed, unplaced and open expansions and the free blocks of the grid', () => {
+  it('counts placed and open expansions, the placeable reward expansions and the free blocks of the grid', () => {
     const stats = ownCityStats(city, lookup, means({ money: 30e6, expansions: 1 }));
     expect(stats.expansions.placed).toBe(2);
-    expect(stats.expansions.unplaced).toBe(1);
     expect(stats.expansions.offers).toEqual([
       { kind: 'diamonds', label: 'Diamant-Erweiterungen', total: 1, buyable: 0, minEra: 'MarsAge', eraName: 'Mars' },
-      { kind: 'reward', label: 'Belohnungs-Erweiterungen', total: 2 },
+      { kind: 'reward', label: 'Belohnungs-Erweiterungen', total: 2, placeable: 1 },
       { kind: 'quantum', label: 'Quanten-Erweiterungen', total: 1, buyable: 0, next: 6e5 },
     ]);
     // 36 blocks: 18 unlocked, 1 blocked; adjacent: 2 right of the start area, 2 right of the expansions and 3 below
@@ -98,7 +102,32 @@ describe('statistics of the own city', () => {
     expect(stats.expansions).toEqual({ resourcesKnown: false });
   });
 
-  it('shows unplaced expansions only when there are some', () => {
-    expect(ownCityStats(city, lookup, means({ expansions: 0 })).expansions.unplaced).toBeUndefined();
+  const reward = (stats: ReturnType<typeof ownCityStats>) => stats.expansions.offers?.find((o) => o.kind === 'reward');
+
+  it('shows the placeable reward expansions also when there are none, and only once the resources are known', () => {
+    expect(reward(ownCityStats(city, lookup, means({ expansions: 0 })))?.placeable).toBe(0);
+    expect(reward(ownCityStats(city, lookup, means(undefined)))?.placeable).toBeUndefined();
+  });
+
+  it('keeps placeable reward expansions when none is open any more', () => {
+    const none: City = { ...city, expansions: city.expansions?.filter((e) => e.kind !== 'tileset_reward') };
+    expect(ownCityStats(none, lookup, means({ expansions: 2 })).expansions.offers?.map((o) => o.kind)).toEqual([
+      'diamonds',
+      'reward',
+      'quantum',
+    ]);
+    expect(reward(ownCityStats(none, lookup, means({ expansions: 2 })))).toMatchObject({ total: 0, placeable: 2 });
+    expect(reward(ownCityStats(none, lookup, means({ expansions: 0 })))).toBeUndefined();
+  });
+
+  it('tells where the open reward expansions come from once research metadata and progress are known', () => {
+    const research = { expansions: [{ tech: 'mars_rules', name: 'Mars-Vorschriften', amount: 1 }], unlocked: ['root'] };
+    expect(reward(ownCityStats(city, lookup, means({ expansions: 0 }, true, research)))?.sources).toEqual({
+      fromResearch: 1,
+      nextTech: 'Mars-Vorschriften',
+      fromMap: 1,
+    });
+    const halfway = { expansions: research.expansions };
+    expect(reward(ownCityStats(city, lookup, means({ expansions: 0 }, true, halfway)))?.sources).toBeUndefined();
   });
 });
