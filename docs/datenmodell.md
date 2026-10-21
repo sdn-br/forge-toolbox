@@ -190,10 +190,10 @@ Reine Funktionen in `src/content/domain/expansions.ts`. Referenz eigene Stadt (A
 
 - **Gesetzt:** freigeschaltete Felder ÷ 16 − 16 (der Startbereich 16 × 16 sind 16 Blöcke).
 - **Ungesetzt:** Ressource `expansions`.
-- **Freie Blöcke:** Block des Gitters, dessen linkes oberes Feld weder in `unlocked_areas` noch in `blocked_areas` liegt. „Jetzt setzbar“, wenn er eine Kante mit einem freigeschalteten Block teilt, sonst „später“.
+- **Freie Blöcke:** Block des Gitters, dessen linkes oberes Feld weder in `unlocked_areas` noch in `blocked_areas` liegt. „Jetzt setzbar“, wenn er eine Kante mit einem freigeschalteten Block teilt, sonst „später“. Bestätigt im Baumodus (2026-10-21): dunkel markiert das Spiel alle Flächen, auf die theoretisch eine Erweiterung passt, eingezäunt nur die, die über eine Seitenkante an die Stadt grenzen und sich deshalb jetzt setzen lassen.
 - **Kaufbar je Art:** Münzen (`tileset_reward`, Preis `money`) und QI-Medaillen (`raidMedals`, Preis `guild_raids_medals`). Gezählt werden nur Einträge eines erreichten Zeitalters, günstigste zuerst, nacheinander, solange die aktuellen Ressourcen reichen. „Nächste“ ist der Preis des ersten Eintrags, der nicht mehr reicht. Diamanten (`premium`) zählen nie als Bezahlweg, `tileset_premium` erscheint nur mit Anzahl und frühestem `min_era`.
 
-**Annahmen, im Spiel ungeprüft:** Jeder Eintrag in `tilesets` ist eine offene Erweiterung, `available: true` sagt nichts. `tileset_reward` nennt Münzen und Diamanten als Alternativen. Der Preis steht unter `requirements.cost.resources` (sonst `cost.resources`). Gesperrte Blöcke sind nicht kaufbar. Ob nur angrenzende Blöcke setzbar sind, ist offen.
+**Annahmen:** Jeder Eintrag in `tilesets` ist eine offene Erweiterung, `available: true` sagt nichts. `tileset_reward` nennt Münzen und Diamanten als Alternativen. Der Preis steht unter `requirements.cost.resources` (geprüft an einer Aufnahme). Gesperrte Blöcke sind nicht kaufbar (der Baumodus markiert sie nicht).
 
 **Woher die Definitionen kommen (geprüft am 2026-10-19 auf de20):** Das Spiel lädt zuerst `building_entity_lookup` (Liste aller Gebäude mit URL und Hash). Danach lädt es einzeln per XHR nur die Definitionen, die es braucht: beim Start rund 110 für die eigene Stadt, beim Besuch einer Stadt die noch fehlenden (beim ersten Besuch 18). Der Helfer lädt dagegen alle rund 2.900 selbst vom CDN.
 

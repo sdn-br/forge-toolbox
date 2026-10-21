@@ -211,7 +211,7 @@ export const de = {
   'cityMap.expLater': 'Später: {count}',
   'cityMap.expBlocksUnknown': 'Gitter der Stadt noch nicht geladen.',
   'cityMap.expBlocksAssumed':
-    'Frei: Blöcke des Stadtgitters, die weder freigeschaltet noch gesperrt sind. Gesperrte gelten als nicht kaufbar. Jetzt setzbar: grenzt an eine freigeschaltete Fläche.',
+    'Frei: Blöcke des Stadtgitters, die weder freigeschaltet noch gesperrt sind. Gesperrte gelten als nicht kaufbar. Jetzt setzbar: grenzt über eine Seitenkante an die Stadt, wie die eingezäunten Flächen im Baumodus.',
   'cityMap.zoneNow': 'Erweiterungsfläche, jetzt setzbar',
   'cityMap.zoneLater': 'Erweiterungsfläche, später',
   'cityMap.legendNow': 'Erweiterung jetzt setzbar',
