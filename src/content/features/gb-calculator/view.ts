@@ -3,6 +3,7 @@ import { formatNumber, t } from '../../core/texts';
 import { keepKeys } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
 import {
+  type ActivityVm,
   type CostCell,
   type DemandCell,
   FACTOR_PRESETS,
@@ -20,6 +21,11 @@ export interface GbCalculatorActions {
 
 const percent = (n: number) => `${formatNumber(n)} %`;
 
+const activityLine = (a: ActivityVm) =>
+  html`<br /><span class=${a.idle ? 'gb-activity warn' : 'gb-activity muted'} title=${a.title}>${a.text}${
+    a.week ? ` · ${a.week}` : ''
+  }</span>`;
+
 const owner = (name: string, url: string) => html`${t('gbCalc.ownerLabel')}: ${externalLink(name, url)}`;
 
 function header(h: GbHeader) {
@@ -31,7 +37,7 @@ function header(h: GbHeader) {
   const split = t('gbCalc.fpSplit', { bar: part(h.fpBar), packages: part(h.fpPackages) });
   return html`<p><b>${t('gbCalc.heading', { name: h.name, level: h.level, next: h.next })}</b>
     <span class="muted">· ${t('gbCalc.unlocked', { max: h.maxLevel })}</span>
-    <br />${owner(h.owner, h.ownerUrl)}
+    <br />${owner(h.owner, h.ownerUrl)}${h.activity ? activityLine(h.activity) : ''}
     <br /><span class="muted"><span class="gb-fp" title=${split}>${fp}</span> ·
       ${t('gbCalc.arc', { arc: formatNumber(h.arcBonus) })}</span></p>`;
 }

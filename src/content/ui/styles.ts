@@ -30,6 +30,7 @@ td.num, th.num { text-align: right; }
 .error { color: #f07060; }
 button.action { font: inherit; cursor: pointer; margin: 2px 4px 2px 0; }
 label { display: flex; gap: 6px; align-items: center; padding: 2px 0; }
+p.setting-hint { margin: 0 0 4px 22px; }
 h2 { font-size: 12px; margin: 8px 0 4px; color: #f0c060; }
 input, select, textarea { font: inherit; }
 .tabs { display: flex; flex-wrap: wrap; gap: 2px; margin: 0 0 6px; }
