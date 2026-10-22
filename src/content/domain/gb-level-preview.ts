@@ -158,7 +158,8 @@ export interface LevelUpAndFirst {
 
 /**
  * The combination only when the next level can be paid into right after the level up and it pays: not blocked, the
- * level after the next construction start unlocked, the reward of the next level known and the total above 0.
+ * level after the next construction start unlocked, the reward of the next level known and the total above the best
+ * profit a place of the current level brings without levelling (0 when none brings one).
  */
 export function levelUpAndFirst(
   input: ConstructionInput,
@@ -178,6 +179,8 @@ export function levelUpAndFirst(
   const first = previewLevel({ greatBuilding, level: level + 1, arcBonus, factor: input.factor }).calc?.places[0];
   if (first?.safeCost === undefined || first.profit === undefined) return undefined;
   const total = fillGain + first.profit;
-  if (total <= 0) return undefined;
+  // worth it only above what the current level pays without levelling; a place whose safe cost levels it is this case
+  const best = Math.max(0, ...calc.places.filter((p) => p.available && !p.levelWarning).map((p) => p.profit ?? 0));
+  if (total <= best) return undefined;
   return { nextLevel: level + 1, fill, rank, fillGain, firstCost: first.safeCost, firstGain: first.profit, total };
 }

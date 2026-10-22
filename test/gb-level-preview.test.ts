@@ -234,18 +234,32 @@ describe('levelUpAndFirst', () => {
     ...change,
   });
 
-  it('nothing paid in: fills the level, lands below the bigger deposits and takes place 1 of the next', () => {
-    // 2200 in, 200 missing: 200 lands on 3 behind 1300 and 900, round(110 × 1.955) = 215 for 200: +15
-    const rows = [row(1, 1300), row(2, 900), row(3), row(4), row(5)];
+  it('nothing paid in: fills the level, lands below the deposits that stay safe and takes place 1 of the next', () => {
+    // 2390 in, every place safe: 10 missing lands on 6 without a reward, -10, with the next +80 still +70 over 0
+    const rows = [row(1, 1300), row(2, 900), row(3, 100), row(4, 50), row(5, 40)];
     expect(levelUpAndFirst(input(rows), gb)).toEqual({
       nextLevel: 53,
-      fill: 200,
-      rank: 3,
-      fillGain: 15,
+      fill: 10,
+      rank: 6,
+      fillGain: -10,
       firstCost: 1230,
       firstGain: 80,
-      total: 95,
+      total: 70,
     });
+  });
+
+  it('counts a place of an early level that pays no Forge points as 0, levelling onto it and taking it alike', () => {
+    // P4 and P5 pay 0 FP, as in the first levels: 2380 in, 20 missing lands on 4 for 0 FP: -20, with the next +60.
+    // Taking 4 or 5 safely costs Forge points for 0, so the current level brings 0
+    const rows = [row(1, 1300), row(2, 900), row(3, 180), row(4, undefined, false, 0), row(5, undefined, false, 0)];
+    expect(levelUpAndFirst(input(rows), gb)).toMatchObject({ fill: 20, rank: 4, fillGain: -20, total: 60 });
+  });
+
+  it('is left out when a place of the current level pays more without levelling', () => {
+    // 2200 in, 200 missing: levelling lands on 3, round(110 × 1.955) = 215 for 200: +15, with the next +95. Taking 3
+    // safely costs round(200 / 2) = 100 for the same 215: +115, more than both together
+    const rows = [row(1, 1300), row(2, 900), row(3), row(4), row(5)];
+    expect(levelUpAndFirst(input(rows), gb)).toBeUndefined();
   });
 
   it('own deposit: the total of own deposit and the rest decides the place and the cost', () => {
@@ -268,7 +282,7 @@ describe('levelUpAndFirst', () => {
   });
 
   it('is left out when the next level is not unlocked, its reward is unknown or the building is blocked', () => {
-    const rows = [row(1, 1300), row(2, 900), row(3), row(4), row(5)];
+    const rows = [row(1, 1300), row(2, 900), row(3, 100), row(4, 50), row(5, 40)];
     // unlocked up to 53: the construction from 53 is not open after the level up
     expect(levelUpAndFirst(input(rows, { maxLevel: 53 }), gb)).toBeUndefined();
     expect(levelUpAndFirst(input(rows, { maxLevel: 54 }), gb)).toBeDefined();
