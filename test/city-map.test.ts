@@ -124,6 +124,18 @@ describe('city map', () => {
     },
   );
 
+  it('resets to the framed building when there is one, else to the start view', () => {
+    const { map, root, button } = mount();
+    const hall = data.tiles[0] as CityMapData['tiles'][number];
+    render(map.render({ ...data, focus: { rect: hall, color: '#ff0' } }), root);
+    button('⤢').click();
+    expect(map.tileIndexAt(100, 50)).toBe(0);
+    render(map.render(data), root);
+    button('⤢').click();
+    // the start view is centered on the middle of the city, where the street stands
+    expect(map.tileIndexAt(100, 50)).toBe(1);
+  });
+
   it('focuses once the canvas has a size when asked before', () => {
     const map = new CityMap();
     const root = document.createElement('div');

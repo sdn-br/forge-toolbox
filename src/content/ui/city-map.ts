@@ -126,7 +126,7 @@ export class CityMap {
           ${modeButton('top', t('cityMap.top'))}${modeButton('iso', t('cityMap.iso'))}
           <button title=${t('cityMap.zoomIn')} @click=${() => this.zoomBy(ZOOM_STEP)}>+</button>
           <button title=${t('cityMap.zoomOut')} @click=${() => this.zoomBy(1 / ZOOM_STEP)}>−</button>
-          <button title=${t('cityMap.zoomReset')} @click=${() => this.showCity()}>⤢</button>
+          <button title=${t('cityMap.zoomReset')} @click=${() => this.reset()}>⤢</button>
         </div>
         <div class="map-tip" hidden ${ref((el) => {
           this.tip = el as HTMLElement | undefined;
@@ -396,6 +396,15 @@ export class CityMap {
     if (!size || !this.bounds) return;
     const point = at ?? { x: size.width / 2, y: size.height / 2 };
     this.view = zoomAt(this.mode, this.bounds, size.width, size.height, this.view, factor, point.x, point.y);
+    this.draw();
+  }
+
+  /** the reset button: a framed building is focused again as from the list, else the start view */
+  private reset() {
+    const size = this.size();
+    const focus = this.data.focus?.rect;
+    if (!focus || !size || !this.bounds) return this.showCity();
+    this.view = centerOn(this.mode, this.bounds, size.width, size.height, WHOLE_MAP, focus, FOCUS_SIZE[this.mode]);
     this.draw();
   }
 
