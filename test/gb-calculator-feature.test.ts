@@ -554,13 +554,13 @@ describe('LG-Rechner', () => {
       input.dispatchEvent(new Event('change'));
     };
 
-    /** 2434 (St. 52 of 60, 2400 needed) with owner 100, 1600 on 1, mine 500 on 2, 100 on 3: 100 missing */
+    /** 2434 (St. 52 of 60, 2400 needed) with owner 100, 1600 on 1, mine 560 on 2, 100 on 3: 40 missing */
     const levelUpCase = () => {
       const env = setup();
       env.loadDefinitions();
       const { entity, construction } = env.opening(2434);
       type Row = { rank?: number; forge_points?: number };
-      const fp: Record<number, number | undefined> = { 1: 1600, 2: 500, 3: 100, 4: undefined };
+      const fp: Record<number, number | undefined> = { 1: 1600, 2: 560, 3: 100, 4: undefined };
       const rankings = (construction.responseData as { rankings: Row[] }).rankings.map((r) => {
         if (r.rank === undefined || !(r.rank in fp)) return r;
         const { forge_points: _, ...rest } = r;
@@ -570,12 +570,13 @@ describe('LG-Rechner', () => {
       env.send({ ...construction, responseData: { ...(construction.responseData as object), rankings } });
       return env;
     };
-    // 600 stays on 2: round(330 × 1.955) = 645 - 600 = +45; level 53 costs 2460, place 1 1310 for 1230: +80
-    const LEVEL_UP = 'Leveln + P1 auf 53: 100 + 1.230 FP → +45 + 80 = +125';
+    // 600 stays on 2: round(330 × 1.955) = 645 - 600 = +45; level 53 costs 2460, place 1 1310 for 1230: +80. As it
+    // stands place 2 brings 645 - 560 = +85, less than +125
+    const LEVEL_UP = 'Leveln + P1 auf 53: 40 + 1.230 FP → +45 + 80 = +125';
 
     it('shows leveling now plus place 1 of the next level in the line about the own deposit', () => {
       const { box } = levelUpCase();
-      expect(box.text).toContain('Bis Level-Up fehlen 100 FP');
+      expect(box.text).toContain('Bis Level-Up fehlen 40 FP');
       const line = box.root.querySelector('.gb-me .gb-levelup');
       expect(line?.textContent?.replace(/\s+/g, ' ').trim()).toBe(LEVEL_UP);
       expect(line?.querySelector('b.gain')?.textContent).toBe('+125');

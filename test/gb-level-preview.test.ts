@@ -263,14 +263,27 @@ describe('levelUpAndFirst', () => {
   });
 
   it('own deposit: the total of own deposit and the rest decides the place and the cost', () => {
-    // owner 100, 1600 on 1, mine 500 on 2, 100 on 3: 100 missing, 600 stays on 2: round(330 × 1.955) = 645 - 600
+    // 1500 needed: owner 100, 600 on 1, mine 500 on 2, 100 on 3, 200 missing: 700 passes place 1, 1281 - 700 = +581,
+    // with the next +661. Without levelling the best is taking place 1 safely: round((600 + 700) / 2) = 650, +631
+    const rows = [owner(100), row(1, 600), row(2, 500, true), row(3, 100), row(4), row(5)];
+    expect(levelUpAndFirst(input(rows, { required: 1500 }), gb)).toMatchObject({
+      fill: 200,
+      rank: 1,
+      fillGain: 581,
+      total: 661,
+    });
+  });
+
+  it('is left out when the own place already pays more than levelling and place 1 of the next together', () => {
+    // mine 500 on 2 is safe: 645 - 500 = +145 as it stands; levelling with 100 more and P1 of the next brings +125
     const rows = [owner(100), row(1, 1600), row(2, 500, true), row(3, 100), row(4), row(5)];
-    expect(levelUpAndFirst(input(rows), gb)).toMatchObject({ fill: 100, rank: 2, fillGain: 45, total: 125 });
+    expect(levelUpAndFirst(input(rows), gb)).toBeUndefined();
   });
 
   it('on a tie the earlier deposit stays ahead', () => {
-    // 1500 and 600 of others, mine 500 on 3: 2700 needed, 100 missing, 600 ties place 2 and stays on 3
-    const rows = [row(1, 1500, false, 655), row(2, 600, false, 1000), row(3, 500, true, 600), row(4), row(5)];
+    // 1500 and 600 of others, mine 550 on 3: 2700 needed, 50 missing, 600 ties place 2 and stays on 3; as it stands
+    // place 3 brings 1173 - 550 = +623, less than levelling and the next together
+    const rows = [row(1, 1500, false, 655), row(2, 600, false, 1000), row(3, 550, true, 600), row(4), row(5)];
     // round(600 × 1.955) = 1173 - 600 = 573, not the 1955 - 600 of place 2
     expect(levelUpAndFirst(input(rows, { required: 2700 }), gb)).toMatchObject({ rank: 3, fillGain: 573, total: 653 });
   });
