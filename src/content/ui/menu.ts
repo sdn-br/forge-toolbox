@@ -1,5 +1,6 @@
 import { html, render } from 'lit-html';
 import { baseCss } from './styles';
+import { installTooltip } from './tooltip';
 
 export interface MenuItem {
   id: string;
@@ -27,6 +28,10 @@ export class Menu {
   private host = document.createElement('div');
   private shadow = this.host.attachShadow({ mode: 'open' });
 
+  constructor() {
+    installTooltip(this.shadow);
+  }
+
   add(item: MenuItem): void {
     this.items.push(item);
     this.render();
@@ -48,7 +53,7 @@ export class Menu {
     render(
       html`<style>${baseCss}${menuCss}</style>
         <nav class="menu">
-          ${this.items.map((i) => html`<button title=${i.label()} @click=${i.action}>${i.icon}</button>`)}
+          ${this.items.map((i) => html`<button data-tip=${i.label()} aria-label=${i.label()} @click=${i.action}>${i.icon}</button>`)}
         </nav>
         ${this.notice ? html`<p class="notice">${this.notice}</p>` : ''}`,
       this.shadow,

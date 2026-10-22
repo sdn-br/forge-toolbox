@@ -62,7 +62,7 @@ function offerLine(o: Offer, resourcesKnown: boolean) {
 function streetsView(s: OwnStatsVm['streets']) {
   if (!s) return html`<p class="muted">${t('cityMap.streetsUnknown')}</p>`;
   const counts = { needed: formatNumber(s.needed), placed: formatNumber(s.placed) };
-  return html`<p title=${t('cityMap.streetsHint')}>${
+  return html`<p data-tip=${t('cityMap.streetsHint')}>${
     s.percent === undefined
       ? t('cityMap.streetsNone', counts)
       : t('cityMap.streetsValue', { ...counts, percent: percent(s.percent) })
@@ -89,7 +89,7 @@ function statsPanel(s: OwnStatsVm) {
           <td class="num">${formatNumber(r.tiles)}</td></tr>`,
       )}
     </table>
-    <h2 title=${t('cityMap.streetsHint')}>${t('cityMap.streets')}</h2>
+    <h2 data-tip=${t('cityMap.streetsHint')}>${t('cityMap.streets')}</h2>
     ${streetsView(s.streets)}
     <h2>${t('cityMap.expansions')}</h2>
     <ul class="stats-list">
@@ -139,7 +139,7 @@ export function cityMapView(
       ${map ?? ''}
     </div>
     <aside class=${ui.stats ? 'stats-drawer open' : 'stats-drawer'} ${ref((el) => placeDrawer(el))}>
-      <button class="stats-tab" title=${t(ui.stats ? 'cityMap.statsClose' : 'cityMap.statsOpen')}
+      <button class="stats-tab" data-tip=${t(ui.stats ? 'cityMap.statsClose' : 'cityMap.statsOpen')}
         @click=${() => actions.toggleStats()}>${t('cityMap.stats')}</button>
       ${ui.stats && stats ? statsPanel(stats) : ''}
     </aside>

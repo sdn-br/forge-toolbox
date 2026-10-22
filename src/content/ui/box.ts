@@ -1,7 +1,8 @@
 // Window frame for every feature: drag, pin, minimize, pop-out, close. Content comes from a lit-html render function.
-import { html, render, type TemplateResult } from 'lit-html';
+import { html, render, svg, type TemplateResult } from 'lit-html';
 import { t } from '../core/texts';
 import { baseCss } from './styles';
+import { installTooltip } from './tooltip';
 import type { UiState } from './ui-state';
 
 export interface BoxOptions {
@@ -32,6 +33,7 @@ export class Box {
     private ui: UiState,
   ) {
     this.host.dataset.forgeToolbox = options.id;
+    installTooltip(this.shadow);
   }
 
   get isOpen(): boolean {
@@ -98,17 +100,21 @@ export class Box {
             popped
               ? ''
               : html`
-            <button class=${state.pinned ? 'active' : ''} title=${t(state.pinned ? 'box.unpin' : 'box.pin')}
-              @click=${() => this.set({ pinned: !state.pinned })}>📌</button>
-            <button title=${t('box.popout')} @click=${() => this.popOut()}>⧉</button>
-            <button title=${t('box.minimize')} @click=${() => this.set({ minimized: !state.minimized })}>▁</button>`
+            ${headerButton(
+              t(state.pinned ? 'box.unpin' : 'box.pin'),
+              () => this.set({ pinned: !state.pinned }),
+              pinIcon(state.pinned === true),
+              state.pinned ? 'pin active' : 'pin',
+            )}
+            ${headerButton(t('box.popout'), () => this.popOut(), '⧉')}
+            ${headerButton(t('box.minimize'), () => this.set({ minimized: !state.minimized }), '▁')}`
           }
-          <button title=${t('box.close')} @click=${() => this.close()}>✕</button>
+          ${headerButton(t('box.close'), () => this.close(), '✕')}
         </header>
         <div class=${this.options.fill ? 'body fill' : 'body'}>${this.options.render()}</div>
         ${
           resizable
-            ? html`<div class="resize-handle" title=${t('box.resize')}
+            ? html`<div class="resize-handle" data-tip=${t('box.resize')}
               @pointerdown=${(e: PointerEvent) => this.startResize(e)}
               @dblclick=${() => this.set({ width: undefined, height: undefined })}></div>`
             : ''
@@ -212,6 +218,17 @@ export class Box {
     this.update();
   }
 }
+
+/** icon-only, so the label is also its accessible name */
+const headerButton = (label: string, action: () => void, icon: string | TemplateResult, cls = '') =>
+  html`<button class=${cls} data-tip=${label} aria-label=${label} @click=${action}>${icon}</button>`;
+
+/** loose: an outlined pin, tilted; pinned: a filled pin standing upright (gold through the button's colour) */
+const pinIcon = (pinned: boolean) =>
+  html`<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">${svg`<g
+    transform=${pinned ? '' : 'rotate(40 8 8)'} fill=${pinned ? 'currentColor' : 'none'} stroke="currentColor"
+    stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M5 1.5h6M6 1.5v5L3.5 9.5h9L10 6.5v-5" /><path d="M8 9.5V15" /></g>`}</svg>`;
 
 /** `value` within `min` and `max`; a max below the min gives the min */
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));

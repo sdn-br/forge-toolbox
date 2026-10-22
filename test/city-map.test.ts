@@ -3,6 +3,7 @@ import { render } from 'lit-html';
 import { describe, expect, it, vi } from 'vitest';
 import { CityMap, type CityMapData, legendView, START_VIEW } from '../src/content/ui/city-map';
 import { project, toScreen } from '../src/content/ui/map-projection';
+import { installTooltip } from '../src/content/ui/tooltip';
 
 const data: CityMapData = {
   areas: [{ x: 0, y: 0, width: 10, length: 10 }],
@@ -18,13 +19,14 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 function mount(map = new CityMap()) {
   const root = document.createElement('div');
   document.body.append(root);
+  installTooltip(root);
   const draw = () => render(map.render(data, legendView([{ color: '#f00', label: 'Rot' }])), root);
   draw();
   const canvas = root.querySelector('canvas') as HTMLCanvasElement;
   Object.defineProperty(canvas, 'clientWidth', { value: 200 });
   Object.defineProperty(canvas, 'clientHeight', { value: 100 });
   canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 100 }) as DOMRect;
-  const tip = root.querySelector('.map-tip') as HTMLElement;
+  const tip = root.querySelector('.tip') as HTMLElement;
   const move = (x: number, y: number) =>
     canvas.dispatchEvent(new PointerEvent('pointermove', { clientX: x, clientY: y, bubbles: true }));
   const button = (label: string) =>

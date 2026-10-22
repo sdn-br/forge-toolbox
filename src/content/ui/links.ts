@@ -7,5 +7,5 @@ export const externalLink = (text: string, url: string) =>
 
 /** a small link beside a name whose own click does something else, like filtering */
 export const externalIcon = (url: string) =>
-  html`<a class="ext-link" href=${url} target="_blank" rel="noopener noreferrer" title=${t('foestats.open')}
+  html`<a class="ext-link" href=${url} target="_blank" rel="noopener noreferrer" data-tip=${t('foestats.open')}
     aria-label=${t('foestats.open')}>↗</a>`;

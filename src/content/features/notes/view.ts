@@ -59,7 +59,7 @@ function tab(tab: TabVm, actions: NotesActions) {
   const label = tab.active ? 'active' : '';
   if (tab.fixed) return html`<button class=${label} @click=${() => actions.group(tab.id)}>${tab.name}</button>`;
   const d = draggable('group', tab.id, actions);
-  return html`<button class=${label} draggable="true" title=${t('notes.rename')}
+  return html`<button class=${label} draggable="true" data-tip=${t('notes.rename')}
     @click=${() => actions.group(tab.id)} @dblclick=${() => actions.startRename('group', tab.id)}
     @dragstart=${d.start} @dragover=${d.over} @drop=${d.drop}>${tab.name}</button>`;
 }
@@ -69,7 +69,7 @@ const tabs = (vm: NotesVm, actions: NotesActions) => html`<nav class="tabs">
   ${
     vm.addingGroup
       ? inlineField('', actions.addGroup, actions.cancel, t('notes.groupName'))
-      : html`<button title=${t('notes.addGroup')} @click=${actions.startAddGroup}>+</button>`
+      : html`<button data-tip=${t('notes.addGroup')} aria-label=${t('notes.addGroup')} @click=${actions.startAddGroup}>+</button>`
   }</nav>`;
 
 function row(r: RowVm, playerGroup: boolean, actions: NotesActions) {
@@ -79,7 +79,7 @@ function row(r: RowVm, playerGroup: boolean, actions: NotesActions) {
   const classes = `${r.active ? 'active' : ''} ${r.draft ? 'muted' : ''}`;
   if (playerGroup) return html`<li class=${classes} @click=${() => actions.page(r.id)}>${content}</li>`;
   const d = draggable('page', r.id, actions);
-  return html`<li class=${classes} draggable="true" title=${t('notes.rename')}
+  return html`<li class=${classes} draggable="true" data-tip=${t('notes.rename')}
     @click=${() => actions.page(r.id)} @dblclick=${() => actions.startRename('page', r.id)}
     @dragstart=${d.start} @dragover=${d.over} @drop=${d.drop}>${content}</li>`;
 }

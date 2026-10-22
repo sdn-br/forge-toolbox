@@ -82,7 +82,7 @@ describe('recorded own contribution', () => {
     expect(events.filter((e) => e === 'inventory')).toHaveLength(1);
     expect(events.filter((e) => e.startsWith('gb:'))).toEqual(['gb:contributed']);
     expect(box.text).toContain('Verfügbare FP: 108.198');
-    expect(box.root.querySelector('.gb-fp')?.getAttribute('title')).toBe('Leiste 0 + Pakete 108.198');
+    expect(box.root.querySelector('.gb-fp')?.getAttribute('data-tip')).toBe('Leiste 0 + Pakete 108.198');
     expect(box.text).toContain('Bis Level-Up fehlen 179 FP');
     // the own place is safe with what was paid: round((121 + 480) / 2) = 301
     expect(rows()[1]?.className).toBe('gb-mine');
@@ -132,7 +132,7 @@ describe('recorded contribution to place 2 with empty places below', () => {
     ]);
     // rank 1 holds 820, its safe cost round((820 + 557) / 2) = 689 cannot pass it anymore
     expect(cells(rows()[0]).slice(0, 3)).toEqual(['1', '820', '✓']);
-    expect(rows()[0]?.querySelectorAll('td')[2]?.getAttribute('title')).toBe('Platz ist sicher');
+    expect(rows()[0]?.querySelectorAll('td')[2]?.getAttribute('data-tip')).toBe('Platz ist sicher');
     expect([cells(rows()[0])[4], cells(rows()[0])[6]]).toEqual(['–', '–']);
     // rest 557, no successor: round(557 / 2) = 279, already paid: safe, the rate is the own 279 of 205
     expect(cells(rows()[1])).toEqual(['2', '279', '✓', '205', '-74', '390 (+111)', '136,1 %']);
