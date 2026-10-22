@@ -86,17 +86,20 @@ describe('LG-Rechner', () => {
       'gb-unavailable',
       'gb-unavailable',
     ]);
-    // place, safe, demand at 90 %, gross, profit, rate, blueprints, medals
-    expect([...(rows()[0]?.querySelectorAll('td') ?? [])].map((td) => td.textContent?.trim())).toEqual([
-      '1',
-      '1.406',
-      '1.387',
-      '1.427',
-      '21',
-      '192,6 %',
-      '29',
-      '2.111',
+    // place, safe, gross, profit, demand at 90 %, rate; blueprints and medals are not shown
+    const cells = (row: Element | undefined) =>
+      [...(row?.querySelectorAll('td') ?? [])].map((td) => td.textContent?.trim());
+    expect([...box.root.querySelectorAll('th')].map((th) => th.textContent?.trim())).toEqual([
+      'Platz',
+      'Sichern',
+      'FP',
+      'Gewinn',
+      'Fördern',
+      'Kurs',
     ]);
+    expect(cells(rows()[0])).toEqual(['1', '1.406', '1.427', '21', '1.387', '192,6 %']);
+    // 1406 on place 2 would land on the empty place 1: no safe cost, profit or rate, reward and demand stay
+    expect(cells(rows()[1])).toEqual(['2', '–', '714', '–', '694', '–']);
     expect(tones()).toBe(1);
   });
 
@@ -104,9 +107,9 @@ describe('LG-Rechner', () => {
     const { open, rows } = setup();
     open(1909);
     await tick();
-    const demand = rows()[0]?.querySelectorAll('td')[2];
+    const demand = rows()[0]?.querySelectorAll('td')[4];
     expect(demand?.className).toBe('num below-safe');
-    expect(demand?.getAttribute('title')).toBe('Gewinn bei Fordern: 40 FP\nunter Sicher: nur mit Absprache haltbar');
+    expect(demand?.getAttribute('title')).toBe('Gewinn bei Fördern: 40 FP\nunter Sichern: nur mit Absprache haltbar');
   });
 
   it('marks a demand above what the level still needs and keeps the extra over the own deposit', async () => {
@@ -117,11 +120,11 @@ describe('LG-Rechner', () => {
     input.dispatchEvent(new Event('change'));
     await tick();
     // rank 1 pays 655: round(655 × 3) = 1965, the level needs 786 more; 575 of mine already in
-    const demand = rows()[0]?.querySelectorAll('td')[2];
+    const demand = rows()[0]?.querySelectorAll('td')[4];
     expect(demand?.textContent?.trim()).toBe('1.965 (+1.390)');
     expect(demand?.className).toBe('num over-rest');
     expect(demand?.getAttribute('title')).toContain('mehr als bis zum Level-Up fehlt (786 FP)');
-    expect(demand?.getAttribute('title')).toContain('Gewinn bei Fordern: -684 FP');
+    expect(demand?.getAttribute('title')).toContain('Gewinn bei Fördern: -684 FP');
   });
 
   it('asks to reopen when the construction came without its building', async () => {
@@ -145,7 +148,7 @@ describe('LG-Rechner', () => {
   it('remembers the factor from the buttons and the field and uses it for the demand', async () => {
     const { box, ctx, open, rows } = setup();
     open(1909);
-    const demand = () => rows()[0]?.querySelectorAll('td')[2]?.textContent?.trim();
+    const demand = () => rows()[0]?.querySelectorAll('td')[4]?.textContent?.trim();
     box.click('100 %');
     await tick();
     expect(ctx.settings.number('gbCalc.factor')).toBe(100);
@@ -441,7 +444,7 @@ describe('LG-Rechner', () => {
       expect(box.text).toContain('Die Stufe kostet 3.138 FP');
       expect(box.text).not.toContain('Bis Level-Up fehlen');
       expect(box.root.querySelector('.gb-overlay')).toBeNull();
-      // empty: half of the cost holds every place, only the first can be had; blueprints and medals unknown
+      // empty: only the first place can be had, a deposit on any other would land on it
       expect(rows().map((r) => r.className)).toEqual([
         'gb-loss',
         'gb-unavailable',
@@ -449,8 +452,9 @@ describe('LG-Rechner', () => {
         'gb-unavailable',
         'gb-unavailable',
       ]);
-      expect(cells(rows()[0])).toEqual(['1', '1.569', '1.406', '1.447', '-122', '212 %', '–', '–']);
-      expect(rows().map((r) => cells(r)[3])).toEqual(['1.447', '723', '244', '59', '10']);
+      expect(cells(rows()[0])).toEqual(['1', '1.569', '1.447', '-122', '1.406', '212 %']);
+      expect(cells(rows()[1])).toEqual(['2', '–', '723', '–', '703', '–']);
+      expect(rows().map((r) => cells(r)[2])).toEqual(['1.447', '723', '244', '59', '10']);
       expect(box.root.querySelector('.estimate')).toBeNull();
       expect(tones()).toBe(1);
     });
@@ -466,7 +470,7 @@ describe('LG-Rechner', () => {
       // the factor still sets the demand: 910 × 2
       box.click('100 %');
       await tick();
-      expect(cells(rows()[0])?.[2]).toBe('1.820');
+      expect(cells(rows()[0])?.[4]).toBe('1.820');
       box.click('Laufend');
       expect(box.text).not.toContain('Vorschau Stufe');
       expect(box.text).toContain('Bis Level-Up fehlen 2.811 FP');
@@ -496,7 +500,7 @@ describe('LG-Rechner', () => {
       loadDefinitions();
       open(1500);
       choose(box.root, 421);
-      const gross = rows()[0]?.querySelectorAll('td')[3];
+      const gross = rows()[0]?.querySelectorAll('td')[2];
       expect(gross?.className).toBe('num estimate');
       expect(gross?.getAttribute('title')).toBe('Belohnung geschätzt, auf etwa 5 FP genau');
       expect(gross?.textContent).toContain('≈');

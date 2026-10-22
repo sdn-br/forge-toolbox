@@ -133,10 +133,9 @@ describe('recorded contribution to place 2 with empty places below', () => {
     // rest 557, no successor: round(557 / 2) = 279, already paid
     expect(cells(rows()[1])[1]).toBe('279');
     for (const row of rows().slice(2)) {
-      const [, safe, demand, gross, profit, rate, blueprints] = cells(row);
-      expect([safe, demand, profit, rate]).toEqual(['–', '–', '–', '–']);
+      const [, safe, gross, profit, demand, rate] = cells(row);
+      expect([safe, profit, demand, rate]).toEqual(['–', '–', '–', '–']);
       expect(gross).toMatch(/^\d/);
-      expect(blueprints).toMatch(/^\d/);
     }
     expect(box.text).toContain('Bis Level-Up fehlen 278 FP');
   });

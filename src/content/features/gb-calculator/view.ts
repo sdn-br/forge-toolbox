@@ -119,20 +119,17 @@ const placeTitle = (p: PlaceRow) =>
     t(`gbCalc.status.${p.status}`),
   ].join(', ');
 
-const maybe = (n: number | undefined) => (n === undefined ? NONE : html`<td class="num">${formatNumber(n)}</td>`);
-
+/** Platz, Sichern, FP, Gewinn, Fördern, Kurs; blueprints and medals stay in the view model but are not shown */
 const placeRow = (p: PlaceRow) =>
   html`<tr class=${`gb-${p.status}`} title=${placeTitle(p)}>
     <td>${p.rank}</td>
     ${costCell(p.safe)}
-    ${demandCell(p.demand)}
     <td class=${p.estimate ? 'num estimate' : 'num'} title=${p.estimate ? t('gbCalc.estimate') : ''}>${
       p.estimate ? '≈ ' : ''
     }${formatNumber(p.gross)}</td>
     ${p.profit === undefined ? NONE : html`<td class="num">${formatNumber(p.profit)}</td>`}
+    ${demandCell(p.demand)}
     ${p.safe === undefined ? NONE : html`<td class="num">${p.rate === undefined ? '' : percent(p.rate)}</td>`}
-    ${maybe(p.blueprints)}
-    ${maybe(p.medals)}
   </tr>`;
 
 function placesTable(places: PlaceRow[]) {
@@ -140,12 +137,10 @@ function placesTable(places: PlaceRow[]) {
     <tr>
       <th>${t('gbCalc.place')}</th>
       <th class="num" title=${t('gbCalc.safeHint')}>${t('gbCalc.safe')}</th>
-      <th class="num" title=${t('gbCalc.demandHint')}>${t('gbCalc.demand')}</th>
       <th class="num" title=${t('gbCalc.grossHint')}>${t('gbCalc.gross')}</th>
       <th class="num">${t('gbCalc.profit')}</th>
+      <th class="num" title=${t('gbCalc.demandHint')}>${t('gbCalc.demand')}</th>
       <th class="num" title=${t('gbCalc.rateHint')}>${t('gbCalc.rate')}</th>
-      <th class="num">${t('gbCalc.blueprints')}</th>
-      <th class="num">${t('gbCalc.medals')}</th>
     </tr>
     ${places.map(placeRow)}
   </table>`;
