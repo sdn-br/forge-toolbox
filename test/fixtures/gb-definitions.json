@@ -1,0 +1,122 @@
+{
+  "note": "Great building definitions (metadata building_entity_<id>) recorded on de20 2026-10-19, trimmed to what the level preview reads.",
+  "files": [
+    {
+      "url": "https://foede.innogamescdn.com/start/metadata?id=building_entity_X_EarlyMiddleAge_Landmark2-0",
+      "json": {
+        "id": "X_EarlyMiddleAge_Landmark2",
+        "name": "Aachener Dom",
+        "type": "greatbuilding",
+        "requirements": {
+          "min_era": "EarlyMiddleAge"
+        },
+        "strategy_points_for_upgrade": [50, 60, 120, 190, 240, 320, 380, 460, 530, 600],
+        "__class__": "CityEntityGreatBuilding"
+      }
+    },
+    {
+      "url": "https://foede.innogamescdn.com/start/metadata?id=building_entity_X_FutureEra_Landmark1-0",
+      "json": {
+        "id": "X_FutureEra_Landmark1",
+        "name": "Die Arche",
+        "type": "greatbuilding",
+        "requirements": {
+          "min_era": "FutureEra"
+        },
+        "strategy_points_for_upgrade": [70, 110, 200, 290, 400, 510, 620, 740, 860, 970],
+        "__class__": "CityEntityGreatBuilding"
+      }
+    },
+    {
+      "url": "https://foede.innogamescdn.com/start/metadata?id=building_entity_X_ProgressiveEra_Landmark1-0",
+      "json": {
+        "id": "X_ProgressiveEra_Landmark1",
+        "name": "Alcatraz",
+        "type": "greatbuilding",
+        "requirements": {
+          "min_era": "ProgressiveEra"
+        },
+        "strategy_points_for_upgrade": [60, 90, 170, 260, 340, 440, 530, 630, 740, 830],
+        "__class__": "CityEntityGreatBuilding"
+      }
+    },
+    {
+      "url": "https://foede.innogamescdn.com/start/metadata?id=building_entity_X_BronzeAge_Landmark2-0",
+      "json": {
+        "id": "X_BronzeAge_Landmark2",
+        "name": "Zeusstatue",
+        "type": "greatbuilding",
+        "requirements": {
+          "min_era": "BronzeAge"
+        },
+        "strategy_points_for_upgrade": [40, 60, 100, 150, 210, 270, 330, 380, 450, 510],
+        "__class__": "CityEntityGreatBuilding"
+      }
+    },
+    {
+      "url": "https://foede.innogamescdn.com/start/metadata?id=building_entity_X_LateMiddleAge_Landmark1-0",
+      "json": {
+        "id": "X_LateMiddleAge_Landmark1",
+        "name": "Basilius-Kathedrale",
+        "type": "greatbuilding",
+        "requirements": {
+          "min_era": "LateMiddleAge"
+        },
+        "strategy_points_for_upgrade": [50, 80, 140, 210, 290, 360, 440, 530, 610, 700],
+        "__class__": "CityEntityGreatBuilding"
+      }
+    },
+    {
+      "url": "https://foede.innogamescdn.com/start/metadata?id=building_entity_X_ProgressiveEra_Landmark2-0",
+      "json": {
+        "id": "X_ProgressiveEra_Landmark2",
+        "name": "Château Frontenac",
+        "type": "greatbuilding",
+        "requirements": {
+          "min_era": "ProgressiveEra"
+        },
+        "strategy_points_for_upgrade": [60, 90, 170, 260, 340, 440, 530, 630, 740, 830],
+        "__class__": "CityEntityGreatBuilding"
+      }
+    },
+    {
+      "url": "https://foede.innogamescdn.com/start/metadata?id=building_entity_X_PostModernEra_Landmark1-0",
+      "json": {
+        "id": "X_PostModernEra_Landmark1",
+        "name": "Cape Canaveral",
+        "type": "greatbuilding",
+        "requirements": {
+          "min_era": "PostModernEra"
+        },
+        "strategy_points_for_upgrade": [60, 100, 180, 270, 360, 460, 560, 670, 770, 880],
+        "__class__": "CityEntityGreatBuilding"
+      }
+    },
+    {
+      "url": "https://foede.innogamescdn.com/start/metadata?id=building_entity_X_AllAge_Oracle-0",
+      "json": {
+        "id": "X_AllAge_Oracle",
+        "name": "Orakel von Delphi",
+        "type": "greatbuilding",
+        "requirements": {
+          "min_era": "NoAge"
+        },
+        "strategy_points_for_upgrade": [20, 40, 60, 130, 210, 290, 370, 460, 550, 650],
+        "__class__": "CityEntityGreatBuilding"
+      }
+    },
+    {
+      "url": "https://foede.innogamescdn.com/start/metadata?id=building_entity_X_StellarAgeDiscovery_Landmark1-0",
+      "json": {
+        "id": "X_StellarAgeDiscovery_Landmark1",
+        "name": "Horizontriss-Siphon",
+        "type": "greatbuilding",
+        "requirements": {
+          "min_era": "StellarAgeDiscovery"
+        },
+        "strategy_points_for_upgrade": [1240, 1750, 3080, 4630, 6070, 7620, 9380, 11000, 12870, 14530],
+        "__class__": "CityEntityGreatBuilding"
+      }
+    }
+  ]
+}
