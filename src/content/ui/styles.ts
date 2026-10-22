@@ -123,6 +123,8 @@ tr.gb-unavailable, tr.gb-worse { color: #8a7a60; }
 td.short { color: #ff6a50; font-weight: 600; }
 td.over-rest { color: #e08070; }
 td.below-safe { font-style: italic; opacity: .75; }
+p.gb-me { margin: 6px 0; padding: 4px 6px; border: 1px solid #8a6a3a; border-radius: 4px; background: #3a2814; }
+p.gb-me.safe { border-color: #5a9a4a; }
 p.gb-me.safe, .gb-me .gain { color: #8fd08f; }
 .gb-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 8px;
   background: rgba(43, 29, 16, .88); text-align: center; color: #f0c060; }
