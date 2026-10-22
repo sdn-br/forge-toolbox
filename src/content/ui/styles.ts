@@ -49,6 +49,8 @@ ul.rows li.dragging { opacity: .4; }
 .note p, .note ul, .note ol { margin: 2px 0; }
 .note ul, .note ol { padding-left: 18px; }
 .note a, a { color: #f0c060; }
+a.ext-link { text-decoration: none; opacity: .6; }
+a.ext-link:hover { opacity: 1; }
 textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
 input.title { width: 100%; font-weight: 600; }
 button.marker { all: unset; cursor: pointer; }

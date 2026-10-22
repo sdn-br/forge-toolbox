@@ -485,5 +485,16 @@ describe('pvp feature', () => {
       box.follow('222');
       expect(box.root.querySelector('.battle')).toBeNull();
     });
+
+    it('links each opponent to foestats in a new tab beside the name that filters', async () => {
+      const { box } = await shown();
+      const links = [...box.root.querySelectorAll('a.ext-link')] as HTMLAnchorElement[];
+      expect(links.map((a) => a.getAttribute('href'))).toEqual([
+        'https://foestats.com/de/de20/players/111',
+        'https://foestats.com/de/de20/players/222',
+      ]);
+      expect(links[0]?.target).toBe('_blank');
+      expect(links[0]?.rel).toBe('noopener noreferrer');
+    });
   });
 });

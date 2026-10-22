@@ -64,6 +64,9 @@ describe('LG-Rechner', () => {
     expect(box.box.isOpen).toBe(true);
     expect(box.text).toContain('Aachener Dom St. 75 → 76');
     expect(box.text).toContain('Eigentümer: Eigentümer 1001');
+    const owner = [...box.root.querySelectorAll('a')].find((a) => a.textContent === 'Eigentümer 1001');
+    expect(owner?.getAttribute('href')).toBe('https://foestats.com/de/de20/players/1001');
+    expect(owner?.target).toBe('_blank');
     expect(box.text).toContain('Arche-Bonus: 95,5 %');
     expect(box.text).toContain('Verfügbare FP: unbekannt');
     expect(box.text).toContain('Bis Level-Up fehlen 2.811 FP');
@@ -234,11 +237,12 @@ describe('LG-Rechner', () => {
     await tick();
     expect(box.text).toContain('Vergangene Stufe 51 → 52');
     expect(box.root.querySelector('.gb-factor')).toBeNull();
-    expect([...(rows()[0]?.querySelectorAll('td') ?? [])].map((td) => td.textContent)).toEqual([
+    expect([...(rows()[0]?.querySelectorAll('td') ?? [])].map((td) => td.textContent?.trim())).toEqual([
       '1',
       'Spieler 2011',
       '1.020',
     ]);
+    expect(rows()[0]?.querySelector('a')?.getAttribute('href')).toBe('https://foestats.com/de/de20/players/2011');
   });
 
   it('stays quiet for the same places and covers them after a level up with one more tone', async () => {

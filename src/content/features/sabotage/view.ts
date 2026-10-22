@@ -2,6 +2,7 @@ import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { battleDetailsView } from '../../ui/battle-details';
+import { externalLink } from '../../ui/links';
 import type { PlunderItem, SabotageVm } from './view-model';
 
 const percent = (n: number) => `${formatNumber(n)} %`;
@@ -77,7 +78,11 @@ export function sabotageView(
 ): TemplateResult {
   if (!vm) return html`<p class="muted">${t('sabotage.noVisit')}</p>`;
   return html`
-    <p><b>${vm.player.name}</b>${vm.player.guild ? html` <span class="muted">[${vm.player.guild}]</span>` : ''}${
+    <p><b>${externalLink(vm.player.name, vm.player.url)}</b>${
+      vm.player.guild
+        ? html` <span class="muted">[${externalLink(vm.player.guild.name, vm.player.guild.url)}]</span>`
+        : ''
+    }${
       actions
         ? html` <button class="map-button" title=${t('sabotage.openMap')} @click=${() => actions.openMap()}>🗺️</button>`
         : ''

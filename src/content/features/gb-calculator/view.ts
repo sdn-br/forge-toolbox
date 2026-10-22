@@ -1,6 +1,7 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import { keepKeys } from '../../ui/inputs';
+import { externalLink } from '../../ui/links';
 import {
   type CostCell,
   type DemandCell,
@@ -19,6 +20,8 @@ export interface GbCalculatorActions {
 
 const percent = (n: number) => `${formatNumber(n)} %`;
 
+const owner = (name: string, url: string) => html`${t('gbCalc.ownerLabel')}: ${externalLink(name, url)}`;
+
 function header(h: GbHeader) {
   const fp =
     h.availableFp === undefined
@@ -28,7 +31,7 @@ function header(h: GbHeader) {
   const split = t('gbCalc.fpSplit', { bar: part(h.fpBar), packages: part(h.fpPackages) });
   return html`<p><b>${t('gbCalc.heading', { name: h.name, level: h.level, next: h.next })}</b>
     <span class="muted">· ${t('gbCalc.unlocked', { max: h.maxLevel })}</span>
-    <br />${t('gbCalc.owner', { name: h.owner })}
+    <br />${owner(h.owner, h.ownerUrl)}
     <br /><span class="muted"><span class="gb-fp" title=${split}>${fp}</span> ·
       ${t('gbCalc.arc', { arc: formatNumber(h.arcBonus) })}</span></p>`;
 }
@@ -124,7 +127,7 @@ export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorAction
     case 'none':
       return html`<p class="muted">${t('gbCalc.none')}</p>`;
     case 'noEntity':
-      return html`<p>${t('gbCalc.owner', { name: vm.owner })}</p><p class="warn">${t('gbCalc.noEntity')}</p>`;
+      return html`<p>${owner(vm.owner, vm.ownerUrl)}</p><p class="warn">${t('gbCalc.noEntity')}</p>`;
     case 'past':
       return html`${header(vm.header)}
         <p class="warn">${t('gbCalc.pastLevel', { from: vm.level - 1, to: vm.level })}</p>
@@ -132,7 +135,8 @@ export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorAction
           <tr><th>${t('gbCalc.place')}</th><th>${t('gbCalc.player')}</th><th class="num">${t('gbCalc.fp')}</th></tr>
           ${vm.rows.map(
             (r) =>
-              html`<tr><td>${r.rank ?? ''}</td><td>${r.name}</td><td class="num">${formatNumber(r.fp ?? 0)}</td></tr>`,
+              html`<tr><td>${r.rank ?? ''}</td><td>${r.url ? externalLink(r.name, r.url) : r.name}</td>
+                <td class="num">${formatNumber(r.fp ?? 0)}</td></tr>`,
           )}
         </table>`;
     case 'current': {

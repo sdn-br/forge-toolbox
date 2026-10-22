@@ -1,3 +1,4 @@
+import { foestatsPlayerUrl } from '../../../shared/foestats';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
@@ -61,6 +62,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           construction: shown,
           greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
           playerName: (id) => ctx.players.get(id)?.name,
+          playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
           fpBar: ctx.resources.known ? ctx.resources.amount(FP) : undefined,
           fpPackages: ctx.inventory.knowsPackages ? ctx.inventory.forgePointPackages() : undefined,
           arcBonus: arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses()),

@@ -158,7 +158,7 @@ export const de = {
   'gbCalc.noEntity': 'Zu diesem LG fehlen Stufe und Forge-Punkte. Bitte das LG im Spiel neu öffnen.',
   'gbCalc.heading': '{name} St. {level} → {next}',
   'gbCalc.unlocked': 'freigeschaltet bis {max}',
-  'gbCalc.owner': 'Eigentümer: {name}',
+  'gbCalc.ownerLabel': 'Eigentümer',
   'gbCalc.availableFp': 'Verfügbare FP: {fp}',
   'gbCalc.availableUnknown': 'Verfügbare FP: unbekannt',
   'gbCalc.fpSplit': 'Leiste {bar} + Pakete {packages}',
@@ -286,6 +286,7 @@ export const de = {
   'duration.days': '{days} T.',
   'duration.hours': '{hours} Std.',
   'duration.minutes': '{minutes} Min.',
+  'foestats.open': 'Auf foestats.com öffnen',
 } as const;
 
 export type TextKey = keyof typeof de;

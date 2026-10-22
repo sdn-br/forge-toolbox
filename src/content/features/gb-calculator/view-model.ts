@@ -1,4 +1,4 @@
-import type { BuildingDefId } from '../../../shared/ids';
+import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import { calculateConstruction, type PlaceCalc, type PlaceStatus } from '../../domain/gb-calculator';
 import type { Construction, RankingRow } from '../../stores/great-building-model';
 
@@ -19,6 +19,8 @@ export interface GbHeader {
   /** the highest level the owner has unlocked */
   maxLevel: number;
   owner: string;
+  /** the owner's page at foestats */
+  ownerUrl: string;
   /** Forge points of the bar plus those in packages, which the game opens when contributing; undefined while neither
    * the resources nor the inventory are known */
   availableFp?: number;
@@ -63,13 +65,14 @@ export interface PlaceRow {
 
 export type GbCalculatorVm =
   | { kind: 'none' }
-  | { kind: 'noEntity'; owner: string }
+  | { kind: 'noEntity'; owner: string; ownerUrl: string }
   | {
       kind: 'past';
       header: GbHeader;
       /** the finished level: from `level - 1` to `level` */
       level: number;
-      rows: { rank?: number; name: string; fp?: number }[];
+      /** `url` is the player's page at foestats, missing for deleted players */
+      rows: { rank?: number; name: string; url?: string; fp?: number }[];
     }
   | {
       kind: 'current';
@@ -92,6 +95,8 @@ export interface GbCalculatorInput {
   greatBuildingName(def: BuildingDefId): string | undefined;
   /** the owner's name when the rankings do not tell it */
   playerName(id: Construction['owner']): string | undefined;
+  /** a player's page at foestats */
+  playerUrl(id: PlayerId): string;
   /** Forge points of the bar; undefined while the resources are not known */
   fpBar?: number;
   /** Forge points in the packages of the inventory; undefined while the inventory is not known */
@@ -124,8 +129,9 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
   const c = input.construction;
   if (!c) return { kind: 'none' };
   const owner = ownerName(c, c.rankings, input.playerName);
+  const ownerUrl = input.playerUrl(c.owner);
   const entity = c.entity;
-  if (!entity) return { kind: 'noEntity', owner };
+  if (!entity) return { kind: 'noEntity', owner, ownerUrl };
   const availableFp =
     input.fpBar === undefined && input.fpPackages === undefined
       ? undefined
@@ -136,6 +142,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     next: entity.level + 1,
     maxLevel: entity.maxLevel,
     owner,
+    ownerUrl,
     availableFp,
     fpBar: input.fpBar,
     fpPackages: input.fpPackages,
@@ -148,7 +155,12 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
       level: c.past.level,
       rows: c.past.rankings
         .filter((r) => r.fp !== undefined)
-        .map((r) => ({ ...(r.rank !== undefined && { rank: r.rank }), name: r.name, fp: r.fp })),
+        .map((r) => ({
+          ...(r.rank !== undefined && { rank: r.rank }),
+          name: r.name,
+          ...(r.player !== undefined && { url: input.playerUrl(r.player) }),
+          fp: r.fp,
+        })),
     };
   }
   const effectiveFactor = input.factor.arc ? input.arcBonus : input.factor.value;

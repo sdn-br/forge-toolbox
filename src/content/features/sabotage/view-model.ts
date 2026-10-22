@@ -1,3 +1,4 @@
+import { foestatsGuildUrl, foestatsPlayerUrl } from '../../../shared/foestats';
 import type {
   Battle,
   CityShield,
@@ -65,7 +66,8 @@ export function byPlunderPriority(a: Plunderable, b: Plunderable): number {
 }
 
 export interface SabotageVm {
-  player: { name: string; guild?: string; era: string };
+  /** name and guild with their pages at foestats */
+  player: { name: string; url: string; guild?: { name: string; url: string }; era: string };
   /** whether and when the visited player can be attacked or plundered */
   attack: AttackStatus;
   lootable: boolean;
@@ -139,7 +141,14 @@ export function sabotageViewModel({
     items: Object.entries(p.resources).map(([id, amount]) => ({ label: resourceLabel(id, catalog), amount })),
   });
   return {
-    player: { name: player?.name ?? '', guild: player?.guild?.name, era: catalog.eraName(city.era) },
+    player: {
+      name: player?.name ?? '',
+      url: foestatsPlayerUrl(city.world, city.owner),
+      ...(player?.guild && {
+        guild: { name: player.guild.name, url: foestatsGuildUrl(city.world, player.guild.id) },
+      }),
+      era: catalog.eraName(city.era),
+    },
     attack,
     lootable: attack.kind === 'plunderable' || attack.kind === 'attackable',
     army: showArmy ? assessment.army : undefined,
