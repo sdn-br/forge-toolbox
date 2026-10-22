@@ -110,6 +110,15 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
 ### Sprache
 
 - Oberfläche zunächst nur Deutsch, wie die FoE Toolbox. Texte trotzdem über Schlüssel, damit weitere Sprachen möglich bleiben.
+- Die Sprache des Spiels gibt die Welt vor (ihr Markt), nicht der Browser. Eine Spracheinstellung hat das Spiel nicht (geprüft 2026-10-22: Browsersprache umgestellt ohne Wirkung, eine Welt auf den US-Servern ist englisch).
+- Die Toolbox folgt der Sprache der Welt. Quelle ist der Eintrag `translations` in `StaticDataService.getMetadata`, dessen Adresse die Sprache enthält (`…/lang/de_DE/client_lang-…`). Das ist die Datei, die das Spiel selbst lädt, eine eigene Tabelle Markt → Sprache entfällt. `StartupService.getData` enthält keine Sprache.
+
+**Offen für eine zweite Sprache:**
+
+- `t()` liest fest aus `texts/de.ts`. Nötig sind eine Tabelle je Sprache mit denselben Schlüsseln (beim Bauen auf Vollständigkeit geprüft) und die Wahl nach der Sprache der Welt, Rückfall Deutsch.
+- `Intl` ist fest auf `de-DE` gesetzt und folgt dann derselben Sprache (`de_DE` → `de-DE`).
+- Einzahl und Mehrzahl stehen als eigene Schlüssel im Code (`countOne`, `count`). Für andere Sprachen `Intl.PluralRules`.
+- Ressourcennamen: Die Toolbox liest heute nur `goodsList` aus den Startdaten und hat eigene Namen für Münzen, Vorräte, Forge-Punkte, Medaillen und Diamanten. `ResourceService.getResourceDefinitions` kommt bei jedem Start und hat die Namen aller Ressourcen in der Sprache der Welt, auch dieser fünf. Wechselt die Toolbox darauf, entfallen die eigenen Namen, und Ressourcen ohne Namen (etwa aus Ereignissen) zeigen nicht mehr ihre Roh-ID. Nur die Platzhalter in Produktionsdefinitionen (`all_goods_of_age`, `random_good_of_age` und ähnliche) fehlen dort und brauchen weiter eigene Texte.
 
 ## Techstack
 
