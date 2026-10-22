@@ -122,6 +122,16 @@ Reine Funktionen in `src/content/domain/gb-level-preview.ts`. `previewLevel` nim
 
 **Genauigkeit:** Kosten exakt (für Stufen über 10 im Rahmen der Formel, geprüft bis 135). P1 aus der Tabelle exakt, geschätzt auf etwa 5 FP. Blaupausen und Medaillen unbekannt.
 
+## Leveln und P1 der nächsten Stufe
+
+Reine Funktion `levelUpAndFirst` in `src/content/domain/gb-level-preview.ts`, auf Grundlage von `calculateConstruction` und `previewLevel`. Entscheidung des Nutzers 2026-10-22.
+
+- **Leveln:** Der Spieler zahlt alles ein, was bis zum Level-Up fehlt (F). Seine Gesamteinzahlung wird d + F, d ist die eigene Einzahlung (0 ohne). Sein Platz folgt aus der Rangliste danach, die Einzahlungen der anderen bleiben gleich. Bei Gleichstand bleibt der frühere Einzahler vorn, andere mit gleichem Betrag stehen also über ihm. Gewinn 1 ist die Belohnung dieses Platzes brutto (mit dem eigenen Arche-Bonus) minus (d + F), ohne Belohnung 0 minus (d + F).
+- **P1 der nächsten Stufe:** Die nächste Stufe ist offen und leer, Sichern von P1 rechnet `previewLevel` für Stufe + 1 (die halbe Stufe). Gewinn 2 ist P1 brutto minus dieses Sichern.
+- **Summe:** Gewinn 1 + Gewinn 2, Einsatz F + Sichern von P1.
+- **Nur wenn möglich:** Die Konstruktion ab Stufe X ist offen, solange X kleiner als `max_level` ist. Die nächste braucht also Stufe + 1 < `max_level`. Dazu muss das LG verbunden sein, noch etwas fehlen, die Belohnung der nächsten Stufe bekannt sein und die Summe über 0 liegen. Sonst gibt die Funktion nichts zurück.
+- **Beispiel aus der Aufnahme (2434, Stufe 52 von 60, 2400 FP nötig):** Wie aufgezeichnet hält der Spieler 575 auf Platz 2, es fehlen 211. Mit 786 bleibt er auf Platz 2, 645 brutto ergeben −141. Stufe 53 kostet 2460, P1 zahlt 670, brutto 1310 bei Sichern 1230, also +80. Die Summe −61 lohnt nicht, die Zeile fehlt. Mit 1600 auf Platz 1, 500 eigenen auf Platz 2 und 100 auf Platz 3 fehlen 100. Dann ergibt sich 645 − 600 = +45, zusammen +125. Die Testfälle stehen in `test/gb-level-preview.test.ts`.
+
 ## Unter Vorbehalt, nicht aufgezeichnet
 
 - **Level-up eines fremden LGs** über den Websocket `OtherPlayerService.newEvent` mit `type: great_building_contribution` und `other_player { player_id, name }`, `great_building_name` (Anzeigename, keine Entity-ID), `level` (neue Stufe), `rank`. Passt Eigentümer und Name (über den Catalog) zur offenen Konstruktion, wird sie als gelevelt markiert.
