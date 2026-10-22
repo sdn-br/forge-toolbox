@@ -123,6 +123,7 @@ tr.gb-unavailable, tr.gb-worse { color: #8a7a60; }
 td.short { color: #ff6a50; font-weight: 600; }
 td.over-rest { color: #e08070; }
 td.below-safe { font-style: italic; opacity: .75; }
+p.gb-me.safe { color: #8fd08f; }
 .gb-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 8px;
   background: rgba(43, 29, 16, .88); text-align: center; color: #f0c060; }
 `;

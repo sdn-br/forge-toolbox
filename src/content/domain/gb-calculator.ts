@@ -36,32 +36,33 @@ export interface PlaceCalc {
    * deposit cannot move down, a sum with it would only pretend a price.
    */
   belowMine: boolean;
-  /**
-   * no deposit can land on the place: a deposit always lands on the highest place it reaches, so the place above has to
-   * hold at least the safe cost (on a tie the earlier deposit stays ahead). On an empty building only the first place
-   * is reachable. Like below the own place, the place has no cost, profit or rate; the demand stays, it is an offer.
-   */
-  unreachable: boolean;
-  /** total own deposit that nobody can outbid anymore; missing below the own place and on an unreachable place */
+  /** the holder cannot be passed anymore, the place is safe (also the own place when the player holds enough) */
+  secured: boolean;
+  /** the safe cost equals the one of the place above: the same cost buys the better place */
+  dominated: boolean;
+  /** total own deposit that nobody can outbid anymore; missing below the own place */
   safeCost?: number;
   /**
    * what the owner asks for the place at the factor: the net reward grown by the factor. A deal, the owner makes the
-   * place safe himself, so the safe cost does not bound it. Missing below the own place, kept on an unreachable one.
+   * place safe himself, so the safe cost does not bound it.
    */
   demandCost?: number;
   /** the demand is more than can still be paid until the level up */
   demandOverRest?: boolean;
-  /** the demand is below the safe cost: the place holds only by agreement; missing without a safe cost */
+  /** the demand is below the safe cost: the place holds only by agreement */
   demandBelowSafe?: boolean;
   /** gross minus demand */
   demandProfit?: number;
   /** what the player still has to add to reach the cost, his deposit subtracted */
   safeExtra?: number;
+  /** below the own place the demand itself, the own deposit cannot move down */
   demandExtra?: number;
   /** gross minus safe cost */
   profit?: number;
   /** safe cost in percent of the net reward, one decimal */
   rate?: number;
+  /** the own place only: the own deposit in percent of the net reward, what it costs if nobody passes */
+  depositRate?: number;
   available: boolean;
   /** the safe cost is all that is left: the own deposit would level the building */
   levelWarning: boolean;
@@ -94,9 +95,6 @@ const plusPercent = (amount: number, percent: number) => roundHalfUp((amount * (
 
 const depositOf = (row: RankingRow | undefined) => row?.fp ?? 0;
 
-/** a place that cannot be had and has no price: below the own place or unreachable */
-const unavailable = { available: false, levelWarning: false, worse: false, status: 'unavailable' } as const;
-
 export function calculateConstruction(input: ConstructionInput): ConstructionCalc {
   const { rankings, required, arcBonus, factor } = input;
   const mine = rankings.find((r) => r.self && r.rank !== undefined);
@@ -128,38 +126,46 @@ export function calculateConstruction(input: ConstructionInput): ConstructionCal
       blueprints: plusPercent(reward.blueprints, arcBonus),
       medals: plusPercent(reward.medals, arcBonus),
     };
+    const demandCost = plusPercent(reward.fp, factor);
+    const demand = { demandCost, demandOverRest: demandCost > rest, demandProfit: gross - demandCost };
     if (mine?.rank !== undefined && rank > mine.rank) {
-      places.push({ ...info, belowMine: true, unreachable: false, ...unavailable });
+      places.push({
+        ...info,
+        ...demand,
+        demandExtra: demandCost,
+        belowMine: true,
+        secured: false,
+        dominated: false,
+        available: false,
+        levelWarning: false,
+        worse: false,
+        status: 'unavailable',
+      });
       continue;
     }
     // the own place is safe once the next one cannot pass it; any other once its holder cannot pass the cost
     const safeCost = roundHalfUp(((isMine ? depositOf(byRank.get(rank + 1)) : holderFp) + rest) / 2);
-    const demandCost = plusPercent(reward.fp, factor);
-    const demand = {
-      demandCost,
-      demandExtra: demandCost - myDeposit,
-      demandOverRest: demandCost > rest,
-      demandProfit: gross - demandCost,
-    };
-    if (!isMine && rank > 1 && depositOf(byRank.get(rank - 1)) < safeCost) {
-      places.push({ ...info, belowMine: false, unreachable: true, ...demand, ...unavailable });
-      continue;
-    }
     const profit = gross - safeCost;
-    const available = !isMine && safeCost > holderFp;
+    const secured = safeCost <= holderFp;
+    const dominated = !isMine && safeCost === places.at(-1)?.safeCost;
+    const available = !isMine && !secured && !dominated;
+    const percentOf = (fp: number) => (reward.fp > 0 ? roundHalfUp((fp / reward.fp) * 1000) / 10 : undefined);
     const levelWarning = available && safeCost >= rest;
     const worse = available && !levelWarning && best !== undefined && profit <= best;
     if (available && !levelWarning) best = best === undefined ? profit : Math.max(best, profit);
     places.push({
       ...info,
-      belowMine: false,
-      unreachable: false,
-      safeCost,
       ...demand,
+      belowMine: false,
+      secured,
+      dominated,
+      safeCost,
       safeExtra: safeCost - myDeposit,
+      demandExtra: demandCost - myDeposit,
       demandBelowSafe: demandCost < safeCost,
       profit,
-      rate: reward.fp > 0 ? roundHalfUp((safeCost / reward.fp) * 1000) / 10 : undefined,
+      rate: percentOf(safeCost),
+      ...(isMine && { depositRate: percentOf(myDeposit) }),
       available,
       levelWarning,
       worse,

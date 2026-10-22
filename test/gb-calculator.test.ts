@@ -57,7 +57,7 @@ describe('roundHalfUp', () => {
 });
 
 describe('calculateConstruction on recorded great buildings', () => {
-  it('empty places: only the first is reachable, the others keep reward and demand but have no price', () => {
+  it('empty places: only the first is free, the others cost the same and are unavailable', () => {
     // 1909 St. 75: 3062 needed, only the owner's 251 in it, places 730/365/120/30/5 FP
     const calc = calculateConstruction(recorded(1909));
     expect(calc).toMatchObject({ rest: 2811, missing: 2811, myDeposit: 0, myRank: undefined });
@@ -79,23 +79,14 @@ describe('calculateConstruction on recorded great buildings', () => {
       profit: 21,
       rate: 192.6,
       available: true,
-      unreachable: false,
       status: 'profit',
     });
-    // 1406 on place 2 would land on the empty place 1: no deposit reaches place 2 and below
-    for (const p of calc.places.slice(1)) {
-      expect(p).toMatchObject({ unreachable: true, belowMine: false, available: false, worse: false });
-      expect(p.status).toBe('unavailable');
-      expect([p.safeCost, p.safeExtra, p.profit, p.rate, p.demandBelowSafe]).toEqual([
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-      ]);
-    }
-    // reward and the owner's offer stay: round(365 × 1.955) = 714, round(365 × 1.9) = 694
-    expect(calc.places[1]).toMatchObject({ gross: 714, demandCost: 694, demandExtra: 694, demandProfit: 20 });
+    expect(calc.places.slice(1).map((p) => [p.safeCost, p.status])).toEqual([
+      [1406, 'unavailable'],
+      [1406, 'unavailable'],
+      [1406, 'unavailable'],
+      [1406, 'unavailable'],
+    ]);
     expect(bestRate(calc)).toBe(192.6);
   });
 
@@ -154,68 +145,78 @@ describe('calculateConstruction on recorded great buildings', () => {
 });
 
 describe('calculateConstruction on edge cases', () => {
-  it('takes a held place, marks lower places worse and keeps the owner out of the places', () => {
-    // 600 in, rest 350: rank 1 safe round((300 + 350) / 2) = 325, gross round(300 × 1.9) = 570
-    const calc = calculateConstruction(input(950, [owner(100), place(1, 300, 300), place(2, 150, 200), place(3, 50)]));
-    expect(calc.rest).toBe(350);
-    expect(calc.places).toHaveLength(3);
-    expect(calc.places[0]).toMatchObject({ safeCost: 325, demandCost: 570, gross: 570, profit: 245, rate: 108.3 });
-    expect(calc.places[0]?.status).toBe('profit');
-    // rank 2: round(550 / 2) = 275, rank 1 holds 300: reachable, 275 for 285 gross; rank 3 empty: 175 for 95
-    expect(calc.places[1]).toMatchObject({
-      safeCost: 275,
-      profit: 10,
-      unreachable: false,
-      worse: true,
-      status: 'worse',
-    });
-    expect(calc.places[2]).toMatchObject({ safeCost: 175, holderFp: 0, profit: -80, status: 'worse' });
-  });
-
-  it('reaches the places down to the first whose place above holds less than its safe cost', () => {
-    // same as above with places 4 and 5: rank 3 is empty, so round(350 / 2) = 175 on rank 4 would land on rank 3
-    const calc = calculateConstruction(
-      input(950, [owner(100), place(1, 300, 300), place(2, 150, 200), place(3, 50), place(4, 20), place(5, 5)]),
+  // scenario of the user, 2026-10-22: 5404 needed, places 1275/640/215/55/10, Arc 95.5 %
+  const scenario = (rows: RankingRow[]) =>
+    calculateConstruction(
+      input(
+        5404,
+        [...rows, ...[1275, 640, 215, 55, 10].slice(rows.length).map((net, i) => place(rows.length + i + 1, net))],
+        {
+          arcBonus: 95.5,
+        },
+      ),
     );
-    expect(calc.places.map((p) => [p.safeCost, p.unreachable, p.status])).toEqual([
-      [325, false, 'profit'],
-      [275, false, 'worse'],
-      [175, false, 'worse'],
-      [undefined, true, 'unavailable'],
-      [undefined, true, 'unavailable'],
+
+  it('scenario empty: only the first place can be had, the others cost the same and are dominated', () => {
+    const calc = scenario([]);
+    expect(calc.rest).toBe(5404);
+    expect(calc.places.map((p) => [p.safeCost, p.dominated, p.available])).toEqual([
+      [2702, false, true],
+      [2702, true, false],
+      [2702, true, false],
+      [2702, true, false],
+      [2702, true, false],
     ]);
   });
 
-  it('places with equal deposits: the lower one is out of reach while the upper one is free', () => {
-    // rest 300: both safe round(400 / 2) = 200, which would pass the 100 on rank 1
-    const calc = calculateConstruction(input(500, [place(1, 200, 100), place(2, 100, 100)]));
-    expect(calc.places[0]).toMatchObject({ safeCost: 200, available: true });
-    expect(calc.places[1]).toMatchObject({ unreachable: true, status: 'unavailable' });
-    expect(calc.places[1]?.safeCost).toBeUndefined();
-  });
-
-  it('on a tie with the place above the earlier deposit stays ahead, so the place is reachable', () => {
-    // rest 101: rank 1 holds 101, safe round(202 / 2) = 101 is not more; rank 2: round(201 / 2) = 101 ties rank 1
-    const calc = calculateConstruction(input(302, [place(1, 100, 101), place(2, 100, 100)]));
-    expect(calc.rest).toBe(101);
-    expect(calc.places[0]).toMatchObject({ safeCost: 101, available: false, unreachable: false });
-    // 101 levels the building, so the place is a level warning, but it can be had
-    expect(calc.places[1]).toMatchObject({
-      safeCost: 101,
-      available: true,
-      unreachable: false,
-      status: 'levelWarning',
+  it('scenario partly filled: a place is safe at its cost even when that passes the place above for now', () => {
+    // others 1500 on 1 and 900 on 2, me 400 on 3: rest 5404 - 2400 = 3004, 2604 still missing
+    const calc = scenario([place(1, 1275, 1500), place(2, 640, 900), place(3, 215, 400, true)]);
+    expect(calc).toMatchObject({ rest: 3004, missing: 2604, myDeposit: 400, myRank: 3 });
+    // 1952 is first for now; rank 1 can pass it again, rank 2 cannot: place 2 is safe at round((900 + 3004) / 2)
+    expect(calc.places[0]).toMatchObject({ safeCost: 2252, safeExtra: 1852, available: true, secured: false });
+    expect(calc.places[1]).toMatchObject({ safeCost: 1952, safeExtra: 1552, available: true, dominated: false });
+    // own place: no one below, round(3004 / 2) = 1502; 400 / 215 = 186 %, 1502 / 215 = 698.6 %
+    expect(calc.places[2]).toMatchObject({
+      mine: true,
+      secured: false,
+      safeCost: 1502,
+      safeExtra: 1102,
+      depositRate: 186,
+      rate: 698.6,
     });
   });
 
-  it('an unreachable place does not count as a better higher place', () => {
-    // rest 200: rank 1 holds 160, rank 2 (150) needs round(350 / 2) = 175, more than 160: out of reach.
-    // rank 3 (50) needs round(250 / 2) = 125, rank 2 holds 150: reachable
-    const calc = calculateConstruction(input(560, [place(1, 50, 160), place(2, 200, 150), place(3, 100, 50)]));
-    expect(calc.places.map((p) => p.status)).toEqual(['loss', 'unavailable', 'profit']);
-    // 190 gross for 125: would be worse than the 380 gross of rank 2 if that counted
-    expect(calc.places[2]).toMatchObject({ safeCost: 125, profit: 65, worse: false });
-    expect(bestRate(calc)).toBe(125);
+  it('scenario own first place: safe once the deposit reaches the safe cost', () => {
+    const calc = scenario([place(1, 1275, 2800, true)]);
+    // round(5404 / 2) = 2702 is less than the own 2800
+    expect(calc.places[0]).toMatchObject({
+      mine: true,
+      secured: true,
+      safeCost: 2702,
+      safeExtra: -98,
+      depositRate: 219.6,
+    });
+  });
+
+  it('a held place whose holder cannot be passed anymore is secured, not dominated', () => {
+    // rest 101: rank 1 holds 101, safe round(202 / 2) = 101
+    const calc = calculateConstruction(input(302, [place(1, 100, 101), place(2, 100, 100)]));
+    expect(calc.places[0]).toMatchObject({ safeCost: 101, secured: true, dominated: false, available: false });
+    // rank 2: round(201 / 2) = 101, the same as above: dominated
+    expect(calc.places[1]).toMatchObject({ safeCost: 101, secured: false, dominated: true, available: false });
+  });
+
+  it('takes a held place, marks lower places worse and keeps the owner out of the places', () => {
+    // 350 in, rest 650: rank 1 safe round((200 + 650) / 2) = 425, gross round(300 × 1.9) = 570
+    const calc = calculateConstruction(input(1000, [owner(100), place(1, 300, 200), place(2, 150, 50), place(3, 50)]));
+    expect(calc.rest).toBe(650);
+    expect(calc.places).toHaveLength(3);
+    expect(calc.places[0]).toMatchObject({ safeCost: 425, demandCost: 570, gross: 570, profit: 145, rate: 141.7 });
+    expect(calc.places[0]?.status).toBe('profit');
+    // rank 2: round(700 / 2) = 350 for 285 gross; rank 3 empty: round(650 / 2) = 325 for 95
+    expect(calc.places[1]).toMatchObject({ safeCost: 350, profit: -65, worse: true, status: 'worse' });
+    expect(calc.places[2]).toMatchObject({ safeCost: 325, holderFp: 0, profit: -230, status: 'worse' });
   });
 
   it('shows a loss when the best free place costs more than it pays', () => {
@@ -249,7 +250,7 @@ describe('calculateConstruction on edge cases', () => {
     expect(calc.places[2]?.status).toBe('unavailable');
   });
 
-  it('gives no cost, profit or rate below the own place, the own deposit cannot hold two places', () => {
+  it('gives no cost, profit or rate below the own place, the own deposit cannot hold two places, only the demand', () => {
     // like the recorded Basilius-Kathedrale: 1543 needed, owner 166, 820 on 1, mine 279 on 2, places 3 to 5 empty
     const calc = calculateConstruction(
       input(1543, [owner(166), place(1, 410, 820), place(2, 205, 279, true), place(3, 70), place(4, 20), place(5, 5)]),
@@ -259,15 +260,10 @@ describe('calculateConstruction on edge cases', () => {
     expect(calc.places[1]).toMatchObject({ safeCost: 279, safeExtra: 0, status: 'mine', belowMine: false });
     for (const p of calc.places.slice(2)) {
       expect(p).toMatchObject({ belowMine: true, available: false, worse: false, status: 'unavailable' });
-      expect([p.safeCost, p.demandCost, p.safeExtra, p.demandExtra, p.profit, p.rate]).toEqual([
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-      ]);
+      expect([p.safeCost, p.safeExtra, p.profit, p.rate]).toEqual([undefined, undefined, undefined, undefined]);
     }
+    // the owner's demand stays as an offer, its extra is all of it: the own deposit cannot move down
+    expect(calc.places[2]).toMatchObject({ demandCost: 133, demandExtra: 133 });
     // gross, blueprints and medals stay as information
     expect(calc.places[2]).toMatchObject({ net: 70, gross: 133 });
     expect(bestRate(calc)).toBeUndefined();

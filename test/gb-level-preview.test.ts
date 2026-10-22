@@ -167,8 +167,8 @@ describe('previewLevel', () => {
     const places = p.calc?.places ?? [];
     expect(places.map((x) => x.net)).toEqual([2605, 1305, 435, 110, 20]);
     expect(places.map((x) => x.gross)).toEqual([5093, 2551, 850, 215, 39]);
-    // empty: the first is safe at half of the cost, no deposit reaches the others
-    expect(places.map((x) => x.safeCost)).toEqual([10889, undefined, undefined, undefined, undefined]);
+    // empty: every place is safe at half of the cost, only the first can be had
+    expect(places.map((x) => x.safeCost)).toEqual([10889, 10889, 10889, 10889, 10889]);
     expect(places.map((x) => x.available)).toEqual([true, false, false, false, false]);
     expect(places[0]?.demandCost).toBe(4950);
     expect(places[0]?.rate).toBe(418);

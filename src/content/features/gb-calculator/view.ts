@@ -10,6 +10,7 @@ import {
   type GbCalculatorVm,
   type GbHeader,
   type LevelChoice,
+  type MeVm,
   type PlaceRow,
   type PreviewVm,
 } from './view-model';
@@ -90,7 +91,7 @@ function factorBar(vm: Extract<GbCalculatorVm, { kind: 'current' | 'preview' }>,
   </div>`;
 }
 
-/** stands where a place has no cost: below the own one, or out of reach */
+/** stands where a place has no cost, below the own one */
 const NONE = html`<td class="num">–</td>`;
 
 function costCell(c: CostCell | undefined) {
@@ -113,29 +114,60 @@ function demandCell(d: DemandCell | undefined) {
   return html`<td class=${classes.filter(Boolean).join(' ')} title=${title.join('\n')}>${formatNumber(d.cost)}${extra}</td>`;
 }
 
+const maybe = (n: number | undefined) => (n === undefined ? NONE : html`<td class="num">${formatNumber(n)}</td>`);
+
+/** the own deposit: safe, or the places still to make safe with what is missing for each */
+function meLine(me: MeVm) {
+  const where = t('gbCalc.me', { fp: formatNumber(me.fp), rank: me.rank ?? '?' });
+  if (me.secured) return html`<p class="gb-me safe">${where} · ${t('gbCalc.meSecured')}</p>`;
+  const state = me.secured === false ? ` · ${t('gbCalc.meUnsafe')}` : '';
+  const targets = me.targets.map((x) => t('gbCalc.meTarget', { rank: x.rank, fp: formatNumber(x.extra) })).join(' · ');
+  return html`<p class="gb-me">${where}${state}${targets ? html`<br /><span class="muted">${targets}</span>` : ''}</p>`;
+}
+
 const placeTitle = (p: PlaceRow) =>
   [
     p.holder ? t('gbCalc.holder', { name: p.holder.name, fp: formatNumber(p.holder.fp) }) : t('gbCalc.empty'),
     t(`gbCalc.status.${p.status}`),
   ].join(', ');
 
-/** Platz, Sichern, FP, Gewinn, Fördern, Kurs; blueprints and medals stay in the view model but are not shown */
+/** the safe cost; a place whose holder is safe says so, the own one shows a check mark */
+function safeCell(p: PlaceRow) {
+  if (p.status === 'mine' && p.secured) return html`<td class="num" title=${t('gbCalc.mineSecured')}>✓</td>`;
+  if (p.secured && !p.safe) return html`<td class="num" title=${t('gbCalc.securedHint')}>${t('gbCalc.secured')}</td>`;
+  return costCell(p.safe);
+}
+
+/** the own row while not safe: what the own deposit pays now (muted), then the rate at the safe cost */
+function rateCell(p: PlaceRow) {
+  const deposit =
+    p.depositRate === undefined
+      ? undefined
+      : html`<span class=${p.safe ? 'muted' : ''} title=${t('gbCalc.depositRateHint')}>${percent(p.depositRate)}</span>`;
+  if (!p.safe) return deposit ? html`<td class="num">${deposit}</td>` : NONE;
+  const rate = p.rate === undefined ? '' : percent(p.rate);
+  return html`<td class="num">${deposit ? html`${deposit} → ` : ''}${rate}</td>`;
+}
+
+/** Platz, Investiert, Sichern, FP, Gewinn, Fördern, Kurs; blueprints and medals stay in the view model, not shown */
 const placeRow = (p: PlaceRow) =>
   html`<tr class=${`gb-${p.status}`} title=${placeTitle(p)}>
     <td>${p.rank}</td>
-    ${costCell(p.safe)}
+    ${maybe(p.holder?.fp)}
+    ${safeCell(p)}
     <td class=${p.estimate ? 'num estimate' : 'num'} title=${p.estimate ? t('gbCalc.estimate') : ''}>${
       p.estimate ? '≈ ' : ''
     }${formatNumber(p.gross)}</td>
     ${p.profit === undefined ? NONE : html`<td class="num">${formatNumber(p.profit)}</td>`}
     ${demandCell(p.demand)}
-    ${p.safe === undefined ? NONE : html`<td class="num">${p.rate === undefined ? '' : percent(p.rate)}</td>`}
+    ${rateCell(p)}
   </tr>`;
 
 function placesTable(places: PlaceRow[]) {
   return html`<table class="gb-table">
     <tr>
       <th>${t('gbCalc.place')}</th>
+      <th class="num" title=${t('gbCalc.investedHint')}>${t('gbCalc.invested')}</th>
       <th class="num" title=${t('gbCalc.safeHint')}>${t('gbCalc.safe')}</th>
       <th class="num" title=${t('gbCalc.grossHint')}>${t('gbCalc.gross')}</th>
       <th class="num">${t('gbCalc.profit')}</th>
@@ -191,6 +223,7 @@ export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorAction
       return html`${header(vm.header)}
         ${levelBar(vm.header.levels, actions)}
         ${factorBar(vm, actions)}
+        ${vm.me ? meLine(vm.me) : ''}
         <div class="gb-places">
           ${placesTable(vm.places)}
           ${overlay ? html`<div class="gb-overlay"><p>${overlay}</p></div>` : ''}
