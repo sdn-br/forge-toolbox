@@ -66,8 +66,8 @@ const BACKGROUND = '#1d140a';
 const GROUND = '#3a2c18';
 const HOVER = '#ffffff';
 const ZOOM_STEP = 1.25;
-/** a focused building shows at least this many pixels wide */
-const FOCUS_SIZE = 36;
+/** a focused building shows at least this many pixels wide; the isometric diamond is squashed and needs more */
+const FOCUS_SIZE: Record<MapMode, number> = { top: 36, iso: 72 };
 
 export const legendView = (items: LegendItem[]) =>
   html`<ul class="map-legend">${items.map(
@@ -159,7 +159,7 @@ export class CityMap {
     const size = this.size();
     const rect = this.pendingFocus;
     if (!rect || !size || !this.bounds) return;
-    this.view = centerOn(this.mode, this.bounds, size.width, size.height, this.view, rect, FOCUS_SIZE);
+    this.view = centerOn(this.mode, this.bounds, size.width, size.height, this.view, rect, FOCUS_SIZE[this.mode]);
     this.pendingFocus = undefined;
     this.focusedSinceData = rect;
   }
