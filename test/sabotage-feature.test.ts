@@ -218,6 +218,21 @@ describe('sabotage feature', () => {
     expect(drawn().focus?.rect).toEqual(points);
   });
 
+  it('shows the whole city without the framed building when opened from the map button', async () => {
+    const { ctx, box, drawn, row } = mapSetup();
+    const whole = vi.spyOn(CityMap.prototype, 'showCity');
+    ctx.cities.setVisited(withBuildings(1, [house(5, 1, 'Coins', 0, { money: 900 })]));
+    await tick();
+    row('Münzhaus').click();
+    await tick();
+    expect(drawn().focus).toBeDefined();
+
+    (box.root.querySelector('button.map-button') as HTMLButtonElement).click();
+    await tick();
+    expect(drawn().focus).toBeUndefined();
+    expect(whole).toHaveBeenCalled();
+  });
+
   it('follows the visited city in the map box and drops the framed building', async () => {
     const { ctx, box, mapBox, drawn, row } = mapSetup();
     ctx.players.apply(world, [observed(2, { canPlunder: false })], 'update');

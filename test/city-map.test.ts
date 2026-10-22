@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { render } from 'lit-html';
 import { describe, expect, it, vi } from 'vitest';
-import { CityMap, type CityMapData, legendView } from '../src/content/ui/city-map';
+import { CityMap, type CityMapData, legendView, START_VIEW } from '../src/content/ui/city-map';
 import { project, toScreen } from '../src/content/ui/map-projection';
 
 const data: CityMapData = {
@@ -35,7 +35,7 @@ function mount(map = new CityMap()) {
 describe('city map', () => {
   it('shows the tooltip of the building under the pointer from above', () => {
     const { tip, move } = mount();
-    const p = project('top', { x1: 0, y1: 0, x2: 9, y2: 9 }, 200, 100, { zoom: 1, panX: 0, panY: 0 });
+    const p = project('top', { x1: 0, y1: 0, x2: 9, y2: 9 }, 200, 100, START_VIEW);
     const inHall = toScreen(p, 1.5, 1);
     move(inHall.x, inHall.y);
     expect(tip.hidden).toBe(false);
@@ -53,7 +53,7 @@ describe('city map', () => {
     expect(onMode).toHaveBeenCalledWith('iso');
     expect(map.mode).toBe('iso');
     expect(button('Isometrisch').classList.contains('active')).toBe(true);
-    const p = project('iso', { x1: 0, y1: 0, x2: 9, y2: 9 }, 200, 100, { zoom: 1, panX: 0, panY: 0 });
+    const p = project('iso', { x1: 0, y1: 0, x2: 9, y2: 9 }, 200, 100, START_VIEW);
     const onStreet = toScreen(p, 5.5, 5.5);
     move(onStreet.x, onStreet.y);
     expect(tip.textContent).toBe('Straße');
@@ -80,7 +80,7 @@ describe('city map', () => {
     };
     render(map.render(zoned), root);
     // the bounds now reach x 15, so the zone lies inside the canvas
-    const p = project('top', { x1: 0, y1: 0, x2: 15, y2: 9 }, 200, 100, { zoom: 1, panX: 0, panY: 0 });
+    const p = project('top', { x1: 0, y1: 0, x2: 15, y2: 9 }, 200, 100, START_VIEW);
     const inZone = toScreen(p, 14, 2);
     move(inZone.x, inZone.y);
     expect(tip.hidden).toBe(false);
@@ -106,6 +106,34 @@ describe('city map', () => {
     expect(map.tileIndexAt(100, 50)).not.toBe(0);
     map.focus(data.tiles[0] as CityMapData['tiles'][number]);
     expect(map.tileIndexAt(100, 50)).toBe(0);
+  });
+
+  it.each(['top', 'iso'] as const)(
+    'keeps the focus when the data it was asked for arrives after it, with other bounds (%s)',
+    async (mode) => {
+      // a closed box keeps the last city; the row of a city visited since then focuses before the new city renders
+      const { map, root } = mount(new CityMap({ mode }));
+      const next: CityMapData = {
+        areas: [{ x: 0, y: 0, width: 40, length: 30 }],
+        tiles: [{ x: 30, y: 20, width: 2, length: 2, fill: '#f00', tooltip: 'Münzhaus' }],
+      };
+      map.focus(next.tiles[0] as CityMapData['tiles'][number]);
+      render(map.render(next), root);
+      await tick();
+      expect(map.tileIndexAt(100, 50)).toBe(0);
+    },
+  );
+
+  it('resets to the framed building when there is one, else to the start view', () => {
+    const { map, root, button } = mount();
+    const hall = data.tiles[0] as CityMapData['tiles'][number];
+    render(map.render({ ...data, focus: { rect: hall, color: '#ff0' } }), root);
+    button('⤢').click();
+    expect(map.tileIndexAt(100, 50)).toBe(0);
+    render(map.render(data), root);
+    button('⤢').click();
+    // the start view is centered on the middle of the city, where the street stands
+    expect(map.tileIndexAt(100, 50)).toBe(1);
   });
 
   it('focuses once the canvas has a size when asked before', () => {
