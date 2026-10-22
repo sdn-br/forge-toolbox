@@ -49,12 +49,12 @@ export const sabotageFeature: Feature = {
         mapVm ? map.render(mapVm.data, legendView(mapVm.legend)) : html`<p class="muted">${t('sabotage.noMap')}</p>`,
     });
     const actions: SabotageActions = {
-      // the map button shows the whole city, without the building picked before
+      // the map button shows the city in its start view, without the building picked before
       openMap: () => {
         focused = undefined;
         refresh();
         mapBox.open();
-        map.showWhole();
+        map.showCity();
       },
       showOnMap: (building) => {
         focused = building;

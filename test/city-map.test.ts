@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { render } from 'lit-html';
 import { describe, expect, it, vi } from 'vitest';
-import { CityMap, type CityMapData, legendView } from '../src/content/ui/city-map';
+import { CityMap, type CityMapData, legendView, START_VIEW } from '../src/content/ui/city-map';
 import { project, toScreen } from '../src/content/ui/map-projection';
 
 const data: CityMapData = {
@@ -35,7 +35,7 @@ function mount(map = new CityMap()) {
 describe('city map', () => {
   it('shows the tooltip of the building under the pointer from above', () => {
     const { tip, move } = mount();
-    const p = project('top', { x1: 0, y1: 0, x2: 9, y2: 9 }, 200, 100, { zoom: 1, panX: 0, panY: 0 });
+    const p = project('top', { x1: 0, y1: 0, x2: 9, y2: 9 }, 200, 100, START_VIEW);
     const inHall = toScreen(p, 1.5, 1);
     move(inHall.x, inHall.y);
     expect(tip.hidden).toBe(false);
@@ -53,7 +53,7 @@ describe('city map', () => {
     expect(onMode).toHaveBeenCalledWith('iso');
     expect(map.mode).toBe('iso');
     expect(button('Isometrisch').classList.contains('active')).toBe(true);
-    const p = project('iso', { x1: 0, y1: 0, x2: 9, y2: 9 }, 200, 100, { zoom: 1, panX: 0, panY: 0 });
+    const p = project('iso', { x1: 0, y1: 0, x2: 9, y2: 9 }, 200, 100, START_VIEW);
     const onStreet = toScreen(p, 5.5, 5.5);
     move(onStreet.x, onStreet.y);
     expect(tip.textContent).toBe('Straße');
@@ -80,7 +80,7 @@ describe('city map', () => {
     };
     render(map.render(zoned), root);
     // the bounds now reach x 15, so the zone lies inside the canvas
-    const p = project('top', { x1: 0, y1: 0, x2: 15, y2: 9 }, 200, 100, { zoom: 1, panX: 0, panY: 0 });
+    const p = project('top', { x1: 0, y1: 0, x2: 15, y2: 9 }, 200, 100, START_VIEW);
     const inZone = toScreen(p, 14, 2);
     move(inZone.x, inZone.y);
     expect(tip.hidden).toBe(false);

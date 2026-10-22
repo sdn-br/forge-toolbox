@@ -67,6 +67,8 @@ const BACKGROUND = '#1d140a';
 const GROUND = '#3a2c18';
 const HOVER = '#ffffff';
 const ZOOM_STEP = 1.25;
+/** a city opens, and the reset button returns, five zoom steps in from the whole map, centered */
+export const START_VIEW: MapView = { zoom: ZOOM_STEP ** 5, panX: 0, panY: 0 };
 /** a focused building shows at least this many pixels wide; the isometric diamond is squashed and needs more */
 const FOCUS_SIZE: Record<MapMode, number> = { top: 56, iso: 112 };
 
@@ -91,7 +93,7 @@ export class CityMap {
   /** tile key → tooltip of the zone there */
   private zoneIndex = new Map<string, string>();
   private indexed?: CityMapData;
-  private view: MapView = WHOLE_MAP;
+  private view: MapView = START_VIEW;
   private hovered = -1;
   private drag?: { x: number; y: number; view: MapView; moved: boolean };
   private observer?: ResizeObserver;
@@ -124,7 +126,7 @@ export class CityMap {
           ${modeButton('top', t('cityMap.top'))}${modeButton('iso', t('cityMap.iso'))}
           <button title=${t('cityMap.zoomIn')} @click=${() => this.zoomBy(ZOOM_STEP)}>+</button>
           <button title=${t('cityMap.zoomOut')} @click=${() => this.zoomBy(1 / ZOOM_STEP)}>−</button>
-          <button title=${t('cityMap.zoomReset')} @click=${() => this.showWhole()}>⤢</button>
+          <button title=${t('cityMap.zoomReset')} @click=${() => this.showCity()}>⤢</button>
         </div>
         <div class="map-tip" hidden ${ref((el) => {
           this.tip = el as HTMLElement | undefined;
@@ -137,9 +139,9 @@ export class CityMap {
   private setData(data: CityMapData) {
     this.data = data;
     const bounds = gridBounds([...data.areas, ...data.tiles, ...(data.zones ?? []).flatMap((z) => z.rects)]);
-    // a city that grew or shrank shows whole again; a focus asked for this data but applied to the old one comes back
+    // a city that grew or shrank shows in the start view again; a focus asked for this data but applied to the old one comes back
     if (!sameBounds(bounds, this.bounds)) {
-      this.view = WHOLE_MAP;
+      this.view = START_VIEW;
       this.pendingFocus ??= this.focusedSinceData;
     }
     this.focusedSinceData = undefined;
@@ -170,7 +172,7 @@ export class CityMap {
     if (mode === this.mode) return;
     const size = this.size();
     const focus = this.data?.focus?.rect;
-    if (!size || !this.bounds) this.view = WHOLE_MAP;
+    if (!size || !this.bounds) this.view = START_VIEW;
     else if (focus)
       this.view = centerOn(mode, this.bounds, size.width, size.height, WHOLE_MAP, focus, FOCUS_SIZE[mode]);
     else this.view = switchMode(this.mode, mode, this.bounds, size.width, size.height, this.view);
@@ -397,11 +399,11 @@ export class CityMap {
     this.draw();
   }
 
-  /** the whole map again, dropping a focus still waiting for its data */
-  showWhole(): void {
+  /** the start view again, dropping a focus still waiting for its data */
+  showCity(): void {
     this.pendingFocus = undefined;
     this.focusedSinceData = undefined;
-    this.view = WHOLE_MAP;
+    this.view = START_VIEW;
     this.draw();
   }
 }

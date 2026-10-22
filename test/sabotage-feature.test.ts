@@ -220,7 +220,7 @@ describe('sabotage feature', () => {
 
   it('shows the whole city without the framed building when opened from the map button', async () => {
     const { ctx, box, drawn, row } = mapSetup();
-    const whole = vi.spyOn(CityMap.prototype, 'showWhole');
+    const whole = vi.spyOn(CityMap.prototype, 'showCity');
     ctx.cities.setVisited(withBuildings(1, [house(5, 1, 'Coins', 0, { money: 900 })]));
     await tick();
     row('Münzhaus').click();
