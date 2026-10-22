@@ -143,7 +143,7 @@ Entscheidung: Hauptspeicher ist IndexedDB im Origin der Extension, mit Sicherung
 - Daten pro Welt und Spieler getrennt, ein gemeinsamer Speicher für alle Welten.
 - **Sicherungskopie:** Unwiederbringliche Daten (Notizen, PvP-Verlauf, Statistiken, GbG- und GEX-Historie, keine Caches) gehen gesammelt in die IndexedDB der Spielseite, etwa eine Minute nach der letzten Änderung und beim Schließen. Nach einer Neuinstallation bietet die Toolbox die Wiederherstellung an. Die Sicherung lässt sich abschalten, weil Spiel und andere Extensions sie lesen könnten.
 - **Export als Datei** ab der ersten Version, für Rechnerwechsel und echte Backups.
-- **Eine Form je gespeicherter Domäne** (Architektur-Review 2026-10-20): Was eine Domäne zum Speichern braucht, liegt zusammen in `src/persistence/<domäne>/`. `contract.ts` enthält die RPC-Typen, `worker.ts` Tabellendefinition und Handler im Service Worker, `client.ts` den Adapter auf der Content-Seite. `rpc.ts` und die Handler im Service Worker setzen sich daraus zusammen. Die Versionsgeschichte von Dexie bleibt zentral in `db.ts`, die Domänen liefern nur ihre Tabellen. Im Test läuft dieselbe Domäne gegen Dexie im Speicher. Umgesetzt mit PvP Teil B für Players, Battles, Plunders und Incoming.
+- **Eine Form je gespeicherter Domäne** (Architektur-Review 2026-10-20): Was eine Domäne zum Speichern braucht, liegt zusammen in `src/persistence/<domäne>/`. `contract.ts` enthält die RPC-Typen, `worker.ts` Tabellendefinition und Handler im Service Worker, `client.ts` den Adapter auf der Content-Seite. `rpc.ts` und die Handler im Service Worker setzen sich daraus zusammen. Die Versionsgeschichte von Dexie bleibt zentral in `db.ts`, die Domänen liefern nur ihre Tabellen. Im Test läuft dieselbe Domäne gegen Dexie im Speicher. Umgesetzt mit PvP Teil B für Players, Battles, Plunders und Incoming, seitdem auch Notes, Shields, Great Buildings und foestats. Der Service Worker bekommt Abhängigkeiten nach außen (fetch, Uhr) beim Erzeugen der Handler, Tests geben eigene mit.
 - **Primärschlüssel ändern:** Dexie kann den Primärschlüssel einer bestehenden Tabelle nicht ändern. Eine Version löscht die Tabelle, die nächste legt sie mit neuem Schlüssel an (so bei `plunders`, Versionen 4 und 5).
 
 Begründung: Im Origin der Spielseite kann fremder Code die Daten lesen, ändern und löschen (der Helfer löscht in `mergeDatabases` alte DBs), und Chrome darf ihn bei Platzmangel leeren. Mit der Sicherung gehen Daten nur verloren, wenn Deinstallation und Löschen der Website-Daten zusammenkommen.
@@ -277,6 +277,24 @@ Entscheidung Faktor als Einstellung: Settings kennen dafür Zahlen mit Grenzen (
 
 **Noch nicht enthalten:** Klick kopiert die Einzahlung ins Spielfeld, Faktor je Gespräch, FP aus Quests (Quest-Daten liest die Ingestion noch nicht), eigene LGs (kommt mit dem Eigenanteilsrechner), Snipehilfe (die bekannten fremden LGs werden schon gespeichert).
 
+## foestats
+
+Stand 2026-10-22. foestats.com ist eine externe Datenquelle mit täglichen Punkten und Kämpfen je Spieler. Die API (`api.forge-db.com`) ist inoffiziell und nicht dokumentiert.
+
+**Links:** Jeder Spieler- und Gildenname in den Boxen öffnet die Seite bei foestats in einem neuen Tab: Stadtinformationen (Spieler, Gilde), LG-Rechner (Eigentümer, Plätze einer vergangenen Stufe), Kopf einer Spielernotiz. In der PvP-Box filtert der Name weiter, dort steht ein kleines ↗ daneben. Links senden nichts und erscheinen immer, auch ohne die Einstellung. Die Adresse baut eine Funktion (`src/shared/foestats.ts`). **Angenommen, im Browser noch nicht geprüft:** `<server>/<world>` ist Sprachkürzel und Welt-ID der Toolbox, etwa `de/de20`.
+
+**Abruf:** nur beim Ansehen, für den Eigentümer des offenen fremden LGs und den Spieler der besuchten Stadt. Kein Abruf im Hintergrund, keine Nachbarn oder Gildenmitglieder auf Vorrat. Der Service Worker fragt ohne Cookies (`credentials: 'omit'`) die Punkte- und Kampfverläufe ab, höchstens einmal je Spieler und foestats-Tag. foestats aktualisiert früh am Morgen, deshalb gilt ein neuer Tag erst ab 05:40 Uhr Ortszeit, davor der Vortag. Antwortet foestats nicht (Fehlercode, kein JSON, Netzfehler), merkt sich der Service Worker das und fragt frühestens nach 30 Minuten wieder. **Noch nicht geprüft:** ob der Abruf aus der Extension durchgeht. `curl` bekommt 403 von Cloudflare, ein Browser-Tab 200.
+
+**Datenmodell** (Dexie-Version 10, Domäne `src/persistence/foestats/`):
+
+- `foestatsDays` (`[world+player+date]`, Index `[world+player]`): ein Tag eines Spielers mit `points` und `battles`. Vergangene Tage ändern sich nicht, neue Tage werden nur angehängt. Kommt nur einer der beiden Verläufe an, wird nichts gespeichert, sonst bekäme der Tag den fehlenden Wert nie.
+- `foestatsFetches` (`[world+player]`): letzter Abruf je Spieler mit foestats-Tag, Zeitpunkt und Erfolg. So fragt ein Neuladen des Spiels nicht noch einmal.
+- Der FoestatsStore bringt einen Spieler beim Ansehen auf Stand und liest die Tage danach aus der DB. Die Oberfläche liest immer aus dem eigenen Speicher.
+
+**Aktivität im LG-Rechner:** unter dem Eigentümer „zuletzt aktiv heute / gestern / vor N Tagen“ (letzter Tag, an dem Punkte oder Kämpfe gestiegen sind, gezählt ab dem aktuellen foestats-Tag) und die Änderung von Punkten und Kämpfen über die letzten 7 Tage. Ab 3 Tagen ohne Zunahme steht die Zeile als Warnung. Die Rechnung ist eine reine Funktion (`domain/activity.ts`). Eine eigene Ansicht des Verlaufs gibt es noch nicht.
+
+**Einstellung** „foestats-Daten abrufen“, Standard an, mit Hinweis, dass foestats.com Welt und Spieler-ID des angesehenen Spielers erfährt. Aus: keine Anfragen, keine Aktivität, Links bleiben. Entscheidung: Standard an statt Double-Opt-In wie bei Settings, die Daten nach außen senden. Gesendet wird nur, was foestats ohnehin öffentlich zeigt (Welt und Spieler-ID), keine eigenen Spieldaten.
+
 ## Feature-Checkliste
 
 Stand der FoE Toolbox. Module, die im Fundament aufgehen, stehen getrennt.
@@ -361,6 +379,7 @@ Querschnitt aus der FoE Toolbox, der in die passenden Features eingeht: Fenster 
 
 - Keine eigenen Anfragen an die Spielserver, nur mitlesen. Ausnahme wie heute: Metadaten und Assets vom Inno-CDN.
 - `api.foe-rechner.de` nur nach Double-Opt-In, nur über den Service Worker.
+- `api.forge-db.com` (foestats) nur über den Service Worker, ohne Cookies, nur für angesehene Spieler, abschaltbar (siehe foestats).
 - Discord-Webhooks und eigene Server nur mit URLs, die der Nutzer einträgt.
 
 ## Ergebnisse Phase 0
