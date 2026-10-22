@@ -140,3 +140,24 @@ export function centerOn(
     panY: height / 2 - base.originY - middle.y * base.scale,
   };
 }
+
+/** The other mode at the same zoom, with the grid point in the middle of the view still in the middle. Zoom 1 drops the pan. */
+export function switchMode(
+  from: MapMode,
+  to: MapMode,
+  bounds: Bounds,
+  width: number,
+  height: number,
+  view: MapView,
+): MapView {
+  if (view.zoom <= 1) return WHOLE_MAP;
+  const old = project(from, bounds, width, height, view);
+  const middle = fromPlane(from, (width / 2 - old.originX) / old.scale, (height / 2 - old.originY) / old.scale);
+  const base = project(to, bounds, width, height, { zoom: view.zoom, panX: 0, panY: 0 });
+  const plane = toPlane(to, middle.x, middle.y);
+  return {
+    zoom: view.zoom,
+    panX: width / 2 - base.originX - plane.x * base.scale,
+    panY: height / 2 - base.originY - plane.y * base.scale,
+  };
+}

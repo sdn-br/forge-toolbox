@@ -5,6 +5,7 @@ import {
   fromPlane,
   type MapMode,
   project,
+  switchMode,
   tileAt,
   toPlane,
   toScreen,
@@ -115,5 +116,23 @@ describe('map projection', () => {
 
   it('zooms no further in than the largest zoom', () => {
     expect(centerOn('top', bounds, 300, 200, WHOLE_MAP, { x: 0, y: 0, width: 1, length: 1 }, 10_000).zoom).toBe(12);
+  });
+
+  it.each<[MapMode, MapMode]>([
+    ['top', 'iso'],
+    ['iso', 'top'],
+  ])('keeps the zoom and the middle of the view when switching from %s to %s', (from, to) => {
+    const view = zoomAt(from, bounds, 300, 200, WHOLE_MAP, 3, 100, 60);
+    const before = project(from, bounds, 300, 200, view);
+    const grid = fromPlane(from, (150 - before.originX) / before.scale, (100 - before.originY) / before.scale);
+    const switched = switchMode(from, to, bounds, 300, 200, view);
+    expect(switched.zoom).toBe(view.zoom);
+    const middle = toScreen(project(to, bounds, 300, 200, switched), grid.x, grid.y);
+    expect(middle.x).toBeCloseTo(150);
+    expect(middle.y).toBeCloseTo(100);
+  });
+
+  it('shows the whole map after switching when not zoomed in', () => {
+    expect(switchMode('top', 'iso', bounds, 300, 200, WHOLE_MAP)).toEqual(WHOLE_MAP);
   });
 });
