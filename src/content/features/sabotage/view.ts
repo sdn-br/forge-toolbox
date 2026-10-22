@@ -53,7 +53,7 @@ const plunderTable = (items: PlunderItem[], actions?: SabotageActions) =>
     const muted = p.important ? '' : ' muted';
     if (!actions) return html`<tr class=${muted.trim()}>${loot}</tr>`;
     const show = () => actions.showOnMap(p.building);
-    return html`<tr class=${`plunder-row${muted}`} role="button" tabindex="0" title=${t('sabotage.showOnMap')}
+    return html`<tr class=${`plunder-row${muted}`} role="button" tabindex="0" data-tip=${t('sabotage.showOnMap')}
       @click=${show} @keydown=${pressKeys(show)}>${loot}</tr>`;
   })}</table>`;
 
@@ -84,7 +84,7 @@ export function sabotageView(
         : ''
     }${
       actions
-        ? html` <button class="map-button" title=${t('sabotage.openMap')} @click=${() => actions.openMap()}>🗺️</button>`
+        ? html` <button class="map-button" data-tip=${t('sabotage.openMap')} aria-label=${t('sabotage.openMap')} @click=${() => actions.openMap()}>🗺️</button>`
         : ''
     }
       <br /><span class="muted">${t('sabotage.era')}: ${vm.player.era}</span>

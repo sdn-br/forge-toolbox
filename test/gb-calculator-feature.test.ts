@@ -110,7 +110,9 @@ describe('LG-Rechner', () => {
     await tick();
     const demand = rows()[0]?.querySelectorAll('td')[5];
     expect(demand?.className).toBe('num below-safe');
-    expect(demand?.getAttribute('title')).toBe('Gewinn bei Fördern: 40 FP\nunter Sichern: nur mit Absprache haltbar');
+    expect(demand?.getAttribute('data-tip')).toBe(
+      'Gewinn bei Fördern: 40 FP\nunter Sichern: nur mit Absprache haltbar',
+    );
   });
 
   it('marks a demand above what the level still needs and keeps the extra over the own deposit', async () => {
@@ -124,8 +126,8 @@ describe('LG-Rechner', () => {
     const demand = rows()[0]?.querySelectorAll('td')[5];
     expect(demand?.textContent?.trim()).toBe('1.965 (+1.390)');
     expect(demand?.className).toBe('num over-rest');
-    expect(demand?.getAttribute('title')).toContain('mehr als bis zum Level-Up fehlt (786 FP)');
-    expect(demand?.getAttribute('title')).toContain('Gewinn bei Fördern: -684 FP');
+    expect(demand?.getAttribute('data-tip')).toContain('mehr als bis zum Level-Up fehlt (786 FP)');
+    expect(demand?.getAttribute('data-tip')).toContain('Gewinn bei Fördern: -684 FP');
   });
 
   it('asks to reopen when the construction came without its building', async () => {
@@ -183,7 +185,7 @@ describe('LG-Rechner', () => {
     open(1909);
     await tick();
     expect(box.text).toContain('Verfügbare FP: 108.454');
-    expect(box.root.querySelector('.gb-fp')?.getAttribute('title')).toBe('Leiste 1 + Pakete 108.453');
+    expect(box.root.querySelector('.gb-fp')?.getAttribute('data-tip')).toBe('Leiste 1 + Pakete 108.453');
     expect(rows()[0]?.querySelectorAll('td')[2]?.className).toBe('num');
     // packages alone enough or not: 1000 on the bar plus 200 in packages is short of 1406
     ctx.inventory.set([
@@ -401,7 +403,7 @@ describe('LG-Rechner', () => {
       expect(cells(rows()[2])).toEqual(['3', '400', '1.502 (+1.102)', '420', '-1.082', '409 (+9)', '186 % → 698,6 %']);
       const now = rows()[2]?.querySelectorAll('td')[6]?.querySelector('span');
       expect(now?.className).toBe('muted');
-      expect(now?.getAttribute('title')).toBe('wenn du nichts mehr einzahlst und dich niemand überholt');
+      expect(now?.getAttribute('data-tip')).toBe('wenn du nichts mehr einzahlst und dich niemand überholt');
       expect(box.root.querySelector('.gb-me')?.className).toBe('gb-me');
       expect(meLines(box.root)).toEqual([
         'Du: 400 FP auf P3 · nicht sicher',
@@ -477,7 +479,7 @@ describe('LG-Rechner', () => {
       const activity = line(box.root) as HTMLElement;
       expect(activity.textContent).toBe('zuletzt aktiv vor 4 Tagen · 7 Tage: +500 Punkte, +3 Kämpfe');
       expect(activity.className).toBe('gb-activity warn');
-      expect(activity.title).toBe('Punkte und Kämpfe laut foestats.com, Stand 2026-10-22');
+      expect(activity.dataset.tip).toBe('Punkte und Kämpfe laut foestats.com, Stand 2026-10-22');
     });
 
     it('reads the stored days when the owner is opened again the same day', async () => {
@@ -669,7 +671,7 @@ describe('LG-Rechner', () => {
       choose(box.root, 421);
       const gross = rows()[0]?.querySelectorAll('td')[3];
       expect(gross?.className).toBe('num estimate');
-      expect(gross?.getAttribute('title')).toBe('Belohnung geschätzt, auf etwa 5 FP genau');
+      expect(gross?.getAttribute('data-tip')).toBe('Belohnung geschätzt, auf etwa 5 FP genau');
       expect(gross?.textContent).toContain('≈');
     });
 

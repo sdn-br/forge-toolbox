@@ -53,6 +53,11 @@ ul.rows li.dragging { opacity: .4; }
 a.ext-link { text-decoration: none; opacity: .6; }
 a.ext-link:hover { opacity: 1; }
 .spinner { display: inline-block; width: .8em; height: .8em; vertical-align: -.1em; border: 2px solid #8a6a3a; border-top-color: #f0c060; border-radius: 50%; animation: spin .8s linear infinite; }
+.tip { position: fixed; z-index: 2147483647; max-width: 260px; padding: 3px 6px; background: #000d; color: #f3e3c3;
+  font: 12px/1.4 system-ui, sans-serif; border: 1px solid #8a6a3a; border-radius: 4px; pointer-events: none;
+  white-space: pre-line; }
+.tip[hidden] { display: none; }
+header button.pin svg { display: block; margin: auto; }
 @keyframes spin { to { transform: rotate(360deg); } }
 textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
 input.title { width: 100%; font-weight: 600; }
@@ -79,8 +84,6 @@ button.marker.dim { opacity: .3; }
 .map-tools { position: absolute; top: 4px; right: 4px; display: flex; gap: 2px; }
 .map-tools button { font: inherit; cursor: pointer; padding: 0 6px; }
 .map-tools button.active { font-weight: 600; outline: 1px solid #f0c060; }
-.map-tip { position: absolute; max-width: 200px; padding: 3px 6px; background: #000d; color: #f3e3c3;
-  border: 1px solid #8a6a3a; border-radius: 4px; pointer-events: none; white-space: pre-line; }
 .map-legend { display: flex; flex-wrap: wrap; gap: 2px 10px; list-style: none; margin: 4px 0; padding: 0; }
 .map-legend .swatch { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: -1px;
   border: 2px solid transparent; }

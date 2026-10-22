@@ -29,9 +29,9 @@ const percent = (n: number) => `${formatNumber(n)} %`;
 
 const activityLine = (a: ActivityVm) =>
   html`<br />${t('foestats.label')}:
-    <span class=${a.idle ? 'gb-activity warn' : 'gb-activity muted'} title=${a.title}>${a.text}${
+    <span class=${a.idle ? 'gb-activity warn' : 'gb-activity muted'} data-tip=${a.title}>${a.text}${
       a.week ? ` · ${a.week}` : ''
-    }</span>${a.loading ? html` <span class="spinner" title=${t('foestats.loading')}></span>` : ''}`;
+    }</span>${a.loading ? html` <span class="spinner" data-tip=${t('foestats.loading')}></span>` : ''}`;
 
 const owner = (name: string, url: string) => html`${t('gbCalc.ownerLabel')}: ${externalLink(name, url)}`;
 
@@ -45,7 +45,7 @@ function header(h: GbHeader) {
   return html`<p><b>${t('gbCalc.heading', { name: h.name, level: h.level, next: h.next })}</b>
     <span class="muted">· ${t('gbCalc.unlocked', { max: h.maxLevel })}</span>
     <br />${owner(h.owner, h.ownerUrl)}${h.activity ? activityLine(h.activity) : ''}
-    <br /><span class="muted"><span class="gb-fp" title=${split}>${fp}</span> ·
+    <br /><span class="muted"><span class="gb-fp" data-tip=${split}>${fp}</span> ·
       ${t('gbCalc.arc', { arc: formatNumber(h.arcBonus) })}</span></p>`;
 }
 
@@ -58,7 +58,7 @@ function levelBar(l: LevelChoice, actions: GbCalculatorActions) {
   };
   return html`<div class="gb-levels">
     <span>${t('gbCalc.level')}</span>
-    <input type="number" min=${l.current} step="1" title=${t('gbCalc.previewInput')}
+    <input type="number" min=${l.current} step="1" data-tip=${t('gbCalc.previewInput')}
       aria-label=${t('gbCalc.previewInput')} class=${l.preview ? 'active' : ''}
       .value=${String(l.chosen)} @keydown=${keepKeys} @change=${typed} />
     ${
@@ -86,7 +86,7 @@ function factorBar(vm: Extract<GbCalculatorVm, { kind: 'current' | 'preview' }>,
     )}
     <button class=${factor.arc ? 'active' : ''} @click=${() => actions.useArc()}>
       ${t('gbCalc.factorArc')} (${percent(vm.header.arcBonus)})</button>
-    <input type="number" min="-100" max="200" step="1" title=${t('gbCalc.factorInput')} aria-label=${t('gbCalc.factorInput')}
+    <input type="number" min="-100" max="200" step="1" data-tip=${t('gbCalc.factorInput')} aria-label=${t('gbCalc.factorInput')}
       class=${!factor.arc && !FACTOR_PRESETS.includes(factor.value as never) ? 'active' : ''}
       .value=${String(factor.value)} @keydown=${keepKeys} @change=${typed} />
   </div>`;
@@ -98,7 +98,7 @@ const NONE = html`<td class="num">–</td>`;
 function costCell(c: CostCell | undefined) {
   if (!c) return NONE;
   const extra = c.extra !== c.cost && c.extra > 0 ? html` <span class="muted">(+${formatNumber(c.extra)})</span>` : '';
-  return html`<td class=${c.short ? 'num short' : 'num'} title=${c.short ? t('gbCalc.short') : ''}>${formatNumber(c.cost)}${extra}</td>`;
+  return html`<td class=${c.short ? 'num short' : 'num'} data-tip=${c.short ? t('gbCalc.short') : ''}>${formatNumber(c.cost)}${extra}</td>`;
 }
 
 /** the demand with its notes: more than the level needs (red), below the safe cost (muted), the profit at it */
@@ -112,7 +112,7 @@ function demandCell(d: DemandCell | undefined) {
     d.belowSafe && t('gbCalc.demandBelowSafe'),
     d.short && t('gbCalc.short'),
   ].filter(Boolean);
-  return html`<td class=${classes.filter(Boolean).join(' ')} title=${title.join('\n')}>${formatNumber(d.cost)}${extra}</td>`;
+  return html`<td class=${classes.filter(Boolean).join(' ')} data-tip=${title.join('\n')}>${formatNumber(d.cost)}${extra}</td>`;
 }
 
 const maybe = (n: number | undefined) => (n === undefined ? NONE : html`<td class="num">${formatNumber(n)}</td>`);
@@ -167,7 +167,7 @@ const placeTitle = (p: PlaceRow) =>
 
 /** the safe cost; a check mark where the holder is safe, the own place too (the row colour tells which) */
 function safeCell(p: PlaceRow) {
-  if (p.secured && !p.safe) return html`<td class="num" title=${t('gbCalc.securedHint')}>✓</td>`;
+  if (p.secured && !p.safe) return html`<td class="num" data-tip=${t('gbCalc.securedHint')}>✓</td>`;
   return costCell(p.safe);
 }
 
@@ -176,7 +176,7 @@ function rateCell(p: PlaceRow) {
   const deposit =
     p.depositRate === undefined
       ? undefined
-      : html`<span class=${p.safe ? 'muted' : ''} title=${t('gbCalc.depositRateHint')}>${percent(p.depositRate)}</span>`;
+      : html`<span class=${p.safe ? 'muted' : ''} data-tip=${t('gbCalc.depositRateHint')}>${percent(p.depositRate)}</span>`;
   if (!p.safe) return deposit ? html`<td class="num">${deposit}</td>` : NONE;
   const rate = p.rate === undefined ? '' : percent(p.rate);
   return html`<td class="num">${deposit ? html`${deposit} → ` : ''}${rate}</td>`;
@@ -184,11 +184,11 @@ function rateCell(p: PlaceRow) {
 
 /** Platz, Investiert, Sichern, FP, Gewinn, Fördern, Kurs; blueprints and medals stay in the view model, not shown */
 const placeRow = (p: PlaceRow) =>
-  html`<tr class=${`gb-${p.status}`} title=${placeTitle(p)}>
+  html`<tr class=${`gb-${p.status}`} data-tip=${placeTitle(p)}>
     <td>${p.rank}</td>
     ${maybe(p.holder?.fp)}
     ${safeCell(p)}
-    <td class=${p.estimate ? 'num estimate' : 'num'} title=${p.estimate ? t('gbCalc.estimate') : ''}>${
+    <td class=${p.estimate ? 'num estimate' : 'num'} data-tip=${p.estimate ? t('gbCalc.estimate') : ''}>${
       p.estimate ? '≈ ' : ''
     }${formatNumber(p.gross)}</td>
     ${p.profit === undefined ? NONE : html`<td class="num">${formatNumber(p.profit)}</td>`}
@@ -200,12 +200,12 @@ function placesTable(places: PlaceRow[]) {
   return html`<table class="gb-table">
     <tr>
       <th>${t('gbCalc.place')}</th>
-      <th class="num" title=${t('gbCalc.investedHint')}>${t('gbCalc.invested')}</th>
-      <th class="num" title=${t('gbCalc.safeHint')}>${t('gbCalc.safe')}</th>
-      <th class="num" title=${t('gbCalc.grossHint')}>${t('gbCalc.gross')}</th>
+      <th class="num" data-tip=${t('gbCalc.investedHint')}>${t('gbCalc.invested')}</th>
+      <th class="num" data-tip=${t('gbCalc.safeHint')}>${t('gbCalc.safe')}</th>
+      <th class="num" data-tip=${t('gbCalc.grossHint')}>${t('gbCalc.gross')}</th>
       <th class="num">${t('gbCalc.profit')}</th>
-      <th class="num" title=${t('gbCalc.demandHint')}>${t('gbCalc.demand')}</th>
-      <th class="num" title=${t('gbCalc.rateHint')}>${t('gbCalc.rate')}</th>
+      <th class="num" data-tip=${t('gbCalc.demandHint')}>${t('gbCalc.demand')}</th>
+      <th class="num" data-tip=${t('gbCalc.rateHint')}>${t('gbCalc.rate')}</th>
     </tr>
     ${places.map(placeRow)}
   </table>`;

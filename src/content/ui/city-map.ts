@@ -85,7 +85,6 @@ export const legendView = (items: LegendItem[]) =>
  */
 export class CityMap {
   private canvas?: HTMLCanvasElement;
-  private tip?: HTMLElement;
   private data: CityMapData = { areas: [], tiles: [] };
   private bounds?: Bounds;
   /** tile key → index into data.tiles */
@@ -116,7 +115,7 @@ export class CityMap {
       html`<button class=${this.mode === mode ? 'active' : ''} @click=${() => this.setMode(mode)}>${label}</button>`;
     return html`<div class="city-map">
       <div class="map-frame">
-        <canvas ${ref((el) => this.attach(el))}
+        <canvas data-tip-instant ${ref((el) => this.attach(el))}
           @pointermove=${(e: PointerEvent) => this.pointerMove(e)}
           @pointerdown=${(e: PointerEvent) => this.pointerDown(e)}
           @pointerup=${(e: PointerEvent) => this.pointerUp(e)}
@@ -124,13 +123,10 @@ export class CityMap {
           @wheel=${{ handleEvent: (e: WheelEvent) => this.wheel(e), passive: false }}></canvas>
         <div class="map-tools">
           ${modeButton('top', t('cityMap.top'))}${modeButton('iso', t('cityMap.iso'))}
-          <button title=${t('cityMap.zoomIn')} @click=${() => this.zoomBy(ZOOM_STEP)}>+</button>
-          <button title=${t('cityMap.zoomOut')} @click=${() => this.zoomBy(1 / ZOOM_STEP)}>−</button>
-          <button title=${t('cityMap.zoomReset')} @click=${() => this.reset()}>⤢</button>
+          <button data-tip=${t('cityMap.zoomIn')} aria-label=${t('cityMap.zoomIn')} @click=${() => this.zoomBy(ZOOM_STEP)}>+</button>
+          <button data-tip=${t('cityMap.zoomOut')} aria-label=${t('cityMap.zoomOut')} @click=${() => this.zoomBy(1 / ZOOM_STEP)}>−</button>
+          <button data-tip=${t('cityMap.zoomReset')} aria-label=${t('cityMap.zoomReset')} @click=${() => this.reset()}>⤢</button>
         </div>
-        <div class="map-tip" hidden ${ref((el) => {
-          this.tip = el as HTMLElement | undefined;
-        })}></div>
       </div>
       ${legend ?? ''}
     </div>`;
@@ -364,20 +360,10 @@ export class CityMap {
   }
 
   private hover(index: number, at?: { x: number; y: number }) {
-    const tip = this.tip;
     const tile = this.data.tiles[index];
     const text = tile ? tile.tooltip : at && this.zoneTipAt(at.x, at.y);
-    if (tip) {
-      tip.hidden = text === undefined;
-      if (text !== undefined && at) {
-        tip.textContent = text;
-        const frame = this.canvas?.clientWidth ?? 0;
-        // keep the tooltip inside the map: right of the pointer, left of it near the right edge
-        const left = at.x + 14 + 200 > frame ? Math.max(0, at.x - 14 - 200) : at.x + 14;
-        tip.style.left = `${left}px`;
-        tip.style.top = `${at.y + 14}px`;
-      }
-    }
+    // the box's tooltip reads this on the same pointer move and follows the pointer
+    if (this.canvas) this.canvas.dataset.tip = text ?? '';
     if (index === this.hovered) return;
     this.hovered = index;
     this.draw();

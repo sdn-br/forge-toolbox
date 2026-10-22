@@ -30,7 +30,7 @@ const opponentLink = (r: { opponent: PlayerId; name: string; url: string }, acti
 
 /** 📝 per row: dim without a note, the note as tooltip */
 const noteMarker = (opponent: PlayerId, note: string, actions: PvpActions) =>
-  html`<td><button class=${note ? 'marker' : 'marker dim'} title=${note || t('notes.add')}
+  html`<td><button class=${note ? 'marker' : 'marker dim'} data-tip=${note || t('notes.add')}
     @click=${() => actions.note(opponent)}>📝</button></td>`;
 
 const incomingRow = (r: IncomingRow, actions: PvpActions) => html`<tr>
@@ -43,7 +43,7 @@ const expandOnClick = (battleId: number, actions: PvpActions) => (e: Event) => {
 };
 
 const row = (r: PvpRow, actions: PvpActions) => html`<tr class=${r.expanded ? 'battle-row expanded' : 'battle-row'}
-    title=${t('pvp.details')} @click=${expandOnClick(r.battleId, actions)}>
+    data-tip=${t('pvp.details')} @click=${expandOnClick(r.battleId, actions)}>
   ${noteMarker(r.opponent, r.note, actions)}${opponentLink(r, actions)}
   <td>${r.when}</td><td>${r.result}</td><td>${r.battle}</td>
   <td class="num">${army(r.attacker)}</td><td class="num">${army(r.defender)}</td></tr>
@@ -102,7 +102,7 @@ export function pvpView(vm: PvpVm | undefined, actions: PvpActions, note?: Templ
       @keydown=${keepKeys} @keypress=${keepKeys} @keyup=${keepKeys} />
     ${
       vm?.picked
-        ? html`<button class="action" title=${t('pvp.clearFilter')} @click=${() => actions.clearPick()}>${t('pvp.onlyPlayer', { name: vm.picked })} ✕</button>`
+        ? html`<button class="action" data-tip=${t('pvp.clearFilter')} @click=${() => actions.clearPick()}>${t('pvp.onlyPlayer', { name: vm.picked })} ✕</button>`
         : ''
     }</p>`;
   // the search field stays in one outer template: swapping templates would replace it and take its focus mid-typing

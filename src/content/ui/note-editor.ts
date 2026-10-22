@@ -53,7 +53,7 @@ export class NoteEditor {
     }
     if (!this.editing) {
       const empty = !target.text.trim();
-      return html`<div class="note" tabindex="0" title=${t('notes.edit')}
+      return html`<div class="note" tabindex="0" data-tip=${t('notes.edit')}
         @click=${(e: Event) => {
           // a link opens, it does not start editing
           if (!(e.target as Element).closest('a')) this.edit(target.key);

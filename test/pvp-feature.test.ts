@@ -290,7 +290,7 @@ describe('pvp feature', () => {
     for (const list of lists) list.resolve([battle(1, 111), battle(2, 222)]);
     await tick();
     const markers = () => [...box.root.querySelectorAll('button.marker')];
-    expect(markers().map((m) => [m.className, m.getAttribute('title')])).toEqual([
+    expect(markers().map((m) => [m.className, m.getAttribute('data-tip')])).toEqual([
       ['marker', 'stark'],
       ['marker dim', 'Notiz hinzufügen'],
     ]);
@@ -308,7 +308,7 @@ describe('pvp feature', () => {
     lists.at(-1)?.resolve([battle(2, 222)]);
     await tick();
     expect(box.text).toContain('Nur 222');
-    expect(markers().map((m) => m.getAttribute('title'))).toEqual(['neu']);
+    expect(markers().map((m) => m.getAttribute('data-tip'))).toEqual(['neu']);
   });
 
   it('marks the attackers on the own city with their note', async () => {
@@ -316,7 +316,7 @@ describe('pvp feature', () => {
     ctx.notes.setPlayerText(playerId(555), 'Angreifer');
     box.click('Angriffe auf mich');
     await vi.waitFor(() => expect(box.text).toContain('Kampf: durchbrochen'));
-    expect(box.root.querySelector('button.marker')?.getAttribute('title')).toBe('Angreifer');
+    expect(box.root.querySelector('button.marker')?.getAttribute('data-tip')).toBe('Angreifer');
   });
 
   describe('with the army window', () => {
