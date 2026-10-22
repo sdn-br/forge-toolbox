@@ -405,13 +405,14 @@ describe('LG-Rechner', () => {
       input.dispatchEvent(new Event('change'));
     };
 
-    it('offers the level after the current construction and shows it open and empty', () => {
+    it('shows a later level from the field open and empty', () => {
       const { box, open, rows, loadDefinitions, tones } = setup();
       loadDefinitions();
       open(1909);
+      expect(levelInput(box.root).value).toBe('75');
+      expect(box.text).not.toContain('Laufend');
+      choose(box.root, 76);
       expect(box.text).toContain('Laufend 75 → 76');
-      expect(levelInput(box.root).value).toBe('76');
-      box.click('Vorschau');
       expect(box.text).toContain('Vorschau Stufe 76 → 77, leer gedacht');
       expect(box.text).toContain('noch nicht freigeschaltet');
       expect(box.text).toContain('Die Stufe kostet 3.138 FP');
@@ -446,14 +447,24 @@ describe('LG-Rechner', () => {
       box.click('Laufend');
       expect(box.text).not.toContain('Vorschau Stufe');
       expect(box.text).toContain('Bis Level-Up fehlen 2.811 FP');
-      expect(levelInput(box.root).value).toBe('76');
+      expect(levelInput(box.root).value).toBe('75');
+    });
+
+    it('goes back to the live construction when the field gets the current level', () => {
+      const { box, open, loadDefinitions } = setup();
+      loadDefinitions();
+      open(1909);
+      choose(box.root, 90);
+      choose(box.root, 75);
+      expect(box.text).not.toContain('Vorschau Stufe');
+      expect(box.text).toContain('Bis Level-Up fehlen 2.811 FP');
     });
 
     it('ignores a level that is not after the current construction', () => {
       const { box, open, loadDefinitions } = setup();
       loadDefinitions();
       open(1909);
-      choose(box.root, 75);
+      choose(box.root, 74);
       expect(box.text).not.toContain('Vorschau Stufe');
     });
 
@@ -471,7 +482,7 @@ describe('LG-Rechner', () => {
     it('says what is missing without the definition or past every known level', () => {
       const { box, open, loadDefinitions } = setup();
       open(1909);
-      box.click('Vorschau');
+      choose(box.root, 76);
       expect(box.text).toContain('Definition des LGs ist noch nicht geladen');
       loadDefinitions();
       choose(box.root, 2000);
@@ -483,10 +494,10 @@ describe('LG-Rechner', () => {
       const { box, open, loadDefinitions } = setup();
       loadDefinitions();
       open(1909);
-      box.click('Vorschau');
+      choose(box.root, 76);
       open(650);
       expect(box.text).not.toContain('Vorschau Stufe');
-      expect(levelInput(box.root).value).toBe('50');
+      expect(levelInput(box.root).value).toBe('49');
     });
   });
 });

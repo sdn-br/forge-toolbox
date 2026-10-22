@@ -42,7 +42,7 @@ export interface GbHeader {
 export interface LevelChoice {
   /** the level the current construction starts from */
   current: number;
-  /** the level in the selector: the previewed one, else the one after the current construction */
+  /** the level in the selector: the previewed one, else the current construction's */
   chosen: number;
   preview: boolean;
 }
@@ -285,7 +285,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     fpBar: input.fpBar,
     fpPackages: input.fpPackages,
     arcBonus: input.arcBonus,
-    levels: { current: entity.level, chosen: preview ?? entity.level + 1, preview: preview !== undefined },
+    levels: { current: entity.level, chosen: preview ?? entity.level, preview: preview !== undefined },
   };
   const effectiveFactor = input.factor.arc ? input.arcBonus : input.factor.value;
   if (preview !== undefined) {

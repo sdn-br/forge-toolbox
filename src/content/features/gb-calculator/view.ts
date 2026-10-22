@@ -47,21 +47,24 @@ function header(h: GbHeader) {
       ${t('gbCalc.arc', { arc: formatNumber(h.arcBonus) })}</span></p>`;
 }
 
-/** live or a later level: the preview starts with the level after the current construction */
+/** the field alone switches: the current level shows the live construction, a later one the preview */
 function levelBar(l: LevelChoice, actions: GbCalculatorActions) {
   const typed = (e: Event) => {
     const value = (e.target as HTMLInputElement).valueAsNumber;
-    if (Number.isInteger(value) && value > l.current) actions.previewLevel(value);
+    if (value === l.current) actions.previewLevel(undefined);
+    else if (Number.isInteger(value) && value > l.current) actions.previewLevel(value);
   };
   return html`<div class="gb-levels">
     <span>${t('gbCalc.level')}</span>
-    <button class=${l.preview ? '' : 'active'} @click=${() => actions.previewLevel(undefined)}>
-      ${t('gbCalc.live', { level: l.current, next: l.current + 1 })}</button>
-    <button class=${l.preview ? 'active' : ''} @click=${() => actions.previewLevel(l.chosen)}>
-      ${t('gbCalc.preview')}</button>
-    <input type="number" min=${l.current + 1} step="1" title=${t('gbCalc.previewInput')}
+    <input type="number" min=${l.current} step="1" title=${t('gbCalc.previewInput')}
       aria-label=${t('gbCalc.previewInput')} class=${l.preview ? 'active' : ''}
       .value=${String(l.chosen)} @keydown=${keepKeys} @change=${typed} />
+    ${
+      l.preview
+        ? html`<button @click=${() => actions.previewLevel(undefined)}>
+            ${t('gbCalc.live', { level: l.current, next: l.current + 1 })}</button>`
+        : ''
+    }
   </div>`;
 }
 
