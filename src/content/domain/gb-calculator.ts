@@ -91,7 +91,7 @@ const EPSILON = 1e-9;
 export const roundHalfUp = (x: number): number => Math.sign(x) * Math.floor(Math.abs(x) + 0.5 + EPSILON);
 
 /** `amount` grown by `percent`, rounded; integer arithmetic first so 5 × 190 / 100 is exactly 9.5 */
-const plusPercent = (amount: number, percent: number) => roundHalfUp((amount * (100 + percent)) / 100);
+export const plusPercent = (amount: number, percent: number) => roundHalfUp((amount * (100 + percent)) / 100);
 
 const depositOf = (row: RankingRow | undefined) => row?.fp ?? 0;
 

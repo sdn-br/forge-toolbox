@@ -3,7 +3,13 @@
 import table from '../data/gb-p1.json';
 import type { GreatBuildingDef } from '../stores/catalog';
 import type { RankingRow } from '../stores/great-building-model';
-import { type ConstructionCalc, calculateConstruction, roundHalfUp } from './gb-calculator';
+import {
+  type ConstructionCalc,
+  type ConstructionInput,
+  calculateConstruction,
+  plusPercent,
+  roundHalfUp,
+} from './gb-calculator';
 
 /** the definition lists the costs of the first ten levels, later ones grow by this factor per level */
 const COST_GROWTH = 1.025;
@@ -131,4 +137,47 @@ export function previewLevel(input: LevelPreviewInput): LevelPreview {
     factor,
   });
   return { level, required, reward, calc };
+}
+
+/** Level the building now with everything still missing, then take place 1 of the next level while it is empty. */
+export interface LevelUpAndFirst {
+  /** the level the next construction starts from */
+  nextLevel: number;
+  /** what the player pays to level now: everything still missing */
+  fill: number;
+  /** the place the own total ends on, others with the same deposit stay ahead */
+  rank: number;
+  /** gross reward of that place (0 without one) minus the own total */
+  fillGain: number;
+  /** the safe cost of place 1 of the empty next level */
+  firstCost: number;
+  /** gross reward of that place 1 minus its safe cost */
+  firstGain: number;
+  total: number;
+}
+
+/**
+ * The combination only when the next level can be paid into right after the level up and it pays: not blocked, the
+ * level after the next construction start unlocked, the reward of the next level known and the total above 0.
+ */
+export function levelUpAndFirst(
+  input: ConstructionInput,
+  greatBuilding: GreatBuildingDef | undefined,
+): LevelUpAndFirst | undefined {
+  const { level, maxLevel, rankings, arcBonus } = input;
+  // the construction from `level` is open while level < maxLevel, so the next one needs level + 1 < maxLevel
+  if (!greatBuilding || !input.connected || level + 1 >= maxLevel) return undefined;
+  const calc = calculateConstruction(input);
+  const fill = calc.missing;
+  if (calc.blocked || fill <= 0) return undefined;
+  const mine = calc.myDeposit + fill;
+  const others = rankings.filter((r) => r.rank !== undefined && !r.self).map((r) => r.fp ?? 0);
+  const rank = 1 + others.filter((fp) => fp >= mine).length;
+  const reward = rankings.find((r) => r.rank === rank)?.reward?.fp ?? 0;
+  const fillGain = plusPercent(reward, arcBonus) - mine;
+  const first = previewLevel({ greatBuilding, level: level + 1, arcBonus, factor: input.factor }).calc?.places[0];
+  if (first?.safeCost === undefined || first.profit === undefined) return undefined;
+  const total = fillGain + first.profit;
+  if (total <= 0) return undefined;
+  return { nextLevel: level + 1, fill, rank, fillGain, firstCost: first.safeCost, firstGain: first.profit, total };
 }

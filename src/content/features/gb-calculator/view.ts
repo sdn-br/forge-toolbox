@@ -1,5 +1,6 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
+import type { LevelUpAndFirst } from '../../domain/gb-level-preview';
 import { keepKeys } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
 import {
@@ -117,11 +118,27 @@ function demandCell(d: DemandCell | undefined) {
 const maybe = (n: number | undefined) => (n === undefined ? NONE : html`<td class="num">${formatNumber(n)}</td>`);
 
 /** the own deposit: safe, or the places still to make safe with what is missing for each */
+const signed = (n: number) => `${n > 0 ? '+' : ''}${formatNumber(n)}`;
+
+/** what leveling now and taking place 1 of the next level costs and pays, the total bold and green */
+function levelUpLine(l: LevelUpAndFirst) {
+  const paid = t('gbCalc.levelUp', {
+    level: l.nextLevel,
+    fill: formatNumber(l.fill),
+    first: formatNumber(l.firstCost),
+  });
+  const second = `${l.firstGain < 0 ? '−' : '+'} ${formatNumber(Math.abs(l.firstGain))}`;
+  return html`<span class="gb-levelup">${paid} → ${signed(l.fillGain)} ${second} = <b class="gain">${signed(
+    l.total,
+  )}</b></span>`;
+}
+
 function meLine(me: MeVm) {
+  const levelUp = me.levelUp ? html`<br />${levelUpLine(me.levelUp)}` : '';
   if (me.secured)
     return html`<p class="gb-me safe">${t('gbCalc.me', { fp: formatNumber(me.fp), rank: me.rank ?? '?' })} · ${t(
       'gbCalc.meSecured',
-    )}</p>`;
+    )}${levelUp}</p>`;
   const where =
     me.fp > 0
       ? `${t('gbCalc.me', { fp: formatNumber(me.fp), rank: me.rank ?? '?' })}${
@@ -139,7 +156,7 @@ function meLine(me: MeVm) {
   const targets = me.targets.length
     ? me.targets.map((x, i) => html`${i ? ' · ' : ''}${target(x)}`)
     : t('gbCalc.meNoTarget');
-  return html`<p class="gb-me">${where}<br /><span class="muted">${targets}</span></p>`;
+  return html`<p class="gb-me">${where}<br /><span class="muted">${targets}</span>${levelUp}</p>`;
 }
 
 const placeTitle = (p: PlaceRow) =>
@@ -233,6 +250,7 @@ export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorAction
       return html`${header(vm.header)}
         ${levelBar(vm.header.levels, actions)}
         ${factorBar(vm, actions)}
+        ${vm.levelUp ? html`<p class="gb-me">${levelUpLine(vm.levelUp)}</p>` : ''}
         ${previewPart(vm.preview)}`;
     case 'current': {
       const overlay = overlayText(vm);

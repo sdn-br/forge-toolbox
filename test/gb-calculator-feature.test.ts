@@ -92,7 +92,7 @@ describe('LG-Rechner', () => {
     expect([...box.root.querySelectorAll('th')].map((th) => th.textContent?.trim())).toEqual([
       'Platz',
       'Investiert',
-      'Sichern',
+      'Sicher',
       'FP',
       'Gewinn',
       'Fördern',
@@ -366,8 +366,8 @@ describe('LG-Rechner', () => {
         ['4', '–', '–', '108', '–', '105', '–'],
         ['5', '–', '–', '20', '–', '19', '–'],
       ]);
-      expect(meLines(box.root)).toEqual(['Du: noch nichts eingezahlt', 'P1 sicher: 2.702']);
-      expect(best(box.root)).toEqual(['P1 sicher: 2.702']);
+      expect(meLines(box.root)).toEqual(['Du: noch nichts eingezahlt', 'P1 sichern: 2.702']);
+      expect(best(box.root)).toEqual(['P1 sichern: 2.702']);
     });
 
     it('nothing paid in: the places that can be had with their safe total, the best profit in bold', () => {
@@ -378,8 +378,8 @@ describe('LG-Rechner', () => {
       // place 1: round((3099 + 1970) / 2) = 2535 cannot pass 3099; place 2: round(2449 / 2) = 1225 for 926 profit;
       // place 3: round(1970 / 2) = 985 for -271; place 4 the same 985: dominated
       expect(cells(rows()[0])?.[2]).toBe('✓');
-      expect(meLines(box.root)).toEqual(['Du: noch nichts eingezahlt', 'P2 sicher: 1.225 · P3 sicher: 985']);
-      expect(best(box.root)).toEqual(['P2 sicher: 1.225']);
+      expect(meLines(box.root)).toEqual(['Du: noch nichts eingezahlt', 'P2 sichern: 1.225 · P3 sichern: 985']);
+      expect(best(box.root)).toEqual(['P2 sichern: 1.225']);
     });
 
     it('nothing paid in and every place safe: says that no place can be had', () => {
@@ -405,10 +405,10 @@ describe('LG-Rechner', () => {
       expect(box.root.querySelector('.gb-me')?.className).toBe('gb-me');
       expect(meLines(box.root)).toEqual([
         'Du: 400 FP auf P3 · nicht sicher',
-        'P1 sicher: +1.852 · P2 sicher: +1.552 · P3 sicher: +1.102',
+        'P1 sichern: +1.852 · P2 sichern: +1.552 · P3 sichern: +1.102',
       ]);
       // profits 2493 - 2252 = 241, 1251 - 1952 = -701, 420 - 1502 = -1082
-      expect(best(box.root)).toEqual(['P1 sicher: +1.852']);
+      expect(best(box.root)).toEqual(['P1 sichern: +1.852']);
     });
 
     it('safe on place 1: the line says so and the own row shows a check mark and one rate', () => {
@@ -427,7 +427,7 @@ describe('LG-Rechner', () => {
       const { box, rows } = scenario([4000, 400], 2);
       expect(cells(rows()[0])?.slice(0, 3)).toEqual(['1', '4.000', '✓']);
       // own place: round(1404 / 2) = 702
-      expect(meLines(box.root)).toEqual(['Du: 400 FP auf P2 · nicht sicher', 'P2 sicher: +302']);
+      expect(meLines(box.root)).toEqual(['Du: 400 FP auf P2 · nicht sicher', 'P2 sichern: +302']);
     });
   });
 
@@ -551,6 +551,52 @@ describe('LG-Rechner', () => {
       input.value = String(level);
       input.dispatchEvent(new Event('change'));
     };
+
+    /** 2434 (St. 52 of 60, 2400 needed) with owner 100, 1600 on 1, mine 500 on 2, 100 on 3: 100 missing */
+    const levelUpCase = () => {
+      const env = setup();
+      env.loadDefinitions();
+      const { entity, construction } = env.opening(2434);
+      type Row = { rank?: number; forge_points?: number };
+      const fp: Record<number, number | undefined> = { 1: 1600, 2: 500, 3: 100, 4: undefined };
+      const rankings = (construction.responseData as { rankings: Row[] }).rankings.map((r) => {
+        if (r.rank === undefined || !(r.rank in fp)) return r;
+        const { forge_points: _, ...rest } = r;
+        return fp[r.rank] === undefined ? rest : { ...rest, forge_points: fp[r.rank] };
+      });
+      env.send(entity);
+      env.send({ ...construction, responseData: { ...(construction.responseData as object), rankings } });
+      return env;
+    };
+    // 600 stays on 2: round(330 × 1.955) = 645 - 600 = +45; level 53 costs 2460, place 1 1310 for 1230: +80
+    const LEVEL_UP = 'Leveln + P1 auf 53: 100 + 1.230 FP → +45 + 80 = +125';
+
+    it('shows leveling now plus place 1 of the next level in the line about the own deposit', () => {
+      const { box } = levelUpCase();
+      expect(box.text).toContain('Bis Level-Up fehlen 100 FP');
+      const line = box.root.querySelector('.gb-me .gb-levelup');
+      expect(line?.textContent?.replace(/\s+/g, ' ').trim()).toBe(LEVEL_UP);
+      expect(line?.querySelector('b.gain')?.textContent).toBe('+125');
+    });
+
+    it('shows it in the preview of the next level only', () => {
+      const { box } = levelUpCase();
+      choose(box.root, 53);
+      expect(box.text).toContain('Vorschau Stufe 53 → 54');
+      expect(box.root.querySelector('.gb-levelup')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(LEVEL_UP);
+      choose(box.root, 54);
+      expect(box.text).toContain('Vorschau Stufe 54 → 55');
+      expect(box.root.querySelector('.gb-levelup')).toBeNull();
+    });
+
+    it('leaves it out when it does not pay', () => {
+      const { box, open, loadDefinitions } = setup();
+      loadDefinitions();
+      // as recorded: 211 missing, 786 on 2 for 645, -141 + 80
+      open(2434);
+      expect(box.root.querySelector('.gb-me')).not.toBeNull();
+      expect(box.root.querySelector('.gb-levelup')).toBeNull();
+    });
 
     it('shows a later level from the field open and empty', () => {
       const { box, open, rows, loadDefinitions, tones } = setup();
