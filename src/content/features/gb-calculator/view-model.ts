@@ -123,13 +123,17 @@ export interface PreviewVm {
 
 /** the player's own deposit on the construction, shown above the places */
 export interface MeVm {
+  /** the own deposit, 0 when the player has not paid in yet */
   fp: number;
   /** missing when the deposit holds no rank */
   rank?: number;
   /** the own place cannot be passed anymore; missing when the rank pays no reward */
   secured?: boolean;
-  /** the places from the first down to the own one the player can still make safe, with what he has to add */
-  targets: { rank: number; extra: number }[];
+  /**
+   * the places the player can still make safe, from the first down to the own one: the safe total and what he has to
+   * add; `best` marks the one with the highest profit
+   */
+  targets: { rank: number; cost: number; extra: number; best: boolean }[];
 }
 
 export type GbCalculatorVm =
@@ -159,7 +163,7 @@ export type GbCalculatorVm =
       blocked?: 'maxLevel' | 'unconnected';
       leveled?: number;
       places: PlaceRow[];
-      /** missing when the player has not paid into the level */
+      /** missing when the building is blocked */
       me?: MeVm;
       /** Forge points until the level is full */
       missing: number;
@@ -265,12 +269,21 @@ function placeRow(p: PlaceCalc, rest: number, available?: number): PlaceRow {
   };
 }
 
-function meVm(calc: ConstructionCalc): MeVm | undefined {
-  if (calc.myDeposit <= 0) return undefined;
+function meVm(calc: ConstructionCalc): MeVm {
   const own = calc.places.find((p) => p.mine);
-  const targets = calc.places
-    .filter((p) => (p.available || (p.mine && !p.secured)) && (calc.myRank === undefined || p.rank <= calc.myRank))
-    .map((p) => ({ rank: p.rank, extra: p.safeExtra as number }));
+  const open = calc.places.filter(
+    (p) => (p.available || (p.mine && !p.secured)) && (calc.myRank === undefined || p.rank <= calc.myRank),
+  );
+  const best = open.reduce<PlaceCalc | undefined>(
+    (b, p) => (b && (b.profit ?? 0) >= (p.profit ?? 0) ? b : p),
+    undefined,
+  );
+  const targets = open.map((p) => ({
+    rank: p.rank,
+    cost: p.safeCost as number,
+    extra: p.safeExtra as number,
+    best: p === best,
+  }));
   return {
     fp: calc.myDeposit,
     ...(calc.myRank !== undefined && { rank: calc.myRank }),

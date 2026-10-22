@@ -57,7 +57,7 @@ export interface PlaceCalc {
   safeExtra?: number;
   /** below the own place the demand itself, the own deposit cannot move down */
   demandExtra?: number;
-  /** gross minus safe cost */
+  /** gross minus safe cost; on the own place minus the larger of own deposit and safe cost */
   profit?: number;
   /** safe cost in percent of the net reward, one decimal */
   rate?: number;
@@ -145,7 +145,8 @@ export function calculateConstruction(input: ConstructionInput): ConstructionCal
     }
     // the own place is safe once the next one cannot pass it; any other once its holder cannot pass the cost
     const safeCost = roundHalfUp(((isMine ? depositOf(byRank.get(rank + 1)) : holderFp) + rest) / 2);
-    const profit = gross - safeCost;
+    // the own place costs the own deposit once that is more than the safe cost
+    const profit = gross - (isMine ? Math.max(myDeposit, safeCost) : safeCost);
     const secured = safeCost <= holderFp;
     const dominated = !isMine && safeCost === places.at(-1)?.safeCost;
     const available = !isMine && !secured && !dominated;

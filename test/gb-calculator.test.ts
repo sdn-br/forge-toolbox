@@ -197,6 +197,21 @@ describe('calculateConstruction on edge cases', () => {
       safeExtra: -98,
       depositRate: 219.6,
     });
+    // gross round(1275 × 1.955) = 2493 minus the own 2800, the larger of deposit and safe cost
+    expect(calc.places[0]?.profit).toBe(-307);
+    expect(bestRate(calc)).toBeUndefined();
+  });
+
+  it('the own place not yet safe: the profit counts the safe cost, the worse mark ignores the own place', () => {
+    // me 400 on 3 of the partly filled scenario: 420 - max(400, 1502)
+    const calc = scenario([place(1, 1275, 1500), place(2, 640, 900), place(3, 215, 400, true)]);
+    expect(calc.places[2]?.profit).toBe(-1082);
+    // place 2 counts against place 1 only
+    expect(calc.places.slice(0, 3).map((p) => [p.status, p.worse])).toEqual([
+      ['profit', false],
+      ['worse', true],
+      ['mine', false],
+    ]);
   });
 
   it('a held place whose holder cannot be passed anymore is secured, not dominated', () => {

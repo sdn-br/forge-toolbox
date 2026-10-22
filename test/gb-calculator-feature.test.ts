@@ -315,7 +315,7 @@ describe('LG-Rechner', () => {
     type Row = { rank?: number; forge_points?: number; player?: Record<string, unknown>; reward?: object };
     const NET = [1275, 640, 215, 55, 10];
     /** the Aachener Dom with the owner's 251 and `deposits` on places 1 to 5; `me` marks the own place */
-    const scenario = (deposits: number[], me?: number) => {
+    const scenario = (deposits: number[], me?: number, net = NET, required = 5655) => {
       const env = setup();
       const { entity, construction } = env.opening(1909);
       const rankings = (construction.responseData as { rankings: Row[] }).rankings.map((r) => {
@@ -325,14 +325,17 @@ describe('LG-Rechner', () => {
           ...r,
           ...(fp !== undefined && { forge_points: fp }),
           player: { ...r.player, name: `Spieler ${r.rank}`, ...(r.rank === me && { is_self: true }) },
-          reward: { ...r.reward, strategy_point_amount: NET[r.rank - 1] },
+          reward: { ...r.reward, strategy_point_amount: net[r.rank - 1] },
         };
       });
       const invested = 251 + deposits.reduce((sum, fp) => sum + fp, 0);
       const e = entity.responseData as { state: object };
       env.send({
         ...entity,
-        responseData: { ...e, state: { ...e.state, invested_forge_points: invested, forge_points_for_level_up: 5655 } },
+        responseData: {
+          ...e,
+          state: { ...e.state, invested_forge_points: invested, forge_points_for_level_up: required },
+        },
       });
       env.send({ ...construction, responseData: { ...(construction.responseData as object), rankings } });
       return env;
@@ -350,7 +353,9 @@ describe('LG-Rechner', () => {
       return targets === undefined ? [first] : [first, targets];
     };
 
-    it('empty: only place 1 has a safe cost, profit and rate; no line about the own deposit', () => {
+    const best = (root: HTMLElement) => [...root.querySelectorAll('.gb-me b')].map((b) => b.textContent?.trim());
+
+    it('empty: only place 1 has a safe cost, profit and rate, and the line offers only place 1', () => {
       const { box, rows } = scenario([]);
       // round(5404 / 2) = 2702 for round(1275 × 1.955) = 2493; demand round(1275 × 1.9) = 2423
       expect(cells(rows()[0])).toEqual(['1', '–', '2.702', '2.493', '-209', '2.423', '211,9 %']);
@@ -361,7 +366,27 @@ describe('LG-Rechner', () => {
         ['4', '–', '–', '108', '–', '105', '–'],
         ['5', '–', '–', '20', '–', '19', '–'],
       ]);
-      expect(box.root.querySelector('.gb-me')).toBeNull();
+      expect(meLines(box.root)).toEqual(['Du: noch nichts eingezahlt', 'P1 sicher: 2.702']);
+      expect(best(box.root)).toEqual(['P1 sicher: 2.702']);
+    });
+
+    it('nothing paid in: the places that can be had with their safe total, the best profit in bold', () => {
+      // seen in the browser: 1970 missing, place 1 holds 3099, place 2 holds 479, gross 4291/2151/714/176/39
+      const { box, rows } = scenario([3099, 479], undefined, [2195, 1100, 365, 90, 20], 251 + 3578 + 1970);
+      expect(box.text).toContain('Bis Level-Up fehlen 1.970 FP');
+      expect(rows().map((r) => cells(r)[3])).toEqual(['4.291', '2.151', '714', '176', '39']);
+      // place 1: round((3099 + 1970) / 2) = 2535 cannot pass 3099; place 2: round(2449 / 2) = 1225 for 926 profit;
+      // place 3: round(1970 / 2) = 985 for -271; place 4 the same 985: dominated
+      expect(cells(rows()[0])?.[2]).toBe('sicher');
+      expect(meLines(box.root)).toEqual(['Du: noch nichts eingezahlt', 'P2 sicher: 1.225 · P3 sicher: 985']);
+      expect(best(box.root)).toEqual(['P2 sicher: 1.225']);
+    });
+
+    it('nothing paid in and every place safe: says that no place can be had', () => {
+      // 50 left: every holder is safe
+      const { box } = scenario([3000, 2000, 1000, 500, 100], undefined, NET, 251 + 6600 + 50);
+      expect(meLines(box.root)).toEqual(['Du: noch nichts eingezahlt', 'kein Platz zu haben']);
+      expect(best(box.root)).toEqual([]);
     });
 
     it('partly filled with me on place 3: every place I can still make safe, my rate now and when safe', () => {
@@ -382,6 +407,8 @@ describe('LG-Rechner', () => {
         'Du: 400 FP auf P3 · nicht sicher',
         'P1 sicher: +1.852 · P2 sicher: +1.552 · P3 sicher: +1.102',
       ]);
+      // profits 2493 - 2252 = 241, 1251 - 1952 = -701, 420 - 1502 = -1082
+      expect(best(box.root)).toEqual(['P1 sicher: +1.852']);
     });
 
     it('safe on place 1: the line says so and the own row shows a check mark and one rate', () => {
@@ -389,7 +416,8 @@ describe('LG-Rechner', () => {
       const { box, rows } = scenario([2800], 1);
       expect(meLines(box.root)).toEqual(['Du: 2.800 FP auf P1 · sicher ✓']);
       expect(box.root.querySelector('.gb-me')?.className).toBe('gb-me safe');
-      expect(cells(rows()[0])?.slice(0, 3)).toEqual(['1', '2.800', '✓']);
+      // the own deposit is the cost once it is more than the safe 2702: 2493 - 2800
+      expect(cells(rows()[0])?.slice(0, 5)).toEqual(['1', '2.800', '✓', '2.493', '-307']);
       // 2800 / 1275 = 219.6 %
       expect(cells(rows()[0])?.[6]).toBe('219,6 %');
     });

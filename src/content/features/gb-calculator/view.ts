@@ -118,11 +118,28 @@ const maybe = (n: number | undefined) => (n === undefined ? NONE : html`<td clas
 
 /** the own deposit: safe, or the places still to make safe with what is missing for each */
 function meLine(me: MeVm) {
-  const where = t('gbCalc.me', { fp: formatNumber(me.fp), rank: me.rank ?? '?' });
-  if (me.secured) return html`<p class="gb-me safe">${where} · ${t('gbCalc.meSecured')}</p>`;
-  const state = me.secured === false ? ` · ${t('gbCalc.meUnsafe')}` : '';
-  const targets = me.targets.map((x) => t('gbCalc.meTarget', { rank: x.rank, fp: formatNumber(x.extra) })).join(' · ');
-  return html`<p class="gb-me">${where}${state}${targets ? html`<br /><span class="muted">${targets}</span>` : ''}</p>`;
+  if (me.secured)
+    return html`<p class="gb-me safe">${t('gbCalc.me', { fp: formatNumber(me.fp), rank: me.rank ?? '?' })} · ${t(
+      'gbCalc.meSecured',
+    )}</p>`;
+  const where =
+    me.fp > 0
+      ? `${t('gbCalc.me', { fp: formatNumber(me.fp), rank: me.rank ?? '?' })}${
+          me.secured === false ? ` · ${t('gbCalc.meUnsafe')}` : ''
+        }`
+      : t('gbCalc.meNone');
+  // with nothing paid in yet the total is what to pay, else what to add
+  const target = (x: MeVm['targets'][number]) => {
+    const text = t('gbCalc.meTarget', {
+      rank: x.rank,
+      fp: me.fp > 0 ? `+${formatNumber(x.extra)}` : formatNumber(x.cost),
+    });
+    return x.best ? html`<b>${text}</b>` : text;
+  };
+  const targets = me.targets.length
+    ? me.targets.map((x, i) => html`${i ? ' · ' : ''}${target(x)}`)
+    : t('gbCalc.meNoTarget');
+  return html`<p class="gb-me">${where}<br /><span class="muted">${targets}</span></p>`;
 }
 
 const placeTitle = (p: PlaceRow) =>
