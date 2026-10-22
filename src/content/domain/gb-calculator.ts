@@ -36,16 +36,22 @@ export interface PlaceCalc {
    * deposit cannot move down, a sum with it would only pretend a price.
    */
   belowMine: boolean;
-  /** total own deposit that nobody can outbid anymore; missing below the own place */
+  /**
+   * no deposit can land on the place: a deposit always lands on the highest place it reaches, so the place above has to
+   * hold at least the safe cost (on a tie the earlier deposit stays ahead). On an empty building only the first place
+   * is reachable. Like below the own place, the place has no cost, profit or rate; the demand stays, it is an offer.
+   */
+  unreachable: boolean;
+  /** total own deposit that nobody can outbid anymore; missing below the own place and on an unreachable place */
   safeCost?: number;
   /**
    * what the owner asks for the place at the factor: the net reward grown by the factor. A deal, the owner makes the
-   * place safe himself, so the safe cost does not bound it. Missing below the own place.
+   * place safe himself, so the safe cost does not bound it. Missing below the own place, kept on an unreachable one.
    */
   demandCost?: number;
   /** the demand is more than can still be paid until the level up */
   demandOverRest?: boolean;
-  /** the demand is below the safe cost: the place holds only by agreement */
+  /** the demand is below the safe cost: the place holds only by agreement; missing without a safe cost */
   demandBelowSafe?: boolean;
   /** gross minus demand */
   demandProfit?: number;
@@ -88,6 +94,9 @@ const plusPercent = (amount: number, percent: number) => roundHalfUp((amount * (
 
 const depositOf = (row: RankingRow | undefined) => row?.fp ?? 0;
 
+/** a place that cannot be had and has no price: below the own place or unreachable */
+const unavailable = { available: false, levelWarning: false, worse: false, status: 'unavailable' } as const;
+
 export function calculateConstruction(input: ConstructionInput): ConstructionCalc {
   const { rankings, required, arcBonus, factor } = input;
   const mine = rankings.find((r) => r.self && r.rank !== undefined);
@@ -120,35 +129,35 @@ export function calculateConstruction(input: ConstructionInput): ConstructionCal
       medals: plusPercent(reward.medals, arcBonus),
     };
     if (mine?.rank !== undefined && rank > mine.rank) {
-      places.push({
-        ...info,
-        belowMine: true,
-        available: false,
-        levelWarning: false,
-        worse: false,
-        status: 'unavailable',
-      });
+      places.push({ ...info, belowMine: true, unreachable: false, ...unavailable });
       continue;
     }
     // the own place is safe once the next one cannot pass it; any other once its holder cannot pass the cost
     const safeCost = roundHalfUp(((isMine ? depositOf(byRank.get(rank + 1)) : holderFp) + rest) / 2);
     const demandCost = plusPercent(reward.fp, factor);
+    const demand = {
+      demandCost,
+      demandExtra: demandCost - myDeposit,
+      demandOverRest: demandCost > rest,
+      demandProfit: gross - demandCost,
+    };
+    if (!isMine && rank > 1 && depositOf(byRank.get(rank - 1)) < safeCost) {
+      places.push({ ...info, belowMine: false, unreachable: true, ...demand, ...unavailable });
+      continue;
+    }
     const profit = gross - safeCost;
-    const previous = places.at(-1);
-    const available = !isMine && safeCost > holderFp && safeCost !== previous?.safeCost;
+    const available = !isMine && safeCost > holderFp;
     const levelWarning = available && safeCost >= rest;
     const worse = available && !levelWarning && best !== undefined && profit <= best;
     if (available && !levelWarning) best = best === undefined ? profit : Math.max(best, profit);
     places.push({
       ...info,
       belowMine: false,
+      unreachable: false,
       safeCost,
-      demandCost,
+      ...demand,
       safeExtra: safeCost - myDeposit,
-      demandExtra: demandCost - myDeposit,
-      demandOverRest: demandCost > rest,
       demandBelowSafe: demandCost < safeCost,
-      demandProfit: gross - demandCost,
       profit,
       rate: reward.fp > 0 ? roundHalfUp((safeCost / reward.fp) * 1000) / 10 : undefined,
       available,

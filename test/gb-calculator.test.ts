@@ -57,7 +57,7 @@ describe('roundHalfUp', () => {
 });
 
 describe('calculateConstruction on recorded great buildings', () => {
-  it('empty places: only the first is free, the others cost the same and are unavailable', () => {
+  it('empty places: only the first is reachable, the others keep reward and demand but have no price', () => {
     // 1909 St. 75: 3062 needed, only the owner's 251 in it, places 730/365/120/30/5 FP
     const calc = calculateConstruction(recorded(1909));
     expect(calc).toMatchObject({ rest: 2811, missing: 2811, myDeposit: 0, myRank: undefined });
@@ -79,14 +79,23 @@ describe('calculateConstruction on recorded great buildings', () => {
       profit: 21,
       rate: 192.6,
       available: true,
+      unreachable: false,
       status: 'profit',
     });
-    expect(calc.places.slice(1).map((p) => [p.safeCost, p.status])).toEqual([
-      [1406, 'unavailable'],
-      [1406, 'unavailable'],
-      [1406, 'unavailable'],
-      [1406, 'unavailable'],
-    ]);
+    // 1406 on place 2 would land on the empty place 1: no deposit reaches place 2 and below
+    for (const p of calc.places.slice(1)) {
+      expect(p).toMatchObject({ unreachable: true, belowMine: false, available: false, worse: false });
+      expect(p.status).toBe('unavailable');
+      expect([p.safeCost, p.safeExtra, p.profit, p.rate, p.demandBelowSafe]).toEqual([
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      ]);
+    }
+    // reward and the owner's offer stay: round(365 × 1.955) = 714, round(365 × 1.9) = 694
+    expect(calc.places[1]).toMatchObject({ gross: 714, demandCost: 694, demandExtra: 694, demandProfit: 20 });
     expect(bestRate(calc)).toBe(192.6);
   });
 
@@ -146,15 +155,67 @@ describe('calculateConstruction on recorded great buildings', () => {
 
 describe('calculateConstruction on edge cases', () => {
   it('takes a held place, marks lower places worse and keeps the owner out of the places', () => {
-    // 350 in, rest 650: rank 1 safe round((200 + 650) / 2) = 425, gross round(300 × 1.9) = 570
-    const calc = calculateConstruction(input(1000, [owner(100), place(1, 300, 200), place(2, 150, 50), place(3, 50)]));
-    expect(calc.rest).toBe(650);
+    // 600 in, rest 350: rank 1 safe round((300 + 350) / 2) = 325, gross round(300 × 1.9) = 570
+    const calc = calculateConstruction(input(950, [owner(100), place(1, 300, 300), place(2, 150, 200), place(3, 50)]));
+    expect(calc.rest).toBe(350);
     expect(calc.places).toHaveLength(3);
-    expect(calc.places[0]).toMatchObject({ safeCost: 425, demandCost: 570, gross: 570, profit: 145, rate: 141.7 });
+    expect(calc.places[0]).toMatchObject({ safeCost: 325, demandCost: 570, gross: 570, profit: 245, rate: 108.3 });
     expect(calc.places[0]?.status).toBe('profit');
-    // rank 2: round(700 / 2) = 350 for 285 gross; rank 3 empty: round(650 / 2) = 325 for 95
-    expect(calc.places[1]).toMatchObject({ safeCost: 350, profit: -65, worse: true, status: 'worse' });
-    expect(calc.places[2]).toMatchObject({ safeCost: 325, holderFp: 0, profit: -230, status: 'worse' });
+    // rank 2: round(550 / 2) = 275, rank 1 holds 300: reachable, 275 for 285 gross; rank 3 empty: 175 for 95
+    expect(calc.places[1]).toMatchObject({
+      safeCost: 275,
+      profit: 10,
+      unreachable: false,
+      worse: true,
+      status: 'worse',
+    });
+    expect(calc.places[2]).toMatchObject({ safeCost: 175, holderFp: 0, profit: -80, status: 'worse' });
+  });
+
+  it('reaches the places down to the first whose place above holds less than its safe cost', () => {
+    // same as above with places 4 and 5: rank 3 is empty, so round(350 / 2) = 175 on rank 4 would land on rank 3
+    const calc = calculateConstruction(
+      input(950, [owner(100), place(1, 300, 300), place(2, 150, 200), place(3, 50), place(4, 20), place(5, 5)]),
+    );
+    expect(calc.places.map((p) => [p.safeCost, p.unreachable, p.status])).toEqual([
+      [325, false, 'profit'],
+      [275, false, 'worse'],
+      [175, false, 'worse'],
+      [undefined, true, 'unavailable'],
+      [undefined, true, 'unavailable'],
+    ]);
+  });
+
+  it('places with equal deposits: the lower one is out of reach while the upper one is free', () => {
+    // rest 300: both safe round(400 / 2) = 200, which would pass the 100 on rank 1
+    const calc = calculateConstruction(input(500, [place(1, 200, 100), place(2, 100, 100)]));
+    expect(calc.places[0]).toMatchObject({ safeCost: 200, available: true });
+    expect(calc.places[1]).toMatchObject({ unreachable: true, status: 'unavailable' });
+    expect(calc.places[1]?.safeCost).toBeUndefined();
+  });
+
+  it('on a tie with the place above the earlier deposit stays ahead, so the place is reachable', () => {
+    // rest 101: rank 1 holds 101, safe round(202 / 2) = 101 is not more; rank 2: round(201 / 2) = 101 ties rank 1
+    const calc = calculateConstruction(input(302, [place(1, 100, 101), place(2, 100, 100)]));
+    expect(calc.rest).toBe(101);
+    expect(calc.places[0]).toMatchObject({ safeCost: 101, available: false, unreachable: false });
+    // 101 levels the building, so the place is a level warning, but it can be had
+    expect(calc.places[1]).toMatchObject({
+      safeCost: 101,
+      available: true,
+      unreachable: false,
+      status: 'levelWarning',
+    });
+  });
+
+  it('an unreachable place does not count as a better higher place', () => {
+    // rest 200: rank 1 holds 160, rank 2 (150) needs round(350 / 2) = 175, more than 160: out of reach.
+    // rank 3 (50) needs round(250 / 2) = 125, rank 2 holds 150: reachable
+    const calc = calculateConstruction(input(560, [place(1, 50, 160), place(2, 200, 150), place(3, 100, 50)]));
+    expect(calc.places.map((p) => p.status)).toEqual(['loss', 'unavailable', 'profit']);
+    // 190 gross for 125: would be worse than the 380 gross of rank 2 if that counted
+    expect(calc.places[2]).toMatchObject({ safeCost: 125, profit: 65, worse: false });
+    expect(bestRate(calc)).toBe(125);
   });
 
   it('shows a loss when the best free place costs more than it pays', () => {

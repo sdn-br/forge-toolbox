@@ -81,7 +81,7 @@ export interface DemandCell extends CostCell {
 export interface PlaceRow {
   rank: number;
   holder?: { name: string; fp: number };
-  /** missing below the own place, like demand, profit and rate */
+  /** missing below the own place, like demand, profit and rate, and on an unreachable place, where the demand stays */
   safe?: CostCell;
   demand?: DemandCell;
   gross: number;
@@ -205,7 +205,7 @@ function activityVm(record: FoestatsRecord | undefined, today: string): Activity
 const ownerName = (c: Construction, rows: RankingRow[], playerName: GbCalculatorInput['playerName']) =>
   rows.find((r) => r.rank === undefined && r.player === c.owner)?.name ?? playerName(c.owner) ?? String(c.owner);
 
-/** no cell below the own place, where nothing can be paid */
+/** no cell where nothing can be paid: below the own place, and the safe cost of an unreachable place */
 const cell = (cost: number | undefined, extra: number | undefined, available?: number): CostCell | undefined =>
   cost === undefined || extra === undefined
     ? undefined

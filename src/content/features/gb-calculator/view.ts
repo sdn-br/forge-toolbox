@@ -90,7 +90,7 @@ function factorBar(vm: Extract<GbCalculatorVm, { kind: 'current' | 'preview' }>,
   </div>`;
 }
 
-/** stands where a place has no cost, below the own one */
+/** stands where a place has no cost: below the own one, or out of reach */
 const NONE = html`<td class="num">–</td>`;
 
 function costCell(c: CostCell | undefined) {

@@ -284,6 +284,29 @@ describe('LG-Rechner', () => {
     expect(tones()).toBe(0);
   });
 
+  it('plays no tone when only an unreachable place would pay', async () => {
+    const { send, opening, rows, tones } = setup();
+    const { entity, construction } = opening(1909);
+    type Row = { rank?: number; reward?: { strategy_point_amount: number } };
+    // the empty Aachener Dom with place 1 paying 10 and place 2 paying 2000: 1406 on place 2 would land on place 1
+    const rankings = (construction.responseData as { rankings: Row[] }).rankings.map((r) =>
+      r.reward && (r.rank === 1 || r.rank === 2)
+        ? { ...r, reward: { ...r.reward, strategy_point_amount: r.rank === 1 ? 10 : 2000 } }
+        : r,
+    );
+    send(entity);
+    send({ ...construction, responseData: { ...(construction.responseData as object), rankings } });
+    await tick();
+    expect(rows().map((r) => r.className)).toEqual([
+      'gb-loss',
+      'gb-unavailable',
+      'gb-unavailable',
+      'gb-unavailable',
+      'gb-unavailable',
+    ]);
+    expect(tones()).toBe(0);
+  });
+
   describe('activity of the owner by foestats', () => {
     afterEach(() => vi.useRealTimers());
 
