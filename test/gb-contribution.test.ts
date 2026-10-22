@@ -64,7 +64,7 @@ describe('recorded own contribution', () => {
     expect(box.text).toContain('freigeschaltet bis 64');
     expect(box.text).toContain('Verfügbare FP: 108.453');
     // 1935 needed, 1455 in, nothing of mine: rank 2 held with 121, round((121 + 480) / 2) = 301, what was paid
-    expect(rows()[1]?.querySelectorAll('td')[1]?.textContent?.trim()).toBe('301');
+    expect(rows()[1]?.querySelectorAll('td')[2]?.textContent?.trim()).toBe('301');
   });
 
   it('applies the whole response: rankings, building, resources and inventory, each announced once', async () => {
@@ -115,7 +115,7 @@ describe('recorded contribution to place 2 with empty places below', () => {
     await tick();
     // the fixture has no own Arc, so 205 FP for 279 is a loss here
     expect(rows()[1]?.className).toBe('gb-loss');
-    expect(cells(rows()[1])[1]).toBe('279');
+    expect(cells(rows()[1])[2]).toBe('279');
   });
 
   it('shows the own place and no cost, profit or rate below it after', async () => {
@@ -130,13 +130,20 @@ describe('recorded contribution to place 2 with empty places below', () => {
       'gb-unavailable',
       'gb-unavailable',
     ]);
-    // rest 557, no successor: round(557 / 2) = 279, already paid
-    expect(cells(rows()[1])[1]).toBe('279');
+    // rank 1 holds 820, its safe cost round((820 + 557) / 2) = 689 cannot pass it anymore
+    expect(cells(rows()[0]).slice(0, 3)).toEqual(['1', '820', '✓']);
+    expect(rows()[0]?.querySelectorAll('td')[2]?.getAttribute('title')).toBe('Platz ist sicher');
+    expect([cells(rows()[0])[4], cells(rows()[0])[6]]).toEqual(['–', '–']);
+    // rest 557, no successor: round(557 / 2) = 279, already paid: safe, the rate is the own 279 of 205
+    expect(cells(rows()[1])).toEqual(['2', '279', '✓', '205', '-74', '390 (+111)', '136,1 %']);
+    expect(box.root.querySelector('.gb-me')?.textContent?.trim()).toBe('Du: 279 FP auf P2 · sicher ✓');
+    expect(box.root.querySelector('.gb-me')?.className).toBe('gb-me safe');
     for (const row of rows().slice(2)) {
-      const [, safe, demand, gross, profit, rate, blueprints] = cells(row);
-      expect([safe, demand, profit, rate]).toEqual(['–', '–', '–', '–']);
+      const [, invested, safe, gross, profit, demand, rate] = cells(row);
+      expect([invested, safe, profit, rate]).toEqual(['–', '–', '–', '–']);
+      // the reward and the owner's demand stay
       expect(gross).toMatch(/^\d/);
-      expect(blueprints).toMatch(/^\d/);
+      expect(demand).toMatch(/^\d/);
     }
     expect(box.text).toContain('Bis Level-Up fehlen 278 FP');
   });

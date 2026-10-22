@@ -36,11 +36,15 @@ export interface PlaceCalc {
    * deposit cannot move down, a sum with it would only pretend a price.
    */
   belowMine: boolean;
+  /** the holder cannot be passed anymore, the place is safe (also the own place when the player holds enough) */
+  secured: boolean;
+  /** the safe cost equals the one of the place above: the same cost buys the better place */
+  dominated: boolean;
   /** total own deposit that nobody can outbid anymore; missing below the own place */
   safeCost?: number;
   /**
    * what the owner asks for the place at the factor: the net reward grown by the factor. A deal, the owner makes the
-   * place safe himself, so the safe cost does not bound it. Missing below the own place.
+   * place safe himself, so the safe cost does not bound it.
    */
   demandCost?: number;
   /** the demand is more than can still be paid until the level up */
@@ -51,11 +55,14 @@ export interface PlaceCalc {
   demandProfit?: number;
   /** what the player still has to add to reach the cost, his deposit subtracted */
   safeExtra?: number;
+  /** below the own place the demand itself, the own deposit cannot move down */
   demandExtra?: number;
-  /** gross minus safe cost */
+  /** gross minus safe cost; on the own place minus the larger of own deposit and safe cost */
   profit?: number;
   /** safe cost in percent of the net reward, one decimal */
   rate?: number;
+  /** the own place only: the own deposit in percent of the net reward, what it costs if nobody passes */
+  depositRate?: number;
   available: boolean;
   /** the safe cost is all that is left: the own deposit would level the building */
   levelWarning: boolean;
@@ -84,7 +91,7 @@ const EPSILON = 1e-9;
 export const roundHalfUp = (x: number): number => Math.sign(x) * Math.floor(Math.abs(x) + 0.5 + EPSILON);
 
 /** `amount` grown by `percent`, rounded; integer arithmetic first so 5 × 190 / 100 is exactly 9.5 */
-const plusPercent = (amount: number, percent: number) => roundHalfUp((amount * (100 + percent)) / 100);
+export const plusPercent = (amount: number, percent: number) => roundHalfUp((amount * (100 + percent)) / 100);
 
 const depositOf = (row: RankingRow | undefined) => row?.fp ?? 0;
 
@@ -119,10 +126,16 @@ export function calculateConstruction(input: ConstructionInput): ConstructionCal
       blueprints: plusPercent(reward.blueprints, arcBonus),
       medals: plusPercent(reward.medals, arcBonus),
     };
+    const demandCost = plusPercent(reward.fp, factor);
+    const demand = { demandCost, demandOverRest: demandCost > rest, demandProfit: gross - demandCost };
     if (mine?.rank !== undefined && rank > mine.rank) {
       places.push({
         ...info,
+        ...demand,
+        demandExtra: demandCost,
         belowMine: true,
+        secured: false,
+        dominated: false,
         available: false,
         levelWarning: false,
         worse: false,
@@ -132,25 +145,28 @@ export function calculateConstruction(input: ConstructionInput): ConstructionCal
     }
     // the own place is safe once the next one cannot pass it; any other once its holder cannot pass the cost
     const safeCost = roundHalfUp(((isMine ? depositOf(byRank.get(rank + 1)) : holderFp) + rest) / 2);
-    const demandCost = plusPercent(reward.fp, factor);
-    const profit = gross - safeCost;
-    const previous = places.at(-1);
-    const available = !isMine && safeCost > holderFp && safeCost !== previous?.safeCost;
+    // the own place costs the own deposit once that is more than the safe cost
+    const profit = gross - (isMine ? Math.max(myDeposit, safeCost) : safeCost);
+    const secured = safeCost <= holderFp;
+    const dominated = !isMine && safeCost === places.at(-1)?.safeCost;
+    const available = !isMine && !secured && !dominated;
+    const percentOf = (fp: number) => (reward.fp > 0 ? roundHalfUp((fp / reward.fp) * 1000) / 10 : undefined);
     const levelWarning = available && safeCost >= rest;
     const worse = available && !levelWarning && best !== undefined && profit <= best;
     if (available && !levelWarning) best = best === undefined ? profit : Math.max(best, profit);
     places.push({
       ...info,
+      ...demand,
       belowMine: false,
+      secured,
+      dominated,
       safeCost,
-      demandCost,
       safeExtra: safeCost - myDeposit,
       demandExtra: demandCost - myDeposit,
-      demandOverRest: demandCost > rest,
       demandBelowSafe: demandCost < safeCost,
-      demandProfit: gross - demandCost,
       profit,
-      rate: reward.fp > 0 ? roundHalfUp((safeCost / reward.fp) * 1000) / 10 : undefined,
+      rate: percentOf(safeCost),
+      ...(isMine && { depositRate: percentOf(myDeposit) }),
       available,
       levelWarning,
       worse,

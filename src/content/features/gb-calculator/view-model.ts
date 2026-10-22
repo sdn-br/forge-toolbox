@@ -1,8 +1,13 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import { formatNumber, t } from '../../core/texts';
 import { type Activity, playerActivity } from '../../domain/activity';
-import { calculateConstruction, type PlaceCalc, type PlaceStatus } from '../../domain/gb-calculator';
-import { previewLevel } from '../../domain/gb-level-preview';
+import {
+  type ConstructionCalc,
+  calculateConstruction,
+  type PlaceCalc,
+  type PlaceStatus,
+} from '../../domain/gb-calculator';
+import { type LevelUpAndFirst, levelUpAndFirst, previewLevel } from '../../domain/gb-level-preview';
 import type { GreatBuildingDef } from '../../stores/catalog';
 import type { FoestatsRecord } from '../../stores/foestats';
 import type { Construction, RankingRow } from '../../stores/great-building-model';
@@ -80,13 +85,19 @@ export interface DemandCell extends CostCell {
 
 export interface PlaceRow {
   rank: number;
+  /** the current holder and his deposit (column Investiert); the own deposit in the own row */
   holder?: { name: string; fp: number };
-  /** missing below the own place, like demand, profit and rate */
+  /** only where the place can be had, and in the own row while it is not safe; profit and rate likewise */
   safe?: CostCell;
+  /** the holder cannot be passed anymore: shown instead of a safe cost, in the own row as a check mark */
+  secured: boolean;
+  /** stays on every place: it is the owner's offer, he makes the place safe himself */
   demand?: DemandCell;
   gross: number;
   profit?: number;
   rate?: number;
+  /** the own row only: the own deposit in percent of the reward, what the place costs if nobody passes */
+  depositRate?: number;
   /** missing in the preview, a future level does not tell them */
   blueprints?: number;
   medals?: number;
@@ -110,6 +121,23 @@ export interface PreviewVm {
   places: PlaceRow[];
 }
 
+/** the player's own deposit on the construction, shown above the places */
+export interface MeVm {
+  /** the own deposit, 0 when the player has not paid in yet */
+  fp: number;
+  /** missing when the deposit holds no rank */
+  rank?: number;
+  /** the own place cannot be passed anymore; missing when the rank pays no reward */
+  secured?: boolean;
+  /** level now with everything missing, then take place 1 of the next level; only when that pays */
+  levelUp?: LevelUpAndFirst;
+  /**
+   * the places the player can still make safe, from the first down to the own one: the safe total and what he has to
+   * add; `best` marks the one with the highest profit
+   */
+  targets: { rank: number; cost: number; extra: number; best: boolean }[];
+}
+
 export type GbCalculatorVm =
   | { kind: 'none' }
   | { kind: 'noEntity'; owner: string; ownerUrl: string }
@@ -127,6 +155,8 @@ export type GbCalculatorVm =
       factor: FactorChoice;
       effectiveFactor: number;
       preview: PreviewVm;
+      /** set when the preview shows the level right after the current one and leveling into its place 1 pays */
+      levelUp?: LevelUpAndFirst;
     }
   | {
       kind: 'current';
@@ -137,6 +167,8 @@ export type GbCalculatorVm =
       blocked?: 'maxLevel' | 'unconnected';
       leveled?: number;
       places: PlaceRow[];
+      /** missing when the building is blocked */
+      me?: MeVm;
       /** Forge points until the level is full */
       missing: number;
       /** at least one place pays more than it costs */
@@ -205,7 +237,7 @@ function activityVm(record: FoestatsRecord | undefined, today: string): Activity
 const ownerName = (c: Construction, rows: RankingRow[], playerName: GbCalculatorInput['playerName']) =>
   rows.find((r) => r.rank === undefined && r.player === c.owner)?.name ?? playerName(c.owner) ?? String(c.owner);
 
-/** no cell below the own place, where nothing can be paid */
+/** no cell where nothing can be paid */
 const cell = (cost: number | undefined, extra: number | undefined, available?: number): CostCell | undefined =>
   cost === undefined || extra === undefined
     ? undefined
@@ -222,18 +254,47 @@ function demandCell(p: PlaceCalc, rest: number, available?: number): DemandCell 
   };
 }
 
-const placeRow = (p: PlaceCalc, rest: number, available?: number): PlaceRow => ({
-  rank: p.rank,
-  ...(p.holder !== undefined && { holder: { name: p.holder, fp: p.holderFp } }),
-  safe: cell(p.safeCost, p.safeExtra, available),
-  demand: demandCell(p, rest, available),
-  gross: p.gross,
-  profit: p.profit,
-  rate: p.rate,
-  blueprints: p.blueprints,
-  medals: p.medals,
-  status: p.status,
-});
+function placeRow(p: PlaceCalc, rest: number, available?: number): PlaceRow {
+  // a price only where the place can be had, or for the own place while it is not safe
+  const priced = p.available || (p.mine && !p.secured);
+  return {
+    rank: p.rank,
+    ...(p.holder !== undefined && { holder: { name: p.holder, fp: p.holderFp } }),
+    safe: priced ? cell(p.safeCost, p.safeExtra, available) : undefined,
+    secured: p.secured,
+    demand: demandCell(p, rest, available),
+    gross: p.gross,
+    profit: p.available || p.mine ? p.profit : undefined,
+    rate: priced ? p.rate : undefined,
+    ...(p.depositRate !== undefined && { depositRate: p.depositRate }),
+    blueprints: p.blueprints,
+    medals: p.medals,
+    status: p.status,
+  };
+}
+
+function meVm(calc: ConstructionCalc): MeVm {
+  const own = calc.places.find((p) => p.mine);
+  const open = calc.places.filter(
+    (p) => (p.available || (p.mine && !p.secured)) && (calc.myRank === undefined || p.rank <= calc.myRank),
+  );
+  const best = open.reduce<PlaceCalc | undefined>(
+    (b, p) => (b && (b.profit ?? 0) >= (p.profit ?? 0) ? b : p),
+    undefined,
+  );
+  const targets = open.map((p) => ({
+    rank: p.rank,
+    cost: p.safeCost as number,
+    extra: p.safeExtra as number,
+    best: p === best,
+  }));
+  return {
+    fp: calc.myDeposit,
+    ...(calc.myRank !== undefined && { rank: calc.myRank }),
+    ...(own && { secured: own.secured }),
+    targets,
+  };
+}
 
 /** A later level, empty: the own Forge points do not limit a plan, blueprints and medals are not known. */
 function previewVm(
@@ -288,6 +349,8 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     levels: { current: entity.level, chosen: preview ?? entity.level, preview: preview !== undefined },
   };
   const effectiveFactor = input.factor.arc ? input.arcBonus : input.factor.value;
+  const live = { ...entity, rankings: c.rankings, arcBonus: input.arcBonus, factor: effectiveFactor };
+  const levelUp = c.past || c.leveled ? undefined : levelUpAndFirst(live, input.greatBuilding(entity.def));
   if (preview !== undefined) {
     return {
       kind: 'preview',
@@ -295,6 +358,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
       factor: input.factor,
       effectiveFactor,
       preview: previewVm(input.greatBuilding(entity.def), preview, entity.maxLevel, input.arcBonus, effectiveFactor),
+      ...(levelUp && preview === levelUp.nextLevel && { levelUp }),
     };
   }
   if (c.past) {
@@ -327,6 +391,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     ...(calc.blocked && { blocked: calc.blocked }),
     ...(c.leveled && { leveled: c.leveled.level }),
     places,
+    ...(!calc.blocked && { me: { ...meVm(calc), ...(levelUp && { levelUp }) } }),
     missing: Math.max(0, calc.missing),
     profitable: !calc.blocked && !c.leveled && places.some((p) => p.status === 'profit' && (p.profit ?? 0) > 0),
   };

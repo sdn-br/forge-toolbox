@@ -1,5 +1,6 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
+import type { LevelUpAndFirst } from '../../domain/gb-level-preview';
 import { keepKeys } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
 import {
@@ -10,6 +11,7 @@ import {
   type GbCalculatorVm,
   type GbHeader,
   type LevelChoice,
+  type MeVm,
   type PlaceRow,
   type PreviewVm,
 } from './view-model';
@@ -113,39 +115,97 @@ function demandCell(d: DemandCell | undefined) {
   return html`<td class=${classes.filter(Boolean).join(' ')} title=${title.join('\n')}>${formatNumber(d.cost)}${extra}</td>`;
 }
 
+const maybe = (n: number | undefined) => (n === undefined ? NONE : html`<td class="num">${formatNumber(n)}</td>`);
+
+/** the own deposit: safe, or the places still to make safe with what is missing for each */
+const signed = (n: number) => `${n > 0 ? '+' : ''}${formatNumber(n)}`;
+
+/** what leveling now and taking place 1 of the next level costs and pays, the total bold and green */
+function levelUpLine(l: LevelUpAndFirst) {
+  const paid = t('gbCalc.levelUp', {
+    level: l.nextLevel,
+    fill: formatNumber(l.fill),
+    first: formatNumber(l.firstCost),
+  });
+  const second = `${l.firstGain < 0 ? '−' : '+'} ${formatNumber(Math.abs(l.firstGain))}`;
+  return html`<span class="gb-levelup">${paid} → ${signed(l.fillGain)} ${second} = <b class="gain">${signed(
+    l.total,
+  )}</b></span>`;
+}
+
+function meLine(me: MeVm) {
+  const levelUp = me.levelUp ? html`<br />${levelUpLine(me.levelUp)}` : '';
+  if (me.secured)
+    return html`<p class="gb-me safe">${t('gbCalc.me', { fp: formatNumber(me.fp), rank: me.rank ?? '?' })} · ${t(
+      'gbCalc.meSecured',
+    )}${levelUp}</p>`;
+  const where =
+    me.fp > 0
+      ? `${t('gbCalc.me', { fp: formatNumber(me.fp), rank: me.rank ?? '?' })}${
+          me.secured === false ? ` · ${t('gbCalc.meUnsafe')}` : ''
+        }`
+      : t('gbCalc.meNone');
+  // with nothing paid in yet the total is what to pay, else what to add
+  const target = (x: MeVm['targets'][number]) => {
+    const text = t('gbCalc.meTarget', {
+      rank: x.rank,
+      fp: me.fp > 0 ? `+${formatNumber(x.extra)}` : formatNumber(x.cost),
+    });
+    return x.best ? html`<b>${text}</b>` : text;
+  };
+  const targets = me.targets.length
+    ? me.targets.map((x, i) => html`${i ? ' · ' : ''}${target(x)}`)
+    : t('gbCalc.meNoTarget');
+  return html`<p class="gb-me">${where}<br /><span class="muted">${targets}</span>${levelUp}</p>`;
+}
+
 const placeTitle = (p: PlaceRow) =>
   [
     p.holder ? t('gbCalc.holder', { name: p.holder.name, fp: formatNumber(p.holder.fp) }) : t('gbCalc.empty'),
     t(`gbCalc.status.${p.status}`),
   ].join(', ');
 
-const maybe = (n: number | undefined) => (n === undefined ? NONE : html`<td class="num">${formatNumber(n)}</td>`);
+/** the safe cost; a check mark where the holder is safe, the own place too (the row colour tells which) */
+function safeCell(p: PlaceRow) {
+  if (p.secured && !p.safe) return html`<td class="num" title=${t('gbCalc.securedHint')}>✓</td>`;
+  return costCell(p.safe);
+}
 
+/** the own row while not safe: what the own deposit pays now (muted), then the rate at the safe cost */
+function rateCell(p: PlaceRow) {
+  const deposit =
+    p.depositRate === undefined
+      ? undefined
+      : html`<span class=${p.safe ? 'muted' : ''} title=${t('gbCalc.depositRateHint')}>${percent(p.depositRate)}</span>`;
+  if (!p.safe) return deposit ? html`<td class="num">${deposit}</td>` : NONE;
+  const rate = p.rate === undefined ? '' : percent(p.rate);
+  return html`<td class="num">${deposit ? html`${deposit} → ` : ''}${rate}</td>`;
+}
+
+/** Platz, Investiert, Sichern, FP, Gewinn, Fördern, Kurs; blueprints and medals stay in the view model, not shown */
 const placeRow = (p: PlaceRow) =>
   html`<tr class=${`gb-${p.status}`} title=${placeTitle(p)}>
     <td>${p.rank}</td>
-    ${costCell(p.safe)}
-    ${demandCell(p.demand)}
+    ${maybe(p.holder?.fp)}
+    ${safeCell(p)}
     <td class=${p.estimate ? 'num estimate' : 'num'} title=${p.estimate ? t('gbCalc.estimate') : ''}>${
       p.estimate ? '≈ ' : ''
     }${formatNumber(p.gross)}</td>
     ${p.profit === undefined ? NONE : html`<td class="num">${formatNumber(p.profit)}</td>`}
-    ${p.safe === undefined ? NONE : html`<td class="num">${p.rate === undefined ? '' : percent(p.rate)}</td>`}
-    ${maybe(p.blueprints)}
-    ${maybe(p.medals)}
+    ${demandCell(p.demand)}
+    ${rateCell(p)}
   </tr>`;
 
 function placesTable(places: PlaceRow[]) {
   return html`<table class="gb-table">
     <tr>
       <th>${t('gbCalc.place')}</th>
+      <th class="num" title=${t('gbCalc.investedHint')}>${t('gbCalc.invested')}</th>
       <th class="num" title=${t('gbCalc.safeHint')}>${t('gbCalc.safe')}</th>
-      <th class="num" title=${t('gbCalc.demandHint')}>${t('gbCalc.demand')}</th>
       <th class="num" title=${t('gbCalc.grossHint')}>${t('gbCalc.gross')}</th>
       <th class="num">${t('gbCalc.profit')}</th>
+      <th class="num" title=${t('gbCalc.demandHint')}>${t('gbCalc.demand')}</th>
       <th class="num" title=${t('gbCalc.rateHint')}>${t('gbCalc.rate')}</th>
-      <th class="num">${t('gbCalc.blueprints')}</th>
-      <th class="num">${t('gbCalc.medals')}</th>
     </tr>
     ${places.map(placeRow)}
   </table>`;
@@ -190,12 +250,14 @@ export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorAction
       return html`${header(vm.header)}
         ${levelBar(vm.header.levels, actions)}
         ${factorBar(vm, actions)}
+        ${vm.levelUp ? html`<p class="gb-me">${levelUpLine(vm.levelUp)}</p>` : ''}
         ${previewPart(vm.preview)}`;
     case 'current': {
       const overlay = overlayText(vm);
       return html`${header(vm.header)}
         ${levelBar(vm.header.levels, actions)}
         ${factorBar(vm, actions)}
+        ${vm.me ? meLine(vm.me) : ''}
         <div class="gb-places">
           ${placesTable(vm.places)}
           ${overlay ? html`<div class="gb-overlay"><p>${overlay}</p></div>` : ''}
