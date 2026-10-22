@@ -165,13 +165,14 @@ export class CityMap {
     this.focusedSinceData = rect;
   }
 
-  /** keeps the zoom as the viewer left it; a framed building comes back into the middle, else the middle of the view stays */
+  /** a framed building is focused again as from the list, else the zoom and the middle of the view stay */
   private setMode(mode: MapMode) {
     if (mode === this.mode) return;
     const size = this.size();
     const focus = this.data?.focus?.rect;
     if (!size || !this.bounds) this.view = WHOLE_MAP;
-    else if (focus) this.view = centerOn(mode, this.bounds, size.width, size.height, this.view, focus, 0);
+    else if (focus)
+      this.view = centerOn(mode, this.bounds, size.width, size.height, WHOLE_MAP, focus, FOCUS_SIZE[mode]);
     else this.view = switchMode(this.mode, mode, this.bounds, size.width, size.height, this.view);
     this.mode = mode;
     this.options.onMode?.(mode);
