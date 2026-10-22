@@ -560,7 +560,7 @@ describe('LG-Rechner', () => {
       expect(box.text).not.toContain('Laufend');
       choose(box.root, 76);
       expect(box.text).toContain('Laufend 75 → 76');
-      expect(box.text).toContain('Vorschau Stufe 76 → 77, leer gedacht');
+      expect(box.text).toContain('Vorschau Stufe 76 → 77');
       expect(box.text).toContain('noch nicht freigeschaltet');
       expect(box.text).toContain('Die Stufe kostet 3.138 FP');
       expect(box.text).not.toContain('Bis Level-Up fehlen');

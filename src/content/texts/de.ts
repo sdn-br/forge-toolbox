@@ -209,7 +209,7 @@ export const de = {
   'gbCalc.level': 'Stufe',
   'gbCalc.live': 'Laufend {level} → {next}',
   'gbCalc.previewInput': 'Stufe: die laufende oder eine spätere als Vorschau',
-  'gbCalc.previewHeading': 'Vorschau Stufe {level} → {next}, leer gedacht',
+  'gbCalc.previewHeading': 'Vorschau Stufe {level} → {next}',
   'gbCalc.previewLocked': 'noch nicht freigeschaltet',
   'gbCalc.previewCost': 'Die Stufe kostet {fp} FP',
   'gbCalc.previewNoDefinition': 'Die Definition des LGs ist noch nicht geladen, deshalb fehlen Kosten und Belohnungen.',
