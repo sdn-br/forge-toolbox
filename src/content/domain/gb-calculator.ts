@@ -38,8 +38,17 @@ export interface PlaceCalc {
   belowMine: boolean;
   /** total own deposit that nobody can outbid anymore; missing below the own place */
   safeCost?: number;
-  /** total own deposit for the factor, at least the safe cost, at most what is left; missing below the own place */
+  /**
+   * what the owner asks for the place at the factor: the net reward grown by the factor. A deal, the owner makes the
+   * place safe himself, so the safe cost does not bound it. Missing below the own place.
+   */
   demandCost?: number;
+  /** the demand is more than can still be paid until the level up */
+  demandOverRest?: boolean;
+  /** the demand is below the safe cost: the place holds only by agreement */
+  demandBelowSafe?: boolean;
+  /** gross minus demand */
+  demandProfit?: number;
   /** what the player still has to add to reach the cost, his deposit subtracted */
   safeExtra?: number;
   demandExtra?: number;
@@ -123,7 +132,7 @@ export function calculateConstruction(input: ConstructionInput): ConstructionCal
     }
     // the own place is safe once the next one cannot pass it; any other once its holder cannot pass the cost
     const safeCost = roundHalfUp(((isMine ? depositOf(byRank.get(rank + 1)) : holderFp) + rest) / 2);
-    const demandCost = Math.min(rest, Math.max(plusPercent(reward.fp, factor), safeCost));
+    const demandCost = plusPercent(reward.fp, factor);
     const profit = gross - safeCost;
     const previous = places.at(-1);
     const available = !isMine && safeCost > holderFp && safeCost !== previous?.safeCost;
@@ -137,6 +146,9 @@ export function calculateConstruction(input: ConstructionInput): ConstructionCal
       demandCost,
       safeExtra: safeCost - myDeposit,
       demandExtra: demandCost - myDeposit,
+      demandOverRest: demandCost > rest,
+      demandBelowSafe: demandCost < safeCost,
+      demandProfit: gross - demandCost,
       profit,
       rate: reward.fp > 0 ? roundHalfUp((safeCost / reward.fp) * 1000) / 10 : undefined,
       available,

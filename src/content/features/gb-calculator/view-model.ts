@@ -1,5 +1,5 @@
 import type { BuildingDefId } from '../../../shared/ids';
-import { calculateConstruction, type PlaceStatus } from '../../domain/gb-calculator';
+import { calculateConstruction, type PlaceCalc, type PlaceStatus } from '../../domain/gb-calculator';
 import type { Construction, RankingRow } from '../../stores/great-building-model';
 
 /** The factor buttons; `arc` uses the Arc bonus of the player. */
@@ -37,12 +37,22 @@ export interface CostCell {
   short: boolean;
 }
 
+/** the demand cell: the cost and what to know about the deal */
+export interface DemandCell extends CostCell {
+  /** set when the demand is more than can still be paid: what can be paid until the level up */
+  overRest?: number;
+  /** below the safe cost: the place holds only by agreement */
+  belowSafe: boolean;
+  /** gross minus demand */
+  profit: number;
+}
+
 export interface PlaceRow {
   rank: number;
   holder?: { name: string; fp: number };
   /** missing below the own place, like demand, profit and rate */
   safe?: CostCell;
-  demand?: CostCell;
+  demand?: DemandCell;
   gross: number;
   profit?: number;
   rate?: number;
@@ -99,6 +109,17 @@ const cell = (cost: number | undefined, extra: number | undefined, available?: n
     ? undefined
     : { cost, extra, short: available !== undefined && extra > available };
 
+function demandCell(p: PlaceCalc, rest: number, available?: number): DemandCell | undefined {
+  const base = cell(p.demandCost, p.demandExtra, available);
+  if (!base || p.demandProfit === undefined) return undefined;
+  return {
+    ...base,
+    ...(p.demandOverRest && { overRest: rest }),
+    belowSafe: p.demandBelowSafe === true,
+    profit: p.demandProfit,
+  };
+}
+
 export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm {
   const c = input.construction;
   if (!c) return { kind: 'none' };
@@ -141,7 +162,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     rank: p.rank,
     ...(p.holder !== undefined && { holder: { name: p.holder, fp: p.holderFp } }),
     safe: cell(p.safeCost, p.safeExtra, availableFp),
-    demand: cell(p.demandCost, p.demandExtra, availableFp),
+    demand: demandCell(p, calc.rest, availableFp),
     gross: p.gross,
     profit: p.profit,
     rate: p.rate,

@@ -1,7 +1,14 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import { keepKeys } from '../../ui/inputs';
-import { type CostCell, FACTOR_PRESETS, type GbCalculatorVm, type GbHeader, type PlaceRow } from './view-model';
+import {
+  type CostCell,
+  type DemandCell,
+  FACTOR_PRESETS,
+  type GbCalculatorVm,
+  type GbHeader,
+  type PlaceRow,
+} from './view-model';
 
 export interface GbCalculatorActions {
   /** a preset or a typed factor in percent */
@@ -57,6 +64,20 @@ function costCell(c: CostCell | undefined) {
   return html`<td class=${c.short ? 'num short' : 'num'} title=${c.short ? t('gbCalc.short') : ''}>${formatNumber(c.cost)}${extra}</td>`;
 }
 
+/** the demand with its notes: more than the level needs (red), below the safe cost (muted), the profit at it */
+function demandCell(d: DemandCell | undefined) {
+  if (!d) return NONE;
+  const extra = d.extra !== d.cost && d.extra > 0 ? html` <span class="muted">(+${formatNumber(d.extra)})</span>` : '';
+  const classes = ['num', d.short && 'short', d.overRest !== undefined && 'over-rest', d.belowSafe && 'below-safe'];
+  const title = [
+    t('gbCalc.demandProfit', { fp: formatNumber(d.profit) }),
+    d.overRest !== undefined && t('gbCalc.demandOverRest', { fp: formatNumber(d.overRest) }),
+    d.belowSafe && t('gbCalc.demandBelowSafe'),
+    d.short && t('gbCalc.short'),
+  ].filter(Boolean);
+  return html`<td class=${classes.filter(Boolean).join(' ')} title=${title.join('\n')}>${formatNumber(d.cost)}${extra}</td>`;
+}
+
 const placeTitle = (p: PlaceRow) =>
   [
     p.holder ? t('gbCalc.holder', { name: p.holder.name, fp: formatNumber(p.holder.fp) }) : t('gbCalc.empty'),
@@ -67,7 +88,7 @@ const placeRow = (p: PlaceRow) =>
   html`<tr class=${`gb-${p.status}`} title=${placeTitle(p)}>
     <td>${p.rank}</td>
     ${costCell(p.safe)}
-    ${costCell(p.demand)}
+    ${demandCell(p.demand)}
     <td class="num">${formatNumber(p.gross)}</td>
     ${p.profit === undefined ? NONE : html`<td class="num">${formatNumber(p.profit)}</td>`}
     ${p.safe === undefined ? NONE : html`<td class="num">${p.rate === undefined ? '' : percent(p.rate)}</td>`}

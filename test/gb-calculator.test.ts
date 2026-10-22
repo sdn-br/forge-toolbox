@@ -62,7 +62,7 @@ describe('calculateConstruction on recorded great buildings', () => {
     const calc = calculateConstruction(recorded(1909));
     expect(calc).toMatchObject({ rest: 2811, missing: 2811, myDeposit: 0, myRank: undefined });
     expect(calc.places.map((p) => p.rank)).toEqual([1, 2, 3, 4, 5]);
-    // safe: round(2811 / 2) = 1406; gross round(730 × 1.955) = 1427; demand max(round(730 × 1.9) = 1387, 1406)
+    // safe: round(2811 / 2) = 1406; gross round(730 × 1.955) = 1427; demand round(730 × 1.9) = 1387, below safe
     expect(calc.places[0]).toMatchObject({
       holder: undefined,
       holderFp: 0,
@@ -71,7 +71,10 @@ describe('calculateConstruction on recorded great buildings', () => {
       blueprints: 29,
       medals: 2111,
       safeCost: 1406,
-      demandCost: 1406,
+      demandCost: 1387,
+      demandBelowSafe: true,
+      demandOverRest: false,
+      demandProfit: 40,
       safeExtra: 1406,
       profit: 21,
       rate: 192.6,
@@ -126,7 +129,18 @@ describe('calculateConstruction on recorded great buildings', () => {
 
   it('the Arc factor asks exactly the gross reward', () => {
     const calc = calculateConstruction(recorded(1909, ARC));
-    expect(calc.places[0]?.demandCost).toBe(Math.max(1427, 1406));
+    expect(calc.places[0]).toMatchObject({ demandCost: 1427, demandProfit: 0, demandBelowSafe: false });
+  });
+
+  it('the demand follows the factor on an empty building, whatever the safe cost', () => {
+    const demand = (factor: number) => calculateConstruction(recorded(1909, factor)).places.map((p) => p.demandCost);
+    // round(N × (1 + factor / 100)) for 730/365/120/30/5
+    expect(demand(80)).toEqual([1314, 657, 216, 54, 9]);
+    expect(demand(90)).toEqual([1387, 694, 228, 57, 10]);
+    expect(demand(100)).toEqual([1460, 730, 240, 60, 10]);
+    expect(demand(-100)).toEqual([0, 0, 0, 0, 0]);
+    // the safe cost stays the same for every factor
+    expect(calculateConstruction(recorded(1909, 80)).places[0]?.safeCost).toBe(1406);
   });
 });
 
@@ -148,12 +162,15 @@ describe('calculateConstruction on edge cases', () => {
     expect(calc.places[0]).toMatchObject({ safeCost: 500, gross: 190, profit: -310, status: 'loss' });
   });
 
-  it('warns when the safe cost is all that is left, caps the demand there and leaves the warning out of the best', () => {
+  it('warns when the safe cost is all that is left, marks a demand above it and leaves the warning out of the best', () => {
     // 201 needed, 100 on rank 1: rest 101, safe round(201 / 2) = 101 = rest
     const calc = calculateConstruction(input(201, [place(1, 100, 100), place(2, 50)]));
     expect(calc.places[0]).toMatchObject({
       safeCost: 101,
-      demandCost: 101,
+      // round(100 × 1.9) = 190 is more than the 101 still to pay; kept, only marked
+      demandCost: 190,
+      demandOverRest: true,
+      demandBelowSafe: false,
       levelWarning: true,
       status: 'levelWarning',
     });

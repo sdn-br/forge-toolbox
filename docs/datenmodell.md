@@ -413,7 +413,7 @@ interface RankingRow {
   name: string;
   self: boolean;                // is_self
   fp?: number;                  // fehlt bei freien Plätzen
-  reward?: { fp: number; blueprints: number; medals: number };  // netto, wie das Spiel sie nennt
+  reward?: { fp: number; blueprints: number; medals: number };  // netto (bestätigt), wie das Spiel sie nennt
 }
 
 interface GreatBuildingEntity {
@@ -464,7 +464,8 @@ Reine Funktion `calculateConstruction` in `src/content/domain/gb-calculator.ts`.
 - **Rest:** benötigte FP minus (Summe aller Einzahlungen minus eigene Einzahlung). So viel dürfen die anderen noch einzahlen.
 - **Brutto:** `round(N × (1 + Arche/100))` mit N = `strategy_point_amount`, ebenso Blaupausen und Medaillen.
 - **Sicher:** `round((d + Rest) / 2)`, d = Einzahlung des Inhabers, 0 bei freiem Platz. Die kleinste Gesamteinzahlung, die der Inhaber nicht mehr überbieten kann.
-- **Fordern:** `max(round(N × (1 + Faktor/100)), Sicher)`, höchstens der Rest. Faktor „Arche“ ist der eigene Arche-Bonus.
+- **Fordern:** `round(N × (1 + Faktor/100))`, ohne Untergrenze und ohne Deckel. Faktor „Arche“ ist der eigene Arche-Bonus. Fordern ist ein Handel: Der Eigentümer bietet den Platz zum Faktor an und sichert ihn selbst ab, deshalb gilt die sichere Einzahlung für den Einzahler nicht. Entscheidung 2026-10-22, vorher war Fordern mindestens Sicher und höchstens der Rest. Auf fast leeren LGs fiel es so mit Sicher zusammen, und der Faktor änderte nichts.
+- **Markierungen bei Fordern:** mehr als der Rest (mehr, als bis zum Level-Up fehlt) steht rot mit Tooltip „mehr als bis zum Level-Up fehlt (X FP)“. Unter Sicher steht gedämpft mit Tooltip „unter Sicher: nur mit Absprache haltbar“. Der Tooltip nennt immer den Gewinn bei Fordern (Brutto minus Fordern). Die Klammer mit dem, was noch dazukommt, rechnet vom neuen Wert.
 - **Eigener Platz:** `round((Einzahlung des nächsten Rangs + Rest) / 2)`, ohne Nachfolger die Hälfte des Rests.
 - **Nicht zu haben:** wenn Sicher ≤ Einzahlung des Inhabers, wenn der Platz unter dem eigenen liegt oder wenn Sicher gleich dem Wert des Platzes darüber ist.
 - **Unter dem eigenen Platz:** keine Kosten, kein Gewinn, kein Kurs (Anzeige „–“), nur Belohnung, Blaupausen und Medaillen. Die eigene Einzahlung kann keinen zweiten Platz halten, eine Rechnung mit ihr wäre ein Scheinpreis. Solche Plätze zählen weder für den besten Kurs noch für den Ton. Testfall `test/fixtures/gb-contribution-below-own.json` (aufgezeichnet 2026-10-21).
@@ -477,7 +478,7 @@ Reine Funktion `calculateConstruction` in `src/content/domain/gb-calculator.ts`.
 
 **Arche-Bonus:** Summe der `contribution_boost`-Boni der eigenen LGs aus der Stadt, dazu befristete Boni dieses Typs aus `BonusService.getLimitedBonuses`. Befristete Boni eines eigenen LGs stehen in beiden Listen (gesehen beim Vorrats-Bonus des LGs 701), deshalb zählt ein befristeter Bonus nicht, dessen `entityId` schon mit einem Arche-Bonus gezählt ist. In der Aufnahme gab es keinen befristeten `contribution_boost`.
 
-**Annahme Netto:** `strategy_point_amount` ist die Belohnung ohne Arche-Bonus, der Empfänger bekommt sie mit seinem Bonus. Nicht im Spiel geprüft.
+**Netto:** `strategy_point_amount` ist die Belohnung ohne Arche-Bonus, der Empfänger bekommt sie mit seinem Bonus. Bestätigt (Abgleich mit Spiel und alter Toolbox, 2026-10-22).
 
 **Verfügbare FP:** `strategy_points` aus dem `ResourceStore` plus die FP in Paketen aus dem `InventoryStore` (siehe Inventar). Beide folgen den Updates (siehe Ressourcen und Inventar). Nach der aufgezeichneten Einzahlung zeigt der Rechner 0 + 108.198.
 
@@ -534,7 +535,6 @@ Die Kopfzeile des LG-Rechners zeigt neben der Stufe die freigeschaltete Höchsts
 
 - Besuchte Städte bleiben vorerst nur im Speicher. Sobald ein Feature einen Verlauf braucht (etwa wann ein Nachbar wieder plünderbar war), bekommen sie eine Tabelle.
 - Genaue Namen der Spiel-Methoden für Bauen, Abreißen und Verschieben aus einer Aufnahme bestätigen.
-- LG: Annahme Netto (`strategy_point_amount` ohne Arche-Bonus) im Spiel prüfen.
 - LG: das Level-up-Ereignis `great_building_contribution` aufnehmen und Format bestätigen.
 - Inventar und Ressourcen: Die Updates `InventoryService.getItemsByType`, `getItem`, `getItemAmount`, `ResourceService.getPlayerResources` und `trade_accepted` sind unter Vorbehalt umgesetzt. Ihr Format mit einer Aufnahme bestätigen, etwa einer Belohnung mit neuen Paketen.
 - LG: FP aus Quests (Zeile im LG-Rechner) braucht Quest-Daten, die die Ingestion noch nicht liest (`QuestService.getUpdates`).

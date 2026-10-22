@@ -78,7 +78,7 @@ describe('LG-Rechner', () => {
     expect([...(rows()[0]?.querySelectorAll('td') ?? [])].map((td) => td.textContent?.trim())).toEqual([
       '1',
       '1.406',
-      '1.406',
+      '1.387',
       '1.427',
       '21',
       '192,6 %',
@@ -86,6 +86,30 @@ describe('LG-Rechner', () => {
       '2.111',
     ]);
     expect(tones()).toBe(1);
+  });
+
+  it('marks a demand below the safe cost and names the profit at it', async () => {
+    const { open, rows } = setup();
+    open(1909);
+    await tick();
+    const demand = rows()[0]?.querySelectorAll('td')[2];
+    expect(demand?.className).toBe('num below-safe');
+    expect(demand?.getAttribute('title')).toBe('Gewinn bei Fordern: 40 FP\nunter Sicher: nur mit Absprache haltbar');
+  });
+
+  it('marks a demand above what the level still needs and keeps the extra over the own deposit', async () => {
+    const { box, open, rows } = setup();
+    open(2434);
+    const input = box.root.querySelector('.gb-factor input') as HTMLInputElement;
+    input.value = '200';
+    input.dispatchEvent(new Event('change'));
+    await tick();
+    // rank 1 pays 655: round(655 × 3) = 1965, the level needs 786 more; 575 of mine already in
+    const demand = rows()[0]?.querySelectorAll('td')[2];
+    expect(demand?.textContent?.trim()).toBe('1.965 (+1.390)');
+    expect(demand?.className).toBe('num over-rest');
+    expect(demand?.getAttribute('title')).toContain('mehr als bis zum Level-Up fehlt (786 FP)');
+    expect(demand?.getAttribute('title')).toContain('Gewinn bei Fordern: -684 FP');
   });
 
   it('asks to reopen when the construction came without its building', async () => {
