@@ -4,7 +4,7 @@ import { Ingestion } from '../src/content/core/ingestion';
 import { foestatsFeature } from '../src/content/features/foestats';
 import { createGbCalculatorFeature } from '../src/content/features/gb-calculator';
 import { registerGameHandlers } from '../src/content/game/handlers';
-import type { FetchLike } from '../src/persistence/foestats/api';
+import type { FetchLike } from '../src/shared/foestats-api';
 import fixture from './fixtures/great-buildings.json';
 import { featureContext } from './helpers/feature-context';
 import type { TestStoresOptions } from './helpers/stores';

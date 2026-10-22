@@ -1,4 +1,4 @@
-import type { FoestatsStatus } from '../../persistence/foestats/contract';
+import type { FoestatsClient, HistoryPoint } from '../../shared/foestats-api';
 import type { PlayerId, WorldId } from '../../shared/ids';
 import type { FoestatsDay } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
@@ -6,8 +6,15 @@ import { logError } from '../core/log';
 import type { ToggleSettingDef } from '../core/settings';
 
 export interface FoestatsPersistence {
-  /** asks foestats unless that was done this foestats day; never fails for a missing answer */
-  update(world: WorldId, player: PlayerId): Promise<FoestatsStatus>;
+  /** whether to ask foestats now; `fetch: true` reserves the request until `store` */
+  claim(world: WorldId, player: PlayerId): Promise<{ fetch: boolean; unreachable: boolean }>;
+  /** what foestats answered to a claimed request, a missing history when it did not answer */
+  store(
+    world: WorldId,
+    player: PlayerId,
+    points: HistoryPoint[] | undefined,
+    battles: HistoryPoint[] | undefined,
+  ): Promise<{ unreachable: boolean }>;
   /** the known days of the player, oldest first */
   history(world: WorldId, player: PlayerId): Promise<FoestatsDay[]>;
 }
@@ -28,17 +35,24 @@ export interface FoestatsRecord {
   unreachable: boolean;
 }
 
+/** the requests the store makes to foestats */
+export type FoestatsRequests = Pick<FoestatsClient, 'pointsHistory' | 'battlesHistory'>;
+
 /**
- * Days of players at foestats, kept in the database. A view of a player asks the service worker to append the days
- * foestats has new (at most once a day), then reads them from the database.
+ * Days of players at foestats, kept in the database. A view of a player asks the service worker whether a request is
+ * due (at most once a day), makes it from the content script, hands the answer to the service worker to append the new
+ * days, then reads the days from the database.
  */
 export class FoestatsStore {
   private records = new Map<PlayerId, FoestatsRecord>();
+  /** views of a player running in this tab; a second one waits for the first */
+  private running = new Map<PlayerId, Promise<void>>();
 
   constructor(
     private bus: ToolboxBus,
     private world: WorldId,
     private persistence: FoestatsPersistence,
+    private requests: FoestatsRequests,
   ) {}
 
   /** what is known about the player after the last `view` */
@@ -47,11 +61,29 @@ export class FoestatsStore {
   }
 
   /** a view shows the player: bring the days up to date and read them */
-  async view(player: PlayerId): Promise<void> {
+  view(player: PlayerId): Promise<void> {
+    let pending = this.running.get(player);
+    if (!pending) {
+      pending = this.update(player).finally(() => this.running.delete(player));
+      this.running.set(player, pending);
+    }
+    return pending;
+  }
+
+  private async update(player: PlayerId): Promise<void> {
     try {
-      const status = await this.persistence.update(this.world, player);
+      const claim = await this.persistence.claim(this.world, player);
+      let unreachable = claim.unreachable;
+      if (claim.fetch) {
+        // the requests never fail, a missing answer is undefined
+        const [points, battles] = await Promise.all([
+          this.requests.pointsHistory(this.world, player),
+          this.requests.battlesHistory(this.world, player),
+        ]);
+        ({ unreachable } = await this.persistence.store(this.world, player, points, battles));
+      }
       const days = await this.persistence.history(this.world, player);
-      this.records.set(player, { days, unreachable: status === 'unreachable' });
+      this.records.set(player, { days, unreachable });
       this.bus.emit('foestats.updated', { player });
     } catch (error) {
       logError('loading foestats data failed', error);

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { type FetchLike, foestatsApi, parseHistory, parsePlayer } from '../src/persistence/foestats/api';
+import { type FetchLike, foestatsApi, parseHistory, parsePlayer } from '../src/shared/foestats-api';
 import { playerId, worldId } from '../src/shared/ids';
 
 describe('parsePlayer', () => {

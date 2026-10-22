@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import { FoestatsStore } from '../src/content/stores/foestats';
-import type { FetchLike } from '../src/persistence/foestats/api';
+import { CLAIM_TIMEOUT } from '../src/persistence/foestats/worker';
 import { RETRY_AFTER } from '../src/shared/foestats';
+import { type FetchLike, foestatsApi } from '../src/shared/foestats-api';
 import { playerId, worldId } from '../src/shared/ids';
 import { testDb } from './helpers/battle-db';
 
@@ -28,13 +29,15 @@ function fakeFoestats(points: Series, battles: Series) {
 function setup(points: Series, battles: Series, start = at(22, 9)) {
   const clock = { now: start };
   const foestats = fakeFoestats(points, battles);
-  const db = testDb({ fetch: foestats.fetch, now: () => clock.now });
+  const db = testDb({ now: () => clock.now });
   const bus = createBus();
   const updated: number[] = [];
   bus.on('foestats.updated', ({ player }) => updated.push(player));
-  const store = new FoestatsStore(bus, world, db.foestats);
+  /** a store as one tab of the game has it; the requests go out from there, the database is shared */
+  const tab = () => new FoestatsStore(createBus(), world, db.foestats, foestatsApi(foestats.fetch));
+  const store = new FoestatsStore(bus, world, db.foestats, foestatsApi(foestats.fetch));
   const values = () => store.get(player)?.days.map((d) => [d.date, d.points, d.battles]);
-  return { ...foestats, clock, db, store, updated, values };
+  return { ...foestats, clock, db, store, tab, updated, values };
 }
 
 describe('foestats store', () => {
@@ -63,9 +66,9 @@ describe('foestats store', () => {
   });
 
   it('remembers the last request in the database, so a new page does not ask again', async () => {
-    const { store, fetch, db, clock } = setup({ '2026-10-22': 100 }, { '2026-10-22': 5 });
+    const { store, fetch, tab, clock } = setup({ '2026-10-22': 100 }, { '2026-10-22': 5 });
     await store.view(player);
-    const reopened = new FoestatsStore(createBus(), world, db.foestats);
+    const reopened = tab();
     clock.now = at(22, 12);
     await reopened.view(player);
     expect(fetch).toHaveBeenCalledTimes(2);
@@ -132,6 +135,24 @@ describe('foestats store', () => {
   it('asks only once when two views open the same player together', async () => {
     const { store, fetch } = setup({ '2026-10-22': 100 }, { '2026-10-22': 5 });
     await Promise.all([store.view(player), store.view(player)]);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('asks only once when two tabs view the same player together', async () => {
+    const { store, tab, fetch } = setup({ '2026-10-22': 100 }, { '2026-10-22': 5 });
+    const other = tab();
+    await Promise.all([store.view(player), other.view(player)]);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('frees a claimed request that was never stored after a while', async () => {
+    const { db, store, fetch, clock } = setup({ '2026-10-22': 100 }, { '2026-10-22': 5 });
+    // a tab claimed the request and closed before it stored the answer
+    expect(await db.foestats.claim(world, player)).toEqual({ fetch: true, unreachable: false });
+    await store.view(player);
+    expect(fetch).not.toHaveBeenCalled();
+    clock.now += CLAIM_TIMEOUT;
+    await store.view(player);
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 });

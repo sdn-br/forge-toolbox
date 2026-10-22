@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { foestatsFeature } from '../src/content/features/foestats';
 import { settingsFeature } from '../src/content/features/settings-feature';
-import type { FetchLike } from '../src/persistence/foestats/api';
+import type { FetchLike } from '../src/shared/foestats-api';
 import { eraId, playerId, worldId } from '../src/shared/ids';
 import { featureContext } from './helpers/feature-context';
 

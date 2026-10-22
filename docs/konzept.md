@@ -283,13 +283,19 @@ Stand 2026-10-22. foestats.com ist eine externe Datenquelle mit täglichen Punkt
 
 **Links:** Jeder Spieler- und Gildenname in den Boxen öffnet die Seite bei foestats in einem neuen Tab: Stadtinformationen (Spieler, Gilde), LG-Rechner (Eigentümer, Plätze einer vergangenen Stufe), Kopf einer Spielernotiz. In der PvP-Box filtert der Name weiter, dort steht ein kleines ↗ daneben. Links senden nichts und erscheinen immer, auch ohne die Einstellung. Die Adresse baut eine Funktion (`src/shared/foestats.ts`). **Angenommen, im Browser noch nicht geprüft:** `<server>/<world>` ist Sprachkürzel und Welt-ID der Toolbox, etwa `de/de20`.
 
-**Abruf:** nur beim Ansehen, für den Eigentümer des offenen fremden LGs und den Spieler der besuchten Stadt. Kein Abruf im Hintergrund, keine Nachbarn oder Gildenmitglieder auf Vorrat. Der Service Worker fragt ohne Cookies (`credentials: 'omit'`) die Punkte- und Kampfverläufe ab, höchstens einmal je Spieler und foestats-Tag. foestats aktualisiert früh am Morgen, deshalb gilt ein neuer Tag erst ab 05:40 Uhr Ortszeit, davor der Vortag. Antwortet foestats nicht (Fehlercode, kein JSON, Netzfehler), merkt sich der Service Worker das und fragt frühestens nach 30 Minuten wieder. **Noch nicht geprüft:** ob der Abruf aus der Extension durchgeht. `curl` bekommt 403 von Cloudflare, ein Browser-Tab 200.
+**Abruf:** nur beim Ansehen, für den Eigentümer des offenen fremden LGs und den Spieler der besuchten Stadt. Kein Abruf im Hintergrund, keine Nachbarn oder Gildenmitglieder auf Vorrat. Die Punkte- und Kampfverläufe fragt das Content Script ab, ohne Cookies (`credentials: 'omit'`). Vom Service Worker aus (Origin `chrome-extension://`) kam im Browsertest keine Antwort, vermutlich blockt Cloudflare. Von der Spielseite aus antwortet die API mit 200 und erlaubt CORS. Deshalb braucht das Manifest keine `host_permissions`.
+
+Die Regeln bleiben im Service Worker, ein Abruf läuft in drei Schritten:
+
+1. `foestats.claim`: Der Service Worker sagt, ob ein Abruf fällig ist, und reserviert ihn. Fällig ist er höchstens einmal je Spieler und foestats-Tag. foestats aktualisiert früh am Morgen, deshalb gilt ein neuer Tag erst ab 05:40 Uhr Ortszeit, davor der Vortag. Nach einem Fehler ist er frühestens nach 30 Minuten wieder fällig. Solange ein Abruf reserviert ist (höchstens 60 Sekunden), bekommen andere Ansichten und Tabs keinen.
+2. Das Content Script fragt foestats und reicht die gelesenen Verläufe mit `foestats.store` zurück. Fehlt ein Verlauf (Fehlercode, kein JSON, Netzfehler), gilt der Abruf als gescheitert.
+3. `foestats.history` liest die Tage aus der DB.
 
 **Datenmodell** (Dexie-Version 10, Domäne `src/persistence/foestats/`):
 
 - `foestatsDays` (`[world+player+date]`, Index `[world+player]`): ein Tag eines Spielers mit `points` und `battles`. Vergangene Tage ändern sich nicht, neue Tage werden nur angehängt. Kommt nur einer der beiden Verläufe an, wird nichts gespeichert, sonst bekäme der Tag den fehlenden Wert nie.
 - `foestatsFetches` (`[world+player]`): letzter Abruf je Spieler mit foestats-Tag, Zeitpunkt und Erfolg. So fragt ein Neuladen des Spiels nicht noch einmal.
-- Der FoestatsStore bringt einen Spieler beim Ansehen auf Stand und liest die Tage danach aus der DB. Die Oberfläche liest immer aus dem eigenen Speicher.
+- Der FoestatsStore im Content Script bringt einen Spieler beim Ansehen auf Stand und liest die Tage danach aus der DB. Die Oberfläche liest immer aus dem eigenen Speicher.
 
 **Aktivität im LG-Rechner:** unter dem Eigentümer „zuletzt aktiv heute / gestern / vor N Tagen“ (letzter Tag, an dem Punkte oder Kämpfe gestiegen sind, gezählt ab dem aktuellen foestats-Tag) und die Änderung von Punkten und Kämpfen über die letzten 7 Tage. Ab 3 Tagen ohne Zunahme steht die Zeile als Warnung. Die Rechnung ist eine reine Funktion (`domain/activity.ts`). Eine eigene Ansicht des Verlaufs gibt es noch nicht.
 
@@ -379,7 +385,7 @@ Querschnitt aus der FoE Toolbox, der in die passenden Features eingeht: Fenster 
 
 - Keine eigenen Anfragen an die Spielserver, nur mitlesen. Ausnahme wie heute: Metadaten und Assets vom Inno-CDN.
 - `api.foe-rechner.de` nur nach Double-Opt-In, nur über den Service Worker.
-- `api.forge-db.com` (foestats) nur über den Service Worker, ohne Cookies, nur für angesehene Spieler, abschaltbar (siehe foestats).
+- `api.forge-db.com` (foestats) aus dem Content Script, ohne Cookies, nur für angesehene Spieler, abschaltbar (siehe foestats). Wann gefragt wird, entscheidet der Service Worker.
 - Discord-Webhooks und eigene Server nur mit URLs, die der Nutzer einträgt.
 
 ## Ergebnisse Phase 0

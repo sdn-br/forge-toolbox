@@ -7,6 +7,7 @@ import { notePersistence } from '../../persistence/notes/client';
 import { playerPersistence } from '../../persistence/players/client';
 import { plunderPersistence } from '../../persistence/plunders/client';
 import { shieldPersistence } from '../../persistence/shields/client';
+import { type FetchLike, foestatsApi } from '../../shared/foestats-api';
 import type { WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import type { Call } from '../core/rpc';
@@ -42,8 +43,17 @@ export interface Stores {
   foestats: FoestatsStore;
 }
 
-/** `call` reaches the persistence in the service worker; `now` is the clock of the stores that keep times. */
-export function createStores(world: WorldId, bus: ToolboxBus, call: Call, now: () => number = Date.now): Stores {
+/**
+ * `call` reaches the persistence in the service worker; `now` is the clock of the stores that keep times; `fetch` makes
+ * the requests to foestats from the content script.
+ */
+export function createStores(
+  world: WorldId,
+  bus: ToolboxBus,
+  call: Call,
+  now: () => number = Date.now,
+  fetch: FetchLike = (url, init) => globalThis.fetch(url, init),
+): Stores {
   return {
     session: new SessionStore(bus),
     players: new PlayerStore(bus, playerPersistence(call), now),
@@ -58,6 +68,6 @@ export function createStores(world: WorldId, bus: ToolboxBus, call: Call, now: (
     shields: new ShieldStore(bus, world, shieldPersistence(call), now),
     notes: new NoteStore(bus, world, notePersistence(call), now),
     greatBuildings: new GreatBuildingStore(bus, world, greatBuildingPersistence(call), now),
-    foestats: new FoestatsStore(bus, world, foestatsPersistence(call)),
+    foestats: new FoestatsStore(bus, world, foestatsPersistence(call), foestatsApi(fetch)),
   };
 }

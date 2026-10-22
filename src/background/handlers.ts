@@ -9,7 +9,7 @@ import { shieldsHandlers } from '../persistence/shields/worker';
 import type { BackgroundApi, Handlers } from '../shared/rpc';
 import type { ToolboxDb } from './db';
 
-/** `deps` reach outside the database: requests to foestats and the clock */
+/** `deps` reach outside the database: the clock */
 export function createHandlers(db: ToolboxDb, deps: FoestatsDeps): Handlers<BackgroundApi> {
   return {
     ...playersHandlers(db),

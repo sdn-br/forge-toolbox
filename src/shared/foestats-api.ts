@@ -1,8 +1,9 @@
-// Client of the unofficial foestats API (api.forge-db.com), used by the service worker only. The answers are not ours,
-// so everything is read defensively: numbers may come as strings, fields may be missing, and a failed or blocked call
-// gives undefined instead of an error.
-import { foestatsWorld } from '../../shared/foestats';
-import type { PlayerId, WorldId } from '../../shared/ids';
+// Client of the unofficial foestats API (api.forge-db.com), used by the content script: the API answers requests from
+// the game page, while those of the service worker (origin chrome-extension://) seem to be blocked by Cloudflare.
+// The answers are not ours, so everything is read defensively: numbers may come as strings, fields may be missing, and
+// a failed or blocked call gives undefined instead of an error.
+import { foestatsWorld } from './foestats';
+import type { PlayerId, WorldId } from './ids';
 
 /** the part of `fetch` the client needs; tests pass their own */
 export type FetchLike = (
