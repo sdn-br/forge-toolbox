@@ -123,6 +123,10 @@ describe('firstPlaceReward', () => {
 
   it('knows nothing beyond the levels of all tables or for an unknown era', () => {
     expect(firstPlaceReward('FutureEra', 2000)).toBeUndefined();
+    // levels 422 on: only scattered rows of single eras, too loose for 5 Forge points
+    expect(firstPlaceReward('FutureEra', 421)?.estimate).toBe(true);
+    expect(firstPlaceReward('FutureEra', 422)).toBeUndefined();
+    expect(firstPlaceReward('ProgressiveEra', 482)?.estimate).toBe(false);
     expect(firstPlaceReward('SomeNewEra', 10)).toBeUndefined();
   });
 });

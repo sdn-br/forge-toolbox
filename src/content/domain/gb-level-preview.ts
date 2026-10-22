@@ -49,14 +49,15 @@ function eraNumber(era: string): number | undefined {
 
 const ceil5 = (x: number) => Math.ceil(x / 5 - EPSILON) * 5;
 
-let curve: (number | undefined)[] | undefined;
+let curve: number[] | undefined;
 
 /**
  * The era independent curve A per level. The game seems to pay P1 = ceil5((era + 9) × A(level)), so every known value
  * bounds A to [(P1 − 5) / (era + 9), P1 / (era + 9)]. The middle of all bounds of a level is its A; where the bounds do
- * not quite meet (they miss by a hair at some levels) the middle still lies between them.
+ * not quite meet (they miss by a hair at some levels) the middle still lies between them. The curve ends before the
+ * first level without any game data (422 with the current table).
  */
-function levelCurve(): (number | undefined)[] {
+function levelCurve(): number[] {
   if (curve) return curve;
   const low: number[] = [];
   const high: number[] = [];
@@ -69,7 +70,9 @@ function levelCurve(): (number | undefined)[] {
       high[level] = Math.min(high[level] ?? Infinity, p / factor);
     });
   }
-  curve = Array.from(high, (h, level) => (h === undefined ? undefined : ((low[level] as number) + h) / 2));
+  // past the first level no table knows, single scattered rows would bound A too loosely for 5 Forge points
+  const end = Array.from(high).indexOf(undefined as never);
+  curve = high.slice(0, end < 0 ? high.length : end).map((h, level) => ((low[level] as number) + h) / 2);
   return curve;
 }
 

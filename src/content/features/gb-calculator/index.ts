@@ -40,6 +40,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       let vm: GbCalculatorVm = { kind: 'none' };
       /** what the last tone was for, so a redraw with the same places stays quiet */
       let toned: string | undefined;
+      /** the later level the box previews; undefined shows the construction */
+      let preview: number | undefined;
 
       const save = (key: string, value: boolean | number) =>
         ctx.settings.set(key, value).catch((error) => logError('saving settings failed', error));
@@ -49,6 +51,10 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           save(FACTOR_ARC, false);
         },
         useArc: () => save(FACTOR_ARC, true),
+        previewLevel: (level) => {
+          preview = level;
+          refresh();
+        },
       };
 
       const box = ctx.createBox({
@@ -70,6 +76,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           factor: { value: ctx.settings.number(FACTOR), arc: ctx.settings.get(FACTOR_ARC) },
           foestats: shown && ctx.settings.get(FOESTATS_SETTING.key) ? ctx.foestats.get(shown.owner) : undefined,
           today: foestatsDay(Date.now()),
+          previewLevel: preview,
+          greatBuilding: (def) => ctx.catalog.get(def)?.greatBuilding,
         });
         box.update();
       };
@@ -95,6 +103,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       ctx.bus.on('greatBuilding.opened', ({ own }) => {
         if (own || !follow()) return;
         toned = undefined;
+        preview = undefined;
         refresh();
         box.open();
         maybeTone(false);
