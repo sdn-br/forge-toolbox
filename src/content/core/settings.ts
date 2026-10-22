@@ -5,6 +5,8 @@ interface BaseSettingDef {
   key: string;
   group: TextKey;
   label: TextKey;
+  /** a line below the control */
+  hint?: TextKey;
 }
 
 export interface ToggleSettingDef extends BaseSettingDef {

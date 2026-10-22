@@ -287,6 +287,10 @@ export const de = {
   'duration.hours': '{hours} Std.',
   'duration.minutes': '{minutes} Min.',
   'foestats.open': 'Auf foestats.com öffnen',
+  'foestats.group': 'foestats',
+  'foestats.fetchSetting': 'foestats-Daten abrufen',
+  'foestats.fetchHint':
+    'Fragt foestats.com einmal am Tag nach Punkten und Kämpfen des Spielers, dessen Stadt oder LG du gerade ansiehst. foestats erfährt dabei Welt und Spieler-ID.',
 } as const;
 
 export type TextKey = keyof typeof de;

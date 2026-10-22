@@ -104,4 +104,4 @@ export function foestatsApi(fetch: FetchLike) {
   };
 }
 
-export type FoestatsApi = ReturnType<typeof foestatsApi>;
+export type FoestatsClient = ReturnType<typeof foestatsApi>;

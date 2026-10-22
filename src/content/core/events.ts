@@ -28,6 +28,8 @@ export interface ToolboxEvents {
   'army.opened': { battleType: string };
   /** any change of the notes; `player` when it was the note of that player */
   'note.changed': { player?: PlayerId };
+  /** new days of a player at foestats were read, or foestats did not answer */
+  'foestats.updated': { player: PlayerId };
   /** the game opened the construction window of a great building; `own` when it belongs to the session player */
   'greatBuilding.opened': { owner: PlayerId; entityId: number; own: boolean };
   /** the open construction changed: its building, the rankings shown, an own contribution or a level up */
