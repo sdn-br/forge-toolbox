@@ -97,7 +97,7 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
 - **Tabelle:** sortieren, filtern, exportieren.
 - **Tooltip:** ein Mechanismus für alle Features.
 - **Chart:** kapselt ECharts mit Lazy-Load, Theme, Resize, Export als PNG und CSV. Bekommt ein eigenes Datenformat für Serien, nicht ECharts-Optionen. Lässt sich in jede View einbetten, so muss kein Feature Chart-Code wiederholen.
-- **Stadtplan:** zeichnet ein Stadtgitter mit Gebäuden aus einfachen Daten (siehe Abschnitt Stadtplan).
+- **Stadtplan:** zeichnet ein Stadtgitter mit Gebäuden aus einfachen Daten (siehe [Stadtplan](features/stadtplan.md)).
 - **Menü:** Leiste mit den Knöpfen der angemeldeten Features, sortierbar, einzeln ausblendbar.
 - Styles so gekapselt, dass Spiel-CSS und Toolbox-CSS sich nicht beeinflussen (zu prüfen: Shadow DOM).
 
@@ -212,103 +212,14 @@ PvP-Angriffe in Phase 2 kommt in drei Teilen:
 
 Kämpfe in der PvP-Arena kommen mit dem Arena-Protokoll in Phase 6. Die Notizkarte in der PvP-Box ist mit dem Feature Notizen umgesetzt.
 
-## Notizen
+## Features
 
-Stand 2026-10-21. Notizen gelten je Welt.
+Je Feature eine Datei mit Umfang, Entscheidungen und Annahmen. Neue Features bekommen hier ihre eigene Datei.
 
-**Datenmodell** (Dexie-Version 7, Domäne `src/persistence/notes/`):
-
-- `noteGroups` (`[world+id]`, Index `world`): Gruppe mit `name` und `sort`. Gruppen erscheinen als Reiter, eine neue kommt ans Ende.
-- `notePages` (`[world+id]`, Index `world`): Seite mit `group`, `title`, `text` (Markdown), `sort` und `updatedAt`. Eine neue Seite kommt oben in ihre Gruppe.
-- **Spielergruppe:** wird nicht gespeichert, steht immer vorn, lässt sich nicht umbenennen, löschen oder verschieben. Sie hält höchstens eine Seite je Spieler mit der ID `player:<Spieler-ID>` und dem Feld `player`. Name, Gilde und Beziehungen kommen live aus dem PlayerStore. Der Titel der Seite hält nur den zuletzt bekannten Namen, für Spieler, die der Store nicht kennt. Die Seite entsteht mit dem ersten Text und verschwindet, wenn der Text geleert wird. Sortiert wird sie alphabetisch nach Namen, die übrigen Gruppen und Seiten von Hand per Drag and Drop.
-- Der NoteStore hält alle Notizen der Welt im Speicher. Suche und Liste brauchen keine DB-Abfrage. Jede Änderung meldet `note.changed {player?}`.
-
-**Markdown:** Entscheidung: eigener kleiner Renderer, der lit-html-Templates baut. Er kennt Überschriften (`#` bis `###`), fett, kursiv, Aufzählungen, nummerierte Listen, Links nur auf `http:` und `https:` (neuer Tab, `rel="noopener noreferrer"`), nackte URLs, Absätze und Zeilenumbrüche. Alles andere bleibt Text.
-
-- Begründung: Es entsteht nie rohes HTML, kein `innerHTML`, kein `unsafeHTML`. Was in einer Notiz steht, kann kein Markup und kein Skript werden, ohne Sanitizer. Keine Abhängigkeit.
-- Kosten: nur eine Teilmenge von Markdown (keine Tabellen, Bilder, Code-Blöcke, Zitate).
-- Verworfen: eine Markdown-Bibliothek mit Sanitizer. Sie kann mehr, liefert aber HTML-Strings, die erst bereinigt werden müssen, und bringt eine Abhängigkeit.
-
-**Oberfläche:**
-
-- Box „Notizen“ (📝): Reiter der Gruppen, links die Seiten, rechts die Seite. Volltextsuche über Titel und Text aller Notizen der Welt. In der Spielergruppe ein Filter nach Beziehung und eine Spielerauswahl über den PlayerStore.
-- Eine Notiz zeigt gerendertes Markdown, ein Klick öffnet den Quelltext in einem Textfeld. Gespeichert wird 800 ms nach dem letzten Tastendruck und beim Verlassen. Solange das Textfeld offen ist, überschreiben Updates aus dem Store die Eingabe nicht.
-- Notizkarte eines Spielers (eine Komponente): in den Stadtinformationen für den besuchten Spieler, in der PvP-Box bei Filter auf einen Spieler. Dort trägt jede Zeile der Kämpfe, Plünderungen und Angriffe auf mich ein 📝 mit der Notiz als Tooltip.
-
-**Noch nicht enthalten:** Übernahme alter Notizen (kommt mit dem Altdaten-Import, siehe dort), Notizen in der PvP-Arena (Phase 6), Export (eigenes Feature).
-
-**Avatare fehlen noch:** Das Spiel lädt Porträts mit Hash im Dateinamen (`assets/shared/avatars/portrait_413-42cc9bb44.jpg`), die Spielerdaten nennen nur `portrait_id_111`. Die Zuordnung braucht die Asset-Liste des Spiels und kommt mit dem Design-Durchgang oder einem Feature, das Porträts sowieso braucht.
-
-## Stadtplan
-
-Stand 2026-10-21.
-
-**Komponente** (`src/content/ui/city-map.ts`): bekommt die freigeschalteten Gebiete, je Gebäude Position, Größe, Füllfarbe, optional einen Rahmen und einen Tooltip-Text, dazu optional markierte Einzelfelder und eine Legende. Farben, Rahmen und Tooltips bestimmt der Aufrufer, die Komponente kennt weder Gebäudetypen noch Plündern.
-
-- Entscheidung: ein `<canvas>` statt SVG. Mehrere hundert Gebäude und Straßen sind ein paar hundert Flächen, für Hover reicht das Feld unter dem Zeiger (Nachschlagen über einen Index je Feld). SVG hätte ein DOM-Element je Gebäude, das lit-html bei jedem Render abgleicht. Kosten: Tooltips und Rahmen zeichnet die Komponente selbst.
-- Passt sich der Box an: ohne gemerkte Boxhöhe ist die Karte 55 % der Fensterhöhe hoch, mit gemerkter Höhe und im Pop-out füllt sie, was Bedienelemente und Legende frei lassen (Flex-Spalte), und wächst und schrumpft mit Box oder Fenster. Zoom mit Mausrad oder +/−, Verschieben per Ziehen, ⤢ zeigt wieder die ganze Stadt. Größe beobachtet ein `ResizeObserver` des Fensters, in dem die Karte gerade steckt, damit sie auch im Pop-out mitwächst.
-- Zwei Ansichten, umschaltbar, je Verwendung gemerkt: „Draufsicht“ (x nach rechts, y nach unten) und „Isometrisch“ (wie im Spiel, Gitter um 45° gedreht und auf halbe Höhe gestaucht, ein Feld ist eine Raute). Die Projektion (`map-projection.ts`) rechnet Gitter in Bildschirm und zurück, Hover funktioniert in beiden. Isometrisch wird von hinten nach vorn gezeichnet. Später kann ein Gebäude unter dem Zeiger sein Spielbild in seine Fläche zeichnen.
-- Größe eines Gebäudes: `width` entlang x, `length` entlang y aus der Definition. Die Gebäude tragen keine Drehung. Die aufgezeichnete eigene Stadt passt so ohne Überlappung zusammen, vertauscht gäbe es 153 überlappende Felder. Gebäude neben dem Gitter (`off_grid`, `outpost_ship`, `friends_tavern`) fehlen auf der Karte, Gebäude ohne bekannte Definition belegen ein Feld.
-- Freigeschaltete Gebiete kommen als `city_map.unlocked_areas` mit Start und Besuch. **Angenommen, noch ohne Aufnahme.** Fehlen sie, zeigt die Karte nur die Gebäude, und freie Felder sind unbekannt.
-
-**Box „Stadtplan {Spieler}“ (besuchte Stadt):** öffnet über 🗺️ neben dem Spielernamen in den Stadtinformationen. Plünderbare Gebäude (`assessCity(...).plunderable`) sind hervorgehoben, alle anderen nach Gebäudegruppe gedämpft. Tooltip: Name, bei plünderbaren die Beute. Ansicht (Draufsicht oder isometrisch) wird getrennt von der eigenen Stadt gemerkt.
-
-- Die Box folgt dem Besuch: Wer eine andere Stadt besucht, sieht dort deren Plan. Nach der Rückkehr in die eigene Stadt bleibt der zuletzt besuchte Plan stehen. Entscheidung: stehen lassen statt schließen, denn auch die Stadtinformationen zeigen nach der Rückkehr die zuletzt besuchte Stadt, und so bleibt die Karte zum Nachsehen offen.
-- „Jetzt plünderbar“ sortiert nach Wichtigkeit: zuerst Gebäude mit Beute außer Münzen und Vorräten (Forge-Punkte, Güter, andere Ressourcen, Gildenmacht), dann nach Forge-Punkten, danach nach der übrigen Beute, zuletzt nach Münzen plus Vorräten, je absteigend, bei Gleichstand nach Name. Verglichen wird stufenweise, nicht gewichtet: 4 FP vor 500 Gütern, 500 Güter vor 20.000 Münzen. Gebäude nur mit Münzen oder Vorräten stehen gedämpft.
-- Ein Klick (oder Enter) auf eine Zeile öffnet die Box, rahmt das Gebäude kräftig ein (eigene Farbe, über allen anderen Rahmen) und rückt es in die Mitte. Der Zoom bleibt, außer das Gebäude wäre kleiner als etwa 36 Pixel, dann wird so weit vergrößert. Ein neuer Besuch nimmt den Rahmen weg. Die Komponente bekommt dafür `focus(rect)`. Hat die Karte noch keine Größe, weil die Box gerade erst aufgeht, rückt sie, sobald sie ausgelegt ist.
-
-**Box „Stadtplan“ (🗺️):** die eigene Stadt, Farben nach Gebäudegruppe (Wohnhaus, Produktion, Güter, Kultur und Deko, Militär, Legendäres Bauwerk, Straße, Sondergebäude, Sonstiges) mit Legende. Zuschaltbar: fertige Produktionen, Gebäude ohne Straßenanbindung, freie Felder. Suche nach Teil des Namens hebt Treffer hervor und zählt sie. Freie Felder: Felder der freigeschalteten Gebiete, die kein Gebäude und keine Straße belegt.
-
-**Statistik (Seitenpanel der Box „Stadtplan“):** ein Reiter „Statistik“ am Rand der Box klappt ein Panel aus, offen oder zu wird je Betrachter gemerkt. Angedockt hängt es links aus der Box heraus (rechts, wenn die Box am linken Bildschirmrand steht) und lässt die Karte ganz frei. Entscheidung: herausklappen statt die Box zu verbreitern oder die Karte zu überdecken, denn die Box steht standardmäßig am rechten Rand, und die Karte bleibt so groß wie ohne Panel. Im Pop-out-Fenster ist daneben kein Platz, dort bekommt das Panel eine eigene Spalte neben der Karte. Inhalt:
-
-- Fläche: freie von allen freigeschalteten Feldern.
-- Gebäude je Gruppe: Anzahl, Anteil, belegte Felder, nach Anzahl sortiert, mit der Farbe der Legende. Solange das Panel offen ist, zeigt die Legende unter der Karte nur noch die Markierungen.
-- Straßen-Effizienz: benötigte ÷ gebaute Straßenfelder. Benötigt je Gebäude mit Straßenbedarf: die Hälfte der kürzeren Seite, aufgerundet. Eine Näherung, das Spiel nennt nur, ob und welche Straße ein Gebäude braucht (siehe Datenmodell). Ohne diese Angabe in den Definitionen fehlt der Wert.
-- Erweiterungen: gesetzte und offene je Art wie im Kauf-Fenster des Spiels: Diamant- und Quanten-Erweiterungen mit „kaufbar“ und nächstem Preis, Belohnungs-Erweiterungen mit „platzierbar“ (gewonnen, noch nicht gesetzt), Anzahl offen und Herkunft (aus Forschung mit nächster Technologie, Rest von der Kontinentkarte). Annahmen stehen im Datenmodell, nicht im Panel.
-- Schalter „Erweiterungsflächen“ (aus beim Start): zeichnet die freien Blöcke des Stadtgitters, angrenzende kräftig („jetzt setzbar“), die übrigen blass („später“). Die Karte wird dafür bis zu diesen Blöcken erweitert, ohne Schalter bleibt sie eng um die Stadt.
-
-**Noch nicht enthalten:** Hervorhebungen der alten Toolbox (GbG, QI, limitiert, aufstiegsfähig, verfallen, Ketten, Sets, veraltet nach Zeitalter, ineffizient), Ertrag je Feld (braucht Produktion je Tag), Planungsmodus. Die eigene Stadt folgt `CityMapService.updateEntity` und `reset` (Zustand, Ausbau). Bauen, Abreißen und Verschieben (`placeBuilding`, `removeBuilding`, `moveEntity`) wertet die Ingestion noch nicht aus, ebenso neu freigeschaltete Gebiete. Bis zum Neuladen bleibt die Karte dann alt. Kommt mit Aufnahmen dieser Antworten.
-
-## LG-Rechner
-
-Stand 2026-10-21. Erste Stufe des LG-Kostenrechners, nur für LGs anderer Spieler. Datenmodell und Rechnung: `docs/datenmodell.md`, Abschnitt Great Buildings.
-
-**Box „LG-Rechner“ (🏛️):** öffnet sich, sobald der Spieler ein fremdes LG öffnet. Beim eigenen LG bleibt sie zu und zeigt weiter das letzte fremde.
-
-- Kopf: Name des LGs, Stufe → nächste Stufe, freigeschaltete Höchststufe, Eigentümer, verfügbare FP, Arche-Bonus. Verfügbare FP sind die FP der Leiste plus die FP in Paketen im Inventar, weil das Spiel beim Einzahlen Pakete selbst öffnet. Der Tooltip zeigt die Aufteilung „Leiste X + Pakete Y“.
-- Faktor für „Fordern“: Knöpfe 80, 90, 100 und Arche (der eigene Arche-Bonus), dazu ein freies Feld von −100 bis 200. Die Wahl ist eine Einstellung und gilt, bis sie geändert wird. Fordern ist Belohnung mal Faktor, ohne Bezug zur sicheren Einzahlung (der Eigentümer sichert den Platz selbst ab). Mehr als bis zum Level-Up fehlt steht rot, unter Sicher gedämpft, der Tooltip nennt den Gewinn bei Fordern.
-- Tabelle, eine Zeile je Platz mit Belohnung: Platz, Sicher, Fordern, FP brutto, Gewinn, Kurs, Blaupausen, Medaillen. Farben: Gewinn grün, Verlust rot, Level-Warnung gelb, eigener Platz blau, nicht zu haben oder schlechter grau. Eine Einzahlung, die die verfügbaren FP übersteigt, steht rot. Wer schon eingezahlt hat, sieht in Klammern, was er noch dazulegen muss.
-- Fußzeile „Bis Level-Up fehlen X FP“. Eine Abdeckung über der Tabelle, wenn das LG die Höchststufe erreicht hat, nicht verbunden ist oder seit dem Öffnen gelevelt wurde.
-- Vergangene Stufe (im Spiel über die Stufenauswahl): nur Plätze, Spieler und FP, als vergangen markiert.
-- Ton: ein kurzer Piepton aus WebAudio (keine Audiodatei), wenn beim Öffnen oder nach einer Änderung ein Platz Gewinn bringt, und nach einem Level-up. Derselbe Stand piept nicht zweimal. Einstellung „Ton bei lohnendem Platz“, Standard an.
-
-Entscheidung Faktor als Einstellung: Settings kennen dafür Zahlen mit Grenzen (`NumberSettingDef`), der Einstellungsdialog zeigt sie als Zahlenfeld. Verworfen: den Faktor nur als Ansichtswahl (`ui.pref`) zu merken, dann stünde er nicht in den Einstellungen.
-
-**Noch nicht enthalten:** Klick kopiert die Einzahlung ins Spielfeld, Faktor je Gespräch, FP aus Quests (Quest-Daten liest die Ingestion noch nicht), eigene LGs (kommt mit dem Eigenanteilsrechner), Snipehilfe (die bekannten fremden LGs werden schon gespeichert).
-
-## foestats
-
-Stand 2026-10-22. foestats.com ist eine externe Datenquelle mit täglichen Punkten und Kämpfen je Spieler. Die API (`api.forge-db.com`) ist inoffiziell und nicht dokumentiert.
-
-**Links:** Jeder Spieler- und Gildenname in den Boxen öffnet die Seite bei foestats in einem neuen Tab: Stadtinformationen (Spieler, Gilde), LG-Rechner (Eigentümer, Plätze einer vergangenen Stufe), Kopf einer Spielernotiz. In der PvP-Box filtert der Name weiter, dort steht ein kleines ↗ daneben. Links senden nichts und erscheinen immer, auch ohne die Einstellung. Die Adresse baut eine Funktion (`src/shared/foestats.ts`). **Angenommen, im Browser noch nicht geprüft:** `<server>/<world>` ist Sprachkürzel und Welt-ID der Toolbox, etwa `de/de20`.
-
-**Abruf:** nur beim Ansehen, für den Eigentümer des offenen fremden LGs und den Spieler der besuchten Stadt. Kein Abruf im Hintergrund, keine Nachbarn oder Gildenmitglieder auf Vorrat. Die Punkte- und Kampfverläufe fragt das Content Script ab, ohne Cookies (`credentials: 'omit'`). Vom Service Worker aus (Origin `chrome-extension://`) kam im Browsertest keine Antwort, vermutlich blockt Cloudflare. Von der Spielseite aus antwortet die API mit 200 und erlaubt CORS. Deshalb braucht das Manifest keine `host_permissions`.
-
-Die Regeln bleiben im Service Worker, ein Abruf läuft in drei Schritten:
-
-1. `foestats.claim`: Der Service Worker sagt, ob ein Abruf fällig ist, und reserviert ihn. Fällig ist er höchstens einmal je Spieler und foestats-Tag. foestats aktualisiert früh am Morgen, deshalb gilt ein neuer Tag erst ab 05:40 Uhr Ortszeit, davor der Vortag. Nach einem Fehler ist er frühestens nach 30 Minuten wieder fällig. Solange ein Abruf reserviert ist (höchstens 60 Sekunden), bekommen andere Ansichten und Tabs keinen.
-2. Das Content Script fragt foestats und reicht die gelesenen Verläufe mit `foestats.store` zurück. Fehlt ein Verlauf (Fehlercode, kein JSON, Netzfehler), gilt der Abruf als gescheitert.
-3. `foestats.history` liest die Tage aus der DB.
-
-**Datenmodell** (Dexie-Version 10, Domäne `src/persistence/foestats/`):
-
-- `foestatsDays` (`[world+player+date]`, Index `[world+player]`): ein Tag eines Spielers mit `points` und `battles`. Vergangene Tage ändern sich nicht, neue Tage werden nur angehängt. Kommt nur einer der beiden Verläufe an, wird nichts gespeichert, sonst bekäme der Tag den fehlenden Wert nie.
-- `foestatsFetches` (`[world+player]`): letzter Abruf je Spieler mit foestats-Tag, Zeitpunkt und Erfolg. So fragt ein Neuladen des Spiels nicht noch einmal.
-- Der FoestatsStore im Content Script bringt einen Spieler beim Ansehen auf Stand und liest die Tage danach aus der DB. Die Oberfläche liest immer aus dem eigenen Speicher.
-
-**Aktivität im LG-Rechner:** unter dem Eigentümer „zuletzt aktiv heute / gestern / vor N Tagen“ (letzter Tag, an dem Punkte oder Kämpfe gestiegen sind, gezählt ab dem aktuellen foestats-Tag) und die Änderung von Punkten und Kämpfen über die letzten 7 Tage. Ab 3 Tagen ohne Zunahme steht die Zeile als Warnung. Die Rechnung ist eine reine Funktion (`domain/activity.ts`). Eine eigene Ansicht des Verlaufs gibt es noch nicht.
-
-**Einstellung** „foestats-Daten abrufen“, Standard an, mit Hinweis, dass foestats.com Welt und Spieler-ID des angesehenen Spielers erfährt. Aus: keine Anfragen, keine Aktivität, Links bleiben. Entscheidung: Standard an statt Double-Opt-In wie bei Settings, die Daten nach außen senden. Gesendet wird nur, was foestats ohnehin öffentlich zeigt (Welt und Spieler-ID), keine eigenen Spieldaten.
+- [Notizen](features/notizen.md): Notizen zu Spielern und Gilden
+- [Stadtplan](features/stadtplan.md): Stadtplan der eigenen und besuchten Stadt
+- [LG-Rechner](features/lg-rechner.md): Kostenrechner für fremde LGs
+- [foestats](features/foestats.md): Links, täglicher Verlauf, Aktivität
 
 ## Feature-Checkliste
 

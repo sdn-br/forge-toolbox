@@ -1,6 +1,6 @@
 # Forge Toolbox
 
-Browser extension for Forge of Empires on its own codebase. Concept: `docs/konzept.md`.
+Browser extension for Forge of Empires on its own codebase. Concept: `docs/konzept.md` (architecture, decisions, links to one file per feature in `docs/features/`). Data model: `docs/datenmodell.md` (principles, game response → store, links to one file per domain in `docs/datenmodell/`). Read only the feature and domain files a task touches.
 
 ## Language
 

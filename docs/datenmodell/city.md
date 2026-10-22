@@ -1,0 +1,73 @@
+# City
+
+Es gibt zwei Arten von Städten, mit verschiedenem Lebenslauf:
+
+| | Eigene Stadt | Besuchte Stadt |
+|---|---|---|
+| Quelle | `StartupService.getData`, danach Änderungen über `CityMapService` | `OtherPlayerService.visitPlayer` |
+| Ändert sich | laufend (Produktion, Bau, Abriss) | nur selten, z.B. nach einer FP-Einzahlung |
+| Im Speicher | immer die aktuelle | die zuletzt besuchte |
+| Persistiert | nein, kommt bei jedem Start neu | nein, siehe offene Punkte |
+
+```ts
+interface City {
+  world: WorldId;
+  owner: PlayerId;
+  map: 'main' | string;         // Siedlungen und Kolonien haben eigene Karten
+  era: EraId;
+  takenAt: number;
+  buildings: Map<number, Building>;
+  areas?: Area[];               // freigeschaltete Gebiete, fehlt, wenn das Spiel keine schickt
+  blocked?: Area[];             // nur eigene Stadt: city_map.blocked_areas, kommt als reine Positionen je 4 × 4-Block
+  expansions?: ExpansionOffer[];// nur eigene Stadt: city_map.tilesets, offene Erweiterungen
+}
+
+interface ExpansionOffer {
+  kind: string;                 // Spieltyp: 'tileset_reward' | 'raidMedals' | 'tileset_premium' | …
+  minEra?: EraId;               // requirements.min_era
+  cost: Record<ResourceId, number>;
+}
+
+interface Area { x: number; y: number; width: number; length: number }
+
+interface Building {
+  id: number;                   // Entity-ID, eindeutig innerhalb der Stadt
+  def: BuildingDefId;
+  type: BuildingType;
+  x: number;
+  y: number;
+  connected: boolean;
+  state: BuildingState;
+  greatBuilding?: GreatBuildingState;
+}
+
+type BuildingState =
+  | { kind: 'idle' }
+  | { kind: 'producing'; readyAt: number; product?: Product; motivated?: boolean; boosted?: boolean }
+  | { kind: 'finished'; product: Product }
+  | { kind: 'unconnected' }
+  | { kind: 'constructing'; readyAt: number }
+  | { kind: 'unknown'; gameClass: string };
+
+interface Product {
+  resources: Partial<Record<ResourceId, number>>;
+  label?: string;
+}
+
+interface GreatBuildingState {
+  level: number;
+  maxLevel: number;
+  investedFp?: number;          // nur in der eigenen Stadt bekannt
+  fpForLevelUp: number;
+  bonus?: { type: string; value: number; amount?: number };
+}
+```
+
+**Regeln**
+
+- `CityMapService.updateEntity` und `CityMapService.reset` tragen die Spieler-ID der Gebäude. Danach entscheidet der Store, ob die eigene oder die besuchte Stadt betroffen ist. Die alte Toolbox hatte hier einen Fehler: Nach einer FP-Einzahlung in ein fremdes LG kam `reset`, und die Daten des LGs blieben alt.
+- Unbekannte Zustände des Spiels werden `unknown` mit dem Klassennamen. Ein neuer Zustand im Spiel bricht dann nichts, er wird nur nicht ausgewertet.
+
+**Abfragen:** `own()`, `visited()`, `building(owner, id)`.
+
+**Events:** `city.ownChanged { buildingIds?: number[]; reset: boolean }`, `city.visited { owner: PlayerId }`.
