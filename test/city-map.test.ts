@@ -108,6 +108,22 @@ describe('city map', () => {
     expect(map.tileIndexAt(100, 50)).toBe(0);
   });
 
+  it.each(['top', 'iso'] as const)(
+    'keeps the focus when the data it was asked for arrives after it, with other bounds (%s)',
+    async (mode) => {
+      // a closed box keeps the last city; the row of a city visited since then focuses before the new city renders
+      const { map, root } = mount(new CityMap({ mode }));
+      const next: CityMapData = {
+        areas: [{ x: 0, y: 0, width: 40, length: 30 }],
+        tiles: [{ x: 30, y: 20, width: 2, length: 2, fill: '#f00', tooltip: 'Münzhaus' }],
+      };
+      map.focus(next.tiles[0] as CityMapData['tiles'][number]);
+      render(map.render(next), root);
+      await tick();
+      expect(map.tileIndexAt(100, 50)).toBe(0);
+    },
+  );
+
   it('focuses once the canvas has a size when asked before', () => {
     const map = new CityMap();
     const root = document.createElement('div');

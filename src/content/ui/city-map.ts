@@ -97,6 +97,8 @@ export class CityMap {
   private observedIn?: Window;
   /** asked to focus before the canvas had a size */
   private pendingFocus?: TileRect;
+  /** focused since the data last changed, possibly still on the old data */
+  private focusedSinceData?: TileRect;
   mode: MapMode;
 
   constructor(private options: CityMapOptions = {}) {
@@ -134,8 +136,12 @@ export class CityMap {
   private setData(data: CityMapData) {
     this.data = data;
     const bounds = gridBounds([...data.areas, ...data.tiles, ...(data.zones ?? []).flatMap((z) => z.rects)]);
-    // a city that grew or shrank shows whole again
-    if (!sameBounds(bounds, this.bounds)) this.view = WHOLE_MAP;
+    // a city that grew or shrank shows whole again; a focus asked for this data but applied to the old one comes back
+    if (!sameBounds(bounds, this.bounds)) {
+      this.view = WHOLE_MAP;
+      this.pendingFocus ??= this.focusedSinceData;
+    }
+    this.focusedSinceData = undefined;
     this.bounds = bounds;
     this.hovered = -1;
   }
@@ -155,6 +161,7 @@ export class CityMap {
     if (!rect || !size || !this.bounds) return;
     this.view = centerOn(this.mode, this.bounds, size.width, size.height, this.view, rect, FOCUS_SIZE);
     this.pendingFocus = undefined;
+    this.focusedSinceData = rect;
   }
 
   private setMode(mode: MapMode) {
