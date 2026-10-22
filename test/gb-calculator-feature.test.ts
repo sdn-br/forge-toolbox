@@ -1,10 +1,13 @@
 // @vitest-environment happy-dom
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Ingestion } from '../src/content/core/ingestion';
+import { foestatsFeature } from '../src/content/features/foestats';
 import { createGbCalculatorFeature } from '../src/content/features/gb-calculator';
 import { registerGameHandlers } from '../src/content/game/handlers';
+import type { FetchLike } from '../src/shared/foestats-api';
 import fixture from './fixtures/great-buildings.json';
 import { featureContext } from './helpers/feature-context';
+import type { TestStoresOptions } from './helpers/stores';
 
 interface Entry {
   requestClass: string;
@@ -15,13 +18,14 @@ interface Entry {
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-function setup() {
-  const env = featureContext();
+function setup(options: TestStoresOptions = {}) {
+  const env = featureContext(options);
   const { ctx } = env;
   const ingestion = new Ingestion();
   registerGameHandlers(ingestion, { ...ctx, now: Date.now });
   let tones = 0;
   createGbCalculatorFeature(() => tones++).setup(ctx);
+  foestatsFeature.setup(ctx);
   const box = env.boxes.get('gbCalculator') as NonNullable<ReturnType<typeof env.boxes.get>>;
   const send = (...entries: Entry[]) =>
     ingestion.accept({
@@ -64,6 +68,9 @@ describe('LG-Rechner', () => {
     expect(box.box.isOpen).toBe(true);
     expect(box.text).toContain('Aachener Dom St. 75 → 76');
     expect(box.text).toContain('Eigentümer: Eigentümer 1001');
+    const owner = [...box.root.querySelectorAll('a')].find((a) => a.textContent === 'Eigentümer 1001');
+    expect(owner?.getAttribute('href')).toBe('https://foestats.com/de/de20/players/1001');
+    expect(owner?.target).toBe('_blank');
     expect(box.text).toContain('Arche-Bonus: 95,5 %');
     expect(box.text).toContain('Verfügbare FP: unbekannt');
     expect(box.text).toContain('Bis Level-Up fehlen 2.811 FP');
@@ -234,11 +241,12 @@ describe('LG-Rechner', () => {
     await tick();
     expect(box.text).toContain('Vergangene Stufe 51 → 52');
     expect(box.root.querySelector('.gb-factor')).toBeNull();
-    expect([...(rows()[0]?.querySelectorAll('td') ?? [])].map((td) => td.textContent)).toEqual([
+    expect([...(rows()[0]?.querySelectorAll('td') ?? [])].map((td) => td.textContent?.trim())).toEqual([
       '1',
       'Spieler 2011',
       '1.020',
     ]);
+    expect(rows()[0]?.querySelector('a')?.getAttribute('href')).toBe('https://foestats.com/de/de20/players/2011');
   });
 
   it('stays quiet for the same places and covers them after a level up with one more tone', async () => {
@@ -269,5 +277,116 @@ describe('LG-Rechner', () => {
     await ctx.settings.set('gbCalc.sound', false);
     open(1909);
     expect(tones()).toBe(0);
+  });
+
+  describe('activity of the owner by foestats', () => {
+    afterEach(() => vi.useRealTimers());
+
+    /** foestats with a history of `[date, points, battles]` per day; `status` other than 200 refuses */
+    function foestats(days: [string, number, number][], status = 200) {
+      const series = (i: 1 | 2) =>
+        JSON.stringify({ success: true, data: days.map((d) => ({ date: d[0], value: d[i] })) });
+      return vi.fn<FetchLike>(async (url) => ({
+        ok: status === 200,
+        status,
+        text: async () => (url.endsWith('/points-history') ? series(1) : series(2)),
+      }));
+    }
+
+    const history: [string, number, number][] = [
+      ['2026-10-14', 1000, 50],
+      ['2026-10-15', 1000, 50],
+      ['2026-10-16', 1200, 50],
+      ['2026-10-17', 1200, 53],
+      ['2026-10-18', 1500, 53],
+      ['2026-10-19', 1500, 53],
+      ['2026-10-20', 1500, 53],
+      ['2026-10-21', 1500, 53],
+      ['2026-10-22', 1500, 53],
+    ];
+
+    function activitySetup(fetch: FetchLike) {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(2026, 9, 22, 9, 0));
+      return setup({ fetch });
+    }
+
+    const line = (root: HTMLElement) => root.querySelector('.gb-activity') as HTMLElement | null;
+
+    it('shows the last active day and the last week in the header, flagged after three quiet days', async () => {
+      const fetch = foestats(history);
+      const { box, open } = activitySetup(fetch);
+      open(1909);
+      await vi.waitFor(() => expect(line(box.root)?.parentElement?.querySelector('.spinner')).toBeNull());
+      expect(fetch.mock.calls.map(([url]) => url)).toEqual([
+        'https://api.forge-db.com/api/players/de/de20/1001/points-history',
+        'https://api.forge-db.com/api/players/de/de20/1001/battles-history',
+      ]);
+      const activity = line(box.root) as HTMLElement;
+      expect(activity.textContent).toBe('zuletzt aktiv vor 4 Tagen · 7 Tage: +500 Punkte, +3 Kämpfe');
+      expect(activity.className).toBe('gb-activity warn');
+      expect(activity.title).toBe('Punkte und Kämpfe laut foestats.com, Stand 2026-10-22');
+    });
+
+    it('reads the stored days when the owner is opened again the same day', async () => {
+      const fetch = foestats(history.slice(0, 5));
+      const { box, open, ctx } = activitySetup(fetch);
+      open(1909);
+      await vi.waitFor(() => expect(line(box.root)?.parentElement?.querySelector('.spinner')).toBeNull());
+      open(1909);
+      await vi.waitFor(() => expect(ctx.foestats.get(1001 as never)?.loading).toBe(false));
+      await tick();
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(line(box.root)?.textContent).toBe('zuletzt aktiv vor 4 Tagen · 4 Tage: +500 Punkte, +3 Kämpfe');
+    });
+
+    it('labels the line and shows that foestats is being asked before anything is known', async () => {
+      let answer = () => {};
+      const answered = new Promise<void>((resolve) => {
+        answer = resolve;
+      });
+      const ready = foestats(history);
+      const fetch = vi.fn<FetchLike>(async (url, init) => {
+        await answered;
+        return ready(url, init);
+      });
+      const { box, open } = activitySetup(fetch);
+      open(1909);
+      await vi.waitFor(() => expect(line(box.root)?.textContent).toBe('wird von foestats geladen …'));
+      const header = line(box.root)?.parentElement as HTMLElement;
+      expect(header.textContent).toContain('Aktivität:');
+      expect(header.querySelector('.spinner')).not.toBeNull();
+      answer();
+      await vi.waitFor(() => expect(header.querySelector('.spinner')).toBeNull());
+      expect(line(box.root)?.textContent).toBe('zuletzt aktiv vor 4 Tagen · 7 Tage: +500 Punkte, +3 Kämpfe');
+    });
+
+    it('says when foestats cannot be reached', async () => {
+      const { box, open } = activitySetup(foestats([], 403));
+      open(1909);
+      await vi.waitFor(() => expect(line(box.root)?.textContent).toBe('foestats nicht erreichbar'));
+      expect(line(box.root)?.className).toBe('gb-activity muted');
+    });
+
+    it('asks nothing and hides the activity when the setting is off, but keeps the link', async () => {
+      const fetch = foestats(history);
+      const { box, open, ctx } = activitySetup(fetch);
+      await ctx.settings.set('foestats.fetch', false);
+      open(1909);
+      await tick();
+      await tick();
+      expect(fetch).not.toHaveBeenCalled();
+      expect(line(box.root)).toBeNull();
+      expect(box.root.querySelector('a')?.getAttribute('href')).toBe('https://foestats.com/de/de20/players/1001');
+    });
+
+    it('is a setting that is on by default and tells what it sends', () => {
+      const { ctx } = setup();
+      expect(ctx.settings.get('foestats.fetch')).toBe(true);
+      expect(ctx.settings.defs.find((d) => d.key === 'foestats.fetch')).toMatchObject({
+        label: 'foestats.fetchSetting',
+        hint: 'foestats.fetchHint',
+      });
+    });
   });
 });

@@ -163,3 +163,24 @@ export interface KnownGreatBuilding {
   bestRate?: number;
   seenAt: number;
 }
+
+/** One day of a player at foestats: the values of its daily snapshot. Past days never change. */
+export interface FoestatsDay {
+  world: WorldId;
+  player: PlayerId;
+  /** local day of the snapshot, `YYYY-MM-DD` */
+  date: string;
+  points?: number;
+  battles?: number;
+}
+
+/** The last time foestats was asked about a player. */
+export interface FoestatsFetch {
+  world: WorldId;
+  player: PlayerId;
+  /** the foestats day it was asked for, see `foestatsDay` */
+  day: string;
+  at: number;
+  /** foestats answered */
+  ok: boolean;
+}

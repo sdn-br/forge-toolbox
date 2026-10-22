@@ -1,5 +1,8 @@
-import type { BuildingDefId } from '../../../shared/ids';
+import type { BuildingDefId, PlayerId } from '../../../shared/ids';
+import { formatNumber, t } from '../../core/texts';
+import { type Activity, playerActivity } from '../../domain/activity';
 import { calculateConstruction, type PlaceCalc, type PlaceStatus } from '../../domain/gb-calculator';
+import type { FoestatsRecord } from '../../stores/foestats';
 import type { Construction, RankingRow } from '../../stores/great-building-model';
 
 /** The factor buttons; `arc` uses the Arc bonus of the player. */
@@ -19,6 +22,10 @@ export interface GbHeader {
   /** the highest level the owner has unlocked */
   maxLevel: number;
   owner: string;
+  /** the owner's page at foestats */
+  ownerUrl: string;
+  /** how active the owner is by foestats; missing while foestats is off or not asked yet */
+  activity?: ActivityVm;
   /** Forge points of the bar plus those in packages, which the game opens when contributing; undefined while neither
    * the resources nor the inventory are known */
   availableFp?: number;
@@ -35,6 +42,18 @@ export interface CostCell {
   extra: number;
   /** the available Forge points do not cover the extra */
   short: boolean;
+}
+
+/** one line about the owner's activity, a tooltip with its source */
+export interface ActivityVm {
+  text: string;
+  /** change of points and battles over the last days */
+  week?: string;
+  /** several days without an increase */
+  idle: boolean;
+  title: string;
+  /** foestats is being asked right now */
+  loading: boolean;
 }
 
 /** the demand cell: the cost and what to know about the deal */
@@ -63,13 +82,14 @@ export interface PlaceRow {
 
 export type GbCalculatorVm =
   | { kind: 'none' }
-  | { kind: 'noEntity'; owner: string }
+  | { kind: 'noEntity'; owner: string; ownerUrl: string }
   | {
       kind: 'past';
       header: GbHeader;
       /** the finished level: from `level - 1` to `level` */
       level: number;
-      rows: { rank?: number; name: string; fp?: number }[];
+      /** `url` is the player's page at foestats, missing for deleted players */
+      rows: { rank?: number; name: string; url?: string; fp?: number }[];
     }
   | {
       kind: 'current';
@@ -92,12 +112,53 @@ export interface GbCalculatorInput {
   greatBuildingName(def: BuildingDefId): string | undefined;
   /** the owner's name when the rankings do not tell it */
   playerName(id: Construction['owner']): string | undefined;
+  /** a player's page at foestats */
+  playerUrl(id: PlayerId): string;
   /** Forge points of the bar; undefined while the resources are not known */
   fpBar?: number;
   /** Forge points in the packages of the inventory; undefined while the inventory is not known */
   fpPackages?: number;
   arcBonus: number;
   factor: FactorChoice;
+  /** the owner's days at foestats; undefined while foestats is off or was not asked yet */
+  foestats?: FoestatsRecord;
+  /** the current foestats day, `YYYY-MM-DD` */
+  today: string;
+}
+
+const signed = (n: number) => `${n > 0 ? '+' : ''}${formatNumber(n)}`;
+
+function activityText(a: Activity): string {
+  if (a.daysAgo === 0) return t('foestats.activeToday');
+  if (a.daysAgo === 1) return t('foestats.activeYesterday');
+  if (a.daysAgo !== undefined) return t('foestats.activeDaysAgo', { days: a.daysAgo });
+  const flat = a.flatFor ?? 0;
+  return flat >= 2 ? t('foestats.flatFor', { days: flat }) : t('foestats.noIncrease');
+}
+
+function activityVm(record: FoestatsRecord | undefined, today: string): ActivityVm | undefined {
+  if (!record) return undefined;
+  const activity = playerActivity(record.days, today);
+  const unreachable = t('foestats.unreachable');
+  const { loading } = record;
+  if (!activity) {
+    const text = loading ? t('foestats.loading') : record.unreachable ? unreachable : t('foestats.noData');
+    return { text, idle: false, title: text, loading };
+  }
+  const newest = record.days.at(-1)?.date ?? '';
+  const { week } = activity;
+  const known = (n: number | undefined) => (n === undefined ? '?' : signed(n));
+  return {
+    text: activityText(activity),
+    ...(week.days > 0 && {
+      week: t('foestats.week', { days: week.days, points: known(week.points), battles: known(week.battles) }),
+    }),
+    idle: activity.idle,
+    loading,
+    title: [t('foestats.source', { date: newest }), record.unreachable && t('foestats.stale')]
+      .filter(Boolean)
+      .join('\n'),
+  };
 }
 
 const ownerName = (c: Construction, rows: RankingRow[], playerName: GbCalculatorInput['playerName']) =>
@@ -124,8 +185,9 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
   const c = input.construction;
   if (!c) return { kind: 'none' };
   const owner = ownerName(c, c.rankings, input.playerName);
+  const ownerUrl = input.playerUrl(c.owner);
   const entity = c.entity;
-  if (!entity) return { kind: 'noEntity', owner };
+  if (!entity) return { kind: 'noEntity', owner, ownerUrl };
   const availableFp =
     input.fpBar === undefined && input.fpPackages === undefined
       ? undefined
@@ -136,6 +198,8 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     next: entity.level + 1,
     maxLevel: entity.maxLevel,
     owner,
+    ownerUrl,
+    ...(input.foestats && { activity: activityVm(input.foestats, input.today) }),
     availableFp,
     fpBar: input.fpBar,
     fpPackages: input.fpPackages,
@@ -148,7 +212,12 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
       level: c.past.level,
       rows: c.past.rankings
         .filter((r) => r.fp !== undefined)
-        .map((r) => ({ ...(r.rank !== undefined && { rank: r.rank }), name: r.name, fp: r.fp })),
+        .map((r) => ({
+          ...(r.rank !== undefined && { rank: r.rank }),
+          name: r.name,
+          ...(r.player !== undefined && { url: input.playerUrl(r.player) }),
+          fp: r.fp,
+        })),
     };
   }
   const effectiveFactor = input.factor.arc ? input.arcBonus : input.factor.value;

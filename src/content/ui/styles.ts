@@ -30,6 +30,7 @@ td.num, th.num { text-align: right; }
 .error { color: #f07060; }
 button.action { font: inherit; cursor: pointer; margin: 2px 4px 2px 0; }
 label { display: flex; gap: 6px; align-items: center; padding: 2px 0; }
+p.setting-hint { margin: 0 0 4px 22px; }
 h2 { font-size: 12px; margin: 8px 0 4px; color: #f0c060; }
 input, select, textarea { font: inherit; }
 .tabs { display: flex; flex-wrap: wrap; gap: 2px; margin: 0 0 6px; }
@@ -49,6 +50,10 @@ ul.rows li.dragging { opacity: .4; }
 .note p, .note ul, .note ol { margin: 2px 0; }
 .note ul, .note ol { padding-left: 18px; }
 .note a, a { color: #f0c060; }
+a.ext-link { text-decoration: none; opacity: .6; }
+a.ext-link:hover { opacity: 1; }
+.spinner { display: inline-block; width: .8em; height: .8em; vertical-align: -.1em; border: 2px solid #8a6a3a; border-top-color: #f0c060; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
 input.title { width: 100%; font-weight: 600; }
 button.marker { all: unset; cursor: pointer; }

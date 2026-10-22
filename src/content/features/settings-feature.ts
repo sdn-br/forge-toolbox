@@ -16,6 +16,9 @@ function saveNumber(settings: Settings, key: string, input: HTMLInputElement) {
 }
 
 const control = (settings: Settings, d: SettingDef) =>
+  html`${input(settings, d)}${d.hint ? html`<p class="muted setting-hint">${t(d.hint)}</p>` : ''}`;
+
+const input = (settings: Settings, d: SettingDef) =>
   isNumber(d)
     ? html`<label>${t(d.label)}<input type="number" min=${d.min} max=${d.max} step="1" .value=${String(settings.number(d.key))}
         @keydown=${keepKeys} @change=${(e: Event) => saveNumber(settings, d.key, e.target as HTMLInputElement)} /></label>`

@@ -13,6 +13,7 @@ import { callBackground } from './core/rpc';
 import { Settings } from './core/settings';
 import { t } from './core/texts';
 import { cityMapFeature } from './features/city-map';
+import { foestatsFeature } from './features/foestats';
 import { gbCalculatorFeature } from './features/gb-calculator';
 import { notesFeature } from './features/notes';
 import { pvpFeature } from './features/pvp';
@@ -29,6 +30,7 @@ const features: Feature[] = [
   notesFeature,
   cityMapFeature,
   gbCalculatorFeature,
+  foestatsFeature,
   settingsFeature,
 ];
 

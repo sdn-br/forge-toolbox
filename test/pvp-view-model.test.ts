@@ -41,6 +41,7 @@ const names: Record<number, string> = { 1001: 'Testgegner' };
 const name = (id: PlayerId) => names[id];
 const lookups = {
   name,
+  playerUrl: (id: PlayerId) => `https://foestats.com/de/de20/players/${id}`,
   building: (id: string) => (id === 'R_IronAge_Residential2' ? 'Strohdachhaus' : undefined),
   resourceName: () => undefined,
   note: (id: PlayerId) => (id === 1001 ? '**stark**\n- *Schilde*' : undefined),
@@ -90,6 +91,7 @@ describe('pvp view model', () => {
       battleId: 1,
       opponent: 1001,
       name: 'Testgegner',
+      url: 'https://foestats.com/de/de20/players/1001',
       when: 'heute 13:49',
       result: 'gewonnen',
       battle: 'Autokampf',
@@ -139,6 +141,7 @@ describe('pvp view model', () => {
       {
         opponent: 1001,
         name: 'Testgegner',
+        url: 'https://foestats.com/de/de20/players/1001',
         when: 'heute 14:05',
         building: 'Strohdachhaus',
         loot: '1.220 Münzen, 5 Forge-Punkte',
@@ -176,6 +179,7 @@ describe('pvp view model', () => {
       {
         opponent: 1001,
         name: 'Testgegner',
+        url: 'https://foestats.com/de/de20/players/1001',
         when: 'heute 14:05',
         building: '–',
         loot: 'abgewehrt',
@@ -232,11 +236,19 @@ describe('pvp view model', () => {
       {
         attacker: 1001,
         name: 'Testgegner',
+        url: 'https://foestats.com/de/de20/players/1001',
         when: 'heute 14:05',
         what: 'Kampf: durchbrochen',
         note: 'stark\n• Schilde',
       },
-      { attacker: 1002, name: '1002', when: '16.10., 14:05', what: 'Kampf: gehalten', note: '' },
+      {
+        attacker: 1002,
+        name: '1002',
+        url: 'https://foestats.com/de/de20/players/1002',
+        when: '16.10., 14:05',
+        what: 'Kampf: gehalten',
+        note: '',
+      },
       expect.objectContaining({ what: 'Plünderung: Strohdachhaus' }),
       expect.objectContaining({ what: 'Plünderung: R_Unknown' }),
     ]);

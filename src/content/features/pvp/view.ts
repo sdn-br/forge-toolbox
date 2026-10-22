@@ -4,6 +4,7 @@ import { formatNumber, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { battleDetailsView } from '../../ui/battle-details';
 import { keepKeys } from '../../ui/inputs';
+import { externalIcon } from '../../ui/links';
 import type { IncomingRow, PlunderRow, PvpRow, PvpTab, PvpVm } from './view-model';
 
 export interface PvpActions {
@@ -20,11 +21,12 @@ export interface PvpActions {
 
 const army = (a: ArmyValues) => `${formatNumber(a.attack)} / ${formatNumber(a.defense)}`;
 
-const opponentLink = (r: { opponent: PlayerId; name: string }, actions: PvpActions) =>
+/** the name filters to the player, the icon beside it opens their page at foestats */
+const opponentLink = (r: { opponent: PlayerId; name: string; url: string }, actions: PvpActions) =>
   html`<td><a href="#" @click=${(e: Event) => {
     e.preventDefault();
     actions.pick(r.opponent);
-  }}>${r.name}</a></td>`;
+  }}>${r.name}</a> ${externalIcon(r.url)}</td>`;
 
 /** 📝 per row: dim without a note, the note as tooltip */
 const noteMarker = (opponent: PlayerId, note: string, actions: PvpActions) =>
@@ -32,7 +34,7 @@ const noteMarker = (opponent: PlayerId, note: string, actions: PvpActions) =>
     @click=${() => actions.note(opponent)}>📝</button></td>`;
 
 const incomingRow = (r: IncomingRow, actions: PvpActions) => html`<tr>
-  ${noteMarker(r.attacker, r.note, actions)}${opponentLink({ opponent: r.attacker, name: r.name }, actions)}
+  ${noteMarker(r.attacker, r.note, actions)}${opponentLink({ opponent: r.attacker, name: r.name, url: r.url }, actions)}
   <td>${r.when}</td><td>${r.what}</td></tr>`;
 
 /** a click on the row shows its details, a click on its link or note marker does what they do */

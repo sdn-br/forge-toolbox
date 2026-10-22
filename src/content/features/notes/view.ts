@@ -2,6 +2,7 @@ import { html, type TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
 import { t } from '../../core/texts';
 import { autofocus, keepKeys } from '../../ui/inputs';
+import { externalLink } from '../../ui/links';
 import type { NotesVm, PageVm, PickerVm, RelationFilter, ResultVm, RowVm, TabVm } from './view-model';
 import { RELATION_FILTERS } from './view-model';
 
@@ -104,7 +105,8 @@ function side(vm: NotesVm, actions: NotesActions) {
 function pageHead(page: PageVm, actions: NotesActions) {
   if (page.player) {
     const p = page.player;
-    return html`<p><b>${p.name}</b> ${p.icons}${p.guild ? html`<br /><span class="muted">[${p.guild}]</span>` : ''}
+    const guild = p.guild ? html`<br /><span class="muted">[${externalLink(p.guild.name, p.guild.url)}]</span>` : '';
+    return html`<p><b>${externalLink(p.name, p.url)}</b> ${p.icons}${guild}
       ${page.when ? html`<br /><span class="muted">${t('notes.changed', { when: page.when })}</span>` : ''}</p>`;
   }
   return html`<p><input class="title" .value=${page.title}

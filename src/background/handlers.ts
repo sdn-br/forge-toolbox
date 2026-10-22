@@ -1,4 +1,5 @@
 import { battlesHandlers } from '../persistence/battles/worker';
+import { type FoestatsDeps, foestatsHandlers } from '../persistence/foestats/worker';
 import { greatBuildingsHandlers } from '../persistence/great-buildings/worker';
 import { incomingHandlers } from '../persistence/incoming/worker';
 import { notesHandlers } from '../persistence/notes/worker';
@@ -8,7 +9,8 @@ import { shieldsHandlers } from '../persistence/shields/worker';
 import type { BackgroundApi, Handlers } from '../shared/rpc';
 import type { ToolboxDb } from './db';
 
-export function createHandlers(db: ToolboxDb): Handlers<BackgroundApi> {
+/** `deps` reach outside the database: the clock */
+export function createHandlers(db: ToolboxDb, deps: FoestatsDeps): Handlers<BackgroundApi> {
   return {
     ...playersHandlers(db),
     ...battlesHandlers(db),
@@ -17,5 +19,6 @@ export function createHandlers(db: ToolboxDb): Handlers<BackgroundApi> {
     ...notesHandlers(db),
     ...shieldsHandlers(db),
     ...greatBuildingsHandlers(db),
+    ...foestatsHandlers(db, deps),
   };
 }

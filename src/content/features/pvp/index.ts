@@ -1,3 +1,4 @@
+import { foestatsPlayerUrl } from '../../../shared/foestats';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
@@ -69,6 +70,7 @@ export const pvpFeature: Feature = {
         page,
         filter,
         name: (id) => ctx.players.get(id)?.name,
+        playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
         building: (id) => ctx.catalog.get(id)?.name,
         resourceName: (id) => ctx.catalog.resourceName(id),
         note: (id) => ctx.notes.playerPage(id)?.text,

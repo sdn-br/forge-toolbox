@@ -185,6 +185,7 @@ describe('notes feature', () => {
     enter(search, 'ber');
     expect(box.text).toContain('Bert');
     expect(notes.playerPage(playerId(2))).toBeUndefined();
+    expect(root.querySelector('.main a')?.getAttribute('href')).toBe('https://foestats.com/de/de20/players/2');
 
     (root.querySelector('.note') as HTMLElement).click();
     typeInto(root.querySelector('textarea') as HTMLTextAreaElement, 'stark');

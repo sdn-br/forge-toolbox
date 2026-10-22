@@ -8,7 +8,7 @@ import type { VisitedCity } from '../src/content/stores/cities';
 import type { Building } from '../src/content/stores/city-model';
 import type { PlayerObservation } from '../src/content/stores/players';
 import { CityMap, type CityMapData } from '../src/content/ui/city-map';
-import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
+import { buildingDefId, eraId, guildId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { AttackTimer, Battle, IncomingAttack, Plunder } from '../src/shared/model';
 import { featureContext } from './helpers/feature-context';
 
@@ -62,9 +62,14 @@ function setup() {
     overrides: ({ bus, world }) => ({ battles: new BattleStore(bus, world, persistence) }),
   });
   sabotageFeature.setup(env.ctx);
+  boxesOfTest.push(...env.boxes.values());
   const box = env.boxes.get('sabotage') as NonNullable<ReturnType<typeof env.boxes.get>>;
   return { ...env, box, latest };
 }
+
+/** Boxes of the running test. Closed after it, so lookups of a finished test that resolve late draw nothing into the
+ * spies of the next one. */
+const boxesOfTest: { box: { close(): void } }[] = [];
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -83,6 +88,7 @@ const observed = (id: number, attack: AttackTimer): PlayerObservation => ({
 });
 
 afterEach(() => {
+  for (const each of boxesOfTest.splice(0)) each.box.close();
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
@@ -146,6 +152,22 @@ describe('sabotage feature', () => {
     expect(box.text).toContain('Gemessen');
     expect(box.text).toContain('222');
     expect(box.text).not.toContain('111');
+  });
+
+  it('links the visited player and their guild to foestats in a new tab', async () => {
+    const { ctx, box } = setup();
+    ctx.players.apply(
+      world,
+      [{ ...observed(1, { canPlunder: false }), guild: { id: guildId(77), name: 'Gilde' } }],
+      'visit',
+    );
+    ctx.cities.setVisited(city(1));
+    await tick();
+    const links = [...box.root.querySelectorAll('a')].map((a) => [a.textContent, a.getAttribute('href'), a.target]);
+    expect(links).toEqual([
+      ['P1', 'https://foestats.com/de/de20/players/1', '_blank'],
+      ['Gilde', 'https://foestats.com/de/de20/guilds/77', '_blank'],
+    ]);
   });
 
   it('opens the city map of the visited player in its own box and remembers its view mode', async () => {

@@ -158,7 +158,7 @@ export const de = {
   'gbCalc.noEntity': 'Zu diesem LG fehlen Stufe und Forge-Punkte. Bitte das LG im Spiel neu öffnen.',
   'gbCalc.heading': '{name} St. {level} → {next}',
   'gbCalc.unlocked': 'freigeschaltet bis {max}',
-  'gbCalc.owner': 'Eigentümer: {name}',
+  'gbCalc.ownerLabel': 'Eigentümer',
   'gbCalc.availableFp': 'Verfügbare FP: {fp}',
   'gbCalc.availableUnknown': 'Verfügbare FP: unbekannt',
   'gbCalc.fpSplit': 'Leiste {bar} + Pakete {packages}',
@@ -286,6 +286,23 @@ export const de = {
   'duration.days': '{days} T.',
   'duration.hours': '{hours} Std.',
   'duration.minutes': '{minutes} Min.',
+  'foestats.open': 'Auf foestats.com öffnen',
+  'foestats.group': 'foestats',
+  'foestats.label': 'Aktivität',
+  'foestats.loading': 'wird von foestats geladen …',
+  'foestats.activeToday': 'zuletzt aktiv heute',
+  'foestats.activeYesterday': 'zuletzt aktiv gestern',
+  'foestats.activeDaysAgo': 'zuletzt aktiv vor {days} Tagen',
+  'foestats.flatFor': 'seit {days} Tagen keine Zunahme',
+  'foestats.noIncrease': 'noch keine Zunahme bekannt',
+  'foestats.week': '{days} Tage: {points} Punkte, {battles} Kämpfe',
+  'foestats.noData': 'keine foestats-Daten',
+  'foestats.unreachable': 'foestats nicht erreichbar',
+  'foestats.source': 'Punkte und Kämpfe laut foestats.com, Stand {date}',
+  'foestats.stale': 'foestats nicht erreichbar, Stand von früher',
+  'foestats.fetchSetting': 'foestats-Daten abrufen',
+  'foestats.fetchHint':
+    'Fragt foestats.com einmal am Tag nach Punkten und Kämpfen des Spielers, dessen Stadt oder LG du gerade ansiehst. foestats erfährt dabei Welt und Spieler-ID.',
 } as const;
 
 export type TextKey = keyof typeof de;

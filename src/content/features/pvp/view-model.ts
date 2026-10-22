@@ -25,6 +25,8 @@ export interface PvpRow {
   battleId: number;
   opponent: PlayerId;
   name: string;
+  /** the opponent's page at foestats */
+  url: string;
   when: string;
   result: string;
   battle: string;
@@ -42,6 +44,7 @@ export type PvpTab = 'battles' | 'plunders' | 'incoming';
 export interface PlunderRow {
   opponent: PlayerId;
   name: string;
+  url: string;
   when: string;
   building: string;
   loot: string;
@@ -53,6 +56,7 @@ export interface PlunderRow {
 export interface IncomingRow {
   attacker: PlayerId;
   name: string;
+  url: string;
   when: string;
   /** kind and outcome, e.g. "Kampf: durchbrochen" */
   what: string;
@@ -108,6 +112,8 @@ export function pvpViewModel(input: {
   /** battle ids whose rows show their details */
   expanded?: ReadonlySet<number>;
   name: (id: PlayerId) => string | undefined;
+  /** the player's page at foestats */
+  playerUrl: (id: PlayerId) => string;
   building: (id: BuildingDefId) => string | undefined;
   resourceName: (id: string) => string | undefined;
   /** the Markdown note of a player, if any */
@@ -127,6 +133,7 @@ export function pvpViewModel(input: {
         battleId: b.battleId,
         opponent: b.opponent,
         name: nameOf(b.opponent),
+        url: input.playerUrl(b.opponent),
         when: formatWhen(b.at, now),
         result: t(`pvp.${b.result}`),
         battle: battleKind(b),
@@ -140,6 +147,7 @@ export function pvpViewModel(input: {
     plunders: plunders.map((p) => ({
       opponent: p.opponent,
       name: nameOf(p.opponent),
+      url: input.playerUrl(p.opponent),
       when: formatWhen(p.at, now),
       building: p.cityEntityId === undefined ? '–' : (building(p.cityEntityId) ?? p.cityEntityId),
       loot: p.outcome === 'repelled' ? t('plunder.repelled') : formatResources(p.resources, { resourceName }),
@@ -150,6 +158,7 @@ export function pvpViewModel(input: {
     incoming: input.incoming.map((a) => ({
       attacker: a.attacker,
       name: nameOf(a.attacker),
+      url: input.playerUrl(a.attacker),
       when: formatWhen(a.at, now),
       what: formatIncoming(a, building),
       note: noteOf(a.attacker),

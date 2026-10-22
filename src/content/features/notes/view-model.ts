@@ -1,3 +1,4 @@
+import { foestatsGuildUrl, foestatsPlayerUrl } from '../../../shared/foestats';
 import type { PlayerId, WorldId } from '../../../shared/ids';
 import type { NoteGroup, NotePage, Player, Relations } from '../../../shared/model';
 import { formatWhen, t } from '../../core/texts';
@@ -48,7 +49,9 @@ export interface RowVm {
 export interface PlayerVm {
   id: PlayerId;
   name: string;
-  guild?: string;
+  /** the player's page at foestats */
+  url: string;
+  guild?: { name: string; url: string };
   icons: string;
 }
 
@@ -220,7 +223,10 @@ export function notesViewModel(input: NotesInput): NotesVm {
       player: {
         id: playerId,
         name,
-        guild: known?.guild?.name,
+        url: foestatsPlayerUrl(input.world, playerId),
+        ...(known?.guild && {
+          guild: { name: known.guild.name, url: foestatsGuildUrl(input.world, known.guild.id) },
+        }),
         icons: relationIcons(known?.relations),
       },
     };

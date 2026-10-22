@@ -1,7 +1,9 @@
+import { foestatsDay, foestatsPlayerUrl } from '../../../shared/foestats';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
 import { arcBonus } from '../../domain/gb-calculator';
+import { FOESTATS_SETTING } from '../../stores/foestats';
 import type { Construction } from '../../stores/great-building-model';
 import { playTone } from '../../ui/tone';
 import { type GbCalculatorActions, gbCalculatorView } from './view';
@@ -61,10 +63,13 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           construction: shown,
           greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
           playerName: (id) => ctx.players.get(id)?.name,
+          playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
           fpBar: ctx.resources.known ? ctx.resources.amount(FP) : undefined,
           fpPackages: ctx.inventory.knowsPackages ? ctx.inventory.forgePointPackages() : undefined,
           arcBonus: arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses()),
           factor: { value: ctx.settings.number(FACTOR), arc: ctx.settings.get(FACTOR_ARC) },
+          foestats: shown && ctx.settings.get(FOESTATS_SETTING.key) ? ctx.foestats.get(shown.owner) : undefined,
+          today: foestatsDay(Date.now()),
         });
         box.update();
       };
@@ -104,6 +109,9 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       ctx.bus.on('city.ownChanged', refresh);
       ctx.bus.on('catalog.updated', refresh);
       ctx.bus.on('player.updated', refresh);
+      ctx.bus.on('foestats.updated', ({ player }) => {
+        if (player === shown?.owner) refresh();
+      });
       ctx.settings.onChange(refresh);
       ctx.menu.add({ id: 'gbCalculator', icon: '🏛️', label: () => t('gbCalc.menu'), action: () => box.toggle() });
     },

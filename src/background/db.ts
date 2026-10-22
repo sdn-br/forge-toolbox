@@ -1,5 +1,6 @@
 import Dexie from 'dexie';
 import type { BattlesTables } from '../persistence/battles/worker';
+import type { FoestatsTables } from '../persistence/foestats/worker';
 import type { GreatBuildingsTables } from '../persistence/great-buildings/worker';
 import type { IncomingTables } from '../persistence/incoming/worker';
 import type { NotesTables } from '../persistence/notes/worker';
@@ -14,7 +15,8 @@ export type ToolboxDb = Dexie &
   IncomingTables &
   NotesTables &
   ShieldsTables &
-  GreatBuildingsTables;
+  GreatBuildingsTables &
+  FoestatsTables;
 
 /** The whole version history lives here; the domains in src/persistence only bring their tables. */
 export function openDb(name = 'forge-toolbox'): ToolboxDb {
@@ -51,6 +53,11 @@ export function openDb(name = 'forge-toolbox'): ToolboxDb {
   // last known state of other players' great buildings for the snipe helper, one row per building
   db.version(9).stores({
     greatBuildings: '[world+owner+entityId], [world+owner], world, seenAt',
+  });
+  // days of players at foestats, one row per player and day, appended at most once a day; and when each was asked
+  db.version(10).stores({
+    foestatsDays: '[world+player+date], [world+player]',
+    foestatsFetches: '[world+player]',
   });
   return db;
 }
