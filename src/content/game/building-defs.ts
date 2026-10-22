@@ -1,7 +1,7 @@
 // Building definitions from the game metadata → own BuildingDef. Two formats exist:
 // classic definitions (`abilities`, `boostHintEraMap`) and GenericCityEntity (`components` per era).
 import { buildingDefId } from '../../shared/ids';
-import type { Boost, BoostsByEra, BuildingDef, LevelBonus, Rect } from '../stores/catalog';
+import type { Boost, BoostsByEra, BuildingDef, GreatBuildingDef, LevelBonus, Rect } from '../stores/catalog';
 import type { Product } from '../stores/city-model';
 
 type Json = Record<string, unknown>;
@@ -93,6 +93,19 @@ function streetOf(json: Json, components: Json | undefined, generic: boolean): n
   return Number(json.requirements.street_connection_level ?? 0);
 }
 
+/**
+ * The era and level costs of a great building. The era is `requirements.min_era` (`NoAge` for the buildings of every
+ * era, seen 2026-10-19), else the era in the id `X_<Era>_Landmark1`.
+ */
+function greatBuildingOf(json: Json): GreatBuildingDef | undefined {
+  const costs = json.strategy_points_for_upgrade;
+  if (!Array.isArray(costs) || !costs.every((c) => typeof c === 'number')) return undefined;
+  const minEra = isObject(json.requirements) ? json.requirements.min_era : undefined;
+  const era = typeof minEra === 'string' ? minEra : /^X_([A-Za-z]+)_/.exec(String(json.id))?.[1];
+  if (!era) return undefined;
+  return { era: era === 'NoAge' ? 'AllAge' : era, levelCosts: costs };
+}
+
 const NOT_PLUNDERABLE = ['AddResourcesToGuildTreasuryAbility', 'RandomChestRewardAbility', 'NotPlunderableAbility'];
 const PLUNDERABLE_TYPES = ['production', 'goods', 'residential', 'clan_power_production'];
 
@@ -159,6 +172,7 @@ export function toBuildingDef(json: unknown): BuildingDef | null {
     NOT_PLUNDERABLE.some(has) || abilities.some((a) => typeof a.gridId === 'string' && a.gridId !== 'main');
   const street = streetOf(json, components, generic);
   const motivatable = has('MotivatableAbility') || interaction === 'motivate';
+  const greatBuilding = greatBuildingOf(json);
   return {
     id: buildingDefId(json.id),
     name: typeof json.name === 'string' ? json.name : json.id,
@@ -176,5 +190,6 @@ export function toBuildingDef(json: unknown): BuildingDef | null {
     productByEra,
     set,
     chain,
+    ...(greatBuilding && { greatBuilding }),
   };
 }

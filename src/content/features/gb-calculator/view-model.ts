@@ -2,6 +2,8 @@ import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import { formatNumber, t } from '../../core/texts';
 import { type Activity, playerActivity } from '../../domain/activity';
 import { calculateConstruction, type PlaceCalc, type PlaceStatus } from '../../domain/gb-calculator';
+import { previewLevel } from '../../domain/gb-level-preview';
+import type { GreatBuildingDef } from '../../stores/catalog';
 import type { FoestatsRecord } from '../../stores/foestats';
 import type { Construction, RankingRow } from '../../stores/great-building-model';
 
@@ -33,6 +35,16 @@ export interface GbHeader {
   fpBar?: number;
   fpPackages?: number;
   arcBonus: number;
+  /** the level selector: live or a preview of a later level */
+  levels: LevelChoice;
+}
+
+export interface LevelChoice {
+  /** the level the current construction starts from */
+  current: number;
+  /** the level in the selector: the previewed one, else the current construction's */
+  chosen: number;
+  preview: boolean;
 }
 
 export interface CostCell {
@@ -75,9 +87,27 @@ export interface PlaceRow {
   gross: number;
   profit?: number;
   rate?: number;
-  blueprints: number;
-  medals: number;
+  /** missing in the preview, a future level does not tell them */
+  blueprints?: number;
+  medals?: number;
+  /** the reward is computed, not game data */
+  estimate?: boolean;
   status: PlaceStatus;
+}
+
+/** the selected later level as if it were open and empty */
+export interface PreviewVm {
+  level: number;
+  next: number;
+  /** Forge points the level needs; undefined without the definition */
+  required?: number;
+  /** the owner has not unlocked the level yet */
+  locked: boolean;
+  /** why there are no places: the definition is not loaded or the reward of the level is unknown */
+  unknown?: 'definition' | 'reward';
+  /** the rewards are computed, off by up to 5 Forge points */
+  estimate: boolean;
+  places: PlaceRow[];
 }
 
 export type GbCalculatorVm =
@@ -90,6 +120,13 @@ export type GbCalculatorVm =
       level: number;
       /** `url` is the player's page at foestats, missing for deleted players */
       rows: { rank?: number; name: string; url?: string; fp?: number }[];
+    }
+  | {
+      kind: 'preview';
+      header: GbHeader;
+      factor: FactorChoice;
+      effectiveFactor: number;
+      preview: PreviewVm;
     }
   | {
       kind: 'current';
@@ -124,6 +161,10 @@ export interface GbCalculatorInput {
   foestats?: FoestatsRecord;
   /** the current foestats day, `YYYY-MM-DD` */
   today: string;
+  /** the level chosen for the preview; undefined shows the current construction */
+  previewLevel?: number;
+  /** era and level costs of the building; undefined while its definition is not loaded */
+  greatBuilding(def: BuildingDefId): GreatBuildingDef | undefined;
 }
 
 const signed = (n: number) => `${n > 0 ? '+' : ''}${formatNumber(n)}`;
@@ -181,6 +222,43 @@ function demandCell(p: PlaceCalc, rest: number, available?: number): DemandCell 
   };
 }
 
+const placeRow = (p: PlaceCalc, rest: number, available?: number): PlaceRow => ({
+  rank: p.rank,
+  ...(p.holder !== undefined && { holder: { name: p.holder, fp: p.holderFp } }),
+  safe: cell(p.safeCost, p.safeExtra, available),
+  demand: demandCell(p, rest, available),
+  gross: p.gross,
+  profit: p.profit,
+  rate: p.rate,
+  blueprints: p.blueprints,
+  medals: p.medals,
+  status: p.status,
+});
+
+/** A later level, empty: the own Forge points do not limit a plan, blueprints and medals are not known. */
+function previewVm(
+  gb: GreatBuildingDef | undefined,
+  level: number,
+  maxLevel: number,
+  arcBonus: number,
+  factor: number,
+): PreviewVm {
+  const base = { level, next: level + 1, locked: level + 1 > maxLevel, estimate: false, places: [] };
+  if (!gb) return { ...base, unknown: 'definition' };
+  const p = previewLevel({ greatBuilding: gb, level, arcBonus, factor });
+  if (!p.calc || !p.reward) return { ...base, required: p.required, unknown: 'reward' };
+  const { calc, reward } = p;
+  return {
+    ...base,
+    required: p.required,
+    estimate: reward.estimate,
+    places: calc.places.map((place) => {
+      const { blueprints: _b, medals: _m, ...row } = placeRow(place, calc.rest);
+      return { ...row, ...(reward.estimate && { estimate: true }) };
+    }),
+  };
+}
+
 export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm {
   const c = input.construction;
   if (!c) return { kind: 'none' };
@@ -188,6 +266,9 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
   const ownerUrl = input.playerUrl(c.owner);
   const entity = c.entity;
   if (!entity) return { kind: 'noEntity', owner, ownerUrl };
+  // the preview starts where the live construction ends; a level up can overtake a chosen level
+  const preview =
+    input.previewLevel !== undefined && input.previewLevel > entity.level ? input.previewLevel : undefined;
   const availableFp =
     input.fpBar === undefined && input.fpPackages === undefined
       ? undefined
@@ -204,7 +285,18 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     fpBar: input.fpBar,
     fpPackages: input.fpPackages,
     arcBonus: input.arcBonus,
+    levels: { current: entity.level, chosen: preview ?? entity.level, preview: preview !== undefined },
   };
+  const effectiveFactor = input.factor.arc ? input.arcBonus : input.factor.value;
+  if (preview !== undefined) {
+    return {
+      kind: 'preview',
+      header,
+      factor: input.factor,
+      effectiveFactor,
+      preview: previewVm(input.greatBuilding(entity.def), preview, entity.maxLevel, input.arcBonus, effectiveFactor),
+    };
+  }
   if (c.past) {
     return {
       kind: 'past',
@@ -220,25 +312,13 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
         })),
     };
   }
-  const effectiveFactor = input.factor.arc ? input.arcBonus : input.factor.value;
   const calc = calculateConstruction({
     ...entity,
     rankings: c.rankings,
     arcBonus: input.arcBonus,
     factor: effectiveFactor,
   });
-  const places: PlaceRow[] = calc.places.map((p) => ({
-    rank: p.rank,
-    ...(p.holder !== undefined && { holder: { name: p.holder, fp: p.holderFp } }),
-    safe: cell(p.safeCost, p.safeExtra, availableFp),
-    demand: demandCell(p, calc.rest, availableFp),
-    gross: p.gross,
-    profit: p.profit,
-    rate: p.rate,
-    blueprints: p.blueprints,
-    medals: p.medals,
-    status: p.status,
-  }));
+  const places = calc.places.map((p) => placeRow(p, calc.rest, availableFp));
   return {
     kind: 'current',
     header,

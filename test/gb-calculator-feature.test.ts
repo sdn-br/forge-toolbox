@@ -5,6 +5,7 @@ import { foestatsFeature } from '../src/content/features/foestats';
 import { createGbCalculatorFeature } from '../src/content/features/gb-calculator';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import type { FetchLike } from '../src/shared/foestats-api';
+import definitions from './fixtures/gb-definitions.json';
 import fixture from './fixtures/great-buildings.json';
 import { featureContext } from './helpers/feature-context';
 import type { TestStoresOptions } from './helpers/stores';
@@ -45,6 +46,10 @@ function setup(options: TestStoresOptions = {}) {
       data: JSON.stringify([{ requestClass: 'OtherPlayerService', requestMethod: 'newEvent', responseData }]),
       at: 0,
     });
+  const loadDefinitions = () => {
+    for (const f of definitions.files)
+      ingestion.accept({ kind: 'meta', url: f.url, response: JSON.stringify(f.json), at: 0 });
+  };
   send(...(fixture.startup as Entry[]), ...(fixture.overviews as Entry[]));
   const opening = (entityId: number) => {
     const o = fixture.openings.find((x) => x.entity.requestData[0] === entityId);
@@ -57,7 +62,7 @@ function setup(options: TestStoresOptions = {}) {
     send(o.construction);
   };
   const rows = () => [...box.root.querySelectorAll('tr')].slice(1);
-  return { ...env, box, send, ws, open, opening, rows, tones: () => tones };
+  return { ...env, box, send, ws, open, opening, rows, loadDefinitions, tones: () => tones };
 }
 
 describe('LG-Rechner', () => {
@@ -387,6 +392,112 @@ describe('LG-Rechner', () => {
         label: 'foestats.fetchSetting',
         hint: 'foestats.fetchHint',
       });
+    });
+  });
+
+  describe('level preview', () => {
+    const cells = (row: Element | undefined) =>
+      [...(row?.querySelectorAll('td') ?? [])].map((td) => td.textContent?.trim());
+    const levelInput = (root: HTMLElement) => root.querySelector('.gb-levels input') as HTMLInputElement;
+    const choose = (root: HTMLElement, level: number) => {
+      const input = levelInput(root);
+      input.value = String(level);
+      input.dispatchEvent(new Event('change'));
+    };
+
+    it('shows a later level from the field open and empty', () => {
+      const { box, open, rows, loadDefinitions, tones } = setup();
+      loadDefinitions();
+      open(1909);
+      expect(levelInput(box.root).value).toBe('75');
+      expect(box.text).not.toContain('Laufend');
+      choose(box.root, 76);
+      expect(box.text).toContain('Laufend 75 → 76');
+      expect(box.text).toContain('Vorschau Stufe 76 → 77, leer gedacht');
+      expect(box.text).toContain('noch nicht freigeschaltet');
+      expect(box.text).toContain('Die Stufe kostet 3.138 FP');
+      expect(box.text).not.toContain('Bis Level-Up fehlen');
+      expect(box.root.querySelector('.gb-overlay')).toBeNull();
+      // empty: half of the cost holds every place, only the first can be had; blueprints and medals unknown
+      expect(rows().map((r) => r.className)).toEqual([
+        'gb-loss',
+        'gb-unavailable',
+        'gb-unavailable',
+        'gb-unavailable',
+        'gb-unavailable',
+      ]);
+      expect(cells(rows()[0])).toEqual(['1', '1.569', '1.406', '1.447', '-122', '212 %', '–', '–']);
+      expect(rows().map((r) => cells(r)[3])).toEqual(['1.447', '723', '244', '59', '10']);
+      expect(box.root.querySelector('.estimate')).toBeNull();
+      expect(tones()).toBe(1);
+    });
+
+    it('takes any later level from the field and goes back to the live construction', async () => {
+      const { box, open, rows, loadDefinitions } = setup();
+      loadDefinitions();
+      open(1909);
+      choose(box.root, 90);
+      expect(box.text).toContain('Vorschau Stufe 90 → 91');
+      expect(box.text).toContain('Die Stufe kostet 4.434 FP');
+      expect(cells(rows()[0])?.[0]).toBe('1');
+      // the factor still sets the demand: 910 × 2
+      box.click('100 %');
+      await tick();
+      expect(cells(rows()[0])?.[2]).toBe('1.820');
+      box.click('Laufend');
+      expect(box.text).not.toContain('Vorschau Stufe');
+      expect(box.text).toContain('Bis Level-Up fehlen 2.811 FP');
+      expect(levelInput(box.root).value).toBe('75');
+    });
+
+    it('goes back to the live construction when the field gets the current level', () => {
+      const { box, open, loadDefinitions } = setup();
+      loadDefinitions();
+      open(1909);
+      choose(box.root, 90);
+      choose(box.root, 75);
+      expect(box.text).not.toContain('Vorschau Stufe');
+      expect(box.text).toContain('Bis Level-Up fehlen 2.811 FP');
+    });
+
+    it('ignores a level that is not after the current construction', () => {
+      const { box, open, loadDefinitions } = setup();
+      loadDefinitions();
+      open(1909);
+      choose(box.root, 74);
+      expect(box.text).not.toContain('Vorschau Stufe');
+    });
+
+    it('marks computed rewards past the table as estimate', () => {
+      const { box, open, rows, loadDefinitions } = setup();
+      loadDefinitions();
+      open(1500);
+      choose(box.root, 421);
+      const gross = rows()[0]?.querySelectorAll('td')[3];
+      expect(gross?.className).toBe('num estimate');
+      expect(gross?.getAttribute('title')).toBe('Belohnung geschätzt, auf etwa 5 FP genau');
+      expect(gross?.textContent).toContain('≈');
+    });
+
+    it('says what is missing without the definition or past every known level', () => {
+      const { box, open, loadDefinitions } = setup();
+      open(1909);
+      choose(box.root, 76);
+      expect(box.text).toContain('Definition des LGs ist noch nicht geladen');
+      loadDefinitions();
+      choose(box.root, 2000);
+      expect(box.text).toContain('Für diese Stufe ist die Belohnung nicht bekannt.');
+      expect(box.text).toContain('Die Stufe kostet');
+    });
+
+    it('starts live again when another great building is opened', () => {
+      const { box, open, loadDefinitions } = setup();
+      loadDefinitions();
+      open(1909);
+      choose(box.root, 76);
+      open(650);
+      expect(box.text).not.toContain('Vorschau Stufe');
+      expect(levelInput(box.root).value).toBe('49');
     });
   });
 });

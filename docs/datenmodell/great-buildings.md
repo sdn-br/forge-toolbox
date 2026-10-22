@@ -1,6 +1,6 @@
 # Great Buildings (LG-Bau)
 
-Stand 2026-10-21. Grundlage: Aufnahme auf de20 mit vier geöffneten fremden LGs, einer vergangenen Stufe und dem eigenen LG Die Arche (Testfall `test/fixtures/great-buildings.json`, gebaut mit `scripts/make-fixture.py gb`).
+Stand 2026-10-22. Grundlage: Aufnahme auf de20 mit vier geöffneten fremden LGs, einer vergangenen Stufe und dem eigenen LG Die Arche (Testfall `test/fixtures/great-buildings.json`, gebaut mit `scripts/make-fixture.py gb`).
 
 **Woher die Daten kommen (gesehen 2026-10-21):**
 
@@ -100,6 +100,25 @@ Testfall `test/fixtures/gb-contribution.json` (gebaut mit `scripts/make-fixture.
 Die Reihenfolge ist nicht fest, deshalb wendet der Handler die Einzahlung erst am Ende der Antwort an: Rangliste aus der Antwort, Gebäude aus dem `reset`. Fehlt der `reset`, wächst `invested` um das, was die eigene Einzahlung gewachsen ist (unter Vorbehalt). Ein `reset` oder `updateEntity` des offenen LGs ohne Einzahlung hält es ebenfalls aktuell. Danach fragt das Spiel `getConstructionRanking` für die Stufen 63, 62, 63 und 64 ab (LG auf Stufe 63, also ist 64 die laufende Liste).
 
 Die Kopfzeile des LG-Rechners zeigt neben der Stufe die freigeschaltete Höchststufe aus `max_level`.
+
+## Stufenvorschau
+
+Reine Funktionen in `src/content/domain/gb-level-preview.ts`. `previewLevel` nimmt Ära und Stufenkosten des LGs, die Stufe, den Arche-Bonus und den Faktor und rechnet mit `calculateConstruction` auf einer leeren Rangliste (fünf freie Plätze, Blaupausen und Medaillen 0, verbunden, Höchststufe nicht beachtet). Die Stufe zählt wie `level` des Gebäudes: Stufe X ist der Bau von X auf X+1.
+
+**Definition des LGs:** die Metadatei `building_entity_<id>` vom Inno-CDN, wie das Spiel sie lädt. `toBuildingDef` legt für LGs `greatBuilding { era, levelCosts }` an:
+
+- `levelCosts` ist `strategy_points_for_upgrade`, die Kosten der ersten zehn Stufen (Index 0 ist der Bau von 0 auf 1).
+- `era` ist `requirements.min_era`, die Ära des LGs selbst, nicht die des Eigentümers. LGs aller Zeitalter (Orakel, Expedition) haben dort `NoAge`, das wird `AllAge`. Fehlt `min_era`, gilt die Ära aus der ID `X_<Ära>_Landmark1`. Gesehen in der Aufnahme vom 2026-10-19 (alle LG-Definitionen), Testfall `test/fixtures/gb-definitions.json` (gebaut mit `scripts/make-fixture.py gb-defs`).
+
+**Kosten einer Stufe:** bis Stufe 9 `levelCosts[Stufe]`, ab Stufe 10 `ceil(levelCosts[9] × 1,025^(Stufe − 9))`. Geprüft an allen neun aufgezeichneten Konstruktionen (Stufen 41 bis 135): die Kosten der laufenden Stufe sind genau `forge_points_for_level_up`.
+
+**Belohnung Platz 1 (P1):** ohne Arche-Bonus, je Ära des LGs und Stufe aus `src/content/data/gb-p1.json`. Quelle ist die Datentabelle `GreatBuildings.Rewards` der alten FoE Toolbox (Spieldaten, keine Code-Übernahme), ausgelesen mit `scripts/extract-gb-p1.py`. Deren Schlüssel ist die Ära als Zahl, Position in der Ärenliste des Spiels plus 1 (Bronzezeit 2 bis Stellar Age 24, 0 ist AllAge, Steinzeit fehlt). Die Datei führt die Ären mit Namen, so wie die Definitionen sie nennen, dazu die Ärenliste in Spielreihenfolge. Werte, die die alte Tabelle selbst nur geschätzt hatte (im Kommentar über der Zeile genannt), sind `null` und werden wie fehlende Werte selbst geschätzt. AllAge ist gleich dem Hochmittelalter.
+
+**Schätzung:** Das Spiel scheint P1 = auf 5 aufgerundetes (Ära + 9) × A(Stufe) zu rechnen, mit einer Kurve A, die für alle Ären gleich ist. Jeder bekannte Wert grenzt A auf [(P1 − 5) / (Ära + 9), P1 / (Ära + 9)] ein. Je Stufe ist A die Mitte aller Grenzen der Ären mit Daten (ohne AllAge, das doppelt zählte). Die Grenzen treffen sich an manchen Stufen knapp nicht, die Formel ist also nicht ganz die des Spiels. Rechnet man die bekannten Werte mit der Kurve nach, liegen alle höchstens 5 FP daneben. Geschätzt werden Stufen über das Ende der Zeile einer Ära hinaus und Ären ohne Zeile. Die Kurve reicht bis Stufe 421, ab 422 hat höchstens eine einzelne Ära Daten, das grenzt A zu ungenau ein. Darüber zeigt die Vorschau keine Belohnung. Geschätzte Werte tragen `estimate`.
+
+**Platz 2 bis 5:** P(i) = `round(P(i − 1) / (i + 1) / 5) × 5` für i = 1 bis 4 (0-basiert), kaufmännisch gerundet (2605 → 1305). Geprüft an allen aufgezeichneten Konstruktionen: P1 aus der Tabelle und daraus P2 bis P5 sind genau die `strategy_point_amount` je Platz. Danach brutto, Sicher, Fordern und Kurs wie oben.
+
+**Genauigkeit:** Kosten exakt (für Stufen über 10 im Rahmen der Formel, geprüft bis 135). P1 aus der Tabelle exakt, geschätzt auf etwa 5 FP. Blaupausen und Medaillen unbekannt.
 
 ## Unter Vorbehalt, nicht aufgezeichnet
 

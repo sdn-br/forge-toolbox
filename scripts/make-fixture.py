@@ -19,6 +19,8 @@
 # the first contributeForgePoints. The Forge point packages of the start recording (getItems) are the inventory before,
 # with the same fake item ids as in the gb mode; resources trimmed to Forge points and coins; fake player ids and names.
 # Each further entity id adds the first opening of that great building as `others`.
+# Great building definitions: python3 -I scripts/make-fixture.py gb-defs <recording.json> <out.json> <cityentity_id> …
+# keeps the metadata file of each named great building, trimmed to id, name, type, min_era and the level costs.
 
 import json,sys
 
@@ -296,6 +298,21 @@ def gb_contribution_fixture(start,rec,out,extra=()):
       'opening':opening,'contribution':out_batch,**({'others':more} if more else {})}
     json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
 
+def gb_defs_fixture(rec,out,ids):
+    files=[]
+    for r in rec:
+        if r['kind']!='meta' or 'building_entity_X_' not in r['url']: continue
+        d=json.loads(r['response'])
+        if d.get('id') not in ids or any(f['json']['id']==d['id'] for f in files): continue
+        trimmed={'id':d['id'],'name':d['name'],'type':d['type'],'requirements':{'min_era':d['requirements']['min_era']},
+          'strategy_points_for_upgrade':d['strategy_points_for_upgrade'],'__class__':d.get('__class__')}
+        files.append({'url':r['url'].split('-')[0]+'-0','json':trimmed})
+    files.sort(key=lambda f:ids.index(f['json']['id']))
+    fixture={'note':'Great building definitions (metadata building_entity_<id>) recorded on de20 2026-10-19, trimmed to what the level preview reads.','files':files}
+    json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
+
+if sys.argv[1]=='gb-defs':
+    gb_defs_fixture(json.load(open(sys.argv[2])),sys.argv[3],sys.argv[4:]); sys.exit()
 if sys.argv[1]=='gb-contribution':
     gb_contribution_fixture(json.load(open(sys.argv[2])),json.load(open(sys.argv[3])),sys.argv[4],[int(x) for x in sys.argv[5:]]); sys.exit()
 if sys.argv[1]=='gb':

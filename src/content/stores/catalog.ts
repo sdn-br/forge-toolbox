@@ -38,6 +38,15 @@ export interface BuildingDef {
   set?: { id: string; bonuses: LevelBonus[] };
   /** chain membership: `links` are where the next link has to sit, `bonuses` what this link adds once connected */
   chain?: { id: string; start: boolean; links: Rect[]; bonuses: LevelBonus[] };
+  /** great buildings only: the era of the building itself and the Forge points of the first levels */
+  greatBuilding?: GreatBuildingDef;
+}
+
+export interface GreatBuildingDef {
+  /** era of the building (`requirements.min_era`), `AllAge` for the buildings of every era */
+  era: string;
+  /** `strategy_points_for_upgrade`: Forge points from level i to i + 1, index 0-based; the game lists ten */
+  levelCosts: number[];
 }
 
 /**

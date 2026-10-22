@@ -9,7 +9,9 @@ import {
   FACTOR_PRESETS,
   type GbCalculatorVm,
   type GbHeader,
+  type LevelChoice,
   type PlaceRow,
+  type PreviewVm,
 } from './view-model';
 
 export interface GbCalculatorActions {
@@ -17,6 +19,8 @@ export interface GbCalculatorActions {
   setFactor(value: number): void;
   /** the Arc bonus as the factor */
   useArc(): void;
+  /** preview a later level; undefined goes back to the current construction */
+  previewLevel(level: number | undefined): void;
 }
 
 const percent = (n: number) => `${formatNumber(n)} %`;
@@ -43,7 +47,28 @@ function header(h: GbHeader) {
       ${t('gbCalc.arc', { arc: formatNumber(h.arcBonus) })}</span></p>`;
 }
 
-function factorBar(vm: Extract<GbCalculatorVm, { kind: 'current' }>, actions: GbCalculatorActions) {
+/** the field alone switches: the current level shows the live construction, a later one the preview */
+function levelBar(l: LevelChoice, actions: GbCalculatorActions) {
+  const typed = (e: Event) => {
+    const value = (e.target as HTMLInputElement).valueAsNumber;
+    if (value === l.current) actions.previewLevel(undefined);
+    else if (Number.isInteger(value) && value > l.current) actions.previewLevel(value);
+  };
+  return html`<div class="gb-levels">
+    <span>${t('gbCalc.level')}</span>
+    <input type="number" min=${l.current} step="1" title=${t('gbCalc.previewInput')}
+      aria-label=${t('gbCalc.previewInput')} class=${l.preview ? 'active' : ''}
+      .value=${String(l.chosen)} @keydown=${keepKeys} @change=${typed} />
+    ${
+      l.preview
+        ? html`<button @click=${() => actions.previewLevel(undefined)}>
+            ${t('gbCalc.live', { level: l.current, next: l.current + 1 })}</button>`
+        : ''
+    }
+  </div>`;
+}
+
+function factorBar(vm: Extract<GbCalculatorVm, { kind: 'current' | 'preview' }>, actions: GbCalculatorActions) {
   const { factor } = vm;
   const typed = (e: Event) => {
     const value = (e.target as HTMLInputElement).valueAsNumber;
@@ -94,16 +119,20 @@ const placeTitle = (p: PlaceRow) =>
     t(`gbCalc.status.${p.status}`),
   ].join(', ');
 
+const maybe = (n: number | undefined) => (n === undefined ? NONE : html`<td class="num">${formatNumber(n)}</td>`);
+
 const placeRow = (p: PlaceRow) =>
   html`<tr class=${`gb-${p.status}`} title=${placeTitle(p)}>
     <td>${p.rank}</td>
     ${costCell(p.safe)}
     ${demandCell(p.demand)}
-    <td class="num">${formatNumber(p.gross)}</td>
+    <td class=${p.estimate ? 'num estimate' : 'num'} title=${p.estimate ? t('gbCalc.estimate') : ''}>${
+      p.estimate ? '≈ ' : ''
+    }${formatNumber(p.gross)}</td>
     ${p.profit === undefined ? NONE : html`<td class="num">${formatNumber(p.profit)}</td>`}
     ${p.safe === undefined ? NONE : html`<td class="num">${p.rate === undefined ? '' : percent(p.rate)}</td>`}
-    <td class="num">${formatNumber(p.blueprints)}</td>
-    <td class="num">${formatNumber(p.medals)}</td>
+    ${maybe(p.blueprints)}
+    ${maybe(p.medals)}
   </tr>`;
 
 function placesTable(places: PlaceRow[]) {
@@ -129,6 +158,16 @@ function overlayText(vm: Extract<GbCalculatorVm, { kind: 'current' }>): string |
   return undefined;
 }
 
+function previewPart(p: PreviewVm) {
+  const note = p.unknown === 'definition' ? t('gbCalc.previewNoDefinition') : t('gbCalc.previewNoReward');
+  return html`<p class="warn">${t('gbCalc.previewHeading', { level: p.level, next: p.next })}${
+    p.locked ? html` <span class="muted">· ${t('gbCalc.previewLocked')}</span>` : ''
+  }</p>
+    ${p.unknown ? html`<p class="muted">${note}</p>` : placesTable(p.places)}
+    ${p.required === undefined ? '' : html`<p>${t('gbCalc.previewCost', { fp: formatNumber(p.required) })}</p>`}
+    ${p.estimate ? html`<p class="muted">${t('gbCalc.estimate')}</p>` : ''}`;
+}
+
 export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorActions): TemplateResult {
   switch (vm.kind) {
     case 'none':
@@ -137,6 +176,7 @@ export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorAction
       return html`<p>${owner(vm.owner, vm.ownerUrl)}</p><p class="warn">${t('gbCalc.noEntity')}</p>`;
     case 'past':
       return html`${header(vm.header)}
+        ${levelBar(vm.header.levels, actions)}
         <p class="warn">${t('gbCalc.pastLevel', { from: vm.level - 1, to: vm.level })}</p>
         <table class="gb-table">
           <tr><th>${t('gbCalc.place')}</th><th>${t('gbCalc.player')}</th><th class="num">${t('gbCalc.fp')}</th></tr>
@@ -146,9 +186,15 @@ export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorAction
                 <td class="num">${formatNumber(r.fp ?? 0)}</td></tr>`,
           )}
         </table>`;
+    case 'preview':
+      return html`${header(vm.header)}
+        ${levelBar(vm.header.levels, actions)}
+        ${factorBar(vm, actions)}
+        ${previewPart(vm.preview)}`;
     case 'current': {
       const overlay = overlayText(vm);
       return html`${header(vm.header)}
+        ${levelBar(vm.header.levels, actions)}
         ${factorBar(vm, actions)}
         <div class="gb-places">
           ${placesTable(vm.places)}
