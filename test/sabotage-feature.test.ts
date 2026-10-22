@@ -62,9 +62,14 @@ function setup() {
     overrides: ({ bus, world }) => ({ battles: new BattleStore(bus, world, persistence) }),
   });
   sabotageFeature.setup(env.ctx);
+  boxesOfTest.push(...env.boxes.values());
   const box = env.boxes.get('sabotage') as NonNullable<ReturnType<typeof env.boxes.get>>;
   return { ...env, box, latest };
 }
+
+/** Boxes of the running test. Closed after it, so lookups of a finished test that resolve late draw nothing into the
+ * spies of the next one. */
+const boxesOfTest: { box: { close(): void } }[] = [];
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -83,6 +88,7 @@ const observed = (id: number, attack: AttackTimer): PlayerObservation => ({
 });
 
 afterEach(() => {
+  for (const each of boxesOfTest.splice(0)) each.box.close();
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
