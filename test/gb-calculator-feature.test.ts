@@ -377,7 +377,7 @@ describe('LG-Rechner', () => {
       expect(rows().map((r) => cells(r)[3])).toEqual(['4.291', '2.151', '714', '176', '39']);
       // place 1: round((3099 + 1970) / 2) = 2535 cannot pass 3099; place 2: round(2449 / 2) = 1225 for 926 profit;
       // place 3: round(1970 / 2) = 985 for -271; place 4 the same 985: dominated
-      expect(cells(rows()[0])?.[2]).toBe('sicher');
+      expect(cells(rows()[0])?.[2]).toBe('✓');
       expect(meLines(box.root)).toEqual(['Du: noch nichts eingezahlt', 'P2 sicher: 1.225 · P3 sicher: 985']);
       expect(best(box.root)).toEqual(['P2 sicher: 1.225']);
     });
@@ -425,7 +425,7 @@ describe('LG-Rechner', () => {
     it('leaves out the places above that cannot be had', () => {
       // place 1 holds 4000, me 400 on 2: rest 5404 - 4000 = 1404; round((4000 + 1404) / 2) = 2702 cannot pass it
       const { box, rows } = scenario([4000, 400], 2);
-      expect(cells(rows()[0])?.slice(0, 3)).toEqual(['1', '4.000', 'sicher']);
+      expect(cells(rows()[0])?.slice(0, 3)).toEqual(['1', '4.000', '✓']);
       // own place: round(1404 / 2) = 702
       expect(meLines(box.root)).toEqual(['Du: 400 FP auf P2 · nicht sicher', 'P2 sicher: +302']);
     });

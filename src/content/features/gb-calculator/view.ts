@@ -148,10 +148,9 @@ const placeTitle = (p: PlaceRow) =>
     t(`gbCalc.status.${p.status}`),
   ].join(', ');
 
-/** the safe cost; a place whose holder is safe says so, the own one shows a check mark */
+/** the safe cost; a check mark where the holder is safe, the own place too (the row colour tells which) */
 function safeCell(p: PlaceRow) {
-  if (p.status === 'mine' && p.secured) return html`<td class="num" title=${t('gbCalc.mineSecured')}>✓</td>`;
-  if (p.secured && !p.safe) return html`<td class="num" title=${t('gbCalc.securedHint')}>${t('gbCalc.secured')}</td>`;
+  if (p.secured && !p.safe) return html`<td class="num" title=${t('gbCalc.securedHint')}>✓</td>`;
   return costCell(p.safe);
 }
 

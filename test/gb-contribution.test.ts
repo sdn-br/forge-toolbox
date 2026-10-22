@@ -131,8 +131,8 @@ describe('recorded contribution to place 2 with empty places below', () => {
       'gb-unavailable',
     ]);
     // rank 1 holds 820, its safe cost round((820 + 557) / 2) = 689 cannot pass it anymore
-    expect(cells(rows()[0]).slice(0, 3)).toEqual(['1', '820', 'sicher']);
-    expect(rows()[0]?.querySelectorAll('td')[2]?.getAttribute('title')).toBe('Platz ist sicher, nicht mehr zu haben');
+    expect(cells(rows()[0]).slice(0, 3)).toEqual(['1', '820', '✓']);
+    expect(rows()[0]?.querySelectorAll('td')[2]?.getAttribute('title')).toBe('Platz ist sicher');
     expect([cells(rows()[0])[4], cells(rows()[0])[6]]).toEqual(['–', '–']);
     // rest 557, no successor: round(557 / 2) = 279, already paid: safe, the rate is the own 279 of 205
     expect(cells(rows()[1])).toEqual(['2', '279', '✓', '205', '-74', '390 (+111)', '136,1 %']);
