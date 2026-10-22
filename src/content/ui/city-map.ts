@@ -124,7 +124,7 @@ export class CityMap {
           ${modeButton('top', t('cityMap.top'))}${modeButton('iso', t('cityMap.iso'))}
           <button title=${t('cityMap.zoomIn')} @click=${() => this.zoomBy(ZOOM_STEP)}>+</button>
           <button title=${t('cityMap.zoomOut')} @click=${() => this.zoomBy(1 / ZOOM_STEP)}>−</button>
-          <button title=${t('cityMap.zoomReset')} @click=${() => this.reset()}>⤢</button>
+          <button title=${t('cityMap.zoomReset')} @click=${() => this.showWhole()}>⤢</button>
         </div>
         <div class="map-tip" hidden ${ref((el) => {
           this.tip = el as HTMLElement | undefined;
@@ -397,7 +397,10 @@ export class CityMap {
     this.draw();
   }
 
-  private reset() {
+  /** the whole map again, dropping a focus still waiting for its data */
+  showWhole(): void {
+    this.pendingFocus = undefined;
+    this.focusedSinceData = undefined;
     this.view = WHOLE_MAP;
     this.draw();
   }
