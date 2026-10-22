@@ -52,6 +52,8 @@ ul.rows li.dragging { opacity: .4; }
 .note a, a { color: #f0c060; }
 a.ext-link { text-decoration: none; opacity: .6; }
 a.ext-link:hover { opacity: 1; }
+.spinner { display: inline-block; width: .8em; height: .8em; vertical-align: -.1em; border: 2px solid #8a6a3a; border-top-color: #f0c060; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
 input.title { width: 100%; font-weight: 600; }
 button.marker { all: unset; cursor: pointer; }

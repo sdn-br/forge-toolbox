@@ -52,6 +52,8 @@ export interface ActivityVm {
   /** several days without an increase */
   idle: boolean;
   title: string;
+  /** foestats is being asked right now */
+  loading: boolean;
 }
 
 /** the demand cell: the cost and what to know about the deal */
@@ -138,9 +140,10 @@ function activityVm(record: FoestatsRecord | undefined, today: string): Activity
   if (!record) return undefined;
   const activity = playerActivity(record.days, today);
   const unreachable = t('foestats.unreachable');
+  const { loading } = record;
   if (!activity) {
-    const text = record.unreachable ? unreachable : t('foestats.noData');
-    return { text, idle: false, title: text };
+    const text = loading ? t('foestats.loading') : record.unreachable ? unreachable : t('foestats.noData');
+    return { text, idle: false, title: text, loading };
   }
   const newest = record.days.at(-1)?.date ?? '';
   const { week } = activity;
@@ -151,6 +154,7 @@ function activityVm(record: FoestatsRecord | undefined, today: string): Activity
       week: t('foestats.week', { days: week.days, points: known(week.points), battles: known(week.battles) }),
     }),
     idle: activity.idle,
+    loading,
     title: [t('foestats.source', { date: newest }), record.unreachable && t('foestats.stale')]
       .filter(Boolean)
       .join('\n'),

@@ -53,7 +53,20 @@ describe('foestats store', () => {
     ]);
     expect(store.get(player)?.unreachable).toBe(false);
     expect(fetch).toHaveBeenCalledTimes(2);
-    expect(updated).toEqual([player]);
+    // once when the request starts, once with the answer
+    expect(updated).toEqual([player, player]);
+  });
+
+  it('marks the player as loading while foestats is asked, keeping what was known', async () => {
+    const { store, state, clock } = setup({ '2026-10-22': 100 }, { '2026-10-22': 5 });
+    await store.view(player);
+    clock.now = at(23, 9);
+    state.points = { ...state.points, '2026-10-23': 110 };
+    const pending = store.view(player);
+    expect(store.get(player)).toMatchObject({ loading: true, days: [{ date: '2026-10-22' }] });
+    await pending;
+    expect(store.get(player)?.loading).toBe(false);
+    expect(store.get(player)?.days).toHaveLength(2);
   });
 
   it('asks once per day and reads the stored days on the next view', async () => {
@@ -129,7 +142,7 @@ describe('foestats store', () => {
         : { ok: false, status: 500, text: async () => '' },
     );
     await store.view(player);
-    expect(store.get(player)).toEqual({ days: [], unreachable: true });
+    expect(store.get(player)).toEqual({ days: [], unreachable: true, loading: false });
   });
 
   it('asks only once when two views open the same player together', async () => {

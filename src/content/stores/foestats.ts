@@ -33,6 +33,8 @@ export interface FoestatsRecord {
   days: FoestatsDay[];
   /** foestats did not answer the last time it was asked */
   unreachable: boolean;
+  /** a view is bringing the days up to date; until then `days` is what was known before, maybe nothing */
+  loading: boolean;
 }
 
 /** the requests the store makes to foestats */
@@ -71,6 +73,9 @@ export class FoestatsStore {
   }
 
   private async update(player: PlayerId): Promise<void> {
+    const before = this.records.get(player);
+    this.records.set(player, { days: before?.days ?? [], unreachable: before?.unreachable ?? false, loading: true });
+    this.bus.emit('foestats.updated', { player });
     try {
       const claim = await this.persistence.claim(this.world, player);
       let unreachable = claim.unreachable;
@@ -83,10 +88,12 @@ export class FoestatsStore {
         ({ unreachable } = await this.persistence.store(this.world, player, points, battles));
       }
       const days = await this.persistence.history(this.world, player);
-      this.records.set(player, { days, unreachable });
-      this.bus.emit('foestats.updated', { player });
+      this.records.set(player, { days, unreachable, loading: false });
     } catch (error) {
       logError('loading foestats data failed', error);
+      const record = this.records.get(player);
+      if (record) this.records.set(player, { ...record, loading: false });
     }
+    this.bus.emit('foestats.updated', { player });
   }
 }

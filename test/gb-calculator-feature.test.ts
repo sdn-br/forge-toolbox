@@ -317,7 +317,7 @@ describe('LG-Rechner', () => {
       const fetch = foestats(history);
       const { box, open } = activitySetup(fetch);
       open(1909);
-      await vi.waitFor(() => expect(line(box.root)).not.toBeNull());
+      await vi.waitFor(() => expect(line(box.root)?.parentElement?.querySelector('.spinner')).toBeNull());
       expect(fetch.mock.calls.map(([url]) => url)).toEqual([
         'https://api.forge-db.com/api/players/de/de20/1001/points-history',
         'https://api.forge-db.com/api/players/de/de20/1001/battles-history',
@@ -332,12 +332,33 @@ describe('LG-Rechner', () => {
       const fetch = foestats(history.slice(0, 5));
       const { box, open, ctx } = activitySetup(fetch);
       open(1909);
-      await vi.waitFor(() => expect(line(box.root)).not.toBeNull());
+      await vi.waitFor(() => expect(line(box.root)?.parentElement?.querySelector('.spinner')).toBeNull());
       open(1909);
-      await vi.waitFor(() => expect(ctx.foestats.get(1001 as never)).toBeDefined());
+      await vi.waitFor(() => expect(ctx.foestats.get(1001 as never)?.loading).toBe(false));
       await tick();
       expect(fetch).toHaveBeenCalledTimes(2);
       expect(line(box.root)?.textContent).toBe('zuletzt aktiv vor 4 Tagen · 4 Tage: +500 Punkte, +3 Kämpfe');
+    });
+
+    it('labels the line and shows that foestats is being asked before anything is known', async () => {
+      let answer = () => {};
+      const answered = new Promise<void>((resolve) => {
+        answer = resolve;
+      });
+      const ready = foestats(history);
+      const fetch = vi.fn<FetchLike>(async (url, init) => {
+        await answered;
+        return ready(url, init);
+      });
+      const { box, open } = activitySetup(fetch);
+      open(1909);
+      await vi.waitFor(() => expect(line(box.root)?.textContent).toBe('wird von foestats geladen …'));
+      const header = line(box.root)?.parentElement as HTMLElement;
+      expect(header.textContent).toContain('Aktivität:');
+      expect(header.querySelector('.spinner')).not.toBeNull();
+      answer();
+      await vi.waitFor(() => expect(header.querySelector('.spinner')).toBeNull());
+      expect(line(box.root)?.textContent).toBe('zuletzt aktiv vor 4 Tagen · 7 Tage: +500 Punkte, +3 Kämpfe');
     });
 
     it('says when foestats cannot be reached', async () => {

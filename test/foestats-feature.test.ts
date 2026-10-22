@@ -35,7 +35,7 @@ describe('foestats feature', () => {
   it('asks about the player of a visited city', async () => {
     const { ctx, visit, asked } = setup();
     visit(42);
-    await vi.waitFor(() => expect(ctx.foestats.get(playerId(42))).toBeDefined());
+    await vi.waitFor(() => expect(ctx.foestats.get(playerId(42))?.loading).toBe(false));
     expect(asked()).toEqual(['42']);
   });
 
@@ -43,7 +43,7 @@ describe('foestats feature', () => {
     const { ctx, asked } = setup();
     ctx.bus.emit('greatBuilding.opened', { owner: playerId(7), entityId: 1, own: true });
     ctx.bus.emit('greatBuilding.opened', { owner: playerId(8), entityId: 2, own: false });
-    await vi.waitFor(() => expect(ctx.foestats.get(playerId(8))).toBeDefined());
+    await vi.waitFor(() => expect(ctx.foestats.get(playerId(8))?.loading).toBe(false));
     expect(asked()).toEqual(['8']);
   });
 
