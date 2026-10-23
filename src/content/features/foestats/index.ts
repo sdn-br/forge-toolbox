@@ -9,6 +9,7 @@ import { FOESTATS_SETTING } from '../../stores/foestats';
 export const foestatsFeature: Feature = {
   id: 'foestats',
   setup(ctx) {
+    ctx.settings.registerGroup('foestats.group', '📈');
     ctx.settings.register(FOESTATS_SETTING);
     const view = (player: PlayerId) => {
       if (ctx.settings.get(FOESTATS_SETTING.key)) void ctx.foestats.view(player);

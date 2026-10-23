@@ -15,9 +15,13 @@ import {
   pvpViewModel,
 } from './view-model';
 
+/** the menu entry and the settings group show it */
+const ICON = '⚔️';
+
 export const pvpFeature: Feature = {
   id: 'pvp',
   setup(ctx) {
+    ctx.settings.registerGroup('pvp.title', ICON);
     ctx.settings.register(KEEP_SETTING);
     ctx.settings.register({
       key: 'pvp.openWithArmy',
@@ -117,6 +121,7 @@ export const pvpFeature: Feature = {
 
     const box = ctx.createBox({
       id: 'pvp',
+      settings: 'pvp.title',
       title: () => t('pvp.title'),
       width: 520,
       render: () => {
@@ -155,7 +160,7 @@ export const pvpFeature: Feature = {
     ctx.bus.on('note.changed', show);
     ctx.menu.add({
       id: 'pvp',
-      icon: '⚔️',
+      icon: ICON,
       label: () => t('menu.pvp'),
       action: () => {
         box.toggle();

@@ -1,6 +1,7 @@
 export const de = {
   'box.close': 'Schließen',
   'box.minimize': 'Minimieren',
+  'box.settings': 'Einstellungen',
   'box.pin': 'Fixieren',
   'box.unpin': 'Lösen',
   'box.popout': 'In eigenem Fenster öffnen',
@@ -260,7 +261,7 @@ export const de = {
   'gbOwn.copy': 'Kopieren',
   'gbOwn.copied': 'Kopiert ✓',
   'gbOwn.copyPreview': 'Text für den Gildenchat, vor dem Kopieren änderbar',
-  'gbOwn.copySettings': 'Eigenanteil: Kopiertext',
+  'gbOwn.copySettings': 'Kopiertext',
   'gbOwn.copyPlayerName': 'Spielername',
   'gbOwn.copyPlayerNameHint': 'leer: dein Name im Spiel',
   'gbOwn.copyBuildingHint': 'Name des LGs im Kopiertext, je LG gemerkt',
@@ -387,7 +388,7 @@ export const de = {
   'foestats.stale': 'foestats nicht erreichbar, Stand von früher',
   'foestats.fetchSetting': 'foestats-Daten abrufen',
   'foestats.fetchHint':
-    'Fragt foestats.com einmal am Tag nach Punkten und Kämpfen des Spielers, dessen Stadt oder LG du gerade ansiehst. foestats erfährt dabei Welt und Spieler-ID.',
+    'Fragt foestats.com einmal am Tag nach Punkten und Kämpfen des Spielers, dessen Stadt oder LG du gerade ansiehst.',
 } as const;
 
 export type TextKey = keyof typeof de;

@@ -24,6 +24,7 @@ export interface Feature {
   setup(ctx: FeatureContext): void;
 }
 
-export function boxFactory(ui: UiState): (options: BoxOptions) => Box {
-  return (options) => new Box(options, ui);
+/** `openSettings` backs the settings button of boxes that name a settings group */
+export function boxFactory(ui: UiState, openSettings?: (group: string) => void): (options: BoxOptions) => Box {
+  return (options) => new Box(options, ui, openSettings);
 }

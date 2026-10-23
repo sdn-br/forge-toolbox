@@ -13,6 +13,9 @@ import {
   ownShareViewModel,
 } from './view-model';
 
+/** the menu entry and the settings group show it */
+const ICON = '🧱';
+
 const FACTOR = 'gbOwn.factor';
 const FACTOR_BUTTONS = 'gbOwn.factorButtons';
 const AUTO_OPEN = 'gbOwn.autoOpen';
@@ -22,7 +25,6 @@ const FACTOR_ARC = 'gbOwn.factorArc';
 /** view choices, kept like the mode of a map rather than in the settings box */
 const SECURE = 'gbOwn.secure';
 const TRUST = 'gbOwn.trust';
-const COPY_GROUP = 'gbOwn.copySettings';
 const COPY_PLAYER = 'gbOwn.copy.playerName';
 const COPY_MODE = 'gbOwn.copy.mode';
 const COPY_MANUAL = 'gbOwn.copy.manual';
@@ -38,6 +40,7 @@ export function createGbOwnShareFeature(
   return {
     id: 'gbOwnShare',
     setup(ctx) {
+      ctx.settings.registerGroup('gbOwn.title', ICON);
       ctx.settings.register({
         key: FACTOR,
         group: 'gbOwn.title',
@@ -65,24 +68,33 @@ export function createGbOwnShareFeature(
 
       ctx.settings.register({
         key: COPY_PLAYER,
-        group: COPY_GROUP,
+        group: 'gbOwn.title',
+        section: 'gbOwn.copySettings',
         label: 'gbOwn.copyPlayerName',
         hint: 'gbOwn.copyPlayerNameHint',
         default: '',
         text: true,
       });
       for (const [option, label] of COPY_TOGGLES)
-        ctx.settings.register({ key: copyToggleKey(option), group: COPY_GROUP, label, default: DEFAULT_COPY[option] });
+        ctx.settings.register({
+          key: copyToggleKey(option),
+          group: 'gbOwn.title',
+          section: 'gbOwn.copySettings',
+          label,
+          default: DEFAULT_COPY[option],
+        });
       ctx.settings.register({
         key: COPY_MODE,
-        group: COPY_GROUP,
+        group: 'gbOwn.title',
+        section: 'gbOwn.copySettings',
         label: 'gbOwn.copyMode',
         default: DEFAULT_COPY.mode,
         choices: COPY_MODES.map(([value, label]) => ({ value, label })),
       });
       ctx.settings.register({
         key: COPY_MANUAL,
-        group: COPY_GROUP,
+        group: 'gbOwn.title',
+        section: 'gbOwn.copySettings',
         label: 'gbOwn.copyManualPlaces',
         hint: 'gbOwn.copyManualPlacesHint',
         default: [],
@@ -173,6 +185,7 @@ export function createGbOwnShareFeature(
       };
       const box = ctx.createBox({
         id: 'gbOwnShare',
+        settings: 'gbOwn.title',
         title: () => t('gbOwn.title'),
         width: 460,
         render: () => ownShareView(vm(), actions, copied),
@@ -197,7 +210,7 @@ export function createGbOwnShareFeature(
       ctx.bus.on('catalog.updated', () => box.update());
       ctx.bus.on('city.ownChanged', () => box.update());
       ctx.settings.onChange(() => box.update());
-      ctx.menu.add({ id: 'gbOwnShare', icon: '🧱', label: () => t('gbOwn.menu'), action: () => box.toggle() });
+      ctx.menu.add({ id: 'gbOwnShare', icon: ICON, label: () => t('gbOwn.menu'), action: () => box.toggle() });
     },
   };
 }

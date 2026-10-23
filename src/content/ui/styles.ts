@@ -32,6 +32,16 @@ button.action { font: inherit; cursor: pointer; margin: 2px 4px 2px 0; }
 label { display: flex; gap: 6px; align-items: center; padding: 2px 0; }
 p.setting-hint { margin: 0 0 4px 22px; }
 h2 { font-size: 12px; margin: 8px 0 4px; color: #f0c060; }
+/* settings: a column of module icons, the chosen module beside it */
+.settings-layout { display: flex; gap: 8px; align-items: flex-start; }
+.settings-nav { flex: 0 0 auto; display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0; }
+.settings-nav button { all: unset; cursor: pointer; width: 28px; height: 28px; display: grid; place-items: center;
+  font-size: 16px; border-radius: 4px; background: #4a3620; border-left: 3px solid transparent; }
+.settings-nav button:hover { background: #6a5030; }
+.settings-nav button.active { background: #6a5030; border-left-color: #f0c060; }
+.settings-main { flex: 1; min-width: 0; }
+.settings-main h2:first-child { margin-top: 2px; }
+.settings-main h3 { font-size: 12px; margin: 10px 0 4px; color: #b8a27d; }
 input, select, textarea { font: inherit; }
 .tabs { display: flex; flex-wrap: wrap; gap: 2px; margin: 0 0 6px; }
 .tabs button { font: inherit; cursor: pointer; }
@@ -57,7 +67,7 @@ a.ext-link:hover { opacity: 1; }
   font: 12px/1.4 system-ui, sans-serif; border: 1px solid #8a6a3a; border-radius: 4px; pointer-events: none;
   white-space: pre-line; }
 .tip[hidden] { display: none; }
-header button.pin svg { display: block; margin: auto; }
+header button.pin svg, header button.icon svg { display: block; margin: auto; }
 @keyframes spin { to { transform: rotate(360deg); } }
 textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
 input.title { width: 100%; font-weight: 600; }

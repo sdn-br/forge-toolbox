@@ -9,6 +9,9 @@ import { playTone } from '../../ui/tone';
 import { type GbCalculatorActions, gbCalculatorView } from './view';
 import { type GbCalculatorVm, gbCalculatorViewModel } from './view-model';
 
+/** the menu entry and the settings group show it */
+const ICON = '🏛️';
+
 const FACTOR = 'gbCalc.factor';
 const FACTOR_ARC = 'gbCalc.factorArc';
 const FACTOR_BUTTONS = 'gbCalc.factorButtons';
@@ -21,6 +24,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
   return {
     id: 'gbCalculator',
     setup(ctx) {
+      ctx.settings.registerGroup('gbCalc.title', ICON);
       ctx.settings.register({
         key: FACTOR,
         group: 'gbCalc.title',
@@ -80,6 +84,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
 
       const box = ctx.createBox({
         id: 'gbCalculator',
+        settings: 'gbCalc.title',
         title: () => t('gbCalc.title'),
         width: 520,
         render: () => gbCalculatorView(vm, actions),
@@ -145,7 +150,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         if (player === shown?.owner) refresh();
       });
       ctx.settings.onChange(refresh);
-      ctx.menu.add({ id: 'gbCalculator', icon: '🏛️', label: () => t('gbCalc.menu'), action: () => box.toggle() });
+      ctx.menu.add({ id: 'gbCalculator', icon: ICON, label: () => t('gbCalc.menu'), action: () => box.toggle() });
     },
   };
 }
