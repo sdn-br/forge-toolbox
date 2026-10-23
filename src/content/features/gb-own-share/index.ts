@@ -4,6 +4,7 @@ import { t } from '../../core/texts';
 import { arcBonus } from '../../domain/gb-calculator';
 import type { Construction } from '../../stores/great-building-model';
 import { icons } from '../../ui/icons';
+import { PlaceFactors } from './place-factors';
 import { type OwnShareActions, ownShareView } from './view';
 import {
   COPY_MODES,
@@ -155,13 +156,26 @@ export function createGbOwnShareFeature(
         manual: ctx.settings.numbers(COPY_MANUAL),
       });
       const def = () => shown?.entity?.def;
+      /** the five factors per building: standard, saved, changed */
+      const factors = new PlaceFactors(ctx.ui, () => ({
+        value: ctx.settings.number(FACTOR),
+        arc: ctx.settings.get(FACTOR_ARC),
+      }));
+      /** a change to the factors of the building shown */
+      const onFactors = (change: (d: string) => void) => () => {
+        const d = def();
+        if (!d) return;
+        change(d);
+        box.update();
+      };
 
       const actions: OwnShareActions = {
-        setFactor: (value) => {
-          setting(FACTOR, value);
-          setting(FACTOR_ARC, false);
-        },
-        useArc: () => setting(FACTOR_ARC, true),
+        setFactor: (value) => onFactors((d) => factors.setAll(d, { value, arc: false }))(),
+        useArc: () => onFactors((d) => factors.setAll(d, { value: 0, arc: true }))(),
+        setPlaceFactor: (rank, value) => onFactors((d) => factors.setPlace(d, rank, value))(),
+        saveFactors: onFactors((d) => factors.save(d)),
+        resetFactors: onFactors((d) => factors.reset(d)),
+        adoptFactors: onFactors((d) => factors.adopt(d)),
         setExt: (rank, fp) => {
           const list = [...(exts.get(extKey()) ?? [])];
           list[rank - 1] = fp;
@@ -188,8 +202,6 @@ export function createGbOwnShareFeature(
             .catch((error) => logError('copying failed', error));
         },
       };
-      const setting = (key: string, value: boolean | number) =>
-        ctx.settings.set(key, value).catch((error) => logError('saving settings failed', error));
       const save = (key: string, value: string) => {
         ctx.ui.savePref(key, value);
         box.update();
@@ -201,7 +213,7 @@ export function createGbOwnShareFeature(
           construction: shown,
           openedLevel,
           greatBuildingName: (id) => ctx.catalog.greatBuildingName(id),
-          factor: { value: ctx.settings.number(FACTOR), arc: ctx.settings.get(FACTOR_ARC) },
+          factors: factors.state(d ?? ''),
           factorButtons: ctx.settings.numbers(FACTOR_BUTTONS),
           arcBonus: ctx.settings.get(ARC_BUTTON)
             ? arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses())
@@ -219,7 +231,7 @@ export function createGbOwnShareFeature(
         id: 'gbOwnShare',
         settings: 'gbOwn.title',
         title: () => t('gbOwn.title'),
-        width: 460,
+        width: 500,
         render: () => ownShareView(vm(), actions, copied),
       });
 
@@ -241,7 +253,11 @@ export function createGbOwnShareFeature(
       });
       ctx.bus.on('catalog.updated', () => box.update());
       ctx.bus.on('city.ownChanged', () => box.update());
-      ctx.settings.onChange(() => box.update());
+      ctx.settings.onChange((key) => {
+        // the factor of the settings sets all five places alike again
+        if (key === FACTOR || key === FACTOR_ARC) factors.dropStandard();
+        box.update();
+      });
       ctx.menu.add({ id: 'gbOwnShare', icon: ICON, label: () => t('gbOwn.menu'), action: () => box.toggle() });
     },
   };

@@ -126,28 +126,93 @@ describe('Eigenanteil', () => {
     expect(rows().slice(0, 2)).toEqual(['Eigene FP 6.745 (=11.877) 5.132', 'P1 frei 4.950 – –']);
     box.click('2');
     await tick();
-    expect(ctx.settings.number('gbOwn.factor')).toBe(100);
+    // the buttons change the building in the box, not the setting
+    expect(ctx.settings.number('gbOwn.factor')).toBe(90);
     expect(rows()[1]).toBe('P1 frei 5.210 – –');
     await ctx.settings.set('gbOwn.factorButtons', [90, 120]);
     await tick();
-    const buttons = [...box.root.querySelectorAll('.gb-factor button')].map((b) => b.textContent?.trim());
+    const buttons = [...box.root.querySelectorAll('.gb-factor button:not(.icon)')].map((b) => b.textContent?.trim());
     // the own Arc bonus of 95,5 % sorts in by its value
     expect(buttons).toEqual(['1,9', '1,955', '2,2']);
     box.click('2,2');
     await tick();
-    expect(ctx.settings.number('gbOwn.factor')).toBe(120);
+    expect(rows()[1]).toBe('P1 frei 5.731 – –');
     box.click('1,955');
     await tick();
-    expect(ctx.settings.get('gbOwn.factorArc')).toBe(true);
     // 2.605 × 1,955 = 5.092,8
     expect(rows()[1]).toBe('P1 frei 5.093 – –');
     expect(box.root.querySelector('.gb-factor button.active')?.textContent?.trim()).toBe('1,955');
     await ctx.settings.set('gbOwn.arcButton', false);
     await tick();
-    expect([...box.root.querySelectorAll('.gb-factor button')].map((b) => b.textContent?.trim())).toEqual([
+    expect([...box.root.querySelectorAll('.gb-factor button:not(.icon)')].map((b) => b.textContent?.trim())).toEqual([
       '1,9',
       '2,2',
     ]);
+  });
+
+  it('keeps a factor per place: changed, saved for the building, or the standard', async () => {
+    const { box, openOwn, rows, type, copyField, ctx } = setup();
+    openOwn(onlyOwner);
+    await tick();
+    const fields = () => [...box.root.querySelectorAll('input.place-factor')] as HTMLInputElement[];
+    const status = () => box.root.querySelector('.factor-status')?.textContent?.trim();
+    const icons = () => [...box.root.querySelectorAll('.gb-factor button.icon')].map((b) => b.getAttribute('data-tip'));
+    const active = () =>
+      [...box.root.querySelectorAll('.gb-factor .active')].map((b) => b.textContent?.trim() || 'field');
+    const SAVE = 'Für dieses LG speichern';
+    const RESET = 'Auf Standard zurücksetzen';
+    const ADOPT = 'Als Standard übernehmen';
+    const iconClick = (tip: string) =>
+      (box.root.querySelector(`.gb-factor button.icon[data-tip="${tip}"]`) as HTMLButtonElement).click();
+    // a field per place, none in the rows of own Forge points
+    expect(fields().map((f) => f.value)).toEqual(['1.9', '1.9', '1.9', '1.9', '1.9']);
+    expect(status()).toBe('Standard');
+    expect(icons()).toEqual([]);
+    expect(active()).toEqual(['1,9']);
+
+    box.click('2');
+    await tick();
+    expect(fields().map((f) => f.value)).toEqual(['2', '2', '2', '2', '2']);
+    expect(status()).toBe('geändert');
+    expect(icons()).toEqual([SAVE, RESET, ADOPT]);
+    expect(box.root.querySelector(`button[data-tip="${SAVE}"]`)?.getAttribute('aria-label')).toBe(SAVE);
+
+    // one place typed: no button holds all five, so the free field is marked
+    type(fields()[0] as HTMLInputElement, '1.8');
+    await tick();
+    expect(rows()[1]).toBe('P1 frei 4.689 – –');
+    expect(active()).toEqual(['field']);
+    await ctx.settings.set('gbOwn.copy.factor', true);
+    await tick();
+    expect(copyField().value).toContain('1,8/2');
+
+    // the change survives opening the building again, as long as the page is not reloaded
+    openOwn(onlyOwner);
+    await tick();
+    expect(status()).toBe('geändert');
+    iconClick(SAVE);
+    await tick();
+    expect(status()).toBe('für dieses LG gespeichert');
+    expect(icons()).toEqual([RESET, ADOPT]);
+    expect(ctx.ui.pref('gbOwn.factors.X_FutureEra_Landmark1')).toBeDefined();
+
+    iconClick(ADOPT);
+    await tick();
+    expect(icons()).toEqual([RESET]);
+    expect(ctx.ui.pref('gbOwn.factorDefault')).toBeDefined();
+    iconClick(RESET);
+    await tick();
+    // back on the standard, which is the five just adopted
+    expect(status()).toBe('Standard');
+    expect(icons()).toEqual([]);
+    expect(fields().map((f) => f.value)).toEqual(['1.8', '2', '2', '2', '2']);
+
+    // a new factor in the settings sets all five alike again
+    await ctx.settings.set('gbOwn.factor', 80);
+    await tick();
+    expect(ctx.ui.pref('gbOwn.factorDefault')).toBeUndefined();
+    expect(fields().map((f) => f.value)).toEqual(['1.8', '1.8', '1.8', '1.8', '1.8']);
+    expect(rows()[1]).toBe('P1 frei 4.689 – –');
   });
 
   it('copies the safe places by default and what the settings ask for', async () => {

@@ -33,3 +33,17 @@ describe('warning signs in the copy text', () => {
     expect(text({ warn: true, mode: 'auto' })).toBe('Ich Arche P1(4950)');
   });
 });
+
+describe('the factor in the copy text', () => {
+  const withFactor = (factor: number | number[]) =>
+    copyText(calc, { ...DEFAULT_COPY, mode: 'all', fp: false, factor: true }, { ...about, factor });
+
+  it('shows one factor when all places share it', () => {
+    expect(withFactor(90)).toBe('Ich Arche 1,9 P3 P2 P1');
+    expect(withFactor([90, 90, 90, 90, 90])).toBe('Ich Arche 1,9 P3 P2 P1');
+  });
+
+  it('shows the lowest and the highest factor when the places differ', () => {
+    expect(withFactor([90, 80, 90, 95.5, 90])).toBe('Ich Arche 1,8/1,955 P3 P2 P1');
+  });
+});

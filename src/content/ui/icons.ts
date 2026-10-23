@@ -114,4 +114,12 @@ export const headerIcons = {
   ),
   minimize: headerIcon(svg`<path d="M5 19h14"/>`),
   close: headerIcon(svg`<path d="M6 6l12 12M18 6 6 18"/>`),
+  /** a diskette: save */
+  save: headerIcon(
+    svg`<path d="M5 3.5h11l3.5 3.5v12a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 5 3.5Z"/><path d="M8 3.5v5h7v-5"/><path d="M7.5 20.5v-6h9v6"/>`,
+  ),
+  /** an arrow turning back counter-clockwise: reset */
+  reset: headerIcon(svg`<path d="M4 12a8 8 0 1 0 2.3-5.6"/><path d="M4 4v4.5h4.5"/>`),
+  /** a five-pointed star: make it the standard */
+  star: headerIcon(svg`<path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9Z"/>`),
 };

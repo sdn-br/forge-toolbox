@@ -2,7 +2,8 @@ import type { BuildingDefId } from '../../../shared/ids';
 import { type TextKey, t } from '../../core/texts';
 import { calculateOwnShare, type OwnPlace, type OwnShareCalc } from '../../domain/gb-own-share';
 import type { Construction } from '../../stores/great-building-model';
-import { effectiveFactor, type FactorButton, type FactorChoice, factorButtons, factorText } from '../../ui/factor-bar';
+import { effectiveFactor, type FactorButton, factorButtons, factorText } from '../../ui/factor-bar';
+import { type PlaceFactorState, sameChoice } from './place-factors';
 
 /** which places the copy text names: the safe ones from the top, all free ones, all with Forge points, or a choice */
 export type CopyMode = 'auto' | 'autoUnsafe' | 'all' | 'manual';
@@ -76,8 +77,8 @@ export interface OwnShareInputs {
   /** the level the construction was opened at; a building on another level has stale rankings */
   openedLevel?: number;
   greatBuildingName(def: BuildingDefId): string | undefined;
-  /** factor in percent the owner offers, or the Arc bonus */
-  factor: FactorChoice;
+  /** the factor of each place, in percent or the Arc bonus, and where they come from */
+  factors: PlaceFactorState;
   factorButtons: number[];
   /** the own Arc bonus as one more button, sorted in by its value; missing when the setting leaves it out */
   arcBonus?: number;
@@ -101,7 +102,8 @@ export interface OwnShareInputs {
 export type OwnRow =
   /** `fp` to pay now (0 for none) and the total so far; `paid` is what the owner has paid already, first row only */
   | { kind: 'own'; fp: number; total: number; paid: number }
-  | { kind: 'place'; place: OwnPlace; ext: number }
+  /** `factor` in percent for the place's field; missing without a Forge point reward, where it changes nothing */
+  | { kind: 'place'; place: OwnPlace; ext: number; factor?: number; arc?: boolean }
   /** deposits below the paid places, e.g. placeholders a helper pushed down */
   | { kind: 'pushed'; from: number; to: number; fp: number };
 
@@ -121,9 +123,11 @@ export type OwnShareVm =
       name: string;
       level: number;
       next: number;
+      /** the factor of the free field: the one of place 1 */
       factor: number;
-      /** sorted by value; `arc` marks the button of the own Arc bonus */
+      /** sorted by value; `arc` marks the button of the own Arc bonus; active only when all five places hold it */
       factorButtons: FactorButton[];
+      factorState: Omit<PlaceFactorState, 'choices'>;
       secureExisting: boolean;
       trust: boolean;
       rows: OwnRow[];
@@ -149,11 +153,12 @@ export function ownShareViewModel(input: OwnShareInputs): OwnShareVm {
   // a new level since the opening: the rankings belong to the old one
   if (c.leveled || entity.level !== (input.openedLevel ?? entity.level))
     return { kind: 'leveled', name, level: c.leveled?.level ?? entity.level };
-  const factor = effectiveFactor(input.factor, input.arcBonus);
+  const { choices, ...factorState } = input.factors;
+  const factors = choices.map((c) => effectiveFactor(c, input.arcBonus));
   const calc = calculateOwnShare({
     required: entity.required,
     rankings: c.rankings,
-    factor,
+    factor: factors,
     secureExisting: input.secureExisting,
     trust: input.trust,
     oneFpForNoReward: input.oneFpForNoReward,
@@ -161,18 +166,26 @@ export function ownShareViewModel(input: OwnShareInputs): OwnShareVm {
   });
   const player = input.copyPlayer ?? '';
   const building = input.copyBuilding ?? name;
-  const text = copyText(calc, input.copy, { player, building, level: entity.level, factor });
-  const buttons = factorButtons(input.factorButtons, input.arcBonus, input.factor);
+  const text = copyText(calc, input.copy, { player, building, level: entity.level, factor: factors });
+  const first = choices[0];
+  const alike = first && choices.every((c) => sameChoice(c, first)) ? first : undefined;
+  const buttons = factorButtons(input.factorButtons, input.arcBonus, alike);
   return {
     kind: 'current',
     name,
     level: entity.level,
     next: entity.level + 1,
-    factor,
+    factor: factors[0] ?? 0,
     factorButtons: buttons,
+    factorState,
     secureExisting: input.secureExisting,
     trust: input.trust,
-    rows: ownRows(calc, input.exts),
+    rows: ownRows(calc, input.exts, (rank) => {
+      const choice = choices[rank - 1];
+      return (
+        choice && { factor: effectiveFactor(choice, input.arcBonus), arc: choice.arc && input.arcBonus !== undefined }
+      );
+    }),
     ownShare: calc.ownShare,
     myDeposit: calc.myDeposit,
     open: calc.open,
@@ -181,7 +194,11 @@ export function ownShareViewModel(input: OwnShareInputs): OwnShareVm {
   };
 }
 
-function ownRows(calc: OwnShareCalc, exts: number[]): OwnRow[] {
+function ownRows(
+  calc: OwnShareCalc,
+  exts: number[],
+  factorOf: (rank: number) => { factor: number; arc: boolean } | undefined,
+): OwnRow[] {
   let total = calc.myDeposit;
   // the first row holds what is paid already and, before place 1, what to pay first
   const rows: OwnRow[] = [];
@@ -193,7 +210,12 @@ function ownRows(calc: OwnShareCalc, exts: number[]): OwnRow[] {
   if (calc.myDeposit > 0 || first > 0) own(first);
   calc.places.forEach((place, i) => {
     if (i > 0 && place.advance > 0) own(place.advance);
-    rows.push({ kind: 'place', place, ext: exts[place.rank - 1] ?? 0 });
+    rows.push({
+      kind: 'place',
+      place,
+      ext: exts[place.rank - 1] ?? 0,
+      ...(place.net > 0 && factorOf(place.rank)),
+    });
   });
   if (calc.pushed) rows.push({ kind: 'pushed', ...calc.pushed });
   if (calc.rest > 0) own(calc.rest);
@@ -215,18 +237,27 @@ function copiedPlaces(calc: OwnShareCalc, o: CopyOptions): OwnPlace[] {
   }
 }
 
+/** the factor as helpers read it: 1,9 when all places share it, else the lowest and the highest, 1,8/1,9 */
+function factorsText(factor: number | number[]): string {
+  const list = typeof factor === 'number' ? [factor] : factor;
+  const low = Math.min(...list);
+  const high = Math.max(...list);
+  return low === high ? factorText(low) : `${factorText(low)}/${factorText(high)}`;
+}
+
 /** One line for the guild chat, e.g. „Ich Arche 135→136 P5(38) P4(209) P3(827)“. Numbers stay plain for pasting. */
 export function copyText(
   calc: OwnShareCalc,
   o: CopyOptions,
-  about: { player: string; building: string; level: number; factor: number },
+  /** `factor` in percent, one for all places or one per place */
+  about: { player: string; building: string; level: number; factor: number | number[] },
 ): string {
   const parts: string[] = [];
   if (o.player && about.player) parts.push(about.player);
   if (o.building && about.building) parts.push(about.building);
   if (o.levelUp) parts.push(t('gbOwn.copyLevelUp'));
   if (o.level) parts.push(`${about.level}→${about.level + 1}`);
-  if (o.factor) parts.push(factorText(about.factor));
+  if (o.factor) parts.push(factorsText(about.factor));
   const places = copiedPlaces(calc, o);
   if (o.descending) places.reverse();
   // as in the old toolbox, but the prefix only when a marked place is in the text, not for one left out

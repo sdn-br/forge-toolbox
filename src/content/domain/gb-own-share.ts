@@ -7,8 +7,11 @@ export interface OwnShareInput {
   /** Forge points the current level needs */
   required: number;
   rankings: RankingRow[];
-  /** factor in percent the owner offers, e.g. 90 pays 1.9 times the reward */
-  factor: number;
+  /**
+   * factor in percent the owner offers, e.g. 90 pays 1.9 times the reward; a list gives one per place, index 0 is
+   * place 1, a place past its end takes the last
+   */
+  factor: number | number[];
   /** make the places others hold already safe as well (Absichern); off leaves them as they are */
   secureExisting?: boolean;
   /** a place without a Forge point reward counts as one paid Forge point, as helpers take it for blueprints and medals */
@@ -68,6 +71,10 @@ interface Holder {
   ext?: boolean;
 }
 
+/** the factor of a place: one for all, or the place's own from the list */
+const factorAt = (factor: number | number[], rank: number) =>
+  typeof factor === 'number' ? factor : (factor[rank - 1] ?? factor.at(-1) ?? 0);
+
 /** a sniper gain below this is not worth a warning */
 const DANGER_MIN = 5;
 
@@ -105,7 +112,7 @@ export function calculateOwnShare(input: OwnShareInput): OwnShareCalc {
   paid.forEach((row, i) => {
     const rank = row.rank as number;
     const net = row.reward?.fp ?? 0;
-    const ask = net === 0 && oneFpForNoReward ? 1 : plusPercent(net, factor);
+    const ask = net === 0 && oneFpForNoReward ? 1 : plusPercent(net, factorAt(factor, rank));
     const slot = slots[i];
     if (slot !== undefined && typeof slot !== 'number' && (ask <= slot.fp || missing <= slot.fp)) {
       // the holder keeps the place: safe once the missing rest plus the strongest below does not pass him

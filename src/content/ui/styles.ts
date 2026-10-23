@@ -140,6 +140,13 @@ td.own-fp, td.gain { color: #8fd08f; }
 button.copy-fp { all: unset; cursor: pointer; }
 button.copy-fp:hover { text-decoration: underline; }
 input.ext { width: 5em; }
+input.place-factor { width: 4em; }
+input.place-factor.arc { color: var(--accent); }
+.gb-factor .factor-status { font-size: 11px; margin-left: 4px; }
+.gb-factor button.icon { all: unset; cursor: pointer; width: 18px; height: 18px; display: grid; place-items: center;
+  color: var(--ink); opacity: .8; }
+.gb-factor button.icon:hover { opacity: 1; }
+.gb-factor button.icon svg { display: block; width: 14px; height: 14px; }
 .copy-line { display: flex; gap: 4px; align-items: center; margin: 4px 0; }
 .copy-line .copy-text { flex: 1; min-width: 0; }
 .copy-line .copy-building { width: 7em; }

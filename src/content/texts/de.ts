@@ -230,6 +230,13 @@ export const de = {
   'gbCalc.factorButtonsHint':
     'mit Semikolon oder Leerzeichen getrennt, z. B. 1,8; 1,9; 2; leer gibt die Standardknöpfe',
   'gbOwn.factorArcSetting': 'Faktor = eigener Arche-Bonus',
+  'gbOwn.placeFactorHint': 'Faktor je Platz, z. B. 1,9; die Knöpfe oben setzen alle fünf',
+  'gbOwn.factorStandard': 'Standard',
+  'gbOwn.factorSaved': 'für dieses LG gespeichert',
+  'gbOwn.factorChanged': 'geändert',
+  'gbOwn.factorSave': 'Für dieses LG speichern',
+  'gbOwn.factorReset': 'Auf Standard zurücksetzen',
+  'gbOwn.factorAdopt': 'Als Standard übernehmen',
   'gbOwn.autoOpenSetting': 'Beim eigenen LG automatisch öffnen',
   'gbOwn.none': 'Noch kein eigenes LG geöffnet.',
   'gbOwn.maxLevel': 'Das LG hat die freigeschaltete Höchststufe erreicht.',

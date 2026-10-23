@@ -1,5 +1,5 @@
 // The factor buttons of the great building calculators: presets and the own Arc bonus, sorted by value, plus a field.
-import { html } from 'lit-html';
+import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../core/texts';
 import { keepKeys } from './inputs';
 
@@ -29,11 +29,15 @@ export const factorText = (percent: number) => formatNumber((100 + percent) / 10
 export const effectiveFactor = (choice: FactorChoice, arcBonus: number | undefined) =>
   choice.arc && arcBonus !== undefined ? arcBonus : choice.value;
 
-/** the presets and, when given, the own Arc bonus, sorted by value, the chosen one active */
-export function factorButtons(presets: number[], arcBonus: number | undefined, choice: FactorChoice): FactorButton[] {
-  const arc = choice.arc && arcBonus !== undefined;
+/** the presets and, when given, the own Arc bonus, sorted by value, the chosen one active; without a choice none is */
+export function factorButtons(
+  presets: number[],
+  arcBonus: number | undefined,
+  choice: FactorChoice | undefined,
+): FactorButton[] {
+  const arc = choice?.arc === true && arcBonus !== undefined;
   return [
-    ...presets.map((value) => ({ value, arc: false, active: !arc && value === choice.value })),
+    ...presets.map((value) => ({ value, arc: false, active: !arc && value === choice?.value })),
     ...(arcBonus === undefined ? [] : [{ value: arcBonus, arc: true, active: arc }]),
   ].sort((a, b) => a.value - b.value);
 }
@@ -44,8 +48,11 @@ export const FACTOR_STEP = 0.01;
 /** a factor as typed, 1,955, back to percent with one decimal, 95.5 */
 export const percentOf = (factor: number) => Math.round((factor - 1) * 1000) / 10;
 
-/** the buttons and a field for any other factor, both read as factors; the field is marked while no button is */
-export function factorBar(buttons: FactorButton[], factor: number, actions: FactorActions) {
+/**
+ * the buttons and a field for any other factor, both read as factors; the field is marked while no button is;
+ * `extra` goes at the end of the bar
+ */
+export function factorBar(buttons: FactorButton[], factor: number, actions: FactorActions, extra?: TemplateResult) {
   const typed = (e: Event) => {
     const value = (e.target as HTMLInputElement).valueAsNumber;
     if (Number.isFinite(value)) actions.setFactor(percentOf(value));
@@ -59,5 +66,6 @@ export function factorBar(buttons: FactorButton[], factor: number, actions: Fact
     <input type="number" min="0" max="3" step=${FACTOR_STEP} data-tip=${t('gbCalc.factorInput')}
       aria-label=${t('gbCalc.factorInput')} class=${buttons.some((b) => b.active) ? '' : 'active'}
       .value=${String((100 + factor) / 100)} @keydown=${keepKeys} @change=${typed} />
+    ${extra ?? ''}
   </div>`;
 }

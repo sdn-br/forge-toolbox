@@ -33,6 +33,13 @@ export class UiState {
     this.kv.set('ui.prefs', this.prefs).catch((error) => logError('saving a view choice failed', error));
   }
 
+  removePref(key: string): void {
+    if (!(key in this.prefs)) return;
+    const { [key]: _, ...rest } = this.prefs;
+    this.prefs = rest;
+    this.kv.set('ui.prefs', this.prefs).catch((error) => logError('saving a view choice failed', error));
+  }
+
   box(id: string): BoxState {
     return this.boxes[id] ?? {};
   }
