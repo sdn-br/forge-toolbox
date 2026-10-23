@@ -19,6 +19,7 @@ const ICON = '🧱';
 const FACTOR = 'gbOwn.factor';
 const FACTOR_BUTTONS = 'gbOwn.factorButtons';
 const AUTO_OPEN = 'gbOwn.autoOpen';
+const ONE_FP = 'gbOwn.oneFpForNoReward';
 const ARC_BUTTON = 'gbOwn.arcButton';
 /** the Arc button is the chosen factor; its value comes from the city, so it follows the bonus */
 const FACTOR_ARC = 'gbOwn.factorArc';
@@ -64,6 +65,13 @@ export function createGbOwnShareFeature(
       });
       ctx.settings.register({ key: ARC_BUTTON, group: 'gbOwn.title', label: 'gbCalc.arcButtonSetting', default: true });
       ctx.settings.register({ key: FACTOR_ARC, group: 'gbOwn.title', label: 'gbOwn.factorArcSetting', default: false });
+      ctx.settings.register({
+        key: ONE_FP,
+        group: 'gbOwn.title',
+        label: 'gbOwn.oneFpSetting',
+        hint: 'gbOwn.oneFpHint',
+        default: true,
+      });
       ctx.settings.register({ key: AUTO_OPEN, group: 'gbOwn.title', label: 'gbOwn.autoOpenSetting', default: true });
 
       ctx.settings.register({
@@ -177,6 +185,7 @@ export function createGbOwnShareFeature(
             : undefined,
           secureExisting: flag(SECURE, true),
           trust: flag(TRUST, false),
+          oneFpForNoReward: ctx.settings.get(ONE_FP),
           exts: exts.get(extKey()) ?? [],
           copy: copyOptions(),
           copyPlayer: ctx.settings.text(COPY_PLAYER) || ctx.session.current?.name,

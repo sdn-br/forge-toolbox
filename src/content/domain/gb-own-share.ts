@@ -11,6 +11,8 @@ export interface OwnShareInput {
   factor: number;
   /** make the places others hold already safe as well (Absichern); off leaves them as they are */
   secureExisting?: boolean;
+  /** a place without a Forge point reward counts as one paid Forge point, as helpers take it for blueprints and medals */
+  oneFpForNoReward?: boolean;
   /** trust that whoever paid in already adds nothing more (Vertrauen): only newcomers can pass a place */
   trust?: boolean;
   /** promised payments not made yet (Ext), counted as if paid; their order does not matter */
@@ -33,6 +35,8 @@ export interface OwnPlace {
   full: boolean;
   /** the helper's payment fills the level */
   levels: boolean;
+  /** no Forge point reward and not counted with one: nobody is asked to pay, it gets no own Forge points before it */
+  unoffered?: boolean;
   /**
    * a free place a sniper can take before the helper pays: what he gains at the same factor, the payment minus the
    * safe cost at that moment; missing below a few Forge points
@@ -75,7 +79,7 @@ const DANGER_MIN = 5;
  * the next place.
  */
 export function calculateOwnShare(input: OwnShareInput): OwnShareCalc {
-  const { rankings, required, factor, secureExisting = true, trust = false } = input;
+  const { rankings, required, factor, secureExisting = true, trust = false, oneFpForNoReward = false } = input;
   const myDeposit = rankings.find((r) => r.self)?.fp ?? 0;
   // deposits of others, strongest first; a promised payment ranks behind an equal real one, which came first
   const holders: Holder[] = [
@@ -101,7 +105,7 @@ export function calculateOwnShare(input: OwnShareInput): OwnShareCalc {
   paid.forEach((row, i) => {
     const rank = row.rank as number;
     const net = row.reward?.fp ?? 0;
-    const ask = plusPercent(net, factor);
+    const ask = net === 0 && oneFpForNoReward ? 1 : plusPercent(net, factor);
     const slot = slots[i];
     if (slot !== undefined && typeof slot !== 'number' && (ask <= slot.fp || missing <= slot.fp)) {
       // the holder keeps the place: safe once the missing rest plus the strongest below does not pass him
@@ -112,6 +116,12 @@ export function calculateOwnShare(input: OwnShareInput): OwnShareCalc {
     }
     if (missing <= 0) {
       places.push({ rank, net, amount: 0, ask, advance: 0, full: true, levels: false });
+      return;
+    }
+    // with nothing to pay out nobody pays: no own Forge points before it, the rest goes to the end; nothing is on the
+    // slot (a holder would have kept it), so the places below keep theirs
+    if (ask === 0) {
+      places.push({ rank, net, amount: 0, ask, advance: 0, full: false, levels: false, unoffered: true });
       return;
     }
     // a helper takes the place and pushes what is on it down: after the advance and the payment, the rest plus that

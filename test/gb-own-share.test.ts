@@ -145,3 +145,31 @@ describe('own share', () => {
     expect(calc.pushed).toBeUndefined();
   });
 });
+
+describe('places without a Forge point reward', () => {
+  const rankings = [me(0), ...empty([100, 50, 20, 0, 0])];
+
+  it('are not offered without the setting: no own Forge points before them, the rest comes at the end', () => {
+    const calc = calculateOwnShare({ required: 1000, rankings, factor: 90 });
+    expect(calc.places.map((p) => [p.rank, p.amount, p.advance, p.unoffered ?? false])).toEqual([
+      [1, 190, 620, false],
+      [2, 95, 0, false],
+      [3, 38, 19, false],
+      [4, 0, 0, true],
+      [5, 0, 0, true],
+    ]);
+    expect(calc.rest).toBe(38);
+    expect(calc.ownShare).toBe(677);
+  });
+
+  it('count as one paid Forge point with the setting, which lowers the own share by one each', () => {
+    const calc = calculateOwnShare({ required: 1000, rankings, factor: 90, oneFpForNoReward: true });
+    // 38 missing before P4: the owner leaves 2, so 1 on P4 holds against the 1 left, which P5 pays
+    expect(calc.places.slice(3).map((p) => [p.rank, p.amount, p.advance, p.levels])).toEqual([
+      [4, 1, 36, false],
+      [5, 1, 0, true],
+    ]);
+    expect(calc.rest).toBe(0);
+    expect(calc.ownShare).toBe(675);
+  });
+});

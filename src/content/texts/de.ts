@@ -243,6 +243,12 @@ export const de = {
   'gbOwn.extHint': 'zugesagte, noch nicht gezahlte FP, zählen wie eingezahlt',
   'gbOwn.extHolder': 'zugesagt',
   'gbOwn.pushedHint': 'Einzahlungen unter den Plätzen mit Belohnung, etwa Platzhalter, die ein Förderer verdrängt',
+  'gbOwn.oneFpSetting': 'Plätze ohne FP-Belohnung mit 1 FP rechnen',
+  'gbOwn.oneFpHint':
+    'Förderer nehmen solche Plätze für Blaupausen und Medaillen. Dein Eigenanteil sinkt um 1 FP je Platz.',
+  'gbOwn.unoffered': 'keine FP',
+  'gbOwn.unofferedHint':
+    'Der Platz bringt keine FP, niemand zahlt dafür. Mit der Einstellung „Plätze ohne FP-Belohnung mit 1 FP rechnen“ zählt er mit 1 FP.',
   'gbOwn.levels': 'levelt',
   'gbOwn.levelsHint': 'die Zahlung auf diesen Platz levelt das LG',
   'gbOwn.danger': 'Gefahr ({fp} FP)',
