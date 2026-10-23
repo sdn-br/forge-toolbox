@@ -46,6 +46,7 @@ export function createGbOwnShareFeature(
         min: -100,
         max: 200,
         step: 0.1,
+        asFactor: true,
       });
       ctx.settings.register({
         key: FACTOR_BUTTONS,
@@ -56,6 +57,7 @@ export function createGbOwnShareFeature(
         min: -100,
         max: 200,
         step: 0.1,
+        asFactor: true,
       });
       ctx.settings.register({ key: ARC_BUTTON, group: 'gbOwn.title', label: 'gbCalc.arcButtonSetting', default: true });
       ctx.settings.register({ key: FACTOR_ARC, group: 'gbOwn.title', label: 'gbOwn.factorArcSetting', default: false });

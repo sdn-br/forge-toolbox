@@ -24,6 +24,8 @@ export interface NumberSettingDef extends BaseSettingDef {
   min: number;
   max: number;
   step?: number;
+  /** stored in percent, shown and typed as a factor: 90 reads 1,9 */
+  asFactor?: boolean;
 }
 
 /** numbers within `min` and `max`, rounded to `step`, typed as a list like "80; 90; 95,5" */
@@ -32,6 +34,8 @@ export interface ListSettingDef extends BaseSettingDef {
   min: number;
   max: number;
   step?: number;
+  /** stored in percent, shown and typed as factors: 90 reads 1,9 */
+  asFactor?: boolean;
 }
 
 /** `value` rounded to a multiple of `step`, without the float tail of 955 × 0.1 */
