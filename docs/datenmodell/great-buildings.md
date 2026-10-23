@@ -60,7 +60,7 @@ interface KnownGreatBuilding {  // persistiert, für die Snipehilfe
 
 **Events:** `greatBuilding.opened { owner, entityId, own }`, `greatBuilding.changed { owner, entityId, reason }` mit `reason` `entity`, `ranking`, `contributed` oder `leveled`.
 
-**Eigene LGs:** `CityMapService.updateEntity` hält `investedFp` der eigenen LGs in der Stadt aktuell (so kommen fremde Einzahlungen in eigene LGs an, ohne Rangliste). Eine Anzeige dafür kommt mit dem Eigenanteilsrechner.
+**Eigene LGs:** `CityMapService.updateEntity` hält `investedFp` der eigenen LGs in der Stadt aktuell (so kommen fremde Einzahlungen in eigene LGs an, ohne Rangliste). Der Store übernimmt die Meldung auch für ein offenes eigenes LG, der [Eigenanteil](../features/eigenanteil.md) zeigt daraus, was andere seit dem Öffnen eingezahlt haben. Eine eigene Einzahlung ins eigene LG kommt wie beim fremden als `contributeForgePoints` mit der neuen Rangliste (Besitzerzeile mit der neuen Summe), dazu das Gebäude in `CityMapService.updateEntity` und `reset` derselben Antwort (aufgenommen auf de10, 2026-10-23).
 
 ## Rechnung je Platz (abgeleitet)
 

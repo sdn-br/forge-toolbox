@@ -332,7 +332,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   // rankings list. The same response brings the building as it is now in a CityMapService.reset, the new resources, the
   // inventory updates of the packages opened and getAvailablePackageForgePoints. The order varies, so the contribution
   // is applied once the response is done, with the building from the reset when there is one. A reset of the open
-  // great building without a contribution keeps it current as well.
+  // great building without a contribution keeps it current as well, also an own one that others paid into.
   let contribution: { rows: RankingRow[]; target?: { owner: PlayerId; entityId: number } } | null = null;
   const resetBuildings: GreatBuildingEntity[] = [];
   ingestion.on('GreatBuildingsService', 'contributeForgePoints', ({ data, request }) => {
@@ -352,7 +352,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     const target = contribution?.target ?? open;
     const building = resetBuildings.find((b) => b.owner === target?.owner && b.entityId === target.entityId);
     if (contribution) greatBuildings.contributed(contribution.rows, contribution.target, building);
-    else if (building && !open?.own) greatBuildings.noteEntity(building);
+    else if (building) greatBuildings.noteEntity(building);
     contribution = null;
     resetBuildings.length = 0;
   });

@@ -1,26 +1,22 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import type { LevelUpAndFirst } from '../../domain/gb-level-preview';
+import { type FactorActions, factorBar } from '../../ui/factor-bar';
 import { keepKeys } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
-import {
-  type ActivityVm,
-  type CostCell,
-  type DemandCell,
-  FACTOR_PRESETS,
-  type GbCalculatorVm,
-  type GbHeader,
-  type LevelChoice,
-  type MeVm,
-  type PlaceRow,
-  type PreviewVm,
+import type {
+  ActivityVm,
+  CostCell,
+  DemandCell,
+  GbCalculatorVm,
+  GbHeader,
+  LevelChoice,
+  MeVm,
+  PlaceRow,
+  PreviewVm,
 } from './view-model';
 
-export interface GbCalculatorActions {
-  /** a preset or a typed factor in percent */
-  setFactor(value: number): void;
-  /** the Arc bonus as the factor */
-  useArc(): void;
+export interface GbCalculatorActions extends FactorActions {
   /** preview a later level; undefined goes back to the current construction */
   previewLevel(level: number | undefined): void;
 }
@@ -67,28 +63,6 @@ function levelBar(l: LevelChoice, actions: GbCalculatorActions) {
             ${t('gbCalc.live', { level: l.current, next: l.current + 1 })}</button>`
         : ''
     }
-  </div>`;
-}
-
-function factorBar(vm: Extract<GbCalculatorVm, { kind: 'current' | 'preview' }>, actions: GbCalculatorActions) {
-  const { factor } = vm;
-  const typed = (e: Event) => {
-    const value = (e.target as HTMLInputElement).valueAsNumber;
-    if (Number.isFinite(value)) actions.setFactor(value);
-  };
-  return html`<div class="gb-factor">
-    <span>${t('gbCalc.factor')}</span>
-    ${FACTOR_PRESETS.map(
-      (
-        n,
-      ) => html`<button class=${!factor.arc && factor.value === n ? 'active' : ''} @click=${() => actions.setFactor(n)}>
-        ${percent(n)}</button>`,
-    )}
-    <button class=${factor.arc ? 'active' : ''} @click=${() => actions.useArc()}>
-      ${t('gbCalc.factorArc')} (${percent(vm.header.arcBonus)})</button>
-    <input type="number" min="-100" max="200" step="1" data-tip=${t('gbCalc.factorInput')} aria-label=${t('gbCalc.factorInput')}
-      class=${!factor.arc && !FACTOR_PRESETS.includes(factor.value as never) ? 'active' : ''}
-      .value=${String(factor.value)} @keydown=${keepKeys} @change=${typed} />
   </div>`;
 }
 
@@ -249,14 +223,14 @@ export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorAction
     case 'preview':
       return html`${header(vm.header)}
         ${levelBar(vm.header.levels, actions)}
-        ${factorBar(vm, actions)}
+        ${factorBar(vm.factorButtons, vm.effectiveFactor, actions)}
         ${vm.levelUp ? html`<p class="gb-me">${levelUpLine(vm.levelUp)}</p>` : ''}
         ${previewPart(vm.preview)}`;
     case 'current': {
       const overlay = overlayText(vm);
       return html`${header(vm.header)}
         ${levelBar(vm.header.levels, actions)}
-        ${factorBar(vm, actions)}
+        ${factorBar(vm.factorButtons, vm.effectiveFactor, actions)}
         ${vm.me ? meLine(vm.me) : ''}
         <div class="gb-places">
           ${placesTable(vm.places)}

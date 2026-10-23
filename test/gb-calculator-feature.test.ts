@@ -119,7 +119,7 @@ describe('LG-Rechner', () => {
     const { box, open, rows } = setup();
     open(2434);
     const input = box.root.querySelector('.gb-factor input') as HTMLInputElement;
-    input.value = '200';
+    input.value = '3';
     input.dispatchEvent(new Event('change'));
     await tick();
     // rank 1 pays 655: round(655 × 3) = 1965, the level needs 786 more; 575 of mine already in
@@ -152,21 +152,37 @@ describe('LG-Rechner', () => {
     const { box, ctx, open, rows } = setup();
     open(1909);
     const demand = () => rows()[0]?.querySelectorAll('td')[5]?.textContent?.trim();
-    box.click('100 %');
+    box.click('2');
     await tick();
     expect(ctx.settings.number('gbCalc.factor')).toBe(100);
     expect(demand()).toBe('1.460');
-    box.click('Arche');
+    // the buttons read as factors, the own Arc bonus of 95,5 % sorted in
+    expect([...box.root.querySelectorAll('.gb-factor button')].map((b) => b.textContent?.trim())).toEqual([
+      '1,8',
+      '1,9',
+      '1,955',
+      '2',
+    ]);
+    box.click('1,955');
     await tick();
     expect(ctx.settings.get('gbCalc.factorArc')).toBe(true);
     expect(demand()).toBe('1.427');
     const input = box.root.querySelector('.gb-factor input') as HTMLInputElement;
-    input.value = '150';
+    // the field reads as a factor too, 2,5 is 150 %
+    expect(input.value).toBe('1.955');
+    input.value = '2.5';
     input.dispatchEvent(new Event('change'));
     await tick();
     expect(ctx.settings.get('gbCalc.factorArc')).toBe(false);
     // round(730 × 2.5)
     expect(demand()).toBe('1.825');
+    await ctx.settings.set('gbCalc.factorButtons', [90, 95.5]);
+    await ctx.settings.set('gbCalc.arcButton', false);
+    await tick();
+    expect([...box.root.querySelectorAll('.gb-factor button')].map((b) => b.textContent?.trim())).toEqual([
+      '1,9',
+      '1,955',
+    ]);
   });
 
   it('marks costs the available Forge points do not cover', async () => {
@@ -638,7 +654,7 @@ describe('LG-Rechner', () => {
       expect(box.text).toContain('Die Stufe kostet 4.434 FP');
       expect(cells(rows()[0])?.[0]).toBe('1');
       // the factor still sets the demand: 910 × 2
-      box.click('100 %');
+      box.click('2');
       await tick();
       expect(cells(rows()[0])?.[5]).toBe('1.820');
       box.click('Laufend');

@@ -11,6 +11,8 @@ import { type GbCalculatorVm, gbCalculatorViewModel } from './view-model';
 
 const FACTOR = 'gbCalc.factor';
 const FACTOR_ARC = 'gbCalc.factorArc';
+const FACTOR_BUTTONS = 'gbCalc.factorButtons';
+const ARC_BUTTON = 'gbCalc.arcButton';
 const SOUND = 'gbCalc.sound';
 const FP = 'strategy_points';
 
@@ -26,12 +28,29 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         default: 90,
         min: -100,
         max: 200,
+        step: 0.1,
       });
       ctx.settings.register({
         key: FACTOR_ARC,
         group: 'gbCalc.title',
         label: 'gbCalc.factorArcSetting',
         default: false,
+      });
+      ctx.settings.register({
+        key: FACTOR_BUTTONS,
+        group: 'gbCalc.title',
+        label: 'gbCalc.factorButtonsSetting',
+        hint: 'gbCalc.factorButtonsHint',
+        default: [80, 90, 100],
+        min: -100,
+        max: 200,
+        step: 0.1,
+      });
+      ctx.settings.register({
+        key: ARC_BUTTON,
+        group: 'gbCalc.title',
+        label: 'gbCalc.arcButtonSetting',
+        default: true,
       });
       ctx.settings.register({ key: SOUND, group: 'gbCalc.title', label: 'gbCalc.soundSetting', default: true });
 
@@ -74,6 +93,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           fpPackages: ctx.inventory.knowsPackages ? ctx.inventory.forgePointPackages() : undefined,
           arcBonus: arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses()),
           factor: { value: ctx.settings.number(FACTOR), arc: ctx.settings.get(FACTOR_ARC) },
+          factorButtons: ctx.settings.numbers(FACTOR_BUTTONS),
+          arcButton: ctx.settings.get(ARC_BUTTON),
           foestats: shown && ctx.settings.get(FOESTATS_SETTING.key) ? ctx.foestats.get(shown.owner) : undefined,
           today: foestatsDay(Date.now()),
           previewLevel: preview,

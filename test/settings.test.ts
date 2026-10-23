@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { memoryKv } from '../src/content/core/kv';
-import { Settings } from '../src/content/core/settings';
+import { formatNumberList, parseNumberList, Settings, toStep } from '../src/content/core/settings';
 
 function setup(stored?: Record<string, unknown>) {
   const kv = memoryKv(stored ? { settings: stored } : {});
@@ -67,5 +67,67 @@ describe('number settings', () => {
     expect(settings.number('a.number')).toBe(90);
     expect(settings.get('a.number')).toBe(false);
     expect(settings.number('a.toggle')).toBe(0);
+  });
+});
+
+describe('list settings', () => {
+  it('returns the default, keeps whole numbers within bounds once each, and falls back when nothing is left', async () => {
+    const { settings } = setup();
+    settings.register({
+      key: 'a.list',
+      group: 'settings.core',
+      label: 'settings.recordTraffic',
+      default: [80, 90, 100],
+      min: -100,
+      max: 200,
+    });
+    expect(settings.numbers('a.list')).toEqual([80, 90, 100]);
+    await settings.set('a.list', [95.4, 90, 500, 90, -20]);
+    expect(settings.numbers('a.list')).toEqual([95, 90, -20]);
+    await settings.set('a.list', [500]);
+    expect(settings.numbers('a.list')).toEqual([80, 90, 100]);
+    await settings.set('a.list', 'x');
+    expect(settings.numbers('a.list')).toEqual([80, 90, 100]);
+    expect(settings.number('a.list')).toBe(0);
+    expect(settings.get('a.list')).toBe(false);
+  });
+});
+
+describe('decimal settings', () => {
+  it('rounds numbers and lists to their step without a float tail', async () => {
+    const { settings } = setup();
+    const bounds = { group: 'settings.core', label: 'settings.recordTraffic', min: -100, max: 200, step: 0.1 } as const;
+    settings.register({ key: 'a.number', default: 90, ...bounds });
+    settings.register({ key: 'a.list', default: [80, 90, 100], ...bounds });
+    await settings.set('a.number', 95.54);
+    expect(settings.number('a.number')).toBe(95.5);
+    await settings.set('a.list', [95.5, 90.04, 90]);
+    expect(settings.numbers('a.list')).toEqual([95.5, 90]);
+    expect(toStep(955 * 0.1, 0.1)).toBe(95.5);
+  });
+
+  it('reads a typed list parted by semicolons or spaces, with decimal commas or points', () => {
+    expect(parseNumberList(' 80; 90 95,5;;100.5 x ')).toEqual([80, 90, 95.5, 100.5]);
+    expect(parseNumberList('')).toEqual([]);
+    expect(formatNumberList([80, 95.5])).toBe('80; 95,5');
+  });
+});
+
+describe('text settings', () => {
+  it('returns the default until set, trims the value and ignores other types', async () => {
+    const { settings } = setup();
+    settings.register({
+      key: 'a.text',
+      group: 'settings.core',
+      label: 'settings.recordTraffic',
+      default: '',
+      text: true,
+    });
+    expect(settings.text('a.text')).toBe('');
+    await settings.set('a.text', '  Michi ');
+    expect(settings.text('a.text')).toBe('Michi');
+    await settings.set('a.text', 5);
+    expect(settings.text('a.text')).toBe('');
+    expect(settings.get('a.text')).toBe(false);
   });
 });
