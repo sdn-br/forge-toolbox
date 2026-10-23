@@ -92,7 +92,7 @@ function placeRow(p: OwnPlace, ext: number, cell: Cell, actions: OwnShareActions
     : p.holder
       ? html`${p.holder.name}`
       : html`<span class="muted">${t('gbCalc.empty')}</span>${placeWarning(p)}`;
-  const pay = p.holder || p.full ? NONE : html`<td class="num">${cell(p.amount, `place${p.rank}`)}</td>`;
+  const pay = p.holder || p.full || p.unoffered ? NONE : html`<td class="num">${cell(p.amount, `place${p.rank}`)}</td>`;
   const done = p.holder ? fp(p.holder.fp, p.holder.ext ? 'num muted' : 'num') : NONE;
   const typed = (e: Event) => {
     const value = (e.target as HTMLInputElement).valueAsNumber;
@@ -115,6 +115,8 @@ function diffCell(p: OwnPlace) {
 }
 
 function placeWarning(p: OwnPlace) {
+  if (p.unoffered)
+    return html` <span class="muted" data-tip=${t('gbOwn.unofferedHint')}>${t('gbOwn.unoffered')}</span>`;
   if (p.levels) return html` <span class="warn" data-tip=${t('gbOwn.levelsHint')}>${t('gbOwn.levels')}</span>`;
   if (p.danger !== undefined)
     return html` <span class="error" data-tip=${t('gbOwn.dangerHint')}>${t('gbOwn.danger', { fp: formatNumber(p.danger) })}</span>`;

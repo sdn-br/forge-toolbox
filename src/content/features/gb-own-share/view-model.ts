@@ -75,6 +75,8 @@ export interface OwnShareInputs {
   arcBonus?: number;
   secureExisting: boolean;
   trust: boolean;
+  /** places without a Forge point reward count as one paid Forge point */
+  oneFpForNoReward: boolean;
   /** promised payments by place, index 0 is place 1 */
   exts: number[];
   copy: CopyOptions;
@@ -146,6 +148,7 @@ export function ownShareViewModel(input: OwnShareInputs): OwnShareVm {
     factor,
     secureExisting: input.secureExisting,
     trust: input.trust,
+    oneFpForNoReward: input.oneFpForNoReward,
     exts: input.exts,
   });
   const player = input.copyPlayer ?? '';

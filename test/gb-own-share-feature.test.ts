@@ -237,6 +237,26 @@ describe('Eigenanteil', () => {
     expect(cell?.getAttribute('data-tip')).toBe('eingezahlt 1.000 · nach Faktor 2.480');
   });
 
+  it('counts a place without Forge points with 1 FP by default, and leaves it out when told so', async () => {
+    const { openOwn, rows, copyField, ctx } = setup();
+    // P5 of an early level pays blueprints and medals only
+    openOwn((r) =>
+      onlyOwner(r).map((row) =>
+        'rank' in row && row.rank === 5
+          ? ({ ...row, reward: { ...(row as { reward: object }).reward, strategy_point_amount: 0 } } as Row)
+          : row,
+      ),
+    );
+    await ctx.settings.set('gbOwn.copy.mode', 'autoUnsafe');
+    await tick();
+    expect(rows().find((r) => r.startsWith('P5'))).toBe('P5 frei 1 – –');
+    expect(copyField().value).toBe('Ich X_FutureEra_Landmark1 P5(1) P4(209) P3(827) P2(2480) P1(4950)');
+    await ctx.settings.set('gbOwn.oneFpForNoReward', false);
+    await tick();
+    expect(rows().find((r) => r.startsWith('P5'))).toBe('P5 frei keine FP – – –');
+    expect(copyField().value).toBe('Ich X_FutureEra_Landmark1 P4(209) P3(827) P2(2480) P1(4950)');
+  });
+
   it('stays closed for an own great building when it should not open by itself', async () => {
     const { box, openOwn, ctx } = setup();
     await ctx.settings.set('gbOwn.autoOpen', false);
