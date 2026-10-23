@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  emptyLevel,
   estimateFirstPlaceReward,
   firstPlaceReward,
   levelCost,
@@ -7,6 +8,7 @@ import {
   placeRewards,
   previewLevel,
 } from '../src/content/domain/gb-level-preview';
+import { calculateOwnShare } from '../src/content/domain/gb-own-share';
 import { toBuildingDef } from '../src/content/game/building-defs';
 import { toGreatBuildingEntity, toRankingRows } from '../src/content/game/convert';
 import type { GameCityEntity } from '../src/content/game/game-types';
@@ -181,6 +183,34 @@ describe('previewLevel', () => {
     expect(p.required).toBeGreaterThan(0);
     expect(p.reward).toBeUndefined();
     expect(p.calc).toBeUndefined();
+  });
+});
+
+describe('emptyLevel', () => {
+  const arche = def('X_FutureEra_Landmark1');
+
+  it('gives the five places of a level with nobody on them, for the own share as well', () => {
+    const e = emptyLevel(arche, 135);
+    expect(e.required).toBe(21777);
+    expect(e.rankings?.map((r) => [r.rank, r.reward?.fp, r.fp])).toEqual([
+      [1, 2605, undefined],
+      [2, 1305, undefined],
+      [3, 435, undefined],
+      [4, 110, undefined],
+      [5, 20, undefined],
+    ]);
+    // the own share of the empty level: the cost less what helpers pay at 1,9
+    const calc = calculateOwnShare({ required: 21777, rankings: e.rankings ?? [], factor: 90 });
+    expect(calc.places.map((p) => p.amount)).toEqual([4950, 2480, 827, 209, 38]);
+    expect(calc.places[0]?.advance).toBe(11877);
+    expect(calc.ownShare).toBe(21777 - 8504);
+    expect(calc.myDeposit).toBe(0);
+  });
+
+  it('has no places when the reward of the level is unknown', () => {
+    const e = emptyLevel(arche, 2000);
+    expect(e.required).toBeGreaterThan(0);
+    expect(e.rankings).toBeUndefined();
   });
 });
 

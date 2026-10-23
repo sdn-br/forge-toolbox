@@ -12,6 +12,7 @@ import type { GreatBuildingDef } from '../../stores/catalog';
 import type { FoestatsRecord } from '../../stores/foestats';
 import type { Construction, RankingRow } from '../../stores/great-building-model';
 import { effectiveFactor as effective, type FactorButton, type FactorChoice, factorButtons } from '../../ui/factor-bar';
+import { type LevelChoice, levelChoice } from '../../ui/level-bar';
 
 export interface GbHeader {
   name: string;
@@ -33,14 +34,6 @@ export interface GbHeader {
   arcBonus: number;
   /** the level selector: live or a preview of a later level */
   levels: LevelChoice;
-}
-
-export interface LevelChoice {
-  /** the level the current construction starts from */
-  current: number;
-  /** the level in the selector: the previewed one, else the current construction's */
-  chosen: number;
-  preview: boolean;
 }
 
 export interface CostCell {
@@ -325,8 +318,8 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
   const entity = c.entity;
   if (!entity) return { kind: 'noEntity', owner, ownerUrl };
   // the preview starts where the live construction ends; a level up can overtake a chosen level
-  const preview =
-    input.previewLevel !== undefined && input.previewLevel > entity.level ? input.previewLevel : undefined;
+  const levels = levelChoice(entity.level, input.previewLevel);
+  const preview = levels.preview ? levels.chosen : undefined;
   const availableFp =
     input.fpBar === undefined && input.fpPackages === undefined
       ? undefined
@@ -343,7 +336,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     fpBar: input.fpBar,
     fpPackages: input.fpPackages,
     arcBonus: input.arcBonus,
-    levels: { current: entity.level, chosen: preview ?? entity.level, preview: preview !== undefined },
+    levels,
   };
   const arcButton = input.arcButton ? input.arcBonus : undefined;
   const effectiveFactor = effective(input.factor, arcButton);

@@ -632,8 +632,9 @@ export function toItemAmount(data: unknown): { id: number; inStock: number } | n
 }
 
 /**
- * InventoryService.updateItem (not recorded yet): one `{ id, amount }` or a list of them; `amount` is the new stock,
- * not a difference.
+ * InventoryService.updateItem (recorded 2026-10-21 and 2026-10-23): one `{ id, amount, receivedAt? }` per entry,
+ * `amount` the new stock, not a difference. A contribution brings two per package item in one batch: the packages
+ * used, then the reward with `receivedAt`; the last one counts. A list of them is read as well.
  */
 export function toItemUpdates(data: unknown): { id: number; inStock: number }[] {
   return (Array.isArray(data) ? data : [data]).flatMap((u: { id?: unknown; amount?: unknown } | null) => {

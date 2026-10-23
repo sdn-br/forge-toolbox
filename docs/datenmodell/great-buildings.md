@@ -1,6 +1,6 @@
 # Great Buildings (LG-Bau)
 
-Stand 2026-10-22. Grundlage: Aufnahme auf de20 mit vier geöffneten fremden LGs, einer vergangenen Stufe und dem eigenen LG Die Arche (Testfall `test/fixtures/great-buildings.json`, gebaut mit `scripts/make-fixture.py gb`).
+Stand 2026-10-24. Grundlage: Aufnahme auf de20 mit vier geöffneten fremden LGs, einer vergangenen Stufe und dem eigenen LG Die Arche (Testfall `test/fixtures/great-buildings.json`, gebaut mit `scripts/make-fixture.py gb`).
 
 **Woher die Daten kommen (gesehen 2026-10-21):**
 
@@ -39,7 +39,8 @@ interface Construction {
   entity?: GreatBuildingEntity; // fehlt, wenn weder Öffnung noch Stadt das Gebäude kennen
   rankings: RankingRow[];       // laufende Stufe
   past?: { level: number; rankings: RankingRow[] };  // angesehene vergangene Stufe
-  leveled?: { level: number; rank?: number };        // seit dem Öffnen gelevelt
+  rankingsLevel?: number;      // Stufe des Gebäudes, zu der die Rangliste gehört
+  leveled?: { level: number; rank?: number };        // gelevelt, Rangliste der neuen Stufe unbekannt
   seenAt: number;
 }
 
@@ -95,7 +96,7 @@ Testfall `test/fixtures/gb-contribution.json` (gebaut mit `scripts/make-fixture.
 
 - `CityMapService.reset` mit dem fremden LG, wie es jetzt ist (`invested_forge_points` 1455 → 1756, `level`, `max_level`),
 - `ResourceService.getPlayerResourceBag` (`PlayerMain`) mit dem neuen Bestand,
-- je geöffnetem Pakettyp ein `InventoryService.updateItem`,
+- je geöffnetem Pakettyp ein `InventoryService.updateItem` `{ id, amount }` mit dem neuen Bestand; aufgezeichnet 2026-10-23 kamen je Pakettyp zwei: erst die verbrauchten Pakete, dann die Belohnung mit `receivedAt`, das letzte zählt,
 - `GreatBuildingsService.getAvailablePackageForgePoints` mit der neuen Paketsumme,
 - `ResourceService.getPlayerAutoRefills` (nicht ausgewertet).
 
@@ -103,9 +104,22 @@ Die Reihenfolge ist nicht fest, deshalb wendet der Handler die Einzahlung erst a
 
 Die Kopfzeile des LG-Rechners zeigt neben der Stufe die freigeschaltete Höchststufe aus `max_level`.
 
+## Level-up durch eine Einzahlung (aufgezeichnet 2026-10-23)
+
+Testfall `test/fixtures/gb-own-level-up.json` (gebaut mit `scripts/make-fixture.py gb-own-level-up`): Der Besitzer zahlt die letzten 2 FP ins eigene Château Frontenac, Stufe 12 → 13. Vorher zeigte `getConstruction` Stufe 12 mit fünf Plätzen. Request `contributeForgePoints [4020, Spieler-ID, 12, 2, false]`. Dieselbe Antwort bringt:
+
+- `contributeForgePoints` mit der Rangliste der **neuen** Stufe: alle Plätze „Noch kein Mäzen“ ohne `forge_points`, mit den Belohnungen von Stufe 13,
+- `CityMapService.updateEntity` und `CityMapService.reset` mit dem Gebäude auf `level: 13`, `max_level: 15`, `state.forge_points_for_level_up: 917` und ohne `invested_forge_points` (also 0).
+
+Danach kommt über den Websocket `OtherPlayerService.newEvent` `{ type: "entity_level_up", city_map_entity_id, cityentity_id, level: 13 }` (`EntityLevelUpEvent`, mit der Entity-ID statt eines Namens). Nichts liest es, die Antwort der Einzahlung bringt die neue Stufe schon.
+
+Ein Level-up eines fremden LGs durch eine eigene Einzahlung sieht gleich aus (Aufnahme vom selben Tag, Zeusstatue 7 → 8): `contributeForgePoints` mit der leeren Rangliste der neuen Stufe, `CityMapService.reset` mit dem Gebäude auf der neuen Stufe. Danach kommt über den Websocket `OtherPlayerService.newEvent` mit `type: great_building_contribution`, `other_player { player_id, name }`, `great_building_name` (Anzeigename, keine Entity-ID), `level` (neue Stufe) und `rank` (hier 2). Testfall `test/fixtures/gb-level-up.json` (gebaut mit `scripts/make-fixture.py gb-level-up`, mit der Übersicht `getOtherPlayerOverview` des Eigentümers, die das Spiel danach abfragt).
+
+Der Store übernimmt in beiden Fällen Rangliste und Gebäude der neuen Stufe (`contributed`) und merkt sich in `rankingsLevel`, zu welcher Stufe des Gebäudes die Rangliste gehört (beim Öffnen, bei `getConstructionRanking` der laufenden Stufe und bei einer Einzahlung; eine Meldung nur des Gebäudes ändert sie nicht). Das Ereignis `great_building_contribution` markiert die Konstruktion nur dann als gelevelt (`leveled`), wenn `rankingsLevel` unter der gemeldeten Stufe liegt, die Rangliste der neuen Stufe also fehlt. Kommt das Ereignis vor der Antwort, hebt die Einzahlung mit der neuen Stufe die Markierung wieder auf. So zeigen der [LG-Rechner](../features/lg-rechner.md) und der [Eigenanteil](../features/eigenanteil.md) das LG gleich auf der neuen Stufe (Nutzer, 2026-10-24) und bitten nur ohne neue Rangliste, neu zu öffnen.
+
 ## Stufenvorschau
 
-Reine Funktionen in `src/content/domain/gb-level-preview.ts`. `previewLevel` nimmt Ära und Stufenkosten des LGs, die Stufe, den Arche-Bonus und den Faktor und rechnet mit `calculateConstruction` auf einer leeren Rangliste (fünf freie Plätze, Blaupausen und Medaillen 0, verbunden, Höchststufe nicht beachtet). Die Stufe zählt wie `level` des Gebäudes: Stufe X ist der Bau von X auf X+1.
+Reine Funktionen in `src/content/domain/gb-level-preview.ts`. `previewLevel` nimmt Ära und Stufenkosten des LGs, die Stufe, den Arche-Bonus und den Faktor und rechnet mit `calculateConstruction` auf einer leeren Rangliste (fünf freie Plätze, Blaupausen und Medaillen 0, verbunden, Höchststufe nicht beachtet). Die Stufe zählt wie `level` des Gebäudes: Stufe X ist der Bau von X auf X+1. Die leere Stufe selbst (Kosten, P1 und die fünf Plätze ohne Einzahlung) liefert `emptyLevel`, auch für den [Eigenanteil](../features/eigenanteil.md), der damit `calculateOwnShare` rechnet.
 
 **Definition des LGs:** die Metadatei `building_entity_<id>` vom Inno-CDN, wie das Spiel sie lädt. `toBuildingDef` legt für LGs `greatBuilding { era, levelCosts }` an:
 
@@ -132,7 +146,3 @@ Reine Funktion `levelUpAndFirst` in `src/content/domain/gb-level-preview.ts`, au
 - **Nur wenn möglich:** Die Konstruktion ab Stufe X ist offen, solange X kleiner als `max_level` ist. Die nächste braucht also Stufe + 1 < `max_level`. Dazu muss das LG verbunden sein, noch etwas fehlen und die Belohnung der nächsten Stufe bekannt sein. Sonst gibt die Funktion nichts zurück.
 - **Nur wenn es mehr bringt als die laufende Stufe:** Die Summe muss über dem besten Gewinn liegen, den die laufende Stufe ohne Leveln bringt: der eigene Platz, wie er steht (Spalte Gewinn: Brutto minus den größeren Wert aus eigener Einzahlung und Sichern), oder ein Platz, der zu haben ist, ohne Level-Warnung. Der eigene Platz fehlte zuerst. Dann erschien die Zeile etwa bei einem sicheren eigenen P1 mit +3.082, obwohl Leveln + P1 nur +1.328 brachte (Nutzer, 2026-10-23). Bringt keiner einen Gewinn, ist das 0. Beispiel: Kein Platz bringt etwas, Leveln kostet 10 ohne Belohnung, P1 der nächsten Stufe kostet 100 und bringt 200. Dann ist die Summe 0 − 10 − 100 + 200 = +90, mehr als 0, die Zeile erscheint. Bringt dagegen P3 jetzt +115 und Leveln + P1 zusammen +95, fehlt sie (Nutzer, 2026-10-23).
 - **Beispiel aus der Aufnahme (2434, Stufe 52 von 60, 2400 FP nötig):** Wie aufgezeichnet hält der Spieler 575 auf Platz 2, es fehlen 211. Mit 786 bleibt er auf Platz 2, 645 brutto ergeben −141. Stufe 53 kostet 2460, P1 zahlt 670, brutto 1310 bei Sichern 1230, also +80. Die Summe −61 lohnt nicht, die Zeile fehlt. Mit 1600 auf Platz 1, 560 eigenen auf Platz 2 und 100 auf Platz 3 fehlen 40. Dann ergibt sich 645 − 600 = +45, zusammen +125, mehr als die +85, die Platz 2 so bringt. Mit 500 eigenen fehlen 100, Leveln + P1 bringt wieder +125, Platz 2 so aber +145, die Zeile fehlt. Die Testfälle stehen in `test/gb-level-preview.test.ts`.
-
-## Unter Vorbehalt, nicht aufgezeichnet
-
-- **Level-up eines fremden LGs** über den Websocket `OtherPlayerService.newEvent` mit `type: great_building_contribution` und `other_player { player_id, name }`, `great_building_name` (Anzeigename, keine Entity-ID), `level` (neue Stufe), `rank`. Passt Eigentümer und Name (über den Catalog) zur offenen Konstruktion, wird sie als gelevelt markiert.

@@ -115,9 +115,19 @@ export interface LevelPreview {
   calc?: ConstructionCalc;
 }
 
-/** The level as if it were open and nobody had paid yet. Blueprints and medals are not known, they stay 0. */
-export function previewLevel(input: LevelPreviewInput): LevelPreview {
-  const { greatBuilding, level, arcBonus, factor } = input;
+/** A level as it opens: its cost, the reward of place 1 and the five places with nobody on them. */
+export interface EmptyLevel {
+  level: number;
+  /** Forge points the level needs; undefined when the definition does not tell */
+  required?: number;
+  /** undefined when neither the table nor the curve knows the level */
+  reward?: FirstPlaceReward;
+  /** places 1 to 5 without deposits; undefined without cost or reward */
+  rankings?: RankingRow[];
+}
+
+/** The level as if it were open and nobody had paid yet: blueprints and medals are not known, they stay 0. */
+export function emptyLevel(greatBuilding: GreatBuildingDef, level: number): EmptyLevel {
   const required = levelCost(greatBuilding.levelCosts, level);
   const reward = firstPlaceReward(greatBuilding.era, level);
   if (required === undefined || !reward) return { level, required, reward };
@@ -127,6 +137,14 @@ export function previewLevel(input: LevelPreviewInput): LevelPreview {
     self: false,
     reward: { fp, blueprints: 0, medals: 0 },
   }));
+  return { level, required, reward, rankings };
+}
+
+/** The level as if it were open and nobody had paid yet, priced like a foreign construction. */
+export function previewLevel(input: LevelPreviewInput): LevelPreview {
+  const { greatBuilding, level, arcBonus, factor } = input;
+  const { required, reward, rankings } = emptyLevel(greatBuilding, level);
+  if (required === undefined || !reward || !rankings) return { level, required, reward };
   const calc = calculateConstruction({
     level,
     maxLevel: level + 1,

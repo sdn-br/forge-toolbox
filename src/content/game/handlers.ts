@@ -356,10 +356,11 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     contribution = null;
     resetBuildings.length = 0;
   });
-  // The full list comes with the startup data (seen 2026-10-21, 298 items) and replaces the inventory. Not recorded yet,
-  // shapes as described: getItemsByType brings the full items of one type, getItem one full item (new ones arrive so,
-  // e.g. rewards), getItemAmount `[id, amount]`, updateItem `{ id, amount }` or a list with the new stock. All may come as
-  // a response or over the websocket; listeners hear once per response.
+  // The full list comes with the startup data (seen 2026-10-21, 298 items) and replaces the inventory. updateItem
+  // `{ id, amount, receivedAt? }` with the new stock is recorded (see toItemUpdates). Not recorded yet, shapes as
+  // described: getItemsByType brings the full items of one type, getItem one full item (new ones arrive so, e.g.
+  // rewards), getItemAmount `[id, amount]`. All may come as a response or over the websocket; listeners hear once per
+  // response.
   ingestion.on('InventoryService', 'getItems', ({ data }) => {
     const items = toInventory(data);
     if (items) inventory.replace(items);
@@ -395,7 +396,9 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   ingestion.on('BonusService', 'getLimitedBonuses', ({ data }) => {
     greatBuildings.setLimitedBonuses(toLimitedBonuses(data));
   });
-  // Not recorded yet: a great building the player invested in levelled up, named by owner and display name only.
+  // A great building of another player the player invested in levelled up, named by owner and display name only
+  // (recorded 2026-10-23: great_building_contribution with level and rank). An own one levelling sends
+  // entity_level_up instead, which is not read: the contribution's response already brings the new level.
   ingestion.on('OtherPlayerService', 'newEvent', ({ data }) => {
     const up = toGreatBuildingLevelUp(data as GameEvent);
     if (up) greatBuildings.leveled(up.owner, catalog.greatBuildingsNamed(up.name), up.level, up.rank);

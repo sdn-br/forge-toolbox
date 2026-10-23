@@ -102,6 +102,8 @@ export const icons = {
     <rect class="acc" x="3" y="19.2" width="7.5" height="3.2" rx="1" fill="currentColor"/>`),
 };
 
+const STAR = 'M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9Z';
+
 /** the icons of the box header */
 export const headerIcons = {
   gear: headerIcon(svg`<path d="${gearPath()}"/><circle cx="12" cy="12" r="3.2"/>`),
@@ -120,6 +122,24 @@ export const headerIcons = {
   ),
   /** an arrow turning back counter-clockwise: reset */
   reset: headerIcon(svg`<path d="M4 12a8 8 0 1 0 2.3-5.6"/><path d="M4 4v4.5h4.5"/>`),
+  /** the great building castle: values of this building only, beside the star of the standard */
+  castle: headerIcon(castleShape),
+  /** a pencil: changed, not saved */
+  pencil: headerIcon(
+    svg`<path d="M4 20l1-4.5L15.5 5a2 2 0 0 1 2.8 0l.7.7a2 2 0 0 1 0 2.8L8.5 19Z"/><path d="M13.5 7l3.5 3.5"/>`,
+  ),
   /** a five-pointed star: make it the standard */
-  star: headerIcon(svg`<path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9Z"/>`),
+  star: headerIcon(svg`<path d="${STAR}"/>`),
+  /** the star filled: the standard applies */
+  starFilled: headerIcon(svg`<path d="${STAR}" fill="currentColor"/>`),
+  /** head and shoulders: a player */
+  person: headerIcon(svg`<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5c0-4.2 3.3-6.8 7.5-6.8s7.5 2.6 7.5 6.8"/>`),
+  /** a clock: a promised payment, not paid yet */
+  clock: headerIcon(svg`<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.2 2"/>`),
+  /** a warning triangle: danger */
+  warning: headerIcon(svg`<path d="M12 3.5 21.5 20h-19Z"/><path d="M12 10v4.4M12 17.2v.3"/>`),
+  /** an arrow up: the payment levels the building */
+  arrowUp: headerIcon(svg`<path d="M12 20V4.5M5.5 11 12 4.5 18.5 11"/>`),
+  /** a circle with a slash: nothing to get here */
+  noReward: headerIcon(svg`<circle cx="12" cy="12" r="8.5"/><path d="m6 6 12 12"/>`),
 };

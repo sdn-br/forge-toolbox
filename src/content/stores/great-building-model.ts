@@ -45,9 +45,14 @@ export interface Construction {
   entity?: GreatBuildingEntity;
   /** rankings of the level being built */
   rankings: RankingRow[];
+  /**
+   * the building's level the rankings belong to, as known when they came; a building reported on a later level
+   * without rankings keeps the old one. Missing when the building was unknown then.
+   */
+  rankingsLevel?: number;
   /** a finished level the player looks at instead; places and Forge points only, nothing to calculate */
   past?: { level: number; rankings: RankingRow[] };
-  /** a contribution made it level up since it was opened; the rankings are stale then */
+  /** a contribution made it level up and the rankings of the new level are unknown; they are stale then */
   leveled?: { level: number; rank?: number };
   seenAt: number;
 }

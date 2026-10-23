@@ -138,6 +138,8 @@ export function createGbOwnShareFeature(
       /** promised payments per building and level; they are typed in for one level only */
       const exts = new Map<string, number[]>();
       const extKey = () => `${shown?.entityId}:${openedLevel}`;
+      /** the later level the box previews; undefined shows the open level */
+      let preview: number | undefined;
       let copied: string | undefined;
       let copiedTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -201,6 +203,10 @@ export function createGbOwnShareFeature(
             })
             .catch((error) => logError('copying failed', error));
         },
+        previewLevel: (level) => {
+          preview = level;
+          box.update();
+        },
       };
       const save = (key: string, value: string) => {
         ctx.ui.savePref(key, value);
@@ -225,6 +231,8 @@ export function createGbOwnShareFeature(
           copy: copyOptions(),
           copyPlayer: ctx.settings.text(COPY_PLAYER) || ctx.session.current?.name,
           copyBuilding: d ? ctx.ui.pref(copyBuildingKey(d)) : undefined,
+          previewLevel: preview,
+          greatBuilding: (id) => ctx.catalog.get(id)?.greatBuilding,
         });
       };
       const box = ctx.createBox({
@@ -245,11 +253,21 @@ export function createGbOwnShareFeature(
       ctx.bus.on('greatBuilding.opened', ({ own }) => {
         if (!own || !follow()) return;
         openedLevel = shown?.entity?.level;
+        preview = undefined;
         if (ctx.settings.get(AUTO_OPEN)) box.open();
         else box.update();
       });
-      ctx.bus.on('greatBuilding.changed', () => {
-        if (follow()) box.update();
+      ctx.bus.on('greatBuilding.changed', ({ reason }) => {
+        if (!follow()) return;
+        // An own contribution brings the rankings of the level the building is on now, also when it levelled it
+        // (recorded 2026-10-23): the box goes on with that level as if it were opened there, without the Ext of the
+        // old one. Other news of a new level come without rankings, and the box asks to reopen.
+        const level = shown?.entity?.level;
+        if (reason === 'contributed' && level !== openedLevel) {
+          openedLevel = level;
+          preview = undefined;
+        }
+        box.update();
       });
       ctx.bus.on('catalog.updated', () => box.update());
       ctx.bus.on('city.ownChanged', () => box.update());

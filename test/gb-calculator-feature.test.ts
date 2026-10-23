@@ -6,6 +6,7 @@ import { createGbCalculatorFeature } from '../src/content/features/gb-calculator
 import { registerGameHandlers } from '../src/content/game/handlers';
 import type { FetchLike } from '../src/shared/foestats-api';
 import definitions from './fixtures/gb-definitions.json';
+import levelUp from './fixtures/gb-level-up.json';
 import fixture from './fixtures/great-buildings.json';
 import { featureContext } from './helpers/feature-context';
 import type { TestStoresOptions } from './helpers/stores';
@@ -297,6 +298,54 @@ describe('LG-Rechner', () => {
     await tick();
     expect(box.root.querySelector('.gb-overlay')?.textContent).toContain('auf Stufe 76 gelevelt');
     expect(tones()).toBe(2);
+  });
+
+  describe('level up by an own contribution', () => {
+    /** the Zeusstatue of another player 7 → 8 as recorded on de20 2026-10-23, the player pays 135 FP into place 2 */
+    const openZeus = async () => {
+      const env = setup();
+      env.send(...(levelUp.opening as Entry[]));
+      await tick();
+      expect(env.box.text).toContain('St. 7 → 8');
+      return env;
+    };
+
+    it('goes on with the new level from the answer although the level up event follows', async () => {
+      const { box, send, ws, rows, ctx } = await openZeus();
+      // one response: contributeForgePoints with the empty rankings of level 8, the building on 8 in a reset; then the
+      // overview of the owner and the websocket great_building_contribution
+      send(...(levelUp.contribution as Entry[]));
+      send(levelUp.overview as Entry);
+      ws(levelUp.event.responseData);
+      await tick();
+      expect(ctx.greatBuildings.current()?.leveled).toBeUndefined();
+      expect(box.root.querySelector('.gb-overlay')).toBeNull();
+      expect(box.text).toContain('Zeusstatue St. 8 → 9');
+      // the empty places of level 8 with the costs of the new level, nothing paid in yet
+      expect(box.text).toContain('Bis Level-Up fehlen 450 FP');
+      expect(box.text).toContain('Du: noch nichts eingezahlt');
+      expect(rows().map((r) => r.querySelectorAll('td')[1]?.textContent?.trim())).toEqual(['–', '–', '–', '–', '–']);
+      expect(box.text).toContain('P1 sichern: 225');
+    });
+
+    it('goes on with the new level also when the event comes before the answer', async () => {
+      const { box, send, ws } = await openZeus();
+      send(levelUp.overview as Entry);
+      ws(levelUp.event.responseData);
+      send(...(levelUp.contribution as Entry[]));
+      await tick();
+      expect(box.root.querySelector('.gb-overlay')).toBeNull();
+      expect(box.text).toContain('Zeusstatue St. 8 → 9');
+    });
+
+    it('still asks to reopen when the building reports the new level without its rankings', async () => {
+      const { box, send, ws } = await openZeus();
+      send(...(levelUp.contribution as Entry[]).filter((e) => e.requestMethod === 'reset'));
+      send(levelUp.overview as Entry);
+      ws(levelUp.event.responseData);
+      await tick();
+      expect(box.root.querySelector('.gb-overlay')?.textContent).toContain('Das LG ist auf Stufe 8 gelevelt.');
+    });
   });
 
   it('plays no tone when it is switched off', async () => {

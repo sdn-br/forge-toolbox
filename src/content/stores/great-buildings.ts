@@ -73,7 +73,7 @@ export class GreatBuildingStore {
     known?: GreatBuildingEntity,
   ): void {
     const entity = this.entities.get(key(owner, entityId)) ?? known;
-    this.open = { owner, entityId, own, entity, rankings, seenAt: this.now() };
+    this.open = { owner, entityId, own, entity, rankings, rankingsLevel: entity?.level, seenAt: this.now() };
     this.remember();
     this.bus.emit('greatBuilding.opened', { owner, entityId, own });
   }
@@ -88,7 +88,7 @@ export class GreatBuildingStore {
     if (open.entity !== undefined && level <= open.entity.level) {
       this.open = { ...open, past: { level, rankings } };
     } else {
-      this.open = { ...open, rankings, past: undefined };
+      this.open = { ...open, rankings, rankingsLevel: level - 1, past: undefined };
       this.remember();
     }
     this.changed('ranking');
@@ -97,7 +97,9 @@ export class GreatBuildingStore {
   /**
    * The session player contributed to the open construction; the game answers with its new rankings and the building
    * as it is now (seen 2026-10-21: a CityMapService.reset in the same response). With that building its numbers count,
-   * without it the invested Forge points grow by what the own deposit grew.
+   * without it the invested Forge points grow by what the own deposit grew. A contribution that levels the building
+   * answers with the empty rankings of the new level and the building on it (recorded 2026-10-23), so the
+   * construction goes on with the new level.
    */
   contributed(
     rankings: RankingRow[],
@@ -110,18 +112,23 @@ export class GreatBuildingStore {
     const added = mine(rankings) - mine(open.rankings);
     const fits = building?.owner === open.owner && building.entityId === open.entityId;
     const entity = fits ? building : open.entity && { ...open.entity, invested: open.entity.invested + added };
-    this.open = { ...open, entity, rankings, past: undefined, seenAt: this.now() };
+    const rankingsLevel = entity?.level;
+    const leveled =
+      open.leveled && rankingsLevel !== undefined && rankingsLevel >= open.leveled.level ? undefined : open.leveled;
+    this.open = { ...open, entity, rankings, rankingsLevel, past: undefined, leveled, seenAt: this.now() };
     this.remember();
     this.changed('contributed');
   }
 
   /**
    * A great building the player invested in levelled up. The game names it only by owner and display name, so the
-   * caller passes the definitions with that name.
+   * caller passes the definitions with that name. It comes right after the contribution that levelled it; when that
+   * already brought the rankings of the new level, there is nothing stale to mark.
    */
   leveled(owner: PlayerId, defs: BuildingDefId[], level: number, rank?: number): void {
     const open = this.open;
     if (!open || open.owner !== owner || !open.entity || !defs.includes(open.entity.def)) return;
+    if (open.rankingsLevel !== undefined && open.rankingsLevel >= level) return;
     this.open = { ...open, leveled: { level, ...(rank !== undefined && { rank }) } };
     this.changed('leveled');
   }

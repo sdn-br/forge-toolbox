@@ -139,13 +139,23 @@ tr.own-row td { background: #3a2814; }
 td.own-fp, td.gain { color: #8fd08f; }
 button.copy-fp { all: unset; cursor: pointer; }
 button.copy-fp:hover { text-decoration: underline; }
-input.ext { width: 5em; }
-input.place-factor { width: 4em; }
+input.ext, input.place-factor { width: 100%; min-width: 0; }
+/* the Eigenanteil table keeps its column widths (the colgroup) whatever the cells hold */
+table.own-share { table-layout: fixed; width: auto; }
+table.own-share th, table.own-share td { overflow: hidden; text-overflow: ellipsis; }
+table.own-share .icon-cell { text-align: center; }
+.own-share .marker { display: inline-flex; align-items: center; gap: 2px; vertical-align: middle; }
+.own-share .marker svg { display: block; width: 14px; height: 14px; }
+.own-share .marker.danger { color: #f07060; }
+.own-share .marker.levels { color: var(--accent); }
 input.place-factor.arc { color: var(--accent); }
-.gb-factor .factor-status { font-size: 11px; margin-left: 4px; }
+.gb-factor .factor-status { display: inline-grid; place-items: center; margin-left: 4px; }
+.gb-factor .factor-status svg { width: 14px; height: 14px; }
+.gb-factor .factor-status.saved { color: var(--accent); }
 .gb-factor button.icon { all: unset; cursor: pointer; width: 18px; height: 18px; display: grid; place-items: center;
   color: var(--ink); opacity: .8; }
 .gb-factor button.icon:hover { opacity: 1; }
+.gb-factor button.icon.off, .gb-factor button.icon.off:hover { opacity: .3; cursor: default; }
 .gb-factor button.icon svg { display: block; width: 14px; height: 14px; }
 .copy-line { display: flex; gap: 4px; align-items: center; margin: 4px 0; }
 .copy-line .copy-text { flex: 1; min-width: 0; }
