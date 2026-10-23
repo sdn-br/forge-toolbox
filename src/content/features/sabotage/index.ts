@@ -4,6 +4,7 @@ import { logError } from '../../core/log';
 import { t } from '../../core/texts';
 import { assessCity } from '../../domain/assess-city';
 import { CityMap, legendView } from '../../ui/city-map';
+import { icons } from '../../ui/icons';
 import { toMode } from '../../ui/map-projection';
 import { PlayerNoteCard } from '../../ui/note-card';
 import { type VisitedMapVm, visitedCityMap } from './city-map';
@@ -12,7 +13,7 @@ import { type SabotageVm, sabotageViewModel } from './view-model';
 import { visitedRecord } from './visited-record';
 
 /** the menu entry and the settings group show it */
-const ICON = '🏰';
+const ICON = icons.sabotage;
 
 const TICK = 30_000;
 

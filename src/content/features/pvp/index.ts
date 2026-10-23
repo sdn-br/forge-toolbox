@@ -2,6 +2,7 @@ import { foestatsPlayerUrl } from '../../../shared/foestats';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
+import { icons } from '../../ui/icons';
 import { PlayerNoteCard } from '../../ui/note-card';
 import { KEEP_SETTING, pruneBefore } from './retention';
 import { type PvpActions, pvpView } from './view';
@@ -16,7 +17,7 @@ import {
 } from './view-model';
 
 /** the menu entry and the settings group show it */
-const ICON = '⚔️';
+const ICON = icons.pvp;
 
 export const pvpFeature: Feature = {
   id: 'pvp',

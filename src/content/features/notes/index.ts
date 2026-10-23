@@ -1,6 +1,7 @@
 import type { Feature } from '../../core/feature';
 import { t } from '../../core/texts';
 import { PLAYER_GROUP, playerPageId } from '../../stores/notes';
+import { icons } from '../../ui/icons';
 import { NoteEditor } from '../../ui/note-editor';
 import { type NotesActions, notesView } from './view';
 import { type NotesUi, type NotesVm, notesViewModel } from './view-model';
@@ -122,6 +123,6 @@ export const notesFeature: Feature = {
     ctx.bus.on('note.changed', () => box.update());
     // names, guilds and relations of players come live from the player store
     ctx.bus.on('player.updated', () => box.update());
-    ctx.menu.add({ id: 'notes', icon: '📝', label: () => t('menu.notes'), action: () => box.toggle() });
+    ctx.menu.add({ id: 'notes', icon: icons.notes, label: () => t('menu.notes'), action: () => box.toggle() });
   },
 };

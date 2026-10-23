@@ -5,12 +5,13 @@ import { t } from '../../core/texts';
 import { arcBonus } from '../../domain/gb-calculator';
 import { FOESTATS_SETTING } from '../../stores/foestats';
 import type { Construction } from '../../stores/great-building-model';
+import { icons } from '../../ui/icons';
 import { playTone } from '../../ui/tone';
 import { type GbCalculatorActions, gbCalculatorView } from './view';
 import { type GbCalculatorVm, gbCalculatorViewModel } from './view-model';
 
 /** the menu entry and the settings group show it */
-const ICON = '🏛️';
+const ICON = icons.gbCalculator;
 
 const FACTOR = 'gbCalc.factor';
 const FACTOR_ARC = 'gbCalc.factorArc';

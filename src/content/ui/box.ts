@@ -1,6 +1,7 @@
 // Window frame for every feature: drag, pin, minimize, pop-out, close. Content comes from a lit-html render function.
-import { html, render, svg, type TemplateResult } from 'lit-html';
+import { html, render, type TemplateResult } from 'lit-html';
 import { t } from '../core/texts';
+import { headerIcons } from './icons';
 import { baseCss } from './styles';
 import { installTooltip } from './tooltip';
 import type { UiState } from './ui-state';
@@ -99,7 +100,7 @@ export class Box {
     const { settings } = this.options;
     const open = this.openSettings;
     const settingsButton =
-      settings && open ? headerButton(t('box.settings'), () => open(settings), gearIcon, 'icon') : '';
+      settings && open ? headerButton(t('box.settings'), () => open(settings), headerIcons.gear) : '';
     return html`<style>${baseCss}</style>
       <div class=${classes} style=${style} @pointerdown=${() => this.raise()}>
         <header @pointerdown=${(e: PointerEvent) => this.startDrag(e)}>
@@ -112,13 +113,13 @@ export class Box {
             ${headerButton(
               t(state.pinned ? 'box.unpin' : 'box.pin'),
               () => this.set({ pinned: !state.pinned }),
-              pinIcon(state.pinned === true),
-              state.pinned ? 'pin active' : 'pin',
+              headerIcons.pin(state.pinned === true),
+              state.pinned ? 'active' : '',
             )}
-            ${headerButton(t('box.popout'), () => this.popOut(), '⧉')}
-            ${headerButton(t('box.minimize'), () => this.set({ minimized: !state.minimized }), '▁')}`
+            ${headerButton(t('box.popout'), () => this.popOut(), headerIcons.popout)}
+            ${headerButton(t('box.minimize'), () => this.set({ minimized: !state.minimized }), headerIcons.minimize)}`
           }
-          ${headerButton(t('box.close'), () => this.close(), '✕')}
+          ${headerButton(t('box.close'), () => this.close(), headerIcons.close)}
         </header>
         <div class=${this.options.fill ? 'body fill' : 'body'}>${this.options.render()}</div>
         ${
@@ -229,20 +230,8 @@ export class Box {
 }
 
 /** icon-only, so the label is also its accessible name */
-const headerButton = (label: string, action: () => void, icon: string | TemplateResult, cls = '') =>
+const headerButton = (label: string, action: () => void, icon: TemplateResult, cls = '') =>
   html`<button class=${cls} data-tip=${label} aria-label=${label} @click=${action}>${icon}</button>`;
-
-/** a gear: a ring with eight teeth and a hole, drawn like the pin so it reads at button size */
-const gearIcon = html`<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">${svg`<g fill="none"
-  stroke="currentColor" stroke-linecap="round"><circle cx="8" cy="8" r="4.3" stroke-width="2" />
-  <path d="M13.20 8.00L15.20 8.00M11.68 11.68L13.09 13.09M8.00 13.20L8.00 15.20M4.32 11.68L2.91 13.09M2.80 8.00L0.80 8.00M4.32 4.32L2.91 2.91M8.00 2.80L8.00 0.80M11.68 4.32L13.09 2.91" stroke-width="2.2" /></g>`}</svg>`;
-
-/** loose: an outlined pin, tilted; pinned: a filled pin standing upright (gold through the button's colour) */
-const pinIcon = (pinned: boolean) =>
-  html`<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">${svg`<g
-    transform=${pinned ? '' : 'rotate(40 8 8)'} fill=${pinned ? 'currentColor' : 'none'} stroke="currentColor"
-    stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M5 1.5h6M6 1.5v5L3.5 9.5h9L10 6.5v-5" /><path d="M8 9.5V15" /></g>`}</svg>`;
 
 /** `value` within `min` and `max`; a max below the min gives the min */
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));

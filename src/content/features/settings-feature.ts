@@ -15,6 +15,7 @@ import {
 } from '../core/settings';
 import { type TextKey, t } from '../core/texts';
 import { FACTOR_STEP, percentOf } from '../ui/factor-bar';
+import { icons } from '../ui/icons';
 import { keepKeys } from '../ui/inputs';
 
 const save = (settings: Settings, key: string, value: boolean | string | number | number[]) =>
@@ -68,7 +69,9 @@ const input = (settings: Settings, d: SettingDef) =>
         @change=${(e: Event) => save(settings, d.key, (e.target as HTMLInputElement).checked)} />${t(d.label)}</label>`;
 
 /** the menu entry and the general settings show it */
-const ICON = '⚙️';
+const ICON = icons.settings;
+/** the menu's icon size in pixels, as a choice */
+const MENU_SIZE = 'core.menuSize';
 /** the view choice of the group shown */
 const TAB = 'settings.group';
 
@@ -87,6 +90,21 @@ export const settingsFeature: Feature = {
       label: 'settings.recordRequests',
       default: false,
     });
+
+    ctx.settings.register({
+      key: MENU_SIZE,
+      group: 'settings.core',
+      label: 'settings.menuSize',
+      default: '35',
+      choices: [
+        { value: '30', label: 'settings.menuSize30' },
+        { value: '35', label: 'settings.menuSize35' },
+        { value: '45', label: 'settings.menuSize45' },
+      ],
+    });
+    const applyMenuSize = () => ctx.menu.setIconSize(Number(ctx.settings.choice(MENU_SIZE)));
+    applyMenuSize();
+    ctx.settings.onChange((key) => key === MENU_SIZE && applyMenuSize());
 
     ctx.settings.registerGroup('settings.core', ICON);
 

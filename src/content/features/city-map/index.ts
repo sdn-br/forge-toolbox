@@ -1,6 +1,7 @@
 import type { Feature } from '../../core/feature';
 import { t } from '../../core/texts';
 import { CityMap, legendView } from '../../ui/city-map';
+import { icons } from '../../ui/icons';
 import { toMode } from '../../ui/map-projection';
 import { ownCityStats } from './stats';
 import { type CityMapActions, cityMapView } from './view';
@@ -65,6 +66,6 @@ export const cityMapFeature: Feature = {
     ctx.bus.on('catalog.grid', () => box.update());
     ctx.bus.on('resources.changed', () => box.update());
     ctx.bus.on('research.changed', () => box.update());
-    ctx.menu.add({ id: 'cityMap', icon: '🗺️', label: () => t('cityMap.menu'), action: () => box.toggle() });
+    ctx.menu.add({ id: 'cityMap', icon: icons.cityMap, label: () => t('cityMap.menu'), action: () => box.toggle() });
   },
 };
