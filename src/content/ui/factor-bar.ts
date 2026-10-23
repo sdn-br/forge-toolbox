@@ -38,6 +38,9 @@ export function factorButtons(presets: number[], arcBonus: number | undefined, c
   ].sort((a, b) => a.value - b.value);
 }
 
+/** what the arrows of a factor field add: 1,9 → 1,91; typing still takes 1,955 */
+export const FACTOR_STEP = 0.01;
+
 /** a factor as typed, 1,955, back to percent with one decimal, 95.5 */
 export const percentOf = (factor: number) => Math.round((factor - 1) * 1000) / 10;
 
@@ -53,7 +56,7 @@ export function factorBar(buttons: FactorButton[], factor: number, actions: Fact
       (b) => html`<button class=${b.active ? 'active' : ''} data-tip=${b.arc ? t('gbCalc.arcButton') : ''}
         @click=${() => (b.arc ? actions.useArc() : actions.setFactor(b.value))}>${factorText(b.value)}</button>`,
     )}
-    <input type="number" min="0" max="3" step="0.001" data-tip=${t('gbCalc.factorInput')}
+    <input type="number" min="0" max="3" step=${FACTOR_STEP} data-tip=${t('gbCalc.factorInput')}
       aria-label=${t('gbCalc.factorInput')} class=${buttons.some((b) => b.active) ? '' : 'active'}
       .value=${String((100 + factor) / 100)} @keydown=${keepKeys} @change=${typed} />
   </div>`;
