@@ -46,9 +46,9 @@ describe('settings box layout', () => {
     const { ctx, box, menu } = setup();
     const nav = () => [...box.root.querySelectorAll('.settings-nav button')];
     // the general settings first, then the modules in the order they registered
-    expect(nav().map((b) => [b.textContent?.trim(), b.getAttribute('aria-label')])).toEqual([
-      ['⚙️', 'Allgemein'],
-      ['🧱', 'Eigenanteil'],
+    expect(nav().map((b) => [b.querySelector('svg') !== null, b.getAttribute('aria-label')])).toEqual([
+      [true, 'Allgemein'],
+      [true, 'Eigenanteil'],
     ]);
     expect(box.root.querySelector('.settings-nav button.active')?.getAttribute('aria-label')).toBe('Eigenanteil');
     expect(box.root.querySelector('.settings-main h2')?.textContent).toBe('Eigenanteil');

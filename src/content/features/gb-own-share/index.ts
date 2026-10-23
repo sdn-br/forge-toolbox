@@ -3,6 +3,7 @@ import { logError } from '../../core/log';
 import { t } from '../../core/texts';
 import { arcBonus } from '../../domain/gb-calculator';
 import type { Construction } from '../../stores/great-building-model';
+import { icons } from '../../ui/icons';
 import { type OwnShareActions, ownShareView } from './view';
 import {
   COPY_MODES,
@@ -14,7 +15,7 @@ import {
 } from './view-model';
 
 /** the menu entry and the settings group show it */
-const ICON = '🧱';
+const ICON = icons.gbOwnShare;
 
 const FACTOR = 'gbOwn.factor';
 const FACTOR_BUTTONS = 'gbOwn.factorButtons';

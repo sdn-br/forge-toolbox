@@ -1,3 +1,4 @@
+import type { TemplateResult } from 'lit-html';
 import type { KeyValue } from './kv';
 import type { TextKey } from './texts';
 
@@ -76,7 +77,7 @@ type Values = Record<string, Value>;
 export class Settings {
   readonly defs: SettingDef[] = [];
   /** the icon of each group, as its feature shows it in the menu */
-  private icons = new Map<string, string>();
+  private icons = new Map<string, TemplateResult | string>();
   private values: Values = {};
   private listeners = new Set<(key: string) => void>();
 
@@ -91,11 +92,11 @@ export class Settings {
   }
 
   /** the icon a group shows in the settings box; the feature passes the one of its menu entry */
-  registerGroup(group: TextKey, icon: string): void {
+  registerGroup(group: TextKey, icon: TemplateResult | string): void {
     this.icons.set(group, icon);
   }
 
-  groupIcon(group: string): string | undefined {
+  groupIcon(group: string): TemplateResult | string | undefined {
     return this.icons.get(group);
   }
 

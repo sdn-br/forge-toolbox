@@ -71,7 +71,7 @@ export function featureContext(options: TestStoresOptions = {}) {
     world,
     bus,
     settings,
-    menu: { add: (item: MenuItem) => menuItems.set(item.id, item) } as unknown as Menu,
+    menu: { add: (item: MenuItem) => menuItems.set(item.id, item), setIconSize: () => {} } as unknown as Menu,
     ...stores,
     recorder: new Recorder(() => false),
     ui: new UiState(memoryKv()),

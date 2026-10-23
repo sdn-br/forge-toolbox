@@ -3,6 +3,7 @@ import { Window } from 'happy-dom';
 import { html } from 'lit-html';
 import { afterEach, describe, expect, it } from 'vitest';
 import { memoryKv } from '../src/content/core/kv';
+import { t } from '../src/content/core/texts';
 import { Box, type BoxOptions } from '../src/content/ui/box';
 import { UiState } from '../src/content/ui/ui-state';
 
@@ -29,7 +30,7 @@ async function poppedBox(popup: globalThis.Window, options: Partial<BoxOptions> 
   );
   box.open();
   await tick();
-  button(document.querySelector('[data-forge-toolbox=test]'), '⧉').click();
+  button(document.querySelector('[data-forge-toolbox=test]'), t('box.popout')).click();
   await tick();
   return box;
 }
@@ -64,7 +65,7 @@ describe('box pop-out', () => {
   it('stays closed when closed inside the pop-out, although the window reports pagehide afterwards', async () => {
     const popup = popupWindow();
     const box = await poppedBox(popup);
-    button(popup.document.querySelector('[data-forge-toolbox=test]'), '✕').click();
+    button(popup.document.querySelector('[data-forge-toolbox=test]'), t('box.close')).click();
     await tick();
     await tick();
     expect(box.isOpen).toBe(false);
