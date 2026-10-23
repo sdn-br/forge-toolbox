@@ -71,9 +71,19 @@ export class GreatBuildingStore {
     own: boolean,
     rankings: RankingRow[],
     known?: GreatBuildingEntity,
+    nextProduction?: { type: string; value: number },
   ): void {
     const entity = this.entities.get(key(owner, entityId)) ?? known;
-    this.open = { owner, entityId, own, entity, rankings, rankingsLevel: entity?.level, seenAt: this.now() };
+    this.open = {
+      owner,
+      entityId,
+      own,
+      entity,
+      rankings,
+      rankingsLevel: entity?.level,
+      ...(entity && nextProduction && { nextProduction: { level: entity.level, ...nextProduction } }),
+      seenAt: this.now(),
+    };
     this.remember();
     this.bus.emit('greatBuilding.opened', { owner, entityId, own });
   }

@@ -22,6 +22,8 @@ export interface OwnShareActions extends FactorActions {
   setCopyBuilding(name: string): void;
   /** copies a text; `id` names what was copied, so the box can say so for a moment */
   copy(text: string, id: string): void;
+  /** opens the Powerleveln box */
+  openPowerLevel(): void;
   /** preview a later level; undefined goes back to the open level */
   previewLevel(level: number | undefined): void;
 }
@@ -78,6 +80,8 @@ export function ownShareView(vm: OwnShareVm, actions: OwnShareActions, copied?: 
         @change=${(e: Event) => actions.setTrust((e.target as HTMLInputElement).checked)} />
         <span data-tip=${t('gbOwn.trustHint')}>${t('gbOwn.trust')}</span></label>
     </div>
+    <div class="power-open"><button class="icon-text" data-tip=${t('gbPower.openHint')}
+      @click=${() => actions.openPowerLevel()}>${headerIcons.levels}${t('gbPower.title')}</button></div>
     <p class="gb-me">${t('gbOwn.total', { fp: formatNumber(vm.ownShare) })}
       <span class="muted">· ${t('gbOwn.paid', { fp: formatNumber(vm.myDeposit) })}</span>
       · <b>${t('gbOwn.open', { fp: formatNumber(Math.max(0, vm.open)) })}</b></p>

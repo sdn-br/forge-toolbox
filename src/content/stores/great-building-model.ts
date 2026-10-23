@@ -50,9 +50,29 @@ export interface Construction {
    * without rankings keeps the old one. Missing when the building was unknown then.
    */
   rankingsLevel?: number;
+  /**
+   * what the building produces on the level after `level` (`next_production_bonus` of `getConstruction`): `level` is
+   * the building's level when it was opened; missing without a known building
+   */
+  nextProduction?: { level: number; type: string; value: number };
   /** a finished level the player looks at instead; places and Forge points only, nothing to calculate */
   past?: { level: number; rankings: RankingRow[] };
   /** a contribution made it level up and the rankings of the new level are unknown; they are stale then */
   leveled?: { level: number; rank?: number };
   seenAt: number;
+}
+
+/** what the Eigenanteil box holds for the building it shows; the Powerleveln box follows it */
+export interface OwnShareState {
+  def: string;
+  /** the level the Eigenanteil box opened the building at; its Ext belong to that level */
+  level: number;
+  /** one choice per place, index 0 is place 1 */
+  factors: { value: number; arc: boolean }[];
+  /** the own Arc bonus when the factor buttons show it */
+  arcBonus?: number;
+  secureExisting: boolean;
+  trust: boolean;
+  /** promised payments by place for the open level */
+  exts: number[];
 }

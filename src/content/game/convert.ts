@@ -37,6 +37,7 @@ import type {
   GameCityMapArea,
   GameCityProtection,
   GameEvent,
+  GameGreatBuildingConstruction,
   GameGreatBuildingName,
   GameGreatBuildingRankingRow,
   GameGreatBuildingReward,
@@ -515,6 +516,13 @@ export function toRankingRows(data: unknown): RankingRow[] | null {
     if (reward) row.reward = reward;
     return [row];
   });
+}
+
+/** The production of the next level from `getConstruction`; undefined when the answer has none. */
+export function toNextProduction(data: GameGreatBuildingConstruction | null | undefined) {
+  const bonus = data?.next_production_bonus;
+  const value = num(bonus?.value);
+  return typeof bonus?.type === 'string' && value !== undefined ? { type: bonus.type, value } : undefined;
 }
 
 /**

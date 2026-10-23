@@ -268,6 +268,8 @@ export interface GameGreatBuildingRankingRow {
 export interface GameGreatBuildingConstruction {
   rankings?: GameGreatBuildingRankingRow[];
   ownerEra?: string;
+  /** what the building produces on the next level, e.g. `{ type: 'strategy_points', value: 12 }` */
+  next_production_bonus?: { type?: string; value?: number };
 }
 
 /** a great building in InventoryService.getGreatBuildings (`cityentity_id`) or getOtherPlayerOverview (`city_entity_id`) */

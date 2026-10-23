@@ -115,15 +115,18 @@ Danach kommt über den Websocket `OtherPlayerService.newEvent` `{ type: "entity_
 
 Ein Level-up eines fremden LGs durch eine eigene Einzahlung sieht gleich aus (Aufnahme vom selben Tag, Zeusstatue 7 → 8): `contributeForgePoints` mit der leeren Rangliste der neuen Stufe, `CityMapService.reset` mit dem Gebäude auf der neuen Stufe. Danach kommt über den Websocket `OtherPlayerService.newEvent` mit `type: great_building_contribution`, `other_player { player_id, name }`, `great_building_name` (Anzeigename, keine Entity-ID), `level` (neue Stufe) und `rank` (hier 2). Testfall `test/fixtures/gb-level-up.json` (gebaut mit `scripts/make-fixture.py gb-level-up`, mit der Übersicht `getOtherPlayerOverview` des Eigentümers, die das Spiel danach abfragt).
 
+`getConstruction` bringt auch `next_production_bonus` (`type`, `value`: die Produktion auf der nächsten Stufe). Der Store hält sie als `nextProduction { level, type, value }` mit der Stufe des Gebäudes beim Öffnen, damit sie nur für diese Stufe gilt.
+
 Der Store übernimmt in beiden Fällen Rangliste und Gebäude der neuen Stufe (`contributed`) und merkt sich in `rankingsLevel`, zu welcher Stufe des Gebäudes die Rangliste gehört (beim Öffnen, bei `getConstructionRanking` der laufenden Stufe und bei einer Einzahlung; eine Meldung nur des Gebäudes ändert sie nicht). Das Ereignis `great_building_contribution` markiert die Konstruktion nur dann als gelevelt (`leveled`), wenn `rankingsLevel` unter der gemeldeten Stufe liegt, die Rangliste der neuen Stufe also fehlt. Kommt das Ereignis vor der Antwort, hebt die Einzahlung mit der neuen Stufe die Markierung wieder auf. So zeigen der [LG-Rechner](../features/lg-rechner.md) und der [Eigenanteil](../features/eigenanteil.md) das LG gleich auf der neuen Stufe (Nutzer, 2026-10-24) und bitten nur ohne neue Rangliste, neu zu öffnen.
 
 ## Stufenvorschau
 
 Reine Funktionen in `src/content/domain/gb-level-preview.ts`. `previewLevel` nimmt Ära und Stufenkosten des LGs, die Stufe, den Arche-Bonus und den Faktor und rechnet mit `calculateConstruction` auf einer leeren Rangliste (fünf freie Plätze, Blaupausen und Medaillen 0, verbunden, Höchststufe nicht beachtet). Die Stufe zählt wie `level` des Gebäudes: Stufe X ist der Bau von X auf X+1. Die leere Stufe selbst (Kosten, P1 und die fünf Plätze ohne Einzahlung) liefert `emptyLevel`, auch für den [Eigenanteil](../features/eigenanteil.md), der damit `calculateOwnShare` rechnet.
 
-**Definition des LGs:** die Metadatei `building_entity_<id>` vom Inno-CDN, wie das Spiel sie lädt. `toBuildingDef` legt für LGs `greatBuilding { era, levelCosts }` an:
+**Definition des LGs:** die Metadatei `building_entity_<id>` vom Inno-CDN, wie das Spiel sie lädt. `toBuildingDef` legt für LGs `greatBuilding { era, levelCosts, fpProduction? }` an:
 
 - `levelCosts` ist `strategy_points_for_upgrade`, die Kosten der ersten zehn Stufen (Index 0 ist der Bau von 0 auf 1).
+- `fpProduction` ist `production_bonus.values`, die FP-Produktion je Stufe (Index = Stufe, 0 bis 10), nur wenn `production_bonus.type` `strategy_points` ist (Aufnahme vom 2026-10-23: 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6 für `X_EarlyMiddleAge_Landmark1`). Grundlage der Doppelernte im [Powerleveln](../features/powerleveln.md).
 - `era` ist `requirements.min_era`, die Ära des LGs selbst, nicht die des Eigentümers. LGs aller Zeitalter (Orakel, Expedition) haben dort `NoAge`, das wird `AllAge`. Fehlt `min_era`, gilt die Ära aus der ID `X_<Ära>_Landmark1`. Gesehen in der Aufnahme vom 2026-10-19 (alle LG-Definitionen), Testfall `test/fixtures/gb-definitions.json` (gebaut mit `scripts/make-fixture.py gb-defs`).
 
 **Kosten einer Stufe:** bis Stufe 9 `levelCosts[Stufe]`, ab Stufe 10 `ceil(levelCosts[9] × 1,025^(Stufe − 9))`. Geprüft an allen neun aufgezeichneten Konstruktionen (Stufen 41 bis 135): die Kosten der laufenden Stufe sind genau `forge_points_for_level_up`.

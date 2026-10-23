@@ -4,16 +4,22 @@ import { t } from '../../core/texts';
 import { arcBonus } from '../../domain/gb-calculator';
 import type { Construction } from '../../stores/great-building-model';
 import { icons } from '../../ui/icons';
+import {
+  COPY_MANUAL,
+  COPY_MODE,
+  COPY_MODES,
+  COPY_PLAYER,
+  COPY_TOGGLES,
+  COPY_WARN_PREFIX,
+  COPY_WARN_SUFFIX,
+  copyBuildingKey,
+  copyToggleKey,
+  DEFAULT_COPY,
+  readCopyOptions,
+} from '../../ui/own-share-copy';
 import { PlaceFactors } from './place-factors';
 import { type OwnShareActions, ownShareView } from './view';
-import {
-  COPY_MODES,
-  COPY_TOGGLES,
-  type CopyMode,
-  type CopyOptions,
-  DEFAULT_COPY,
-  ownShareViewModel,
-} from './view-model';
+import { ownShareViewModel } from './view-model';
 
 /** the menu entry and the settings group show it */
 const ICON = icons.gbOwnShare;
@@ -28,13 +34,6 @@ const FACTOR_ARC = 'gbOwn.factorArc';
 /** view choices, kept like the mode of a map rather than in the settings box */
 const SECURE = 'gbOwn.secure';
 const TRUST = 'gbOwn.trust';
-const COPY_PLAYER = 'gbOwn.copy.playerName';
-const COPY_MODE = 'gbOwn.copy.mode';
-const COPY_MANUAL = 'gbOwn.copy.manual';
-const COPY_WARN_PREFIX = 'gbOwn.copy.warnPrefix';
-const COPY_WARN_SUFFIX = 'gbOwn.copy.warnSuffix';
-const copyToggleKey = (option: string) => `gbOwn.copy.${option}`;
-const copyBuildingKey = (def: string) => `gbOwn.copy.building.${def}`;
 /** how long a copy button says it copied */
 const COPIED_MS = 1500;
 
@@ -147,16 +146,6 @@ export function createGbOwnShareFeature(
         const value = ctx.ui.pref(key);
         return value === undefined ? fallback : value === 'true';
       };
-      const copyOptions = (): CopyOptions => ({
-        ...(Object.fromEntries(COPY_TOGGLES.map(([o]) => [o, ctx.settings.get(copyToggleKey(o))])) as Omit<
-          CopyOptions,
-          'mode' | 'manual' | 'warnPrefix' | 'warnSuffix'
-        >),
-        warnPrefix: ctx.settings.text(COPY_WARN_PREFIX),
-        warnSuffix: ctx.settings.text(COPY_WARN_SUFFIX),
-        mode: ctx.settings.choice(COPY_MODE) as CopyMode,
-        manual: ctx.settings.numbers(COPY_MANUAL),
-      });
       const def = () => shown?.entity?.def;
       /** the five factors per building: standard, saved, changed */
       const factors = new PlaceFactors(ctx.ui, () => ({
@@ -168,7 +157,7 @@ export function createGbOwnShareFeature(
         const d = def();
         if (!d) return;
         change(d);
-        box.update();
+        update();
       };
 
       const actions: OwnShareActions = {
@@ -182,7 +171,7 @@ export function createGbOwnShareFeature(
           const list = [...(exts.get(extKey()) ?? [])];
           list[rank - 1] = fp;
           exts.set(extKey(), list);
-          box.update();
+          update();
         },
         setSecure: (on) => save(SECURE, String(on)),
         setTrust: (on) => save(TRUST, String(on)),
@@ -203,14 +192,37 @@ export function createGbOwnShareFeature(
             })
             .catch((error) => logError('copying failed', error));
         },
+        openPowerLevel: () => ctx.bus.emit('gbPowerLevel.open', {}),
         previewLevel: (level) => {
           preview = level;
-          box.update();
+          update();
         },
       };
       const save = (key: string, value: string) => {
         ctx.ui.savePref(key, value);
+        update();
+      };
+
+      /** the own Arc bonus while its factor button shows */
+      const arcNow = () =>
+        ctx.settings.get(ARC_BUTTON) ? arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses()) : undefined;
+      /** tells the Powerleveln box what the Eigenanteil box rests on for the building it shows */
+      const announce = () => {
+        const d = def();
+        if (d === undefined || openedLevel === undefined) return;
+        ctx.bus.emit('gbOwn.state', {
+          def: d,
+          level: openedLevel,
+          factors: factors.state(d).choices,
+          arcBonus: arcNow(),
+          secureExisting: flag(SECURE, true),
+          trust: flag(TRUST, false),
+          exts: exts.get(extKey()) ?? [],
+        });
+      };
+      const update = () => {
         box.update();
+        announce();
       };
 
       const vm = () => {
@@ -221,14 +233,12 @@ export function createGbOwnShareFeature(
           greatBuildingName: (id) => ctx.catalog.greatBuildingName(id),
           factors: factors.state(d ?? ''),
           factorButtons: ctx.settings.numbers(FACTOR_BUTTONS),
-          arcBonus: ctx.settings.get(ARC_BUTTON)
-            ? arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses())
-            : undefined,
+          arcBonus: arcNow(),
           secureExisting: flag(SECURE, true),
           trust: flag(TRUST, false),
           oneFpForNoReward: ctx.settings.get(ONE_FP),
           exts: exts.get(extKey()) ?? [],
-          copy: copyOptions(),
+          copy: readCopyOptions(ctx.settings),
           copyPlayer: ctx.settings.text(COPY_PLAYER) || ctx.session.current?.name,
           copyBuilding: d ? ctx.ui.pref(copyBuildingKey(d)) : undefined,
           previewLevel: preview,
@@ -254,8 +264,10 @@ export function createGbOwnShareFeature(
         if (!own || !follow()) return;
         openedLevel = shown?.entity?.level;
         preview = undefined;
-        if (ctx.settings.get(AUTO_OPEN)) box.open();
-        else box.update();
+        if (ctx.settings.get(AUTO_OPEN)) {
+          box.open();
+          announce();
+        } else update();
       });
       ctx.bus.on('greatBuilding.changed', ({ reason }) => {
         if (!follow()) return;
@@ -267,14 +279,14 @@ export function createGbOwnShareFeature(
           openedLevel = level;
           preview = undefined;
         }
-        box.update();
+        update();
       });
-      ctx.bus.on('catalog.updated', () => box.update());
-      ctx.bus.on('city.ownChanged', () => box.update());
+      ctx.bus.on('catalog.updated', () => update());
+      ctx.bus.on('city.ownChanged', () => update());
       ctx.settings.onChange((key) => {
         // the factor of the settings sets all five places alike again
         if (key === FACTOR || key === FACTOR_ARC) factors.dropStandard();
-        box.update();
+        update();
       });
       ctx.menu.add({ id: 'gbOwnShare', icon: ICON, label: () => t('gbOwn.menu'), action: () => box.toggle() });
     },

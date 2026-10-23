@@ -47,6 +47,11 @@ export interface GreatBuildingDef {
   era: string;
   /** `strategy_points_for_upgrade`: Forge points from level i to i + 1, index 0-based; the game lists ten */
   levelCosts: number[];
+  /**
+   * Forge points the building produces per level (`production_bonus.values`, index = level, the game lists 0 to 10);
+   * only for buildings whose production bonus is of type `strategy_points`
+   */
+  fpProduction?: number[];
 }
 
 /**

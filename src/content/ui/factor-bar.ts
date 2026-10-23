@@ -29,6 +29,10 @@ export const factorText = (percent: number) => formatNumber((100 + percent) / 10
 export const effectiveFactor = (choice: FactorChoice, arcBonus: number | undefined) =>
   choice.arc && arcBonus !== undefined ? arcBonus : choice.value;
 
+/** the factor of each place, one choice per place */
+export const effectiveFactors = (choices: FactorChoice[], arcBonus: number | undefined) =>
+  choices.map((c) => effectiveFactor(c, arcBonus));
+
 /** the presets and, when given, the own Arc bonus, sorted by value, the chosen one active; without a choice none is */
 export function factorButtons(
   presets: number[],

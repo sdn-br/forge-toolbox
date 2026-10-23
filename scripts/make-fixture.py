@@ -28,7 +28,8 @@
 # construction), the contribution's response, the owner's getOtherPlayerOverview that follows (for the names) and the
 # websocket great_building_contribution, with fake player ids and names.
 # Great building definitions: python3 -I scripts/make-fixture.py gb-defs <recording.json> <out.json> <cityentity_id> …
-# keeps the metadata file of each named great building, trimmed to id, name, type, min_era and the level costs.
+# keeps the metadata file of each named great building, trimmed to id, name, type, min_era, the level costs and the type
+# and values of its production bonus (the Forge points per level of a Forge point building).
 
 import json,sys
 
@@ -314,9 +315,11 @@ def gb_defs_fixture(rec,out,ids):
         if d.get('id') not in ids or any(f['json']['id']==d['id'] for f in files): continue
         trimmed={'id':d['id'],'name':d['name'],'type':d['type'],'requirements':{'min_era':d['requirements']['min_era']},
           'strategy_points_for_upgrade':d['strategy_points_for_upgrade'],'__class__':d.get('__class__')}
+        pb=d.get('production_bonus')
+        if isinstance(pb,dict): trimmed['production_bonus']={'type':pb.get('type'),'values':pb.get('values')}
         files.append({'url':r['url'].split('-')[0]+'-0','json':trimmed})
     files.sort(key=lambda f:ids.index(f['json']['id']))
-    fixture={'note':'Great building definitions (metadata building_entity_<id>) recorded on de20 2026-10-19, trimmed to what the level preview reads.','files':files}
+    fixture={'note':'Great building definitions (metadata building_entity_<id>) recorded on de20 2026-10-19, trimmed to what the level preview and the double harvest read.','files':files}
     json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
 
 def gb_level_up_fixture(rec,out,own):

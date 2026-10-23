@@ -95,7 +95,8 @@ function streetOf(json: Json, components: Json | undefined, generic: boolean): n
 
 /**
  * The era and level costs of a great building. The era is `requirements.min_era` (`NoAge` for the buildings of every
- * era, seen 2026-10-19), else the era in the id `X_<Era>_Landmark1`.
+ * era, seen 2026-10-19), else the era in the id `X_<Era>_Landmark1`. A production bonus of type `strategy_points` lists the
+ * Forge points per level (seen 2026-10-23: 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6 for levels 0 to 10).
  */
 function greatBuildingOf(json: Json): GreatBuildingDef | undefined {
   const costs = json.strategy_points_for_upgrade;
@@ -103,7 +104,11 @@ function greatBuildingOf(json: Json): GreatBuildingDef | undefined {
   const minEra = isObject(json.requirements) ? json.requirements.min_era : undefined;
   const era = typeof minEra === 'string' ? minEra : /^X_([A-Za-z]+)_/.exec(String(json.id))?.[1];
   if (!era) return undefined;
-  return { era: era === 'NoAge' ? 'AllAge' : era, levelCosts: costs };
+  const bonus = isObject(json.production_bonus) ? json.production_bonus : undefined;
+  const values = bonus?.type === 'strategy_points' ? bonus.values : undefined;
+  const fpProduction =
+    Array.isArray(values) && values.every((v) => typeof v === 'number') ? (values as number[]) : undefined;
+  return { era: era === 'NoAge' ? 'AllAge' : era, levelCosts: costs, ...(fpProduction && { fpProduction }) };
 }
 
 const NOT_PLUNDERABLE = ['AddResourcesToGuildTreasuryAbility', 'RandomChestRewardAbility', 'NotPlunderableAbility'];

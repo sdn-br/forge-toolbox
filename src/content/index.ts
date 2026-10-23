@@ -16,6 +16,7 @@ import { cityMapFeature } from './features/city-map';
 import { foestatsFeature } from './features/foestats';
 import { gbCalculatorFeature } from './features/gb-calculator';
 import { gbOwnShareFeature } from './features/gb-own-share';
+import { gbPowerLevelFeature } from './features/gb-power-level';
 import { notesFeature } from './features/notes';
 import { pvpFeature } from './features/pvp';
 import { sabotageFeature } from './features/sabotage';
@@ -32,6 +33,7 @@ const features: Feature[] = [
   cityMapFeature,
   gbCalculatorFeature,
   gbOwnShareFeature,
+  gbPowerLevelFeature,
   foestatsFeature,
   settingsFeature,
 ];

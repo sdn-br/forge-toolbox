@@ -33,6 +33,7 @@ import {
   toItemAmount,
   toItemUpdates,
   toLimitedBonuses,
+  toNextProduction,
   toObservation,
   toObservationWithAttack,
   toPlayerResources,
@@ -314,12 +315,13 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   });
   ingestion.on('GreatBuildingsService', 'getConstruction', ({ data, request }) => {
     const target = greatBuildingRequest(request);
-    const rows = toRankingRows((data as GameGreatBuildingConstruction | null)?.rankings);
+    const construction = data as GameGreatBuildingConstruction | null;
+    const rows = toRankingRows(construction?.rankings);
     if (!target || !rows) return;
     const own = target.owner === session.current?.playerId;
     const city = own ? cities.own() : cities.visited();
     const known = city?.owner === target.owner ? greatBuildingOf(city.buildings.get(target.entityId)) : undefined;
-    greatBuildings.openConstruction(target.owner, target.entityId, own, rows, known);
+    greatBuildings.openConstruction(target.owner, target.entityId, own, rows, known, toNextProduction(construction));
   });
   // [entityId, playerId, level]: the level being built repeats the current rankings, a lower one is finished
   ingestion.on('GreatBuildingsService', 'getConstructionRanking', ({ data, request }) => {

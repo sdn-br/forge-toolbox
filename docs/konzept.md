@@ -224,6 +224,7 @@ Je Feature eine Datei mit Umfang, Entscheidungen und Annahmen. Neue Features bek
 - [Stadtplan](features/stadtplan.md): Stadtplan der eigenen und besuchten Stadt
 - [LG-Rechner](features/lg-rechner.md): Kostenrechner für fremde LGs
 - [Eigenanteil](features/eigenanteil.md): Eigenanteilsrechner für eigene LGs
+- [Powerleveln](features/powerleveln.md): Eigenanteil über mehrere Stufen eines eigenen LGs
 - [foestats](features/foestats.md): Links, täglicher Verlauf, Aktivität
 
 ## Feature-Checkliste

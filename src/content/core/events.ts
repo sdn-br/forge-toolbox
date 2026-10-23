@@ -1,6 +1,7 @@
 // Contracts of all domain events. A listener gets exactly this payload and reads the rest from the stores.
 import type { BuildingDefId, PlayerId } from '../../shared/ids';
 import type { PlayerSource } from '../../shared/model';
+import type { OwnShareState } from '../stores/great-building-model';
 import type { Session } from '../stores/session';
 import { EventBus } from './bus';
 
@@ -40,6 +41,10 @@ export interface ToolboxEvents {
     entityId: number;
     reason: 'entity' | 'ranking' | 'contributed' | 'leveled';
   };
+  /** the Eigenanteil box holds new factors, Ext or switches for the own great building it shows */
+  'gbOwn.state': OwnShareState;
+  /** the Eigenanteil box asks for the Powerleveln box */
+  'gbPowerLevel.open': Record<string, never>;
 }
 
 export type ToolboxBus = EventBus<ToolboxEvents>;

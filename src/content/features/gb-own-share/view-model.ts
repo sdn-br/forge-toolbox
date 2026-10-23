@@ -1,78 +1,21 @@
 import type { BuildingDefId } from '../../../shared/ids';
-import { type TextKey, t } from '../../core/texts';
 import { emptyLevel } from '../../domain/gb-level-preview';
 import { calculateOwnShare, type OwnPlace, type OwnShareCalc } from '../../domain/gb-own-share';
 import type { GreatBuildingDef } from '../../stores/catalog';
 import type { Construction, RankingRow } from '../../stores/great-building-model';
-import { effectiveFactor, type FactorButton, factorButtons, factorText } from '../../ui/factor-bar';
+import { effectiveFactor, effectiveFactors, type FactorButton, factorButtons } from '../../ui/factor-bar';
 import { type LevelChoice, levelChoice } from '../../ui/level-bar';
+import { type CopyOptions, copyText } from '../../ui/own-share-copy';
 import { type PlaceFactorState, sameChoice } from './place-factors';
 
-/** which places the copy text names: the safe ones from the top, all free ones, all with Forge points, or a choice */
-export type CopyMode = 'auto' | 'autoUnsafe' | 'all' | 'manual';
-
-export interface CopyOptions {
-  player: boolean;
-  building: boolean;
-  level: boolean;
-  /** the words „Bitte leveln“ */
-  levelUp: boolean;
-  /** Forge points per place, P1(4950), or the places alone */
-  fp: boolean;
-  /** „P“ before the number of a place */
-  prefixP: boolean;
-  /** place 5 first */
-  descending: boolean;
-  /** the own share still open at the end, EA(1234) */
-  ownPart: boolean;
-  /** the factor, 1,9 */
-  factor: boolean;
-  /** mark places in danger or that level the building: the prefix once in front, the suffix after each such place */
-  warn: boolean;
-  warnPrefix: string;
-  warnSuffix: string;
-  mode: CopyMode;
-  /** the places picked by hand */
-  manual: number[];
-}
-
-/** the switches of the copy text with their labels, in the order the settings show them */
-export const COPY_TOGGLES: [Exclude<keyof CopyOptions, 'mode' | 'manual' | 'warnPrefix' | 'warnSuffix'>, TextKey][] = [
-  ['player', 'gbOwn.copyPlayer'],
-  ['building', 'gbOwn.copyBuilding'],
-  ['level', 'gbOwn.copyLevel'],
-  ['levelUp', 'gbOwn.copyLevelUpOption'],
-  ['fp', 'gbOwn.copyFp'],
-  ['prefixP', 'gbOwn.copyPrefixP'],
-  ['descending', 'gbOwn.copyDescending'],
-  ['ownPart', 'gbOwn.copyOwnPartOption'],
-  ['factor', 'gbOwn.copyFactor'],
-  ['warn', 'gbOwn.copyWarn'],
-];
-
-export const COPY_MODES: [CopyMode, TextKey][] = [
-  ['auto', 'gbOwn.copyAuto'],
-  ['autoUnsafe', 'gbOwn.copyAutoUnsafe'],
-  ['all', 'gbOwn.copyAll'],
-  ['manual', 'gbOwn.copyManual'],
-];
-
-export const DEFAULT_COPY: CopyOptions = {
-  player: true,
-  building: true,
-  level: false,
-  levelUp: false,
-  fp: true,
-  prefixP: true,
-  descending: true,
-  ownPart: false,
-  factor: false,
-  warn: false,
-  warnPrefix: '!!!',
-  warnSuffix: '',
-  mode: 'auto',
-  manual: [],
-};
+export {
+  COPY_MODES,
+  COPY_TOGGLES,
+  type CopyMode,
+  type CopyOptions,
+  copyText,
+  DEFAULT_COPY,
+} from '../../ui/own-share-copy';
 
 export interface OwnShareInputs {
   /** the last own construction opened */
@@ -223,7 +166,7 @@ function ownTable(
   estimate: boolean,
 ): Omit<Extract<OwnShareVm, { kind: 'current' }>, 'levels' | 'preview' | 'addedLive'> {
   const { choices, ...factorState } = input.factors;
-  const factors = choices.map((c) => effectiveFactor(c, input.arcBonus));
+  const factors = effectiveFactors(choices, input.arcBonus);
   const calc = calculateOwnShare({
     required,
     rankings,
@@ -290,55 +233,4 @@ function ownRows(
   if (calc.pushed) rows.push({ kind: 'pushed', ...calc.pushed });
   if (calc.rest > 0) own(calc.rest);
   return rows;
-}
-
-/** the places the copy text names, by its mode */
-function copiedPlaces(calc: OwnShareCalc, o: CopyOptions): OwnPlace[] {
-  const paying = calc.places.filter((p) => !p.full && p.amount > 0);
-  switch (o.mode) {
-    case 'auto':
-      return paying.filter((p) => calc.safeRanks.includes(p.rank));
-    case 'autoUnsafe':
-      return paying.filter((p) => !p.holder);
-    case 'all':
-      return paying;
-    case 'manual':
-      return paying.filter((p) => o.manual.includes(p.rank));
-  }
-}
-
-/** the factor as helpers read it: 1,9 when all places share it, else the lowest and the highest, 1,8/1,9 */
-function factorsText(factor: number | number[]): string {
-  const list = typeof factor === 'number' ? [factor] : factor;
-  const low = Math.min(...list);
-  const high = Math.max(...list);
-  return low === high ? factorText(low) : `${factorText(low)}/${factorText(high)}`;
-}
-
-/** One line for the guild chat, e.g. „Ich Arche 135→136 P5(38) P4(209) P3(827)“. Numbers stay plain for pasting. */
-export function copyText(
-  calc: OwnShareCalc,
-  o: CopyOptions,
-  /** `factor` in percent, one for all places or one per place */
-  about: { player: string; building: string; level: number; factor: number | number[] },
-): string {
-  const parts: string[] = [];
-  if (o.player && about.player) parts.push(about.player);
-  if (o.building && about.building) parts.push(about.building);
-  if (o.levelUp) parts.push(t('gbOwn.copyLevelUp'));
-  if (o.level) parts.push(`${about.level}→${about.level + 1}`);
-  if (o.factor) parts.push(factorsText(about.factor));
-  const places = copiedPlaces(calc, o);
-  if (o.descending) places.reverse();
-  // as in the old toolbox, but the prefix only when a marked place is in the text, not for one left out
-  const marked = (p: OwnPlace) => o.warn && (p.danger !== undefined || p.levels);
-  if (o.warnPrefix && places.some(marked)) parts.unshift(o.warnPrefix);
-  for (const p of places) {
-    parts.push(`${o.prefixP ? 'P' : ''}${p.rank}${o.fp ? `(${p.amount})` : ''}`);
-    if (o.warnSuffix && marked(p)) parts.push(o.warnSuffix);
-  }
-  if (!places.length && o.mode === 'auto') parts.push(t('gbOwn.copyNoneSafe'));
-  if (!places.length && o.mode === 'autoUnsafe') parts.push(t('gbOwn.copyNoneFree'));
-  if (o.ownPart) parts.push(`${t('gbOwn.copyOwnPart')}(${Math.max(0, calc.open)})`);
-  return parts.join(' ');
 }
