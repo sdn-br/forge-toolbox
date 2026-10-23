@@ -195,6 +195,7 @@ export const de = {
   'gbCalc.levelUp': 'Leveln + P1 auf {level}: {fill} + {first} FP',
   'gbCalc.meNone': 'Du: noch nichts eingezahlt',
   'gbCalc.meNoTarget': 'kein Platz zu haben',
+  'gbCalc.meNoneWorthwhile': 'kein Platz lohnt',
   'gbCalc.safeHint': 'Einzahlung, die der Inhaber nicht mehr überbieten kann',
   'gbCalc.demandHint': 'Belohnung mal Faktor: was der Eigentümer für den Platz fordert, er sichert ihn selbst ab',
   'gbCalc.demandProfit': 'Gewinn bei Fördern: {fp} FP',

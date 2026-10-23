@@ -66,6 +66,12 @@ export interface PlaceCalc {
   available: boolean;
   /** the safe cost is all that is left: the own deposit would level the building */
   levelWarning: boolean;
+  /**
+   * worth naming as an advice to the player (see `ConstructionCalc.fallbackGross`): without an own deposit when it
+   * loses nothing or its safe cost is not above the demand, else when it leaves more than doing nothing. Set where the
+   * place can be had or is the own place while not safe.
+   */
+  worthwhile?: boolean;
   /** not more profit than a higher place offers */
   worse: boolean;
   status: PlaceStatus;
@@ -80,6 +86,11 @@ export interface ConstructionCalc {
   missing: number;
   myDeposit: number;
   myRank?: number;
+  /**
+   * gross Forge points of the place the player ends on when he adds nothing and others pay what is missing in the way
+   * that drops him furthest; 0 below the last place. Set while the own deposit is more than 0.
+   */
+  fallbackGross?: number;
   /** one per place with a reward, best rank first; empty when blocked */
   places: PlaceCalc[];
 }
@@ -108,6 +119,8 @@ export function calculateConstruction(input: ConstructionInput): ConstructionCal
   const byRank = new Map(rankings.filter((r) => r.rank !== undefined).map((r) => [r.rank as number, r]));
   const paid = [...byRank.values()].filter((r) => r.reward).sort((a, b) => (a.rank as number) - (b.rank as number));
 
+  const fallbackGross =
+    myDeposit > 0 ? worstCaseGross(byRank, paid, mine?.rank, myDeposit, base.missing, arcBonus) : undefined;
   const places: PlaceCalc[] = [];
   let best: number | undefined;
   for (const row of paid) {
@@ -152,6 +165,11 @@ export function calculateConstruction(input: ConstructionInput): ConstructionCal
     const available = !isMine && !secured && !dominated;
     const percentOf = (fp: number) => (reward.fp > 0 ? roundHalfUp((fp / reward.fp) * 1000) / 10 : undefined);
     const levelWarning = available && safeCost >= rest;
+    const priced = available || (isMine && !secured);
+    const worthwhile =
+      fallbackGross === undefined
+        ? profit >= 0 || safeCost <= demandCost
+        : gross - (safeCost - myDeposit) > fallbackGross;
     const worse = available && !levelWarning && best !== undefined && profit <= best;
     if (available && !levelWarning) best = best === undefined ? profit : Math.max(best, profit);
     places.push({
@@ -169,11 +187,43 @@ export function calculateConstruction(input: ConstructionInput): ConstructionCal
       ...(isMine && { depositRate: percentOf(myDeposit) }),
       available,
       levelWarning,
+      ...(priced && { worthwhile }),
       worse,
       status: statusOf(isMine, available, levelWarning, worse, profit),
     });
   }
-  return { ...base, places };
+  return { ...base, ...(fallbackGross !== undefined && { fallbackGross }), places };
+}
+
+/**
+ * The place the player falls to when he adds nothing: others pay `missing` Forge points so that he drops as far as
+ * possible. Passing him costs a newcomer the own deposit + 1 (a tie keeps the earlier place), a holder below only the
+ * difference; the cheapest passes come first, as many as the points allow. Below the last paid place nothing is left.
+ */
+function worstCaseGross(
+  byRank: Map<number, RankingRow>,
+  paid: RankingRow[],
+  myRank: number | undefined,
+  deposit: number,
+  missing: number,
+  arcBonus: number,
+): number {
+  if (myRank === undefined) return 0;
+  const lastRank = paid.at(-1)?.rank as number;
+  const below = [...byRank.values()]
+    .filter((r) => (r.rank as number) > myRank && r.fp !== undefined)
+    .map((r) => deposit + 1 - (r.fp as number))
+    .sort((a, b) => a - b);
+  let left = Math.max(0, missing);
+  let rank = myRank;
+  for (let i = 0; rank <= lastRank; i++) {
+    const cost = below[i] ?? deposit + 1;
+    if (cost > left) break;
+    left -= cost;
+    rank++;
+  }
+  const reward = paid.find((r) => r.rank === rank)?.reward;
+  return reward ? plusPercent(reward.fp, arcBonus) : 0;
 }
 
 function statusOf(mine: boolean, available: boolean, levelWarning: boolean, worse: boolean, profit: number) {

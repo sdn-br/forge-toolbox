@@ -325,7 +325,7 @@ describe('LG-Rechner', () => {
       expect(box.text).toContain('Bis Level-Up fehlen 450 FP');
       expect(box.text).toContain('Du: noch nichts eingezahlt');
       expect(rows().map((r) => r.querySelectorAll('td')[1]?.textContent?.trim())).toEqual(['–', '–', '–', '–', '–']);
-      expect(box.text).toContain('P1 sichern: 225');
+      expect(box.text).toContain('kein Platz lohnt');
     });
 
     it('goes on with the new level also when the event comes before the answer', async () => {
@@ -422,7 +422,7 @@ describe('LG-Rechner', () => {
 
     const best = (root: HTMLElement) => [...root.querySelectorAll('.gb-me b')].map((b) => b.textContent?.trim());
 
-    it('empty: only place 1 has a safe cost, profit and rate, and the line offers only place 1', () => {
+    it('empty: only place 1 has a safe cost, profit and rate, and the line offers no place, it loses', () => {
       const { box, rows } = scenario([]);
       // round(5404 / 2) = 2702 for round(1275 × 1.955) = 2493; demand round(1275 × 1.9) = 2423
       expect(cells(rows()[0])).toEqual(['1', '–', '2.702', '2.493', '-209', '2.423', '211,9 %']);
@@ -433,8 +433,8 @@ describe('LG-Rechner', () => {
         ['4', '–', '–', '108', '–', '105', '–'],
         ['5', '–', '–', '20', '–', '19', '–'],
       ]);
-      expect(meLines(box.root)).toEqual(['Du: noch nichts eingezahlt', 'P1 sichern: 2.702']);
-      expect(best(box.root)).toEqual(['P1 sichern: 2.702']);
+      expect(meLines(box.root)).toEqual(['Du: noch nichts eingezahlt', 'kein Platz lohnt']);
+      expect(best(box.root)).toEqual([]);
     });
 
     it('nothing paid in: the places that can be had with their safe total, the best profit in bold', () => {
@@ -445,7 +445,7 @@ describe('LG-Rechner', () => {
       // place 1: round((3099 + 1970) / 2) = 2535 cannot pass 3099; place 2: round(2449 / 2) = 1225 for 926 profit;
       // place 3: round(1970 / 2) = 985 for -271; place 4 the same 985: dominated
       expect(cells(rows()[0])?.[2]).toBe('✓');
-      expect(meLines(box.root)).toEqual(['Du: noch nichts eingezahlt', 'P2 sichern: 1.225 · P3 sichern: 985']);
+      expect(meLines(box.root)).toEqual(['Du: noch nichts eingezahlt', 'P2 sichern: 1.225']);
       expect(best(box.root)).toEqual(['P2 sichern: 1.225']);
     });
 
@@ -470,10 +470,7 @@ describe('LG-Rechner', () => {
       expect(now?.className).toBe('muted');
       expect(now?.getAttribute('data-tip')).toBe('wenn du nichts mehr einzahlst und dich niemand überholt');
       expect(box.root.querySelector('.gb-me')?.className).toBe('gb-me');
-      expect(meLines(box.root)).toEqual([
-        'Du: 400 FP auf P3 · nicht sicher',
-        'P1 sichern: +1.852 · P2 sichern: +1.552 · P3 sichern: +1.102',
-      ]);
+      expect(meLines(box.root)).toEqual(['Du: 400 FP auf P3 · nicht sicher', 'P1 sichern: +1.852']);
       // profits 2493 - 2252 = 241, 1251 - 1952 = -701, 420 - 1502 = -1082
       expect(best(box.root)).toEqual(['P1 sichern: +1.852']);
     });

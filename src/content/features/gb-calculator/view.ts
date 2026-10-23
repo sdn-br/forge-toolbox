@@ -107,7 +107,7 @@ function meLine(me: MeVm) {
   };
   const targets = me.targets.length
     ? me.targets.map((x, i) => html`${i ? ' · ' : ''}${target(x)}`)
-    : t('gbCalc.meNoTarget');
+    : t(me.noneWorthwhile ? 'gbCalc.meNoneWorthwhile' : 'gbCalc.meNoTarget');
   return html`<p class="gb-me">${where}<br /><span class="muted">${targets}</span>${levelUp}</p>`;
 }
 
