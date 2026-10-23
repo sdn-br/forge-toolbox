@@ -11,16 +11,7 @@ import { type LevelUpAndFirst, levelUpAndFirst, previewLevel } from '../../domai
 import type { GreatBuildingDef } from '../../stores/catalog';
 import type { FoestatsRecord } from '../../stores/foestats';
 import type { Construction, RankingRow } from '../../stores/great-building-model';
-
-/** The factor buttons; `arc` uses the Arc bonus of the player. */
-export const FACTOR_PRESETS = [80, 90, 100] as const;
-
-export interface FactorChoice {
-  /** the factor typed or picked, in percent */
-  value: number;
-  /** the Arc bonus is the factor */
-  arc: boolean;
-}
+import { effectiveFactor as effective, type FactorButton, type FactorChoice, factorButtons } from '../../ui/factor-bar';
 
 export interface GbHeader {
   name: string;
@@ -152,7 +143,8 @@ export type GbCalculatorVm =
   | {
       kind: 'preview';
       header: GbHeader;
-      factor: FactorChoice;
+      /** sorted by value, the own Arc bonus among them while its setting shows it */
+      factorButtons: FactorButton[];
       effectiveFactor: number;
       preview: PreviewVm;
       /** set when the preview shows the level right after the current one and leveling into its place 1 pays */
@@ -161,7 +153,8 @@ export type GbCalculatorVm =
   | {
       kind: 'current';
       header: GbHeader;
-      factor: FactorChoice;
+      /** sorted by value, the own Arc bonus among them while its setting shows it */
+      factorButtons: FactorButton[];
       /** the factor in effect, in percent */
       effectiveFactor: number;
       blocked?: 'maxLevel' | 'unconnected';
@@ -189,6 +182,10 @@ export interface GbCalculatorInput {
   fpPackages?: number;
   arcBonus: number;
   factor: FactorChoice;
+  /** the factor presets in percent */
+  factorButtons: number[];
+  /** the own Arc bonus shows as one more button */
+  arcButton: boolean;
   /** the owner's days at foestats; undefined while foestats is off or was not asked yet */
   foestats?: FoestatsRecord;
   /** the current foestats day, `YYYY-MM-DD` */
@@ -348,14 +345,16 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     arcBonus: input.arcBonus,
     levels: { current: entity.level, chosen: preview ?? entity.level, preview: preview !== undefined },
   };
-  const effectiveFactor = input.factor.arc ? input.arcBonus : input.factor.value;
+  const arcButton = input.arcButton ? input.arcBonus : undefined;
+  const effectiveFactor = effective(input.factor, arcButton);
+  const buttons = factorButtons(input.factorButtons, arcButton, input.factor);
   const live = { ...entity, rankings: c.rankings, arcBonus: input.arcBonus, factor: effectiveFactor };
   const levelUp = c.past || c.leveled ? undefined : levelUpAndFirst(live, input.greatBuilding(entity.def));
   if (preview !== undefined) {
     return {
       kind: 'preview',
       header,
-      factor: input.factor,
+      factorButtons: buttons,
       effectiveFactor,
       preview: previewVm(input.greatBuilding(entity.def), preview, entity.maxLevel, input.arcBonus, effectiveFactor),
       ...(levelUp && preview === levelUp.nextLevel && { levelUp }),
@@ -386,7 +385,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
   return {
     kind: 'current',
     header,
-    factor: input.factor,
+    factorButtons: buttons,
     effectiveFactor,
     ...(calc.blocked && { blocked: calc.blocked }),
     ...(c.leveled && { leveled: c.leveled.level }),

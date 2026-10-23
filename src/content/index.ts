@@ -15,6 +15,7 @@ import { t } from './core/texts';
 import { cityMapFeature } from './features/city-map';
 import { foestatsFeature } from './features/foestats';
 import { gbCalculatorFeature } from './features/gb-calculator';
+import { gbOwnShareFeature } from './features/gb-own-share';
 import { notesFeature } from './features/notes';
 import { pvpFeature } from './features/pvp';
 import { sabotageFeature } from './features/sabotage';
@@ -30,6 +31,7 @@ const features: Feature[] = [
   notesFeature,
   cityMapFeature,
   gbCalculatorFeature,
+  gbOwnShareFeature,
   foestatsFeature,
   settingsFeature,
 ];

@@ -121,6 +121,14 @@ tr.gb-profit { background: rgba(90, 170, 90, .28); }
 tr.gb-loss { background: rgba(200, 80, 60, .28); }
 tr.gb-levelWarning { background: rgba(220, 190, 60, .32); }
 tr.gb-mine { background: rgba(80, 140, 220, .32); }
+tr.own-row td { background: #3a2814; }
+td.own-fp, td.gain { color: #8fd08f; }
+button.copy-fp { all: unset; cursor: pointer; }
+button.copy-fp:hover { text-decoration: underline; }
+input.ext { width: 5em; }
+.copy-line { display: flex; gap: 4px; align-items: center; margin: 4px 0; }
+.copy-line .copy-text { flex: 1; min-width: 0; }
+.copy-line .copy-building { width: 7em; }
 tr.gb-unavailable, tr.gb-worse { color: #8a7a60; }
 .gb-table td.estimate { font-style: italic; }
 td.short { color: #ff6a50; font-weight: 600; }

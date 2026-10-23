@@ -96,6 +96,7 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
   - Pop-out: Die Box zieht als Ganzes ins Bild-im-Bild-Fenster und füllt es. Schließt das Fenster, dockt sie wieder an. Wird sie im Pop-out geschlossen, bleibt sie zu.
 - **Tabelle:** sortieren, filtern, exportieren.
 - **Tooltip:** ein Mechanismus für alle Features (`src/content/ui/tooltip.ts`) statt des Browser-`title`. Elemente tragen ihren Text in `data-tip`, ein Listener je Shadow Root (Box und Menü) zeigt ihn. So erscheint er auch im Pop-out und mehrzeilig im Stil der Toolbox. Er erscheint nach einer kurzen Pause wie beim Browser, steht schon einer, wechselt er sofort. Er folgt dem Zeiger und klappt an den Rändern des Fensters nach links oder oben. Ein Klick blendet ihn aus, weil sich die Beschriftung dann oft ändert. Elemente mit `data-tip-instant` zeigen ihn ohne Pause (Stadtplan). Knöpfe nur mit Symbol tragen dieselbe Beschriftung als `aria-label`.
+- **Faktorleiste** (`src/content/ui/factor-bar.ts`): Faktor-Knöpfe der LG-Rechner, als Faktor beschriftet (90 % = 1,9), Voreinstellungen und eigener Arche-Bonus nach Wert sortiert, dazu ein freies Feld. LG-Rechner und Eigenanteil nutzen sie mit je eigenen Einstellungen.
 - **Fixieren:** Der Knopf zeigt eine Stecknadel als SVG: als Umriss schräg, solange die Box lose ist, gefüllt senkrecht in Gold, wenn sie fixiert ist.
 - **Chart:** kapselt ECharts mit Lazy-Load, Theme, Resize, Export als PNG und CSV. Bekommt ein eigenes Datenformat für Serien, nicht ECharts-Optionen. Lässt sich in jede View einbetten, so muss kein Feature Chart-Code wiederholen.
 - **Stadtplan:** zeichnet ein Stadtgitter mit Gebäuden aus einfachen Daten (siehe [Stadtplan](features/stadtplan.md)).
@@ -220,6 +221,7 @@ Je Feature eine Datei mit Umfang, Entscheidungen und Annahmen. Neue Features bek
 - [Notizen](features/notizen.md): Notizen zu Spielern und Gilden
 - [Stadtplan](features/stadtplan.md): Stadtplan der eigenen und besuchten Stadt
 - [LG-Rechner](features/lg-rechner.md): Kostenrechner für fremde LGs
+- [Eigenanteil](features/eigenanteil.md): Eigenanteilsrechner für eigene LGs
 - [foestats](features/foestats.md): Links, täglicher Verlauf, Aktivität
 
 ## Feature-Checkliste

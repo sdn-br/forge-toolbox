@@ -1,0 +1,44 @@
+# Eigenanteil
+
+Stand 2026-10-22. Erste Stufe des Eigenanteilsrechners für eigene LGs. Powerleveling kommt später. Datenmodell: [Great Buildings](../datenmodell/great-buildings.md).
+
+**Box „Eigenanteil“ (🧱):** eigene Box neben dem LG-Rechner. Sie öffnet sich, sobald der Spieler ein eigenes LG öffnet. Zum Start eine eigene Box, ein Reiter im LG-Rechner war die Alternative und lässt sich später ohne Umbau der Rechnung nachziehen (Nutzer, 2026-10-22).
+
+- Kopf: Name des LGs, Stufe → nächste Stufe.
+- Faktor: Knöpfe aus der Einstellung „Faktor-Knöpfe in %“ (Liste wie „80; 90; 95,5“, Standard 1,8, 1,9 und 2,0), dazu ein freies Feld, ebenfalls als Faktor (etwa 1,955, 0 bis 3), gespeichert in Prozent (90 = 1,9). Faktoren haben eine Nachkommastelle (Nutzer, 2026-10-23). Eigene Einstellung `gbOwn.factor`, vorbelegt mit 90, getrennt vom Faktor des LG-Rechners. Was man anbietet und was einem angeboten wird, ist meist verschieden. Dazu ein Knopf mit dem eigenen Arche-Bonus (etwa 1,955 bei 95,5 %), nach Wert zwischen die anderen einsortiert, abschaltbar mit „Eigenen Arche-Bonus als Faktor-Knopf zeigen“ (Standard an, wie in der alten Toolbox, Nutzer 2026-10-23). Ist er gewählt, merkt sich die Box das getrennt (`gbOwn.factorArc`), so gilt der genaue Bonus und folgt ihm, wenn er sich ändert. Für die Knöpfe gibt es eine neue Art Einstellung „Liste von Zahlen“: Einträge mit Semikolon oder Leerzeichen getrennt, damit das Komma Dezimalzeichen sein kann (Komma oder Punkt), gerundet auf die Schrittweite der Einstellung (hier 0,1), in den Grenzen, jede einmal, leer gibt die Standardliste. Zahl-Einstellungen kennen dafür eine Schrittweite (`step`), ohne sie bleiben sie ganzzahlig.
+- Tabelle in Zahlreihenfolge mit den Spalten Reihenfolge, Spieler, Zahlen, Erledigt, Differenz, Ext. Eine Spalte Belohnung gibt es nicht, sie bringt beim Eigenanteil nichts (Nutzer, 2026-10-23). Die eigenen FP stehen als eigene Zeile „Eigene FP“ vor dem Platz, den sie absichern, wie in der alten Toolbox (Nutzer, 2026-10-22).
+  - Erste Zeile „Eigene FP“: unter Erledigt, was der Eigentümer schon eingezahlt hat, unter Zahlen die eigenen FP vor P1 mit Summe. Wie in der alten Toolbox eine Zeile für beides (Nutzer, 2026-10-23). Ist beides 0, fehlt sie.
+  - Zeile „Eigene FP“ vor einem Platz: was der Eigentümer vorher einzahlt, damit den Platz danach niemand mehr überholt, in Klammern die laufende Summe des Eigenanteils. Braucht ein Platz nichts vorher, fehlt die Zeile.
+  - Platz, dessen Inhaber ihn behält: seine Einzahlung unter Erledigt. Kleinere Einzahlungen verdrängt der Förderer, der Platz zeigt dann „frei“ mit der Zahlung des Förderers.
+  - Freier Platz: unter Zahlen Belohnung mal Faktor, gerundet wie im LG-Rechner, höchstens was noch fehlt. Dahinter „levelt“, wenn die Zahlung das LG levelt, oder „Gefahr (X FP)“, wenn ein anderer den Platz vor dem Förderer günstiger sichern kann (siehe Rechnung).
+  - Ist die Stufe schon vor einem Platz voll, steht dort „–“ (gedämpft).
+  - Letzte Zeile „Eigene FP“: was nach dem letzten Platz bis zum Level-Up bleibt. Die Summe in Klammern ist dann der ganze Eigenanteil.
+  - Differenz: bei einem Inhaber, der seinen Platz behält, seine Einzahlung minus der Zahlung nach Faktor. „+“ heißt zu viel bezahlt (grün), „−“ zu wenig (rot), der Tooltip nennt beide Werte. Sonst „–“ (Nutzer, 2026-10-23).
+  - Ein Klick auf eine Zahl unter Zahlen kopiert sie ohne Tausenderpunkt, zum Einfügen ins Einzahlungsfeld des Spiels.
+  - Ext: ein Feld je Platz für zugesagte, noch nicht gezahlte FP. Sie zählen wie eingezahlt und stehen als „zugesagt“ auf dem Platz, den ihr Betrag erreicht. Gilt nur für die geöffnete Stufe und bis zum Neuladen.
+- Unter der Tabelle „Absichern“ (Standard an) und „Vertrauen“ (Standard aus), gemerkt wie eine Ansichtswahl. Absichern aus: vor Plätzen, deren Inhaber sie behalten, zahlt der Eigentümer nichts. Vertrauen an: wer schon eingezahlt hat, legt nicht nach, nur Neue können überholen.
+- Darunter: Eigenanteil gesamt, davon eingezahlt, offen.
+- Kopieren: in der Box ein schmales Feld mit dem Gebäudenamen (Standard der Name aus dem Spiel, änderbar und je LG gemerkt), daneben der Text für den Gildenchat, vor dem Kopieren änderbar, und der Knopf „Kopieren“. Was in den Text kommt, steht im Einstellungsfenster in der Gruppe „Eigenanteil: Kopiertext“, nicht in der Box (Nutzer, 2026-10-23). Die Optionen folgen der alten Toolbox:
+  - Spielername als Text-Einstellung, leer heißt der eigene Name aus dem Spiel. Dafür gibt es eine neue Art Einstellung „Text“.
+  - Schalter: Spieler (an), Gebäude (an), Stufe `135→136` (aus), „Bitte leveln“ (aus), FP je Platz `P1(4950)` (an), „P“ vor dem Platz (an), absteigend mit P5 zuerst (an), Eigenanteil `EA(1234)` (aus), Faktor `1,9` (aus).
+  - Plätze als Auswahl: „Auto: sichere Plätze“ (Standard, die freien Plätze von oben, bis einer eigene FP davor braucht, sonst „Kein Platz sicher“), „Auto + nicht sichere“ (alle freien, sonst „Kein Platz verfügbar“), „Alle“ (auch belegte) oder „Auswahl“ mit der Liste „Plätze für ‚Auswahl‘“ (etwa `1; 2; 3`).
+  - Beispiel: `Ich Arche P5(38) P4(209) P3(827) P2(2480) P1(4950)`. Zahlen ohne Tausenderpunkt.
+- Einstellung „Beim eigenen LG automatisch öffnen“ (Standard an).
+
+**Rechnung** (reine Funktion `calculateOwnShare` in `src/content/domain/gb-own-share.ts`): Die Plätze werden von oben nach unten durchgegangen, so wie Förderer sie meist füllen.
+
+- Ein Platz ist sicher, wenn das, was danach noch fehlt, plus der stärkste Inhaber darunter ihn nicht überholt. Bei Gleichstand behält die frühere Einzahlung den Platz, wie im LG-Rechner.
+- Inhaber, der bleibt (H): eigene FP davor = max(0, fehlt + stärkster darunter − H), höchstens was fehlt.
+- Förderer mit Einzahlung E (der Platz war frei oder sein Inhaber wird verdrängt): eigene FP davor = max(0, fehlt − 2·E + verdrängte Einzahlung), höchstens fehlt − E.
+- Jede eigene Einzahlung davor und jede Einzahlung eines Förderers verkleinert, was für den nächsten Platz fehlt.
+- Die Einzahlungen anderer (mit den zugesagten aus Ext) stehen absteigend auf den Plätzen. Eine Einzahlung behält ihren Platz nur, wenn sie mindestens so groß ist wie die Zahlung eines Förderers dort (oder wie alles, was noch fehlt). Eine kleinere, etwa ein Platzhalter, wird vom Förderer verdrängt, rutscht nach unten und zählt dann als stärkster Inhaber darunter. Das ist die Regel der alten Toolbox (Nutzer, 2026-10-23). Verdrängte Einzahlungen unter den Plätzen mit Belohnung stehen als Zeile „#6-7“ mit ihrer Summe unter Erledigt.
+- Beispiel (Arche 135 → 136, 21.777 FP, eigene 5.830, Platzhalter 10 und 3, Faktor 2): vor P1 (5.210) 5.524 eigene FP, vor P2 (2.610) keine, vor P3 (870) 860, vor P4 (220) 430, vor P5 (40) 140, danach 30. Eigenanteil 12.814, wie in der alten Toolbox.
+- Absichern aus: Inhaber, die ihren Platz behalten, bekommen keine eigenen FP davor. Platzhalter betrifft das nicht, sie werden ohnehin verdrängt. Vertrauen an: der stärkste Inhaber darunter zählt nicht, nur ein Neuer, der den Rest einzahlt.
+- **Gefahr:** Bevor der Förderer zahlt, kann ein anderer den freien Platz mit der Hälfte dessen sichern, was dann noch fehlt (aufgerundet, er zahlt ja zuerst). Liegt die Zahlung des Förderers mehr als 5 FP darüber, steht „Gefahr (Differenz)“. Das ist der Gewinn eines Snipers mit gleichem Faktor. So in der alten Toolbox ähnlich, hier nach unserer Regel neu gefasst.
+- **Levelt:** Die Zahlung des Förderers ist genau das, was noch fehlt.
+- **Sichere Plätze für den Kopiertext:** die freien Plätze von oben, bis der erste Platz eigene FP davor braucht.
+- Eigenanteil = Kosten der Stufe minus alle Einzahlungen anderer, die geplanten freien Plätze mitgezählt. Offen = Eigenanteil minus eigene Einzahlung.
+
+**Live:** Zahlen andere in das eigene LG ein, meldet das Spiel `CityMapService.updateEntity` mit der neuen Summe, aber ohne Rangliste. Die Box zeigt dann „Seit dem Öffnen +X FP von anderen. Plätze erst nach erneutem Öffnen aktuell.“ X ist, was das Gebäude mehr hat, als die Rangliste zeigt. Eine eigene Einzahlung bringt ihre Rangliste mit und zählt deshalb nicht mit (aufgenommen 2026-10-23: die Antwort bringt `contributeForgePoints` mit der neuen Rangliste, dazu das Gebäude in `CityMapService.updateEntity` und `reset`) Die Tabelle bleibt beim Stand der Öffnung. Meldet das Gebäude eine neue Stufe (oder weniger FP als beim Öffnen), bittet die Box, das LG neu zu öffnen.
+
+**Noch nicht enthalten (Nutzer, 2026-10-23, später):** Faktor je Platz und je LG, 1 FP für Plätze ohne FP, Stufenvorschau, Powerleveln, Warnzeichen im Kopiertext, „Merken“ mehrerer LGs. **Nicht übernommen:** Startwert in der Summe abschaltbar, Fußzeile, Spalten Blaupausen und Medaillen, kompakte Ansicht, Ansicht für fremde LGs, Format je LG.
