@@ -30,6 +30,8 @@ const TRUST = 'gbOwn.trust';
 const COPY_PLAYER = 'gbOwn.copy.playerName';
 const COPY_MODE = 'gbOwn.copy.mode';
 const COPY_MANUAL = 'gbOwn.copy.manual';
+const COPY_WARN_PREFIX = 'gbOwn.copy.warnPrefix';
+const COPY_WARN_SUFFIX = 'gbOwn.copy.warnSuffix';
 const copyToggleKey = (option: string) => `gbOwn.copy.${option}`;
 const copyBuildingKey = (def: string) => `gbOwn.copy.building.${def}`;
 /** how long a copy button says it copied */
@@ -93,6 +95,24 @@ export function createGbOwnShareFeature(
           default: DEFAULT_COPY[option],
         });
       ctx.settings.register({
+        key: COPY_WARN_PREFIX,
+        group: 'gbOwn.title',
+        section: 'gbOwn.copySettings',
+        label: 'gbOwn.copyWarnPrefix',
+        hint: 'gbOwn.copyWarnPrefixHint',
+        default: DEFAULT_COPY.warnPrefix,
+        text: true,
+      });
+      ctx.settings.register({
+        key: COPY_WARN_SUFFIX,
+        group: 'gbOwn.title',
+        section: 'gbOwn.copySettings',
+        label: 'gbOwn.copyWarnSuffix',
+        hint: 'gbOwn.copyWarnSuffixHint',
+        default: DEFAULT_COPY.warnSuffix,
+        text: true,
+      });
+      ctx.settings.register({
         key: COPY_MODE,
         group: 'gbOwn.title',
         section: 'gbOwn.copySettings',
@@ -127,8 +147,10 @@ export function createGbOwnShareFeature(
       const copyOptions = (): CopyOptions => ({
         ...(Object.fromEntries(COPY_TOGGLES.map(([o]) => [o, ctx.settings.get(copyToggleKey(o))])) as Omit<
           CopyOptions,
-          'mode' | 'manual'
+          'mode' | 'manual' | 'warnPrefix' | 'warnSuffix'
         >),
+        warnPrefix: ctx.settings.text(COPY_WARN_PREFIX),
+        warnSuffix: ctx.settings.text(COPY_WARN_SUFFIX),
         mode: ctx.settings.choice(COPY_MODE) as CopyMode,
         manual: ctx.settings.numbers(COPY_MANUAL),
       });

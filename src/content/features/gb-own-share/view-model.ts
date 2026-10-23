@@ -23,13 +23,17 @@ export interface CopyOptions {
   ownPart: boolean;
   /** the factor, 1,9 */
   factor: boolean;
+  /** mark places in danger or that level the building: the prefix once in front, the suffix after each such place */
+  warn: boolean;
+  warnPrefix: string;
+  warnSuffix: string;
   mode: CopyMode;
   /** the places picked by hand */
   manual: number[];
 }
 
 /** the switches of the copy text with their labels, in the order the settings show them */
-export const COPY_TOGGLES: [Exclude<keyof CopyOptions, 'mode' | 'manual'>, TextKey][] = [
+export const COPY_TOGGLES: [Exclude<keyof CopyOptions, 'mode' | 'manual' | 'warnPrefix' | 'warnSuffix'>, TextKey][] = [
   ['player', 'gbOwn.copyPlayer'],
   ['building', 'gbOwn.copyBuilding'],
   ['level', 'gbOwn.copyLevel'],
@@ -39,6 +43,7 @@ export const COPY_TOGGLES: [Exclude<keyof CopyOptions, 'mode' | 'manual'>, TextK
   ['descending', 'gbOwn.copyDescending'],
   ['ownPart', 'gbOwn.copyOwnPartOption'],
   ['factor', 'gbOwn.copyFactor'],
+  ['warn', 'gbOwn.copyWarn'],
 ];
 
 export const COPY_MODES: [CopyMode, TextKey][] = [
@@ -58,6 +63,9 @@ export const DEFAULT_COPY: CopyOptions = {
   descending: true,
   ownPart: false,
   factor: false,
+  warn: false,
+  warnPrefix: '!!!',
+  warnSuffix: '',
   mode: 'auto',
   manual: [],
 };
@@ -221,7 +229,13 @@ export function copyText(
   if (o.factor) parts.push(factorText(about.factor));
   const places = copiedPlaces(calc, o);
   if (o.descending) places.reverse();
-  for (const p of places) parts.push(`${o.prefixP ? 'P' : ''}${p.rank}${o.fp ? `(${p.amount})` : ''}`);
+  // as in the old toolbox, but the prefix only when a marked place is in the text, not for one left out
+  const marked = (p: OwnPlace) => o.warn && (p.danger !== undefined || p.levels);
+  if (o.warnPrefix && places.some(marked)) parts.unshift(o.warnPrefix);
+  for (const p of places) {
+    parts.push(`${o.prefixP ? 'P' : ''}${p.rank}${o.fp ? `(${p.amount})` : ''}`);
+    if (o.warnSuffix && marked(p)) parts.push(o.warnSuffix);
+  }
   if (!places.length && o.mode === 'auto') parts.push(t('gbOwn.copyNoneSafe'));
   if (!places.length && o.mode === 'autoUnsafe') parts.push(t('gbOwn.copyNoneFree'));
   if (o.ownPart) parts.push(`${t('gbOwn.copyOwnPart')}(${Math.max(0, calc.open)})`);
