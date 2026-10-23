@@ -11,11 +11,15 @@ import { type SabotageActions, sabotageView } from './view';
 import { type SabotageVm, sabotageViewModel } from './view-model';
 import { visitedRecord } from './visited-record';
 
+/** the menu entry and the settings group show it */
+const ICON = '🏰';
+
 const TICK = 30_000;
 
 export const sabotageFeature: Feature = {
   id: 'sabotage',
   setup(ctx) {
+    ctx.settings.registerGroup('sabotage.title', ICON);
     ctx.settings.register({
       key: 'sabotage.autoOpen',
       group: 'sabotage.title',
@@ -75,6 +79,7 @@ export const sabotageFeature: Feature = {
     };
     const box = ctx.createBox({
       id: 'sabotage',
+      settings: 'sabotage.title',
       title: () => t('sabotage.title'),
       width: 400,
       render: () => {
@@ -131,6 +136,6 @@ export const sabotageFeature: Feature = {
       if (city && [...city.buildings.values()].some((b) => defs.includes(b.def))) refresh();
     });
     ctx.settings.onChange(refresh);
-    ctx.menu.add({ id: 'sabotage', icon: '🏰', label: () => t('sabotage.menu'), action: () => box.toggle() });
+    ctx.menu.add({ id: 'sabotage', icon: ICON, label: () => t('sabotage.menu'), action: () => box.toggle() });
   },
 };

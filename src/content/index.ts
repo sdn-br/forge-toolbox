@@ -67,7 +67,7 @@ async function main() {
     ...stores,
     recorder,
     ui,
-    createBox: boxFactory(ui),
+    createBox: boxFactory(ui, (group) => bus.emit('settings.open', { group })),
   };
   for (const feature of features) {
     try {

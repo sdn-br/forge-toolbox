@@ -16,7 +16,9 @@ function popupWindow() {
 }
 
 const button = (host: Element | null, label: string) =>
-  [...(host?.shadowRoot?.querySelectorAll('header button') ?? [])].find((b) => b.textContent === label) as HTMLElement;
+  [...(host?.shadowRoot?.querySelectorAll('header button') ?? [])].find(
+    (b) => b.textContent === label || b.getAttribute('aria-label') === label,
+  ) as HTMLElement;
 
 /** an open box in the game, popped out into `popup` */
 async function poppedBox(popup: globalThis.Window, options: Partial<BoxOptions> = {}) {
@@ -194,5 +196,32 @@ describe('box content that fills', () => {
     const style = popup.getComputedStyle(host?.shadowRoot?.querySelector('.map-frame') as HTMLElement);
     expect(style.flexGrow).toBe('1');
     expect(style.height).toBe('auto');
+  });
+});
+
+describe('box settings button', () => {
+  const open = async (options: Partial<BoxOptions>, openSettings?: (group: string) => void) => {
+    const box = new Box(
+      { id: 'test', title: () => 'Test', render: () => html`<p>content</p>`, ...options },
+      new UiState(memoryKv()),
+      openSettings,
+    );
+    box.open();
+    await tick();
+    return box;
+  };
+  const host = () => document.querySelector('[data-forge-toolbox=test]');
+
+  it('opens the settings at the group of the feature', async () => {
+    const asked: string[] = [];
+    await open({ settings: 'gbCalc.title' }, (group) => asked.push(group));
+    button(host(), 'Einstellungen').click();
+    expect(asked).toEqual(['gbCalc.title']);
+    expect(button(host(), 'Einstellungen').querySelector('svg')).not.toBeNull();
+  });
+
+  it('shows no settings button for a box without settings', async () => {
+    await open({}, () => {});
+    expect(button(host(), 'Einstellungen')).toBeUndefined();
   });
 });

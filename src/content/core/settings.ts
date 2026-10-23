@@ -7,6 +7,8 @@ interface BaseSettingDef {
   label: TextKey;
   /** a line below the control */
   hint?: TextKey;
+  /** a part of the group with its own heading, e.g. the copy text of the own share */
+  section?: TextKey;
 }
 
 export interface ToggleSettingDef extends BaseSettingDef {
@@ -73,6 +75,8 @@ type Values = Record<string, Value>;
 
 export class Settings {
   readonly defs: SettingDef[] = [];
+  /** the icon of each group, as its feature shows it in the menu */
+  private icons = new Map<string, string>();
   private values: Values = {};
   private listeners = new Set<(key: string) => void>();
 
@@ -84,6 +88,15 @@ export class Settings {
 
   register(def: SettingDef): void {
     this.defs.push(def);
+  }
+
+  /** the icon a group shows in the settings box; the feature passes the one of its menu entry */
+  registerGroup(group: TextKey, icon: string): void {
+    this.icons.set(group, icon);
+  }
+
+  groupIcon(group: string): string | undefined {
+    return this.icons.get(group);
   }
 
   /** value of a toggle */

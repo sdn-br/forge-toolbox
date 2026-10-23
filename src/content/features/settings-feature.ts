@@ -13,7 +13,7 @@ import {
   type SettingDef,
   type Settings,
 } from '../core/settings';
-import { t } from '../core/texts';
+import { type TextKey, t } from '../core/texts';
 import { FACTOR_STEP, percentOf } from '../ui/factor-bar';
 import { keepKeys } from '../ui/inputs';
 
@@ -67,6 +67,11 @@ const input = (settings: Settings, d: SettingDef) =>
           : html`<label><input type="checkbox" .checked=${settings.get(d.key)}
         @change=${(e: Event) => save(settings, d.key, (e.target as HTMLInputElement).checked)} />${t(d.label)}</label>`;
 
+/** the menu entry and the general settings show it */
+const ICON = '⚙️';
+/** the view choice of the group shown */
+const TAB = 'settings.group';
+
 export const settingsFeature: Feature = {
   id: 'settings',
   setup(ctx) {
@@ -83,26 +88,55 @@ export const settingsFeature: Feature = {
       default: false,
     });
 
+    ctx.settings.registerGroup('settings.core', ICON);
+
+    /** the group shown, kept across page loads; a box's settings button picks the group of its feature */
+    const shownGroup = (groups: string[]) => {
+      const chosen = ctx.ui.pref(TAB);
+      return chosen && groups.includes(chosen) ? chosen : groups[0];
+    };
+    const select = (group: string) => {
+      ctx.ui.savePref(TAB, group);
+      box.update();
+    };
     const box = ctx.createBox({
       id: 'settings',
       title: () => t('settings.title'),
-      width: 340,
+      width: 380,
       render: () => {
-        const groups = [...new Set(ctx.settings.defs.map((d) => d.group))];
-        return html`${groups.map(
-          (group) => html`<h2>${t(group)}</h2>
-            ${ctx.settings.defs.filter((d) => d.group === group).map((d) => control(ctx.settings, d))}`,
-        )}
-        ${
-          ctx.settings.get('core.record')
-            ? html`<button class="action" @click=${() => ctx.recorder.save()}>${t('settings.saveRecording', { count: ctx.recorder.count })}</button>`
-            : ''
-        }`;
+        // the general settings first, then the features in the order they registered
+        const groups = [...new Set(['settings.core', ...ctx.settings.defs.map((d) => d.group)])];
+        const group = shownGroup(groups);
+        const defs = ctx.settings.defs.filter((d) => d.group === group);
+        const sections = [...new Set(defs.map((d) => d.section).filter((s) => s !== undefined))];
+        return html`<div class="settings-layout">
+          <nav class="settings-nav">${groups.map(
+            (g) => html`<button class=${g === group ? 'active' : ''} data-tip=${t(g as TextKey)}
+              aria-label=${t(g as TextKey)} @click=${() => select(g)}>${ctx.settings.groupIcon(g) ?? '•'}</button>`,
+          )}</nav>
+          <div class="settings-main">
+            <h2>${t(group as TextKey)}</h2>
+            ${defs.filter((d) => d.section === undefined).map((d) => control(ctx.settings, d))}
+            ${sections.map(
+              (section) => html`<h3>${t(section)}</h3>
+                ${defs.filter((d) => d.section === section).map((d) => control(ctx.settings, d))}`,
+            )}
+            ${
+              group === 'settings.core' && ctx.settings.get('core.record')
+                ? html`<button class="action" @click=${() => ctx.recorder.save()}>${t('settings.saveRecording', { count: ctx.recorder.count })}</button>`
+                : ''
+            }
+          </div>
+        </div>`;
       },
     });
     ctx.settings.onChange(() => box.update());
     // the counter on the save button; update does nothing while the box is closed
     ctx.recorder.onChange(() => box.update());
-    ctx.menu.add({ id: 'settings', icon: '⚙️', label: () => t('menu.settings'), action: () => box.toggle() });
+    ctx.bus.on('settings.open', ({ group }) => {
+      ctx.ui.savePref(TAB, group);
+      box.open();
+    });
+    ctx.menu.add({ id: 'settings', icon: ICON, label: () => t('menu.settings'), action: () => box.toggle() });
   },
 };

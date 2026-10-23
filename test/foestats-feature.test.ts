@@ -59,8 +59,8 @@ describe('foestats feature', () => {
   });
 
   it('offers the setting with a hint on what is sent', () => {
-    const { menu, boxes } = setup();
-    menu('settings');
+    const { boxes, ctx } = setup();
+    ctx.bus.emit('settings.open', { group: 'foestats.group' });
     const text = boxes.get('settings')?.text ?? '';
     expect(text).toContain('foestats-Daten abrufen');
     expect(text).toContain('Fragt foestats.com einmal am Tag');
