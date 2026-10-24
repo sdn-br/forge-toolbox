@@ -27,8 +27,9 @@ Stand 2026-10-24. Altes Modul `calculator-overview` („Mögliche Investitionen�
   - sicher (grün, gedämpft): auch im schlechtesten Fall lohnt ein Platz. Gewinn als Spanne „+40 … +310“.
   - möglich (gelb): nur im besten Fall lohnt ein Platz. Gewinn als Spanne von min(0, bester Fall) bis zum besten Fall.
   - Icons (2026-10-24, Abnahme im Spiel offen): Haken für exakt, Haken im Kreis für sicher, Fragezeichen im Kreis für möglich.
-- Unter der Tabelle: Anzahl der LGs ohne Treffer, LGs mit eigener Einzahlung (sie fehlen in der Liste, dafür sind später die Investitionen da), LGs mit unbekannter Belohnung.
+- Unter der Tabelle: Anzahl der LGs ohne Treffer, LGs mit eigener Einzahlung (sie fehlen in der Liste, dafür sind die [Investitionen](investitionen.md) da), LGs mit unbekannter Belohnung.
 - Ein LG mit 0 eingezahlten FP kann gesperrt sein (nicht verbunden oder auf der freigeschalteten Höchststufe), die Liste sagt das nicht. Die Zeile trägt dann den Tooltip „eventuell gesperrt“.
+- **Merken:** Stern je Zeile (LG) und im Kopf (Spieler). Gemerktes findet der Reiter „Mögliche Investitionen“ der [Investitionen](investitionen.md#merken) über alle Spieler wieder.
 - Die Liste veraltet: Sie zeigt den Stand beim Anklicken. Spätere Einzahlungen sieht die Toolbox nur bei einem LG, das der Spieler öffnet.
 
 ## Rechnung

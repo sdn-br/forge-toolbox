@@ -13,6 +13,7 @@ interface Player {
   active: boolean;
   guild?: GuildRef;
   relations: Relations;
+  marked?: boolean;             // vom Spieler gemerkt (Investitionen), nur von Hand entfernt
   attack?: AttackTimer;         // fehlt, bis eine Quelle mit Zeitgebern den Spieler gemeldet hat
   firstSeenAt: number;
   seenAt: number;
@@ -38,6 +39,7 @@ type PlayerSource = 'socialList' | 'visit' | 'update' | 'ranking' | 'gbg' | 'eve
 **Regeln**
 
 - `getSocialList` ist für Beziehungen die vollständige Quelle. Wer in der neuen Liste nicht mehr als Nachbar steht, verliert `neighbor`. So erkennt die Toolbox, wenn sich die Nachbarschaft neu mischt.
+- Einzelne Meldungen zu Freunden ändern nur `friend`: `FriendService.acceptInvitation` (ganzer Spieler mit `is_friend`, aufgenommen 2026-10-20) setzt es, `FriendService.deleteFriend` (Antwort ist die Spieler-ID, Format laut alter Toolbox, nicht selbst gesehen) nimmt es weg. Austritte aus der Gilde kommen später mit dem Guild-Store über `ClanService.getOwnClanData`. Siehe [Investitionen](../features/investitionen.md#erreichbarkeit).
 - Andere Quellen (Stadtbesuch, `OtherPlayerService.updatePlayer`, Rangliste, GbG) aktualisieren nur die Felder, die sie mitbringen, und ändern Beziehungen nie.
 - **Angriffs-Zeitgeber** (`canSabotage`, `next_interaction_in`, gesehen 2026-10-21): Direkt nach einem gewonnenen Kampf bringt `updatePlayer` `next_interaction_in: 86400` und `canSabotage: true`, direkt nach dem Plündern `next_interaction_in: 86345` und kein `canSabotage` mehr. In `getSocialList` hatten 30 von 75 Nachbarn `next_interaction_in`, 28 davon `canSabotage`. `visitPlayer` bringt keine Zeitgeber. Gespeichert wird der absolute Zeitpunkt (`nextInteractionAt`), so stimmt er auch nach einem Neuladen.
 - Nur Quellen, die den ganzen Spieler bringen, setzen die Zeitgeber, und dort heißt ein fehlendes Feld „nicht gesetzt“: `updatePlayer` und die Nachbarn aus `getSocialList`. So verschwindet `canPlunder` nach dem Plündern. Freunde und Gildenmitglieder aus `getSocialList`, `visitPlayer` und die Spieler in Ereignissen lassen die bekannten Zeitgeber stehen.
@@ -49,4 +51,4 @@ type PlayerSource = 'socialList' | 'visit' | 'update' | 'ranking' | 'gbg' | 'eve
 
 **Events:** `player.updated { ids: PlayerId[]; source }`. Eine Soziale Liste mit 128 Spielern löst ein Event aus, nicht 128.
 
-**Persistenz:** Tabelle `players`, Schlüssel `[world+id]`, Indizes `seenAt` und Beziehungen. Spieler bleiben dauerhaft, solange ein anderer Store auf sie verweist (Notiz, PvP-Eintrag). Alle anderen werden gelöscht, wenn sie 90 Tage nicht gesehen wurden.
+**Persistenz:** Tabelle `players`, Schlüssel `[world+id]`, Indizes `seenAt` und Beziehungen. Spieler bleiben dauerhaft, solange sie gemerkt sind oder ein anderer Store auf sie verweist (Notiz, PvP-Eintrag). Alle anderen werden gelöscht, wenn sie 90 Tage nicht gesehen wurden.

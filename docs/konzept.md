@@ -111,6 +111,7 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
 - **Offene Icons** (Knöpfe mit Text, für die ein Icon gewünscht ist):
   - Spaltenkopf „Einzahlen“ im Eigenanteil (zurückgestellt 2026-10-24): Entwürfe Pfeil nach unten auf Münzstapel und Pfeil ins LG gefielen am ehesten, Münze mit Plus und Münze mit Pfeil fallen weg (lesen sich als Männlich-Symbol und Schlüssel).
   - Entschieden 2026-10-24 (Nutzer, erst einmal so, später verfeinern): Icons bekommen Seitenwechsel im PvP (‹ ›), das ✕ am Spielerfilter im PvP (Text bleibt), Seite und Gruppe löschen in den Notizen (Mülleimer), Spieler hinzufügen (Person mit +), Seite hinzufügen (Blatt mit +), Schließen der Spielerauswahl (✕ wie im Boxkopf), Aufnahme speichern (Download, Zahl daneben), Powerleveln öffnen (kleines LG » großes LG). Text behalten: Löschen und Abbrechen in Rückfragen (Klartext ist dort sicherer), „Laufend X → X+1“ (die Stufe ist die Information), Reiter und Faktor-Knöpfe.
+  - Stern zum Merken von LGs und Spielern ([Investitionen](features/investitionen.md#merken)), neu 2026-10-24, erst als HTML-Vorschau.
 - Styles so gekapselt, dass Spiel-CSS und Toolbox-CSS sich nicht beeinflussen (zu prüfen: Shadow DOM).
 
 ### Settings
@@ -234,6 +235,7 @@ Je Feature eine Datei mit Umfang, Entscheidungen und Annahmen. Neue Features bek
 - [Eigenanteil](features/eigenanteil.md): Eigenanteilsrechner für eigene LGs
 - [Powerleveln](features/powerleveln.md): Eigenanteil über mehrere Stufen eines eigenen LGs
 - [Snipehilfe](features/snipehilfe.md): lohnende Plätze aus der LG-Liste eines Spielers
+- [Investitionen](features/investitionen.md): eigene Einzahlungen, Suche über alle bekannten fremden LGs, gemerkte LGs und Spieler
 - [foestats](features/foestats.md): Links, täglicher Verlauf, Aktivität
 
 ## Feature-Checkliste
