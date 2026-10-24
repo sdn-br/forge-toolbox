@@ -309,7 +309,7 @@ export const de = {
   'gbOwn.copyNoneFree': 'Kein Platz verfügbar',
   'gbOwn.copyOwnPart': 'EA',
   'gbPower.title': 'Powerleveln',
-  'gbPower.openHint': 'Eigenanteil über mehrere Stufen dieses LGs',
+  'gbPower.openHint': 'Powerleveln: Eigenanteil über mehrere Stufen dieses LGs',
   'gbPower.none': 'Noch kein eigenes LG geöffnet.',
   'gbPower.noDefinition': 'Die Definition des LGs ist noch nicht geladen, deshalb fehlen Kosten und Belohnungen.',
   'gbPower.from': 'von',

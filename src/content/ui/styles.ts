@@ -178,8 +178,8 @@ table.power-level button.icon { all: unset; cursor: pointer; display: grid; plac
 table.power-level button.icon:hover { opacity: 1; }
 table.power-level button.icon svg { display: block; width: 14px; height: 14px; }
 .power-open { margin: 4px 0; }
-.power-open button { display: inline-flex; align-items: center; gap: 4px; }
-.power-open button svg { display: block; width: 14px; height: 14px; }
+.power-open button { display: inline-grid; place-items: center; padding: 1px 4px; }
+.power-open button svg { display: block; width: 22px; height: 22px; }
 .gb-levels input.span { width: 4.5em; }
 input.place-factor.arc { color: var(--accent); }
 .gb-factor .factor-status { display: inline-grid; place-items: center; margin-left: 4px; }

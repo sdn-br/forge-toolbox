@@ -2,7 +2,7 @@
 
 Stand 2026-10-24. Eigenanteil eines eigenen LGs über mehrere Stufen, Stufe für Stufe. Vorschlag und Entscheidungen: Nutzer, 2026-10-24. Baut auf dem [Eigenanteil](eigenanteil.md) auf, Datenmodell: [Great Buildings](../datenmodell/great-buildings.md).
 
-**Box „Powerleveln“:** eigene Box, geöffnet mit einem Knopf in der Eigenanteil-Box. Sie zeigt das LG, das der Eigenanteil gerade zeigt, und folgt ihm, wenn der Spieler ein anderes eigenes LG öffnet. Kein Menüeintrag, ohne geöffnetes eigenes LG gibt es nichts zu rechnen.
+**Box „Powerleveln“:** eigene Box, geöffnet mit einem Knopf in der Eigenanteil-Box. Der Knopf zeigt nur ein Icon: kleines LG, », großes LG, also schnell voran (Nutzer, 2026-10-24). Sie zeigt das LG, das der Eigenanteil gerade zeigt, und folgt ihm, wenn der Spieler ein anderes eigenes LG öffnet. Kein Menüeintrag, ohne geöffnetes eigenes LG gibt es nichts zu rechnen.
 
 - Kopf: Name des LGs. Darunter zwei Zahlenfelder „von“ (vorbelegt mit der laufenden Stufe) und „bis“ (vorbelegt mit von + 10), höchstens 100 Zeilen. Öffnet der Spieler ein LG, stehen beide wieder auf den Vorgaben.
 - Eine Zeile je Stufe X → X+1 mit den Spalten Stufe, P1 bis P5, Eigenanteil, Doppelernte, Netto, Summe und einem Kopier-Knopf. Feste Spaltenbreiten wie im Eigenanteil (`table-layout: fixed`, Breiten in `em`).
