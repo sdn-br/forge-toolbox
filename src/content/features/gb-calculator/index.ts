@@ -12,7 +12,7 @@ import type { Construction } from '../../stores/great-building-model';
 import { effectiveFactor } from '../../ui/factor-bar';
 import { icons } from '../../ui/icons';
 import { playTone } from '../../ui/tone';
-import { snipeView } from './snipe-view';
+import { type SnipeActions, snipeView } from './snipe-view';
 import { DEFAULT_SORT, nextSort, type SnipeSort, type SnipeVm, snipeViewModel } from './snipe-view-model';
 import { type GbCalculatorActions, gbCalculatorView } from './view';
 import { type GbCalculatorVm, gbCalculatorViewModel } from './view-model';
@@ -108,8 +108,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       /** the later level the box previews; undefined shows the construction */
       let preview: number | undefined;
 
-      /** which part of the box shows; a new list switches to the list, an opened building to the building */
-      let tab: 'list' | 'gb' = 'gb';
+      /** the section "Mögliche Einzahlungen" is unfolded; a new list unfolds it, an opened building folds it, else the player */
+      let expanded = false;
       /** the last list of another player, with the stored state of its buildings */
       let list: { owner: PlayerId; ownerName?: string; at: number; entityIds: Set<number> } | undefined;
       let listed: KnownGreatBuilding[] = [];
@@ -134,31 +134,24 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         },
       };
 
+      const snipeActions: SnipeActions = {
+        sort: (column) => {
+          sort = nextSort(sort, column);
+          refresh();
+        },
+        toggle: () => {
+          expanded = !expanded;
+          box.update();
+        },
+      };
+
       const box = ctx.createBox({
         id: 'gbCalculator',
         settings: 'gbCalc.title',
         title: () => t('gbCalc.title'),
         width: 520,
-        render: () =>
-          html`<nav class="tabs">${(['list', 'gb'] as const).map(
-            (id) =>
-              html`<button class=${tab === id ? 'active' : ''} @click=${() => show(id)}>${t(`snipe.tab.${id}`)}</button>`,
-          )}</nav>${
-            tab === 'list'
-              ? snipeView(snipeVm, {
-                  sort: (column) => {
-                    sort = nextSort(sort, column);
-                    refresh();
-                  },
-                })
-              : gbCalculatorView(vm, actions)
-          }`,
+        render: () => html`${snipeView(snipeVm, snipeActions, expanded)}${gbCalculatorView(vm, actions)}`,
       });
-
-      const show = (id: 'list' | 'gb') => {
-        tab = id;
-        box.update();
-      };
 
       const refresh = () => {
         vm = gbCalculatorViewModel({
@@ -248,7 +241,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         if (open?.owner === owner && at - open.seenAt < ASKED_BY_GAME) return;
         list = { owner, ...(ownerName !== undefined && { ownerName }), at, entityIds: new Set(entityIds) };
         listed = [];
-        tab = 'list';
+        expanded = true;
         onList().catch((error) => logError('reading the great building list failed', error));
       });
       /** the stored state of a building of the list changed: opened or changed in the game */
@@ -259,7 +252,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       ctx.bus.on('greatBuilding.opened', ({ owner, entityId, own }) => {
         if (!own) listChanged(owner, entityId);
         if (own || !follow()) return;
-        tab = 'gb';
+        expanded = false;
         toned = undefined;
         preview = undefined;
         refresh();

@@ -103,16 +103,110 @@ const withRequired = (r: Row, required: number, invested?: number): Row => ({
 
 afterEach(() => vi.useRealTimers());
 
-describe('Snipehilfe: box with tabs', () => {
-  it('has the tabs Liste and LG and shows the building until a list comes', async () => {
+const toggle = (box: { root: ParentNode }) => box.root.querySelector('button.snipe-toggle') as HTMLElement | null;
+const expanded = (box: { root: ParentNode }) => toggle(box)?.getAttribute('aria-expanded') === 'true';
+
+describe('Snipehilfe: stacked box', () => {
+  it('shows the calculator without the section until a list comes, and has no tabs', async () => {
     const { box, tones } = setup();
     box.box.open();
-    expect(box.root.querySelectorAll('.tabs button').length).toBe(2);
-    expect([...box.root.querySelectorAll('.tabs button')].map((b) => b.textContent)).toEqual(['Liste', 'LG']);
+    expect(box.root.querySelector('.tabs')).toBeNull();
+    expect(toggle(box)).toBeNull();
+    expect(box.root.querySelector('hr.snipe-sep')).toBeNull();
     expect(box.text).toContain('Noch kein fremdes LG geöffnet.');
-    box.click('Liste');
-    expect(box.text).toContain('Noch keine LG-Liste');
     expect(tones()).toBe(0);
+  });
+
+  it('shows the section above a separator and the calculator below', async () => {
+    const { box, list, open, advance } = setup();
+    advance(10_000);
+    open(1909);
+    advance(10_000);
+    list([hitZeus()]);
+    await tick();
+    const html = box.root.innerHTML;
+    expect(html.indexOf('snipe-toggle')).toBeLessThan(html.indexOf('snipe-sep'));
+    expect(html.indexOf('snipe-sep')).toBeLessThan(html.indexOf('Aachener Dom'));
+  });
+
+  it('shows one line with count, best hit, owner and age when folded, and the heading when unfolded', async () => {
+    const { box, list, advance } = setup();
+    list([hitZeus(), lighthouse, hitOracle()]);
+    await tick();
+    expect(expanded(box)).toBe(true);
+    expect(toggle(box)?.textContent).toContain('Mögliche Einzahlungen');
+    expect(toggle(box)?.querySelector('svg')).not.toBeNull();
+    advance(2 * MINUTE);
+    toggle(box)?.click();
+    await tick();
+    expect(expanded(box)).toBe(false);
+    expect(toggle(box)?.textContent).toMatch(
+      /^Mögliche Einzahlungen: 2 Treffer, bester Orakel von Delphi \+97 \(Eigentümer 1001, vor 2 Min\.\)$/,
+    );
+    expect(box.root.querySelector('table')).toBeNull();
+  });
+
+  it('says there is no hit in the folded line', async () => {
+    const { box, list } = setup();
+    box.box.open();
+    list([withRequired(zeus, 9_000, 400)]);
+    await tick();
+    toggle(box)?.click();
+    await tick();
+    expect(toggle(box)?.textContent).toMatch(/^Mögliche Einzahlungen: kein Treffer \(Eigentümer 1001, vor 1 Min\.\)$/);
+  });
+
+  it('folds and unfolds by a click on the line, the heading line too', async () => {
+    const { box, list } = setup();
+    list([hitZeus()]);
+    await tick();
+    expect(box.root.querySelector('table')).not.toBeNull();
+    toggle(box)?.click();
+    await tick();
+    expect(box.root.querySelector('table')).toBeNull();
+    toggle(box)?.click();
+    await tick();
+    expect(box.root.querySelector('table')).not.toBeNull();
+    expect(expanded(box)).toBe(true);
+  });
+
+  it('folds when a building is opened, and a new list unfolds it again', async () => {
+    const { box, list, open, advance } = setup();
+    list([hitZeus()]);
+    await tick();
+    advance(10_000);
+    open(1909);
+    await tick();
+    expect(expanded(box)).toBe(false);
+    advance(10_000);
+    list([hitOracle()]);
+    await tick();
+    expect(expanded(box)).toBe(true);
+  });
+
+  it('stays as the player left it when no list or building comes', async () => {
+    const { box, list, send } = setup();
+    list([hitZeus()]);
+    await tick();
+    toggle(box)?.click();
+    box.box.update();
+    await tick();
+    send();
+    expect(expanded(box)).toBe(false);
+  });
+
+  it('neither unfolds nor beeps for a list the game asked for itself', async () => {
+    const { box, list, open, advance, tones } = setup();
+    list([hitZeus()]);
+    await tick();
+    advance(10_000);
+    open(1909);
+    await tick();
+    const toned = tones();
+    list([hitOracle()], 1001);
+    await tick();
+    expect(expanded(box)).toBe(false);
+    expect(tones()).toBe(toned);
   });
 
   it('opens with a list that has hits, shows the owner, its age and the rows by profit', async () => {
@@ -120,7 +214,7 @@ describe('Snipehilfe: box with tabs', () => {
     list([hitZeus(), lighthouse, hitOracle()]);
     await tick();
     expect(box.box.isOpen).toBe(true);
-    expect(box.root.querySelector('.tabs .active')?.textContent).toBe('Liste');
+    expect(expanded(box)).toBe(true);
     expect(box.text).toContain('Mögliche Einzahlungen');
     expect(box.text).toMatch(/Eigentümer:\s*Eigentümer 1001/);
     expect(box.text).toContain('Stand: vor 1 Min.');
@@ -194,17 +288,17 @@ describe('Snipehilfe: box with tabs', () => {
     expect(box.box.isOpen).toBe(false);
     expect(tones()).toBe(0);
     box.box.open();
+    expect(expanded(box)).toBe(true);
     expect(box.text).toContain('Kein LG mit lohnendem Platz.');
     expect(box.text).toContain('ohne Treffer: 1');
   });
 
-  it('switches an open box to the list even without a hit', async () => {
+  it('unfolds the section of an open box even without a hit', async () => {
     const { box, list } = setup();
     box.box.open();
-    box.click('LG');
     list([withRequired(zeus, 9_000, 400)]);
     await tick();
-    expect(box.root.querySelector('.tabs .active')?.textContent).toBe('Liste');
+    expect(expanded(box)).toBe(true);
     expect(box.text).toContain('Kein LG mit lohnendem Platz.');
   });
 
@@ -238,19 +332,19 @@ describe('Snipehilfe: box with tabs', () => {
     expect(tones()).toBe(0);
   });
 
-  it('a new list replaces the previous one; an opened building switches to the building', async () => {
+  it('a new list replaces the previous one; an opened building folds the section', async () => {
     const { box, list, open, advance } = setup();
     list([hitZeus()]);
     await tick();
     advance(10_000);
     open(1909);
     await tick();
-    expect(box.root.querySelector('.tabs .active')?.textContent).toBe('LG');
+    expect(expanded(box)).toBe(false);
     expect(box.text).toContain('Aachener Dom St. 75 → 76');
     advance(10_000);
     list([hitOracle()], 1001);
     await tick();
-    expect(box.root.querySelector('.tabs .active')?.textContent).toBe('Liste');
+    expect(expanded(box)).toBe(true);
     expect(box.text).not.toContain('Zeusstatue');
   });
 
@@ -273,8 +367,9 @@ describe('Snipehilfe: box with tabs', () => {
     advance(10_000);
     open(1909);
     await tick();
-    expect(box.root.querySelector('.tabs .active')?.textContent).toBe('LG');
-    box.click('Liste');
+    expect(expanded(box)).toBe(false);
+    toggle(box)?.click();
+    await tick();
     // the opening is newer than the list: its state and its ranking make the row exact
     expect(cells(rows()[0]).slice(1, 5)).toEqual(['Aachener Dom', '75', '251 / 3.062', 'P1']);
     expect(rows()[0]?.querySelector('td.snipe-tier')?.className).toContain('exact');

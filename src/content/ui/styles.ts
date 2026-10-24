@@ -158,6 +158,11 @@ button.marker.dim { opacity: .3; }
 .gb-places { position: relative; min-height: 60px; }
 .gb-table td, .gb-table th { white-space: nowrap; }
 /* snipe list: fixed columns so heads show whole; only the building name gives way */
+button.snipe-toggle { all: unset; cursor: pointer; display: flex; align-items: center; gap: 4px; width: 100%; }
+button.snipe-toggle:hover { color: var(--accent); }
+button.snipe-toggle:focus-visible { outline: 1px solid var(--accent); }
+button.snipe-toggle svg { display: block; flex: none; width: 14px; height: 14px; }
+hr.snipe-sep { border: 0; border-top: 1px solid var(--line); margin: 6px 0; }
 .snipe-table { table-layout: fixed; }
 .snipe-table .c-order { width: 30px; }
 .snipe-table .c-level, .snipe-table .c-rank { width: 46px; }

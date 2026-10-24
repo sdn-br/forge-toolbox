@@ -214,8 +214,10 @@ export const headerIcons = {
   ),
   /** a chevron pointing left: previous page */
   chevronLeft: headerIcon(svg`<path d="M15 5 8 12l7 7"/>`),
-  /** a chevron pointing right: next page */
+  /** a chevron pointing right: next page, or a closed section */
   chevronRight: headerIcon(svg`<path d="m9 5 7 7-7 7"/>`),
+  /** a chevron pointing down: an open section, a click closes it */
+  chevronDown: headerIcon(svg`<path d="m5 9 7 7 7-7"/>`),
   /** a trash can: delete */
   trash: headerIcon(
     svg`<path d="M4 6.5h16M9.5 6.5V4h5v2.5"/><path d="M6 6.5l1 13a1 1 0 0 0 1 .9h8a1 1 0 0 0 1-.9l1-13"/><path d="M10 10.5v6M14 10.5v6"/>`,

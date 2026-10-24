@@ -56,6 +56,8 @@ export type SnipeVm =
       at: number;
       sort: SnipeSort;
       rows: SnipeRowVm[];
+      /** the hit with the highest profit, whatever the sort; missing without hits */
+      best?: { name: string; profit: string };
       /** counts under the table, those that are 0 left out */
       counts: string[];
     };
@@ -133,6 +135,9 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     result.ownContribution > 0 && t('snipe.countOwn', { count: result.ownContribution }),
     result.unknownReward > 0 && t('snipe.countUnknown', { count: result.unknownReward }),
   ].filter((c): c is string => typeof c === 'string');
+  const top = [...result.hits].sort(
+    (a, b) => (sortKey.profit(b, '', 0) as number) - (sortKey.profit(a, '', 0) as number),
+  )[0];
   return {
     kind: 'list',
     owner: list.ownerName ?? input.playerName(list.owner) ?? String(list.owner),
@@ -141,6 +146,7 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     at: list.at,
     sort: input.sort,
     rows,
+    ...(top && { best: { name: name(top), profit: signed(top.profitHigh) } }),
     counts,
   };
 }

@@ -9,6 +9,8 @@ const MINUTE = 60_000;
 
 export interface SnipeActions {
   sort(column: SnipeColumn): void;
+  /** folds the section in or out */
+  toggle(): void;
 }
 
 const tierIcon: Record<SnipeTier, TemplateResult> = {
@@ -49,10 +51,32 @@ const row = (r: SnipeRowVm) => html`<tr data-tip=${r.notes.join('\n')}>
   <td class=${`snipe-tier ${r.tier}`} data-tip=${t(`snipe.tier.${r.tier}`)} aria-label=${t(`snipe.tier.${r.tier}`)}>${tierIcon[r.tier]}</td>
 </tr>`;
 
-export function snipeView(vm: SnipeVm, actions: SnipeActions): TemplateResult {
-  if (vm.kind === 'none') return html`<p class="muted">${t('snipe.none')}</p>`;
-  return html`<p><span class="gb-title">${t('snipe.heading')}</span>
-    <br />${owner(vm.owner, vm.ownerUrl)}${vm.activity ? activityLine(vm.activity) : ''}
+/** the one clickable line of the section: a chevron and the text; the whole line folds the section */
+const toggle = (expanded: boolean, text: TemplateResult | string, actions: SnipeActions) =>
+  html`<button class="snipe-toggle" aria-expanded=${expanded ? 'true' : 'false'}
+    aria-label=${t(expanded ? 'snipe.collapse' : 'snipe.expand')} @click=${() => actions.toggle()}>${
+      expanded ? headerIcons.chevronDown : headerIcons.chevronRight
+    }<span>${text}</span></button>`;
+
+const summary = (vm: Extract<SnipeVm, { kind: 'list' }>) => {
+  const duration = formatDuration(Math.max(MINUTE, Date.now() - vm.at));
+  return vm.best
+    ? t('snipe.summaryHits', {
+        count: vm.rows.length,
+        name: vm.best.name,
+        profit: vm.best.profit,
+        owner: vm.owner,
+        duration,
+      })
+    : t('snipe.summaryNone', { owner: vm.owner, duration });
+};
+
+/** The section "Mögliche Einzahlungen" above the calculator; nothing without a list, since there is nothing to fold. */
+export function snipeView(vm: SnipeVm, actions: SnipeActions, expanded: boolean): TemplateResult | '' {
+  if (vm.kind === 'none') return '';
+  if (!expanded) return html`${toggle(false, summary(vm), actions)}<hr class="snipe-sep" />`;
+  return html`${toggle(true, html`<span class="gb-title">${t('snipe.heading')}</span>`, actions)}
+    <p>${owner(vm.owner, vm.ownerUrl)}${vm.activity ? activityLine(vm.activity) : ''}
     <br /><span class="muted">${t('snipe.age', { duration: formatDuration(Math.max(MINUTE, Date.now() - vm.at)) })}</span></p>
     ${
       vm.rows.length === 0
@@ -65,5 +89,5 @@ export function snipeView(vm: SnipeVm, actions: SnipeActions): TemplateResult {
             ${vm.rows.map(row)}
           </table>`
     }
-    ${vm.counts.length ? html`<p class="muted">${vm.counts.join(' · ')}</p>` : ''}`;
+    ${vm.counts.length ? html`<p class="muted">${vm.counts.join(' · ')}</p>` : ''}<hr class="snipe-sep" />`;
 }
