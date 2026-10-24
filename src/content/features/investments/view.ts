@@ -60,7 +60,7 @@ const row = (r: InvestmentRowVm) => {
   <td class=${`inv-status ${r.status}`} data-tip=${status} aria-label=${status}>${statusIcon[r.status]}</td>
   <td class="num inv-progress" data-tip=${t('investments.restHint', { rest: r.rest, required: r.required })}>
     ${r.invested} / ${r.required}
-    <div class="inv-bar"><div style=${`width: ${r.percent}%`}></div></div>
+    <div class="fp-bar"><div style=${`width: ${r.percent}%`}></div></div>
     ${
       r.growth
         ? html`<div class="inv-growth" data-tip=${t('investments.growthHint', { growth: r.growthFp ?? '' })}>${r.growth}</div>`

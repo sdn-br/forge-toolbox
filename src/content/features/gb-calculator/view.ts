@@ -44,6 +44,15 @@ function header(h: GbHeader) {
       ${t('gbCalc.arc', { arc: formatNumber(h.arcBonus) })}</span></p>`;
 }
 
+/** paid in of the running level with a thin bar under it, as the investments show it */
+function progressLine(invested: number, required: number, missing: number) {
+  const percent = required > 0 ? Math.min(100, (invested / required) * 100) : 0;
+  return html`<div class="gb-progress">
+    ${t('gbCalc.progress', { invested: formatNumber(invested), required: formatNumber(required), fp: formatNumber(missing) })}
+    <div class="fp-bar"><div style=${`width: ${percent}%`}></div></div>
+  </div>`;
+}
+
 /** stands where a place has no cost, below the own one */
 const NONE = html`<td class="num">–</td>`;
 
@@ -207,14 +216,14 @@ export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorAction
     case 'current': {
       const overlay = overlayText(vm);
       return html`${header(vm.header)}
+        ${progressLine(vm.invested, vm.required, vm.missing)}
         ${levelBar(vm.header.levels, (level) => actions.previewLevel(level))}
         ${factorBar(vm.factorButtons, vm.effectiveFactor, actions)}
         ${vm.me ? meLine(vm.me) : ''}
         <div class="gb-places">
           ${placesTable(vm.places)}
           ${overlay ? html`<div class="gb-overlay"><p>${overlay}</p></div>` : ''}
-        </div>
-        <p>${t('gbCalc.missing', { fp: formatNumber(vm.missing) })}</p>`;
+        </div>`;
     }
   }
 }

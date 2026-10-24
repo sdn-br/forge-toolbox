@@ -272,7 +272,7 @@ export const de = {
   'gbCalc.status.profit': 'Gewinn',
   'gbCalc.status.loss': 'Verlust',
   'gbCalc.short': 'Deine FP reichen nicht',
-  'gbCalc.missing': 'Bis Level-Up fehlen {fp} FP',
+  'gbCalc.progress': 'Fortschritt: {invested} / {required} · noch {fp} FP bis zum Level-up',
   'gbCalc.maxLevel':
     'Das LG hat die höchste Stufe erreicht. Einzahlen geht erst, wenn der Eigentümer die nächste freischaltet.',
   'gbCalc.unconnected': 'Das LG ist nicht an eine Straße angeschlossen, der Rechner zeigt deshalb keine Plätze.',

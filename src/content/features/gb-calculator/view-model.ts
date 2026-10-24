@@ -159,6 +159,9 @@ export type GbCalculatorVm =
       me?: MeVm;
       /** Forge points until the level is full */
       missing: number;
+      /** paid in of the level and its costs, for the progress line in the head */
+      invested: number;
+      required: number;
       /** at least one place pays more than it costs */
       profitable: boolean;
     };
@@ -389,6 +392,8 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     places,
     ...(!calc.blocked && { me: { ...meVm(calc), ...(levelUp && { levelUp }) } }),
     missing: Math.max(0, calc.missing),
+    invested: entity.invested,
+    required: entity.required,
     profitable: !calc.blocked && !c.leveled && places.some((p) => p.status === 'profit' && (p.profit ?? 0) > 0),
   };
 }

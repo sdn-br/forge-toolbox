@@ -89,7 +89,7 @@ describe('Investitionen box', () => {
     ]);
     const progress = rows()[0]?.querySelector('td.inv-progress') as HTMLElement;
     expect(progress.dataset.tip).toBe('Fehlt bis zum Level-up: 17 von 924 FP');
-    expect((progress.querySelector('.inv-bar > div') as HTMLElement).style.width).toMatch(/^98\.1/);
+    expect((progress.querySelector('.fp-bar > div') as HTMLElement).style.width).toMatch(/^98\.1/);
   });
 
   it('shows growth between two town hall lists of a building never opened', async () => {

@@ -210,9 +210,10 @@ td.inv-status.unsafe { color: #f0a050; }
 td.inv-status.unknown { color: #b8a27d; }
 .inv-table tr.grown { background: rgba(220, 190, 60, .32); }
 .inv-growth { color: var(--accent); font-weight: 600; }
-/* a thin bar under "paid in / costs", filled towards the level up */
-.inv-bar { height: 3px; margin-top: 2px; background: var(--line); border-radius: 2px; overflow: hidden; }
-.inv-bar > div { height: 100%; background: var(--accent); }
+/* a thin bar under "paid in / costs", filled towards the level up (investments, GB calculator) */
+.fp-bar { height: 3px; margin-top: 2px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.fp-bar > div { height: 100%; background: var(--accent); }
+.gb-progress { margin: 0 0 6px; }
 tr.gb-profit { background: rgba(90, 170, 90, .28); }
 tr.gb-loss { background: rgba(200, 80, 60, .28); }
 tr.gb-levelWarning { background: rgba(220, 190, 60, .32); }
