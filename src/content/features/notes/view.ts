@@ -90,15 +90,18 @@ function side(vm: NotesVm, actions: NotesActions) {
     ? html`<select @change=${(e: Event) => actions.relation(value(e) as RelationFilter)}>
           ${RELATION_FILTERS.map((f) => html`<option value=${f} .selected=${vm.relation === f}>${t(`notes.filter.${f}`)}</option>`)}
         </select>
-        <button class="action" @click=${actions.openPicker}>${t('notes.addPlayer')}</button>`
-    : html`<button class="action" @click=${actions.addPage}>${t('notes.addPage')}</button>`;
+        <button class="action icon-only" data-tip=${t('notes.addPlayer')} aria-label=${t('notes.addPlayer')}
+          @click=${actions.openPicker}>${headerIcons.personPlus}</button>`
+    : html`<button class="action icon-only" data-tip=${t('notes.addPage')} aria-label=${t('notes.addPage')}
+        @click=${actions.addPage}>${headerIcons.notePlus}</button>`;
   const active = vm.tabs.find((each) => each.active);
   return html`<div class="side">${head}
     ${vm.empty ? html`<p class="muted">${t(`notes.${vm.empty}`)}</p>` : ''}
     <ul class="rows">${vm.rows.map((r) => row(r, vm.playerGroup, actions))}</ul>
     ${
       active && !active.fixed
-        ? html`<button class="action" @click=${() => actions.askDelete('group', active.id)}>${t('notes.deleteGroup')}</button>`
+        ? html`<button class="action icon-only" data-tip=${t('notes.deleteGroup')} aria-label=${t('notes.deleteGroup')}
+            @click=${() => actions.askDelete('group', active.id)}>${headerIcons.trash}</button>`
         : ''
     }</div>`;
 }
@@ -131,7 +134,8 @@ function main(vm: NotesVm, editor: TemplateResult | undefined, actions: NotesAct
   return html`<div class="main">${pageHead(page, actions)}${editor}
     ${
       page.stored
-        ? html`<button class="action" @click=${() => actions.askDelete('page', page.id)}>${t('notes.deletePage')}</button>`
+        ? html`<button class="action icon-only" data-tip=${t('notes.deletePage')} aria-label=${t('notes.deletePage')}
+            @click=${() => actions.askDelete('page', page.id)}>${headerIcons.trash}</button>`
         : ''
     }</div>`;
 }
@@ -155,7 +159,8 @@ const picker = (p: PickerVm, actions: NotesActions) => html`<div class="card">
       if (e.key === 'Escape') actions.cancel();
     }}
     @keyup=${keepKeys} />
-    <button class="action" @click=${actions.cancel}>${t('notes.close')}</button></p>
+    <button class="action icon-only" data-tip=${t('notes.close')} aria-label=${t('notes.close')}
+      @click=${actions.cancel}>${headerIcons.close}</button></p>
   ${p.rows.length === 0 ? html`<p class="muted">${t('notes.noPlayerFound')}</p>` : ''}
   <ul class="rows">${p.rows.map(
     (

@@ -90,9 +90,11 @@ const paging = (vm: PvpVm, actions: PvpActions) =>
   vm.pages <= 1
     ? ''
     : html`<p>
-      <button class="action" ?disabled=${vm.page === 0} @click=${() => actions.page(vm.page - 1)}>${t('pvp.previous')}</button>
+      <button class="action icon-only" ?disabled=${vm.page === 0} data-tip=${t('pvp.previous')} aria-label=${t('pvp.previous')}
+        @click=${() => actions.page(vm.page - 1)}>${headerIcons.chevronLeft}</button>
       ${t('pvp.page', { page: vm.page + 1, pages: vm.pages })}
-      <button class="action" ?disabled=${vm.page >= vm.pages - 1} @click=${() => actions.page(vm.page + 1)}>${t('pvp.next')}</button>
+      <button class="action icon-only" ?disabled=${vm.page >= vm.pages - 1} data-tip=${t('pvp.next')} aria-label=${t('pvp.next')}
+        @click=${() => actions.page(vm.page + 1)}>${headerIcons.chevronRight}</button>
     </p>`;
 
 /** `note` is the note card of the picked player */
@@ -103,7 +105,8 @@ export function pvpView(vm: PvpVm | undefined, actions: PvpActions, note?: Templ
       @keydown=${keepKeys} @keypress=${keepKeys} @keyup=${keepKeys} />
     ${
       vm?.picked
-        ? html`<button class="action" data-tip=${t('pvp.clearFilter')} @click=${() => actions.clearPick()}>${t('pvp.onlyPlayer', { name: vm.picked })} ✕</button>`
+        ? html`<button class="action icon-only" data-tip=${t('pvp.clearFilter')} aria-label=${t('pvp.clearFilter')}
+          @click=${() => actions.clearPick()}>${t('pvp.onlyPlayer', { name: vm.picked })}${headerIcons.close}</button>`
         : ''
     }</p>`;
   // the search field stays in one outer template: swapping templates would replace it and take its focus mid-typing

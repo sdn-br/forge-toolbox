@@ -105,7 +105,7 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
 - **Menü:** Leiste mit den Knöpfen der angemeldeten Features, sortierbar, einzeln ausblendbar.
 - **Icons statt Wörter** (Nutzer, 2026-10-24): Knöpfe tragen, wo es sinnvoll möglich ist, ein Icon statt eines Worts, mit dem Wort im Tooltip und als `aria-label`. Alle Icons kommen aus `src/content/ui/icons.ts` in derselben Designsprache (eigene SVGs auf dem 24er-Raster, Strichstärke je Ort, Farben aus den Variablen), keine Emoji und keine Schriftzeichen als Icon. Während der Entwicklung darf ein neuer Knopf zuerst Text tragen. Dann wird besprochen, ob er später ein Icon bekommt, und das kommt in die Liste „Offene Icons“ unten. Knöpfe, die Text behalten müssen (Faktoren, Reiter, Seitenwechsel mit Zahl), sind im Farbschema der Boxen gestylt, wie die Eingabefelder (dunkler Grund, heller Text, brauner Rand, Akzent bei aktiv und Fokus).
 - **Offene Icons** (Knöpfe mit Text, für die ein Icon gewünscht ist):
-  - noch zu besprechen, siehe Log 2026-10-24.
+  - zurzeit keine. Entschieden 2026-10-24 (Nutzer, erst einmal so, später verfeinern): Icons bekommen Seitenwechsel im PvP (‹ ›), das ✕ am Spielerfilter im PvP (Text bleibt), Seite und Gruppe löschen in den Notizen (Mülleimer), Spieler hinzufügen (Person mit +), Seite hinzufügen (Blatt mit +), Schließen der Spielerauswahl (✕ wie im Boxkopf), Aufnahme speichern (Download, Zahl daneben), Powerleveln öffnen (kleines LG » großes LG). Text behalten: Löschen und Abbrechen in Rückfragen (Klartext ist dort sicherer), „Laufend X → X+1“ (die Stufe ist die Information), Reiter und Faktor-Knöpfe.
 - Styles so gekapselt, dass Spiel-CSS und Toolbox-CSS sich nicht beeinflussen (zu prüfen: Shadow DOM).
 
 ### Settings

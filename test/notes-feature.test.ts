@@ -57,7 +57,7 @@ describe('notes feature', () => {
     const { box, root } = setup();
     expect(box.text).toContain('Spieler');
     expect(box.text).toContain('Noch keine Spieler-Notizen.');
-    expect(box.text).not.toContain('Gruppe löschen');
+    expect(box.root.querySelector('[aria-label="Gruppe löschen"]')).toBeNull();
     root.querySelector('nav button')?.dispatchEvent(new Event('dblclick'));
     expect(root.querySelector('input.inline')).toBeNull();
   });
@@ -76,16 +76,16 @@ describe('notes feature', () => {
     field.dispatchEvent(new Event('blur'));
     expect(notes.groups().map((g) => g.name)).toEqual(['Gilde']);
     expect(box.text).toContain('Noch keine Seiten.');
-    expect(box.text).toContain('Gruppe löschen');
+    expect(box.root.querySelector('[aria-label="Gruppe löschen"]')).not.toBeNull();
   });
 
   it('adds pages to the top, renames them inline and in the header', () => {
     const { box, notes, input, enter, row } = setup();
     const group = notes.addGroup('Gilde');
     box.click('Gilde');
-    box.click('+ Neue Seite');
+    box.click('Seite hinzufügen');
     enter(input('input.inline'), 'Erste');
-    box.click('+ Neue Seite');
+    box.click('Seite hinzufügen');
     enter(input('input.inline'), 'Zweite');
     expect(notes.pages(group.id).map((p) => p.title)).toEqual(['Zweite', 'Erste']);
 
@@ -178,7 +178,7 @@ describe('notes feature', () => {
     ctx.session.start({ world, playerId: playerId(1), name: 'Ich', era: eraId('IronAge') });
     ctx.players.apply(world, [obs(1, 'Ich'), obs(2, 'Bert'), obs(3, 'Berta')], 'visit');
     ctx.players.applySocialList(world, { neighbor: [obs(3, 'Berta')], guildMember: [], friend: [] });
-    box.click('+ Spieler');
+    box.click('Spieler hinzufügen');
     const search = input('.card input[type=search]');
     typeInto(search, 'ber');
     expect(box.text).not.toContain('Ich');
@@ -238,7 +238,7 @@ describe('notes feature', () => {
       'visit',
     );
     notes.setPlayerText(playerId(159), 'x');
-    box.click('+ Spieler');
+    box.click('Spieler hinzufügen');
     const rows = [...root.querySelectorAll('.card li')].map((l) => l.textContent?.trim());
     expect(rows).toHaveLength(50);
     expect(rows[0]).toBe('P59');
@@ -253,7 +253,7 @@ describe('notes feature', () => {
     notes.addPage(group.id, 'two');
     box.click('Gilde');
     notes.addGroup('Andere');
-    expect(box.text).toContain('Gruppe löschen');
+    expect(box.root.querySelector('[aria-label="Gruppe löschen"]')).not.toBeNull();
     expect(box.root.querySelector('nav button.active')?.textContent).toBe('Gilde');
     expect((box.root.querySelector('input.title') as HTMLInputElement).value).toBe('two');
   });

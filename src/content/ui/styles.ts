@@ -44,6 +44,9 @@ button.action { margin: 2px 4px 2px 0; }
   &:is(:disabled, [aria-disabled=true]) { cursor: default; background: var(--btn); }
   &:is(:disabled, [aria-disabled=true]):not(.active) { opacity: .5; }
 }
+/* a text button that carries an icon, alone or beside a word: the svg sits centred at 14px */
+button.action.icon-only { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+button.action.icon-only svg { display: block; width: 14px; height: 14px; }
 label { display: flex; gap: 6px; align-items: center; padding: 2px 0; }
 p.setting-hint { margin: 0 0 4px 22px; }
 h2 { font-size: 12px; margin: 8px 0 4px; color: var(--accent); }

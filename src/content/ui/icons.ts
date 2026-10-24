@@ -155,6 +155,26 @@ export const headerIcons = {
   note: headerIcon(
     svg`<path d="M6 3.5h8.5L19 8v11.5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z"/><path d="M14.5 3.5V8H19"/><path d="M8.5 13h7M8.5 16.5h5"/>`,
   ),
+  /** a chevron pointing left: previous page */
+  chevronLeft: headerIcon(svg`<path d="M15 5 8 12l7 7"/>`),
+  /** a chevron pointing right: next page */
+  chevronRight: headerIcon(svg`<path d="m9 5 7 7-7 7"/>`),
+  /** a trash can: delete */
+  trash: headerIcon(
+    svg`<path d="M4 6.5h16M9.5 6.5V4h5v2.5"/><path d="M6 6.5l1 13a1 1 0 0 0 1 .9h8a1 1 0 0 0 1-.9l1-13"/><path d="M10 10.5v6M14 10.5v6"/>`,
+  ),
+  /** head and shoulders with a plus: add a player */
+  personPlus: headerIcon(
+    svg`<circle cx="9.5" cy="8" r="3.4"/><path d="M2.5 20.5c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/><path d="M19 6.5v6M16 9.5h6"/>`,
+  ),
+  /** a sheet with a folded corner and a plus: add a page */
+  notePlus: headerIcon(
+    svg`<path d="M6 3.5h8.5L19 8v11.5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z"/><path d="M14.5 3.5V8H19"/><path d="M12 11v6.5M8.8 14.2h6.4"/>`,
+  ),
+  /** an arrow down into a tray: save as a file */
+  download: headerIcon(
+    svg`<path d="M12 4v11M7 10.5l5 5 5-5"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/>`,
+  ),
   /** a plus: add, zoom in */
   plus: headerIcon(svg`<path d="M12 5v14M5 12h14"/>`),
   /** a minus: zoom out */
