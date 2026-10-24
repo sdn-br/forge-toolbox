@@ -13,6 +13,8 @@ export interface GreatBuildingPersistence {
   putList(world: WorldId, rows: GreatBuildingListRow[], at: number): Promise<void>;
   /** the town hall list of the own contributions */
   putContributions(world: WorldId, rows: GreatBuildingListRow[], at: number): Promise<void>;
+  /** when the town hall list last came, if ever */
+  contributionsAt(world: WorldId): Promise<number | undefined>;
   /** deletes what was seen before `before`, except buildings with an own contribution */
   prune(world: WorldId, before: number): Promise<void>;
   list(world: WorldId, owner?: PlayerId): Promise<KnownGreatBuilding[]>;
@@ -176,6 +178,11 @@ export class GreatBuildingStore {
     const at = this.now();
     this.enqueue(() => this.persistence.putContributions(this.world, rows, at));
     this.bus.emit('greatBuildings.contributions', { at, owners });
+  }
+
+  /** when the town hall list of the own contributions last came, also from before a reload */
+  contributionsAt(): Promise<number | undefined> {
+    return this.writes.then(() => this.persistence.contributionsAt(this.world));
   }
 
   /** Deletes buildings not seen for `days`, except those with an own contribution; run at the start. */

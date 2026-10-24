@@ -5,7 +5,16 @@ import type { Handlers } from '../../shared/rpc';
 import type { GreatBuildingListRow, GreatBuildingsApi } from './contract';
 import { applyListRow, hasOwnContribution } from './merge';
 
-export type GreatBuildingsTables = { greatBuildings: Table<KnownGreatBuilding, [WorldId, PlayerId, number]> };
+/** when the town hall list of the own contributions last came in a world */
+export interface GreatBuildingListTimes {
+  world: WorldId;
+  contributionsAt: number;
+}
+
+export type GreatBuildingsTables = {
+  greatBuildings: Table<KnownGreatBuilding, [WorldId, PlayerId, number]>;
+  greatBuildingLists: Table<GreatBuildingListTimes, WorldId>;
+};
 
 export function greatBuildingsHandlers(db: GreatBuildingsTables): Handlers<GreatBuildingsApi> {
   const writeList = async (world: WorldId, rows: GreatBuildingListRow[], at: number, own: boolean) => {
@@ -33,7 +42,9 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables): Handlers<Great
         .filter((b) => b.ownContribution && !listed.has(`${b.owner}:${b.entityId}`))
         .map((b): [WorldId, PlayerId, number] => [b.world, b.owner, b.entityId]);
       await db.greatBuildings.bulkDelete(gone);
+      await db.greatBuildingLists.put({ world, contributionsAt: at });
     },
+    'greatBuildings.contributionsAt': async ({ world }) => (await db.greatBuildingLists.get(world))?.contributionsAt,
     'greatBuildings.prune': async ({ world, before }) => {
       const stale = (await db.greatBuildings.where('seenAt').below(before).toArray())
         .filter((b) => b.world === world && !hasOwnContribution(b))

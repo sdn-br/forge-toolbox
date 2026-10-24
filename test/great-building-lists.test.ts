@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Ingestion } from '../src/content/core/ingestion';
 import { registerGameHandlers } from '../src/content/game/handlers';
+import { GreatBuildingStore } from '../src/content/stores/great-buildings';
 import { applyListRow, hasOwnContribution } from '../src/persistence/great-buildings/merge';
 import { playerId, worldId } from '../src/shared/ids';
 import type { KnownGreatBuilding } from '../src/shared/model';
@@ -22,7 +23,7 @@ const DAY = 24 * 60 * 60 * 1000;
 function setup() {
   let clock = 5_000;
   const ingestion = new Ingestion();
-  const { world, bus, now, stores } = testStores({ now: () => clock });
+  const { db, world, bus, now, stores } = testStores({ now: () => clock });
   registerGameHandlers(ingestion, { world, bus, now, ...stores });
   const send = (...entries: Entry[]) =>
     ingestion.accept({
@@ -61,6 +62,8 @@ function setup() {
   });
   return {
     ...stores,
+    db,
+    world,
     bus,
     send,
     open,
@@ -201,6 +204,17 @@ describe('own contribution list (getContributions)', () => {
     } as Entry);
     const ids = (await greatBuildings.known()).map((b) => b.entityId).sort((a, b) => a - b);
     expect(ids).toEqual([777, 1909, ...rows.slice(0, 2).map((r) => r.entity_id)].sort((a, b) => a - b));
+  });
+
+  it('keeps the time of the list in the database, so it survives a reload', async () => {
+    const { greatBuildings, db, world, bus, send, at } = setup();
+    expect(await greatBuildings.contributionsAt()).toBeUndefined();
+    send(...(contributions.startup as Entry[]));
+    at(8_000);
+    send(contributions.contributions as Entry);
+    expect(await greatBuildings.contributionsAt()).toBe(8_000);
+    const reloaded = new GreatBuildingStore(bus, world, db.greatBuildings);
+    expect(await reloaded.contributionsAt()).toBe(8_000);
   });
 
   it('does not take the own city for a foreign building', async () => {

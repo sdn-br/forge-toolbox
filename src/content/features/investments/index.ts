@@ -24,10 +24,8 @@ export const investmentsFeature: Feature = {
       default: true,
     });
 
-    /** the time of the last town hall list survives a reload as a view choice of this world */
-    const LISTED_AT = `investments.listedAt.${ctx.world}`;
-    const saved = Number(ctx.ui.pref(LISTED_AT));
-    let listedAt: number | undefined = Number.isFinite(saved) && saved > 0 ? saved : undefined;
+    /** when the last town hall list came; the store keeps it across reloads */
+    let listedAt: number | undefined;
     let tab: InvestmentsTab = 'mine';
     let sort: InvestmentSort | undefined;
     let investments: Investments = { rows: [], totals: { circulating: 0, profitSafe: 0, profitTotal: 0 } };
@@ -70,6 +68,16 @@ export const investmentsFeature: Feature = {
         ),
     });
 
+    ctx.greatBuildings
+      .contributionsAt()
+      .then((at) => {
+        // a list arriving meanwhile is newer
+        if (listedAt !== undefined || at === undefined) return;
+        listedAt = at;
+        box.update();
+      })
+      .catch((error) => logError('reading the time of the town hall list failed', error));
+
     /** reads the known buildings again; a stale answer is dropped */
     const load = async () => {
       const current = ++loads;
@@ -84,7 +92,6 @@ export const investmentsFeature: Feature = {
 
     ctx.bus.on('greatBuildings.contributions', ({ at, owners }) => {
       listedAt = at;
-      ctx.ui.savePref(LISTED_AT, String(at));
       for (const o of owners) ownerNames.set(o.id, o.name);
       if (ctx.settings.get(OPEN_WITH_LIST)) {
         tab = 'mine';

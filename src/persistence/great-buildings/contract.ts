@@ -29,6 +29,8 @@ export interface GreatBuildingsApi {
     arg: { world: WorldId; rows: GreatBuildingListRow[]; at: number };
     result: undefined;
   };
+  /** when the town hall list last came in the world, if ever */
+  'greatBuildings.contributionsAt': { arg: { world: WorldId }; result: number | undefined };
   /** deletes what was seen before `before`, except buildings with an own contribution */
   'greatBuildings.prune': { arg: { world: WorldId; before: number }; result: undefined };
   /** the known buildings of one owner, or of all owners of the world */

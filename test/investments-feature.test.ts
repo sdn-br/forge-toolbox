@@ -85,6 +85,19 @@ describe('Investitionen box', () => {
     ]);
   });
 
+  it('shows the age of a town hall list from before a reload', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(1_000_000);
+    const env = featureContext({ now: () => Date.now() });
+    // the list came before this page load: it is in the database, but no event reaches the box
+    env.ctx.greatBuildings.noteContributions([]);
+    vi.setSystemTime(1_000_000 + 7 * MINUTE);
+    investmentsFeature.setup(env.ctx);
+    env.menu('investments');
+    await tick();
+    expect(env.boxes.get('investments')?.text).toContain('Stand: vor 7 Min.');
+  });
+
   it('shows the age of the town hall list and the totals', async () => {
     const { box, send, advance } = setup();
     send(contributions.contributions as Entry);
