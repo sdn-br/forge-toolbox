@@ -6,17 +6,19 @@ Stand 2026-10-24. Altes Modul `calculator-overview` („Mögliche Investitionen�
 
 ## Box
 
-- **Eine Box mit zwei Reitern** (Nutzer, 2026-10-24): „Liste“ (die Snipehilfe) und „LG“ (der bisherige LG-Rechner). Später kommt der Eigenanteil als weiterer Reiter dazu. Die Reiter sind Wörter, weil sie Text behalten (siehe Konzept, UI-Kit).
-- Eine neue LG-Liste schaltet auf „Liste“ und ersetzt die vorige. Ein geöffnetes LG schaltet auf „LG“. Sonst wechselt nur der Spieler den Reiter.
-- **Automatisch öffnen:** Einstellung „Snipehilfe beim Öffnen einer LG-Liste zeigen“, Standard an. Die Box öffnet sich nur, wenn die Liste mindestens einen Treffer hat. Ist sie schon offen, wechselt sie auch ohne Treffer auf „Liste“.
+- **Eine Box, beide Bereiche untereinander** (Nutzer, 2026-10-24, ersetzt die zwei Reiter): oben „Mögliche Einzahlungen“, darunter der LG-Rechner mit dem zuletzt geöffneten LG, getrennt durch eine Linie. Skizze: Variante 1 der Layout-Vorschau vom 2026-10-24.
+- Der obere Bereich ist einklappbar. Zugeklappt bleibt eine Zeile: „Mögliche Einzahlungen: 3 Treffer, bester Zeusstatue +310 (Manwe-Olaf, vor 3 Min.)“, ein Klick klappt auf. Eine neue LG-Liste klappt ihn auf und ersetzt die vorige. Ein geöffnetes LG klappt ihn zu. Sonst klappt nur der Spieler. Ohne Liste fehlt der Bereich ganz.
+- **Größe:** nicht von Hand verstellbar, feste Breite, Höhe nach Inhalt, darüber scrollt sie (siehe Konzept, UI-Kit „Verstellbar nur, wo es hilft“).
+- Der Eigenanteil wird später neu überlegt, er gehört zu eigenen LGs und läuft nie gleichzeitig mit den anderen.
+- **Automatisch öffnen:** Einstellung „Snipehilfe beim Öffnen einer LG-Liste zeigen“, Standard an. Die Box öffnet sich nur, wenn die Liste mindestens einen Treffer hat. Ist sie schon offen, klappt sie den Bereich auch ohne Treffer auf.
 - **Ton:** eigene Einstellung „Ton bei Treffer in der Snipehilfe“, Standard an, derselbe WebAudio-Ton wie im LG-Rechner. Er spielt nur, wenn eine neue LG-Liste eintrifft, sie mindestens einen Treffer hat und sich die Treffer vom letzten Ton unterscheiden (Spieler und je Treffer LG, Stufe, bester Platz, Einsatz). Dieselbe Liste mit unveränderten Treffern piept nicht, eine Zeile, die beim Öffnen eines LGs exakt wird, auch nicht (Nutzer, 2026-10-24).
 - Die eigene LG-Liste wird übergangen.
-- **Liste, die das Spiel selbst abfragt** (Nutzer, 2026-10-24, im Spiel noch zu erleben): Nach einem Level-up fragt das Spiel von sich aus die Liste des Eigentümers ab. Eine Liste desselben Spielers, die weniger als 3 Sekunden nach dem Öffnen oder einer Einzahlung in einem seiner LGs kommt, wird gespeichert, schaltet aber nicht um und piept nicht. Ein echtes Erkennungsmerkmal gibt es nicht, die Anfrage sieht gleich aus.
+- **Liste, die das Spiel selbst abfragt** (Nutzer, 2026-10-24, im Spiel noch zu erleben): Nach einem Level-up fragt das Spiel von sich aus die Liste des Eigentümers ab. Eine Liste desselben Spielers, die weniger als 3 Sekunden nach dem Öffnen oder einer Einzahlung in einem seiner LGs kommt, wird gespeichert, klappt nichts auf und piept nicht. Ein echtes Erkennungsmerkmal gibt es nicht, die Anfrage sieht gleich aus.
 - Die Einstellungen stehen beim Modul LG-Rechner im Abschnitt „Snipehilfe“.
 
-## Reiter „Liste“
+## Bereich „Mögliche Einzahlungen“
 
-- Kopf: Überschrift „Mögliche Einzahlungen“, darunter der Spieler wie im Reiter „LG“: „Eigentümer: Name“ mit Link zu foestats und der Aktivitätszeile aus foestats, dann „Stand: vor X Minuten“ (Zeit der Liste) (Nutzer, 2026-10-24). Die Liste gehört immer zu genau diesem Spieler. Öffnet der Spieler danach ein LG eines anderen Spielers, bleibt die Liste unverändert (Nutzer, 2026-10-24).
+- Kopf: Überschrift „Mögliche Einzahlungen“, darunter der Spieler wie im LG-Rechner: „Eigentümer: Name“ mit Link zu foestats und der Aktivitätszeile aus foestats, dann „Stand: vor X Minuten“ (Zeit der Liste) (Nutzer, 2026-10-24). Die Liste gehört immer zu genau diesem Spieler. Öffnet der Spieler danach ein LG eines anderen Spielers, bleibt die Liste unverändert (Nutzer, 2026-10-24).
 - **Nur Treffer** (Nutzer, 2026-10-24): eine Zeile je LG mit möglichem Gewinn, sortiert nach Gewinn, der beste oben. Ein Klick auf einen Spaltenkopf sortiert nach dieser Spalte.
 - Spalten: # (Platz in der Liste des Spiels, zum Sortieren nach der Reihenfolge des Spiels, Nutzer 2026-10-24), LG (Name), Stufe, Fortschritt (eingezahlt / Kosten der Stufe), Platz (der beste lohnende), Einsatz (Sichern dieses Platzes), Gewinn, Stufe der Sicherheit als Icon mit Tooltip. Platz und Einsatz sind die des besten Falls, der Platz im schlechtesten Fall steht im Tooltip der Zeile.
 - **Drei Stufen** (Nutzer, 2026-10-24):
