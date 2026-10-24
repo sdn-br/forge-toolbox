@@ -13,7 +13,7 @@ import { effectiveFactor } from '../../ui/factor-bar';
 import { icons } from '../../ui/icons';
 import { playTone } from '../../ui/tone';
 import { type SnipeActions, snipeView } from './snipe-view';
-import { DEFAULT_SORT, nextSort, type SnipeSort, type SnipeVm, snipeViewModel } from './snipe-view-model';
+import { clampScroll, DEFAULT_SORT, nextSort, type SnipeSort, type SnipeVm, snipeViewModel } from './snipe-view-model';
 import { type GbCalculatorActions, gbCalculatorView } from './view';
 import { type GbCalculatorVm, gbCalculatorViewModel } from './view-model';
 
@@ -116,6 +116,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       let snipe: SnipeList | undefined;
       let snipeVm: SnipeVm = { kind: 'none' };
       let sort: SnipeSort = DEFAULT_SORT;
+      /** index of the first table row in view; a new list starts at the top, redraws of the same list keep it */
+      let scroll = 0;
       /** what the last list tone was for: the same hits stay quiet */
       let snipeToned: string | undefined;
       let loads = 0;
@@ -139,6 +141,11 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           sort = nextSort(sort, column);
           refresh();
         },
+        scroll: (rows) => {
+          const rowCount = snipeVm.kind === 'list' ? snipeVm.rows.length : 0;
+          scroll = clampScroll(scroll + rows, rowCount);
+          refresh();
+        },
         toggle: () => {
           expanded = !expanded;
           box.update();
@@ -150,6 +157,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         settings: 'gbCalc.title',
         title: () => t('gbCalc.title'),
         width: 520,
+        // 6 table rows, the section and the calculator fit without the body scrolling on a normal window
+        maxHeight: 0.92,
         render: () => html`${snipeView(snipeVm, snipeActions, expanded)}${gbCalculatorView(vm, actions)}`,
       });
 
@@ -191,6 +200,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           foestats: list && ctx.settings.get(FOESTATS_SETTING.key) ? ctx.foestats.get(list.owner) : undefined,
           today: foestatsDay(Date.now()),
           sort,
+          scroll,
         });
         box.update();
       };
@@ -241,6 +251,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         if (open?.owner === owner && at - open.seenAt < ASKED_BY_GAME) return;
         list = { owner, ...(ownerName !== undefined && { ownerName }), at, entityIds: new Set(entityIds) };
         listed = [];
+        scroll = 0;
         expanded = true;
         onList().catch((error) => logError('reading the great building list failed', error));
       });

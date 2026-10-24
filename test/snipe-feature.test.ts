@@ -374,4 +374,108 @@ describe('Snipehilfe: stacked box', () => {
     expect(cells(rows()[0]).slice(1, 5)).toEqual(['Aachener Dom', '75', '251 / 3.062', 'P1']);
     expect(rows()[0]?.querySelector('td.snipe-tier')?.className).toContain('exact');
   });
+
+  describe('long lists', () => {
+    /** n rows that pay the same place and are numbered 1 … n by their place in the game's list; equal profits keep that order */
+    const many = (n: number) => Array.from({ length: n }, (_, i) => ({ ...hitZeus(), entity_id: 5000 + i }));
+    const places = (rows: () => Element[], cells: (r: Element | undefined) => (string | undefined)[]) =>
+      rows().map((r) => Number(cells(r)[0]));
+    const button = (box: { root: ParentNode }, word: string) =>
+      box.root.querySelector(`.snipe-nav button[aria-label="${word}"]`) as HTMLElement;
+    const hiddenLine = (box: { root: ParentNode }) => box.root.querySelector('.snipe-hidden')?.textContent?.trim();
+    const wheel = (box: { root: ParentNode }, deltaY: number) => {
+      const event = new WheelEvent('wheel', { deltaY, cancelable: true, bubbles: true });
+      box.root.querySelector('.snipe-scroll')?.dispatchEvent(event);
+      return event;
+    };
+
+    it('shows six rows with the head, no buttons and no line when all fit', async () => {
+      const { box, list, rows } = setup();
+      list(many(6));
+      await tick();
+      expect(rows()).toHaveLength(6);
+      expect(box.root.querySelector('.snipe-nav')).toBeNull();
+      expect(box.root.querySelector('.snipe-hidden')).toBeNull();
+    });
+
+    it('shows six rows of a longer list and says what is hidden below', async () => {
+      const { box, list, rows, cells } = setup();
+      list(many(10));
+      await tick();
+      expect(places(rows, cells)).toEqual([1, 2, 3, 4, 5, 6]);
+      expect(box.root.querySelectorAll('thead th').length).toBe(8);
+      expect(hiddenLine(box)).toBe('noch 4 weitere unten');
+      expect(button(box, 'Nach oben').getAttribute('aria-disabled')).toBe('true');
+      expect(button(box, 'Nach unten').getAttribute('aria-disabled')).toBe('false');
+      expect(button(box, 'Nach unten').getAttribute('data-tip')).toBe('Nach unten');
+    });
+
+    it('steps one row per click and greys the button at each end', async () => {
+      const { box, list, rows, cells } = setup();
+      list(many(8));
+      await tick();
+      button(box, 'Nach unten').click();
+      await tick();
+      expect(places(rows, cells)).toEqual([2, 3, 4, 5, 6, 7]);
+      expect(hiddenLine(box)).toBe('1 oben · 1 unten');
+      button(box, 'Nach unten').click();
+      await tick();
+      expect(places(rows, cells)).toEqual([3, 4, 5, 6, 7, 8]);
+      expect(hiddenLine(box)).toBe('noch 2 weitere oben');
+      expect(button(box, 'Nach unten').getAttribute('aria-disabled')).toBe('true');
+      button(box, 'Nach unten').click();
+      await tick();
+      expect(places(rows, cells)).toEqual([3, 4, 5, 6, 7, 8]);
+      button(box, 'Nach oben').click();
+      await tick();
+      expect(places(rows, cells)).toEqual([2, 3, 4, 5, 6, 7]);
+      expect(button(box, 'Nach oben').getAttribute('aria-disabled')).toBe('false');
+    });
+
+    it('scrolls by the mouse wheel over the table and lets the wheel pass at the ends', async () => {
+      const { box, list, rows, cells } = setup();
+      list(many(8));
+      await tick();
+      expect(wheel(box, -100).defaultPrevented).toBe(false);
+      expect(wheel(box, 100).defaultPrevented).toBe(true);
+      await tick();
+      expect(places(rows, cells)).toEqual([2, 3, 4, 5, 6, 7]);
+      wheel(box, 100);
+      await tick();
+      expect(places(rows, cells)).toEqual([3, 4, 5, 6, 7, 8]);
+      expect(wheel(box, 100).defaultPrevented).toBe(false);
+      wheel(box, -100);
+      await tick();
+      expect(places(rows, cells)).toEqual([2, 3, 4, 5, 6, 7]);
+    });
+
+    it('keeps the position when the list is sorted or a row changes, and starts at the top for a new list', async () => {
+      const { box, list, rows, cells } = setup();
+      list(many(9));
+      await tick();
+      button(box, 'Nach unten').click();
+      button(box, 'Nach unten').click();
+      await tick();
+      expect(places(rows, cells)).toEqual([3, 4, 5, 6, 7, 8]);
+      // a click on the head of the profit column turns the order, the equal profits keep the offset and the rows
+      (box.root.querySelectorAll('th.sortable')[6] as HTMLElement).click();
+      await tick();
+      expect(hiddenLine(box)).toBe('2 oben · 1 unten');
+      // the same list again from the game is a new list: the top
+      list(many(9));
+      await tick();
+      expect(places(rows, cells)).toEqual([1, 2, 3, 4, 5, 6]);
+      expect(hiddenLine(box)).toBe('noch 3 weitere unten');
+    });
+
+    it('keeps the calculator part and the section head out of the scrolling rows', async () => {
+      const { box, list } = setup();
+      list(many(10));
+      await tick();
+      const scroll = box.root.querySelector('.snipe-scroll');
+      expect(scroll?.querySelector('.gb-title')).toBeNull();
+      expect(box.root.querySelector('.snipe-hidden')?.closest('.snipe-scroll')).toBeNull();
+      expect(box.text).toContain('Noch kein fremdes LG geöffnet.');
+    });
+  });
 });

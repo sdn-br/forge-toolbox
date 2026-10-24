@@ -22,6 +22,22 @@ export function nextSort(current: SnipeSort, column: SnipeColumn): SnipeSort {
   return { column, desc: column !== 'name' && column !== 'order' };
 }
 
+/** rows of the table in view at once; the rest scrolls */
+export const VISIBLE_ROWS = 6;
+
+export interface SnipeScroll {
+  /** index of the first row in view */
+  top: number;
+  /** rows hidden above and below */
+  above: number;
+  below: number;
+}
+
+/** the offset kept inside the list, so a shorter list or a stale offset never leaves the table empty */
+export function clampScroll(top: number, rows: number): number {
+  return Math.max(0, Math.min(top, rows - VISIBLE_ROWS));
+}
+
 export interface SnipeRowVm {
   owner: PlayerId;
   entityId: number;
@@ -56,6 +72,8 @@ export type SnipeVm =
       at: number;
       sort: SnipeSort;
       rows: SnipeRowVm[];
+      /** which rows of `rows` are in view */
+      scroll: SnipeScroll;
       /** the hit with the highest profit, whatever the sort; missing without hits */
       best?: { name: string; profit: string };
       /** counts under the table, those that are 0 left out */
@@ -73,6 +91,8 @@ export interface SnipeInput {
   foestats?: FoestatsRecord;
   today: string;
   sort: SnipeSort;
+  /** index of the first row in view; default the top */
+  scroll?: number;
 }
 
 const activityOf = (record: FoestatsRecord | undefined, today: string) => {
@@ -135,9 +155,10 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     result.ownContribution > 0 && t('snipe.countOwn', { count: result.ownContribution }),
     result.unknownReward > 0 && t('snipe.countUnknown', { count: result.unknownReward }),
   ].filter((c): c is string => typeof c === 'string');
-  const top = [...result.hits].sort(
+  const best = [...result.hits].sort(
     (a, b) => (sortKey.profit(b, '', 0) as number) - (sortKey.profit(a, '', 0) as number),
   )[0];
+  const top = clampScroll(input.scroll ?? 0, rows.length);
   return {
     kind: 'list',
     owner: list.ownerName ?? input.playerName(list.owner) ?? String(list.owner),
@@ -146,7 +167,8 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     at: list.at,
     sort: input.sort,
     rows,
-    ...(top && { best: { name: name(top), profit: signed(top.profitHigh) } }),
+    scroll: { top, above: top, below: Math.max(0, rows.length - top - VISIBLE_ROWS) },
+    ...(best && { best: { name: name(best), profit: signed(best.profitHigh) } }),
     counts,
   };
 }

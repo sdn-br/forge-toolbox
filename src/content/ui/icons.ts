@@ -216,6 +216,8 @@ export const headerIcons = {
   chevronLeft: headerIcon(svg`<path d="M15 5 8 12l7 7"/>`),
   /** a chevron pointing right: next page, or a closed section */
   chevronRight: headerIcon(svg`<path d="m9 5 7 7-7 7"/>`),
+  /** a chevron pointing up: scroll up */
+  chevronUp: headerIcon(svg`<path d="m5 15 7-7 7 7"/>`),
   /** a chevron pointing down: an open section, a click closes it */
   chevronDown: headerIcon(svg`<path d="m5 9 7 7 7-7"/>`),
   /** a trash can: delete */
