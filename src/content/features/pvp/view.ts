@@ -3,6 +3,7 @@ import type { PlayerId } from '../../../shared/ids';
 import { formatNumber, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { battleDetailsView } from '../../ui/battle-details';
+import { headerIcons } from '../../ui/icons';
 import { keepKeys } from '../../ui/inputs';
 import { externalIcon } from '../../ui/links';
 import type { IncomingRow, PlunderRow, PvpRow, PvpTab, PvpVm } from './view-model';
@@ -28,10 +29,10 @@ const opponentLink = (r: { opponent: PlayerId; name: string; url: string }, acti
     actions.pick(r.opponent);
   }}>${r.name}</a> ${externalIcon(r.url)}</td>`;
 
-/** 📝 per row: dim without a note, the note as tooltip */
+/** a note sheet per row: dim without a note, the note as tooltip */
 const noteMarker = (opponent: PlayerId, note: string, actions: PvpActions) =>
   html`<td><button class=${note ? 'marker' : 'marker dim'} data-tip=${note || t('notes.add')}
-    @click=${() => actions.note(opponent)}>📝</button></td>`;
+    aria-label=${t('notes.add')} @click=${() => actions.note(opponent)}>${headerIcons.note}</button></td>`;
 
 const incomingRow = (r: IncomingRow, actions: PvpActions) => html`<tr>
   ${noteMarker(r.attacker, r.note, actions)}${opponentLink({ opponent: r.attacker, name: r.name, url: r.url }, actions)}
@@ -82,7 +83,7 @@ const EMPTY = {
 const tabs = (current: PvpTab | undefined, actions: PvpActions) =>
   html`<p>${(['battles', 'plunders', 'incoming'] as const).map(
     (tab) =>
-      html`<button class="action" ?disabled=${tab === (current ?? 'battles')} @click=${() => actions.tab(tab)}>${t(`pvp.tab.${tab}`)}</button> `,
+      html`<button class=${tab === (current ?? 'battles') ? 'action active' : 'action'} ?disabled=${tab === (current ?? 'battles')} @click=${() => actions.tab(tab)}>${t(`pvp.tab.${tab}`)}</button> `,
   )}</p>`;
 
 const paging = (vm: PvpVm, actions: PvpActions) =>

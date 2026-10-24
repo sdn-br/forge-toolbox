@@ -216,6 +216,7 @@ function copyPanel(c: CopyVm, actions: OwnShareActions, copied?: string) {
       .value=${c.building} @keydown=${keepKeys}
       @change=${(e: Event) => actions.setCopyBuilding((e.target as HTMLInputElement).value)} />
     <input class="copy-text" type="text" aria-label=${t('gbOwn.copyPreview')} .value=${c.text} @keydown=${keepKeys} />
-    <button class="action" @click=${copyTyped}>${copied === 'text' ? t('gbOwn.copied') : t('gbOwn.copy')}</button>
+    <button class="icon" data-tip=${t('gbOwn.copy')} aria-label=${t('gbOwn.copy')}
+      @click=${copyTyped}>${copied === 'text' ? headerIcons.check : headerIcons.copy}</button>
   </div>`;
 }

@@ -278,7 +278,6 @@ export const de = {
   'gbOwn.copyNumber': 'Klicken kopiert die Zahl',
   'gbOwn.copiedShort': '✓',
   'gbOwn.copy': 'Kopieren',
-  'gbOwn.copied': 'Kopiert ✓',
   'gbOwn.copyPreview': 'Text für den Gildenchat, vor dem Kopieren änderbar',
   'gbOwn.copySettings': 'Kopiertext',
   'gbOwn.copyPlayerName': 'Spielername',

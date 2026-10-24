@@ -64,13 +64,13 @@ describe('notes feature', () => {
 
   it('adds a group with an inline name and cancels an empty one or on Escape', () => {
     const { box, notes, input, enter } = setup();
-    box.click('+');
+    box.click('Neue Gruppe');
     enter(input('input.inline'), '  ');
     expect(notes.groups()).toEqual([]);
-    box.click('+');
+    box.click('Neue Gruppe');
     enter(input('input.inline'), 'Gilde', 'Escape');
     expect(notes.groups()).toEqual([]);
-    box.click('+');
+    box.click('Neue Gruppe');
     const field = input('input.inline');
     enter(field, ' Gilde ');
     field.dispatchEvent(new Event('blur'));
@@ -241,7 +241,8 @@ describe('notes feature', () => {
     box.click('+ Spieler');
     const rows = [...root.querySelectorAll('.card li')].map((l) => l.textContent?.trim());
     expect(rows).toHaveLength(50);
-    expect(rows[0]).toBe('📝 P59');
+    expect(rows[0]).toBe('P59');
+    expect(root.querySelector('.card li .page-mark svg')).not.toBeNull();
     expect(box.text).toContain('weitere, Suche eingrenzen');
   });
 

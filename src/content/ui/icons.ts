@@ -148,6 +148,18 @@ export const headerIcons = {
   ),
   /** a check mark: done */
   check: headerIcon(svg`<path d="M4.5 12.5 9.5 17.5 19.5 6.5"/>`),
+  /** the folded map: open the map */
+  map: headerIcon(foldedMap),
+  /** a sheet with a folded corner and two lines: a note */
+  note: headerIcon(
+    svg`<path d="M6 3.5h8.5L19 8v11.5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z"/><path d="M14.5 3.5V8H19"/><path d="M8.5 13h7M8.5 16.5h5"/>`,
+  ),
+  /** a plus: add, zoom in */
+  plus: headerIcon(svg`<path d="M12 5v14M5 12h14"/>`),
+  /** a minus: zoom out */
+  minus: headerIcon(svg`<path d="M5 12h14"/>`),
+  /** four corner brackets pointing out: fit the whole */
+  fit: headerIcon(svg`<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>`),
   /** a circle with a slash: nothing to get here */
   noReward: headerIcon(svg`<circle cx="12" cy="12" r="8.5"/><path d="m6 6 12 12"/>`),
 };

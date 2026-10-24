@@ -30,7 +30,9 @@ function mount(map = new CityMap()) {
   const move = (x: number, y: number) =>
     canvas.dispatchEvent(new PointerEvent('pointermove', { clientX: x, clientY: y, bubbles: true }));
   const button = (label: string) =>
-    [...root.querySelectorAll('button')].find((b) => b.textContent === label) as HTMLButtonElement;
+    [...root.querySelectorAll('button')].find(
+      (b) => b.textContent === label || b.getAttribute('aria-label') === label,
+    ) as HTMLButtonElement;
   return { root, map, canvas, tip, move, button, draw };
 }
 
@@ -130,10 +132,10 @@ describe('city map', () => {
     const { map, root, button } = mount();
     const hall = data.tiles[0] as CityMapData['tiles'][number];
     render(map.render({ ...data, focus: { rect: hall, color: '#ff0' } }), root);
-    button('⤢').click();
+    button('Ganze Stadt').click();
     expect(map.tileIndexAt(100, 50)).toBe(0);
     render(map.render(data), root);
-    button('⤢').click();
+    button('Ganze Stadt').click();
     // the start view is centered on the middle of the city, where the street stands
     expect(map.tileIndexAt(100, 50)).toBe(1);
   });

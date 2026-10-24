@@ -49,7 +49,9 @@ export function recordingBox(options: BoxOptions) {
       return container.textContent ?? '';
     },
     click(label: string) {
-      const button = [...container.querySelectorAll('button')].find((b) => b.textContent?.includes(label));
+      const button = [...container.querySelectorAll('button')].find(
+        (b) => b.textContent?.includes(label) || b.getAttribute('aria-label') === label,
+      );
       if (!button) throw new Error(`no button "${label}"`);
       button.click();
     },

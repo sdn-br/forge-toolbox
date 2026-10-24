@@ -267,7 +267,7 @@ describe('Eigenanteil', () => {
     box.click('Kopieren');
     await tick();
     expect(copies).toEqual(['Arche P2 bitte']);
-    expect(box.text).toContain('Kopiert ✓');
+    expect(box.root.querySelector('.copy-line button svg path[d^="M4.5 12.5"]')).not.toBeNull();
   });
 
   it('copies a number to pay with a click', async () => {

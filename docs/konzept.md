@@ -103,6 +103,9 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
 - **Chart:** kapselt ECharts mit Lazy-Load, Theme, Resize, Export als PNG und CSV. Bekommt ein eigenes Datenformat für Serien, nicht ECharts-Optionen. Lässt sich in jede View einbetten, so muss kein Feature Chart-Code wiederholen.
 - **Stadtplan:** zeichnet ein Stadtgitter mit Gebäuden aus einfachen Daten (siehe [Stadtplan](features/stadtplan.md)).
 - **Menü:** Leiste mit den Knöpfen der angemeldeten Features, sortierbar, einzeln ausblendbar.
+- **Icons statt Wörter** (Nutzer, 2026-10-24): Knöpfe tragen, wo es sinnvoll möglich ist, ein Icon statt eines Worts, mit dem Wort im Tooltip und als `aria-label`. Alle Icons kommen aus `src/content/ui/icons.ts` in derselben Designsprache (eigene SVGs auf dem 24er-Raster, Strichstärke je Ort, Farben aus den Variablen), keine Emoji und keine Schriftzeichen als Icon. Während der Entwicklung darf ein neuer Knopf zuerst Text tragen. Dann wird besprochen, ob er später ein Icon bekommt, und das kommt in die Liste „Offene Icons“ unten. Knöpfe, die Text behalten müssen (Faktoren, Reiter, Seitenwechsel mit Zahl), sind im Farbschema der Boxen gestylt, wie die Eingabefelder (dunkler Grund, heller Text, brauner Rand, Akzent bei aktiv und Fokus).
+- **Offene Icons** (Knöpfe mit Text, für die ein Icon gewünscht ist):
+  - noch zu besprechen, siehe Log 2026-10-24.
 - Styles so gekapselt, dass Spiel-CSS und Toolbox-CSS sich nicht beeinflussen (zu prüfen: Shadow DOM).
 
 ### Settings

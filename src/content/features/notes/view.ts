@@ -1,6 +1,7 @@
 import { html, type TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
 import { t } from '../../core/texts';
+import { headerIcons } from '../../ui/icons';
 import { autofocus, keepKeys } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
 import type { NotesVm, PageVm, PickerVm, RelationFilter, ResultVm, RowVm, TabVm } from './view-model';
@@ -69,7 +70,7 @@ const tabs = (vm: NotesVm, actions: NotesActions) => html`<nav class="tabs">
   ${
     vm.addingGroup
       ? inlineField('', actions.addGroup, actions.cancel, t('notes.groupName'))
-      : html`<button data-tip=${t('notes.addGroup')} aria-label=${t('notes.addGroup')} @click=${actions.startAddGroup}>+</button>`
+      : html`<button data-tip=${t('notes.addGroup')} aria-label=${t('notes.addGroup')} @click=${actions.startAddGroup}>${headerIcons.plus}</button>`
   }</nav>`;
 
 function row(r: RowVm, playerGroup: boolean, actions: NotesActions) {
@@ -157,7 +158,9 @@ const picker = (p: PickerVm, actions: NotesActions) => html`<div class="card">
     <button class="action" @click=${actions.cancel}>${t('notes.close')}</button></p>
   ${p.rows.length === 0 ? html`<p class="muted">${t('notes.noPlayerFound')}</p>` : ''}
   <ul class="rows">${p.rows.map(
-    (r) => html`<li @click=${() => actions.pick(r.id)}>${r.hasPage ? '📝 ' : ''}${r.name}
+    (
+      r,
+    ) => html`<li @click=${() => actions.pick(r.id)}>${r.hasPage ? html`<span class="page-mark">${headerIcons.note}</span> ` : ''}${r.name}
       ${r.guild ? html`<span class="muted">[${r.guild}]</span>` : ''}</li>`,
   )}</ul>
   ${p.more ? html`<p class="muted">${t('notes.morePlayers')}</p>` : ''}</div>`;

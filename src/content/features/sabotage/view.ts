@@ -2,6 +2,7 @@ import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { battleDetailsView } from '../../ui/battle-details';
+import { headerIcons } from '../../ui/icons';
 import { externalLink } from '../../ui/links';
 import type { PlunderItem, SabotageVm } from './view-model';
 
@@ -84,7 +85,7 @@ export function sabotageView(
         : ''
     }${
       actions
-        ? html` <button class="map-button" data-tip=${t('sabotage.openMap')} aria-label=${t('sabotage.openMap')} @click=${() => actions.openMap()}>🗺️</button>`
+        ? html` <button class="map-button" data-tip=${t('sabotage.openMap')} aria-label=${t('sabotage.openMap')} @click=${() => actions.openMap()}>${headerIcons.map}</button>`
         : ''
     }
       <br /><span class="muted">${t('sabotage.era')}: ${vm.player.era}</span>
