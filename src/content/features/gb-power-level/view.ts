@@ -66,10 +66,10 @@ function table(vm: TableVm, actions: PowerLevelActions, copied?: string) {
         ${[1, 2, 3, 4, 5].map(
           (rank) => html`<th class="num" data-tip=${t('gbPower.placeHint', { rank })}>P${rank}</th>`,
         )}
-        <th class="num" data-tip=${t('gbPower.ownShareHint')}>${t('gbPower.ownShare')}</th>
-        ${vm.harvestColumn ? html`<th class="num" data-tip=${t('gbPower.harvestHint')}>${t('gbPower.harvest')}</th>` : ''}
+        <th class="num" data-tip=${t('gbPower.ownShareHint')} aria-label=${t('gbPower.ownShare')}>${t('gbPower.ownShareShort')}</th>
+        ${vm.harvestColumn ? html`<th class="num" data-tip=${t('gbPower.harvestHint')} aria-label=${t('gbPower.harvest')}>${headerIcons.doubleHarvest}</th>` : ''}
         <th class="num" data-tip=${t('gbPower.netHint')}>${t('gbPower.net')}</th>
-        <th class="num" data-tip=${t('gbPower.sumHint')}>${t('gbPower.sum')}</th>
+        <th class="num" data-tip=${t('gbPower.sumHint')} aria-label=${t('gbPower.sum')}>${t('gbPower.sumShort')}</th>
         <th></th>
       </tr>
       <tr class="factors">

@@ -5,7 +5,7 @@ Stand 2026-10-24. Eigenanteil eines eigenen LGs über mehrere Stufen, Stufe für
 **Box „Powerleveln“:** eigene Box, geöffnet mit einem Knopf in der Eigenanteil-Box. Der Knopf zeigt nur ein Icon: kleines LG, », großes LG, also schnell voran (Nutzer, 2026-10-24). Sie zeigt das LG, das der Eigenanteil gerade zeigt, und folgt ihm, wenn der Spieler ein anderes eigenes LG öffnet. Kein Menüeintrag, ohne geöffnetes eigenes LG gibt es nichts zu rechnen.
 
 - Kopf: Name des LGs. Darunter zwei Zahlenfelder „von“ (vorbelegt mit der laufenden Stufe) und „bis“ (vorbelegt mit von + 10), höchstens 100 Zeilen. Öffnet der Spieler ein LG, stehen beide wieder auf den Vorgaben.
-- Eine Zeile je Stufe X → X+1 mit den Spalten Stufe, P1 bis P5, Eigenanteil, Doppelernte, Netto, Summe und einem Kopier-Knopf. Feste Spaltenbreiten wie im Eigenanteil (`table-layout: fixed`, Breiten in `em`).
+- Eine Zeile je Stufe X → X+1 mit den Spalten Stufe, P1 bis P5, Eigenanteil, Doppelernte, Netto, Summe und einem Kopier-Knopf. Feste Spaltenbreiten wie im Eigenanteil (`table-layout: fixed`, Breiten in `em`). Spaltenköpfe (Nutzer, 2026-10-24): Eigenanteil als „EA“, Summe als „Σ“, Doppelernte als Icon (Münzberg mit „2×“, Variante U8: oranges „2×“, fett, mit dunklem Rand, 18 px), das Wort jeweils im Tooltip.
   - P1 bis P5: die Zahlung je Platz nach dem Faktor des Platzes, wie unter Einzahlen im Eigenanteil. Ein Platz, der nicht angeboten wird, zeigt „–“.
   - Eigenanteil: was der Eigentümer auf dieser Stufe selbst zahlt.
   - Doppelernte: FP, die das LG nach dem Leveln gleich noch einmal produziert (siehe unten). Ohne FP-Produktion fehlt die Spalte.

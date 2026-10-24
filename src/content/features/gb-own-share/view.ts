@@ -51,10 +51,10 @@ export function ownShareView(vm: OwnShareVm, actions: OwnShareActions, copied?: 
       <tr>
         <th data-tip=${t('gbOwn.order')}>${t('gbOwn.orderShort')}</th>
         <th class="icon-cell" data-tip=${t('gbCalc.player')} aria-label=${t('gbCalc.player')}>${headerIcons.person}</th>
-        <th data-tip=${t('gbOwn.stateHint')}>${t('gbOwn.state')}</th>
+        <th class="icon-cell" data-tip=${t('gbOwn.stateHint')} aria-label=${t('gbOwn.state')}>${headerIcons.info}</th>
         <th class="num" data-tip=${t('gbOwn.payHint')}>${t('gbOwn.pay')}</th>
-        <th class="num" data-tip=${t('gbOwn.doneHint')}>${t('gbOwn.done')}</th>
-        <th class="num" data-tip=${t('gbOwn.diffHint')}>${t('gbOwn.diff')}</th>
+        <th class="num" data-tip=${t('gbOwn.doneHint')} aria-label=${t('gbOwn.done')}>${headerIcons.check}</th>
+        <th class="num" data-tip=${t('gbOwn.diffHint')} aria-label=${t('gbOwn.diff')}>${headerIcons.plusMinus}</th>
         <th class="num" data-tip=${t('gbOwn.extHint')}>${t('gbOwn.ext')}</th>
         <th class="num" data-tip=${t('gbOwn.placeFactorHint')}>${t('gbCalc.factor')}</th>
       </tr>

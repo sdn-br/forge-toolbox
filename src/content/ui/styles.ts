@@ -1,11 +1,11 @@
 // Shared look of all toolbox UI. Lives inside each shadow root, so game CSS and toolbox CSS never meet.
 export const baseCss = `
-:host { all: initial; --ink: #fbf4e4; --accent: #e8861c; --btn: #4a3620; --btn-hover: #6a5030;
+:host { all: initial; --bg: #2b1d10; --ink: #fbf4e4; --accent: #e8861c; --btn: #4a3620; --btn-hover: #6a5030;
   --field: #1c130a; --line: #8a6a3a; color-scheme: dark; }
 /* the accent parts of an icon */
 .acc { color: var(--accent); }
 * { box-sizing: border-box; }
-.box { position: fixed; min-width: 260px; max-width: 520px; background: #2b1d10; color: var(--ink);
+.box { position: fixed; min-width: 260px; max-width: 520px; background: var(--bg); color: var(--ink);
   font: 12px/1.4 system-ui, sans-serif; border: 2px solid #8a6a3a; border-radius: 6px;
   box-shadow: 0 4px 16px rgba(0,0,0,.5); }
 .box.popped { position: static; max-width: none; height: 100vh; border: 0; border-radius: 0; }
@@ -169,6 +169,9 @@ input.ext, input.place-factor { width: 100%; min-width: 0; }
 table.own-share { table-layout: fixed; width: auto; }
 table.own-share th, table.own-share td { overflow: hidden; text-overflow: ellipsis; }
 table.own-share .icon-cell { text-align: center; }
+/* a column header drawn as an icon */
+.gb-table th svg { display: inline-block; width: 14px; height: 14px; vertical-align: middle; }
+.gb-table th svg.harvest { width: 18px; height: 18px; }
 .own-share .marker { display: inline-flex; align-items: center; gap: 2px; vertical-align: middle; }
 .own-share .marker svg { display: block; width: 14px; height: 14px; }
 .own-share .marker.danger { color: #f07060; }

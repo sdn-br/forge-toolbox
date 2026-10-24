@@ -149,6 +149,55 @@ export const headerIcons = {
   copy: headerIcon(
     svg`<rect x="8.5" y="8.5" width="12" height="12" rx="1.8"/><path d="M15.5 8.5V5a1.5 1.5 0 0 0-1.5-1.5H5A1.5 1.5 0 0 0 3.5 5v9A1.5 1.5 0 0 0 5 15.5h3.5"/>`,
   ),
+  /** the letter i in a circle: a hint */
+  info: headerIcon(svg`<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.2"/>`),
+  /** a plus over a minus: the difference, plus or minus */
+  plusMinus: headerIcon(svg`<path d="M12 3.5v10M7 8.5h10M7 19.5h10"/>`),
+  /** a heap of coin stacks with "2×" in front: the double harvest. Its own frame and line widths; the stacks fill with
+   * var(--bg), the colour behind the icon, so the back ones hide behind the front ones; "2×" gets a rim of it */
+  doubleHarvest: html`<svg class="harvest" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <g transform="translate(3.04 6.00) scale(0.75)"><path style="fill:var(--bg)" d="M9.5 -5.5V19A3.0 1.5 0 0 0 15.5 19V-5.5Z"/>
+    <ellipse style="fill:var(--bg)" cx="12.5" cy="-5.5" rx="3.0" ry="1.5"/>
+    <path stroke-width="0.87" d="M9.5 -3.10A3.0 1.5 0 0 0 15.5 -3.10"/>
+    <path stroke-width="0.87" d="M9.5 -0.70A3.0 1.5 0 0 0 15.5 -0.70"/>
+    <path stroke-width="0.87" d="M9.5 1.70A3.0 1.5 0 0 0 15.5 1.70"/>
+    <path stroke-width="0.87" d="M9.5 4.10A3.0 1.5 0 0 0 15.5 4.10"/>
+    <path stroke-width="0.87" d="M9.5 6.50A3.0 1.5 0 0 0 15.5 6.50"/>
+    <path stroke-width="0.87" d="M9.5 8.90A3.0 1.5 0 0 0 15.5 8.90"/>
+    <path stroke-width="0.87" d="M9.5 11.30A3.0 1.5 0 0 0 15.5 11.30"/>
+    <path stroke-width="0.87" d="M9.5 13.70A3.0 1.5 0 0 0 15.5 13.70"/>
+    <path stroke-width="0.87" d="M9.5 16.10A3.0 1.5 0 0 0 15.5 16.10"/>
+    <path style="fill:var(--bg)" d="M3.4 6.8V20.5A3.05 1.6 0 0 0 9.5 20.5V6.8Z"/>
+    <ellipse style="fill:var(--bg)" cx="6.45" cy="6.8" rx="3.05" ry="1.6"/>
+    <path stroke-width="0.87" d="M3.4 9.20A3.05 1.6 0 0 0 9.5 9.20"/>
+    <path stroke-width="0.87" d="M3.4 11.60A3.05 1.6 0 0 0 9.5 11.60"/>
+    <path stroke-width="0.87" d="M3.4 14.00A3.05 1.6 0 0 0 9.5 14.00"/>
+    <path stroke-width="0.87" d="M3.4 16.40A3.05 1.6 0 0 0 9.5 16.40"/>
+    <path stroke-width="0.87" d="M3.4 18.80A3.05 1.6 0 0 0 9.5 18.80"/>
+    <path style="fill:var(--bg)" d="M14.5 4.6V20A3.25 1.6 0 0 0 21 20V4.6Z"/>
+    <ellipse style="fill:var(--bg)" cx="17.75" cy="4.6" rx="3.25" ry="1.6"/>
+    <path stroke-width="0.87" d="M14.5 7.00A3.25 1.6 0 0 0 21 7.00"/>
+    <path stroke-width="0.87" d="M14.5 9.40A3.25 1.6 0 0 0 21 9.40"/>
+    <path stroke-width="0.87" d="M14.5 11.80A3.25 1.6 0 0 0 21 11.80"/>
+    <path stroke-width="0.87" d="M14.5 14.20A3.25 1.6 0 0 0 21 14.20"/>
+    <path stroke-width="0.87" d="M14.5 16.60A3.25 1.6 0 0 0 21 16.60"/>
+    <path stroke-width="0.87" d="M14.5 19.00A3.25 1.6 0 0 0 21 19.00"/>
+    <path style="fill:var(--bg)" d="M0.7 15.2V21.6A2.3 1.3 0 0 0 5.3 21.6V15.2Z"/>
+    <ellipse style="fill:var(--bg)" cx="3.0" cy="15.2" rx="2.3" ry="1.3"/>
+    <path stroke-width="0.87" d="M0.7 16.80A2.3 1.3 0 0 0 5.3 16.80"/>
+    <path stroke-width="0.87" d="M0.7 18.40A2.3 1.3 0 0 0 5.3 18.40"/>
+    <path stroke-width="0.87" d="M0.7 20.00A2.3 1.3 0 0 0 5.3 20.00"/>
+    <path style="fill:var(--bg)" d="M18.6 16.8V21.6A2.3 1.3 0 0 0 23.2 21.6V16.8Z"/>
+    <ellipse style="fill:var(--bg)" cx="20.9" cy="16.8" rx="2.3" ry="1.3"/>
+    <path stroke-width="0.87" d="M18.6 18.40A2.3 1.3 0 0 0 23.2 18.40"/>
+    <path stroke-width="0.87" d="M18.6 20.00A2.3 1.3 0 0 0 23.2 20.00"/>
+    <path style="fill:var(--bg)" d="M7.5 12.5V21A4.5 1.7 0 0 0 16.5 21V12.5Z"/>
+    <ellipse style="fill:var(--bg)" cx="12.0" cy="12.5" rx="4.5" ry="1.7"/>
+    <path stroke-width="0.87" d="M7.5 14.90A4.5 1.7 0 0 0 16.5 14.90"/>
+    <path stroke-width="0.87" d="M7.5 17.30A4.5 1.7 0 0 0 16.5 17.30"/>
+    <path stroke-width="0.87" d="M7.5 19.70A4.5 1.7 0 0 0 16.5 19.70"/>
+    </g>
+    <text x="12" y="19.7" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="900" font-size="7.8" style="fill:var(--accent);stroke:var(--bg);stroke-width:2.6px;paint-order:stroke;stroke-linejoin:round">2×</text></svg>`,
   /** a check mark: done */
   check: headerIcon(svg`<path d="M4.5 12.5 9.5 17.5 19.5 6.5"/>`),
   /** the folded map: open the map */
