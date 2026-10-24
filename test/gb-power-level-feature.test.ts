@@ -87,7 +87,7 @@ describe('Powerleveln', () => {
     openOwn();
     await tick();
     own.click('Powerleveln');
-    (power.root.querySelectorAll('button.copy-fp')[1] as HTMLButtonElement).click();
+    (power.root.querySelectorAll('button[aria-label="Kopieren"]')[1] as HTMLButtonElement).click();
     await tick();
     expect(copies).toHaveLength(1);
     expect(copies[0]).toContain('Die Arche');

@@ -1,5 +1,6 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
+import { headerIcons } from '../../ui/icons';
 import { keepKeys } from '../../ui/inputs';
 import { MAX_ROWS, type PayCell, type PowerLevelVm, type PowerRow } from './view-model';
 
@@ -15,7 +16,7 @@ export interface PowerLevelActions {
 type TableVm = Extract<PowerLevelVm, { kind: 'table' }>;
 
 /** column widths in em: Stufe, P1 to P5, then Eigenanteil, Doppelernte (only with its column), Netto, Summe, copy */
-const widths = (harvest: boolean) => [5.6, 4.6, 4.6, 4.6, 4.6, 4.6, 5.4, ...(harvest ? [5.2] : []), 5.2, 6, 5];
+const widths = (harvest: boolean) => [5.6, 4.6, 4.6, 4.6, 4.6, 4.6, 5.4, ...(harvest ? [5.2] : []), 5.2, 6, 2.2];
 
 /** `copied` names what was copied a moment ago */
 export function powerLevelView(vm: PowerLevelVm, actions: PowerLevelActions, copied?: string) {
@@ -112,8 +113,7 @@ function row(r: PowerRow, harvest: boolean, actions: PowerLevelActions, copied?:
     ${harvest ? harvestCell(r) : ''}
     <td class="num">${number(r.net)}</td>
     <td class="num">${number(r.sum)}</td>
-    <td><button class="copy-fp" data-tip=${t('gbPower.copyHint')} @click=${() => actions.copy(r.copy, id)}>${
-      copied === id ? t('gbOwn.copiedShort') : t('gbOwn.copy')
-    }</button></td>
+    <td><button class="icon" data-tip=${t('gbPower.copyHint')} aria-label=${t('gbOwn.copy')}
+      @click=${() => actions.copy(r.copy, id)}>${copied === id ? headerIcons.check : headerIcons.copy}</button></td>
   </tr>`;
 }

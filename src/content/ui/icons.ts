@@ -142,6 +142,12 @@ export const headerIcons = {
   arrowUp: headerIcon(svg`<path d="M12 20V4.5M5.5 11 12 4.5 18.5 11"/>`),
   /** two arrows up, one above the other: several levels in a row */
   levels: headerIcon(svg`<path d="M5.5 11.5 12 5l6.5 6.5M5.5 19 12 12.5 18.5 19"/>`),
+  /** two sheets, one over the other: copy */
+  copy: headerIcon(
+    svg`<rect x="8.5" y="8.5" width="12" height="12" rx="1.8"/><path d="M15.5 8.5V5a1.5 1.5 0 0 0-1.5-1.5H5A1.5 1.5 0 0 0 3.5 5v9A1.5 1.5 0 0 0 5 15.5h3.5"/>`,
+  ),
+  /** a check mark: done */
+  check: headerIcon(svg`<path d="M4.5 12.5 9.5 17.5 19.5 6.5"/>`),
   /** a circle with a slash: nothing to get here */
   noReward: headerIcon(svg`<circle cx="12" cy="12" r="8.5"/><path d="m6 6 12 12"/>`),
 };

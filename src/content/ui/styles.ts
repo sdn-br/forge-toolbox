@@ -154,6 +154,10 @@ table.power-level th, table.power-level td { overflow: hidden; text-overflow: el
 table.power-level tr.current td { background: rgba(80, 140, 220, .22); }
 table.power-level tr.locked { color: #8a7a60; }
 table.power-level tr.total td { font-weight: 600; }
+table.power-level button.icon { all: unset; cursor: pointer; display: grid; place-items: center; width: 18px; height: 18px;
+  color: var(--ink); opacity: .8; }
+table.power-level button.icon:hover { opacity: 1; }
+table.power-level button.icon svg { display: block; width: 14px; height: 14px; }
 .power-open { margin: 4px 0; }
 .power-open button { font: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
 .power-open button svg { display: block; width: 14px; height: 14px; }
