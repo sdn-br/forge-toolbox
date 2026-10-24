@@ -125,6 +125,7 @@ export const pvpFeature: Feature = {
       settings: 'pvp.title',
       title: () => t('pvp.title'),
       width: 520,
+      resizable: true,
       render: () => {
         const picked = filter.opponent;
         const note = picked === undefined ? undefined : card.render(picked, ctx.players.get(picked)?.name);

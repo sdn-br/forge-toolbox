@@ -11,8 +11,9 @@ export const baseCss = `
 .box.popped { position: static; max-width: none; height: 100vh; border: 0; border-radius: 0; }
 /* resized by the viewer: no width cap; with a height the body takes what the header leaves and scrolls */
 .box.sized { max-width: none; }
-.box.tall, .box.popped { display: flex; flex-direction: column; }
-.box.tall .body, .box.popped .body { flex: 1 1 auto; min-height: 0; max-height: none; }
+/* a box without the resize handle (capped): the max height sits on the box, the body scrolls beyond it */
+.box.tall, .box.popped, .box.capped { display: flex; flex-direction: column; }
+.box.tall .body, .box.popped .body, .box.capped .body { flex: 1 1 auto; min-height: 0; max-height: none; }
 .resize-handle { position: absolute; right: 0; bottom: 0; width: 14px; height: 14px; cursor: nwse-resize;
   touch-action: none; z-index: 1; background: linear-gradient(135deg, transparent 55%, #8a6a3a 55%, #8a6a3a 65%,
   transparent 65%, transparent 75%, #8a6a3a 75%, #8a6a3a 85%, transparent 85%); }

@@ -4,7 +4,7 @@ import { html } from 'lit-html';
 import { afterEach, describe, expect, it } from 'vitest';
 import { memoryKv } from '../src/content/core/kv';
 import { t } from '../src/content/core/texts';
-import { Box, type BoxOptions } from '../src/content/ui/box';
+import { Box, type BoxOptions, largeDefaultSize } from '../src/content/ui/box';
 import { UiState } from '../src/content/ui/ui-state';
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -79,7 +79,10 @@ async function shownBox(
   id = 'sized',
   at = { left: 100, top: 50, width: 320, height: 200 },
 ) {
-  const box = new Box({ id, title: () => 'Sized', width: 320, render: () => html`<p>content</p>` }, ui);
+  const box = new Box(
+    { id, title: () => 'Sized', width: 320, resizable: true, render: () => html`<p>content</p>` },
+    ui,
+  );
   box.open();
   await tick();
   const host = document.querySelector(`[data-forge-toolbox=${id}]`) as HTMLElement;
@@ -165,13 +168,101 @@ describe('box resize', () => {
   });
 });
 
+describe('box without the resize handle', () => {
+  const frame = (id: string) =>
+    document.querySelector(`[data-forge-toolbox=${id}]`)?.shadowRoot?.querySelector('.box') as HTMLElement;
+  const open = async (options: Partial<BoxOptions>, ui = new UiState(memoryKv())) => {
+    new Box(
+      { id: 'fixed', title: () => 'Fixed', width: 400, render: () => html`<p>content</p>`, ...options },
+      ui,
+    ).open();
+    await tick();
+    return frame('fixed');
+  };
+
+  it('has no handle, a fixed width and a height from its content, capped at 70 % of the window', async () => {
+    const box = await open({});
+    expect(box.querySelector('.resize-handle')).toBeNull();
+    expect(box.style.width).toBe('400px');
+    expect(box.style.height).toBe('');
+    expect(box.style.maxHeight).toBe(`${Math.round(window.innerHeight * 0.7)}px`);
+    expect(box.classList.contains('capped')).toBe(true);
+  });
+
+  it('takes another max height from its option', async () => {
+    const box = await open({ maxHeight: 0.8 });
+    expect(box.style.maxHeight).toBe(`${Math.round(window.innerHeight * 0.8)}px`);
+  });
+
+  it('ignores a remembered size but keeps the remembered position', async () => {
+    const ui = new UiState(memoryKv());
+    ui.saveBox('fixed', { x: 30, y: 40, width: 600, height: 500 });
+    const box = await open({}, ui);
+    expect(box.style.width).toBe('400px');
+    expect(box.style.height).toBe('');
+    expect(box.style.left).toBe('30px');
+    expect(box.style.top).toBe('40px');
+    expect(box.classList.contains('sized')).toBe(false);
+  });
+});
+
+describe('box default size', () => {
+  const open = async (ui = new UiState(memoryKv())) => {
+    new Box(
+      {
+        id: 'big',
+        title: () => 'Big',
+        resizable: true,
+        fill: true,
+        defaultSize: largeDefaultSize,
+        render: () => html`<p>x</p>`,
+      },
+      ui,
+    ).open();
+    await tick();
+    return document.querySelector('[data-forge-toolbox=big]')?.shadowRoot?.querySelector('.box') as HTMLElement;
+  };
+  const resizeWindow = (width: number, height: number) => {
+    window.innerWidth = width;
+    window.innerHeight = height;
+  };
+
+  it('is 70 % of the window without a remembered size', async () => {
+    resizeWindow(1000, 700);
+    const box = await open();
+    expect(box.style.width).toBe('700px');
+    expect(box.style.height).toBe('490px');
+    expect(box.classList.contains('tall')).toBe(true);
+    expect(box.querySelector('.resize-handle')).not.toBeNull();
+  });
+
+  it('is at most 1100 x 850 pixels', async () => {
+    resizeWindow(3000, 2000);
+    const box = await open();
+    expect(box.style.width).toBe('1100px');
+    expect(box.style.height).toBe('850px');
+  });
+
+  it('gives way to a remembered size', async () => {
+    resizeWindow(1000, 700);
+    const ui = new UiState(memoryKv());
+    ui.saveBox('big', { width: 500, height: 300 });
+    const box = await open(ui);
+    expect(box.style.width).toBe('500px');
+    expect(box.style.height).toBe('300px');
+  });
+});
+
 describe('box content that fills', () => {
   const mapLike = html`<div class="city-map"><div class="map-frame"></div></div>`;
   const frameStyle = (host: Element | null) =>
     getComputedStyle(host?.shadowRoot?.querySelector('.map-frame') as HTMLElement);
 
   it('lets a map keep its default height in a box without a saved height', async () => {
-    new Box({ id: 'map', title: () => 'Map', fill: true, render: () => mapLike }, new UiState(memoryKv())).open();
+    new Box(
+      { id: 'map', title: () => 'Map', resizable: true, fill: true, render: () => mapLike },
+      new UiState(memoryKv()),
+    ).open();
     await tick();
     const host = document.querySelector('[data-forge-toolbox=map]');
     expect(host?.shadowRoot?.querySelector('.box.tall')).toBeNull();
@@ -181,7 +272,7 @@ describe('box content that fills', () => {
   it('lets a map fill a box with a saved height', async () => {
     const ui = new UiState(memoryKv());
     ui.saveBox('map', { width: 600, height: 500 });
-    new Box({ id: 'map', title: () => 'Map', fill: true, render: () => mapLike }, ui).open();
+    new Box({ id: 'map', title: () => 'Map', resizable: true, fill: true, render: () => mapLike }, ui).open();
     await tick();
     const host = document.querySelector('[data-forge-toolbox=map]');
     expect(host?.shadowRoot?.querySelector('.box.tall .body.fill')).not.toBeNull();
