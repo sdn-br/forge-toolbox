@@ -108,7 +108,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       /** the later level the box previews; undefined shows the construction */
       let preview: number | undefined;
 
-      /** the section "Mögliche Einzahlungen" is unfolded; a new list unfolds it, an opened building folds it, else the player */
+      /** the section "Mögliche Einzahlungen" is unfolded; a new list unfolds it, a building of another player than the
+       * list's owner folds it, else the player */
       let expanded = false;
       /** the last list of another player, with the stored state of its buildings */
       let list: { owner: PlayerId; ownerName?: string; at: number; entityIds: Set<number> } | undefined;
@@ -263,7 +264,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       ctx.bus.on('greatBuilding.opened', ({ owner, entityId, own }) => {
         if (!own) listChanged(owner, entityId);
         if (own || !follow()) return;
-        expanded = false;
+        // a building of the list's owner keeps the list open, it is what the player is going through
+        if (list?.owner !== owner) expanded = false;
         toned = undefined;
         preview = undefined;
         refresh();

@@ -170,12 +170,22 @@ describe('Snipehilfe: stacked box', () => {
     expect(expanded(box)).toBe(true);
   });
 
-  it('folds when a building is opened, and a new list unfolds it again', async () => {
+  it('stays open for a building of the list owner', async () => {
     const { box, list, open, advance } = setup();
     list([hitZeus()]);
     await tick();
     advance(10_000);
     open(1909);
+    await tick();
+    expect(expanded(box)).toBe(true);
+  });
+
+  it('folds when a building of another player is opened, and a new list unfolds it again', async () => {
+    const { box, list, open, advance } = setup();
+    list([hitZeus()]);
+    await tick();
+    advance(10_000);
+    open(650);
     await tick();
     expect(expanded(box)).toBe(false);
     advance(10_000);
@@ -201,6 +211,8 @@ describe('Snipehilfe: stacked box', () => {
     await tick();
     advance(10_000);
     open(1909);
+    await tick();
+    toggle(box)?.click();
     await tick();
     const toned = tones();
     list([hitOracle()], 1001);
@@ -332,15 +344,14 @@ describe('Snipehilfe: stacked box', () => {
     expect(tones()).toBe(0);
   });
 
-  it('a new list replaces the previous one; an opened building folds the section', async () => {
+  it('a new list replaces the previous one; a building of another player folds the section', async () => {
     const { box, list, open, advance } = setup();
     list([hitZeus()]);
     await tick();
     advance(10_000);
-    open(1909);
+    open(650);
     await tick();
     expect(expanded(box)).toBe(false);
-    expect(box.text).toContain('Aachener Dom St. 75 → 76');
     advance(10_000);
     list([hitOracle()], 1001);
     await tick();
@@ -367,9 +378,7 @@ describe('Snipehilfe: stacked box', () => {
     advance(10_000);
     open(1909);
     await tick();
-    expect(expanded(box)).toBe(false);
-    toggle(box)?.click();
-    await tick();
+    expect(expanded(box)).toBe(true);
     // the opening is newer than the list: its state and its ranking make the row exact
     expect(cells(rows()[0]).slice(1, 5)).toEqual(['Aachener Dom', '75', '251 / 3.062', 'P1']);
     expect(rows()[0]?.querySelector('td.snipe-tier')?.className).toContain('exact');
