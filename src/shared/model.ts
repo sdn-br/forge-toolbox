@@ -193,7 +193,7 @@ export interface KnownGreatBuilding {
    */
   contribution?: OwnContribution;
   /** the progress (`invested`) when the building was last seen open in the game; growth beyond it means others pay in */
-  openedProgress?: number;
+  growthBase?: number;
   /** last seen, in the building or in a list */
   seenAt: number;
 }

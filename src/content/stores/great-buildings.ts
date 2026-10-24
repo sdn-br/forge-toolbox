@@ -232,7 +232,7 @@ export class GreatBuildingStore {
         contribution: { rank: self.rank, forgePoints: self.fp ?? 0, reward: self.reward?.fp ?? 0, at },
       }),
       // the building is open in the game now: what is paid in from here on is growth
-      openedProgress: entity.invested,
+      growthBase: entity.invested,
       seenAt: at,
     });
     if (this.flushQueued) return;

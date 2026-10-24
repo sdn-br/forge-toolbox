@@ -48,7 +48,7 @@ export const investmentsFeature: Feature = {
       id: 'investments',
       settings: 'investments.title',
       title: () => t('investments.title'),
-      width: 520,
+      width: 560,
       // the list grows with every building invested in; the height is the viewer's
       resizable: true,
       // the age is drawn as of now, so each redraw shows it current

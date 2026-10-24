@@ -5,8 +5,9 @@ import type { GreatBuildingListRow } from './contract';
 /**
  * What a list row does to the known building. Level, sum, costs and `seenAt` change only when the list is newer than
  * the entry. A changed level drops the rankings (they belong to another level), the own place and the progress of the
- * last opening; the entry stays so its last state serves the estimate and the retention. A row of the town hall list
- * brings the own place, which replaces an older one.
+ * growth base; the entry stays so its last state serves the estimate and the retention. A row of the town hall list
+ * brings the own place, which replaces an older one, and starts the growth base when there is none: growth then counts
+ * from the first town hall list until the building is opened.
  */
 export function applyListRow(
   world: WorldId,
@@ -22,11 +23,15 @@ export function applyListRow(
     rank !== undefined && forgePoints !== undefined && at > (existing?.contribution?.at ?? Number.NEGATIVE_INFINITY)
       ? { contribution: { rank, forgePoints, reward: reward ?? 0, at } }
       : {};
-  if (!existing) return { world, ...state, ...own, ...place, seenAt: at };
+  if (!existing)
+    return { world, ...state, ...own, ...place, ...(ownContribution && { growthBase: state.invested }), seenAt: at };
   if (at <= existing.seenAt) {
     const marks = own.ownContribution && !existing.ownContribution;
     const placed = state.level === existing.level ? place : {};
-    return marks || placed.contribution ? { ...existing, ...own, ...placed } : undefined;
+    const based = ownContribution && existing.growthBase === undefined ? { growthBase: existing.invested } : {};
+    return marks || placed.contribution || based.growthBase !== undefined
+      ? { ...existing, ...own, ...placed, ...based }
+      : undefined;
   }
   const next: KnownGreatBuilding = {
     ...existing,
@@ -44,8 +49,9 @@ export function applyListRow(
     delete next.rankingsInvested;
     delete next.bestRate;
     delete next.contribution;
-    delete next.openedProgress;
+    delete next.growthBase;
   }
+  if (ownContribution && next.growthBase === undefined) next.growthBase = state.invested;
   return { ...next, ...place };
 }
 

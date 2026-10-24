@@ -61,7 +61,7 @@ interface KnownGreatBuilding {  // persistiert, für die Snipehilfe
   bestRate?: number;            // niedrigster Kurs der freien Plätze beim letzten Blick
   ownContribution?: boolean;    // eigene Einzahlung gesehen, wird nie gelöscht
   contribution?: { rank: number; forgePoints: number; reward: number; at: number }; // eigene Beteiligung aus Rathausliste oder Einzahlung, Belohnung netto
-  openedProgress?: number;      // Fortschritt beim letzten Öffnen, für den Zuwachs in den Investitionen
+  growthBase?: number;          // Ausgangswert des Zuwachses in den Investitionen: Fortschritt beim letzten Öffnen, sonst der ersten Rathausliste
   marked?: boolean;             // vom Spieler gemerkt, wird nie gelöscht
   seenAt: number;               // zuletzt gesehen, aus LG oder Liste
 }
@@ -83,7 +83,7 @@ Für die [Snipehilfe](../features/snipehilfe.md) (Nutzer, 2026-10-24). Ein Eintr
 
 **Events:** `greatBuilding.opened { owner, entityId, own }`, `greatBuilding.changed { owner, entityId, reason }` mit `reason` `entity`, `ranking`, `contributed` oder `leveled`, `greatBuildings.contributions { at }` für die Rathausliste.
 
-**Eigene Beteiligung und Zuwachs** (für die [Investitionen](../features/investitionen.md)): `contribution` kommt aus jeder Zeile der Rathausliste (`rank`, `forge_points`, `reward.strategy_point_amount`) und aus der eigenen Zeile (`is_self`) jeder Rangliste, die der Store schreibt (Öffnen, laufende Stufe, eigene Einzahlung). Eine Rangliste ohne eigene Zeile entfernt sie, ebenso eine Liste mit neuer Stufe. `openedProgress` ist `invested` bei jedem Schreiben des offenen LGs, also beim Öffnen und bei jeder Änderung, solange es offen ist. Beide Felder sind nicht indiziert, die Dexie-Version bleibt.
+**Eigene Beteiligung und Zuwachs** (für die [Investitionen](../features/investitionen.md)): `contribution` kommt aus jeder Zeile der Rathausliste (`rank`, `forge_points`, `reward.strategy_point_amount`) und aus der eigenen Zeile (`is_self`) jeder Rangliste, die der Store schreibt (Öffnen, laufende Stufe, eigene Einzahlung). Eine Rangliste ohne eigene Zeile entfernt sie, ebenso eine Liste mit neuer Stufe. `growthBase` ist `invested` bei jedem Schreiben des offenen LGs, also beim Öffnen und bei jeder Änderung, solange es offen ist. Fehlt der Wert, setzt ihn die Rathausliste auf ihren Fortschritt, so zählt der Zuwachs ab der ersten Rathausliste. Eine neue Stufe entfernt ihn, die Rathausliste setzt ihn dann neu auf den Fortschritt der neuen Stufe (Nutzer, 2026-10-25). Beide Felder sind nicht indiziert, die Dexie-Version bleibt.
 
 **Eigene LGs:** `CityMapService.updateEntity` hält `investedFp` der eigenen LGs in der Stadt aktuell (so kommen fremde Einzahlungen in eigene LGs an, ohne Rangliste). Der Store übernimmt die Meldung auch für ein offenes eigenes LG, der [Eigenanteil](../features/eigenanteil.md) zeigt daraus, was andere seit dem Öffnen eingezahlt haben. Eine eigene Einzahlung ins eigene LG kommt wie beim fremden als `contributeForgePoints` mit der neuen Rangliste (Besitzerzeile mit der neuen Summe), dazu das Gebäude in `CityMapService.updateEntity` und `reset` derselben Antwort (aufgenommen auf de10, 2026-10-23).
 

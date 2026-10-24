@@ -15,20 +15,20 @@ Stand 2026-10-24. Altes Modul `investment`, hier nur als Idee übernommen. Rechn
 Quelle: `GreatBuildingsService.getContributions` (Rathausliste), dazu jedes geöffnete LG und jede eigene Einzahlung. Eine Zeile je LG mit eigener Einzahlung (`ownContribution`).
 
 - **Kopf:** „Stand: vor X Minuten“, die Zeit der letzten Rathausliste. Eine feste Warnung nach 30 Minuten wie in der alten Toolbox gibt es nicht.
-- **Spalten:** Eigentümer (Link zu foestats), LG, Stufe, Platz, Einzahlung, Gewinn, Status, Rest bis zum Level-up. Blaupausen und Medaillen bleiben vorerst ausgeblendet wie im LG-Rechner.
+- **Spalten:** Eigentümer (Link zu foestats), LG, Stufe, Platz, Einzahlung, Gewinn, Status, Fortschritt. Blaupausen und Medaillen bleiben vorerst ausgeblendet wie im LG-Rechner.
 - **Gewinn:** Belohnung des Platzes brutto mit dem eigenen Arche-Bonus minus eigene Einzahlung. Die Belohnung der Rathausliste (`reward.strategy_point_amount`) ist netto, wie in der Rangliste.
 - **Status** (Nutzer, 2026-10-24):
   - **sicher** oder **unsicher**: Es gibt eine gespeicherte Rangliste derselben Stufe, deren Summe zum Fortschritt passt. Entschieden wird mit der Regel „Eigener Platz“ des LG-Rechners.
   - **sicher ohne Rangliste:** eigene Einzahlung ≥ (Summe aller Einzahlungen minus eigene Einzahlung) + Rest. Niemand hinter dem Spieler kann mehr halten als alle anderen zusammen, also überholt ihn keiner.
   - **?** (unbekannt): sonst. Ein Öffnen des LGs macht daraus eine genaue Aussage.
   - Die alte Toolbox nannte einen Platz sicher, sobald die eigene Einzahlung den Rest erreichte. Das übersieht die Einzahlungen der Spieler dahinter (100 FP auf Platz 1, Platz 2 hält 90, Rest 50: Platz 2 kommt auf 140). Ihre Regel gilt deshalb nicht als Vorlage.
-- **Zuwachs:** Ist der Fortschritt eines LGs seit dem letzten Öffnen gewachsen, zahlt dort jemand ein. Die Zeile ist hervorgehoben und zeigt „+X“. Die Hervorhebung bleibt, bis der Spieler das LG öffnet (Vorschlag, im PR abzunehmen). Gespeichert wird dafür der Fortschritt beim letzten Öffnen.
+- **Fortschritt** (Nutzer, 2026-10-25, wie in der alten Toolbox): „eingezahlt / Kosten der Stufe“, darunter ein dünner Balken in der Akzentfarbe. Der Rest bis zum Level-up steht im Tooltip, eine eigene Spalte Rest entfällt. Die Box ist dafür 560 px breit.
+- **Zuwachs:** Ist der Fortschritt eines LGs gewachsen, zahlt dort jemand ein. Die Zeile ist hervorgehoben, „+X“ steht in der Zelle Fortschritt unter dem Balken. Gezählt wird ab dem letzten Öffnen des LGs, bei einem nie geöffneten LG ab der ersten Rathausliste, in der es stand (Nutzer, 2026-10-25). Die Hervorhebung bleibt, bis der Spieler das LG öffnet.
 - **Fußzeile:** FP im Umlauf (Summe der eigenen Einzahlungen), Gewinn „sicher“ (nur Zeilen mit Status sicher) und „gesamt“ (alle Zeilen). Eine Einstellung dafür entfällt.
-- **Sortierung:** Standard nach Zuwachs, dann nach Rest aufsteigend (was bald levelt, steht oben). Ein Klick auf einen Spaltenkopf sortiert nach dieser Spalte.
+- **Sortierung:** Standard nach Zuwachs, dann nach Rest aufsteigend (was bald levelt, steht oben). Der Spaltenkopf Fortschritt sortiert ebenso nach dem Rest. Ein Klick auf einen Spaltenkopf sortiert nach dieser Spalte.
 - **Umsetzung (erster Schnitt, 2026-10-24):**
   - Status als Icon mit dem Wort im Tooltip: sicher Haken im Kreis, unsicher Warndreieck, unbekannt Fragezeichen im Kreis. Der Spaltenkopf ist ein Info-Icon („Status“ im Tooltip), damit Eigentümer und LG Platz behalten.
-  - Zuwachs „+X“ steht vor dem LG-Namen, die Zeile ist gelb hinterlegt (Ton der Level-Warnung im LG-Rechner).
-  - Der Zuwachs braucht einen gespeicherten Fortschritt beim Öffnen. LGs, die der Spieler mit dieser Version noch nicht offen hatte, zeigen keinen Zuwachs. Jede eigene Einzahlung passiert im offenen LG und setzt ihn.
+  - Die Zeile mit Zuwachs ist gelb hinterlegt (Ton der Level-Warnung im LG-Rechner). Jede eigene Einzahlung passiert im offenen LG und setzt den Ausgangswert neu.
   - „Stand“: Die Zeit der letzten Rathausliste steht je Welt in der Datenbank bei den LG-Daten (Tabelle `greatBuildingLists`), so steht sie auch nach einem Neuladen und gehört zu einer späteren Sicherung (Nutzer, 2026-10-24). Ohne Rathausliste steht dort die Bitte, sie zu öffnen.
   - Eigentümernamen: aus dem Player-Store, sonst aus der letzten Rathausliste (nur im Speicher), sonst die ID.
   - Status mit Rangliste: rechnet auch bei einem LG auf Höchststufe oder ohne Verbindung mit der Regel „Eigener Platz“, denn der LG-Rechner zeigt dort keine Plätze.

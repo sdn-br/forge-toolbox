@@ -6,9 +6,9 @@ import type { Investment, InvestmentStatus, Investments } from '../../domain/inv
 export type InvestmentsTab = 'mine';
 export const TABS: InvestmentsTab[] = ['mine'];
 
-export type InvestmentColumn = 'owner' | 'name' | 'level' | 'rank' | 'deposit' | 'profit' | 'status' | 'rest';
+export type InvestmentColumn = 'owner' | 'name' | 'level' | 'rank' | 'deposit' | 'profit' | 'status' | 'progress';
 
-/** a column and its direction; without a sort the rows keep the default order (growth first, then rest ascending) */
+/** a column and its direction; without a sort the rows keep the default order (growth first, then the rest to the level up ascending) */
 export interface InvestmentSort {
   column: InvestmentColumn;
   /** largest first */
@@ -18,7 +18,7 @@ export interface InvestmentSort {
 /** a click on a column head: the same column turns around, another starts with its natural direction */
 export function nextSort(current: InvestmentSort | undefined, column: InvestmentColumn): InvestmentSort {
   if (current?.column === column) return { column, desc: !current.desc };
-  // names, places, status and rest read from the top, deposit and profit from the largest
+  // names, places, status and progress (nearest level up) read from the top, deposit and profit from the largest
   return { column, desc: column === 'deposit' || column === 'profit' || column === 'level' };
 }
 
@@ -35,8 +35,11 @@ export interface InvestmentRowVm {
   gross: string;
   status: InvestmentStatus;
   rest: string;
+  invested: string;
   required: string;
-  /** "+44" when others paid in since the building was last open */
+  /** paid in of the level, 0 to 100, for the bar */
+  percent: number;
+  /** "+44" when others paid in since the building was last open or, never opened, since the first town hall list */
   growth?: string;
   growthFp?: string;
 }
@@ -78,7 +81,8 @@ const sortKey: Record<InvestmentColumn, (r: Named) => number | string> = {
   deposit: (r) => r.forgePoints,
   profit: (r) => r.profit,
   status: (r) => STATUS_ORDER[r.status],
-  rest: (r) => r.rest,
+  // the bar fills towards the level up: the least rest is the most progress
+  progress: (r) => r.rest,
 };
 
 export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
@@ -118,7 +122,9 @@ export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
       gross: formatNumber(r.gross),
       status: r.status,
       rest: formatNumber(r.rest),
+      invested: formatNumber(r.invested),
       required: formatNumber(r.required),
+      percent: r.required > 0 ? Math.min(100, (r.invested / r.required) * 100) : 0,
       ...(r.growth !== undefined && {
         growth: t('investments.growth', { growth: formatNumber(r.growth) }),
         growthFp: formatNumber(r.growth),

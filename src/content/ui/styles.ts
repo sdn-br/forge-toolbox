@@ -195,7 +195,7 @@ td.snipe-tier.possible { color: #f0a050; }
 .inv-table .c-deposit { width: 80px; }
 .inv-table .c-profit { width: 64px; }
 .inv-table .c-status { width: 30px; }
-.inv-table .c-rest { width: 56px; }
+.inv-table .c-progress { width: 104px; }
 .inv-table td.inv-name { overflow: hidden; text-overflow: ellipsis; }
 .inv-table th.sortable { cursor: pointer; }
 .inv-table th.sortable:hover { color: var(--accent); }
@@ -210,6 +210,9 @@ td.inv-status.unsafe { color: #f0a050; }
 td.inv-status.unknown { color: #b8a27d; }
 .inv-table tr.grown { background: rgba(220, 190, 60, .32); }
 .inv-growth { color: var(--accent); font-weight: 600; }
+/* a thin bar under "paid in / costs", filled towards the level up */
+.inv-bar { height: 3px; margin-top: 2px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.inv-bar > div { height: 100%; background: var(--accent); }
 p.inv-totals { margin: 4px 0; }
 tr.gb-profit { background: rgba(90, 170, 90, .28); }
 tr.gb-loss { background: rgba(200, 80, 60, .28); }

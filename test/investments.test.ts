@@ -98,11 +98,11 @@ describe('profit, growth and order', () => {
   });
 
   it('shows growth when the progress passed the one of the last opening', () => {
-    const grown = myInvestments([building({ openedProgress: 150 })], 0).rows[0];
+    const grown = myInvestments([building({ growthBase: 150 })], 0).rows[0];
     expect(grown?.growth).toBe(40);
     expect(myInvestments([building()], 0).rows[0]?.growth).toBeUndefined();
-    expect(myInvestments([building({ openedProgress: 190 })], 0).rows[0]?.growth).toBeUndefined();
-    expect(myInvestments([building({ openedProgress: 250 })], 0).rows[0]?.growth).toBeUndefined();
+    expect(myInvestments([building({ growthBase: 190 })], 0).rows[0]?.growth).toBeUndefined();
+    expect(myInvestments([building({ growthBase: 250 })], 0).rows[0]?.growth).toBeUndefined();
   });
 
   it('leaves out buildings without an own place', () => {
@@ -115,8 +115,8 @@ describe('profit, growth and order', () => {
       [
         building({ entityId: 1, invested: 100, required: 400 }),
         building({ entityId: 2, invested: 100, required: 150 }),
-        building({ entityId: 3, invested: 100, required: 600, openedProgress: 50 }),
-        building({ entityId: 4, invested: 100, required: 300, openedProgress: 90 }),
+        building({ entityId: 3, invested: 100, required: 600, growthBase: 50 }),
+        building({ entityId: 4, invested: 100, required: 300, growthBase: 90 }),
       ],
       0,
     ).rows;

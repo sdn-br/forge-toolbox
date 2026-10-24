@@ -32,7 +32,7 @@ const columns: { column: InvestmentColumn; label: TextKey; num: boolean }[] = [
   { column: 'deposit', label: 'investments.col.deposit', num: true },
   { column: 'profit', label: 'investments.col.profit', num: true },
   { column: 'status', label: 'investments.col.status', num: false },
-  { column: 'rest', label: 'investments.col.rest', num: true },
+  { column: 'progress', label: 'investments.col.progress', num: true },
 ];
 
 const head = (c: (typeof columns)[number], sort: InvestmentSort | undefined, actions: InvestmentsActions) => {
@@ -52,17 +52,21 @@ const row = (r: InvestmentRowVm) => {
   const status = t(`investments.status.${r.status}`);
   return html`<tr class=${r.growth ? 'grown' : ''}>
   <td class="inv-name" data-tip=${r.ownerName}>${externalLink(r.ownerName, r.ownerUrl)}</td>
-  <td class="inv-name" data-tip=${r.name}>${
-    r.growth
-      ? html`<span class="inv-growth" data-tip=${t('investments.growthHint', { growth: r.growthFp ?? '' })}>${r.growth}</span> `
-      : ''
-  }${r.name}</td>
+  <td class="inv-name" data-tip=${r.name}>${r.name}</td>
   <td class="num">${r.level}</td>
   <td class="num">P${r.rank}</td>
   <td class="num">${r.deposit}</td>
   <td class="num" data-tip=${t('investments.profitHint', { gross: r.gross })}>${r.profit}</td>
   <td class=${`inv-status ${r.status}`} data-tip=${status} aria-label=${status}>${statusIcon[r.status]}</td>
-  <td class="num" data-tip=${t('investments.restHint', { rest: r.rest, required: r.required })}>${r.rest}</td>
+  <td class="num inv-progress" data-tip=${t('investments.restHint', { rest: r.rest, required: r.required })}>
+    ${r.invested} / ${r.required}
+    <div class="inv-bar"><div style=${`width: ${r.percent}%`}></div></div>
+    ${
+      r.growth
+        ? html`<div class="inv-growth" data-tip=${t('investments.growthHint', { growth: r.growthFp ?? '' })}>${r.growth}</div>`
+        : ''
+    }
+  </td>
 </tr>`;
 };
 
@@ -74,7 +78,7 @@ const tabs = (current: InvestmentsTab, actions: InvestmentsActions) =>
 
 const table = (vm: InvestmentsVm, actions: InvestmentsActions) => html`<table class="gb-table inv-table">
     <colgroup><col class="c-owner" /><col class="c-name" /><col class="c-level" /><col class="c-rank" />
-      <col class="c-deposit" /><col class="c-profit" /><col class="c-status" /><col class="c-rest" /></colgroup>
+      <col class="c-deposit" /><col class="c-profit" /><col class="c-status" /><col class="c-progress" /></colgroup>
     <thead><tr>${columns.map((c) => head(c, vm.sort, actions))}</tr></thead>
     <tbody>${vm.rows.map(row)}</tbody>
   </table>

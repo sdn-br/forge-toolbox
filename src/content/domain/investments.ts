@@ -82,8 +82,7 @@ export function myInvestments(buildings: KnownGreatBuilding[], arcBonus: number)
     if (!c) return [];
     const gross = plusPercent(c.reward, arcBonus);
     const rest = Math.max(0, b.required - b.invested);
-    const growth =
-      b.openedProgress !== undefined && b.openedProgress < b.invested ? b.invested - b.openedProgress : undefined;
+    const growth = b.growthBase !== undefined && b.growthBase < b.invested ? b.invested - b.growthBase : undefined;
     return [
       {
         owner: b.owner,

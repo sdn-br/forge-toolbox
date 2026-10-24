@@ -14,9 +14,12 @@ interface Entry {
   responseData: unknown;
 }
 
-/** the stored buildings come back through an in-memory IndexedDB, which takes a few turns */
+/** reads the known buildings of the current setup; it queues behind the writes and the box's own read */
+let drain: (() => Promise<unknown>) | undefined;
+/** the stored buildings come back through an in-memory IndexedDB; a fixed wait is too short when the whole suite runs */
 const tick = async () => {
-  for (let i = 0; i < 10; i++) await new Promise((resolve) => setTimeout(resolve, 5));
+  await drain?.();
+  for (let i = 0; i < 3; i++) await new Promise((resolve) => setTimeout(resolve, 0));
 };
 const MINUTE = 60_000;
 
@@ -29,6 +32,7 @@ function setup() {
   const ingestion = new Ingestion();
   registerGameHandlers(ingestion, { ...ctx, now });
   investmentsFeature.setup(ctx);
+  drain = () => ctx.greatBuildings.known();
   const box = env.boxes.get('investments') as NonNullable<ReturnType<typeof env.boxes.get>>;
   const send = (...entries: Entry[]) =>
     ingestion.accept({
@@ -81,8 +85,27 @@ describe('Investitionen box', () => {
       '242',
       '−12',
       '',
-      '17',
+      '907 / 924',
     ]);
+    const progress = rows()[0]?.querySelector('td.inv-progress') as HTMLElement;
+    expect(progress.dataset.tip).toBe('Fehlt bis zum Level-up: 17 von 924 FP');
+    expect((progress.querySelector('.inv-bar > div') as HTMLElement).style.width).toMatch(/^98\.1/);
+  });
+
+  it('shows growth between two town hall lists of a building never opened', async () => {
+    const { send, rows, advance } = setup();
+    const first = contributions.contributions
+      .responseData[0] as (typeof contributions.contributions.responseData)[number];
+    const listed = (progress: number) =>
+      send({ ...contributions.contributions, responseData: [{ ...first, current_progress: progress }] } as Entry);
+    listed(24_602);
+    await tick();
+    expect(rows()[0]?.classList.contains('grown')).toBe(false);
+    advance(MINUTE);
+    listed(25_002);
+    await tick();
+    expect(rows()[0]?.classList.contains('grown')).toBe(true);
+    expect(rows()[0]?.querySelector('td.inv-progress .inv-growth')?.textContent).toBe('+400');
   });
 
   it('shows the age of a town hall list from before a reload', async () => {
@@ -94,6 +117,8 @@ describe('Investitionen box', () => {
     vi.setSystemTime(1_000_000 + 7 * MINUTE);
     investmentsFeature.setup(env.ctx);
     env.menu('investments');
+    // queues behind the box's own read of the time
+    await env.ctx.greatBuildings.contributionsAt();
     await tick();
     expect(env.boxes.get('investments')?.text).toContain('Stand: vor 7 Min.');
   });
