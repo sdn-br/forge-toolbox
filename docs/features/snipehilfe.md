@@ -11,16 +11,19 @@ Stand 2026-10-24. Altes Modul `calculator-overview` („Mögliche Investitionen�
 - **Automatisch öffnen:** Einstellung „Snipehilfe beim Öffnen einer LG-Liste zeigen“, Standard an. Die Box öffnet sich nur, wenn die Liste mindestens einen Treffer hat. Ist sie schon offen, wechselt sie auch ohne Treffer auf „Liste“.
 - **Ton:** eigene Einstellung „Ton bei Treffer in der Snipehilfe“, Standard an, derselbe WebAudio-Ton wie im LG-Rechner. Er spielt nur, wenn eine neue LG-Liste eintrifft, sie mindestens einen Treffer hat und sich die Treffer vom letzten Ton unterscheiden (Spieler und je Treffer LG, Stufe, bester Platz, Einsatz). Dieselbe Liste mit unveränderten Treffern piept nicht, eine Zeile, die beim Öffnen eines LGs exakt wird, auch nicht (Nutzer, 2026-10-24).
 - Die eigene LG-Liste wird übergangen.
+- **Liste, die das Spiel selbst abfragt** (Nutzer, 2026-10-24, im Spiel noch zu erleben): Nach einem Level-up fragt das Spiel von sich aus die Liste des Eigentümers ab. Eine Liste desselben Spielers, die weniger als 3 Sekunden nach dem Öffnen oder einer Einzahlung in einem seiner LGs kommt, wird gespeichert, schaltet aber nicht um und piept nicht. Ein echtes Erkennungsmerkmal gibt es nicht, die Anfrage sieht gleich aus.
+- Die Einstellungen stehen beim Modul LG-Rechner im Abschnitt „Snipehilfe“.
 
 ## Reiter „Liste“
 
 - Kopf: Name des Spielers, dem die Liste gehört, dazu „Stand: vor X Minuten“ (Zeit der Liste). Die Liste gehört immer zu genau diesem Spieler. Öffnet der Spieler danach ein LG eines anderen Spielers, bleibt die Liste unverändert (Nutzer, 2026-10-24).
 - **Nur Treffer** (Nutzer, 2026-10-24): eine Zeile je LG mit möglichem Gewinn, sortiert nach Gewinn, der beste oben. Ein Klick auf einen Spaltenkopf sortiert nach dieser Spalte.
-- Spalten: LG (Name), Stufe, Fortschritt (eingezahlt / Kosten der Stufe), Platz (der beste lohnende), Einsatz (Sichern dieses Platzes), Gewinn, Stufe der Sicherheit als Icon mit Tooltip.
+- Spalten: LG (Name), Stufe, Fortschritt (eingezahlt / Kosten der Stufe), Platz (der beste lohnende), Einsatz (Sichern dieses Platzes), Gewinn, Stufe der Sicherheit als Icon mit Tooltip. Platz und Einsatz sind die des besten Falls, der Platz im schlechtesten Fall steht im Tooltip der Zeile.
 - **Drei Stufen** (Nutzer, 2026-10-24):
   - exakt (grün, Haken): die Rangliste ist bekannt und so aktuell wie die Liste. Gewinn und Einsatz sind eine Zahl.
   - sicher (grün, gedämpft): auch im schlechtesten Fall lohnt ein Platz. Gewinn als Spanne „+40 … +310“.
-  - möglich (gelb): nur im besten Fall lohnt ein Platz. Gewinn als Spanne.
+  - möglich (gelb): nur im besten Fall lohnt ein Platz. Gewinn als Spanne von min(0, bester Fall) bis zum besten Fall.
+  - Icons (2026-10-24, Abnahme im Spiel offen): Haken für exakt, Haken im Kreis für sicher, Fragezeichen im Kreis für möglich.
 - Unter der Tabelle: Anzahl der LGs ohne Treffer, LGs mit eigener Einzahlung (sie fehlen in der Liste, dafür sind später die Investitionen da), LGs mit unbekannter Belohnung.
 - Ein LG mit 0 eingezahlten FP kann gesperrt sein (nicht verbunden oder auf der freigeschalteten Höchststufe), die Liste sagt das nicht. Die Zeile trägt dann den Tooltip „eventuell gesperrt“.
 - Die Liste veraltet: Sie zeigt den Stand beim Anklicken. Spätere Einzahlungen sieht die Toolbox nur bei einem LG, das der Spieler öffnet.
