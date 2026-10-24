@@ -25,6 +25,13 @@ Quelle: `GreatBuildingsService.getContributions` (Rathausliste), dazu jedes geö
 - **Zuwachs:** Ist der Fortschritt eines LGs seit dem letzten Öffnen gewachsen, zahlt dort jemand ein. Die Zeile ist hervorgehoben und zeigt „+X“. Die Hervorhebung bleibt, bis der Spieler das LG öffnet (Vorschlag, im PR abzunehmen). Gespeichert wird dafür der Fortschritt beim letzten Öffnen.
 - **Fußzeile:** FP im Umlauf (Summe der eigenen Einzahlungen), Gewinn „sicher“ (nur Zeilen mit Status sicher) und „gesamt“ (alle Zeilen). Eine Einstellung dafür entfällt.
 - **Sortierung:** Standard nach Zuwachs, dann nach Rest aufsteigend (was bald levelt, steht oben). Ein Klick auf einen Spaltenkopf sortiert nach dieser Spalte.
+- **Umsetzung (erster Schnitt, 2026-10-24):**
+  - Status als Icon mit dem Wort im Tooltip: sicher Haken im Kreis, unsicher Warndreieck, unbekannt Fragezeichen im Kreis. Der Spaltenkopf ist ein Info-Icon („Status“ im Tooltip), damit Eigentümer und LG Platz behalten.
+  - Zuwachs „+X“ steht vor dem LG-Namen, die Zeile ist gelb hinterlegt (Ton der Level-Warnung im LG-Rechner).
+  - Der Zuwachs braucht einen gespeicherten Fortschritt beim Öffnen. LGs, die der Spieler mit dieser Version noch nicht offen hatte, zeigen keinen Zuwachs. Jede eigene Einzahlung passiert im offenen LG und setzt ihn.
+  - „Stand“: Die Zeit der letzten Rathausliste merkt sich die Box je Welt mit ihren Ansichtsdaten (`ui.prefs`), so steht sie auch nach einem Neuladen. Ohne Rathausliste steht dort die Bitte, sie zu öffnen.
+  - Eigentümernamen: aus dem Player-Store, sonst aus der letzten Rathausliste (nur im Speicher), sonst die ID.
+  - Status mit Rangliste: rechnet auch bei einem LG auf Höchststufe oder ohne Verbindung mit der Regel „Eigener Platz“, denn der LG-Rechner zeigt dort keine Plätze.
 - **Nicht übernommen (YAGNI):** Ausblenden einzelner LGs, Eintragsdatum, Zuwachsdatum als eigene Spalte, Verlauf der Zuwächse.
 
 ## Reiter „Mögliche Investitionen“

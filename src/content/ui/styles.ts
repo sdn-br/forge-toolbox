@@ -189,6 +189,28 @@ p.snipe-hidden { margin: 2px 0; }
 td.snipe-tier.exact { color: #8fd08f; }
 td.snipe-tier.safe { color: #5a9a4a; }
 td.snipe-tier.possible { color: #f0a050; }
+/* investments: fixed columns so heads show whole; owner and building names give way */
+.inv-table { table-layout: fixed; }
+.inv-table .c-level, .inv-table .c-rank { width: 46px; }
+.inv-table .c-deposit { width: 80px; }
+.inv-table .c-profit { width: 64px; }
+.inv-table .c-status { width: 30px; }
+.inv-table .c-rest { width: 56px; }
+.inv-table td.inv-name { overflow: hidden; text-overflow: ellipsis; }
+.inv-table th.sortable { cursor: pointer; }
+.inv-table th.sortable:hover { color: var(--accent); }
+.inv-table th.inv-status.desc::after, .inv-table th.inv-status.asc::after { content: none; }
+.inv-table th.inv-status.desc, .inv-table th.inv-status.asc { color: var(--accent); }
+.inv-table th.desc::after { content: ' ▾'; color: var(--accent); }
+.inv-table th.asc::after { content: ' ▴'; color: var(--accent); }
+.inv-table .inv-status { text-align: center; padding: 0; }
+.inv-table .inv-status svg { display: block; width: 14px; height: 14px; margin: auto; }
+td.inv-status.safe { color: #8fd08f; }
+td.inv-status.unsafe { color: #f0a050; }
+td.inv-status.unknown { color: #b8a27d; }
+.inv-table tr.grown { background: rgba(220, 190, 60, .32); }
+.inv-growth { color: var(--accent); font-weight: 600; }
+p.inv-totals { margin: 4px 0; }
 tr.gb-profit { background: rgba(90, 170, 90, .28); }
 tr.gb-loss { background: rgba(200, 80, 60, .28); }
 tr.gb-levelWarning { background: rgba(220, 190, 60, .32); }

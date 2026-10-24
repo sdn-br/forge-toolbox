@@ -100,6 +100,9 @@ export const icons = {
   gbOwnShare: menuIcon(svg`${castle(0.82, 2.2, 0)}
     <rect x="3" y="19.2" width="18" height="3.2" rx="1"/>
     <rect class="acc" x="3" y="19.2" width="7.5" height="3.2" rx="1" fill="currentColor"/>`),
+  /** provisional, from existing parts until a preview is chosen: the castle small, an accent arrow up beside it */
+  investments: menuIcon(svg`${castle(0.78, 0, 5.2)}
+    <path class="acc" d="M19 13V2.8M15.2 6.6 19 2.8l3.8 3.8" stroke-width="2"/>`),
 };
 
 const STAR = 'M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9Z';
