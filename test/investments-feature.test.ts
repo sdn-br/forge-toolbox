@@ -132,8 +132,11 @@ describe('Investitionen box', () => {
     expect(box.text).toContain('Stand: vor 5 Min.');
     // no Arc bonus without an own city: profit is the net reward minus the own deposit
     expect(box.text).toContain('Umlauf: 4.896 FP');
-    expect(box.text).toContain('Gewinn sicher: 0');
-    expect(box.text).toContain('Gewinn gesamt: −36');
+    const line = box.root.querySelector('p.gb-me') as HTMLElement;
+    // the safe profit stands out, green only above 0; the total stays muted
+    expect(line.querySelector('b')?.textContent).toBe('Gewinn sicher: 0');
+    expect(line.querySelector('b')?.classList.contains('gain')).toBe(false);
+    expect(line.querySelector('.muted')?.textContent?.trim()).toBe('· gesamt: −36');
   });
 
   it('marks the status with an icon and its word in the tooltip', async () => {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { myInvestments } from '../src/content/domain/investments';
+import { investmentsViewModel } from '../src/content/features/investments/view-model';
 import { toGreatBuildingListRows } from '../src/content/game/convert';
 import type { RankingRow } from '../src/content/stores/great-building-model';
 import { applyListRow } from '../src/persistence/great-buildings/merge';
@@ -162,5 +163,23 @@ describe('the recorded town hall list', () => {
     const result = myInvestments(buildings, 90);
     expect(result.totals).toEqual({ circulating: 4896, profitSafe: 0, profitTotal: 4342 });
     expect(result.rows.map((r) => r.rest)).toEqual([17, 67, 80, 120, 231, 237, 425, 472, 539, 1735, 5263, 5913]);
+  });
+});
+
+describe('totals line', () => {
+  const vm = (profitSafe: number) =>
+    investmentsViewModel({
+      tab: 'mine',
+      investments: { rows: [], totals: { circulating: 100, profitSafe, profitTotal: profitSafe - 10 } },
+      now: 0,
+      greatBuildingName: () => undefined,
+      playerName: () => undefined,
+      playerUrl: () => '',
+    }).totals;
+
+  it('shows the safe profit green only above 0', () => {
+    expect(vm(12)).toMatchObject({ profitSafe: '+12', gain: true });
+    expect(vm(0).gain).toBe(false);
+    expect(vm(-3)).toMatchObject({ profitSafe: '−3', gain: false });
   });
 });

@@ -179,7 +179,7 @@ export const de = {
   'investments.status.unknown': 'unbekannt: ohne passende Rangliste nicht entscheidbar, LG öffnen',
   'investments.circulating': 'Umlauf: {fp} FP',
   'investments.profitSafe': 'Gewinn sicher: {profit}',
-  'investments.profitTotal': 'Gewinn gesamt: {profit}',
+  'investments.profitTotal': 'gesamt: {profit}',
   'gbCalc.title': 'LG-Rechner',
   'snipe.section': 'Snipehilfe',
   'snipe.retentionSetting': 'Fremde LGs aufbewahren (Tage)',

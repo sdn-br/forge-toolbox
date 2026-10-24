@@ -50,7 +50,8 @@ export type InvestmentsVm = {
   age?: string;
   sort?: InvestmentSort;
   rows: InvestmentRowVm[];
-  totals: { circulating: string; profitSafe: string; profitTotal: string };
+  /** `gain` when the safe profit is above 0, so the line shows it green */
+  totals: { circulating: string; profitSafe: string; profitTotal: string; gain: boolean };
 };
 
 export interface InvestmentsInput {
@@ -134,6 +135,7 @@ export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
       circulating: formatNumber(totals.circulating),
       profitSafe: signed(totals.profitSafe),
       profitTotal: signed(totals.profitTotal),
+      gain: totals.profitSafe > 0,
     },
   };
 }
