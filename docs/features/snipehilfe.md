@@ -16,7 +16,7 @@ Stand 2026-10-24. Altes Modul `calculator-overview` („Mögliche Investitionen�
 
 ## Reiter „Liste“
 
-- Kopf: Name des Spielers, dem die Liste gehört, dazu „Stand: vor X Minuten“ (Zeit der Liste). Die Liste gehört immer zu genau diesem Spieler. Öffnet der Spieler danach ein LG eines anderen Spielers, bleibt die Liste unverändert (Nutzer, 2026-10-24).
+- Kopf: Überschrift „Mögliche Einzahlungen“, darunter der Spieler wie im Reiter „LG“: „Eigentümer: Name“ mit Link zu foestats und der Aktivitätszeile aus foestats, dann „Stand: vor X Minuten“ (Zeit der Liste) (Nutzer, 2026-10-24). Die Liste gehört immer zu genau diesem Spieler. Öffnet der Spieler danach ein LG eines anderen Spielers, bleibt die Liste unverändert (Nutzer, 2026-10-24).
 - **Nur Treffer** (Nutzer, 2026-10-24): eine Zeile je LG mit möglichem Gewinn, sortiert nach Gewinn, der beste oben. Ein Klick auf einen Spaltenkopf sortiert nach dieser Spalte.
 - Spalten: LG (Name), Stufe, Fortschritt (eingezahlt / Kosten der Stufe), Platz (der beste lohnende), Einsatz (Sichern dieses Platzes), Gewinn, Stufe der Sicherheit als Icon mit Tooltip. Platz und Einsatz sind die des besten Falls, der Platz im schlechtesten Fall steht im Tooltip der Zeile.
 - **Drei Stufen** (Nutzer, 2026-10-24):

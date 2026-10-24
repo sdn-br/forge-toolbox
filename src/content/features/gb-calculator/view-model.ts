@@ -201,7 +201,7 @@ function activityText(a: Activity): string {
   return flat >= 2 ? t('foestats.flatFor', { days: flat }) : t('foestats.noIncrease');
 }
 
-function activityVm(record: FoestatsRecord | undefined, today: string): ActivityVm | undefined {
+export function activityVm(record: FoestatsRecord | undefined, today: string): ActivityVm | undefined {
   if (!record) return undefined;
   const activity = playerActivity(record.days, today);
   const unreachable = t('foestats.unreachable');

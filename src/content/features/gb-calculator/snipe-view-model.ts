@@ -1,6 +1,8 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import { formatNumber, t } from '../../core/texts';
 import type { SnipeHit, SnipeList, SnipePlace, SnipeTier } from '../../domain/gb-snipe';
+import type { FoestatsRecord } from '../../stores/foestats';
+import { type ActivityVm, activityVm } from './view-model';
 
 export type SnipeColumn = 'name' | 'level' | 'progress' | 'rank' | 'cost' | 'profit';
 
@@ -43,8 +45,10 @@ export type SnipeVm =
   | { kind: 'none' }
   | {
       kind: 'list';
-      /** the player the list belongs to */
+      /** the player the list belongs to, with the foestats link and activity as on the LG tab */
       owner: string;
+      ownerUrl: string;
+      activity?: ActivityVm;
       /** when the list came; the view shows its age as of drawing */
       at: number;
       sort: SnipeSort;
@@ -59,8 +63,17 @@ export interface SnipeInput {
   result?: SnipeList;
   greatBuildingName(def: BuildingDefId): string | undefined;
   playerName(id: PlayerId): string | undefined;
+  playerUrl(id: PlayerId): string;
+  /** what foestats knows about the owner of the list; missing while foestats is off */
+  foestats?: FoestatsRecord;
+  today: string;
   sort: SnipeSort;
 }
+
+const activityOf = (record: FoestatsRecord | undefined, today: string) => {
+  const activity = activityVm(record, today);
+  return activity ? { activity } : {};
+};
 
 const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatNumber(Math.abs(n))}`;
 
@@ -116,6 +129,8 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
   return {
     kind: 'list',
     owner: list.ownerName ?? input.playerName(list.owner) ?? String(list.owner),
+    ownerUrl: input.playerUrl(list.owner),
+    ...activityOf(input.foestats, input.today),
     at: list.at,
     sort: input.sort,
     rows,

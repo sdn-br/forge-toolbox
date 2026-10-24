@@ -22,13 +22,13 @@ export interface GbCalculatorActions extends FactorActions {
 
 const percent = (n: number) => `${formatNumber(n)} %`;
 
-const activityLine = (a: ActivityVm) =>
+export const activityLine = (a: ActivityVm) =>
   html`<br />${t('foestats.label')}:
     <span class=${a.idle ? 'gb-activity warn' : 'gb-activity muted'} data-tip=${a.title}>${a.text}${
       a.week ? ` · ${a.week}` : ''
     }</span>${a.loading ? html` <span class="spinner" data-tip=${t('foestats.loading')}></span>` : ''}`;
 
-const owner = (name: string, url: string) => html`${t('gbCalc.ownerLabel')}: ${externalLink(name, url)}`;
+export const owner = (name: string, url: string) => html`${t('gbCalc.ownerLabel')}: ${externalLink(name, url)}`;
 
 function header(h: GbHeader) {
   const fp =

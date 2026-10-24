@@ -3,6 +3,7 @@ import { formatDuration, formatNumber, type TextKey, t } from '../../core/texts'
 import type { SnipeTier } from '../../domain/gb-snipe';
 import { headerIcons } from '../../ui/icons';
 import type { SnipeColumn, SnipeRowVm, SnipeSort, SnipeVm } from './snipe-view-model';
+import { activityLine, owner } from './view';
 
 const MINUTE = 60_000;
 
@@ -48,7 +49,8 @@ const row = (r: SnipeRowVm) => html`<tr data-tip=${r.notes.join('\n')}>
 
 export function snipeView(vm: SnipeVm, actions: SnipeActions): TemplateResult {
   if (vm.kind === 'none') return html`<p class="muted">${t('snipe.none')}</p>`;
-  return html`<p><span class="gb-title">${t('snipe.heading', { owner: vm.owner })}</span>
+  return html`<p><span class="gb-title">${t('snipe.heading')}</span>
+    <br />${owner(vm.owner, vm.ownerUrl)}${vm.activity ? activityLine(vm.activity) : ''}
     <br /><span class="muted">${t('snipe.age', { duration: formatDuration(Math.max(MINUTE, Date.now() - vm.at)) })}</span></p>
     ${
       vm.rows.length === 0

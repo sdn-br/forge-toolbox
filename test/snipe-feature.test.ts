@@ -121,7 +121,8 @@ describe('Snipehilfe: box with tabs', () => {
     await tick();
     expect(box.box.isOpen).toBe(true);
     expect(box.root.querySelector('.tabs .active')?.textContent).toBe('Liste');
-    expect(box.text).toContain('LGs von Eigentümer 1001');
+    expect(box.text).toContain('Mögliche Einzahlungen');
+    expect(box.text).toMatch(/Eigentümer:\s*Eigentümer 1001/);
     expect(box.text).toContain('Stand: vor 1 Min.');
     advance(4 * MINUTE);
     box.box.update();

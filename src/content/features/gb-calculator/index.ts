@@ -194,6 +194,9 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           result: snipe,
           greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
           playerName: (id) => ctx.players.get(id)?.name,
+          playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
+          foestats: list && ctx.settings.get(FOESTATS_SETTING.key) ? ctx.foestats.get(list.owner) : undefined,
+          today: foestatsDay(Date.now()),
           sort,
         });
         box.update();
@@ -275,7 +278,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       ctx.bus.on('catalog.updated', refresh);
       ctx.bus.on('player.updated', refresh);
       ctx.bus.on('foestats.updated', ({ player }) => {
-        if (player === shown?.owner) refresh();
+        if (player === shown?.owner || player === list?.owner) refresh();
       });
       ctx.settings.onChange(refresh);
       ctx.menu.add({ id: 'gbCalculator', icon: ICON, label: () => t('gbCalc.menu'), action: () => box.toggle() });

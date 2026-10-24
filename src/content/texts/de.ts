@@ -162,7 +162,7 @@ export const de = {
   'snipe.tab.list': 'Liste',
   'snipe.tab.gb': 'LG',
   'snipe.none': 'Noch keine LG-Liste eines Spielers geöffnet.',
-  'snipe.heading': 'LGs von {owner}',
+  'snipe.heading': 'Mögliche Einzahlungen',
   'snipe.age': 'Stand: vor {duration}',
   'snipe.noHit': 'Kein LG mit lohnendem Platz.',
   'snipe.col.name': 'LG',
