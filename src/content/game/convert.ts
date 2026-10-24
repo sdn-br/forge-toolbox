@@ -586,6 +586,7 @@ export function toGreatBuildingListRows(data: unknown, except?: PlayerId): Great
     if (entityId === undefined || owner === undefined || level === undefined || required === undefined || !def)
       return [];
     if (owner === except) return [];
+    const rank = num(r?.rank);
     return [
       {
         owner: playerId(owner),
@@ -594,6 +595,7 @@ export function toGreatBuildingListRows(data: unknown, except?: PlayerId): Great
         level,
         invested: num(r?.current_progress) ?? 0,
         required,
+        ...(rank !== undefined && { rank }),
       },
     ];
   });

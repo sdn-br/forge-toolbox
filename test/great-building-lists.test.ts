@@ -250,4 +250,15 @@ describe('applyListRow', () => {
     expect(applyListRow(w, old, r, 500, true)).toEqual({ ...old, ownContribution: true });
     expect(applyListRow(w, old, r, 500)).toBeUndefined();
   });
+
+  it('takes a row with an own rank as own contribution and does not store the rank', () => {
+    expect(applyListRow(w, undefined, { ...r, rank: 3 }, 2_000)).toEqual({
+      world: w,
+      ...r,
+      ownContribution: true,
+      seenAt: 2_000,
+    });
+    const old = known();
+    expect(applyListRow(w, old, { ...r, rank: 3 }, 500)).toEqual({ ...old, ownContribution: true });
+  });
 });

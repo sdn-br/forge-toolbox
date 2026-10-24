@@ -9,6 +9,8 @@ export interface GreatBuildingListRow {
   level: number;
   invested: number;
   required: number;
+  /** the session player's place, when the list names one: an own contribution */
+  rank?: number;
 }
 
 export interface GreatBuildingsApi {

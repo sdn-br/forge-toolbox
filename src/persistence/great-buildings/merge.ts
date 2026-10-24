@@ -14,19 +14,22 @@ export function applyListRow(
   at: number,
   ownContribution = false,
 ): KnownGreatBuilding | undefined {
-  const own = ownContribution || existing?.ownContribution ? { ownContribution: true } : {};
-  if (!existing) return { world, ...row, ...own, seenAt: at };
-  if (at <= existing.seenAt) return ownContribution && !existing.ownContribution ? { ...existing, ...own } : undefined;
+  // a list row with a rank is an own contribution, like a row of the contribution list
+  const { rank, ...state } = row;
+  const own = ownContribution || rank !== undefined || existing?.ownContribution ? { ownContribution: true } : {};
+  if (!existing) return { world, ...state, ...own, seenAt: at };
+  if (at <= existing.seenAt)
+    return own.ownContribution && !existing.ownContribution ? { ...existing, ...own } : undefined;
   const next: KnownGreatBuilding = {
     ...existing,
-    cityEntityId: row.cityEntityId,
-    level: row.level,
-    invested: row.invested,
-    required: row.required,
+    cityEntityId: state.cityEntityId,
+    level: state.level,
+    invested: state.invested,
+    required: state.required,
     ...own,
     seenAt: at,
   };
-  if (row.level !== existing.level) {
+  if (state.level !== existing.level) {
     delete next.rankings;
     delete next.rankingsLevel;
     delete next.rankingsAt;
