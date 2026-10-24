@@ -1,0 +1,51 @@
+# Snipehilfe
+
+Stand 2026-10-24. Altes Modul `calculator-overview` („Mögliche Investitionen“), hier nur als Idee übernommen. Die alte Toolbox ließ in manchen Fällen „???“ stehen, obwohl das LG geöffnet war, ihre Rechnung und Aktualisierung gelten deshalb nicht als Vorlage (Nutzer, 2026-10-24). Rechnung und Zuordnung bauen auf dem [LG-Rechner](lg-rechner.md) auf. Datenmodell: [Great Buildings](../datenmodell/great-buildings.md).
+
+**Zweck:** Klickt der Spieler auf das LG-Symbol eines anderen Spielers, zeigt das Spiel dessen LG-Liste. Die Snipehilfe sagt dazu, bei welchen dieser LGs sich ein Platz lohnen könnte, ohne dass der Spieler jedes einzelne öffnen muss.
+
+## Box
+
+- **Eine Box mit zwei Reitern** (Nutzer, 2026-10-24): „Liste“ (die Snipehilfe) und „LG“ (der bisherige LG-Rechner). Später kommt der Eigenanteil als weiterer Reiter dazu. Die Reiter sind Wörter, weil sie Text behalten (siehe Konzept, UI-Kit).
+- Eine neue LG-Liste schaltet auf „Liste“ und ersetzt die vorige. Ein geöffnetes LG schaltet auf „LG“. Sonst wechselt nur der Spieler den Reiter.
+- **Automatisch öffnen:** Einstellung „Snipehilfe beim Öffnen einer LG-Liste zeigen“, Standard an. Die Box öffnet sich nur, wenn die Liste mindestens einen Treffer hat. Ist sie schon offen, wechselt sie auch ohne Treffer auf „Liste“.
+- **Ton:** eigene Einstellung „Ton bei Treffer in der Snipehilfe“, Standard an, derselbe WebAudio-Ton wie im LG-Rechner. Er spielt einmal je neuer Liste mit mindestens einem Treffer. Dieselbe Liste piept nicht zweimal.
+- Die eigene LG-Liste wird übergangen.
+
+## Reiter „Liste“
+
+- Kopf: Name des Spielers, dem die Liste gehört, dazu „Stand: vor X Minuten“ (Zeit der Liste). Die Liste gehört immer zu genau diesem Spieler. Öffnet der Spieler danach ein LG eines anderen Spielers, bleibt die Liste unverändert (Nutzer, 2026-10-24).
+- **Nur Treffer** (Nutzer, 2026-10-24): eine Zeile je LG mit möglichem Gewinn, sortiert nach Gewinn, der beste oben. Ein Klick auf einen Spaltenkopf sortiert nach dieser Spalte.
+- Spalten: LG (Name), Stufe, Fortschritt (eingezahlt / Kosten der Stufe), Platz (der beste lohnende), Einsatz (Sichern dieses Platzes), Gewinn, Stufe der Sicherheit als Icon mit Tooltip.
+- **Drei Stufen** (Nutzer, 2026-10-24):
+  - exakt (grün, Haken): die Rangliste ist bekannt und so aktuell wie die Liste. Gewinn und Einsatz sind eine Zahl.
+  - sicher (grün, gedämpft): auch im schlechtesten Fall lohnt ein Platz. Gewinn als Spanne „+40 … +310“.
+  - möglich (gelb): nur im besten Fall lohnt ein Platz. Gewinn als Spanne.
+- Unter der Tabelle: Anzahl der LGs ohne Treffer, LGs mit eigener Einzahlung (sie fehlen in der Liste, dafür sind später die Investitionen da), LGs mit unbekannter Belohnung.
+- Ein LG mit 0 eingezahlten FP kann gesperrt sein (nicht verbunden oder auf der freigeschalteten Höchststufe), die Liste sagt das nicht. Die Zeile trägt dann den Tooltip „eventuell gesperrt“.
+- Die Liste veraltet: Sie zeigt den Stand beim Anklicken. Spätere Einzahlungen sieht die Toolbox nur bei einem LG, das der Spieler öffnet.
+
+## Rechnung
+
+Je LG der Liste: Stufe, eingezahlte FP (`current_progress`, fehlt bei 0) und Kosten der Stufe (`max_progress`). Wer welchen Platz hält, nennt die Liste nicht, und eigene Anfragen ans Spiel sind ausgeschlossen. Belohnungen der fünf Plätze kommen wie in der Stufenvorschau aus der P1-Tabelle (`emptyLevel`), mit dem Arche-Bonus. Gerechnet wird immer mit `calculateConstruction` auf einer angenommenen Rangliste, so gelten dieselben Regeln wie im LG-Rechner (Sichern, Gleichstand, Gewinn). Ein Platz lohnt nach derselben Regel wie in der Zeile „Du:“ ohne eigene Einzahlung: Gewinn ≥ 0 oder Sichern nicht über Belohnung mal Förderfaktor.
+
+- **Ohne bekannte Rangliste:** Die eingezahlten FP verraten, wie stark der stärkste Inhaber höchstens ist: nie mehr als alle zusammen. Bester Fall: die Rangliste ist leer, die FP stammen vom Eigentümer. Schlechtester Fall: ein einziger Spieler hält alle eingezahlten FP. Der Gewinn ist der des besten lohnenden Platzes, je Fall gerechnet.
+- **Mit bekannter Rangliste derselben Stufe:** Ist die Summe gleich, ist die Rangliste aktuell und die Zeile exakt. Ist die Liste neuer und die Summe um Δ größer, sind Δ FP unbekannt eingezahlt worden. Bester Fall: Δ kam vom Eigentümer, die Rangliste gilt. Schlechtester Fall: Δ landete beim stärksten Inhaber (Beispiel: gestern 400 auf P1 bei 1.000 gesamt, heute 1.300, dann hält P1 zwischen 400 und 700).
+- **Rangliste einer anderen Stufe:** wertlos, es gilt die Rechnung ohne Rangliste.
+- Sicher heißt, der schlechteste Fall lohnt. Möglich heißt, nur der beste. Lohnt keiner, fehlt die Zeile.
+- Belohnungen über das Ende der Tabelle hinaus sind geschätzt (≈ im Tooltip). Ist die Belohnung unbekannt, fehlt die Zeile und zählt unter der Tabelle mit.
+
+## Aktualisierung
+
+- Zuordnung immer über Spieler-ID und Gebäude-ID (`entity_id` der Liste, Entity-ID des geöffneten LGs). Namen dienen nur der Anzeige.
+- **Öffnet der Spieler ein LG des Spielers der Liste**, aktualisiert sein Stand die Zeile, wenn die Liste älter ist (Nutzer, 2026-10-24). Die Zeile wird exakt. Ebenso nach einer Einzahlung oder einem Level-Up in diesem LG.
+- **Öffnet der Spieler die Liste nach einem LG**, nutzt die Liste den gespeicherten Stand (siehe Rechnung).
+- Welcher Stand neuer ist, entscheidet der Zeitpunkt. Stufe und Summe nimmt die Rechnung aus der neueren Quelle, die einzelnen Einzahlungen nur aus der Rangliste.
+
+## Speicher
+
+Die Tabelle `greatBuildings` hält je fremdem LG den letzten Stand, auch aus Listen, siehe [Great Buildings](../datenmodell/great-buildings.md#bekannte-fremde-lgs). Aufbewahrung: Einstellung „Fremde LGs aufbewahren (Tage)“, Standard 30, frei einstellbar (Nutzer, 2026-10-24). Einträge, die länger nicht gesehen wurden, löscht die Toolbox beim Start. LGs mit eigener Einzahlung löscht sie nie (Nutzer, 2026-10-24), sie bleiben für die späteren Investitionen. Sie verschwinden, wenn die Liste „Legendäre Bauwerke“ im Rathaus sie nicht mehr führt (Nutzer, 2026-10-24, siehe Datenmodell).
+
+## Testfälle
+
+Eine Aufnahme mit LG-Liste, zwei, drei geöffneten LGs daraus, Wechsel zurück zur Liste und wenn möglich einer Einzahlung macht der Nutzer. Bis dahin reicht `test/fixtures/gb-level-up.json` (enthält eine Liste `getOtherPlayerOverview`) und `test/fixtures/great-buildings.json`.

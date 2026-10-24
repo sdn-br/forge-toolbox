@@ -231,6 +231,7 @@ Je Feature eine Datei mit Umfang, Entscheidungen und Annahmen. Neue Features bek
 - [LG-Rechner](features/lg-rechner.md): Kostenrechner für fremde LGs
 - [Eigenanteil](features/eigenanteil.md): Eigenanteilsrechner für eigene LGs
 - [Powerleveln](features/powerleveln.md): Eigenanteil über mehrere Stufen eines eigenen LGs
+- [Snipehilfe](features/snipehilfe.md): lohnende Plätze aus der LG-Liste eines Spielers
 - [foestats](features/foestats.md): Links, täglicher Verlauf, Aktivität
 
 ## Feature-Checkliste

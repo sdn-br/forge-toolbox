@@ -49,15 +49,32 @@ interface KnownGreatBuilding {  // persistiert, für die Snipehilfe
   owner: PlayerId;
   entityId: number;
   cityEntityId: BuildingDefId;
-  level: number;
-  invested: number;
-  required: number;
+  level: number;                // aus der neueren Quelle (LG oder Liste)
+  invested: number;             // aus der neueren Quelle
+  required: number;             // aus der neueren Quelle
+  maxLevel?: number;            // nur aus einem geöffneten LG
+  connected?: boolean;          // nur aus einem geöffneten LG
+  rankings?: RankingRow[];      // nur aus einem geöffneten LG, fehlt nach einer neuen Stufe aus der Liste
+  rankingsLevel?: number;       // Stufe, zu der die Rangliste gehört
+  rankingsAt?: number;          // Zeit der Rangliste
+  rankingsInvested?: number;    // Summe der Einzahlungen, als die Rangliste kam
   bestRate?: number;            // niedrigster Kurs der freien Plätze beim letzten Blick
-  seenAt: number;
+  ownContribution?: boolean;    // eigene Einzahlung gesehen, wird nie gelöscht
+  seenAt: number;               // zuletzt gesehen, aus LG oder Liste
 }
 ```
 
 **GreatBuildingStore:** hält nur die gerade geöffnete Konstruktion im Speicher. Das Gebäude aus `getOtherPlayerCityMapEntity` merkt er sich, bis die Konstruktion kommt (höchstens 20 Öffnungen). Ohne Request lässt sich eine Konstruktion keinem Gebäude zuordnen und wird übergangen. Fremde LGs schreibt er bei jedem Öffnen und jeder Änderung der laufenden Stufe in die Tabelle `greatBuildings` (Dexie-Version 9, Schlüssel `[world+owner+entityId]`, Indizes `[world+owner]`, `world`, `seenAt`). Eigene LGs werden nicht gespeichert. Abfrage: `known(owner?)`.
+
+## Bekannte fremde LGs
+
+Für die [Snipehilfe](../features/snipehilfe.md) (Nutzer, 2026-10-24). Ein Eintrag je fremdem LG (`[world+owner+entityId]`) mit dem letzten Stand. Bisher hielt er nur Stufe, Summe, Kosten und den besten Kurs, ohne Rangliste. Neu (Dexie-Version erhöhen, alte Einträge bleiben gültig, ihnen fehlt nur die Rangliste):
+
+- **Geöffnetes LG** (wie bisher bei jedem Öffnen und jeder Änderung der laufenden Stufe): schreibt alles, auch die Rangliste mit `rankingsLevel`, `rankingsAt` und `rankingsInvested`.
+- **LG-Liste** (`GreatBuildingsService.getOtherPlayerOverview`, eine Zeile je LG mit `entity_id`, `city_entity_id`, `name`, `level`, `current_progress` (fehlt bei 0), `max_progress`, `player`): schreibt je Zeile Stufe, Summe, Kosten und `seenAt`, wenn die Liste neuer ist als der Eintrag. Hat sich die Stufe geändert, wird die Rangliste entfernt, der Eintrag bleibt (Nutzer, 2026-10-24: überschreiben statt löschen, so bleibt der letzte Stand für die Schätzung und die Aufbewahrung nach „zuletzt gesehen“). Die eigene Liste schreibt nichts.
+- Die Liste bringt keine Höchststufe und kein „verbunden“. Diese Felder bleiben vom letzten geöffneten LG.
+- **Aufbewahrung:** Einträge, deren `seenAt` älter ist als die Einstellung „Fremde LGs aufbewahren (Tage)“ (Standard 30, einstellbar), löscht die Toolbox beim Start. Ausgenommen sind LGs mit eigener Einzahlung: in der gespeicherten Rangliste steht eine eigene Zeile (`is_self`), oder die Liste nennt einen eigenen Rang (`rank`). Dafür hält der Eintrag zusätzlich `ownContribution?: boolean` (Nutzer, 2026-10-24).
+- **Abgleich mit „Legendäre Bauwerke“** (Nutzer, 2026-10-24): Das Spiel zeigt im Rathaus eine Liste der LGs, in die der Spieler gerade investiert hat. Öffnet er sie, löscht die Toolbox jeden Eintrag mit `ownContribution`, der dort nicht mehr steht (die Stufe ist gelevelt und die Belohnung ausgezahlt). LGs der Liste ohne Eintrag legt sie mit `ownContribution` an. Aufgenommen 2026-10-24 (`~/Downloads/forge-toolbox-recording-2026-10-24T16-43-13-057Z.json`, privat): Request `GreatBuildingsService.getContributions` ohne Daten, Antwort eine Liste `GreatBuildingContributionRow` (hier 39), dieselbe Klasse wie die Zeilen von `getOtherPlayerOverview`, ergänzt um die eigene Beteiligung: `rank`, `forge_points` (eigene Einzahlung), `reward` (`strategy_point_amount`, `blueprints`, `resources.medals`), dazu `entity_id`, `city_entity_id`, `name`, `level`, `current_progress`, `max_progress`, `player` (Eigentümer). Damit schreibt jede Zeile auch Stufe, Summe und Kosten wie eine LG-Liste. Testfall für die Umsetzung aus dieser Aufnahme bauen (anonymisiert).
 
 **Events:** `greatBuilding.opened { owner, entityId, own }`, `greatBuilding.changed { owner, entityId, reason }` mit `reason` `entity`, `ranking`, `contributed` oder `leveled`.
 
