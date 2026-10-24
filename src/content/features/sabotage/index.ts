@@ -3,6 +3,7 @@ import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
 import { assessCity } from '../../domain/assess-city';
+import { largeDefaultSize } from '../../ui/box';
 import { CityMap, legendView } from '../../ui/city-map';
 import { icons } from '../../ui/icons';
 import { toMode } from '../../ui/map-projection';
@@ -49,6 +50,8 @@ export const sabotageFeature: Feature = {
         return name ? t('sabotage.mapTitle', { name }) : t('cityMap.title');
       },
       width: 500,
+      resizable: true,
+      defaultSize: largeDefaultSize,
       fill: true,
       render: () =>
         mapVm ? map.render(mapVm.data, legendView(mapVm.legend)) : html`<p class="muted">${t('sabotage.noMap')}</p>`,

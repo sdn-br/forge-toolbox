@@ -1,5 +1,6 @@
 import type { Feature } from '../../core/feature';
 import { t } from '../../core/texts';
+import { largeDefaultSize } from '../../ui/box';
 import { CityMap, legendView } from '../../ui/city-map';
 import { icons } from '../../ui/icons';
 import { toMode } from '../../ui/map-projection';
@@ -27,6 +28,8 @@ export const cityMapFeature: Feature = {
       id: 'cityMap',
       title: () => t('cityMap.title'),
       width: 500,
+      resizable: true,
+      defaultSize: largeDefaultSize,
       fill: true,
       render: () => {
         const city = ctx.cities.own();

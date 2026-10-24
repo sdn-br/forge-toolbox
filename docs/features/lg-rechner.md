@@ -1,6 +1,6 @@
 # LG-Rechner
 
-Stand 2026-10-24. Erste Stufe des LG-Kostenrechners, nur für LGs anderer Spieler. Datenmodell und Rechnung: [Great Buildings](../datenmodell/great-buildings.md).
+Stand 2026-10-24. Erste Stufe des LG-Kostenrechners, nur für LGs anderer Spieler. Datenmodell und Rechnung: [Great Buildings](../datenmodell/great-buildings.md). Über dem Rechner steht in derselben Box der einklappbare Bereich „Mögliche Einzahlungen“ ([Snipehilfe](snipehilfe.md)), Nutzer 2026-10-24.
 
 **Box „LG-Rechner“ (🏛️):** öffnet sich, sobald der Spieler ein fremdes LG öffnet. Beim eigenen LG bleibt sie zu und zeigt weiter das letzte fremde.
 

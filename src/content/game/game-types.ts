@@ -279,6 +279,24 @@ export interface GameGreatBuildingName {
   name?: string;
 }
 
+/**
+ * A row of GreatBuildingsService.getOtherPlayerOverview (GreatBuildingContributionRow, seen 2026-10-23): a building of
+ * `player` with its state. `current_progress` is missing at 0. getContributions (seen 2026-10-24) brings the same
+ * class with the own `rank`, `forge_points` and `reward` on top.
+ */
+export interface GameGreatBuildingListRow {
+  entity_id?: number;
+  city_entity_id?: string;
+  name?: string;
+  level?: number;
+  current_progress?: number;
+  max_progress?: number;
+  player?: { player_id?: number; name?: string };
+  rank?: number;
+  forge_points?: number;
+  reward?: GameGreatBuildingReward;
+}
+
 /** an entry of BonusService.getLimitedBonuses (seen 2026-10-21, none of type contribution_boost then) */
 export interface GameLimitedBonus {
   type?: string;

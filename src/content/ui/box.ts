@@ -10,14 +10,26 @@ export interface BoxOptions {
   id: string;
   title: () => string;
   render: () => TemplateResult;
-  /** default width in pixels until the viewer resizes the box */
+  /** the width in pixels; for a box without the resize handle it is fixed, else the default until the viewer resizes */
   width?: number;
+  /** the box has the resize handle and remembers its size; without it the box has a fixed width and the height of its content */
+  resizable?: boolean;
+  /** the largest height of a box without the handle, as a share of the window height (default 0.7) */
+  maxHeight?: number;
+  /** the size of a box with the handle until the viewer resizes it, from the window size; without it width and content height */
+  defaultSize?: (window: { width: number; height: number }) => { width: number; height: number };
   /** the content fills the body once the box has a height (resized or popped out), e.g. a map */
   fill?: boolean;
   onClose?: () => void;
   /** the settings group of the feature; the header then shows a button that opens the settings at it */
   settings?: string;
 }
+
+/** 70 % of the window in each direction, at most 1100 x 850 pixels; the default size of a map box */
+export const largeDefaultSize: NonNullable<BoxOptions['defaultSize']> = (win) => ({
+  width: Math.min(win.width * 0.7, 1100),
+  height: Math.min(win.height * 0.7, 850),
+});
 
 let topZ = 2147480000;
 
@@ -78,25 +90,28 @@ export class Box {
   private template(): TemplateResult {
     const state = this.ui.box(this.options.id);
     const popped = this.popup !== null;
+    const resizableBox = this.options.resizable === true;
     const width = this.width();
     const x = state.x ?? Math.max(0, window.innerWidth - width - 90);
     const y = state.y ?? 90;
     // a saved height counts only while the box shows its body; minimized it is just the header
-    const height =
-      state.height !== undefined && !state.minimized ? clamp(state.height, MIN_HEIGHT, window.innerHeight) : undefined;
+    const wanted = resizableBox ? (state.height ?? this.defaultSize()?.height) : undefined;
+    const height = wanted !== undefined && !state.minimized ? clamp(wanted, MIN_HEIGHT, window.innerHeight) : undefined;
     const classes = [
       'box',
       state.pinned && 'pinned',
       state.minimized && 'minimized',
       popped && 'popped',
-      !popped && state.width !== undefined && 'sized',
+      !popped && resizableBox && (state.width !== undefined || this.defaultSize() !== undefined) && 'sized',
       !popped && height !== undefined && 'tall',
+      !popped && !resizableBox && 'capped',
     ]
       .filter(Boolean)
       .join(' ');
-    const size = `width:${width}px${height === undefined ? '' : `;height:${height}px`}`;
+    const cap = resizableBox ? '' : `;max-height:${Math.round((this.options.maxHeight ?? 0.7) * window.innerHeight)}px`;
+    const size = `width:${width}px${height === undefined ? '' : `;height:${height}px`}${cap}`;
     const style = popped ? '' : `left:${x}px;top:${y}px;${size};z-index:${this.z}`;
-    const resizable = !popped && !state.minimized;
+    const resizable = resizableBox && !popped && !state.minimized;
     const { settings } = this.options;
     const open = this.openSettings;
     const settingsButton =
@@ -132,11 +147,16 @@ export class Box {
       </div>`;
   }
 
-  /** the saved width, else the configured one; never wider than the window */
+  /** the width of a box with the handle: the saved one, else the default size, else the configured one; never wider than the window. A box without the handle ignores a saved width. */
   private width(): number {
-    const saved = this.ui.box(this.options.id).width;
-    if (saved === undefined) return this.options.width ?? 320;
-    return clamp(saved, MIN_WIDTH, window.innerWidth);
+    const configured = this.options.width ?? 320;
+    if (this.options.resizable !== true) return Math.min(configured, window.innerWidth);
+    const wanted = this.ui.box(this.options.id).width ?? this.defaultSize()?.width ?? configured;
+    return clamp(wanted, MIN_WIDTH, window.innerWidth);
+  }
+
+  private defaultSize() {
+    return this.options.defaultSize?.({ width: window.innerWidth, height: window.innerHeight });
   }
 
   private z = ++topZ;

@@ -26,6 +26,7 @@ import {
   toCityGrid,
   toGreatBuildingEntity,
   toGreatBuildingLevelUp,
+  toGreatBuildingListRows,
   toGreatBuildingNames,
   toIncoming,
   toInventory,
@@ -56,6 +57,7 @@ import type {
   GameEvent,
   GameEventPage,
   GameGreatBuildingConstruction,
+  GameGreatBuildingListRow,
   GameSocialList,
   GameStartup,
   GameVisit,
@@ -394,6 +396,17 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   });
   ingestion.on('GreatBuildingsService', 'getOtherPlayerOverview', ({ data }) => {
     catalog.setGreatBuildingNames(toGreatBuildingNames(data));
+    greatBuildings.noteList(
+      toGreatBuildingListRows(data, session.current?.playerId),
+      (data as GameGreatBuildingListRow[] | null)?.[0]?.player?.name,
+    );
+  });
+  // The town hall list "Legendäre Bauwerke" of the buildings the session player invested in (recorded 2026-10-24,
+  // 39 rows, no request data): the same rows as the overview, with the own rank, deposit and reward on top.
+  ingestion.on('GreatBuildingsService', 'getContributions', ({ data }) => {
+    if (!Array.isArray(data)) return;
+    catalog.setGreatBuildingNames(toGreatBuildingNames(data));
+    greatBuildings.noteContributions(toGreatBuildingListRows(data, session.current?.playerId));
   });
   ingestion.on('BonusService', 'getLimitedBonuses', ({ data }) => {
     greatBuildings.setLimitedBonuses(toLimitedBonuses(data));

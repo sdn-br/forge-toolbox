@@ -1,4 +1,5 @@
 // Domain types that cross the content script / service worker boundary.
+import type { RankingRow } from '../content/stores/great-building-model';
 import type { BuildingDefId, EraId, GuildId, PlayerId, WorldId } from './ids';
 
 export interface GuildRef {
@@ -147,8 +148,8 @@ export interface NotePage {
 }
 
 /**
- * The last known state of a great building of another player, kept for the snipe helper. Written whenever the
- * session player opens or updates the construction of that building.
+ * The last known state of a great building of another player, kept for the snipe helper. Written when the session
+ * player opens or updates the construction of that building, and from great building lists.
  */
 export interface KnownGreatBuilding {
   world: WorldId;
@@ -156,11 +157,26 @@ export interface KnownGreatBuilding {
   /** the building in the owner's city */
   entityId: number;
   cityEntityId: BuildingDefId;
+  /** from the newer source, the building or a list */
   level: number;
   invested: number;
   required: number;
+  /** only from an opened building; a list brings neither */
+  maxLevel?: number;
+  connected?: boolean;
+  /** only from an opened building; missing after a list brought a new level */
+  rankings?: RankingRow[];
+  /** the level of the building the rankings belong to */
+  rankingsLevel?: number;
+  /** when the rankings came */
+  rankingsAt?: number;
+  /** sum of the deposits in the rankings, owner included */
+  rankingsInvested?: number;
   /** lowest rate in percent of all places the session player could take then; missing when none was free */
   bestRate?: number;
+  /** the session player invested here (own row in the rankings, or the town hall list); such a row is never pruned */
+  ownContribution?: boolean;
+  /** last seen, in the building or in a list */
   seenAt: number;
 }
 

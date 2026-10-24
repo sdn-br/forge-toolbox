@@ -1,3 +1,4 @@
+import type { GreatBuildingListRow } from '../../persistence/great-buildings/contract';
 import type { BuildingDefId, PlayerId, WorldId } from '../../shared/ids';
 import type { KnownGreatBuilding } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
@@ -6,14 +7,21 @@ import { bestRate, calculateConstruction, type LimitedBonus } from '../domain/gb
 import type { Construction, GreatBuildingEntity, RankingRow } from './great-building-model';
 
 export interface GreatBuildingPersistence {
-  /** a row replaces what was known about that building */
+  /** a row of an opened building replaces what was known about that building */
   put(rows: KnownGreatBuilding[]): Promise<void>;
+  /** rows of a great building list, seen at `at` */
+  putList(world: WorldId, rows: GreatBuildingListRow[], at: number): Promise<void>;
+  /** the town hall list of the own contributions */
+  putContributions(world: WorldId, rows: GreatBuildingListRow[], at: number): Promise<void>;
+  /** deletes what was seen before `before`, except buildings with an own contribution */
+  prune(world: WorldId, before: number): Promise<void>;
   list(world: WorldId, owner?: PlayerId): Promise<KnownGreatBuilding[]>;
 }
 
 const key = (owner: PlayerId, entityId: number) => `${owner}:${entityId}`;
 /** openings remembered until their construction arrives; the game sends both right after each other */
 const MAX_ENTITIES = 20;
+const DAY = 24 * 60 * 60 * 1000;
 
 /**
  * The great building construction the player has open in the game, and what is known about other players' great
@@ -57,6 +65,7 @@ export class GreatBuildingStore {
     const open = this.open;
     if (open && open.owner === entity.owner && open.entityId === entity.entityId) {
       this.open = { ...open, entity };
+      this.remember();
       this.changed('entity');
     }
   }
@@ -98,7 +107,7 @@ export class GreatBuildingStore {
     if (open.entity !== undefined && level <= open.entity.level) {
       this.open = { ...open, past: { level, rankings } };
     } else {
-      this.open = { ...open, rankings, rankingsLevel: level - 1, past: undefined };
+      this.open = { ...open, rankings, rankingsLevel: level - 1, past: undefined, seenAt: this.now() };
       this.remember();
     }
     this.changed('ranking');
@@ -148,6 +157,33 @@ export class GreatBuildingStore {
     return this.writes.then(() => this.persistence.list(this.world, owner));
   }
 
+  /** The great building list of another player (`getOtherPlayerOverview`); the caller leaves out the own list. */
+  noteList(rows: GreatBuildingListRow[], ownerName?: string): void {
+    const owner = rows[0]?.owner;
+    if (owner === undefined) return;
+    const at = this.now();
+    this.enqueue(() => this.persistence.putList(this.world, rows, at));
+    this.bus.emit('greatBuildings.listed', {
+      owner,
+      ...(ownerName !== undefined && { ownerName }),
+      entityIds: rows.map((r) => r.entityId),
+      at,
+    });
+  }
+
+  /** The town hall list of the buildings the session player invested in (`getContributions`). */
+  noteContributions(rows: GreatBuildingListRow[]): void {
+    const at = this.now();
+    this.enqueue(() => this.persistence.putContributions(this.world, rows, at));
+  }
+
+  /** Deletes buildings not seen for `days`, except those with an own contribution; run at the start. */
+  prune(days: number): Promise<void> {
+    const before = this.now() - days * DAY;
+    this.enqueue(() => this.persistence.prune(this.world, before));
+    return this.writes.then(() => undefined);
+  }
+
   private matching(owner: PlayerId, entityId: number): Construction | undefined {
     const open = this.open;
     return open && open.owner === owner && open.entityId === entityId ? open : undefined;
@@ -164,6 +200,8 @@ export class GreatBuildingStore {
     const entity = open?.entity;
     if (!open || open.own || !entity) return;
     const rate = bestRate(calculateConstruction({ ...entity, rankings: open.rankings, arcBonus: 0, factor: 0 }));
+    const invested = open.rankings.reduce((sum, r) => sum + (r.fp ?? 0), 0);
+    const mine = open.rankings.some((r) => r.self && r.rank !== undefined);
     this.pending.push({
       world: this.world,
       owner: open.owner,
@@ -172,15 +210,25 @@ export class GreatBuildingStore {
       level: entity.level,
       invested: entity.invested,
       required: entity.required,
+      maxLevel: entity.maxLevel,
+      connected: entity.connected,
+      rankings: open.rankings,
+      rankingsLevel: open.rankingsLevel ?? entity.level,
+      rankingsAt: open.seenAt,
+      rankingsInvested: invested,
       ...(rate !== undefined && { bestRate: rate }),
+      ...(mine && { ownContribution: true }),
       seenAt: this.now(),
     });
     if (this.flushQueued) return;
     this.flushQueued = true;
-    this.writes = this.writes.then(() => {
+    this.enqueue(() => {
       this.flushQueued = false;
-      const rows = this.pending.splice(0);
-      return this.persistence.put(rows).catch((error) => logError('saving great buildings failed', error));
+      return this.persistence.put(this.pending.splice(0));
     });
+  }
+
+  private enqueue(write: () => Promise<unknown>) {
+    this.writes = this.writes.then(() => write().catch((error) => logError('saving great buildings failed', error)));
   }
 }

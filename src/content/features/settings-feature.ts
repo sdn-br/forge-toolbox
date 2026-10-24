@@ -121,6 +121,7 @@ export const settingsFeature: Feature = {
       id: 'settings',
       title: () => t('settings.title'),
       width: 380,
+      maxHeight: 0.8,
       render: () => {
         // the general settings first, then the features in the order they registered
         const groups = [...new Set(['settings.core', ...ctx.settings.defs.map((d) => d.group)])];

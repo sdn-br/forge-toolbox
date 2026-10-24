@@ -11,8 +11,9 @@ export const baseCss = `
 .box.popped { position: static; max-width: none; height: 100vh; border: 0; border-radius: 0; }
 /* resized by the viewer: no width cap; with a height the body takes what the header leaves and scrolls */
 .box.sized { max-width: none; }
-.box.tall, .box.popped { display: flex; flex-direction: column; }
-.box.tall .body, .box.popped .body { flex: 1 1 auto; min-height: 0; max-height: none; }
+/* a box without the resize handle (capped): the max height sits on the box, the body scrolls beyond it */
+.box.tall, .box.popped, .box.capped { display: flex; flex-direction: column; }
+.box.tall .body, .box.popped .body, .box.capped .body { flex: 1 1 auto; min-height: 0; max-height: none; }
 .resize-handle { position: absolute; right: 0; bottom: 0; width: 14px; height: 14px; cursor: nwse-resize;
   touch-action: none; z-index: 1; background: linear-gradient(135deg, transparent 55%, #8a6a3a 55%, #8a6a3a 65%,
   transparent 65%, transparent 75%, #8a6a3a 75%, #8a6a3a 85%, transparent 85%); }
@@ -156,6 +157,38 @@ button.marker.dim { opacity: .3; }
 .gb-factor label { gap: 3px; }
 .gb-places { position: relative; min-height: 60px; }
 .gb-table td, .gb-table th { white-space: nowrap; }
+/* snipe list: fixed columns so heads show whole; only the building name gives way */
+button.snipe-toggle { all: unset; cursor: pointer; display: flex; align-items: center; gap: 4px; width: 100%; }
+button.snipe-toggle:hover { color: var(--accent); }
+button.snipe-toggle:focus-visible { outline: 1px solid var(--accent); }
+button.snipe-toggle svg { display: block; flex: none; width: 14px; height: 14px; }
+hr.snipe-sep { border: 0; border-top: 1px solid var(--line); margin: 6px 0; }
+.snipe-scroll { display: flex; align-items: stretch; gap: 4px; }
+.snipe-scroll .snipe-table { flex: 1 1 auto; min-width: 0; }
+.snipe-nav { flex: none; display: flex; flex-direction: column; justify-content: space-between; }
+.snipe-nav button.icon { all: unset; cursor: pointer; display: grid; place-items: center; width: 18px; height: 18px;
+  color: var(--ink); }
+.snipe-nav button.icon:hover { color: var(--accent); }
+.snipe-nav button.icon.off { cursor: default; opacity: .4; color: var(--ink); }
+.snipe-nav button.icon svg { display: block; width: 14px; height: 14px; }
+p.snipe-hidden { margin: 2px 0; }
+.snipe-table { table-layout: fixed; }
+.snipe-table .c-order { width: 30px; }
+.snipe-table .c-level, .snipe-table .c-rank { width: 46px; }
+.snipe-table .c-progress { width: 112px; }
+.snipe-table .c-cost { width: 64px; }
+.snipe-table .c-profit { width: 112px; }
+.snipe-table .c-tier { width: 26px; }
+.snipe-table td.snipe-name { overflow: hidden; text-overflow: ellipsis; }
+.snipe-table th.sortable { cursor: pointer; }
+.snipe-table th.sortable:hover { color: var(--accent); }
+.snipe-table th.desc::after { content: ' ▾'; color: var(--accent); }
+.snipe-table th.asc::after { content: ' ▴'; color: var(--accent); }
+.snipe-table .snipe-tier { text-align: center; padding: 0; }
+.snipe-table .snipe-tier svg { display: block; width: 14px; height: 14px; margin: auto; }
+td.snipe-tier.exact { color: #8fd08f; }
+td.snipe-tier.safe { color: #5a9a4a; }
+td.snipe-tier.possible { color: #f0a050; }
 tr.gb-profit { background: rgba(90, 170, 90, .28); }
 tr.gb-loss { background: rgba(200, 80, 60, .28); }
 tr.gb-levelWarning { background: rgba(220, 190, 60, .32); }

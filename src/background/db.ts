@@ -59,5 +59,10 @@ export function openDb(name = 'forge-toolbox'): ToolboxDb {
     foestatsDays: '[world+player+date], [world+player]',
     foestatsFetches: '[world+player]',
   });
+  // great buildings keep the rankings, the level they belong to and the own contribution; they are not indexed, so
+  // the schema stays and old rows stay valid, they only lack the new fields
+  db.version(11).stores({
+    greatBuildings: '[world+owner+entityId], [world+owner], world, seenAt',
+  });
   return db;
 }

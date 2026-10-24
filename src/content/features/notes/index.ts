@@ -33,7 +33,7 @@ export const notesFeature: Feature = {
       return notesView(vm, vm.page && editorFor(vm.page), actions);
     };
 
-    const box = ctx.createBox({ id: 'notes', title: () => t('notes.title'), width: 520, render });
+    const box = ctx.createBox({ id: 'notes', title: () => t('notes.title'), width: 520, resizable: true, render });
     const editor = new NoteEditor(() => box.update());
 
     const editorFor = (page: NonNullable<NotesVm['page']>) =>
