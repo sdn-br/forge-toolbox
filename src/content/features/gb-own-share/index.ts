@@ -1,7 +1,16 @@
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
-import { arcBonus } from '../../domain/gb-calculator';
+import {
+  ARC_BUTTON,
+  FACTOR,
+  FACTOR_ARC,
+  ONE_FP,
+  ownArcBonus,
+  SECURE,
+  TRUST,
+  viewFlag,
+} from '../../stores/gb-own-state';
 import type { Construction } from '../../stores/great-building-model';
 import { icons } from '../../ui/icons';
 import {
@@ -17,23 +26,14 @@ import {
   DEFAULT_COPY,
   readCopyOptions,
 } from '../../ui/own-share-copy';
-import { PlaceFactors } from './place-factors';
 import { type OwnShareActions, ownShareView } from './view';
 import { ownShareViewModel } from './view-model';
 
 /** the menu entry and the settings group show it */
 const ICON = icons.gbOwnShare;
 
-const FACTOR = 'gbOwn.factor';
 const FACTOR_BUTTONS = 'gbOwn.factorButtons';
 const AUTO_OPEN = 'gbOwn.autoOpen';
-const ONE_FP = 'gbOwn.oneFpForNoReward';
-const ARC_BUTTON = 'gbOwn.arcButton';
-/** the Arc button is the chosen factor; its value comes from the city, so it follows the bonus */
-const FACTOR_ARC = 'gbOwn.factorArc';
-/** view choices, kept like the mode of a map rather than in the settings box */
-const SECURE = 'gbOwn.secure';
-const TRUST = 'gbOwn.trust';
 /** how long a copy button says it copied */
 const COPIED_MS = 1500;
 
@@ -134,44 +134,31 @@ export function createGbOwnShareFeature(
       /** the last own construction, and the level it was opened at */
       let shown: Construction | undefined;
       let openedLevel: number | undefined;
-      /** promised payments per building and level; they are typed in for one level only */
-      const exts = new Map<string, number[]>();
-      const extKey = () => `${shown?.entityId}:${openedLevel}`;
       /** the later level the box previews; undefined shows the open level */
       let preview: number | undefined;
       let copied: string | undefined;
       let copiedTimer: ReturnType<typeof setTimeout> | undefined;
 
-      const flag = (key: string, fallback: boolean) => {
-        const value = ctx.ui.pref(key);
-        return value === undefined ? fallback : value === 'true';
-      };
+      const flag = (key: string, fallback: boolean) => viewFlag(ctx.ui, key, fallback);
       const def = () => shown?.entity?.def;
-      /** the five factors per building: standard, saved, changed */
-      const factors = new PlaceFactors(ctx.ui, () => ({
-        value: ctx.settings.number(FACTOR),
-        arc: ctx.settings.get(FACTOR_ARC),
-      }));
-      /** a change to the factors of the building shown */
+      /** the factors and Ext both boxes share */
+      const state = ctx.gbOwn;
+      /** a change to the factors of the building shown; the state announces it and the box follows */
       const onFactors = (change: (d: string) => void) => () => {
         const d = def();
-        if (!d) return;
-        change(d);
-        update();
+        if (d) change(d);
       };
 
       const actions: OwnShareActions = {
-        setFactor: (value) => onFactors((d) => factors.setAll(d, { value, arc: false }))(),
-        useArc: () => onFactors((d) => factors.setAll(d, { value: 0, arc: true }))(),
-        setPlaceFactor: (rank, value) => onFactors((d) => factors.setPlace(d, rank, value))(),
-        saveFactors: onFactors((d) => factors.save(d)),
-        resetFactors: onFactors((d) => factors.reset(d)),
-        adoptFactors: onFactors((d) => factors.adopt(d)),
+        setFactor: (value) => onFactors((d) => state.setAll(d, { value, arc: false }))(),
+        useArc: () => onFactors((d) => state.setAll(d, { value: 0, arc: true }))(),
+        setPlaceFactor: (rank, value) => onFactors((d) => state.setPlace(d, rank, value))(),
+        saveFactors: onFactors((d) => state.save(d)),
+        resetFactors: onFactors((d) => state.reset(d)),
+        adoptFactors: onFactors((d) => state.adopt(d)),
         setExt: (rank, fp) => {
-          const list = [...(exts.get(extKey()) ?? [])];
-          list[rank - 1] = fp;
-          exts.set(extKey(), list);
-          update();
+          const d = def();
+          if (d && openedLevel !== undefined) state.setExt(d, openedLevel, rank, fp);
         },
         setSecure: (on) => save(SECURE, String(on)),
         setTrust: (on) => save(TRUST, String(on)),
@@ -203,27 +190,8 @@ export function createGbOwnShareFeature(
         update();
       };
 
-      /** the own Arc bonus while its factor button shows */
-      const arcNow = () =>
-        ctx.settings.get(ARC_BUTTON) ? arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses()) : undefined;
-      /** tells the Powerleveln box what the Eigenanteil box rests on for the building it shows */
-      const announce = () => {
-        const d = def();
-        if (d === undefined || openedLevel === undefined) return;
-        ctx.bus.emit('gbOwn.state', {
-          def: d,
-          level: openedLevel,
-          factors: factors.state(d).choices,
-          arcBonus: arcNow(),
-          secureExisting: flag(SECURE, true),
-          trust: flag(TRUST, false),
-          exts: exts.get(extKey()) ?? [],
-        });
-      };
-      const update = () => {
-        box.update();
-        announce();
-      };
+      const arcNow = () => ownArcBonus(ctx.settings, ctx.cities, ctx.greatBuildings);
+      const update = () => box.update();
 
       const vm = () => {
         const d = def();
@@ -231,13 +199,13 @@ export function createGbOwnShareFeature(
           construction: shown,
           openedLevel,
           greatBuildingName: (id) => ctx.catalog.greatBuildingName(id),
-          factors: factors.state(d ?? ''),
+          factors: state.state(d ?? ''),
           factorButtons: ctx.settings.numbers(FACTOR_BUTTONS),
           arcBonus: arcNow(),
           secureExisting: flag(SECURE, true),
           trust: flag(TRUST, false),
           oneFpForNoReward: ctx.settings.get(ONE_FP),
-          exts: exts.get(extKey()) ?? [],
+          exts: state.ext(d ?? '', openedLevel),
           copy: readCopyOptions(ctx.settings),
           copyPlayer: ctx.settings.text(COPY_PLAYER) || ctx.session.current?.name,
           copyBuilding: d ? ctx.ui.pref(copyBuildingKey(d)) : undefined,
@@ -264,10 +232,8 @@ export function createGbOwnShareFeature(
         if (!own || !follow()) return;
         openedLevel = shown?.entity?.level;
         preview = undefined;
-        if (ctx.settings.get(AUTO_OPEN)) {
-          box.open();
-          announce();
-        } else update();
+        if (ctx.settings.get(AUTO_OPEN)) box.open();
+        else update();
       });
       ctx.bus.on('greatBuilding.changed', ({ reason }) => {
         if (!follow()) return;
@@ -283,9 +249,12 @@ export function createGbOwnShareFeature(
       });
       ctx.bus.on('catalog.updated', () => update());
       ctx.bus.on('city.ownChanged', () => update());
+      // the other box changed the factors or Ext of the building
+      ctx.bus.on('gbOwn.factorsChanged', () => update());
+      ctx.bus.on('gbOwn.extChanged', () => update());
       ctx.settings.onChange((key) => {
         // the factor of the settings sets all five places alike again
-        if (key === FACTOR || key === FACTOR_ARC) factors.dropStandard();
+        if (key === FACTOR || key === FACTOR_ARC) state.dropStandard();
         update();
       });
       ctx.menu.add({ id: 'gbOwnShare', icon: ICON, label: () => t('gbOwn.menu'), action: () => box.toggle() });

@@ -3,10 +3,10 @@ import { emptyLevel } from '../../domain/gb-level-preview';
 import { calculateOwnShare, type OwnPlace, type OwnShareCalc } from '../../domain/gb-own-share';
 import type { GreatBuildingDef } from '../../stores/catalog';
 import type { Construction, RankingRow } from '../../stores/great-building-model';
+import { type PlaceFactorState, sameChoice } from '../../stores/place-factors';
 import { effectiveFactor, effectiveFactors, type FactorButton, factorButtons } from '../../ui/factor-bar';
 import { type LevelChoice, levelChoice } from '../../ui/level-bar';
 import { type CopyOptions, copyText } from '../../ui/own-share-copy';
-import { type PlaceFactorState, sameChoice } from './place-factors';
 
 export {
   COPY_MODES,

@@ -23,6 +23,7 @@ import { sabotageFeature } from './features/sabotage';
 import { settingsFeature } from './features/settings-feature';
 import { registerGameHandlers } from './game/handlers';
 import { createStores } from './stores';
+import { createGbOwnState } from './stores/gb-own-state';
 import { Menu } from './ui/menu';
 import { UiState } from './ui/ui-state';
 
@@ -69,6 +70,7 @@ async function main() {
     ...stores,
     recorder,
     ui,
+    gbOwn: createGbOwnState(bus, ui, settings),
     createBox: boxFactory(ui, (group) => bus.emit('settings.open', { group })),
   };
   for (const feature of features) {

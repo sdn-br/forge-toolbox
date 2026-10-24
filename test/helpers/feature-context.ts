@@ -3,6 +3,7 @@ import type { FeatureContext } from '../../src/content/core/feature';
 import { memoryKv } from '../../src/content/core/kv';
 import { Recorder } from '../../src/content/core/recorder';
 import { Settings } from '../../src/content/core/settings';
+import { createGbOwnState } from '../../src/content/stores/gb-own-state';
 import type { Box, BoxOptions } from '../../src/content/ui/box';
 import type { Menu, MenuItem } from '../../src/content/ui/menu';
 import { UiState } from '../../src/content/ui/ui-state';
@@ -67,6 +68,7 @@ export function featureContext(options: TestStoresOptions = {}) {
   const boxes = new Map<string, ReturnType<typeof recordingBox>>();
   const menuItems = new Map<string, MenuItem>();
   const settings = new Settings(memoryKv());
+  const ui = new UiState(memoryKv());
   const ctx: FeatureContext = {
     world,
     bus,
@@ -74,7 +76,8 @@ export function featureContext(options: TestStoresOptions = {}) {
     menu: { add: (item: MenuItem) => menuItems.set(item.id, item), setIconSize: () => {} } as unknown as Menu,
     ...stores,
     recorder: new Recorder(() => false),
-    ui: new UiState(memoryKv()),
+    ui,
+    gbOwn: createGbOwnState(bus, ui, settings),
     createBox: (options) => {
       const recording = recordingBox(options);
       boxes.set(options.id, recording);

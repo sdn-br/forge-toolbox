@@ -1,10 +1,14 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
+import { type FactorActions, factorBar } from '../../ui/factor-bar';
+import { type FactorLevelActions, factorLevel, placeFactorField } from '../../ui/factor-state';
 import { headerIcons } from '../../ui/icons';
 import { keepKeys } from '../../ui/inputs';
 import { MAX_ROWS, type PayCell, type PowerLevelVm, type PowerRow } from './view-model';
 
-export interface PowerLevelActions {
+export interface PowerLevelActions extends FactorActions, FactorLevelActions {
+  /** the factor of one place, in percent */
+  setPlaceFactor(rank: number, value: number): void;
   /** the first level of the table; undefined takes the open level */
   setFrom(level: number | undefined): void;
   /** the last level; undefined takes 10 levels after the first */
@@ -49,6 +53,7 @@ function levelField(label: string, hint: string, value: number, min: number, set
 function table(vm: TableVm, actions: PowerLevelActions, copied?: string) {
   const cols = widths(vm.harvestColumn);
   return html`<p><b>${vm.name}</b></p>
+    ${factorBar(vm.factorButtons, vm.factor, actions, factorLevel(vm.factorState, actions))}
     <div class="gb-levels">
       ${levelField(t('gbPower.from'), t('gbPower.fromHint'), vm.from, vm.current, actions.setFrom)}
       ${levelField(t('gbPower.to'), t('gbPower.toHint'), vm.to, vm.from + 1, actions.setTo)}
@@ -66,6 +71,14 @@ function table(vm: TableVm, actions: PowerLevelActions, copied?: string) {
         <th class="num" data-tip=${t('gbPower.netHint')}>${t('gbPower.net')}</th>
         <th class="num" data-tip=${t('gbPower.sumHint')}>${t('gbPower.sum')}</th>
         <th></th>
+      </tr>
+      <tr class="factors">
+        <td data-tip=${t('gbOwn.placeFactorHint')}>${t('gbCalc.factor')}</td>
+        ${vm.placeFactors.map(
+          (p, i) =>
+            html`<td class="num">${placeFactorField(p.factor, p.arc, (percent) => actions.setPlaceFactor(i + 1, percent))}</td>`,
+        )}
+        <td colspan=${cols.length - 6}></td>
       </tr>
       ${vm.rows.map((r) => row(r, vm.harvestColumn, actions, copied))}
     </table>

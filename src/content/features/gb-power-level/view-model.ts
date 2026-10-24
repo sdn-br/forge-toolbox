@@ -3,8 +3,9 @@ import { type DoubleHarvest, doubleHarvest, hasDoubleHarvest } from '../../domai
 import { emptyLevel } from '../../domain/gb-level-preview';
 import { calculateOwnShare, type OwnShareCalc } from '../../domain/gb-own-share';
 import type { GreatBuildingDef } from '../../stores/catalog';
-import type { Construction, OwnShareState } from '../../stores/great-building-model';
-import { effectiveFactors } from '../../ui/factor-bar';
+import type { Construction } from '../../stores/great-building-model';
+import { type PlaceFactorState, sameChoice } from '../../stores/place-factors';
+import { effectiveFactor, effectiveFactors, type FactorButton, factorButtons } from '../../ui/factor-bar';
 import { type CopyOptions, copyText } from '../../ui/own-share-copy';
 
 /** the most levels one table shows */
@@ -19,7 +20,15 @@ export interface PowerLevelInputs {
   greatBuildingName(def: BuildingDefId): string | undefined;
   /** era, level costs and production of the building; undefined while its definition is not loaded */
   greatBuilding(def: BuildingDefId): GreatBuildingDef | undefined;
-  own?: OwnShareState;
+  /** the factor of each place, in percent or the Arc bonus, and where they come from */
+  factors: PlaceFactorState;
+  factorButtons: number[];
+  /** the own Arc bonus as one more button, sorted in by its value; missing when the setting leaves it out */
+  arcBonus?: number;
+  secureExisting: boolean;
+  trust: boolean;
+  /** promised payments by place for the open level, index 0 is place 1 */
+  exts: number[];
   oneFpForNoReward: boolean;
   copy: CopyOptions;
   copyPlayer?: string;
@@ -72,6 +81,13 @@ export type PowerLevelVm =
       /** the level fields as they count: the table runs from the construction at `from` to the one ending at `to` */
       from: number;
       to: number;
+      /** the factor of the free field: the one of place 1 */
+      factor: number;
+      /** sorted by value; active only when all five places hold it */
+      factorButtons: FactorButton[];
+      factorState: Omit<PlaceFactorState, 'choices'>;
+      /** per place, index 0 is place 1: the factor in effect in percent, and whether it follows the Arc bonus */
+      placeFactors: { factor: number; arc: boolean }[];
       /** the building takes part in the double harvest: the column shows */
       harvestColumn: boolean;
       rows: PowerRow[];
@@ -94,8 +110,6 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
   const entity = c.entity;
   if (!entity) return { kind: 'noEntity' };
   const name = input.greatBuildingName(entity.def) ?? entity.def;
-  const own = input.own;
-  if (!own || own.def !== entity.def) return { kind: 'none' };
   const atMax = entity.level >= entity.maxLevel;
   // the rankings belong to the level they came for; a new level since leaves the real ranking unknown
   if (!atMax && (c.leveled || c.rankingsLevel !== entity.level))
@@ -105,7 +119,10 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
 
   const from = level(input.from, entity.level, entity.level, Number.MAX_SAFE_INTEGER);
   const to = level(input.to, from + DEFAULT_SPAN, from + 1, from + MAX_ROWS);
-  const factors = effectiveFactors(own.factors, own.arcBonus);
+  const { choices, ...factorState } = input.factors;
+  const factors = effectiveFactors(choices, input.arcBonus);
+  const first = choices[0];
+  const alike = first && choices.every((c) => sameChoice(c, first)) ? first : undefined;
   const harvestColumn = hasDoubleHarvest(entity.def, gb);
   const building = input.copyBuilding ?? name;
   const player = input.copyPlayer ?? '';
@@ -126,10 +143,10 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
       required,
       rankings,
       factor: factors,
-      secureExisting: own.secureExisting,
-      trust: own.trust,
+      secureExisting: input.secureExisting,
+      trust: input.trust,
       oneFpForNoReward: input.oneFpForNoReward,
-      exts: open ? own.exts : [],
+      exts: open ? input.exts : [],
     });
     const estimate = empty?.reward?.estimate === true;
     const harvest = harvestColumn ? doubleHarvest(entity.def, gb, x, c.nextProduction) : undefined;
@@ -156,6 +173,13 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
     current: entity.level,
     from,
     to,
+    factor: factors[0] ?? 0,
+    factorButtons: factorButtons(input.factorButtons, input.arcBonus, alike),
+    factorState,
+    placeFactors: choices.map((c) => ({
+      factor: effectiveFactor(c, input.arcBonus),
+      arc: c.arc && input.arcBonus !== undefined,
+    })),
     harvestColumn,
     rows,
     estimate: rows.some((r) => r.places.some((p) => p?.estimate)),

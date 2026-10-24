@@ -9,7 +9,8 @@ import {
 } from '../src/content/features/gb-power-level/view-model';
 import { toBuildingDef } from '../src/content/game/building-defs';
 import type { GreatBuildingDef } from '../src/content/stores/catalog';
-import type { Construction, OwnShareState, RankingRow } from '../src/content/stores/great-building-model';
+import type { Construction, RankingRow } from '../src/content/stores/great-building-model';
+import type { PlaceFactorState } from '../src/content/stores/place-factors';
 import { DEFAULT_COPY } from '../src/content/ui/own-share-copy';
 import type { BuildingDefId, PlayerId } from '../src/shared/ids';
 import definitions from './fixtures/gb-definitions.json';
@@ -25,13 +26,21 @@ const roman = def(ROMAN);
 // the recorded production per level 0 to 10: 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6
 
 const LEVEL = 3;
-const own: OwnShareState = {
-  def: ROMAN,
-  level: LEVEL,
-  factors: Array(5).fill({ value: 90, arc: false }),
+/** the five factors at 90 %, standard */
+const factorsOf = (value: number): PlaceFactorState => ({
+  choices: Array(5).fill({ value, arc: false }),
+  status: 'standard',
+  canSave: false,
+  canReset: false,
+  canAdopt: false,
+});
+/** what the state module holds for the building, as the box passes it on */
+const own = {
+  factors: factorsOf(90),
+  factorButtons: [80, 90, 100],
   secureExisting: true,
   trust: false,
-  exts: [],
+  exts: [] as number[],
 };
 
 /** the open level with the player's 20 on place 2 and a holder with 50 on place 1 */
@@ -67,7 +76,7 @@ function vm(change: Partial<PowerLevelInputs> = {}): Extract<PowerLevelVm, { kin
     construction: construction(),
     greatBuildingName: () => 'Roman',
     greatBuilding: () => roman,
-    own,
+    ...own,
     oneFpForNoReward: true,
     copy: DEFAULT_COPY,
     ...change,
@@ -141,13 +150,13 @@ describe('own share per row', () => {
   });
 
   it('follows the factors per place', () => {
-    const cheap = vm({ own: { ...own, factors: Array(5).fill({ value: 0, arc: false }) } });
+    const cheap = vm({ factors: factorsOf(0) });
     expect(cheap.rows[1]?.places[0]?.fp).toBeLessThan(vm().rows[1]?.places[0]?.fp as number);
   });
 
   it('marks payments from estimated rewards', () => {
     // past the listed rewards of the era (level 400 for this one) the first place comes from the curve
-    const far = vm({ construction: construction({}, 400, 500), own: { ...own, level: 400 } });
+    const far = vm({ construction: construction({}, 400, 500) });
     expect(far.estimate).toBe(true);
     // the open level has the game's rewards, the later ones are computed
     expect(far.rows[0]?.places.find(Boolean)?.estimate).toBe(false);
@@ -161,7 +170,7 @@ describe('double harvest', () => {
 
   it('is exact up to level 10 from the definition: the production of level X + 1', () => {
     // levels 4 to 9 take the entries 5 to 10
-    const t = vm({ construction: construction({}, 4, 20), own: { ...own, level: 4 }, to: 10 });
+    const t = vm({ construction: construction({}, 4, 20), to: 10 });
     expect(harvests(t)).toEqual([3, 3, 4, 4, 5, 6].map((fp) => ({ fp, estimate: false })));
   });
 
@@ -174,7 +183,7 @@ describe('double harvest', () => {
 
   it('is estimated from level 10 above it and marked', () => {
     // the production at level 10 is 6: × 11 / 10 = 6.6 → 7, × 20 / 10 = 12
-    const t = vm({ construction: construction({}, 9, 40), own: { ...own, level: 9 }, to: 20 });
+    const t = vm({ construction: construction({}, 9, 40), to: 20 });
     expect(t.rows[0]?.harvest).toEqual({ fp: 6, estimate: false });
     expect(t.rows[1]?.harvest).toEqual({ fp: 7, estimate: true });
     expect(t.rows.at(-1)?.harvest).toEqual({ fp: Math.round((6 * 20) / 10), estimate: true });
@@ -194,7 +203,6 @@ describe('double harvest', () => {
           ...c,
           entity: { ...(c.entity as NonNullable<Construction['entity']>), def: id as BuildingDefId },
         },
-        own: { ...own, def: id },
       });
       expect(excluded.harvestColumn).toBe(false);
       expect(harvests(excluded).every((h) => h === undefined)).toBe(true);
@@ -220,7 +228,7 @@ describe('double harvest', () => {
 describe('the end of the table', () => {
   it('ends at the first level whose reward is unknown', () => {
     // the reward curve ends before level 422
-    const t = vm({ construction: construction({}, 419, 500), own: { ...own, level: 419 }, to: 430 });
+    const t = vm({ construction: construction({}, 419, 500), to: 430 });
     expect(t.rows.map((r) => r.level)).toEqual([419, 420, 421]);
     expect(t.endsAt).toBe(422);
   });
@@ -258,16 +266,14 @@ describe('what the table cannot show', () => {
     construction: construction(),
     greatBuildingName: () => 'Roman',
     greatBuilding: () => roman,
-    own,
+    ...own,
     oneFpForNoReward: true,
     copy: DEFAULT_COPY,
   });
 
-  it('says so without a construction, a building, the Eigenanteil state or a definition', () => {
+  it('says so without a construction, a building or a definition', () => {
     expect(kind({ construction: undefined })).toBe('none');
     expect(kind({ construction: construction({ entity: undefined }) })).toBe('noEntity');
-    expect(kind({ own: undefined })).toBe('none');
-    expect(kind({ own: { ...own, def: 'X_Other' } })).toBe('none');
     expect(kind({ greatBuilding: () => undefined })).toBe('noDefinition');
   });
 

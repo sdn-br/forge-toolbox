@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { PlaceFactorState } from '../src/content/features/gb-own-share/place-factors';
 import { DEFAULT_COPY, type OwnShareVm, ownShareViewModel } from '../src/content/features/gb-own-share/view-model';
 import type { Construction, RankingRow } from '../src/content/stores/great-building-model';
+import type { PlaceFactorState } from '../src/content/stores/place-factors';
 import type { FactorChoice } from '../src/content/ui/factor-bar';
 import type { BuildingDefId, PlayerId } from '../src/shared/ids';
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { memoryKv } from '../src/content/core/kv';
-import { PlaceFactors, STANDARD_KEY, savedKey } from '../src/content/features/gb-own-share/place-factors';
+import { PlaceFactors, STANDARD_KEY, savedKey } from '../src/content/stores/place-factors';
 import type { FactorChoice } from '../src/content/ui/factor-bar';
 import { UiState } from '../src/content/ui/ui-state';
 

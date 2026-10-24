@@ -61,18 +61,3 @@ export interface Construction {
   leveled?: { level: number; rank?: number };
   seenAt: number;
 }
-
-/** what the Eigenanteil box holds for the building it shows; the Powerleveln box follows it */
-export interface OwnShareState {
-  def: string;
-  /** the level the Eigenanteil box opened the building at; its Ext belong to that level */
-  level: number;
-  /** one choice per place, index 0 is place 1 */
-  factors: { value: number; arc: boolean }[];
-  /** the own Arc bonus when the factor buttons show it */
-  arcBonus?: number;
-  secureExisting: boolean;
-  trust: boolean;
-  /** promised payments by place for the open level */
-  exts: number[];
-}

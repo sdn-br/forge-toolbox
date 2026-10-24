@@ -1,22 +1,17 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import type { OwnPlace } from '../../domain/gb-own-share';
-import { FACTOR_STEP, type FactorActions, factorBar, percentOf } from '../../ui/factor-bar';
+import { type FactorActions, factorBar } from '../../ui/factor-bar';
+import { type FactorLevelActions, factorLevel, placeFactorField } from '../../ui/factor-state';
 import { headerIcons } from '../../ui/icons';
 import { keepKeys } from '../../ui/inputs';
 import { type LevelChoice, levelBar } from '../../ui/level-bar';
 import type { CopyVm, OwnPreviewVm, OwnRow, OwnShareVm } from './view-model';
 
-export interface OwnShareActions extends FactorActions {
+export interface OwnShareActions extends FactorActions, FactorLevelActions {
   setExt(rank: number, fp: number): void;
   /** the factor of one place, in percent */
   setPlaceFactor(rank: number, value: number): void;
-  /** keeps the five factors for this building */
-  saveFactors(): void;
-  /** drops the building's saved factors and the change */
-  resetFactors(): void;
-  /** makes the five factors the standard */
-  adoptFactors(): void;
   setSecure(on: boolean): void;
   setTrust(on: boolean): void;
   setCopyBuilding(name: string): void;
@@ -29,7 +24,6 @@ export interface OwnShareActions extends FactorActions {
 }
 
 type Cell = (n: number, id: string) => TemplateResult;
-type CurrentVm = Extract<OwnShareVm, { kind: 'current' }>;
 
 /** `copied` names what was copied a moment ago */
 export function ownShareView(vm: OwnShareVm, actions: OwnShareActions, copied?: string) {
@@ -125,27 +119,6 @@ const COLUMNS = [
 /** columns a row label spans: order, player and state */
 const LABEL_SPAN = 3;
 
-/** a small icon per status, the words in its tooltip; the filled star of the standard never meets the star button,
- * which only shows when the factors differ from the standard */
-const STATUS = {
-  standard: { label: 'gbOwn.factorStandard', icon: headerIcons.starFilled, cls: 'factor-status muted' },
-  saved: { label: 'gbOwn.factorSaved', icon: headerIcons.castle, cls: 'factor-status saved' },
-  changed: { label: 'gbOwn.factorChanged', icon: headerIcons.pencil, cls: 'factor-status muted' },
-} as const;
-
-/** where the five factors come from, and the buttons that change it, each only when it does something */
-function factorLevel(s: CurrentVm['factorState'], actions: OwnShareActions) {
-  // all three always show, so the bar keeps its width; one that would do nothing is greyed, its tooltip says why.
-  // aria-disabled instead of disabled: a disabled button gets no pointer events, so no tooltip
-  const button = (on: boolean, label: string, why: string, icon: TemplateResult, action: () => void) =>
-    html`<button class=${on ? 'icon' : 'icon off'} aria-disabled=${on ? 'false' : 'true'} data-tip=${on ? label : why}
-      aria-label=${label} @click=${() => on && action()}>${icon}</button>`;
-  const mark = STATUS[s.status];
-  return html`<span class=${mark.cls} data-tip=${t(mark.label)} aria-label=${t(mark.label)}>${mark.icon}</span>
-    ${button(s.canSave, t('gbOwn.factorSave'), t('gbOwn.factorSaveOff'), headerIcons.save, () => actions.saveFactors())}
-    ${button(s.canReset, t('gbOwn.factorReset'), t('gbOwn.factorResetOff'), headerIcons.reset, () => actions.resetFactors())}
-    ${button(s.canAdopt, t('gbOwn.factorAdopt'), t('gbOwn.factorAdoptOff'), headerIcons.star, () => actions.adoptFactors())}`;
-}
 const fp = (n: number, cls = 'num') => html`<td class=${cls}>${formatNumber(n)}</td>`;
 
 /** a number to pay: a click copies it plain for the deposit field of the game */
@@ -204,18 +177,11 @@ function placeRow(r: Extract<OwnRow, { kind: 'place' }>, cell: Cell, actions: Ow
   </tr>`;
 }
 
-/** the factor of the place, read as a factor; a place on the Arc bonus is marked, a typed number holds it */
-function factorCell(r: Extract<OwnRow, { kind: 'place' }>, actions: OwnShareActions) {
-  if (r.factor === undefined) return html`<td></td>`;
-  const typed = (e: Event) => {
-    const value = (e.target as HTMLInputElement).valueAsNumber;
-    if (Number.isFinite(value)) actions.setPlaceFactor(r.place.rank, percentOf(value));
-  };
-  const tip = r.arc ? t('gbCalc.arcButton') : t('gbOwn.placeFactorHint');
-  return html`<td class="num"><input class=${r.arc ? 'place-factor arc' : 'place-factor'} type="number" min="0" max="3"
-    step=${FACTOR_STEP} data-tip=${tip} aria-label=${t('gbOwn.placeFactorHint')}
-    .value=${String((100 + r.factor) / 100)} @keydown=${keepKeys} @change=${typed} /></td>`;
-}
+/** the factor of the place; a place without a Forge point reward has none, it changes nothing there */
+const factorCell = (r: Extract<OwnRow, { kind: 'place' }>, actions: OwnShareActions) =>
+  r.factor === undefined
+    ? html`<td></td>`
+    : html`<td class="num">${placeFactorField(r.factor, r.arc === true, (percent) => actions.setPlaceFactor(r.place.rank, percent))}</td>`;
 
 /** a holder who keeps the place: his deposit against the payment at the factor, + paid more, − paid less */
 function diffCell(p: OwnPlace) {
