@@ -1,4 +1,6 @@
 // Game format → own model. Nothing outside src/content/game sees the game format.
+
+import type { GreatBuildingListRow } from '../../persistence/great-buildings/contract';
 import {
   type BuildingDefId,
   buildingDefId,
@@ -38,6 +40,7 @@ import type {
   GameCityProtection,
   GameEvent,
   GameGreatBuildingConstruction,
+  GameGreatBuildingListRow,
   GameGreatBuildingName,
   GameGreatBuildingRankingRow,
   GameGreatBuildingReward,
@@ -567,6 +570,33 @@ export function greatBuildingRequest(request: unknown): { entityId: number; owne
   const [entityId, owner, level] = request.map(num);
   if (entityId === undefined || owner === undefined) return null;
   return { entityId, owner: playerId(owner), ...(level !== undefined && { level }) };
+}
+
+/**
+ * The rows of a great building list (getOtherPlayerOverview, getContributions) as known buildings' state. Rows without
+ * building, owner or costs are skipped, so are those of `except` (the session player: its own list says nothing new).
+ */
+export function toGreatBuildingListRows(data: unknown, except?: PlayerId): GreatBuildingListRow[] {
+  return ((Array.isArray(data) ? data : []) as (GameGreatBuildingListRow | null)[]).flatMap((r) => {
+    const entityId = num(r?.entity_id);
+    const owner = num(r?.player?.player_id);
+    const level = num(r?.level);
+    const required = num(r?.max_progress);
+    const def = r?.city_entity_id;
+    if (entityId === undefined || owner === undefined || level === undefined || required === undefined || !def)
+      return [];
+    if (owner === except) return [];
+    return [
+      {
+        owner: playerId(owner),
+        entityId,
+        cityEntityId: buildingDefId(def),
+        level,
+        invested: num(r?.current_progress) ?? 0,
+        required,
+      },
+    ];
+  });
 }
 
 /** Display names of great buildings by definition, from the inventory list or the overview of a player. */

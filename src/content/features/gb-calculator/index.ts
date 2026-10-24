@@ -18,6 +18,7 @@ const FACTOR_ARC = 'gbCalc.factorArc';
 const FACTOR_BUTTONS = 'gbCalc.factorButtons';
 const ARC_BUTTON = 'gbCalc.arcButton';
 const SOUND = 'gbCalc.sound';
+const RETENTION = 'snipe.retentionDays';
 const FP = 'strategy_points';
 
 /** `tone` plays the sound for a profitable place; tests pass their own. */
@@ -60,6 +61,19 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         default: true,
       });
       ctx.settings.register({ key: SOUND, group: 'gbCalc.title', label: 'gbCalc.soundSetting', default: true });
+      ctx.settings.register({
+        key: RETENTION,
+        group: 'gbCalc.title',
+        section: 'snipe.section',
+        label: 'snipe.retentionSetting',
+        default: 30,
+        min: 1,
+        max: 365,
+      });
+      // buildings of other players not seen for that long go; those with an own contribution stay
+      ctx.greatBuildings
+        .prune(ctx.settings.number(RETENTION))
+        .catch((error) => logError('pruning great buildings failed', error));
 
       /** the last foreign construction; an own one opened later leaves it in the box */
       let shown: Construction | undefined;

@@ -80,19 +80,24 @@ describe('great building handlers and store', () => {
       reward: { fp: 730, blueprints: 15, medals: 1080 },
     });
     expect(events).toEqual(['opened:1001:1909:foreign']);
-    expect(await greatBuildings.known(playerId(1001))).toEqual([
-      {
-        world: 'de20',
-        owner: 1001,
-        entityId: 1909,
-        cityEntityId: 'X_EarlyMiddleAge_Landmark2',
-        level: 75,
-        invested: 251,
-        required: 3062,
-        bestRate: 192.6,
-        seenAt: 5_000,
-      },
-    ]);
+    const [stored] = await greatBuildings.known(playerId(1001));
+    expect(stored).toMatchObject({
+      world: 'de20',
+      owner: 1001,
+      entityId: 1909,
+      cityEntityId: 'X_EarlyMiddleAge_Landmark2',
+      level: 75,
+      maxLevel: 76,
+      connected: true,
+      invested: 251,
+      required: 3062,
+      rankingsLevel: 75,
+      rankingsAt: 5_000,
+      rankingsInvested: 251,
+      bestRate: 192.6,
+      seenAt: 5_000,
+    });
+    expect(stored?.rankings).toEqual(c?.rankings);
   });
 
   it('keeps the production of the next level from the construction with the level it was opened at', () => {

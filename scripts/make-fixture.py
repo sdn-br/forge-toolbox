@@ -27,6 +27,11 @@
 # the same for the first own contribution that levels a great building of another player: its opening (building and
 # construction), the contribution's response, the owner's getOtherPlayerOverview that follows (for the names) and the
 # websocket great_building_contribution, with fake player ids and names.
+# Own contributions: python3 -I scripts/make-fixture.py gb-contributions <recording.json> <out.json> [<rows>]
+# keeps the first GreatBuildingsService.getContributions response (the list "Legendäre Bauwerke" of the town hall), the
+# first <rows> rows (default 12) with their own rank, Forge points and reward, owners replaced by fake ids and names
+# (me 1000, owners from 2001, in order of appearance, an owner keeps its id across rows) and a startup stub for the
+# session player, since the recording has none.
 # Great building definitions: python3 -I scripts/make-fixture.py gb-defs <recording.json> <out.json> <cityentity_id> …
 # keeps the metadata file of each named great building, trimmed to id, name, type, min_era, the level costs and the type
 # and values of its production bonus (the Forge points per level of a Forge point building).
@@ -413,6 +418,37 @@ def gb_level_up_fixture(rec,out,own):
     fixture={k:fixture[k] for k in ('note','me','startup','opening','contribution','overview','event') if k in fixture}
     json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
 
+def gb_contributions_fixture(rec,out,rows):
+    ME=1000
+    ids={}
+    def pid(p):
+        if p not in ids: ids[p]=2001+len(ids)
+        return ids[p]
+    data=None
+    for r in rec:
+        if r['kind']!='json': continue
+        try: res=json.loads(r['response'])
+        except (TypeError,ValueError): continue
+        for e in (res if isinstance(res,list) else []):
+            if isinstance(e,dict) and e.get('requestMethod')=='getContributions' and data is None: data=e
+    def reward(x):
+        o={k:x[k] for k in ('blueprints','strategy_point_amount','__class__') if k in x}
+        if 'resources' in x: o['resources']={'medals':x['resources'].get('medals',0),'__class__':x['resources'].get('__class__')}
+        return o
+    def row(x):
+        o={k:x[k] for k in ('rank','forge_points','entity_id','city_entity_id','name','level','current_progress','max_progress','__class__') if k in x}
+        if 'reward' in x: o['reward']=reward(x['reward'])
+        n=pid(x['player']['player_id'])
+        o['player']={'player_id':n,'name':f'Eigentümer {n}','avatar':'','__class__':x['player'].get('__class__')}
+        return o
+    fixture={'note':'List of the great buildings the session player invested in (the town hall list), recorded on de10 2026-10-24: the first rows of the getContributions response. Owners anonymized (me 1000, owners from 2001), unrelated fields dropped.',
+      'me':ME,
+      'startup':[{'requestClass':'StartupService','requestMethod':'getData','requestData':None,'responseData':{'user_data':{'player_id':ME,'user_name':'Ich','era':'SpaceAgeTitan'},'city_map':{'gridId':'main','entities':[]}}}],
+      'contributions':{'requestClass':data['requestClass'],'requestMethod':data['requestMethod'],'requestData':None,'responseData':[row(x) for x in data['responseData'][:rows]]}}
+    json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
+
+if sys.argv[1]=='gb-contributions':
+    gb_contributions_fixture(json.load(open(sys.argv[2])),sys.argv[3],int(sys.argv[4]) if len(sys.argv)>4 else 12); sys.exit()
 if sys.argv[1] in ('gb-own-level-up','gb-level-up'):
     gb_level_up_fixture(json.load(open(sys.argv[2])),sys.argv[3],sys.argv[1]=='gb-own-level-up'); sys.exit()
 if sys.argv[1]=='gb-defs':

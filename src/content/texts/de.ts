@@ -155,6 +155,8 @@ export const de = {
   'notes.card': 'Notiz',
   'notes.add': 'Notiz hinzufügen',
   'gbCalc.title': 'LG-Rechner',
+  'snipe.section': 'Snipehilfe',
+  'snipe.retentionSetting': 'Fremde LGs aufbewahren (Tage)',
   'gbCalc.menu': 'LG-Rechner',
   'gbCalc.factorSetting': 'Faktor für „Fördern“ an fremden LGs (z. B. 1,9)',
   'gbCalc.factorArcSetting': 'Faktor = eigener Arche-Bonus',

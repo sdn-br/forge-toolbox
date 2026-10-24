@@ -1,0 +1,341 @@
+{
+  "note": "List of the great buildings the session player invested in (the town hall list), recorded on de10 2026-10-24: the first rows of the getContributions response. Owners anonymized (me 1000, owners from 2001), unrelated fields dropped.",
+  "me": 1000,
+  "startup": [
+    {
+      "requestClass": "StartupService",
+      "requestMethod": "getData",
+      "requestData": null,
+      "responseData": {
+        "user_data": {
+          "player_id": 1000,
+          "user_name": "Ich",
+          "era": "SpaceAgeTitan"
+        },
+        "city_map": {
+          "gridId": "main",
+          "entities": []
+        }
+      }
+    }
+  ],
+  "contributions": {
+    "requestClass": "GreatBuildingsService",
+    "requestMethod": "getContributions",
+    "requestData": null,
+    "responseData": [
+      {
+        "rank": 5,
+        "forge_points": 50,
+        "entity_id": 29696,
+        "city_entity_id": "X_SpaceAgeTitan_Landmark2",
+        "name": "Saturn VI Tor PEGASUS",
+        "level": 110,
+        "current_progress": 24602,
+        "max_progress": 30515,
+        "__class__": "GreatBuildingContributionRow",
+        "reward": {
+          "blueprints": 8,
+          "strategy_point_amount": 25,
+          "__class__": "GreatBuildingRankingRowReward",
+          "resources": {
+            "medals": 10719,
+            "__class__": "CityResource"
+          }
+        },
+        "player": {
+          "player_id": 2001,
+          "name": "Eigentümer 2001",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      },
+      {
+        "rank": 1,
+        "forge_points": 1,
+        "entity_id": 4833,
+        "city_entity_id": "X_ProgressiveEra_Landmark1",
+        "name": "Alcatraz",
+        "level": 91,
+        "current_progress": 1024,
+        "max_progress": 6287,
+        "__class__": "GreatBuildingContributionRow",
+        "reward": {
+          "blueprints": 17,
+          "strategy_point_amount": 1275,
+          "__class__": "GreatBuildingRankingRowReward",
+          "resources": {
+            "medals": 10945,
+            "__class__": "CityResource"
+          }
+        },
+        "player": {
+          "player_id": 2002,
+          "name": "Eigentümer 2002",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      },
+      {
+        "rank": 3,
+        "forge_points": 156,
+        "entity_id": 13,
+        "city_entity_id": "X_IndustrialAge_Landmark2",
+        "name": "Kapitol",
+        "level": 60,
+        "current_progress": 2704,
+        "max_progress": 2784,
+        "__class__": "GreatBuildingContributionRow",
+        "reward": {
+          "blueprints": 7,
+          "strategy_point_amount": 125,
+          "__class__": "GreatBuildingRankingRowReward",
+          "resources": {
+            "medals": 1189,
+            "__class__": "CityResource"
+          }
+        },
+        "player": {
+          "player_id": 2003,
+          "name": "Eigentümer 2003",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      },
+      {
+        "rank": 3,
+        "forge_points": 473,
+        "entity_id": 4224,
+        "city_entity_id": "X_ArcticFuture_Landmark2",
+        "name": "Arktische Orangerie",
+        "level": 121,
+        "current_progress": 17164,
+        "max_progress": 17636,
+        "__class__": "GreatBuildingContributionRow",
+        "reward": {
+          "blueprints": 12,
+          "strategy_point_amount": 400,
+          "__class__": "GreatBuildingRankingRowReward",
+          "resources": {
+            "medals": 17960,
+            "__class__": "CityResource"
+          }
+        },
+        "player": {
+          "player_id": 2004,
+          "name": "Eigentümer 2004",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      },
+      {
+        "rank": 1,
+        "forge_points": 242,
+        "entity_id": 949,
+        "city_entity_id": "X_IronAge_Landmark2",
+        "name": "Leuchtturm von Alexandria",
+        "level": 30,
+        "current_progress": 907,
+        "max_progress": 924,
+        "__class__": "GreatBuildingContributionRow",
+        "reward": {
+          "blueprints": 7,
+          "strategy_point_amount": 230,
+          "__class__": "GreatBuildingRankingRowReward",
+          "resources": {
+            "medals": 251,
+            "__class__": "CityResource"
+          }
+        },
+        "player": {
+          "player_id": 2005,
+          "name": "Eigentümer 2005",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      },
+      {
+        "rank": 1,
+        "forge_points": 539,
+        "entity_id": 946,
+        "city_entity_id": "X_BronzeAge_Landmark2",
+        "name": "Zeusstatue",
+        "level": 46,
+        "current_progress": 733,
+        "max_progress": 1272,
+        "__class__": "GreatBuildingContributionRow",
+        "reward": {
+          "blueprints": 10,
+          "strategy_point_amount": 345,
+          "__class__": "GreatBuildingRankingRowReward",
+          "resources": {
+            "medals": 383,
+            "__class__": "CityResource"
+          }
+        },
+        "player": {
+          "player_id": 2006,
+          "name": "Eigentümer 2006",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      },
+      {
+        "rank": 1,
+        "forge_points": 487,
+        "entity_id": 4574,
+        "city_entity_id": "X_LateMiddleAge_Landmark1",
+        "name": "Basilius-Kathedrale",
+        "level": 32,
+        "current_progress": 999,
+        "max_progress": 1236,
+        "__class__": "GreatBuildingContributionRow",
+        "reward": {
+          "blueprints": 8,
+          "strategy_point_amount": 310,
+          "__class__": "GreatBuildingRankingRowReward",
+          "resources": {
+            "medals": 1088,
+            "__class__": "CityResource"
+          }
+        },
+        "player": {
+          "player_id": 2006,
+          "name": "Eigentümer 2006",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      },
+      {
+        "rank": 2,
+        "forge_points": 338,
+        "entity_id": 5,
+        "city_entity_id": "X_ProgressiveEra_Landmark1",
+        "name": "Alcatraz",
+        "level": 71,
+        "current_progress": 3606,
+        "max_progress": 3837,
+        "__class__": "GreatBuildingContributionRow",
+        "reward": {
+          "blueprints": 10,
+          "strategy_point_amount": 475,
+          "__class__": "GreatBuildingRankingRowReward",
+          "resources": {
+            "medals": 4069,
+            "__class__": "CityResource"
+          }
+        },
+        "player": {
+          "player_id": 2007,
+          "name": "Eigentümer 2007",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      },
+      {
+        "rank": 3,
+        "forge_points": 131,
+        "entity_id": 2451,
+        "city_entity_id": "X_AllAge_EasterBonus4",
+        "name": "Observatorium",
+        "level": 53,
+        "current_progress": 1807,
+        "max_progress": 1927,
+        "__class__": "GreatBuildingContributionRow",
+        "reward": {
+          "blueprints": 6,
+          "strategy_point_amount": 85,
+          "__class__": "GreatBuildingRankingRowReward",
+          "resources": {
+            "medals": 325,
+            "__class__": "CityResource"
+          }
+        },
+        "player": {
+          "player_id": 2008,
+          "name": "Eigentümer 2008",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      },
+      {
+        "rank": 1,
+        "forge_points": 425,
+        "entity_id": 1683,
+        "city_entity_id": "X_BronzeAge_Landmark2",
+        "name": "Zeusstatue",
+        "level": 39,
+        "current_progress": 645,
+        "max_progress": 1070,
+        "__class__": "GreatBuildingContributionRow",
+        "reward": {
+          "blueprints": 9,
+          "strategy_point_amount": 285,
+          "__class__": "GreatBuildingRankingRowReward",
+          "resources": {
+            "medals": 316,
+            "__class__": "CityResource"
+          }
+        },
+        "player": {
+          "player_id": 2008,
+          "name": "Eigentümer 2008",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      },
+      {
+        "rank": 1,
+        "forge_points": 1886,
+        "entity_id": 3618,
+        "city_entity_id": "X_FutureEra_Landmark1",
+        "name": "Die Arche",
+        "level": 68,
+        "current_progress": 2429,
+        "max_progress": 4164,
+        "__class__": "GreatBuildingContributionRow",
+        "reward": {
+          "blueprints": 14,
+          "strategy_point_amount": 1150,
+          "__class__": "GreatBuildingRankingRowReward",
+          "resources": {
+            "medals": 29214,
+            "__class__": "CityResource"
+          }
+        },
+        "player": {
+          "player_id": 2008,
+          "name": "Eigentümer 2008",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      },
+      {
+        "rank": 2,
+        "forge_points": 168,
+        "entity_id": 1958,
+        "city_entity_id": "X_ContemporaryEra_Landmark2",
+        "name": "Innovation Tower",
+        "level": 24,
+        "current_progress": 1208,
+        "max_progress": 1275,
+        "__class__": "GreatBuildingContributionRow",
+        "reward": {
+          "blueprints": 5,
+          "strategy_point_amount": 155,
+          "__class__": "GreatBuildingRankingRowReward",
+          "resources": {
+            "medals": 2650,
+            "__class__": "CityResource"
+          }
+        },
+        "player": {
+          "player_id": 2009,
+          "name": "Eigentümer 2009",
+          "avatar": "",
+          "__class__": "OtherPlayer"
+        }
+      }
+    ]
+  }
+}

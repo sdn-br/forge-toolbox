@@ -5,6 +5,9 @@ import type { GreatBuildingPersistence } from '../../content/stores/great-buildi
 export function greatBuildingPersistence(call: Call): GreatBuildingPersistence {
   return {
     put: (rows) => call('greatBuildings.put', { rows }),
+    putList: (world, rows, at) => call('greatBuildings.putList', { world, rows, at }),
+    putContributions: (world, rows, at) => call('greatBuildings.putContributions', { world, rows, at }),
+    prune: (world, before) => call('greatBuildings.prune', { world, before }),
     list: (world, owner) => call('greatBuildings.list', { world, ...(owner !== undefined && { owner }) }),
   };
 }
