@@ -372,6 +372,9 @@ describe('sabotage feature', () => {
   });
 
   it('shows the attack line of the visited player and follows player updates and shields', async () => {
+    // a fixed day: on a day with a clock change, 24 hours later can still be "heute"
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 9, 19, 15, 0));
     const { ctx, box } = setup();
     ctx.players.apply(world, [observed(1, { canPlunder: false, nextInteractionAt: Date.now() + 2 * HOUR })], 'update');
     ctx.cities.setVisited(city(1));
