@@ -175,6 +175,7 @@ export class GreatBuildingStore {
   noteContributions(rows: GreatBuildingListRow[]): void {
     const at = this.now();
     this.enqueue(() => this.persistence.putContributions(this.world, rows, at));
+    this.bus.emit('greatBuildings.contributions', { at });
   }
 
   /** Deletes buildings not seen for `days`, except those with an own contribution; run at the start. */
@@ -201,7 +202,9 @@ export class GreatBuildingStore {
     if (!open || open.own || !entity) return;
     const rate = bestRate(calculateConstruction({ ...entity, rankings: open.rankings, arcBonus: 0, factor: 0 }));
     const invested = open.rankings.reduce((sum, r) => sum + (r.fp ?? 0), 0);
-    const mine = open.rankings.some((r) => r.self && r.rank !== undefined);
+    const self = open.rankings.find((r) => r.self && r.rank !== undefined);
+    const mine = self !== undefined;
+    const at = this.now();
     this.pending.push({
       world: this.world,
       owner: open.owner,
@@ -218,7 +221,12 @@ export class GreatBuildingStore {
       rankingsInvested: invested,
       ...(rate !== undefined && { bestRate: rate }),
       ...(mine && { ownContribution: true }),
-      seenAt: this.now(),
+      ...(self?.rank !== undefined && {
+        contribution: { rank: self.rank, forgePoints: self.fp ?? 0, reward: self.reward?.fp ?? 0, at },
+      }),
+      // the building is open in the game now: what is paid in from here on is growth
+      openedProgress: entity.invested,
+      seenAt: at,
     });
     if (this.flushQueued) return;
     this.flushQueued = true;

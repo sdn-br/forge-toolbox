@@ -11,6 +11,9 @@ export interface GreatBuildingListRow {
   required: number;
   /** the session player's place, when the list names one: an own contribution */
   rank?: number;
+  /** own deposit and net reward of that place; the town hall list (getContributions) brings them */
+  forgePoints?: number;
+  reward?: number;
 }
 
 export interface GreatBuildingsApi {

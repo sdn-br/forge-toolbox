@@ -587,6 +587,8 @@ export function toGreatBuildingListRows(data: unknown, except?: PlayerId): Great
       return [];
     if (owner === except) return [];
     const rank = num(r?.rank);
+    const forgePoints = num(r?.forge_points);
+    const reward = num(r?.reward?.strategy_point_amount);
     return [
       {
         owner: playerId(owner),
@@ -596,6 +598,7 @@ export function toGreatBuildingListRows(data: unknown, except?: PlayerId): Great
         invested: num(r?.current_progress) ?? 0,
         required,
         ...(rank !== undefined && { rank }),
+        ...(rank !== undefined && forgePoints !== undefined && { forgePoints, reward: reward ?? 0 }),
       },
     ];
   });
