@@ -140,11 +140,11 @@ export const headerIcons = {
   warning: headerIcon(svg`<path d="M12 3.5 21.5 20h-19Z"/><path d="M12 10v4.4M12 17.2v.3"/>`),
   /** an arrow up: the payment levels the building */
   arrowUp: headerIcon(svg`<path d="M12 20V4.5M5.5 11 12 4.5 18.5 11"/>`),
-  /** a small castle, », a big castle: power leveling, the building grows fast; wider than the grid, the big
-   * castle at full height with equal space above and below, the chevrons centred on it */
-  powerLevel: html`<svg class="wide" viewBox="0 0 50 24" fill="none" stroke="currentColor" stroke-width="2.2"
-    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${castle(0.5, -0.5, 10.75)}${castle(1, 27, -0.05)}
-    <path d="M15 4.5l4.5 7.5-4.5 7.5M20.5 4.5l4.5 7.5-4.5 7.5"/></svg>`,
+  /** a small castle, », a big castle: power leveling, the building grows fast; wider than the grid, both castles
+   * centred on the tip of the chevrons, the big one at full height, equal space on both sides of the chevrons */
+  powerLevel: html`<svg class="wide" viewBox="0 0 61.72 24" fill="none" aria-hidden="true">
+    ${castle(0.816, -1.13, 2.17)}${castle(1.2, 34.82, -2.46)}
+    <path fill="currentColor" d="M20.72 8H23.52L27.92 12L23.52 16H20.72L25.12 12Z M26.12 8H28.92L33.32 12L28.92 16H26.12L30.52 12Z"/></svg>`,
   /** two sheets, one over the other: copy */
   copy: headerIcon(
     svg`<rect x="8.5" y="8.5" width="12" height="12" rx="1.8"/><path d="M15.5 8.5V5a1.5 1.5 0 0 0-1.5-1.5H5A1.5 1.5 0 0 0 3.5 5v9A1.5 1.5 0 0 0 5 15.5h3.5"/>`,

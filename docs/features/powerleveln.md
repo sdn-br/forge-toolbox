@@ -2,7 +2,7 @@
 
 Stand 2026-10-24. Eigenanteil eines eigenen LGs über mehrere Stufen, Stufe für Stufe. Vorschlag und Entscheidungen: Nutzer, 2026-10-24. Baut auf dem [Eigenanteil](eigenanteil.md) auf, Datenmodell: [Great Buildings](../datenmodell/great-buildings.md).
 
-**Box „Powerleveln“:** eigene Box, geöffnet mit einem Knopf in der Eigenanteil-Box. Der Knopf zeigt nur ein Icon: kleines LG, », großes LG, also schnell voran (Nutzer, 2026-10-24). Sie zeigt das LG, das der Eigenanteil gerade zeigt, und folgt ihm, wenn der Spieler ein anderes eigenes LG öffnet. Kein Menüeintrag, ohne geöffnetes eigenes LG gibt es nichts zu rechnen.
+**Box „Powerleveln“:** eigene Box, geöffnet mit einem Knopf in der Eigenanteil-Box. Der Knopf zeigt nur ein Icon: kleines LG, », großes LG, also schnell voran (Nutzer, 2026-10-24). Endfassung C10m: beide LGs mittig zur Spitze der gefüllten Pfeile, das kleine 68 % des großen, gleiche Abstände links und rechts der Pfeile. Sie zeigt das LG, das der Eigenanteil gerade zeigt, und folgt ihm, wenn der Spieler ein anderes eigenes LG öffnet. Kein Menüeintrag, ohne geöffnetes eigenes LG gibt es nichts zu rechnen.
 
 - Kopf: Name des LGs. Darunter zwei Zahlenfelder „von“ (vorbelegt mit der laufenden Stufe) und „bis“ (vorbelegt mit von + 10), höchstens 100 Zeilen. Öffnet der Spieler ein LG, stehen beide wieder auf den Vorgaben.
 - Eine Zeile je Stufe X → X+1 mit den Spalten Stufe, P1 bis P5, Eigenanteil, Doppelernte, Netto, Summe und einem Kopier-Knopf. Feste Spaltenbreiten wie im Eigenanteil (`table-layout: fixed`, Breiten in `em`). Spaltenköpfe (Nutzer, 2026-10-24): Eigenanteil als „EA“, Summe als „Σ“, Doppelernte als Icon (Münzberg mit „2×“, Variante U8: oranges „2×“, fett, mit dunklem Rand, 18 px), das Wort jeweils im Tooltip.
