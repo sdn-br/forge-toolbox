@@ -34,6 +34,7 @@ import {
   toItemAmount,
   toItemUpdates,
   toLimitedBonuses,
+  toListOwners,
   toNextProduction,
   toObservation,
   toObservationWithAttack,
@@ -406,7 +407,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   ingestion.on('GreatBuildingsService', 'getContributions', ({ data }) => {
     if (!Array.isArray(data)) return;
     catalog.setGreatBuildingNames(toGreatBuildingNames(data));
-    greatBuildings.noteContributions(toGreatBuildingListRows(data, session.current?.playerId));
+    greatBuildings.noteContributions(toGreatBuildingListRows(data, session.current?.playerId), toListOwners(data));
   });
   ingestion.on('BonusService', 'getLimitedBonuses', ({ data }) => {
     greatBuildings.setLimitedBonuses(toLimitedBonuses(data));

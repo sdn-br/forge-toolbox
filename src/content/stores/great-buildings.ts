@@ -171,11 +171,11 @@ export class GreatBuildingStore {
     });
   }
 
-  /** The town hall list of the buildings the session player invested in (`getContributions`). */
-  noteContributions(rows: GreatBuildingListRow[]): void {
+  /** The town hall list of the buildings the session player invested in (`getContributions`), with owner names. */
+  noteContributions(rows: GreatBuildingListRow[], owners: { id: PlayerId; name: string }[] = []): void {
     const at = this.now();
     this.enqueue(() => this.persistence.putContributions(this.world, rows, at));
-    this.bus.emit('greatBuildings.contributions', { at });
+    this.bus.emit('greatBuildings.contributions', { at, owners });
   }
 
   /** Deletes buildings not seen for `days`, except those with an own contribution; run at the start. */

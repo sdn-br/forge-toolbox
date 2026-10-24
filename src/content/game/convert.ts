@@ -604,6 +604,17 @@ export function toGreatBuildingListRows(data: unknown, except?: PlayerId): Great
   });
 }
 
+/** The owners of the rows of a great building list with the names the list gives them. */
+export function toListOwners(data: unknown): { id: PlayerId; name: string }[] {
+  const owners = new Map<PlayerId, string>();
+  for (const r of (Array.isArray(data) ? data : []) as (GameGreatBuildingListRow | null)[]) {
+    const id = num(r?.player?.player_id);
+    const name = r?.player?.name;
+    if (id !== undefined && typeof name === 'string' && name !== '') owners.set(playerId(id), name);
+  }
+  return [...owners].map(([id, name]) => ({ id, name }));
+}
+
 /** Display names of great buildings by definition, from the inventory list or the overview of a player. */
 export function toGreatBuildingNames(data: unknown): Record<string, string> {
   const names: Record<string, string> = {};
