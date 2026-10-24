@@ -150,7 +150,10 @@ button.marker.dim { opacity: .3; }
 /* great building calculator: one row per place, coloured by what the place is worth */
 .gb-factor, .gb-levels { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 4px 0 6px; }
 .gb-factor input.active, .gb-levels input.active { font-weight: 600; border-color: var(--accent); }
-.gb-factor input, .gb-levels input { width: 5em; }
+.gb-factor input[type=number], .gb-levels input[type=number] { width: 5em; }
+/* factor buttons all one width, whatever the number of digits */
+.gb-factor button:not(.icon) { min-width: 3.6em; text-align: center; }
+.gb-factor label { gap: 3px; }
 .gb-places { position: relative; min-height: 60px; }
 .gb-table td, .gb-table th { white-space: nowrap; }
 tr.gb-profit { background: rgba(90, 170, 90, .28); }
@@ -181,8 +184,8 @@ table.power-level button.icon { all: unset; cursor: pointer; display: grid; plac
 table.power-level button.icon:hover { opacity: 1; }
 table.power-level button.icon svg { display: block; width: 14px; height: 14px; }
 .power-open { margin: 4px 0; }
-.power-open button { display: inline-grid; place-items: center; padding: 1px 4px; }
-.power-open button svg { display: block; width: 22px; height: 22px; }
+.power-open button { display: inline-grid; place-items: center; padding: 3px 6px; }
+.power-open button svg { display: block; width: auto; height: 22px; }
 .gb-levels input.span { width: 4.5em; }
 input.place-factor.arc { color: var(--accent); }
 .gb-factor .factor-status { display: inline-grid; place-items: center; margin-left: 4px; }
@@ -207,6 +210,8 @@ tr.gb-unavailable, tr.gb-worse { color: #8a7a60; }
 td.short { color: #ff6a50; font-weight: 600; }
 td.over-rest { color: #e08070; }
 td.below-safe { font-style: italic; opacity: .75; }
+/* the name of the great building on top of its boxes */
+.gb-title { font-size: 15px; font-weight: 600; }
 p.gb-me { margin: 6px 0; padding: 4px 6px; border: 1px solid #8a6a3a; border-radius: 4px; background: #3a2814; }
 p.gb-me.safe { border-color: #5a9a4a; }
 p.gb-me.safe, .gb-me .gain { color: #8fd08f; }

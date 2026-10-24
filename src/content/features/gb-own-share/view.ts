@@ -33,9 +33,9 @@ export function ownShareView(vm: OwnShareVm, actions: OwnShareActions, copied?: 
     case 'noEntity':
       return html`<p class="warn">${t('gbCalc.noEntity')}</p>`;
     case 'unconnected':
-      return html`<p><b>${vm.name}</b></p><p class="muted">${t('gbCalc.unconnected')}</p>`;
+      return html`<p class="gb-title">${vm.name}</p><p class="muted">${t('gbCalc.unconnected')}</p>`;
     case 'leveled':
-      return html`<p><b>${vm.name}</b></p><p class="warn">${t('gbCalc.leveled', { level: vm.level })}</p>`;
+      return html`<p class="gb-title">${vm.name}</p><p class="warn">${t('gbCalc.leveled', { level: vm.level })}</p>`;
     case 'previewUnknown': {
       const note = vm.preview.unknown === 'definition' ? t('gbCalc.previewNoDefinition') : t('gbCalc.previewNoReward');
       return html`${head(vm.name, vm.levels, actions)}${previewHeading(vm.preview)}
@@ -87,7 +87,7 @@ export function ownShareView(vm: OwnShareVm, actions: OwnShareActions, copied?: 
 
 /** the name with the open level, then the level field */
 const head = (name: string, l: LevelChoice, actions: OwnShareActions) =>
-  html`<p><b>${t('gbCalc.heading', { name, level: l.current, next: l.current + 1 })}</b></p>
+  html`<p><span class="gb-title">${t('gbCalc.heading', { name, level: l.current, next: l.current + 1 })}</span></p>
     ${levelBar(l, (level) => actions.previewLevel(level))}`;
 
 /** the previewed level, as in the LG-Rechner */

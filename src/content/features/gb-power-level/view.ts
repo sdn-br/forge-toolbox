@@ -30,9 +30,9 @@ export function powerLevelView(vm: PowerLevelVm, actions: PowerLevelActions, cop
     case 'noEntity':
       return html`<p class="warn">${t('gbCalc.noEntity')}</p>`;
     case 'leveled':
-      return html`<p><b>${vm.name}</b></p><p class="warn">${t('gbCalc.leveled', { level: vm.level })}</p>`;
+      return html`<p class="gb-title">${vm.name}</p><p class="warn">${t('gbCalc.leveled', { level: vm.level })}</p>`;
     case 'noDefinition':
-      return html`<p><b>${vm.name}</b></p><p class="muted">${t('gbPower.noDefinition')}</p>`;
+      return html`<p class="gb-title">${vm.name}</p><p class="muted">${t('gbPower.noDefinition')}</p>`;
   }
   return table(vm, actions, copied);
 }
@@ -52,7 +52,7 @@ function levelField(label: string, hint: string, value: number, min: number, set
 
 function table(vm: TableVm, actions: PowerLevelActions, copied?: string) {
   const cols = widths(vm.harvestColumn);
-  return html`<p><b>${vm.name}</b></p>
+  return html`<p class="gb-title">${vm.name}</p>
     ${factorBar(vm.factorButtons, vm.factor, actions, factorLevel(vm.factorState, actions))}
     <div class="gb-levels">
       ${levelField(t('gbPower.from'), t('gbPower.fromHint'), vm.from, vm.current, actions.setFrom)}

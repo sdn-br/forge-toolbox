@@ -140,9 +140,11 @@ export const headerIcons = {
   warning: headerIcon(svg`<path d="M12 3.5 21.5 20h-19Z"/><path d="M12 10v4.4M12 17.2v.3"/>`),
   /** an arrow up: the payment levels the building */
   arrowUp: headerIcon(svg`<path d="M12 20V4.5M5.5 11 12 4.5 18.5 11"/>`),
-  /** a small castle, », a big castle: power leveling, the building grows fast */
-  powerLevel: headerIcon(svg`${castle(0.36, -0.3, 13.4)}${castle(0.56, 11.2, 9.1)}
-    <path stroke-width="1.3" d="M8 15.6l1.5 1.7-1.5 1.7M10.2 15.6l1.5 1.7-1.5 1.7"/>`),
+  /** a small castle, », a big castle: power leveling, the building grows fast; wider than the grid, the big
+   * castle at full height with equal space above and below, the chevrons centred on it */
+  powerLevel: html`<svg class="wide" viewBox="0 0 50 24" fill="none" stroke="currentColor" stroke-width="2.2"
+    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${castle(0.5, -0.5, 10.75)}${castle(1, 27, -0.05)}
+    <path d="M15 4.5l4.5 7.5-4.5 7.5M20.5 4.5l4.5 7.5-4.5 7.5"/></svg>`,
   /** two sheets, one over the other: copy */
   copy: headerIcon(
     svg`<rect x="8.5" y="8.5" width="12" height="12" rx="1.8"/><path d="M15.5 8.5V5a1.5 1.5 0 0 0-1.5-1.5H5A1.5 1.5 0 0 0 3.5 5v9A1.5 1.5 0 0 0 5 15.5h3.5"/>`,
