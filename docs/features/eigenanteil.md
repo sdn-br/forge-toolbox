@@ -65,4 +65,4 @@ Stand 2026-10-24. Erste Stufe des Eigenanteilsrechners für eigene LGs. Powerlev
 
 **Powerleveln:** eigene Box, geöffnet per Knopf aus dem Eigenanteil, siehe [Powerleveln](powerleveln.md).
 
-**Noch nicht enthalten (Nutzer, 2026-10-23, später):** „Merken“ mehrerer LGs. **Nicht übernommen:** Startwert in der Summe abschaltbar, Fußzeile, Spalten Blaupausen und Medaillen, kompakte Ansicht, Ansicht für fremde LGs, Format je LG.
+**Noch nicht enthalten (Nutzer, 2026-10-23, später):** „Merken“ mehrerer LGs, am 2026-10-24 zurückgestellt. **Nicht übernommen:** Startwert in der Summe abschaltbar, Fußzeile, Spalten Blaupausen und Medaillen, kompakte Ansicht, Ansicht für fremde LGs, Format je LG.
