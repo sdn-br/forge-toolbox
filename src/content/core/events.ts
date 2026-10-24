@@ -40,6 +40,12 @@ export interface ToolboxEvents {
     entityId: number;
     reason: 'entity' | 'ranking' | 'contributed' | 'leveled';
   };
+  /** the factors per place of a building changed (any of the three levels); without `def` those of every building */
+  'gbOwn.factorsChanged': { def?: string };
+  /** the Ext of a building's level changed */
+  'gbOwn.extChanged': { def: string; level: number };
+  /** the Eigenanteil box asks for the Powerleveln box */
+  'gbPowerLevel.open': Record<string, never>;
 }
 
 export type ToolboxBus = EventBus<ToolboxEvents>;

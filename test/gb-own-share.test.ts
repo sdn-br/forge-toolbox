@@ -172,4 +172,19 @@ describe('places without a Forge point reward', () => {
     expect(calc.rest).toBe(0);
     expect(calc.ownShare).toBe(675);
   });
+
+  it('asks each place at its own factor', () => {
+    const rankings = [me(0), ...empty([100, 50, 20, 10, 5])];
+    const calc = calculateOwnShare({ required: 1000, rankings, factor: [100, 90, 80, 90, 90] });
+    // 100 × 2, 50 × 1.9, 20 × 1.8; the advance follows from each ask: 1000 - 2 × 200 before P1
+    expect(calc.places.map((p) => p.ask)).toEqual([200, 95, 36, 19, 10]);
+    expect(calc.places[0]?.advance).toBe(600);
+    // the same factor for all five as a list or as one number
+    const one = calculateOwnShare({ required: 1000, rankings, factor: 90 });
+    expect(calculateOwnShare({ required: 1000, rankings, factor: [90, 90, 90, 90, 90] })).toEqual(one);
+    // a place past the end of the list takes the last factor
+    expect(calculateOwnShare({ required: 1000, rankings, factor: [100, 90] }).places.map((p) => p.ask)).toEqual([
+      200, 95, 38, 19, 10,
+    ]);
+  });
 });

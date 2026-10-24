@@ -3,6 +3,7 @@ import type { PlayerId } from '../../../shared/ids';
 import { formatNumber, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { battleDetailsView } from '../../ui/battle-details';
+import { headerIcons } from '../../ui/icons';
 import { keepKeys } from '../../ui/inputs';
 import { externalIcon } from '../../ui/links';
 import type { IncomingRow, PlunderRow, PvpRow, PvpTab, PvpVm } from './view-model';
@@ -28,10 +29,10 @@ const opponentLink = (r: { opponent: PlayerId; name: string; url: string }, acti
     actions.pick(r.opponent);
   }}>${r.name}</a> ${externalIcon(r.url)}</td>`;
 
-/** 📝 per row: dim without a note, the note as tooltip */
+/** a note sheet per row: dim without a note, the note as tooltip */
 const noteMarker = (opponent: PlayerId, note: string, actions: PvpActions) =>
   html`<td><button class=${note ? 'marker' : 'marker dim'} data-tip=${note || t('notes.add')}
-    @click=${() => actions.note(opponent)}>📝</button></td>`;
+    aria-label=${t('notes.add')} @click=${() => actions.note(opponent)}>${headerIcons.note}</button></td>`;
 
 const incomingRow = (r: IncomingRow, actions: PvpActions) => html`<tr>
   ${noteMarker(r.attacker, r.note, actions)}${opponentLink({ opponent: r.attacker, name: r.name, url: r.url }, actions)}
@@ -82,16 +83,18 @@ const EMPTY = {
 const tabs = (current: PvpTab | undefined, actions: PvpActions) =>
   html`<p>${(['battles', 'plunders', 'incoming'] as const).map(
     (tab) =>
-      html`<button class="action" ?disabled=${tab === (current ?? 'battles')} @click=${() => actions.tab(tab)}>${t(`pvp.tab.${tab}`)}</button> `,
+      html`<button class=${tab === (current ?? 'battles') ? 'action active' : 'action'} ?disabled=${tab === (current ?? 'battles')} @click=${() => actions.tab(tab)}>${t(`pvp.tab.${tab}`)}</button> `,
   )}</p>`;
 
 const paging = (vm: PvpVm, actions: PvpActions) =>
   vm.pages <= 1
     ? ''
     : html`<p>
-      <button class="action" ?disabled=${vm.page === 0} @click=${() => actions.page(vm.page - 1)}>${t('pvp.previous')}</button>
+      <button class="action icon-only" ?disabled=${vm.page === 0} data-tip=${t('pvp.previous')} aria-label=${t('pvp.previous')}
+        @click=${() => actions.page(vm.page - 1)}>${headerIcons.chevronLeft}</button>
       ${t('pvp.page', { page: vm.page + 1, pages: vm.pages })}
-      <button class="action" ?disabled=${vm.page >= vm.pages - 1} @click=${() => actions.page(vm.page + 1)}>${t('pvp.next')}</button>
+      <button class="action icon-only" ?disabled=${vm.page >= vm.pages - 1} data-tip=${t('pvp.next')} aria-label=${t('pvp.next')}
+        @click=${() => actions.page(vm.page + 1)}>${headerIcons.chevronRight}</button>
     </p>`;
 
 /** `note` is the note card of the picked player */
@@ -102,7 +105,8 @@ export function pvpView(vm: PvpVm | undefined, actions: PvpActions, note?: Templ
       @keydown=${keepKeys} @keypress=${keepKeys} @keyup=${keepKeys} />
     ${
       vm?.picked
-        ? html`<button class="action" data-tip=${t('pvp.clearFilter')} @click=${() => actions.clearPick()}>${t('pvp.onlyPlayer', { name: vm.picked })} ✕</button>`
+        ? html`<button class="action icon-only" data-tip=${t('pvp.clearFilter')} aria-label=${t('pvp.clearFilter')}
+          @click=${() => actions.clearPick()}>${t('pvp.onlyPlayer', { name: vm.picked })}${headerIcons.close}</button>`
         : ''
     }</p>`;
   // the search field stays in one outer template: swapping templates would replace it and take its focus mid-typing

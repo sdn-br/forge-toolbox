@@ -103,6 +103,12 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
 - **Chart:** kapselt ECharts mit Lazy-Load, Theme, Resize, Export als PNG und CSV. Bekommt ein eigenes Datenformat für Serien, nicht ECharts-Optionen. Lässt sich in jede View einbetten, so muss kein Feature Chart-Code wiederholen.
 - **Stadtplan:** zeichnet ein Stadtgitter mit Gebäuden aus einfachen Daten (siehe [Stadtplan](features/stadtplan.md)).
 - **Menü:** Leiste mit den Knöpfen der angemeldeten Features, sortierbar, einzeln ausblendbar.
+- **Icons statt Wörter** (Nutzer, 2026-10-24): Knöpfe tragen, wo es sinnvoll möglich ist, ein Icon statt eines Worts, mit dem Wort im Tooltip und als `aria-label`. Alle Icons kommen aus `src/content/ui/icons.ts` in derselben Designsprache (eigene SVGs auf dem 24er-Raster, Strichstärke je Ort, Farben aus den Variablen), keine Emoji und keine Schriftzeichen als Icon. Während der Entwicklung darf ein neuer Knopf zuerst Text tragen. Dann wird besprochen, ob er später ein Icon bekommt, und das kommt in die Liste „Offene Icons“ unten. Knöpfe, die Text behalten müssen (Faktoren, Reiter, Seitenwechsel mit Zahl), sind im Farbschema der Boxen gestylt, wie die Eingabefelder (dunkler Grund, heller Text, brauner Rand, Akzent bei aktiv und Fokus).
+- **Keine neuen Farbtöne** (Nutzer, 2026-10-24): Farben kommen aus der Palette der Boxen (Variablen auf `:host`: `--ink`, `--accent`, `--btn`, `--btn-hover`, `--field`, `--line`, `--bg`). Ein neuer Ton, etwa ein helleres Orange, kommt nur dazu, wenn er zum Rest passt und besprochen ist.
+- **Überschriften nie abschneiden** (Nutzer, 2026-10-24): Ein Spaltenkopf zeigt sein Wort ganz. Passt es in eine Spalte mit fester Breite nicht, steht eine Abkürzung oder ein Icon da, das ganze Wort im Tooltip und als `aria-label`.
+- **Offene Icons** (Knöpfe mit Text, für die ein Icon gewünscht ist):
+  - Spaltenkopf „Einzahlen“ im Eigenanteil (zurückgestellt 2026-10-24): Entwürfe Pfeil nach unten auf Münzstapel und Pfeil ins LG gefielen am ehesten, Münze mit Plus und Münze mit Pfeil fallen weg (lesen sich als Männlich-Symbol und Schlüssel).
+  - Entschieden 2026-10-24 (Nutzer, erst einmal so, später verfeinern): Icons bekommen Seitenwechsel im PvP (‹ ›), das ✕ am Spielerfilter im PvP (Text bleibt), Seite und Gruppe löschen in den Notizen (Mülleimer), Spieler hinzufügen (Person mit +), Seite hinzufügen (Blatt mit +), Schließen der Spielerauswahl (✕ wie im Boxkopf), Aufnahme speichern (Download, Zahl daneben), Powerleveln öffnen (kleines LG » großes LG). Text behalten: Löschen und Abbrechen in Rückfragen (Klartext ist dort sicherer), „Laufend X → X+1“ (die Stufe ist die Information), Reiter und Faktor-Knöpfe.
 - Styles so gekapselt, dass Spiel-CSS und Toolbox-CSS sich nicht beeinflussen (zu prüfen: Shadow DOM).
 
 ### Settings
@@ -224,6 +230,7 @@ Je Feature eine Datei mit Umfang, Entscheidungen und Annahmen. Neue Features bek
 - [Stadtplan](features/stadtplan.md): Stadtplan der eigenen und besuchten Stadt
 - [LG-Rechner](features/lg-rechner.md): Kostenrechner für fremde LGs
 - [Eigenanteil](features/eigenanteil.md): Eigenanteilsrechner für eigene LGs
+- [Powerleveln](features/powerleveln.md): Eigenanteil über mehrere Stufen eines eigenen LGs
 - [foestats](features/foestats.md): Links, täglicher Verlauf, Aktivität
 
 ## Feature-Checkliste

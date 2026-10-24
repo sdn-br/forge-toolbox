@@ -12,6 +12,7 @@ import type { GreatBuildingDef } from '../../stores/catalog';
 import type { FoestatsRecord } from '../../stores/foestats';
 import type { Construction, RankingRow } from '../../stores/great-building-model';
 import { effectiveFactor as effective, type FactorButton, type FactorChoice, factorButtons } from '../../ui/factor-bar';
+import { type LevelChoice, levelChoice } from '../../ui/level-bar';
 
 export interface GbHeader {
   name: string;
@@ -33,14 +34,6 @@ export interface GbHeader {
   arcBonus: number;
   /** the level selector: live or a preview of a later level */
   levels: LevelChoice;
-}
-
-export interface LevelChoice {
-  /** the level the current construction starts from */
-  current: number;
-  /** the level in the selector: the previewed one, else the current construction's */
-  chosen: number;
-  preview: boolean;
 }
 
 export interface CostCell {
@@ -124,9 +117,11 @@ export interface MeVm {
   levelUp?: LevelUpAndFirst;
   /**
    * the places the player can still make safe, from the first down to the own one: the safe total and what he has to
-   * add; `best` marks the one with the highest profit
+   * add; `best` marks the one with the highest profit. Only places that are worthwhile.
    */
   targets: { rank: number; cost: number; extra: number; best: boolean }[];
+  /** places could be had, but none is worthwhile */
+  noneWorthwhile?: boolean;
 }
 
 export type GbCalculatorVm =
@@ -275,11 +270,12 @@ function meVm(calc: ConstructionCalc): MeVm {
   const open = calc.places.filter(
     (p) => (p.available || (p.mine && !p.secured)) && (calc.myRank === undefined || p.rank <= calc.myRank),
   );
-  const best = open.reduce<PlaceCalc | undefined>(
+  const worthwhile = open.filter((p) => p.worthwhile);
+  const best = worthwhile.reduce<PlaceCalc | undefined>(
     (b, p) => (b && (b.profit ?? 0) >= (p.profit ?? 0) ? b : p),
     undefined,
   );
-  const targets = open.map((p) => ({
+  const targets = worthwhile.map((p) => ({
     rank: p.rank,
     cost: p.safeCost as number,
     extra: p.safeExtra as number,
@@ -290,6 +286,7 @@ function meVm(calc: ConstructionCalc): MeVm {
     ...(calc.myRank !== undefined && { rank: calc.myRank }),
     ...(own && { secured: own.secured }),
     targets,
+    ...(open.length > 0 && worthwhile.length === 0 && { noneWorthwhile: true }),
   };
 }
 
@@ -325,8 +322,8 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
   const entity = c.entity;
   if (!entity) return { kind: 'noEntity', owner, ownerUrl };
   // the preview starts where the live construction ends; a level up can overtake a chosen level
-  const preview =
-    input.previewLevel !== undefined && input.previewLevel > entity.level ? input.previewLevel : undefined;
+  const levels = levelChoice(entity.level, input.previewLevel);
+  const preview = levels.preview ? levels.chosen : undefined;
   const availableFp =
     input.fpBar === undefined && input.fpPackages === undefined
       ? undefined
@@ -343,7 +340,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     fpBar: input.fpBar,
     fpPackages: input.fpPackages,
     arcBonus: input.arcBonus,
-    levels: { current: entity.level, chosen: preview ?? entity.level, preview: preview !== undefined },
+    levels,
   };
   const arcButton = input.arcButton ? input.arcBonus : undefined;
   const effectiveFactor = effective(input.factor, arcButton);

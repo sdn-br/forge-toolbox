@@ -1,5 +1,5 @@
 {
-  "note": "Great building definitions (metadata building_entity_<id>) recorded on de20 2026-10-19, trimmed to what the level preview reads.",
+  "note": "Great building definitions (metadata building_entity_<id>) recorded on de20 2026-10-19, trimmed to what the level preview and the double harvest read.",
   "files": [
     {
       "url": "https://foede.innogamescdn.com/start/metadata?id=building_entity_X_EarlyMiddleAge_Landmark2-0",
@@ -11,7 +11,11 @@
           "min_era": "EarlyMiddleAge"
         },
         "strategy_points_for_upgrade": [50, 60, 120, 190, 240, 320, 380, 460, 530, 600],
-        "__class__": "CityEntityGreatBuilding"
+        "__class__": "CityEntityGreatBuilding",
+        "production_bonus": {
+          "type": "money",
+          "values": [0, 2610, 3420, 4480, 5730, 7150, 8710, 10420, 12250, 14200, 18950]
+        }
       }
     },
     {
@@ -24,7 +28,11 @@
           "min_era": "FutureEra"
         },
         "strategy_points_for_upgrade": [70, 110, 200, 290, 400, 510, 620, 740, 860, 970],
-        "__class__": "CityEntityGreatBuilding"
+        "__class__": "CityEntityGreatBuilding",
+        "production_bonus": {
+          "type": "clan_goods",
+          "values": [0, 9, 10, 12, 13, 15, 16, 18, 19, 21, 22]
+        }
       }
     },
     {
@@ -37,7 +45,11 @@
           "min_era": "ProgressiveEra"
         },
         "strategy_points_for_upgrade": [60, 90, 170, 260, 340, 440, 530, 630, 740, 830],
-        "__class__": "CityEntityGreatBuilding"
+        "__class__": "CityEntityGreatBuilding",
+        "production_bonus": {
+          "type": "penal_unit",
+          "values": [0, 4, 4, 5, 5, 5, 6, 6, 6, 7, 8]
+        }
       }
     },
     {
@@ -63,7 +75,11 @@
           "min_era": "LateMiddleAge"
         },
         "strategy_points_for_upgrade": [50, 80, 140, 210, 290, 360, 440, 530, 610, 700],
-        "__class__": "CityEntityGreatBuilding"
+        "__class__": "CityEntityGreatBuilding",
+        "production_bonus": {
+          "type": "money",
+          "values": [0, 4900, 6150, 7770, 9680, 11860, 14260, 16870, 19680, 22660, 30210]
+        }
       }
     },
     {
@@ -76,7 +92,11 @@
           "min_era": "ProgressiveEra"
         },
         "strategy_points_for_upgrade": [60, 90, 170, 260, 340, 440, 530, 630, 740, 830],
-        "__class__": "CityEntityGreatBuilding"
+        "__class__": "CityEntityGreatBuilding",
+        "production_bonus": {
+          "type": "money",
+          "values": [0, 7670, 8950, 10860, 14310, 15900, 22000, 24000, 33850, 36460, 51260]
+        }
       }
     },
     {
@@ -89,7 +109,11 @@
           "min_era": "PostModernEra"
         },
         "strategy_points_for_upgrade": [60, 100, 180, 270, 360, 460, 560, 670, 770, 880],
-        "__class__": "CityEntityGreatBuilding"
+        "__class__": "CityEntityGreatBuilding",
+        "production_bonus": {
+          "type": "strategy_points",
+          "values": [0, 2, 2, 3, 4, 5, 6, 6, 7, 8, 10]
+        }
       }
     },
     {
@@ -102,7 +126,11 @@
           "min_era": "NoAge"
         },
         "strategy_points_for_upgrade": [20, 40, 60, 130, 210, 290, 370, 460, 550, 650],
-        "__class__": "CityEntityGreatBuilding"
+        "__class__": "CityEntityGreatBuilding",
+        "production_bonus": {
+          "type": "supplies",
+          "values": [0, 550, 860, 1260, 1730, 2270, 2860, 3510, 4200, 4940, 6990]
+        }
       }
     },
     {
@@ -115,7 +143,28 @@
           "min_era": "StellarAgeDiscovery"
         },
         "strategy_points_for_upgrade": [1240, 1750, 3080, 4630, 6070, 7620, 9380, 11000, 12870, 14530],
-        "__class__": "CityEntityGreatBuilding"
+        "__class__": "CityEntityGreatBuilding",
+        "production_bonus": {
+          "type": "supplies",
+          "values": [0, 205000, 217800, 230600, 273600, 288000, 338600, 354800, 407400, 425000, 486000]
+        }
+      }
+    },
+    {
+      "url": "https://foede.innogamescdn.com/start/metadata?id=building_entity_X_EarlyMiddleAge_Landmark1-0",
+      "json": {
+        "id": "X_EarlyMiddleAge_Landmark1",
+        "name": "Hagia Sophia",
+        "type": "greatbuilding",
+        "requirements": {
+          "min_era": "EarlyMiddleAge"
+        },
+        "strategy_points_for_upgrade": [50, 60, 120, 190, 240, 320, 380, 460, 530, 600],
+        "__class__": "CityEntityGreatBuilding",
+        "production_bonus": {
+          "type": "strategy_points",
+          "values": [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6]
+        }
       }
     }
   ]

@@ -102,6 +102,8 @@ export const icons = {
     <rect class="acc" x="3" y="19.2" width="7.5" height="3.2" rx="1" fill="currentColor"/>`),
 };
 
+const STAR = 'M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9Z';
+
 /** the icons of the box header */
 export const headerIcons = {
   gear: headerIcon(svg`<path d="${gearPath()}"/><circle cx="12" cy="12" r="3.2"/>`),
@@ -114,4 +116,122 @@ export const headerIcons = {
   ),
   minimize: headerIcon(svg`<path d="M5 19h14"/>`),
   close: headerIcon(svg`<path d="M6 6l12 12M18 6 6 18"/>`),
+  /** a diskette: save */
+  save: headerIcon(
+    svg`<path d="M5 3.5h11l3.5 3.5v12a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 5 3.5Z"/><path d="M8 3.5v5h7v-5"/><path d="M7.5 20.5v-6h9v6"/>`,
+  ),
+  /** an arrow turning back counter-clockwise: reset */
+  reset: headerIcon(svg`<path d="M4 12a8 8 0 1 0 2.3-5.6"/><path d="M4 4v4.5h4.5"/>`),
+  /** the great building castle: values of this building only, beside the star of the standard */
+  castle: headerIcon(castleShape),
+  /** a pencil: changed, not saved */
+  pencil: headerIcon(
+    svg`<path d="M4 20l1-4.5L15.5 5a2 2 0 0 1 2.8 0l.7.7a2 2 0 0 1 0 2.8L8.5 19Z"/><path d="M13.5 7l3.5 3.5"/>`,
+  ),
+  /** a five-pointed star: make it the standard */
+  star: headerIcon(svg`<path d="${STAR}"/>`),
+  /** the star filled: the standard applies */
+  starFilled: headerIcon(svg`<path d="${STAR}" fill="currentColor"/>`),
+  /** head and shoulders: a player */
+  person: headerIcon(svg`<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5c0-4.2 3.3-6.8 7.5-6.8s7.5 2.6 7.5 6.8"/>`),
+  /** a clock: a promised payment, not paid yet */
+  clock: headerIcon(svg`<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.2 2"/>`),
+  /** a warning triangle: danger */
+  warning: headerIcon(svg`<path d="M12 3.5 21.5 20h-19Z"/><path d="M12 10v4.4M12 17.2v.3"/>`),
+  /** an arrow up: the payment levels the building */
+  arrowUp: headerIcon(svg`<path d="M12 20V4.5M5.5 11 12 4.5 18.5 11"/>`),
+  /** a small castle, », a big castle: power leveling, the building grows fast; wider than the grid, both castles
+   * centred on the tip of the chevrons, the big one at full height, equal space on both sides of the chevrons */
+  powerLevel: html`<svg class="wide" viewBox="0 0 61.72 24" fill="none" aria-hidden="true">
+    ${castle(0.816, -1.13, 2.17)}${castle(1.2, 34.82, -2.46)}
+    <path fill="currentColor" d="M20.72 8H23.52L27.92 12L23.52 16H20.72L25.12 12Z M26.12 8H28.92L33.32 12L28.92 16H26.12L30.52 12Z"/></svg>`,
+  /** two sheets, one over the other: copy */
+  copy: headerIcon(
+    svg`<rect x="8.5" y="8.5" width="12" height="12" rx="1.8"/><path d="M15.5 8.5V5a1.5 1.5 0 0 0-1.5-1.5H5A1.5 1.5 0 0 0 3.5 5v9A1.5 1.5 0 0 0 5 15.5h3.5"/>`,
+  ),
+  /** the letter i in a circle: a hint */
+  info: headerIcon(svg`<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.2"/>`),
+  /** a plus over a minus: the difference, plus or minus */
+  plusMinus: headerIcon(svg`<path d="M12 3.5v10M7 8.5h10M7 19.5h10"/>`),
+  /** a heap of coin stacks with "2×" in front: the double harvest. Its own frame and line widths; the stacks fill with
+   * var(--bg), the colour behind the icon, so the back ones hide behind the front ones; "2×" gets a rim of it */
+  doubleHarvest: html`<svg class="harvest" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <g transform="translate(3.04 6.00) scale(0.75)"><path style="fill:var(--bg)" d="M9.5 -5.5V19A3.0 1.5 0 0 0 15.5 19V-5.5Z"/>
+    <ellipse style="fill:var(--bg)" cx="12.5" cy="-5.5" rx="3.0" ry="1.5"/>
+    <path stroke-width="0.87" d="M9.5 -3.10A3.0 1.5 0 0 0 15.5 -3.10"/>
+    <path stroke-width="0.87" d="M9.5 -0.70A3.0 1.5 0 0 0 15.5 -0.70"/>
+    <path stroke-width="0.87" d="M9.5 1.70A3.0 1.5 0 0 0 15.5 1.70"/>
+    <path stroke-width="0.87" d="M9.5 4.10A3.0 1.5 0 0 0 15.5 4.10"/>
+    <path stroke-width="0.87" d="M9.5 6.50A3.0 1.5 0 0 0 15.5 6.50"/>
+    <path stroke-width="0.87" d="M9.5 8.90A3.0 1.5 0 0 0 15.5 8.90"/>
+    <path stroke-width="0.87" d="M9.5 11.30A3.0 1.5 0 0 0 15.5 11.30"/>
+    <path stroke-width="0.87" d="M9.5 13.70A3.0 1.5 0 0 0 15.5 13.70"/>
+    <path stroke-width="0.87" d="M9.5 16.10A3.0 1.5 0 0 0 15.5 16.10"/>
+    <path style="fill:var(--bg)" d="M3.4 6.8V20.5A3.05 1.6 0 0 0 9.5 20.5V6.8Z"/>
+    <ellipse style="fill:var(--bg)" cx="6.45" cy="6.8" rx="3.05" ry="1.6"/>
+    <path stroke-width="0.87" d="M3.4 9.20A3.05 1.6 0 0 0 9.5 9.20"/>
+    <path stroke-width="0.87" d="M3.4 11.60A3.05 1.6 0 0 0 9.5 11.60"/>
+    <path stroke-width="0.87" d="M3.4 14.00A3.05 1.6 0 0 0 9.5 14.00"/>
+    <path stroke-width="0.87" d="M3.4 16.40A3.05 1.6 0 0 0 9.5 16.40"/>
+    <path stroke-width="0.87" d="M3.4 18.80A3.05 1.6 0 0 0 9.5 18.80"/>
+    <path style="fill:var(--bg)" d="M14.5 4.6V20A3.25 1.6 0 0 0 21 20V4.6Z"/>
+    <ellipse style="fill:var(--bg)" cx="17.75" cy="4.6" rx="3.25" ry="1.6"/>
+    <path stroke-width="0.87" d="M14.5 7.00A3.25 1.6 0 0 0 21 7.00"/>
+    <path stroke-width="0.87" d="M14.5 9.40A3.25 1.6 0 0 0 21 9.40"/>
+    <path stroke-width="0.87" d="M14.5 11.80A3.25 1.6 0 0 0 21 11.80"/>
+    <path stroke-width="0.87" d="M14.5 14.20A3.25 1.6 0 0 0 21 14.20"/>
+    <path stroke-width="0.87" d="M14.5 16.60A3.25 1.6 0 0 0 21 16.60"/>
+    <path stroke-width="0.87" d="M14.5 19.00A3.25 1.6 0 0 0 21 19.00"/>
+    <path style="fill:var(--bg)" d="M0.7 15.2V21.6A2.3 1.3 0 0 0 5.3 21.6V15.2Z"/>
+    <ellipse style="fill:var(--bg)" cx="3.0" cy="15.2" rx="2.3" ry="1.3"/>
+    <path stroke-width="0.87" d="M0.7 16.80A2.3 1.3 0 0 0 5.3 16.80"/>
+    <path stroke-width="0.87" d="M0.7 18.40A2.3 1.3 0 0 0 5.3 18.40"/>
+    <path stroke-width="0.87" d="M0.7 20.00A2.3 1.3 0 0 0 5.3 20.00"/>
+    <path style="fill:var(--bg)" d="M18.6 16.8V21.6A2.3 1.3 0 0 0 23.2 21.6V16.8Z"/>
+    <ellipse style="fill:var(--bg)" cx="20.9" cy="16.8" rx="2.3" ry="1.3"/>
+    <path stroke-width="0.87" d="M18.6 18.40A2.3 1.3 0 0 0 23.2 18.40"/>
+    <path stroke-width="0.87" d="M18.6 20.00A2.3 1.3 0 0 0 23.2 20.00"/>
+    <path style="fill:var(--bg)" d="M7.5 12.5V21A4.5 1.7 0 0 0 16.5 21V12.5Z"/>
+    <ellipse style="fill:var(--bg)" cx="12.0" cy="12.5" rx="4.5" ry="1.7"/>
+    <path stroke-width="0.87" d="M7.5 14.90A4.5 1.7 0 0 0 16.5 14.90"/>
+    <path stroke-width="0.87" d="M7.5 17.30A4.5 1.7 0 0 0 16.5 17.30"/>
+    <path stroke-width="0.87" d="M7.5 19.70A4.5 1.7 0 0 0 16.5 19.70"/>
+    </g>
+    <text x="12" y="19.7" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="900" font-size="7.8" style="fill:var(--accent);stroke:var(--bg);stroke-width:2.6px;paint-order:stroke;stroke-linejoin:round">2×</text></svg>`,
+  /** a check mark: done */
+  check: headerIcon(svg`<path d="M4.5 12.5 9.5 17.5 19.5 6.5"/>`),
+  /** the folded map: open the map */
+  map: headerIcon(foldedMap),
+  /** a sheet with a folded corner and two lines: a note */
+  note: headerIcon(
+    svg`<path d="M6 3.5h8.5L19 8v11.5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z"/><path d="M14.5 3.5V8H19"/><path d="M8.5 13h7M8.5 16.5h5"/>`,
+  ),
+  /** a chevron pointing left: previous page */
+  chevronLeft: headerIcon(svg`<path d="M15 5 8 12l7 7"/>`),
+  /** a chevron pointing right: next page */
+  chevronRight: headerIcon(svg`<path d="m9 5 7 7-7 7"/>`),
+  /** a trash can: delete */
+  trash: headerIcon(
+    svg`<path d="M4 6.5h16M9.5 6.5V4h5v2.5"/><path d="M6 6.5l1 13a1 1 0 0 0 1 .9h8a1 1 0 0 0 1-.9l1-13"/><path d="M10 10.5v6M14 10.5v6"/>`,
+  ),
+  /** head and shoulders with a plus: add a player */
+  personPlus: headerIcon(
+    svg`<circle cx="9.5" cy="8" r="3.4"/><path d="M2.5 20.5c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/><path d="M19 6.5v6M16 9.5h6"/>`,
+  ),
+  /** a sheet with a folded corner and a plus: add a page */
+  notePlus: headerIcon(
+    svg`<path d="M6 3.5h8.5L19 8v11.5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z"/><path d="M14.5 3.5V8H19"/><path d="M12 11v6.5M8.8 14.2h6.4"/>`,
+  ),
+  /** an arrow down into a tray: save as a file */
+  download: headerIcon(
+    svg`<path d="M12 4v11M7 10.5l5 5 5-5"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/>`,
+  ),
+  /** a plus: add, zoom in */
+  plus: headerIcon(svg`<path d="M12 5v14M5 12h14"/>`),
+  /** a minus: zoom out */
+  minus: headerIcon(svg`<path d="M5 12h14"/>`),
+  /** four corner brackets pointing out: fit the whole */
+  fit: headerIcon(svg`<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>`),
+  /** a circle with a slash: nothing to get here */
+  noReward: headerIcon(svg`<circle cx="12" cy="12" r="8.5"/><path d="m6 6 12 12"/>`),
 };

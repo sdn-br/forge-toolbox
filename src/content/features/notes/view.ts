@@ -1,6 +1,7 @@
 import { html, type TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
 import { t } from '../../core/texts';
+import { headerIcons } from '../../ui/icons';
 import { autofocus, keepKeys } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
 import type { NotesVm, PageVm, PickerVm, RelationFilter, ResultVm, RowVm, TabVm } from './view-model';
@@ -69,7 +70,7 @@ const tabs = (vm: NotesVm, actions: NotesActions) => html`<nav class="tabs">
   ${
     vm.addingGroup
       ? inlineField('', actions.addGroup, actions.cancel, t('notes.groupName'))
-      : html`<button data-tip=${t('notes.addGroup')} aria-label=${t('notes.addGroup')} @click=${actions.startAddGroup}>+</button>`
+      : html`<button data-tip=${t('notes.addGroup')} aria-label=${t('notes.addGroup')} @click=${actions.startAddGroup}>${headerIcons.plus}</button>`
   }</nav>`;
 
 function row(r: RowVm, playerGroup: boolean, actions: NotesActions) {
@@ -89,15 +90,18 @@ function side(vm: NotesVm, actions: NotesActions) {
     ? html`<select @change=${(e: Event) => actions.relation(value(e) as RelationFilter)}>
           ${RELATION_FILTERS.map((f) => html`<option value=${f} .selected=${vm.relation === f}>${t(`notes.filter.${f}`)}</option>`)}
         </select>
-        <button class="action" @click=${actions.openPicker}>${t('notes.addPlayer')}</button>`
-    : html`<button class="action" @click=${actions.addPage}>${t('notes.addPage')}</button>`;
+        <button class="action icon-only" data-tip=${t('notes.addPlayer')} aria-label=${t('notes.addPlayer')}
+          @click=${actions.openPicker}>${headerIcons.personPlus}</button>`
+    : html`<button class="action icon-only" data-tip=${t('notes.addPage')} aria-label=${t('notes.addPage')}
+        @click=${actions.addPage}>${headerIcons.notePlus}</button>`;
   const active = vm.tabs.find((each) => each.active);
   return html`<div class="side">${head}
     ${vm.empty ? html`<p class="muted">${t(`notes.${vm.empty}`)}</p>` : ''}
     <ul class="rows">${vm.rows.map((r) => row(r, vm.playerGroup, actions))}</ul>
     ${
       active && !active.fixed
-        ? html`<button class="action" @click=${() => actions.askDelete('group', active.id)}>${t('notes.deleteGroup')}</button>`
+        ? html`<button class="action icon-only" data-tip=${t('notes.deleteGroup')} aria-label=${t('notes.deleteGroup')}
+            @click=${() => actions.askDelete('group', active.id)}>${headerIcons.trash}</button>`
         : ''
     }</div>`;
 }
@@ -130,7 +134,8 @@ function main(vm: NotesVm, editor: TemplateResult | undefined, actions: NotesAct
   return html`<div class="main">${pageHead(page, actions)}${editor}
     ${
       page.stored
-        ? html`<button class="action" @click=${() => actions.askDelete('page', page.id)}>${t('notes.deletePage')}</button>`
+        ? html`<button class="action icon-only" data-tip=${t('notes.deletePage')} aria-label=${t('notes.deletePage')}
+            @click=${() => actions.askDelete('page', page.id)}>${headerIcons.trash}</button>`
         : ''
     }</div>`;
 }
@@ -154,10 +159,13 @@ const picker = (p: PickerVm, actions: NotesActions) => html`<div class="card">
       if (e.key === 'Escape') actions.cancel();
     }}
     @keyup=${keepKeys} />
-    <button class="action" @click=${actions.cancel}>${t('notes.close')}</button></p>
+    <button class="action icon-only" data-tip=${t('notes.close')} aria-label=${t('notes.close')}
+      @click=${actions.cancel}>${headerIcons.close}</button></p>
   ${p.rows.length === 0 ? html`<p class="muted">${t('notes.noPlayerFound')}</p>` : ''}
   <ul class="rows">${p.rows.map(
-    (r) => html`<li @click=${() => actions.pick(r.id)}>${r.hasPage ? '📝 ' : ''}${r.name}
+    (
+      r,
+    ) => html`<li @click=${() => actions.pick(r.id)}>${r.hasPage ? html`<span class="page-mark">${headerIcons.note}</span> ` : ''}${r.name}
       ${r.guild ? html`<span class="muted">[${r.guild}]</span>` : ''}</li>`,
   )}</ul>
   ${p.more ? html`<p class="muted">${t('notes.morePlayers')}</p>` : ''}</div>`;

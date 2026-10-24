@@ -15,7 +15,7 @@ import {
 } from '../core/settings';
 import { type TextKey, t } from '../core/texts';
 import { FACTOR_STEP, percentOf } from '../ui/factor-bar';
-import { icons } from '../ui/icons';
+import { headerIcons, icons } from '../ui/icons';
 import { keepKeys } from '../ui/inputs';
 
 const save = (settings: Settings, key: string, value: boolean | string | number | number[]) =>
@@ -141,7 +141,9 @@ export const settingsFeature: Feature = {
             )}
             ${
               group === 'settings.core' && ctx.settings.get('core.record')
-                ? html`<button class="action" @click=${() => ctx.recorder.save()}>${t('settings.saveRecording', { count: ctx.recorder.count })}</button>`
+                ? html`<button class="action icon-only" data-tip=${t('settings.saveRecording', { count: ctx.recorder.count })}
+                    aria-label=${t('settings.saveRecording', { count: ctx.recorder.count })}
+                    @click=${() => ctx.recorder.save()}>${headerIcons.download}${ctx.recorder.count}</button>`
                 : ''
             }
           </div>

@@ -19,8 +19,17 @@
 # the first contributeForgePoints. The Forge point packages of the start recording (getItems) are the inventory before,
 # with the same fake item ids as in the gb mode; resources trimmed to Forge points and coins; fake player ids and names.
 # Each further entity id adds the first opening of that great building as `others`.
+# Own level up: python3 -I scripts/make-fixture.py gb-own-level-up <recording.json> <out.json>
+# keeps the own great building from the startup data, its last opening (getConstruction) before the first own
+# contribution that levels it, that contribution's contributeForgePoints, updateEntity, reset and
+# getAvailablePackageForgePoints, and the websocket entity_level_up that follows, with fake player ids and names.
+# Foreign level up: python3 -I scripts/make-fixture.py gb-level-up <recording.json> <out.json>
+# the same for the first own contribution that levels a great building of another player: its opening (building and
+# construction), the contribution's response, the owner's getOtherPlayerOverview that follows (for the names) and the
+# websocket great_building_contribution, with fake player ids and names.
 # Great building definitions: python3 -I scripts/make-fixture.py gb-defs <recording.json> <out.json> <cityentity_id> …
-# keeps the metadata file of each named great building, trimmed to id, name, type, min_era and the level costs.
+# keeps the metadata file of each named great building, trimmed to id, name, type, min_era, the level costs and the type
+# and values of its production bonus (the Forge points per level of a Forge point building).
 
 import json,sys
 
@@ -306,11 +315,106 @@ def gb_defs_fixture(rec,out,ids):
         if d.get('id') not in ids or any(f['json']['id']==d['id'] for f in files): continue
         trimmed={'id':d['id'],'name':d['name'],'type':d['type'],'requirements':{'min_era':d['requirements']['min_era']},
           'strategy_points_for_upgrade':d['strategy_points_for_upgrade'],'__class__':d.get('__class__')}
+        pb=d.get('production_bonus')
+        if isinstance(pb,dict): trimmed['production_bonus']={'type':pb.get('type'),'values':pb.get('values')}
         files.append({'url':r['url'].split('-')[0]+'-0','json':trimmed})
     files.sort(key=lambda f:ids.index(f['json']['id']))
-    fixture={'note':'Great building definitions (metadata building_entity_<id>) recorded on de20 2026-10-19, trimmed to what the level preview reads.','files':files}
+    fixture={'note':'Great building definitions (metadata building_entity_<id>) recorded on de20 2026-10-19, trimmed to what the level preview and the double harvest read.','files':files}
     json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
 
+def gb_level_up_fixture(rec,out,own):
+    ME,OWNER=1000,1001
+    entries=[]
+    for r in rec:
+        if r['kind']=='ws':
+            try: res=json.loads(r['data'])
+            except (TypeError,ValueError): continue
+            entries+=[dict(e,requestData=None) for e in (res if isinstance(res,list) else []) if isinstance(e,dict)]
+            continue
+        if r['kind']!='json': continue
+        try: res=json.loads(r['response']); req=json.loads(r['request'] or '[]')
+        except (TypeError,ValueError): continue
+        if not isinstance(res,list): continue
+        reqs={(q.get('requestClass'),q.get('requestMethod')):q.get('requestData') for q in req if isinstance(q,dict)}
+        batch=len(entries)
+        entries+=[dict(e,requestData=reqs.get((e.get('requestClass'),e.get('requestMethod'))),batch=batch) for e in res if isinstance(e,dict)]
+    startup=next(e['responseData'] for e in entries if e.get('requestMethod')=='getData' and e.get('requestClass')=='StartupService')
+    me_real=startup['user_data']['player_id']
+    def levels_up(e):
+        if e.get('requestMethod')!='contributeForgePoints' or (e['requestData'][1]==me_real)!=own: return False
+        return any(x.get('requestMethod')=='reset' and x.get('batch')==e['batch'] and any(y.get('id')==e['requestData'][0] and y.get('level',0)>e['requestData'][2] for y in x['responseData']) for x in entries)
+    con_i=next(i for i,e in enumerate(entries) if levels_up(e))
+    contribution=entries[con_i]; ent_id,owner_real=contribution['requestData'][:2]; batch_id=contribution['batch']
+    ids={me_real:ME}
+    if not own: ids[owner_real]=OWNER
+    others=iter(range(2001,3000))
+    def pid(p):
+        if p not in ids: ids[p]=next(others)
+        return ids[p]
+    owner=pid(owner_real)
+    def name(p): return 'Ich' if p==ME else (f'Eigentümer {p}' if p==OWNER else f'Spieler {p}')
+    def row(x):
+        o={k:x[k] for k in ('rank','forge_points','reward','__class__') if k in x}
+        p=x.get('player',{})
+        if 'player_id' in p:
+            n=pid(p['player_id']); player={'player_id':n,'name':name(n),'avatar':''}
+        else: player={'name':p.get('name',''),'avatar':''}
+        if p.get('is_self'): player['is_self']=True
+        o['player']=dict(player,__class__=p.get('__class__'))
+        return o
+    def entity(x):
+        st=x.get('state',{})
+        o={k:x[k] for k in ('id','cityentity_id','type','x','y','connected','level','max_level','__class__') if k in x}
+        o['player_id']=pid(x['player_id'])
+        o['state']={k:st[k] for k in ('invested_forge_points','forge_points_for_level_up','__class__') if k in st}
+        return o
+    def entry(e,data,req):
+        return {'requestClass':e['requestClass'],'requestMethod':e['requestMethod'],'requestData':req,'responseData':data}
+    def before(method):
+        return next(e for e in reversed(entries[:con_i]) if e.get('requestMethod')==method and e['requestData'][:2]==[ent_id,owner_real])
+    con=before('getConstruction')['responseData']
+    opening=[entry(before('getConstruction'),{'rankings':[row(x) for x in con['rankings']],'__class__':con.get('__class__')},[ent_id,owner])]
+    if not own:
+        ent=before('getOtherPlayerCityMapEntity')
+        opening.insert(0,entry(ent,entity(ent['responseData']),[ent_id,owner]))
+    out_batch=[]
+    for e in entries:
+        if e.get('batch')!=batch_id: continue
+        m=e.get('requestMethod'); d=e['responseData']
+        if m=='contributeForgePoints':
+            out_batch.append(entry(e,[row(x) for x in d],[ent_id,owner]+e['requestData'][2:]))
+        elif m in ('updateEntity','reset'):
+            out_batch.append(entry(e,[entity(x) for x in d if x.get('id')==ent_id],None))
+        elif m=='getAvailablePackageForgePoints':
+            out_batch.append(entry(e,d,e.get('requestData')))
+    after=entries[con_i:]
+    if own:
+        ev=next(e for e in after if e.get('requestMethod')=='newEvent' and e['responseData'].get('type')=='entity_level_up' and e['responseData'].get('city_map_entity_id')==ent_id)
+        d=ev['responseData']
+        event=entry(ev,dict({k:d[k] for k in ('type','city_map_entity_id','cityentity_id','level','__class__') if k in d},id=7001,player_id=ME),None)
+    else:
+        ev=next(e for e in after if e.get('requestMethod')=='newEvent' and e['responseData'].get('type')=='great_building_contribution' and e['responseData'].get('other_player',{}).get('player_id')==owner_real)
+        d=ev['responseData']; op=d['other_player']
+        event=entry(ev,dict({k:d[k] for k in ('type','great_building_name','level','rank','__class__') if k in d},id=7001,player_id=ME,
+            other_player={'player_id':owner,'name':name(owner),'avatar':'','__class__':op.get('__class__')}),None)
+    building=[entity(x) for x in startup['city_map']['entities'] if own and x.get('id')==ent_id]
+    fixture={'me':ME,
+      'startup':[{'requestClass':'StartupService','requestMethod':'getData','requestData':None,'responseData':{
+        'user_data':{'player_id':ME,'user_name':'Ich','era':startup['user_data'].get('era')},
+        'city_map':{'gridId':'main','entities':building}}}],
+      'opening':opening,'contribution':out_batch,'event':event}
+    if own:
+        fixture['note']='Own great building levelled up by an own contribution, recorded on de20 2026-10-23: the building from the startup data, its opening (getConstruction), the contribution response batch that levels it (contributeForgePoints with the empty rankings of the new level, updateEntity and reset with the new level) and the websocket entity_level_up that follows. Players anonymized (me 1000, others from 2001), unrelated entries and fields dropped.'
+    else:
+        ov=next(e for e in after if e.get('requestMethod')=='getOtherPlayerOverview' and e['requestData']==[owner_real])
+        fixture['overview']=entry(ov,[dict({k:x[k] for k in ('entity_id','city_entity_id','name','level','current_progress','max_progress','__class__') if k in x},
+            player={'player_id':owner,'name':name(owner),'avatar':'','__class__':x.get('player',{}).get('__class__')}) for x in ov['responseData']],[owner])
+        fixture['note']="Great building of another player levelled up by an own contribution, recorded on de20 2026-10-23: the opening (building and construction), the contribution response batch that levels it (contributeForgePoints with the empty rankings of the new level, reset with the building on the new level), the owner's overview the game asks for next (names of the buildings) and the websocket great_building_contribution that follows. Players anonymized (me 1000, owner 1001, others from 2001), unrelated entries and fields dropped."
+    fixture={k:fixture[k] for k in ('note','me','startup','opening','contribution','overview','event') if k in fixture}
+    json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
+
+if sys.argv[1] in ('gb-own-level-up','gb-level-up'):
+    gb_level_up_fixture(json.load(open(sys.argv[2])),sys.argv[3],sys.argv[1]=='gb-own-level-up'); sys.exit()
 if sys.argv[1]=='gb-defs':
     gb_defs_fixture(json.load(open(sys.argv[2])),sys.argv[3],sys.argv[4:]); sys.exit()
 if sys.argv[1]=='gb-contribution':

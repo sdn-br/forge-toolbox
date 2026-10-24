@@ -1,5 +1,6 @@
 import type { WorldId } from '../../shared/ids';
 import type { Stores } from '../stores';
+import type { GbOwnState } from '../stores/gb-own-state';
 import { Box, type BoxOptions } from '../ui/box';
 import type { Menu } from '../ui/menu';
 import type { UiState } from '../ui/ui-state';
@@ -16,6 +17,8 @@ export interface FeatureContext extends Stores {
   recorder: Recorder;
   /** remembered view choices of the viewer */
   ui: UiState;
+  /** the factors and Ext the two own-share boxes share */
+  gbOwn: GbOwnState;
   createBox(options: BoxOptions): Box;
 }
 

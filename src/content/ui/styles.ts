@@ -1,10 +1,11 @@
 // Shared look of all toolbox UI. Lives inside each shadow root, so game CSS and toolbox CSS never meet.
 export const baseCss = `
-:host { all: initial; --ink: #fbf4e4; --accent: #e8861c; --btn: #4a3620; --btn-hover: #6a5030; }
+:host { all: initial; --bg: #2b1d10; --ink: #fbf4e4; --accent: #e8861c; --btn: #4a3620; --btn-hover: #6a5030;
+  --field: #1c130a; --line: #8a6a3a; color-scheme: dark; }
 /* the accent parts of an icon */
 .acc { color: var(--accent); }
 * { box-sizing: border-box; }
-.box { position: fixed; min-width: 260px; max-width: 520px; background: #2b1d10; color: var(--ink);
+.box { position: fixed; min-width: 260px; max-width: 520px; background: var(--bg); color: var(--ink);
   font: 12px/1.4 system-ui, sans-serif; border: 2px solid #8a6a3a; border-radius: 6px;
   box-shadow: 0 4px 16px rgba(0,0,0,.5); }
 .box.popped { position: static; max-width: none; height: 100vh; border: 0; border-radius: 0; }
@@ -31,7 +32,21 @@ td.num, th.num { text-align: right; }
 .muted { color: #b8a27d; }
 .warn { color: #f0a050; }
 .error { color: #f07060; }
-button.action { font: inherit; cursor: pointer; margin: 2px 4px 2px 0; }
+button.action { margin: 2px 4px 2px 0; }
+/* text buttons in the box colours, like the fields; icon, header, menu and settings buttons have their own looks */
+.gb-factor button:not(.icon), .gb-levels button:not(.icon), button.action, .tabs button, .map-tools button,
+.stats-tab, .power-open button {
+  font: inherit; cursor: pointer; color: var(--ink); background: var(--btn); border: 1px solid var(--line);
+  border-radius: 3px; padding: 1px 6px;
+  &:hover { background: var(--btn-hover); }
+  &.active { border-color: var(--accent); font-weight: 600; }
+  &:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  &:is(:disabled, [aria-disabled=true]) { cursor: default; background: var(--btn); }
+  &:is(:disabled, [aria-disabled=true]):not(.active) { opacity: .5; }
+}
+/* a text button that carries an icon, alone or beside a word: the svg sits centred at 14px */
+button.action.icon-only { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+button.action.icon-only svg { display: block; width: 14px; height: 14px; }
 label { display: flex; gap: 6px; align-items: center; padding: 2px 0; }
 p.setting-hint { margin: 0 0 4px 22px; }
 h2 { font-size: 12px; margin: 8px 0 4px; color: var(--accent); }
@@ -47,9 +62,18 @@ h2 { font-size: 12px; margin: 8px 0 4px; color: var(--accent); }
 .settings-main h2:first-child { margin-top: 2px; }
 .settings-main h3 { font-size: 12px; margin: 10px 0 4px; color: #b8a27d; }
 input, select, textarea { font: inherit; }
+/* fields in the box colours: dark ground, light text, the frame brown, the accent on focus */
+input:not([type=checkbox]):not([type=radio]), select, textarea { color: var(--ink); background: var(--field);
+  border: 1px solid #8a6a3a; border-radius: 3px; padding: 1px 4px; }
+input:not([type=checkbox]):not([type=radio]):focus, select:focus, textarea:focus { outline: none;
+  border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+input::placeholder, textarea::placeholder { color: #b8a27d; opacity: .7; }
+input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
+/* no spinner arrows: they take half of a narrow field, arrow keys still step */
+input[type=number] { appearance: textfield; -moz-appearance: textfield; }
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input.num, input[type=number] { text-align: right; }
 .tabs { display: flex; flex-wrap: wrap; gap: 2px; margin: 0 0 6px; }
-.tabs button { font: inherit; cursor: pointer; }
-.tabs button.active { font-weight: 600; }
 .split { display: flex; gap: 8px; align-items: flex-start; }
 .split > .side { flex: 0 0 150px; min-width: 0; }
 .split > .main { flex: 1; min-width: 0; }
@@ -76,6 +100,7 @@ header button svg { display: block; width: 16px; height: 16px; }
 textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
 input.title { width: 100%; font-weight: 600; }
 button.marker { all: unset; cursor: pointer; }
+button.marker svg, button.map-button svg { display: block; width: 14px; height: 14px; }
 tr.battle-row { cursor: pointer; }
 tr.plunder-row { cursor: pointer; }
 tr.plunder-row:hover, tr.plunder-row:focus-visible { background: #3a2a16; outline: none; }
@@ -96,8 +121,8 @@ button.marker.dim { opacity: .3; }
 :is(.box.tall, .box.popped) .body.fill .map-frame { flex: 1 1 auto; height: auto; }
 .map-frame canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .map-tools { position: absolute; top: 4px; right: 4px; display: flex; gap: 2px; }
-.map-tools button { font: inherit; cursor: pointer; padding: 0 6px; }
-.map-tools button.active { font-weight: 600; outline: 1px solid var(--accent); }
+.map-tools button { display: inline-flex; align-items: center; }
+.map-tools button svg, .tabs button svg { display: block; width: 14px; height: 14px; }
 .map-legend { display: flex; flex-wrap: wrap; gap: 2px 10px; list-style: none; margin: 4px 0; padding: 0; }
 .map-legend .swatch { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: -1px;
   border: 2px solid transparent; }
@@ -109,9 +134,8 @@ button.marker.dim { opacity: .3; }
 .stats-drawer { position: absolute; top: 34px; right: 100%; display: flex; flex-direction: row-reverse;
   align-items: flex-start; }
 .stats-drawer[data-side=right] { right: auto; left: 100%; flex-direction: row; }
-.stats-tab { font: inherit; cursor: pointer; writing-mode: vertical-rl; padding: 8px 2px; background: var(--btn);
-  color: var(--ink); border: 2px solid #8a6a3a; border-right: 0; border-radius: 6px 0 0 6px; }
-.stats-drawer[data-side=right] .stats-tab { border: 2px solid #8a6a3a; border-left: 0; border-radius: 0 6px 6px 0; }
+.stats-tab { writing-mode: vertical-rl; padding: 8px 2px; border-width: 2px; border-right: 0; border-radius: 6px 0 0 6px; }
+.stats-drawer[data-side=right] .stats-tab { border-width: 2px; border-left: 0; border-radius: 0 6px 6px 0; }
 .stats-drawer.open .stats-tab { color: var(--accent); }
 .stats-panel { width: 250px; max-height: 70vh; overflow: auto; padding: 4px 8px; background: #2b1d10;
   border: 2px solid #8a6a3a; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.5); }
@@ -121,14 +145,15 @@ button.marker.dim { opacity: .3; }
 .stats-list { list-style: none; margin: 2px 0; padding: 0; }
 /* popped out: no room beside the window, so the panel takes a column beside the map */
 .box.popped .stats-drawer { position: static; flex: 0 0 auto; flex-direction: row; }
-.box.popped .stats-tab { border: 2px solid #8a6a3a; border-radius: 6px; }
+.box.popped .stats-tab { border: 2px solid var(--line); border-radius: 6px; }
 .box.popped .stats-panel { max-height: none; align-self: stretch; width: 230px; box-shadow: none; }
 /* great building calculator: one row per place, coloured by what the place is worth */
 .gb-factor, .gb-levels { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 4px 0 6px; }
-.gb-factor button, .gb-levels button { font: inherit; cursor: pointer; }
-.gb-factor button.active, .gb-factor input.active, .gb-levels button.active, .gb-levels input.active {
-  font-weight: 600; outline: 1px solid var(--accent); }
-.gb-factor input, .gb-levels input { width: 5em; }
+.gb-factor input.active, .gb-levels input.active { font-weight: 600; border-color: var(--accent); }
+.gb-factor input[type=number], .gb-levels input[type=number] { width: 5em; }
+/* factor buttons all one width, whatever the number of digits */
+.gb-factor button:not(.icon) { min-width: 3.6em; text-align: center; }
+.gb-factor label { gap: 3px; }
 .gb-places { position: relative; min-height: 60px; }
 .gb-table td, .gb-table th { white-space: nowrap; }
 tr.gb-profit { background: rgba(90, 170, 90, .28); }
@@ -139,8 +164,48 @@ tr.own-row td { background: #3a2814; }
 td.own-fp, td.gain { color: #8fd08f; }
 button.copy-fp { all: unset; cursor: pointer; }
 button.copy-fp:hover { text-decoration: underline; }
-input.ext { width: 5em; }
+input.ext, input.place-factor { width: 100%; min-width: 0; }
+/* the Eigenanteil table keeps its column widths (the colgroup) whatever the cells hold */
+table.own-share { table-layout: fixed; width: auto; }
+table.own-share th, table.own-share td { overflow: hidden; text-overflow: ellipsis; }
+table.own-share .icon-cell { text-align: center; }
+/* a column header drawn as an icon */
+.gb-table th svg { display: inline-block; width: 14px; height: 14px; vertical-align: middle; }
+.gb-table th svg.harvest { width: 18px; height: 18px; }
+.own-share .marker { display: inline-flex; align-items: center; gap: 2px; vertical-align: middle; }
+.own-share .marker svg { display: block; width: 14px; height: 14px; }
+.own-share .marker.danger { color: #f07060; }
+.own-share .marker.levels { color: var(--accent); }
+/* the Powerleveln table: fixed columns as well, the current level marked, locked levels dimmed */
+table.power-level { table-layout: fixed; width: auto; }
+table.power-level th, table.power-level td { overflow: hidden; text-overflow: ellipsis; }
+table.power-level tr.current td { background: rgba(80, 140, 220, .22); }
+table.power-level tr.locked { color: #8a7a60; }
+table.power-level tr.total td { font-weight: 600; }
+table.power-level button.icon { all: unset; cursor: pointer; display: grid; place-items: center; width: 18px; height: 18px;
+  color: var(--ink); opacity: .8; }
+table.power-level button.icon:hover { opacity: 1; }
+table.power-level button.icon svg { display: block; width: 14px; height: 14px; }
+.power-open { margin: 4px 0; }
+.power-open button { display: inline-grid; place-items: center; padding: 3px 6px; }
+.power-open button svg { display: block; width: auto; height: 22px; }
+.gb-levels input.span { width: 4.5em; }
+input.place-factor.arc { color: var(--accent); }
+.gb-factor .factor-status { display: inline-grid; place-items: center; margin-left: 4px; }
+.gb-factor .factor-status svg { width: 14px; height: 14px; }
+.gb-factor .factor-status.saved { color: var(--accent); }
+.gb-factor button.icon { all: unset; cursor: pointer; width: 18px; height: 18px; display: grid; place-items: center;
+  color: var(--ink); opacity: .8; }
+.gb-factor button.icon:hover { opacity: 1; }
+.gb-factor button.icon.off, .gb-factor button.icon.off:hover { opacity: .3; cursor: default; }
+.gb-factor button.icon svg { display: block; width: 14px; height: 14px; }
 .copy-line { display: flex; gap: 4px; align-items: center; margin: 4px 0; }
+.copy-line button.icon { all: unset; cursor: pointer; width: 18px; height: 18px; display: grid; place-items: center;
+  color: var(--ink); opacity: .8; }
+.copy-line button.icon:hover { opacity: 1; }
+.copy-line button.icon svg { display: block; width: 14px; height: 14px; }
+.page-mark { display: inline-block; vertical-align: -2px; }
+.page-mark svg { display: block; width: 14px; height: 14px; }
 .copy-line .copy-text { flex: 1; min-width: 0; }
 .copy-line .copy-building { width: 7em; }
 tr.gb-unavailable, tr.gb-worse { color: #8a7a60; }
@@ -148,6 +213,8 @@ tr.gb-unavailable, tr.gb-worse { color: #8a7a60; }
 td.short { color: #ff6a50; font-weight: 600; }
 td.over-rest { color: #e08070; }
 td.below-safe { font-style: italic; opacity: .75; }
+/* the name of the great building on top of its boxes */
+.gb-title { font-size: 15px; font-weight: 600; }
 p.gb-me { margin: 6px 0; padding: 4px 6px; border: 1px solid #8a6a3a; border-radius: 4px; background: #3a2814; }
 p.gb-me.safe { border-color: #5a9a4a; }
 p.gb-me.safe, .gb-me .gain { color: #8fd08f; }

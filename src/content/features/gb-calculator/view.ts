@@ -2,7 +2,7 @@ import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import type { LevelUpAndFirst } from '../../domain/gb-level-preview';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
-import { keepKeys } from '../../ui/inputs';
+import { levelBar } from '../../ui/level-bar';
 import { externalLink } from '../../ui/links';
 import type {
   ActivityVm,
@@ -10,7 +10,6 @@ import type {
   DemandCell,
   GbCalculatorVm,
   GbHeader,
-  LevelChoice,
   MeVm,
   PlaceRow,
   PreviewVm,
@@ -38,32 +37,11 @@ function header(h: GbHeader) {
       : t('gbCalc.availableFp', { fp: formatNumber(h.availableFp) });
   const part = (n: number | undefined) => (n === undefined ? '?' : formatNumber(n));
   const split = t('gbCalc.fpSplit', { bar: part(h.fpBar), packages: part(h.fpPackages) });
-  return html`<p><b>${t('gbCalc.heading', { name: h.name, level: h.level, next: h.next })}</b>
+  return html`<p><span class="gb-title">${t('gbCalc.heading', { name: h.name, level: h.level, next: h.next })}</span>
     <span class="muted">· ${t('gbCalc.unlocked', { max: h.maxLevel })}</span>
     <br />${owner(h.owner, h.ownerUrl)}${h.activity ? activityLine(h.activity) : ''}
     <br /><span class="muted"><span class="gb-fp" data-tip=${split}>${fp}</span> ·
       ${t('gbCalc.arc', { arc: formatNumber(h.arcBonus) })}</span></p>`;
-}
-
-/** the field alone switches: the current level shows the live construction, a later one the preview */
-function levelBar(l: LevelChoice, actions: GbCalculatorActions) {
-  const typed = (e: Event) => {
-    const value = (e.target as HTMLInputElement).valueAsNumber;
-    if (value === l.current) actions.previewLevel(undefined);
-    else if (Number.isInteger(value) && value > l.current) actions.previewLevel(value);
-  };
-  return html`<div class="gb-levels">
-    <span>${t('gbCalc.level')}</span>
-    <input type="number" min=${l.current} step="1" data-tip=${t('gbCalc.previewInput')}
-      aria-label=${t('gbCalc.previewInput')} class=${l.preview ? 'active' : ''}
-      .value=${String(l.chosen)} @keydown=${keepKeys} @change=${typed} />
-    ${
-      l.preview
-        ? html`<button @click=${() => actions.previewLevel(undefined)}>
-            ${t('gbCalc.live', { level: l.current, next: l.current + 1 })}</button>`
-        : ''
-    }
-  </div>`;
 }
 
 /** stands where a place has no cost, below the own one */
@@ -129,7 +107,7 @@ function meLine(me: MeVm) {
   };
   const targets = me.targets.length
     ? me.targets.map((x, i) => html`${i ? ' · ' : ''}${target(x)}`)
-    : t('gbCalc.meNoTarget');
+    : t(me.noneWorthwhile ? 'gbCalc.meNoneWorthwhile' : 'gbCalc.meNoTarget');
   return html`<p class="gb-me">${where}<br /><span class="muted">${targets}</span>${levelUp}</p>`;
 }
 
@@ -210,7 +188,7 @@ export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorAction
       return html`<p>${owner(vm.owner, vm.ownerUrl)}</p><p class="warn">${t('gbCalc.noEntity')}</p>`;
     case 'past':
       return html`${header(vm.header)}
-        ${levelBar(vm.header.levels, actions)}
+        ${levelBar(vm.header.levels, (level) => actions.previewLevel(level))}
         <p class="warn">${t('gbCalc.pastLevel', { from: vm.level - 1, to: vm.level })}</p>
         <table class="gb-table">
           <tr><th>${t('gbCalc.place')}</th><th>${t('gbCalc.player')}</th><th class="num">${t('gbCalc.fp')}</th></tr>
@@ -222,14 +200,14 @@ export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorAction
         </table>`;
     case 'preview':
       return html`${header(vm.header)}
-        ${levelBar(vm.header.levels, actions)}
+        ${levelBar(vm.header.levels, (level) => actions.previewLevel(level))}
         ${factorBar(vm.factorButtons, vm.effectiveFactor, actions)}
         ${vm.levelUp ? html`<p class="gb-me">${levelUpLine(vm.levelUp)}</p>` : ''}
         ${previewPart(vm.preview)}`;
     case 'current': {
       const overlay = overlayText(vm);
       return html`${header(vm.header)}
-        ${levelBar(vm.header.levels, actions)}
+        ${levelBar(vm.header.levels, (level) => actions.previewLevel(level))}
         ${factorBar(vm.factorButtons, vm.effectiveFactor, actions)}
         ${vm.me ? meLine(vm.me) : ''}
         <div class="gb-places">

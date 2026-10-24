@@ -16,12 +16,14 @@ import { cityMapFeature } from './features/city-map';
 import { foestatsFeature } from './features/foestats';
 import { gbCalculatorFeature } from './features/gb-calculator';
 import { gbOwnShareFeature } from './features/gb-own-share';
+import { gbPowerLevelFeature } from './features/gb-power-level';
 import { notesFeature } from './features/notes';
 import { pvpFeature } from './features/pvp';
 import { sabotageFeature } from './features/sabotage';
 import { settingsFeature } from './features/settings-feature';
 import { registerGameHandlers } from './game/handlers';
 import { createStores } from './stores';
+import { createGbOwnState } from './stores/gb-own-state';
 import { Menu } from './ui/menu';
 import { UiState } from './ui/ui-state';
 
@@ -32,6 +34,7 @@ const features: Feature[] = [
   cityMapFeature,
   gbCalculatorFeature,
   gbOwnShareFeature,
+  gbPowerLevelFeature,
   foestatsFeature,
   settingsFeature,
 ];
@@ -67,6 +70,7 @@ async function main() {
     ...stores,
     recorder,
     ui,
+    gbOwn: createGbOwnState(bus, ui, settings),
     createBox: boxFactory(ui, (group) => bus.emit('settings.open', { group })),
   };
   for (const feature of features) {

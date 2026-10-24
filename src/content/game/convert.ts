@@ -37,6 +37,7 @@ import type {
   GameCityMapArea,
   GameCityProtection,
   GameEvent,
+  GameGreatBuildingConstruction,
   GameGreatBuildingName,
   GameGreatBuildingRankingRow,
   GameGreatBuildingReward,
@@ -517,6 +518,13 @@ export function toRankingRows(data: unknown): RankingRow[] | null {
   });
 }
 
+/** The production of the next level from `getConstruction`; undefined when the answer has none. */
+export function toNextProduction(data: GameGreatBuildingConstruction | null | undefined) {
+  const bonus = data?.next_production_bonus;
+  const value = num(bonus?.value);
+  return typeof bonus?.type === 'string' && value !== undefined ? { type: bonus.type, value } : undefined;
+}
+
 /**
  * A great building from a city entity, for example `OtherPlayerService.getOtherPlayerCityMapEntity`. The game leaves
  * out fields that are 0 (seen: `y`, `invested_forge_points`), so a missing `connected` means not connected.
@@ -632,8 +640,9 @@ export function toItemAmount(data: unknown): { id: number; inStock: number } | n
 }
 
 /**
- * InventoryService.updateItem (not recorded yet): one `{ id, amount }` or a list of them; `amount` is the new stock,
- * not a difference.
+ * InventoryService.updateItem (recorded 2026-10-21 and 2026-10-23): one `{ id, amount, receivedAt? }` per entry,
+ * `amount` the new stock, not a difference. A contribution brings two per package item in one batch: the packages
+ * used, then the reward with `receivedAt`; the last one counts. A list of them is read as well.
  */
 export function toItemUpdates(data: unknown): { id: number; inStock: number }[] {
   return (Array.isArray(data) ? data : [data]).flatMap((u: { id?: unknown; amount?: unknown } | null) => {

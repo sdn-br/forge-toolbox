@@ -312,6 +312,67 @@ describe('calculateConstruction on edge cases', () => {
   });
 });
 
+describe('fallback place and worthwhile places', () => {
+  const rewards = [1200, 600, 300, 100, 20];
+  /** places 1 to 5 with the rewards above, holders given from place 1 on, `me` marks the own place (1-based) */
+  const level = (holders: number[], me?: number) =>
+    rewards.map((net, i) => place(i + 1, net, holders[i], me === i + 1));
+  const calc = (holders: number[], me: number | undefined, missing: number) =>
+    calculateConstruction(input(holders.reduce((a, b) => a + b, 0) + missing, level(holders, me), { arcBonus: 0 }));
+
+  it('has no fallback place while nothing is paid in', () => {
+    expect(calc([], undefined, 2000).fallbackGross).toBeUndefined();
+  });
+
+  it('is the own place when the points left cannot pay one pass', () => {
+    // a newcomer needs 601 to pass the own 600
+    expect(calc([1000, 700, 600], 3, 600).fallbackGross).toBe(300);
+  });
+
+  it('drops one place per pass the points allow', () => {
+    // one pass for 601, the second finds 399 left
+    expect(calc([1000, 700, 600], 3, 1000).fallbackGross).toBe(100);
+  });
+
+  it('lets holders below be passed for the difference, cheapest first', () => {
+    // places 4 and 5 hold 590 and 500: 11 + 101, then a newcomer for 601 does not fit into 388
+    expect(calc([1000, 700, 600, 590, 500], 3, 500).fallbackGross).toBe(20);
+    // 713 in all fit into 1000
+    expect(calc([1000, 700, 600, 590, 500], 3, 1000).fallbackGross).toBe(0);
+  });
+
+  it('is 0 below the last place, whatever the places pay', () => {
+    expect(calc([1000, 700, 600], 3, 2000).fallbackGross).toBe(0);
+  });
+
+  it('is 0 for a deposit without a rank', () => {
+    const rankings = [{ name: 'Me', self: true, fp: 300 }, ...level([1000, 700, 600, 500, 400])];
+    expect(calculateConstruction(input(4000, rankings, { arcBonus: 0 })).fallbackGross).toBe(0);
+  });
+
+  it('lists a place that leaves more than the fallback although it loses: 400 in, 1000 more for 1200, fallback 100', () => {
+    // place 1 holds 1300, own place 2; safe cost round(2800 / 2) = 1400, 1000 more; two passes (802) put him on place 4
+    const c = calc([1300, 400], 2, 1100);
+    expect(c.fallbackGross).toBe(100);
+    expect(c.places[0]).toMatchObject({ safeCost: 1400, safeExtra: 1000, gross: 1200, profit: -200, worthwhile: true });
+  });
+
+  it('leaves out places that do not beat the fallback, the own place as well', () => {
+    // fallback 100 as above; gross - missing: place 1 1200 - 700, place 2 600 - 550, own place 300 - 200
+    const c = calc([1000, 700, 600], 3, 1000);
+    expect(c.places.map((p) => p.worthwhile)).toEqual([true, false, false, undefined, undefined]);
+  });
+
+  it('without an own deposit lists a place with no loss or a safe cost within the demand', () => {
+    // rewards 1200: safe 1000 earns 200
+    expect(calculateConstruction(input(2000, level([]), { arcBonus: 0 })).places[0]?.worthwhile).toBe(true);
+    // safe 2000 loses 800, but the demand of 2280 asks more
+    expect(calculateConstruction(input(4000, level([]), { arcBonus: 0 })).places[0]?.worthwhile).toBe(true);
+    // safe 3000 loses 1800 and the demand is below
+    expect(calculateConstruction(input(6000, level([]), { arcBonus: 0 })).places[0]?.worthwhile).toBe(false);
+  });
+});
+
 describe('arcBonus', () => {
   const gb = (id: number, type: string, value: number): Building => ({
     id,
