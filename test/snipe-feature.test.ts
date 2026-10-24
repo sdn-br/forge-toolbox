@@ -129,6 +129,7 @@ describe('Snipehilfe: box with tabs', () => {
     await tick();
     expect(box.text).toContain('Stand: vor 4 Min.');
     expect([...box.root.querySelectorAll('th')].map((th) => th.getAttribute('aria-label'))).toEqual([
+      '#',
       'LG',
       'Stufe',
       'Fortschritt',
@@ -139,7 +140,7 @@ describe('Snipehilfe: box with tabs', () => {
     ]);
     // the lighthouse has no loaded definition: unknown reward; the others pay a place
     expect(rows()).toHaveLength(2);
-    const [first] = cells(rows()[0]);
+    const [, first] = cells(rows()[0]);
     expect(['Zeusstatue', 'Orakel von Delphi']).toContain(first);
     expect(box.text).toContain('Belohnung unbekannt: 1');
     expect(tones()).toBe(1);
@@ -160,18 +161,30 @@ describe('Snipehilfe: box with tabs', () => {
     const { box, list, rows, cells } = setup();
     list([withRequired(zeus, 80, 20), withRequired(oracle, 100, 30)]);
     await tick();
-    const profits = rows().map((r) => cells(r)[5] ?? '');
+    const profits = rows().map((r) => cells(r)[6] ?? '');
     expect(profits.every((p) => /^[+−]?\d[\d.]* … [+−]?\d[\d.]*$|^[+−]?\d[\d.]*$/.test(p))).toBe(true);
-    const names = () => rows().map((r) => cells(r)[0]);
+    const names = () => rows().map((r) => cells(r)[1]);
     const before = names();
-    (box.root.querySelectorAll('th')[0] as HTMLElement).click();
+    (box.root.querySelectorAll('th')[1] as HTMLElement).click();
     await tick();
     const ascending = names();
     expect(ascending).toEqual([...before].sort((a, b) => (a ?? '').localeCompare(b ?? '', 'de')));
-    (box.root.querySelectorAll('th')[0] as HTMLElement).click();
+    (box.root.querySelectorAll('th')[1] as HTMLElement).click();
     await tick();
     expect(names()).toEqual([...ascending].reverse());
     expect(box.root.querySelector('th.desc')?.getAttribute('aria-label')).toBe('LG');
+  });
+
+  it('numbers the rows in the order of the game and sorts by that number', async () => {
+    const { box, list, rows, cells } = setup();
+    list([withRequired(zeus, 80, 20), withRequired(oracle, 100, 30)]);
+    await tick();
+    const order = () => rows().map((r) => cells(r)[0]);
+    expect([...order()].sort()).toEqual(['1', '2']);
+    (box.root.querySelectorAll('th')[0] as HTMLElement).click();
+    await tick();
+    expect(order()).toEqual(['1', '2']);
+    expect(box.root.querySelector('th.asc')?.getAttribute('aria-label')).toBe('#');
   });
 
   it('does not open for a list without a hit, and does not beep', async () => {
@@ -255,7 +268,7 @@ describe('Snipehilfe: box with tabs', () => {
     advance(10_000);
     list([{ ...dom, current_progress: 2_900 }]);
     await tick();
-    expect(cells(rows()[0]).slice(0, 3)).toEqual(['Aachener Dom', '75', '2.900 / 3.062']);
+    expect(cells(rows()[0]).slice(1, 4)).toEqual(['Aachener Dom', '75', '2.900 / 3.062']);
     expect(rows()[0]?.querySelector('td.snipe-tier')?.className).not.toContain('exact');
     advance(10_000);
     open(1909);
@@ -263,7 +276,7 @@ describe('Snipehilfe: box with tabs', () => {
     expect(box.root.querySelector('.tabs .active')?.textContent).toBe('LG');
     box.click('Liste');
     // the opening is newer than the list: its state and its ranking make the row exact
-    expect(cells(rows()[0]).slice(0, 4)).toEqual(['Aachener Dom', '75', '251 / 3.062', 'P1']);
+    expect(cells(rows()[0]).slice(1, 5)).toEqual(['Aachener Dom', '75', '251 / 3.062', 'P1']);
     expect(rows()[0]?.querySelector('td.snipe-tier')?.className).toContain('exact');
   });
 });

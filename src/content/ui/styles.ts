@@ -158,6 +158,7 @@ button.marker.dim { opacity: .3; }
 .gb-table td, .gb-table th { white-space: nowrap; }
 /* snipe list: fixed columns so heads show whole; only the building name gives way */
 .snipe-table { table-layout: fixed; }
+.snipe-table .c-order { width: 30px; }
 .snipe-table .c-level, .snipe-table .c-rank { width: 46px; }
 .snipe-table .c-progress { width: 112px; }
 .snipe-table .c-cost { width: 64px; }

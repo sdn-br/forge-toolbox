@@ -4,7 +4,7 @@ import type { SnipeHit, SnipeList, SnipePlace, SnipeTier } from '../../domain/gb
 import type { FoestatsRecord } from '../../stores/foestats';
 import { type ActivityVm, activityVm } from './view-model';
 
-export type SnipeColumn = 'name' | 'level' | 'progress' | 'rank' | 'cost' | 'profit';
+export type SnipeColumn = 'order' | 'name' | 'level' | 'progress' | 'rank' | 'cost' | 'profit';
 
 export interface SnipeSort {
   column: SnipeColumn;
@@ -18,12 +18,15 @@ export const DEFAULT_SORT: SnipeSort = { column: 'profit', desc: true };
 /** a click on a column head: the same column turns around, another starts with its natural direction */
 export function nextSort(current: SnipeSort, column: SnipeColumn): SnipeSort {
   if (current.column === column) return { column, desc: !current.desc };
-  return { column, desc: column !== 'name' };
+  // names and the game's order read from the top, numbers from the largest
+  return { column, desc: column !== 'name' && column !== 'order' };
 }
 
 export interface SnipeRowVm {
   owner: PlayerId;
   entityId: number;
+  /** place in the game's list, from 1 */
+  order: number;
   name: string;
   level: number;
   invested: number;
@@ -59,7 +62,7 @@ export type SnipeVm =
 
 export interface SnipeInput {
   /** the list shown; missing before the first one */
-  list?: { owner: PlayerId; ownerName?: string; at: number };
+  list?: { owner: PlayerId; ownerName?: string; at: number; entityIds: Iterable<number> };
   result?: SnipeList;
   greatBuildingName(def: BuildingDefId): string | undefined;
   playerName(id: PlayerId): string | undefined;
@@ -84,7 +87,8 @@ function profitText(h: SnipeHit): string {
 const worstNote = (w: SnipePlace) =>
   t('snipe.worst', { rank: w.rank, cost: formatNumber(w.cost), profit: signed(w.profit) });
 
-const sortKey: Record<SnipeColumn, (r: SnipeHit, name: string) => number | string> = {
+const sortKey: Record<SnipeColumn, (r: SnipeHit, name: string, order: number) => number | string> = {
+  order: (_, __, order) => order,
   name: (_, name) => name,
   level: (r) => r.level,
   progress: (r) => (r.required > 0 ? r.invested / r.required : 0),
@@ -97,16 +101,19 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
   const { list, result } = input;
   if (!list || !result) return { kind: 'none' };
   const name = (h: SnipeHit) => input.greatBuildingName(h.cityEntityId) ?? h.cityEntityId;
+  const places = new Map([...list.entityIds].map((id, i) => [id, i + 1]));
+  const order = (h: SnipeHit) => places.get(h.entityId) ?? 0;
   const key = sortKey[input.sort.column];
   const sign = input.sort.desc ? -1 : 1;
   const hits = [...result.hits].sort((a, b) => {
-    const x = key(a, name(a));
-    const y = key(b, name(b));
+    const x = key(a, name(a), order(a));
+    const y = key(b, name(b), order(b));
     return sign * (typeof x === 'string' ? x.localeCompare(String(y), 'de') : x - (y as number));
   });
   const rows = hits.map<SnipeRowVm>((h) => ({
     owner: h.owner,
     entityId: h.entityId,
+    order: order(h),
     name: name(h),
     level: h.level,
     invested: h.invested,

@@ -165,6 +165,7 @@ export const de = {
   'snipe.heading': 'Mögliche Einzahlungen',
   'snipe.age': 'Stand: vor {duration}',
   'snipe.noHit': 'Kein LG mit lohnendem Platz.',
+  'snipe.col.order': '#',
   'snipe.col.name': 'LG',
   'snipe.col.level': 'Stufe',
   'snipe.col.progress': 'Fortschritt',

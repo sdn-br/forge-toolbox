@@ -19,6 +19,7 @@ const tierIcon: Record<SnipeTier, TemplateResult> = {
 
 /** Columns in table order; heads show the whole word, the widths are in the styles. */
 const columns: { column: SnipeColumn; label: TextKey; num: boolean }[] = [
+  { column: 'order', label: 'snipe.col.order', num: true },
   { column: 'name', label: 'snipe.col.name', num: false },
   { column: 'level', label: 'snipe.col.level', num: true },
   { column: 'progress', label: 'snipe.col.progress', num: true },
@@ -36,6 +37,7 @@ const head = (c: (typeof columns)[number], sort: SnipeSort, actions: SnipeAction
 };
 
 const row = (r: SnipeRowVm) => html`<tr data-tip=${r.notes.join('\n')}>
+  <td class="num">${r.order}</td>
   <td class="snipe-name">${r.name}</td>
   <td class="num">${r.level}</td>
   <td class="num" data-tip=${t('snipe.progressHint', { percent: r.percent })}>${formatNumber(r.invested)} / ${formatNumber(r.required)}</td>
@@ -56,7 +58,7 @@ export function snipeView(vm: SnipeVm, actions: SnipeActions): TemplateResult {
       vm.rows.length === 0
         ? html`<p class="muted">${t('snipe.noHit')}</p>`
         : html`<table class="gb-table snipe-table">
-            <colgroup><col class="c-name" /><col class="c-level" /><col class="c-progress" /><col class="c-rank" />
+            <colgroup><col class="c-order" /><col class="c-name" /><col class="c-level" /><col class="c-progress" /><col class="c-rank" />
               <col class="c-cost" /><col class="c-profit" /><col class="c-tier" /></colgroup>
             <tr>${columns.map((c) => head(c, vm.sort, actions))}<th class="snipe-tier" aria-label=${t('snipe.col.tier')}
               data-tip=${t('snipe.col.tier')}>${headerIcons.info}</th></tr>
