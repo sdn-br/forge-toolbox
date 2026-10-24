@@ -200,6 +200,12 @@ export const headerIcons = {
     <text x="12" y="19.7" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="900" font-size="7.8" style="fill:var(--accent);stroke:var(--bg);stroke-width:2.6px;paint-order:stroke;stroke-linejoin:round">2×</text></svg>`,
   /** a check mark: done */
   check: headerIcon(svg`<path d="M4.5 12.5 9.5 17.5 19.5 6.5"/>`),
+  /** a check mark in a circle: safe */
+  checkCircle: headerIcon(svg`<circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.8 2.8L16.2 9.5"/>`),
+  /** a question mark in a circle: possible, not certain */
+  questionCircle: headerIcon(
+    svg`<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.7a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.8M12 16.6v.2"/>`,
+  ),
   /** the folded map: open the map */
   map: headerIcon(foldedMap),
   /** a sheet with a folded corner and two lines: a note */

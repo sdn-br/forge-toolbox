@@ -156,6 +156,23 @@ button.marker.dim { opacity: .3; }
 .gb-factor label { gap: 3px; }
 .gb-places { position: relative; min-height: 60px; }
 .gb-table td, .gb-table th { white-space: nowrap; }
+/* snipe list: fixed columns so heads show whole; only the building name gives way */
+.snipe-table { table-layout: fixed; }
+.snipe-table .c-level, .snipe-table .c-rank { width: 46px; }
+.snipe-table .c-progress { width: 112px; }
+.snipe-table .c-cost { width: 64px; }
+.snipe-table .c-profit { width: 112px; }
+.snipe-table .c-tier { width: 26px; }
+.snipe-table td.snipe-name { overflow: hidden; text-overflow: ellipsis; }
+.snipe-table th.sortable { cursor: pointer; }
+.snipe-table th.sortable:hover { color: var(--accent); }
+.snipe-table th.desc::after { content: ' ▾'; color: var(--accent); }
+.snipe-table th.asc::after { content: ' ▴'; color: var(--accent); }
+.snipe-table .snipe-tier { text-align: center; padding: 0; }
+.snipe-table .snipe-tier svg { display: block; width: 14px; height: 14px; margin: auto; }
+td.snipe-tier.exact { color: #8fd08f; }
+td.snipe-tier.safe { color: #5a9a4a; }
+td.snipe-tier.possible { color: #f0a050; }
 tr.gb-profit { background: rgba(90, 170, 90, .28); }
 tr.gb-loss { background: rgba(200, 80, 60, .28); }
 tr.gb-levelWarning { background: rgba(220, 190, 60, .32); }

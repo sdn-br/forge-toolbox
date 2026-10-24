@@ -57,6 +57,7 @@ import type {
   GameEvent,
   GameEventPage,
   GameGreatBuildingConstruction,
+  GameGreatBuildingListRow,
   GameSocialList,
   GameStartup,
   GameVisit,
@@ -395,7 +396,10 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   });
   ingestion.on('GreatBuildingsService', 'getOtherPlayerOverview', ({ data }) => {
     catalog.setGreatBuildingNames(toGreatBuildingNames(data));
-    greatBuildings.noteList(toGreatBuildingListRows(data, session.current?.playerId));
+    greatBuildings.noteList(
+      toGreatBuildingListRows(data, session.current?.playerId),
+      (data as GameGreatBuildingListRow[] | null)?.[0]?.player?.name,
+    );
   });
   // The town hall list "Legendäre Bauwerke" of the buildings the session player invested in (recorded 2026-10-24,
   // 39 rows, no request data): the same rows as the overview, with the own rank, deposit and reward on top.

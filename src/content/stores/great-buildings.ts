@@ -158,10 +158,17 @@ export class GreatBuildingStore {
   }
 
   /** The great building list of another player (`getOtherPlayerOverview`); the caller leaves out the own list. */
-  noteList(rows: GreatBuildingListRow[]): void {
-    if (rows.length === 0) return;
+  noteList(rows: GreatBuildingListRow[], ownerName?: string): void {
+    const owner = rows[0]?.owner;
+    if (owner === undefined) return;
     const at = this.now();
     this.enqueue(() => this.persistence.putList(this.world, rows, at));
+    this.bus.emit('greatBuildings.listed', {
+      owner,
+      ...(ownerName !== undefined && { ownerName }),
+      entityIds: rows.map((r) => r.entityId),
+      at,
+    });
   }
 
   /** The town hall list of the buildings the session player invested in (`getContributions`). */

@@ -40,6 +40,8 @@ export interface ToolboxEvents {
     entityId: number;
     reason: 'entity' | 'ranking' | 'contributed' | 'leveled';
   };
+  /** the great building list of another player arrived (not the own one); `at` is when, `entityIds` its buildings */
+  'greatBuildings.listed': { owner: PlayerId; ownerName?: string; entityIds: number[]; at: number };
   /** the factors per place of a building changed (any of the three levels); without `def` those of every building */
   'gbOwn.factorsChanged': { def?: string };
   /** the Ext of a building's level changed */

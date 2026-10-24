@@ -1,12 +1,19 @@
+import { html } from 'lit-html';
 import { foestatsDay, foestatsPlayerUrl } from '../../../shared/foestats';
+import type { PlayerId } from '../../../shared/ids';
+import type { KnownGreatBuilding } from '../../../shared/model';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
 import { arcBonus } from '../../domain/gb-calculator';
+import { type SnipeList, snipeList } from '../../domain/gb-snipe';
 import { FOESTATS_SETTING } from '../../stores/foestats';
 import type { Construction } from '../../stores/great-building-model';
+import { effectiveFactor } from '../../ui/factor-bar';
 import { icons } from '../../ui/icons';
 import { playTone } from '../../ui/tone';
+import { snipeView } from './snipe-view';
+import { DEFAULT_SORT, nextSort, type SnipeSort, type SnipeVm, snipeViewModel } from './snipe-view-model';
 import { type GbCalculatorActions, gbCalculatorView } from './view';
 import { type GbCalculatorVm, gbCalculatorViewModel } from './view-model';
 
@@ -19,6 +26,10 @@ const FACTOR_BUTTONS = 'gbCalc.factorButtons';
 const ARC_BUTTON = 'gbCalc.arcButton';
 const SOUND = 'gbCalc.sound';
 const RETENTION = 'snipe.retentionDays';
+/** a list this soon after the owner's building was opened or paid into is the game's own question, not the player's */
+const ASKED_BY_GAME = 3000;
+const SNIPE_OPEN = 'snipe.open';
+const SNIPE_SOUND = 'snipe.sound';
 const FP = 'strategy_points';
 
 /** `tone` plays the sound for a profitable place; tests pass their own. */
@@ -70,6 +81,20 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         min: 1,
         max: 365,
       });
+      ctx.settings.register({
+        key: SNIPE_OPEN,
+        group: 'gbCalc.title',
+        section: 'snipe.section',
+        label: 'snipe.openSetting',
+        default: true,
+      });
+      ctx.settings.register({
+        key: SNIPE_SOUND,
+        group: 'gbCalc.title',
+        section: 'snipe.section',
+        label: 'snipe.soundSetting',
+        default: true,
+      });
       // buildings of other players not seen for that long go; those with an own contribution stay
       ctx.greatBuildings
         .prune(ctx.settings.number(RETENTION))
@@ -82,6 +107,18 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       let toned: string | undefined;
       /** the later level the box previews; undefined shows the construction */
       let preview: number | undefined;
+
+      /** which part of the box shows; a new list switches to the list, an opened building to the building */
+      let tab: 'list' | 'gb' = 'gb';
+      /** the last list of another player, with the stored state of its buildings */
+      let list: { owner: PlayerId; ownerName?: string; at: number; entityIds: Set<number> } | undefined;
+      let listed: KnownGreatBuilding[] = [];
+      let snipe: SnipeList | undefined;
+      let snipeVm: SnipeVm = { kind: 'none' };
+      let sort: SnipeSort = DEFAULT_SORT;
+      /** what the last list tone was for: the same hits stay quiet */
+      let snipeToned: string | undefined;
+      let loads = 0;
 
       const save = (key: string, value: boolean | number) =>
         ctx.settings.set(key, value).catch((error) => logError('saving settings failed', error));
@@ -102,8 +139,26 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         settings: 'gbCalc.title',
         title: () => t('gbCalc.title'),
         width: 520,
-        render: () => gbCalculatorView(vm, actions),
+        render: () =>
+          html`<nav class="tabs">${(['list', 'gb'] as const).map(
+            (id) =>
+              html`<button class=${tab === id ? 'active' : ''} @click=${() => show(id)}>${t(`snipe.tab.${id}`)}</button>`,
+          )}</nav>${
+            tab === 'list'
+              ? snipeView(snipeVm, {
+                  sort: (column) => {
+                    sort = nextSort(sort, column);
+                    refresh();
+                  },
+                })
+              : gbCalculatorView(vm, actions)
+          }`,
       });
+
+      const show = (id: 'list' | 'gb') => {
+        tab = id;
+        box.update();
+      };
 
       const refresh = () => {
         vm = gbCalculatorViewModel({
@@ -122,7 +177,47 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           previewLevel: preview,
           greatBuilding: (def) => ctx.catalog.get(def)?.greatBuilding,
         });
+        const arc = arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses());
+        snipe =
+          list &&
+          snipeList({
+            buildings: listed,
+            greatBuilding: (def) => ctx.catalog.get(def)?.greatBuilding,
+            arcBonus: arc,
+            factor: effectiveFactor(
+              { value: ctx.settings.number(FACTOR), arc: ctx.settings.get(FACTOR_ARC) },
+              ctx.settings.get(ARC_BUTTON) ? arc : undefined,
+            ),
+          });
+        snipeVm = snipeViewModel({
+          list,
+          result: snipe,
+          greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
+          playerName: (id) => ctx.players.get(id)?.name,
+          sort,
+        });
         box.update();
+      };
+
+      /** reads the stored state of the buildings of the list; a stale answer is dropped */
+      const loadList = async () => {
+        const current = list;
+        if (!current) return false;
+        const load = ++loads;
+        const known = await ctx.greatBuildings.known(current.owner);
+        if (load !== loads || list !== current) return false;
+        listed = known.filter((b) => current.entityIds.has(b.entityId));
+        refresh();
+        return true;
+      };
+
+      /** a new list: open the box when something pays, once per set of hits a tone */
+      const onList = async () => {
+        if (!(await loadList()) || !snipe || snipe.hits.length === 0) return;
+        const key = `${list?.owner}|${snipe.hits.map((h) => `${h.entityId}:${h.tier}:${h.place.rank}:${h.place.cost}`).join(',')}`;
+        if (ctx.settings.get(SNIPE_OPEN)) box.open();
+        if (ctx.settings.get(SNIPE_SOUND) && key !== snipeToned) tone();
+        snipeToned = key;
       };
 
       /** a tone once per new state of the places that has a profitable one, and once for a level up */
@@ -143,15 +238,33 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         return true;
       };
 
-      ctx.bus.on('greatBuilding.opened', ({ own }) => {
+      ctx.bus.on('greatBuildings.listed', ({ owner, ownerName, entityIds, at }) => {
+        // after a contribution that levels a building the game asks for the owner's list to learn names; the player did
+        // not open it, so it leaves the box alone
+        const open = ctx.greatBuildings.current();
+        if (open?.owner === owner && at - open.seenAt < ASKED_BY_GAME) return;
+        list = { owner, ...(ownerName !== undefined && { ownerName }), at, entityIds: new Set(entityIds) };
+        listed = [];
+        tab = 'list';
+        onList().catch((error) => logError('reading the great building list failed', error));
+      });
+      /** the stored state of a building of the list changed: opened or changed in the game */
+      const listChanged = (owner: PlayerId, entityId: number) => {
+        if (list?.owner === owner && list.entityIds.has(entityId))
+          loadList().catch((error) => logError('reading the great building list failed', error));
+      };
+      ctx.bus.on('greatBuilding.opened', ({ owner, entityId, own }) => {
+        if (!own) listChanged(owner, entityId);
         if (own || !follow()) return;
+        tab = 'gb';
         toned = undefined;
         preview = undefined;
         refresh();
         box.open();
         maybeTone(false);
       });
-      ctx.bus.on('greatBuilding.changed', ({ reason }) => {
+      ctx.bus.on('greatBuilding.changed', ({ owner, entityId, reason }) => {
+        listChanged(owner, entityId);
         if (!follow()) return;
         refresh();
         maybeTone(reason === 'leveled');
