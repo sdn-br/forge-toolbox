@@ -9,7 +9,7 @@ Stand 2026-10-24. Altes Modul `calculator-overview` („Mögliche Investitionen�
 - **Eine Box mit zwei Reitern** (Nutzer, 2026-10-24): „Liste“ (die Snipehilfe) und „LG“ (der bisherige LG-Rechner). Später kommt der Eigenanteil als weiterer Reiter dazu. Die Reiter sind Wörter, weil sie Text behalten (siehe Konzept, UI-Kit).
 - Eine neue LG-Liste schaltet auf „Liste“ und ersetzt die vorige. Ein geöffnetes LG schaltet auf „LG“. Sonst wechselt nur der Spieler den Reiter.
 - **Automatisch öffnen:** Einstellung „Snipehilfe beim Öffnen einer LG-Liste zeigen“, Standard an. Die Box öffnet sich nur, wenn die Liste mindestens einen Treffer hat. Ist sie schon offen, wechselt sie auch ohne Treffer auf „Liste“.
-- **Ton:** eigene Einstellung „Ton bei Treffer in der Snipehilfe“, Standard an, derselbe WebAudio-Ton wie im LG-Rechner. Er spielt einmal je neuer Liste mit mindestens einem Treffer. Dieselbe Liste piept nicht zweimal.
+- **Ton:** eigene Einstellung „Ton bei Treffer in der Snipehilfe“, Standard an, derselbe WebAudio-Ton wie im LG-Rechner. Er spielt nur, wenn eine neue LG-Liste eintrifft, sie mindestens einen Treffer hat und sich die Treffer vom letzten Ton unterscheiden (Spieler und je Treffer LG, Stufe, bester Platz, Einsatz). Dieselbe Liste mit unveränderten Treffern piept nicht, eine Zeile, die beim Öffnen eines LGs exakt wird, auch nicht (Nutzer, 2026-10-24).
 - Die eigene LG-Liste wird übergangen.
 
 ## Reiter „Liste“
