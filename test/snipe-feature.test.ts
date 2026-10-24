@@ -15,8 +15,12 @@ interface Entry {
   responseData: unknown;
 }
 
-/** the stored buildings come back through an in-memory IndexedDB, which takes a few turns */
+/** reads the known buildings of the current setup; it queues behind the writes and the box's own reads */
+let drain: (() => Promise<unknown>) | undefined;
+/** the stored buildings come back through an in-memory IndexedDB; a fixed wait alone is too short when the whole suite
+ * runs, so it first waits for the store */
 const tick = async () => {
+  await drain?.();
   for (let i = 0; i < 10; i++) await new Promise((resolve) => setTimeout(resolve, 5));
 };
 const MINUTE = 60_000;
@@ -32,6 +36,7 @@ function setup() {
   registerGameHandlers(ingestion, { ...ctx, now });
   let tones = 0;
   createGbCalculatorFeature(() => tones++).setup(ctx);
+  drain = () => ctx.greatBuildings.known();
   const box = env.boxes.get('gbCalculator') as NonNullable<ReturnType<typeof env.boxes.get>>;
   const send = (...entries: Entry[]) =>
     ingestion.accept({
