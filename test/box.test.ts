@@ -78,9 +78,10 @@ async function shownBox(
   ui = new UiState(memoryKv()),
   id = 'sized',
   at = { left: 100, top: 50, width: 320, height: 200 },
+  options: Partial<BoxOptions> = {},
 ) {
   const box = new Box(
-    { id, title: () => 'Sized', width: 320, resizable: true, render: () => html`<p>content</p>` },
+    { id, title: () => 'Sized', width: 320, resizable: true, render: () => html`<p>content</p>`, ...options },
     ui,
   );
   box.open();
@@ -138,6 +139,17 @@ describe('box resize', () => {
     const { resize, ui } = await shownBox();
     await resize(-1000, -1000);
     expect(ui.box('sized')).toMatchObject({ width: 260, height: 150 });
+  });
+
+  it('keeps the minimum height of its option when dragged smaller and when a smaller one was saved', async () => {
+    const { resize, ui } = await shownBox(undefined, 'sized', undefined, { minHeight: 240 });
+    await resize(-1000, -1000);
+    expect(ui.box('sized')).toMatchObject({ width: 260, height: 240 });
+    for (const el of document.querySelectorAll('[data-forge-toolbox]')) el.remove();
+    const saved = new UiState(memoryKv());
+    saved.saveBox('sized', { width: 400, height: 160 });
+    const again = await shownBox(saved, 'sized', undefined, { minHeight: 240 });
+    expect(again.frame().style.height).toBe('240px');
   });
 
   it('keeps the box inside the viewport', async () => {
