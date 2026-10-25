@@ -253,4 +253,21 @@ describe('Investitionen: Mögliche Investitionen', () => {
     expect(cells(rows()[0])[8]).toBe('vor 3 Std.');
     expect(box.text).not.toContain('40 Min.');
   });
+
+  it('rates the buildings of others only for their tab, once until an input changes', async () => {
+    const { box, list, catalog, settings } = setup();
+    box.box.open();
+    list([hitZeus(), lighthouse, hitOracle()]);
+    await tick();
+    const rewards = vi.spyOn(catalog, 'get');
+    box.box.update();
+    expect(rewards).not.toHaveBeenCalled();
+    box.click('Mögliche Investitionen');
+    expect(rewards).toHaveBeenCalled();
+    rewards.mockClear();
+    box.box.update();
+    expect(rewards).not.toHaveBeenCalled();
+    await settings.set('gbCalc.factor', 80);
+    expect(rewards).toHaveBeenCalled();
+  });
 });

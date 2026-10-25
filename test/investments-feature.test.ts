@@ -4,7 +4,7 @@ import { Ingestion } from '../src/content/core/ingestion';
 import { investmentsFeature } from '../src/content/features/investments';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import { GreatBuildingStore } from '../src/content/stores/great-buildings';
-import { worldId } from '../src/shared/ids';
+import { playerId, worldId } from '../src/shared/ids';
 import contributionFixture from './fixtures/gb-contribution.json';
 import contributions from './fixtures/gb-contributions.json';
 import { testDb } from './helpers/battle-db';
@@ -233,5 +233,52 @@ describe('Investitionen box', () => {
     await tick();
     expect(rows()).toHaveLength(1);
     expect(rows()[0]?.classList.contains('grown')).toBe(false);
+  });
+});
+
+describe('Investitionen: reading the known buildings', () => {
+  it('reads them once for all events of an opened building', async () => {
+    const { send, menuClick, greatBuildings } = setup();
+    send(...(contributionFixture.startup as Entry[]));
+    menuClick('investments');
+    await tick();
+    const reads = vi.spyOn(greatBuildings, 'known');
+    for (const e of contributionFixture.opening as Entry[]) send(e);
+    send(...(contributionFixture.contribution as Entry[]));
+    await tick();
+    // one read of the box, one of the test waiting for it
+    expect(reads).toHaveBeenCalledTimes(2);
+  });
+
+  it('reads once more after a running read, however many events come meanwhile', async () => {
+    const { bus, menuClick, greatBuildings } = setup();
+    menuClick('investments');
+    await tick();
+    const reads = vi.spyOn(greatBuildings, 'known');
+    const changed = () => bus.emit('greatBuilding.changed', { owner: playerId(1001), entityId: 1, reason: 'ranking' });
+    changed();
+    await vi.waitFor(() => expect(reads).toHaveBeenCalledTimes(1));
+    changed();
+    changed();
+    changed();
+    await tick();
+    // two reads of the box, one of the test waiting for them
+    expect(reads).toHaveBeenCalledTimes(3);
+  });
+
+  it('rates the read buildings anew on other inputs without reading them again', async () => {
+    const { bus, send, box, settings, greatBuildings } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    const reads = vi.spyOn(greatBuildings, 'known');
+    const drawn = box.updates.length;
+    bus.emit('catalog.updated', { defs: [] });
+    await settings.set('gbCalc.factor', 80);
+    expect(box.updates.length).toBe(drawn + 2);
+    // a collection in the own city leaves the Arc bonus as it is, a setting the box does not read changes nothing
+    bus.emit('city.ownChanged', { reset: false, buildingIds: [1] });
+    await settings.set('investments.openWithList', false);
+    expect(box.updates.length).toBe(drawn + 2);
+    expect(reads).not.toHaveBeenCalled();
   });
 });

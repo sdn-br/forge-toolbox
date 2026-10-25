@@ -1,5 +1,6 @@
 import { foestatsPlayerUrl } from '../../../shared/foestats';
 import type { PlayerId } from '../../../shared/ids';
+import type { KnownGreatBuilding } from '../../../shared/model';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
@@ -10,7 +11,7 @@ import {
   type PossibleInvestment,
   possibleInvestments,
 } from '../../domain/investments';
-import { calculatorFactor } from '../../ui/factor-bar';
+import { CALCULATOR_FACTOR, calculatorFactor } from '../../ui/factor-bar';
 import { icons } from '../../ui/icons';
 import { nextSort } from '../../ui/sortable';
 import { type PossibleActions, possibleView } from './possible-view';
@@ -31,6 +32,8 @@ const OPEN_WITH_LIST = 'investments.openWithList';
 /** view choices: the tab and the filters of the possible investments */
 const TAB = 'investments.tab';
 const FILTER = 'investments.filter';
+/** the settings the rating reads */
+const FACTOR_KEYS = new Set(Object.values(CALCULATOR_FACTOR));
 
 /** the saved filters, each part that is missing or broken at its default */
 function savedFilter(saved: string | undefined): PossibleFilter {
@@ -61,11 +64,14 @@ export const investmentsFeature: Feature = {
     let sort: InvestmentSort | undefined;
     let possibleSort: PossibleSort = DEFAULT_POSSIBLE_SORT;
     let filter = savedFilter(ctx.ui.pref(FILTER));
+    /** the known buildings as last read; data events read them again, the other inputs only rate them anew */
+    let known: KnownGreatBuilding[] = [];
+    let arc = 0;
     let investments: Investments = { rows: [], totals: { circulating: 0, profitSafe: 0, profitTotal: 0 } };
-    let possible: PossibleInvestment[] = [];
+    /** the possible investments, rated only for their tab and kept while the read buildings, bonus and factor stay */
+    let rated: { known: KnownGreatBuilding[]; arc: number; factor: number; rows: PossibleInvestment[] } | undefined;
     /** owner names the town hall list and the lists of others give, for owners the player store does not know */
     const ownerNames = new Map<PlayerId, string>();
-    let loads = 0;
 
     const showTab = (next: InvestmentsTab) => {
       tab = next;
@@ -95,6 +101,17 @@ export const investmentsFeature: Feature = {
     };
     const playerName = (id: PlayerId) => ctx.players.get(id)?.name ?? ownerNames.get(id);
     const playerUrl = (id: PlayerId) => foestatsPlayerUrl(ctx.world, id);
+    const ownArc = () => arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses());
+
+    const possible = () => {
+      const factor = calculatorFactor(ctx.settings, arc);
+      if (!rated || rated.known !== known || rated.arc !== arc || rated.factor !== factor) {
+        const greatBuilding = (def: KnownGreatBuilding['cityEntityId']) => ctx.catalog.get(def)?.greatBuilding;
+        const rows = possibleInvestments(known, greatBuilding, arc, factor, ctx.session.current?.playerId);
+        rated = { known, arc, factor, rows };
+      }
+      return rated.rows;
+    };
 
     const box = ctx.createBox({
       id: 'investments',
@@ -109,7 +126,7 @@ export const investmentsFeature: Feature = {
         tab === 'possible'
           ? possibleView(
               possibleViewModel({
-                candidates: possible,
+                candidates: possible(),
                 filter,
                 sort: possibleSort,
                 now: Date.now(),
@@ -133,21 +150,35 @@ export const investmentsFeature: Feature = {
             ),
     });
 
-    /** reads the known buildings again; a stale answer is dropped */
-    const load = async () => {
-      const current = ++loads;
-      const known = await ctx.greatBuildings.known();
-      if (current !== loads) return;
-      const arc = arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses());
+    const rate = () => {
+      arc = ownArc();
       investments = myInvestments(known, arc);
-      possible = possibleInvestments(
-        known,
-        (def) => ctx.catalog.get(def)?.greatBuilding,
-        arc,
-        calculatorFactor(ctx.settings, arc),
-        ctx.session.current?.playerId,
-      );
       box.update();
+    };
+    const rerate = () => {
+      if (box.isOpen) rate();
+    };
+
+    let loading = false;
+    let again = false;
+    /** reads the known buildings; what triggers a read while one runs gets one more read after it */
+    const load = async () => {
+      if (loading) {
+        again = true;
+        return;
+      }
+      loading = true;
+      try {
+        // the events of one game response come together and share the read
+        await Promise.resolve();
+        do {
+          again = false;
+          known = await ctx.greatBuildings.known();
+        } while (again);
+      } finally {
+        loading = false;
+      }
+      rate();
     };
     const reload = () => {
       if (box.isOpen) load().catch((error) => logError('reading the investments failed', error));
@@ -171,10 +202,18 @@ export const investmentsFeature: Feature = {
       if (ownerName !== undefined) ownerNames.set(owner, ownerName);
       reload();
     });
-    ctx.bus.on('city.ownChanged', reload);
+    // every collection in the own city reports a change; only the Arc bonus counts
+    ctx.bus.on('city.ownChanged', () => {
+      if (ownArc() !== arc) rerate();
+    });
     // the rewards of a level and the factor decide which places pay
-    ctx.bus.on('catalog.updated', reload);
-    ctx.settings.onChange(reload);
+    ctx.bus.on('catalog.updated', () => {
+      rated = undefined;
+      rerate();
+    });
+    ctx.settings.onChange((key) => {
+      if (FACTOR_KEYS.has(key)) rerate();
+    });
     ctx.bus.on('player.updated', () => box.update());
     ctx.menu.add({
       id: 'investments',
