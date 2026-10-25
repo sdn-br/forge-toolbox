@@ -257,13 +257,13 @@ td.inv-status.unknown { color: #b8a27d; }
 /* an owner out of reach: the whole row muted, links and tier colours too */
 .inv-possible tr.muted :is(td, a) { color: inherit; }
 .inv-possible td { overflow: hidden; text-overflow: ellipsis; }
-/* the rows scroll in the body, the head stays */
-.inv-table thead th { position: sticky; top: 0; z-index: 1; background: var(--bg); }
-/* investments: the body does not scroll, the pane fills it and only the table area scrolls, both ways */
+/* investments: the body does not scroll, the pane fills it. The table area holds as many rows as fit (ui/fit-rows.ts),
+   the two buttons beside it scroll them, and the area itself scrolls only sideways when the box is narrower than the table */
 .body:has(> .inv-pane) { display: flex; flex-direction: column; overflow: hidden; }
 .inv-pane { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
-.inv-pane > :not(.inv-scroll) { flex: none; }
-.inv-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.inv-pane > :not(.inv-win) { flex: none; }
+.inv-win { flex: 1 1 auto; min-height: 0; }
+.inv-win .win-area { overflow-x: auto; overflow-y: hidden; }
 .inv-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .inv-filter input[type=search] { width: 10em; }
 .inv-count { margin-left: auto; }

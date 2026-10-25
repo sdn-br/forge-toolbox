@@ -6,6 +6,7 @@ import { keepKeys } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
 import { profitCell, tierCell, tierIcon } from '../../ui/snipe-hit';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
+import { rowsIn, windowedRows } from '../../ui/windowed-rows';
 import {
   type PossibleColumn,
   type PossibleFilter,
@@ -25,6 +26,8 @@ export interface PossibleActions {
   /** put the owner's name into the "Spieler" filter, as if typed */
   pickPlayer(name: string): void;
   mark: InvestmentsActions['mark'];
+  scroll: InvestmentsActions['scroll'];
+  measure: InvestmentsActions['measure'];
 }
 
 /** Columns in table order; heads show the whole word, reach and tier their icon; the widths are in the styles. */
@@ -142,12 +145,19 @@ const filters = (f: PossibleFilter, count: string, actions: PossibleActions) => 
     <span class="inv-count muted">${count}</span>
   </p>`;
 
-const table = (vm: PossibleVm, actions: PossibleActions) => html`<table class="gb-table inv-table inv-possible">
+const table = (vm: PossibleVm, actions: PossibleActions) =>
+  windowedRows({
+    cls: 'inv-win',
+    window: vm.scroll,
+    scroll: actions.scroll,
+    measure: actions.measure,
+    table: html`<table class="gb-table inv-table inv-possible">
     <colgroup><col class="c-mark" /><col class="c-owner" /><col class="c-reach" /><col class="c-name" /><col class="c-level" /><col class="c-progress" /><col class="c-share" />
       <col class="c-rank" /><col class="c-cost" /><col class="c-gain" /><col class="c-tier" /><col class="c-seen" /></colgroup>
     <thead><tr>${sortHeads(columns, vm.sort, actions.sort)}</tr></thead>
-    <tbody>${vm.rows.map((r) => row(r, vm.filter.player, actions))}</tbody>
-  </table>`;
+    <tbody>${rowsIn(vm.rows, vm.scroll).map((r) => row(r, vm.filter.player, actions))}</tbody>
+  </table>`,
+  });
 
 const content = (vm: PossibleVm, actions: PossibleActions) =>
   vm.empty
@@ -156,9 +166,8 @@ const content = (vm: PossibleVm, actions: PossibleActions) =>
       ? html`<p class="muted">${t('investments.possible.noRow')}</p>`
       : table(vm, actions);
 
-/** The tab "Mögliche Investitionen": tabs, filters and count stay, only the table scrolls, its head fixed. */
+/** The tab "Mögliche Investitionen": tabs, filters and count stay, the rows that fit are drawn and the two buttons scroll them. */
 export function possibleView(vm: PossibleVm, actions: PossibleActions): TemplateResult {
   // the filter fields stay in one outer template: swapping templates would replace them and take their focus mid-typing
-  return html`<div class="inv-pane">${tabs('possible', actions)}${filters(vm.filter, vm.empty ? '' : vm.count, actions)}<div
-    class="inv-scroll">${content(vm, actions)}</div></div>`;
+  return html`<div class="inv-pane">${tabs('possible', actions)}${filters(vm.filter, vm.empty ? '' : vm.count, actions)}${content(vm, actions)}</div>`;
 }

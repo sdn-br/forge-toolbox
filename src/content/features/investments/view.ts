@@ -7,6 +7,7 @@ import { headerIcons } from '../../ui/icons';
 import { externalLink } from '../../ui/links';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { starButton } from '../../ui/star';
+import { rowsIn, windowedRows } from '../../ui/windowed-rows';
 import {
   type InvestmentColumn,
   type InvestmentRowVm,
@@ -20,6 +21,10 @@ export interface InvestmentsActions {
   /** puts the star on a building or takes it away */
   mark(owner: PlayerId, entityId: number, marked: boolean): void;
   sort(column: InvestmentColumn, append: boolean): void;
+  /** moves the table of the tab by rows, down for positive; the owner keeps the offset inside the list */
+  scroll(rows: number): void;
+  /** gets the table area on every render, to measure how many rows fit */
+  measure(area: Element | undefined): void;
 }
 
 const statusIcon: Record<InvestmentStatus, TemplateResult> = {
@@ -82,12 +87,19 @@ export const ownerStar = (marked: boolean) => {
   return html`<span class="owner-star" role="img" data-tip=${word} aria-label=${word}>${headerIcons.starFilled}</span>`;
 };
 
-const table = (vm: InvestmentsVm, actions: InvestmentsActions) => html`<table class="gb-table inv-table">
+const table = (vm: InvestmentsVm, actions: InvestmentsActions) =>
+  windowedRows({
+    cls: 'inv-win',
+    window: vm.scroll,
+    scroll: actions.scroll,
+    measure: actions.measure,
+    table: html`<table class="gb-table inv-table">
     <colgroup><col class="c-mark" /><col class="c-owner" /><col class="c-name" /><col class="c-level" /><col class="c-rank" />
       <col class="c-deposit" /><col class="c-profit" /><col class="c-status" /><col class="c-progress" /></colgroup>
     <thead><tr>${sortHeads(columns, vm.sort, actions.sort)}</tr></thead>
-    <tbody>${vm.rows.map((r) => row(r, actions))}</tbody>
-  </table>`;
+    <tbody>${rowsIn(vm.rows, vm.scroll).map((r) => row(r, actions))}</tbody>
+  </table>`,
+  });
 
 /** the totals above the table, so they show without scrolling */
 const totals = (
@@ -100,7 +112,7 @@ const totals = (
 
 export function investmentsView(vm: InvestmentsVm, actions: InvestmentsActions): TemplateResult {
   const age = vm.age === undefined ? t('investments.noList') : t('gb.age', { duration: vm.age });
-  // tabs, age and totals stay, only the table scrolls, its head fixed
+  // tabs, age and totals stay, the rows that fit are drawn and the two buttons scroll them, sideways the area scrolls
   return html`<div class="inv-pane">${tabs('mine', actions)}<p class="muted">${age}</p>
-    ${vm.rows.length === 0 ? html`<p class="muted">${t('investments.none')}</p>` : html`${totals(vm)}<div class="inv-scroll">${table(vm, actions)}</div>`}</div>`;
+    ${vm.rows.length === 0 ? html`<p class="muted">${t('investments.none')}</p>` : html`${totals(vm)}${table(vm, actions)}`}</div>`;
 }

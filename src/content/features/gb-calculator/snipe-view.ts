@@ -7,8 +7,8 @@ import { headerIcons } from '../../ui/icons';
 import { profitCell, tierCell } from '../../ui/snipe-hit';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { starButton } from '../../ui/star';
-import { windowedRows } from '../../ui/windowed-rows';
-import { type SnipeColumn, type SnipeRowVm, type SnipeVm, VISIBLE_ROWS } from './snipe-view-model';
+import { rowsIn, windowedRows } from '../../ui/windowed-rows';
+import type { SnipeColumn, SnipeRowVm, SnipeVm } from './snipe-view-model';
 import { activityLine, owner } from './view';
 
 export interface SnipeActions {
@@ -68,7 +68,7 @@ const table = (vm: Extract<SnipeVm, { kind: 'list' }>, actions: SnipeActions) =>
         <colgroup><col class="c-order" /><col class="c-mark" /><col class="c-name" /><col class="c-level" /><col class="c-progress" /><col class="c-rank" />
           <col class="c-cost" /><col class="c-profit" /><col class="c-tier" /></colgroup>
         <thead><tr>${sortHeads(columns, vm.sort, actions.sort)}</tr></thead>
-        <tbody>${vm.rows.slice(vm.scroll.top, vm.scroll.top + VISIBLE_ROWS).map((r) => row(r, actions))}</tbody>
+        <tbody>${rowsIn(vm.rows, vm.scroll).map((r) => row(r, actions))}</tbody>
       </table>`,
   });
 

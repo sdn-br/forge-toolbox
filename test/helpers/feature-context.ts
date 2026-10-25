@@ -37,6 +37,8 @@ export function recordingBox(options: BoxOptions) {
   };
   return {
     box: box as unknown as Box,
+    /** what the feature asked the box for */
+    options,
     updates,
     /** the drawn content, for inputs and lists */
     root: container,

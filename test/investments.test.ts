@@ -169,6 +169,7 @@ describe('the recorded town hall list', () => {
 describe('marked owner', () => {
   it('tells per row whether the owner is marked, for the star beside the name', () => {
     const rows = investmentsViewModel({
+      visible: 100,
       investments: myInvestments([building(), building({ owner: playerId(2002), entityId: 2 })], 90),
       now: 0,
       greatBuildingName: () => undefined,
@@ -187,6 +188,7 @@ describe('marked owner', () => {
 describe('totals line', () => {
   const vm = (profitSafe: number) =>
     investmentsViewModel({
+      visible: 100,
       investments: { rows: [], totals: { circulating: 100, profitSafe, profitTotal: profitSafe - 10 } },
       now: 0,
       greatBuildingName: () => undefined,

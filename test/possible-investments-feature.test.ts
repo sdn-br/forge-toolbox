@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Ingestion } from '../src/content/core/ingestion';
 import { createGbCalculatorFeature } from '../src/content/features/gb-calculator';
 import { investmentsFeature } from '../src/content/features/investments';
@@ -11,6 +11,7 @@ import definitions from './fixtures/gb-definitions.json';
 import levelUp from './fixtures/gb-level-up.json';
 import fixture from './fixtures/great-buildings.json';
 import { featureContext } from './helpers/feature-context';
+import { fakeLayout } from './helpers/layout';
 
 interface Entry {
   requestClass: string;
@@ -259,8 +260,8 @@ describe('Investitionen: Mögliche Investitionen', () => {
     list([hitZeus()], 1001);
     await tick();
     await showPossible();
-    const scroll = box.root.querySelector('.inv-pane > .inv-scroll') as HTMLElement;
-    expect(scroll.querySelector('table.inv-possible')).not.toBeNull();
+    const scroll = box.root.querySelector('.inv-pane > .win-scroll') as HTMLElement;
+    expect(scroll.querySelector('.win-area table.inv-possible')).not.toBeNull();
     expect(scroll.querySelector('.inv-filter, .tabs')).toBeNull();
     expect(box.root.querySelector('.inv-pane > .inv-filter')).not.toBeNull();
   });
@@ -517,6 +518,89 @@ describe('Investitionen: Mögliche Investitionen', () => {
       ['Freund', ''],
       ['Freund', ''],
     ]);
+  });
+});
+
+describe('Investitionen: long lists of possible investments', () => {
+  let layout: ReturnType<typeof fakeLayout>;
+  beforeEach(() => {
+    layout = fakeLayout();
+  });
+  afterEach(() => layout.restore());
+
+  const many = (n: number) => Array.from({ length: n }, (_, i) => ({ ...hitZeus(), entity_id: 5000 + i }));
+  const button = (box: { root: ParentNode }, word: string) =>
+    box.root.querySelector(`.win-nav button[aria-label="${word}"]`) as HTMLElement;
+  const hiddenLine = (box: { root: ParentNode }) => box.root.querySelector('.win-hidden')?.textContent?.trim();
+
+  /** ten possible investments with room for `fit` rows, the tab shown; `texts` reads the drawn rows */
+  async function listed(fit: number) {
+    layout.rows(10);
+    const env = setup();
+    env.list([...many(8), ...[0, 1].map((i) => ({ ...hitOracle(), entity_id: 6000 + i }))]);
+    await tick();
+    await env.showPossible();
+    const texts = () => env.rows().map((r) => env.cells(r).join('|'));
+    const all = texts();
+    layout.rows(fit);
+    layout.resize();
+    return { ...env, texts, all };
+  }
+
+  it('shows the rows that fit and moves by a row', async () => {
+    const { box, texts, all } = await listed(4);
+    expect(texts()).toEqual(all.slice(0, 4));
+    expect(hiddenLine(box)).toBe('noch 6 weitere unten');
+    expect(box.root.querySelector('.inv-pane > .inv-filter')).not.toBeNull();
+    button(box, 'Nach unten').click();
+    expect(texts()).toEqual(all.slice(1, 5));
+  });
+
+  it('clamps the offset when a filter shrinks the list and keeps the window on a sort', async () => {
+    const { box, texts, all, input } = await listed(4);
+    for (let i = 0; i < 6; i++) button(box, 'Nach unten').click();
+    expect(texts()).toEqual(all.slice(6));
+    (box.root.querySelectorAll('th.sortable')[7] as HTMLElement).click();
+    expect(hiddenLine(box)).toBe('noch 6 weitere oben');
+    const field = input('LG');
+    const type = (value: string) => {
+      field.value = value;
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    type('Orakel');
+    expect(texts()).toHaveLength(2);
+    expect(box.root.querySelector('.win-nav')).toBeNull();
+    // the list grows back, the offset stays where the shorter list clamped it
+    type('');
+    expect(texts()).toHaveLength(4);
+    expect(hiddenLine(box)).toBe('noch 6 weitere unten');
+    type('nothing');
+    expect(box.root.querySelector('.win-scroll')).toBeNull();
+  });
+
+  it('keeps an offset for each tab', async () => {
+    layout.rows(12);
+    const env = setup();
+    env.send(contributions.contributions as Entry);
+    env.list(many(10));
+    await tick();
+    const { box } = env;
+    const texts = () => env.rows().map((r) => env.cells(r).join('|'));
+    box.click('Meine Investitionen');
+    await tick();
+    const mine = texts();
+    layout.rows(4);
+    layout.resize();
+    button(box, 'Nach unten').click();
+    button(box, 'Nach unten').click();
+    expect(texts()).toEqual(mine.slice(2, 6));
+    box.click('Mögliche Investitionen');
+    await tick();
+    expect(hiddenLine(box)).toBe('noch 6 weitere unten');
+    button(box, 'Nach unten').click();
+    box.click('Meine Investitionen');
+    await tick();
+    expect(texts()).toEqual(mine.slice(2, 6));
   });
 });
 

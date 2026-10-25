@@ -53,6 +53,7 @@ const candidates = (buildings: KnownGreatBuilding[]) =>
 
 const vm = (buildings: KnownGreatBuilding[], filter: Partial<PossibleFilter> = {}, sort?: PossibleSort) =>
   possibleViewModel({
+    visible: 100,
     candidates: candidates(buildings),
     filter: { ...DEFAULT_FILTER, ...filter },
     sort: sort ?? DEFAULT_POSSIBLE_SORT,

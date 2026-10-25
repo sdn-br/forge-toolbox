@@ -1,6 +1,7 @@
 // Windowing of a long table: only a slice of the rows is drawn, a wheel step or one of two buttons moves it by a row.
 // Shared by the snipe helper (a fixed count of rows) and the investments box (as many as fit).
 import { html, type TemplateResult } from 'lit-html';
+import { ref } from 'lit-html/directives/ref.js';
 import { t } from '../core/texts';
 import { headerIcons } from './icons';
 
@@ -20,6 +21,9 @@ export function rowWindow(top: number, rows: number, visible: number): RowWindow
   const clamped = clampTop(top, rows, visible);
   return { top: clamped, above: clamped, below: Math.max(0, rows - clamped - visible) };
 }
+
+/** the rows of the window */
+export const rowsIn = <T>(rows: T[], { top, below }: RowWindow): T[] => rows.slice(top, rows.length - below);
 
 /** one of the two scroll buttons; greyed at its end like the factor status buttons */
 const navButton = (on: boolean, word: string, icon: TemplateResult, action: () => void) =>
@@ -43,11 +47,13 @@ export interface WindowedRows {
   window: RowWindow;
   /** moves the window by rows, down for positive; the owner keeps the offset inside the list */
   scroll(rows: number): void;
+  /** gets the table area element on every render, for measuring how many rows fit (`rowFit`) */
+  measure?: (area: Element | undefined) => void;
 }
 
 /** The frame around the table: the table area, the two buttons beside it (only when rows are hidden) and the line of
  * what is hidden after it. The wheel over the frame steps a row and passes at the ends. */
-export function windowedRows({ cls, table, window, scroll }: WindowedRows): TemplateResult {
+export function windowedRows({ cls, table, window, scroll, measure }: WindowedRows): TemplateResult {
   const { above, below } = window;
   const scrolls = above > 0 || below > 0;
   const wheel = (e: WheelEvent) => {
@@ -57,7 +63,7 @@ export function windowedRows({ cls, table, window, scroll }: WindowedRows): Temp
     scroll(step);
   };
   return html`<div class="win-scroll ${cls}" @wheel=${wheel}>
-      <div class="win-area">${table}</div>
+      <div class="win-area" ${ref(measure)}>${table}</div>
       ${
         scrolls
           ? html`<div class="win-nav">

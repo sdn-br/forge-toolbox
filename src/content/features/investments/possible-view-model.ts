@@ -6,6 +6,7 @@ import type { PossibleInvestment } from '../../domain/investments';
 import { progressPercent } from '../../ui/fp-bar';
 import { snipeNotes, snipeProfit, snipeProfitKey, snipeProfitRange, TIER_ORDER } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
+import { type RowWindow, rowWindow } from '../../ui/windowed-rows';
 
 export type PossibleColumn =
   | 'mark'
@@ -120,7 +121,10 @@ export interface PossibleVm {
   sort: PossibleSort;
   /** no building of another player is known at all */
   empty: boolean;
+  /** all rows; the view draws those of `scroll` */
   rows: PossibleRowVm[];
+  /** which rows of `rows` are in view */
+  scroll: RowWindow;
   /** "12 Treffer von 85 LGs" among the buildings the name and reach filters leave */
   count: string;
 }
@@ -129,6 +133,9 @@ export interface PossibleInput {
   candidates: PossibleInvestment[];
   filter: PossibleFilter;
   sort: PossibleSort;
+  /** rows that fit into the table area, and the index of the first one in view (default the top) */
+  visible: number;
+  scroll?: number;
   now: number;
   greatBuildingName(def: BuildingDefId): string | undefined;
   playerName(id: PlayerId): string | undefined;
@@ -253,6 +260,7 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
       notes: hit ? snipeNotes(hit) : [],
       age: t('investments.ago', { duration: age(input.now - b.seenAt) }),
     })),
+    scroll: rowWindow(input.scroll ?? 0, shown.length, input.visible),
     count: t('investments.possible.count', { hits: formatNumber(hits), count: formatNumber(named.length) }),
   };
 }

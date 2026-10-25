@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Ingestion } from '../src/content/core/ingestion';
 import { investmentsFeature } from '../src/content/features/investments';
 import { registerGameHandlers } from '../src/content/game/handlers';
@@ -9,6 +9,7 @@ import contributionFixture from './fixtures/gb-contribution.json';
 import contributions from './fixtures/gb-contributions.json';
 import { testDb } from './helpers/battle-db';
 import { featureContext } from './helpers/feature-context';
+import { fakeLayout } from './helpers/layout';
 
 interface Entry {
   requestClass: string;
@@ -303,13 +304,110 @@ describe('Investitionen: reading the known buildings', () => {
   });
 });
 
+describe('Investitionen: long lists', () => {
+  let layout: ReturnType<typeof fakeLayout>;
+  beforeEach(() => {
+    layout = fakeLayout();
+  });
+  afterEach(() => layout.restore());
+
+  const button = (box: { root: ParentNode }, word: string) =>
+    box.root.querySelector(`.win-nav button[aria-label="${word}"]`) as HTMLElement;
+  const hiddenLine = (box: { root: ParentNode }) => box.root.querySelector('.win-hidden')?.textContent?.trim();
+  const wheel = (box: { root: ParentNode }, deltaY: number) => {
+    const event = new WheelEvent('wheel', { deltaY, cancelable: true, bubbles: true });
+    box.root.querySelector('.win-scroll')?.dispatchEvent(event);
+    return event;
+  };
+
+  /** the box with the twelve own investments, room for `fit` rows; `all` is the whole list as drawn */
+  async function listed(fit: number) {
+    layout.rows(12);
+    const env = setup();
+    env.send(contributions.contributions as Entry);
+    await tick();
+    const texts = () => env.rows().map((r) => env.cells(r).join('|'));
+    const all = texts();
+    layout.rows(fit);
+    layout.resize();
+    return { ...env, texts, all };
+  }
+
+  it('shows the rows that fit, with the head and nothing else in the table area', async () => {
+    const { box, texts, all, heads } = await listed(5);
+    expect(texts()).toEqual(all.slice(0, 5));
+    expect(heads().length).toBe(9);
+    expect(hiddenLine(box)).toBe('noch 7 weitere unten');
+    expect(button(box, 'Nach oben').getAttribute('aria-disabled')).toBe('true');
+    expect(button(box, 'Nach unten').getAttribute('aria-disabled')).toBe('false');
+    expect(box.root.querySelector('.inv-pane > p.gb-me')).not.toBeNull();
+  });
+
+  it('shows all rows, without buttons and line, when they fit and when nothing can be measured', async () => {
+    const { box, texts, all } = await listed(12);
+    expect(texts()).toEqual(all);
+    expect(box.root.querySelector('.win-nav')).toBeNull();
+    expect(box.root.querySelector('.win-hidden')).toBeNull();
+    layout.height(0);
+    layout.resize();
+    expect(texts()).toEqual(all);
+  });
+
+  it('steps a row per click and per wheel step, greys the buttons at the ends and lets the wheel pass there', async () => {
+    const { box, texts, all } = await listed(5);
+    expect(wheel(box, -100).defaultPrevented).toBe(false);
+    button(box, 'Nach unten').click();
+    expect(texts()).toEqual(all.slice(1, 6));
+    expect(hiddenLine(box)).toBe('1 oben · 6 unten');
+    expect(wheel(box, 100).defaultPrevented).toBe(true);
+    expect(texts()).toEqual(all.slice(2, 7));
+    for (let i = 0; i < 9; i++) button(box, 'Nach unten').click();
+    expect(texts()).toEqual(all.slice(7));
+    expect(button(box, 'Nach unten').getAttribute('aria-disabled')).toBe('true');
+    expect(wheel(box, 100).defaultPrevented).toBe(false);
+    button(box, 'Nach oben').click();
+    expect(texts()).toEqual(all.slice(6, 11));
+  });
+
+  it('windows again when the box is resized and keeps the offset inside the list', async () => {
+    const { box, texts, all } = await listed(5);
+    for (let i = 0; i < 7; i++) button(box, 'Nach unten').click();
+    expect(texts()).toEqual(all.slice(7));
+    layout.rows(8);
+    layout.resize();
+    expect(texts()).toEqual(all.slice(4));
+    expect(hiddenLine(box)).toBe('noch 4 weitere oben');
+    layout.rows(3);
+    layout.resize();
+    expect(texts()).toEqual(all.slice(4, 7));
+  });
+
+  it('keeps the position when the list is sorted', async () => {
+    const { box, texts, all } = await listed(5);
+    button(box, 'Nach unten').click();
+    button(box, 'Nach unten').click();
+    (box.root.querySelectorAll('th.sortable')[3] as HTMLElement).click();
+    expect(texts()).toHaveLength(5);
+    expect(texts()).not.toEqual(all.slice(2, 7));
+    expect(hiddenLine(box)).toBe('2 oben · 5 unten');
+  });
+
+  it('asks the box for room for the tabs, the head and two rows so that no second scrollbar appears', () => {
+    const { box } = setup();
+    expect(box.options.minHeight).toBeGreaterThan(150);
+    expect(box.options.defaultSize?.({ width: 1200, height: 900 }).height).toBeGreaterThanOrEqual(
+      box.options.minHeight ?? 0,
+    );
+  });
+});
+
 describe('Investitionen: Merken', () => {
   it('scrolls only the table, the tabs, the age and the totals stay above it', async () => {
     const { box, send } = setup();
     send(contributions.contributions as Entry);
     await tick();
-    const scroll = box.root.querySelector('.inv-pane > .inv-scroll') as HTMLElement;
-    expect(scroll.querySelector('table.inv-table')).not.toBeNull();
+    const scroll = box.root.querySelector('.inv-pane > .win-scroll') as HTMLElement;
+    expect(scroll.querySelector('.win-area table.inv-table')).not.toBeNull();
     expect(scroll.querySelector('p.gb-me')).toBeNull();
     expect(box.root.querySelector('.inv-pane > p.gb-me')).not.toBeNull();
   });

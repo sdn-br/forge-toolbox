@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { html, render } from 'lit-html';
 import { describe, expect, it } from 'vitest';
-import { clampTop, rowWindow, windowedRows } from '../src/content/ui/windowed-rows';
+import { clampTop, rowsIn, rowWindow, windowedRows } from '../src/content/ui/windowed-rows';
 
 describe('row window', () => {
   it('clamps the offset into the list', () => {
@@ -55,5 +55,32 @@ describe('windowedRows template', () => {
     expect(wheel(-100)).toBe(false);
     expect(wheel(100)).toBe(true);
     expect(steps).toEqual([1]);
+  });
+});
+
+describe('rows in the window', () => {
+  it('cuts the rows of the window out of the list', () => {
+    const rows = [1, 2, 3, 4, 5, 6, 7, 8];
+    expect(rowsIn(rows, rowWindow(2, 8, 3))).toEqual([3, 4, 5]);
+    expect(rowsIn(rows, rowWindow(9, 8, 3))).toEqual([6, 7, 8]);
+    expect(rowsIn(rows, rowWindow(0, 8, 20))).toEqual(rows);
+  });
+});
+
+describe('measure hook', () => {
+  it('hands the table area to the callback', () => {
+    const seen: (Element | undefined)[] = [];
+    const host = document.createElement('div');
+    render(
+      windowedRows({
+        cls: 'x',
+        table: html`<table></table>`,
+        window: rowWindow(0, 1, 6),
+        scroll: () => {},
+        measure: (a) => seen.push(a),
+      }),
+      host,
+    );
+    expect(seen).toEqual([host.querySelector('.win-area')]);
   });
 });

@@ -11,6 +11,7 @@ import {
   type PossibleInvestment,
   possibleInvestments,
 } from '../../domain/investments';
+import { rowFit } from '../../ui/fit-rows';
 import { icons } from '../../ui/icons';
 import { nextSort } from '../../ui/sortable';
 import { type PossibleActions, possibleView } from './possible-view';
@@ -96,6 +97,15 @@ export const investmentsFeature: Feature = {
     /** owner names the town hall list and the lists of others give, for owners the player store does not know */
     const ownerNames = new Map<PlayerId, string>();
 
+    /** the first row in view of each tab, kept inside its list on every draw */
+    const tops: Record<InvestmentsTab, number> = { mine: 0, possible: 0 };
+    /** how many rows fit into the table area; a change redraws */
+    const fit = rowFit(() => box.update());
+    const scrollBy = (rows: number) => {
+      tops[tab] += rows;
+      box.update();
+    };
+
     const showTab = (next: InvestmentsTab) => {
       tab = next;
       ctx.ui.savePref(TAB, next);
@@ -114,6 +124,8 @@ export const investmentsFeature: Feature = {
         sort = nextSort(sort, column, INVESTMENT_DESC_FIRST, append);
         box.update();
       },
+      scroll: scrollBy,
+      measure: fit.measure,
     };
     const possibleActions: PossibleActions = {
       tab: actions.tab,
@@ -128,6 +140,8 @@ export const investmentsFeature: Feature = {
         box.update();
       },
       pickPlayer: (player) => possibleActions.filter({ player }),
+      scroll: scrollBy,
+      measure: fit.measure,
     };
     const playerName = (id: PlayerId) => ctx.players.get(id)?.name ?? ownerNames.get(id);
     const playerUrl = (id: PlayerId) => foestatsPlayerUrl(ctx.world, id);
@@ -142,46 +156,63 @@ export const investmentsFeature: Feature = {
       return rated.rows;
     };
 
+    /** the height the box needs for what always shows, so the table area never gets a second scrollbar:
+     * border 4 + header 29 + body padding 12 + tabs 32 + the taller top block (age and totals, 2 x 41) + head row 22
+     * + two rows 2 x 23 + the line of hidden rows 21 = 248, rounded up. Worked out from the styles, not measured.
+     * debt: kept by hand. ceiling: a filter row that wraps at a narrow width, other fonts or a changed padding need
+     * more. upgrade: measure the fixed parts in the box once a second box needs it */
+    const MIN_HEIGHT = 250;
+    const WIDTH = 818;
+
+    const render = () => {
+      if (tab === 'possible') {
+        const vm = possibleViewModel({
+          candidates: possible(),
+          filter,
+          sort: possibleSort,
+          visible: fit.rows(),
+          scroll: tops.possible,
+          now: Date.now(),
+          greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
+          playerName,
+          relations: (id) => ctx.players.get(id)?.relations,
+          isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
+          ownerMarked: (id) => ctx.players.get(id)?.marked === true,
+          playerUrl,
+        });
+        tops.possible = vm.scroll.top;
+        return possibleView(vm, possibleActions);
+      }
+      const vm = investmentsViewModel({
+        investments,
+        listedAt: ctx.greatBuildings.contributionsAt(),
+        now: Date.now(),
+        ...(sort && { sort }),
+        visible: fit.rows(),
+        scroll: tops.mine,
+        greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
+        playerName,
+        playerUrl,
+        isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
+        ownerMarked: (id) => ctx.players.get(id)?.marked === true,
+      });
+      tops.mine = vm.scroll.top;
+      return investmentsView(vm, actions);
+    };
+
     const box = ctx.createBox({
       id: 'investments',
       settings: 'investments.title',
       title: () => t('investments.title'),
       // twelve columns on the possible investments, their heads whole
-      width: 818,
-      // the lists grow with every building invested in or seen; the height is the viewer's
+      width: WIDTH,
+      // the lists grow with every building invested in or seen; the height is the viewer's. It starts tall, since the
+      // rows that fit are counted in the height the box gives the table
       resizable: true,
+      defaultSize: (win) => ({ width: WIDTH, height: Math.min(win.height * 0.7, 600) }),
+      minHeight: MIN_HEIGHT,
       // the ages are drawn as of now, so each redraw shows them current
-      render: () =>
-        tab === 'possible'
-          ? possibleView(
-              possibleViewModel({
-                candidates: possible(),
-                filter,
-                sort: possibleSort,
-                now: Date.now(),
-                greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
-                playerName,
-                relations: (id) => ctx.players.get(id)?.relations,
-                isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
-                ownerMarked: (id) => ctx.players.get(id)?.marked === true,
-                playerUrl,
-              }),
-              possibleActions,
-            )
-          : investmentsView(
-              investmentsViewModel({
-                investments,
-                listedAt: ctx.greatBuildings.contributionsAt(),
-                now: Date.now(),
-                ...(sort && { sort }),
-                greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
-                playerName,
-                playerUrl,
-                isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
-                ownerMarked: (id) => ctx.players.get(id)?.marked === true,
-              }),
-              actions,
-            ),
+      render,
     });
 
     const rate = () => {

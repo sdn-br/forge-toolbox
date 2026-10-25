@@ -4,6 +4,7 @@ import type { Investment, InvestmentStatus, Investments } from '../../domain/inv
 import { progressPercent } from '../../ui/fp-bar';
 import { signed } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
+import { type RowWindow, rowWindow } from '../../ui/windowed-rows';
 
 /** the tabs of the box: the own investments and the buildings of others worth a place */
 export type InvestmentsTab = 'mine' | 'possible';
@@ -55,7 +56,10 @@ export type InvestmentsVm = {
   /** "5 Minuten" since the last town hall list; missing when none was seen */
   age?: string;
   sort?: InvestmentSort;
+  /** all rows; the view draws those of `scroll` */
   rows: InvestmentRowVm[];
+  /** which rows of `rows` are in view */
+  scroll: RowWindow;
   /** `gain` when the safe profit is above 0, so the line shows it green */
   totals: { circulating: string; profitSafe: string; profitTotal: string; gain: boolean };
 };
@@ -66,6 +70,9 @@ export interface InvestmentsInput {
   listedAt?: number;
   now: number;
   sort?: InvestmentSort;
+  /** rows that fit into the table area, and the index of the first one in view (default the top) */
+  visible: number;
+  scroll?: number;
   greatBuildingName(def: BuildingDefId): string | undefined;
   playerName(id: PlayerId): string | undefined;
   playerUrl(id: PlayerId): string;
@@ -125,6 +132,7 @@ export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
       percent: progressPercent(r.invested, r.required),
       ...(r.growth !== undefined && { growth: formatNumber(r.growth) }),
     })),
+    scroll: rowWindow(input.scroll ?? 0, named.length, input.visible),
     totals: {
       circulating: formatNumber(totals.circulating),
       profitSafe: signed(totals.profitSafe),
