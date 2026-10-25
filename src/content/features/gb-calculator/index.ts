@@ -212,6 +212,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         },
         mark: markBuilding,
         markPlayer: (player, marked) => ctx.players.setMarked(player, marked),
+        ignore: ignoreBuilding,
+        ignorePlayer: (player, ignored) => ctx.players.setIgnored(player, ignored),
         showIgnored: (show) => {
           showIgnored = show;
           ctx.ui.savePref(SNIPE_SHOW_IGNORED, String(show));
@@ -223,8 +225,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         id: 'gbCalculator',
         settings: 'gbCalc.title',
         title: () => t('gbCalc.title'),
-        // the snipe table: fixed columns of 518 px and the building name; until 2026-10-25 a CSS cap held fixed boxes at 520 px
-        width: 602,
+        // the snipe table: fixed columns of 518 px and the building name with its 16 px eye; until 2026-10-25 a CSS cap held fixed boxes at 520 px
+        width: 618,
         // 6 table rows, the section and the calculator fit without the body scrolling on a normal window
         maxHeight: 0.92,
         render: () =>

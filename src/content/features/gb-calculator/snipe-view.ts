@@ -9,6 +9,7 @@ import { profitCell, tierCell } from '../../ui/snipe-hit';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { starButton } from '../../ui/star';
 import { rowsIn, windowedRows } from '../../ui/windowed-rows';
+import { buildingCell } from '../investments/filter-parts';
 import type { SnipeColumn, SnipeRowVm, SnipeVm } from './snipe-view-model';
 import { activityLine, owner } from './view';
 
@@ -22,6 +23,10 @@ export interface SnipeActions {
   mark(owner: PlayerId, entityId: number, marked: boolean): void;
   /** puts the star on a player or takes it away */
   markPlayer(player: PlayerId, marked: boolean): void;
+  /** ignores a building or releases it */
+  ignore(owner: PlayerId, entityId: number, ignored: boolean): void;
+  /** ignores a player or releases them */
+  ignorePlayer(player: PlayerId, ignored: boolean): void;
   /** shows the rows of ignored buildings and owners, or hides them */
   showIgnored(show: boolean): void;
 }
@@ -44,7 +49,7 @@ const row = (r: SnipeRowVm, actions: SnipeActions) =>
   html`<tr class=${r.ignoreNote === undefined ? '' : 'muted'} data-tip=${[r.ignoreNote, ...r.notes].filter(Boolean).join('\n')}>
   <td>${r.order}</td>
   <td class="snipe-mark">${starButton(r.marked, () => actions.mark(r.owner, r.entityId, !r.marked))}</td>
-  <td class="snipe-name" data-tip=${[r.name, r.ignoreNote, ...r.notes].filter(Boolean).join('\n')}>${r.name}</td>
+  ${buildingCell(r.name, [r.name, r.ignoreNote, ...r.notes].filter(Boolean).join('\n'), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored), 'snipe-name')}
   <td class="num">${r.level}</td>
   ${progressCell(
     {
@@ -107,7 +112,7 @@ export function snipeView(vm: SnipeVm, actions: SnipeActions, expanded: boolean,
   if (foldable && !expanded) return html`${toggle(false, summary(vm), actions)}<hr class="snipe-sep" />`;
   const heading = html`<span class="gb-title">${t('snipe.heading')}</span>`;
   return html`${foldable ? toggle(true, heading, actions) : html`<p class="snipe-head">${heading}</p>`}
-    <p>${owner(vm.owner, vm.ownerUrl, vm.ownerMarked === undefined ? undefined : { marked: vm.ownerMarked, toggle: (marked) => actions.markPlayer(vm.ownerId, marked) })}${vm.activity ? activityLine(vm.activity) : ''}
+    <p>${owner(vm.owner, vm.ownerUrl, vm.ownerMarked === undefined ? undefined : { marked: vm.ownerMarked, toggle: (marked) => actions.markPlayer(vm.ownerId, marked) }, vm.ownerIgnored === undefined ? undefined : { ignored: vm.ownerIgnored, toggle: (ignored) => actions.ignorePlayer(vm.ownerId, ignored) })}${vm.activity ? activityLine(vm.activity) : ''}
     <br /><span class="muted">${t('gb.age', { duration: formatAge(Date.now() - vm.at) })}</span></p>
     ${vm.rows.length === 0 ? html`<p class="muted">${t('snipe.noHit')}</p>` : table(vm, actions)}
     ${notices(vm, actions)}<hr class="snipe-sep" />`;

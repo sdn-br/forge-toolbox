@@ -1045,4 +1045,53 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     await tick();
     expect(box.root.querySelector('.inv-ignored-filter')).toBeNull();
   });
+
+  const headerEye = (box: { root: ParentNode }) =>
+    box.root.querySelector('.gb-owner button.ignore') as HTMLButtonElement;
+  const rowEye = (r: Element | undefined) =>
+    r?.querySelector('td.snipe-name .inv-owner button.ignore') as HTMLButtonElement;
+
+  it('puts the eye after the owner star in the section header, for a known player only', async () => {
+    const { box, players, send, list, rows } = setup();
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    expect(headerEye(box)).toBeNull();
+    social(send);
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    expect(headerEye(box).getAttribute('aria-label')).toBe('Spieler ignorieren');
+    expect(headerEye(box).previousElementSibling?.classList.contains('star')).toBe(true);
+    headerEye(box).click();
+    await tick();
+    expect(players.get(owner)?.ignored).toBe(true);
+    // all hits are ignored now, the header stays and releases
+    expect(rows()).toHaveLength(0);
+    expect(headerEye(box).getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(headerEye(box).classList.contains('on')).toBe(true);
+    headerEye(box).click();
+    await tick();
+    expect(players.get(owner)?.ignored).toBeUndefined();
+    expect(rows()).toHaveLength(2);
+  });
+
+  it('puts the building eye at the right edge of the name cell, which ignores and releases a shown ignored row', async () => {
+    const { box, greatBuildings, list, rows, cells } = setup();
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    const zeusRow = () => rows().find((r) => cells(r)[1] === 'Zeusstatue');
+    expect(rowEye(zeusRow()).getAttribute('aria-label')).toBe('LG ignorieren');
+    expect(rowEye(zeusRow()).getAttribute('aria-pressed')).toBe('false');
+    rowEye(zeusRow()).click();
+    await tick();
+    expect(greatBuildings.isIgnored(owner, zeus.entity_id)).toBe(true);
+    expect(rows()).toHaveLength(1);
+    showToggle(box).click();
+    await tick();
+    expect(rowEye(zeusRow()).getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(rowEye(zeusRow()).classList.contains('on')).toBe(true);
+    rowEye(zeusRow()).click();
+    await tick();
+    expect(greatBuildings.isIgnored(owner, zeus.entity_id)).toBe(false);
+    expect(rows().some((r) => r.classList.contains('muted'))).toBe(false);
+  });
 });

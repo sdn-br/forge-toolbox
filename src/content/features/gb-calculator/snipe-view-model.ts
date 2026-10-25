@@ -63,6 +63,8 @@ export interface SnipeRowVm {
   tier: SnipeTier;
   /** the player put a star on the building */
   marked: boolean;
+  /** the building itself is ignored, for its eye; the note also names an ignored owner */
+  ignored: boolean;
   /** why the row counts as ignored, in words; missing when it does not. Such rows show muted */
   ignoreNote?: string;
   /** lines of the row tooltip */
@@ -78,6 +80,8 @@ export type SnipeVm =
       /** the player the list belongs to, with the foestats link and activity as on the LG tab */
       owner: string;
       ownerId: PlayerId;
+      /** missing for an owner the player store does not know, who cannot be ignored */
+      ownerIgnored?: boolean;
       ownerUrl: string;
       /** the player put a star on the owner; missing when the player store does not know them */
       ownerMarked?: boolean;
@@ -178,6 +182,7 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     estimate: h.estimate,
     tier: h.tier,
     marked: input.isMarked(h.owner, h.entityId),
+    ignored: input.isIgnored(h.owner, h.entityId),
     ...withIgnoreNote(ignoreNote(h)),
     notes: snipeNotes(h),
     ...withOwnerShare(ownerShareNote(h.ownerShare, input.now)),
@@ -190,12 +195,14 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
   ].filter((c): c is string => typeof c === 'string');
   const best = [...kept].sort((a, b) => snipeProfitKey(b) - snipeProfitKey(a))[0];
   const ownerMarked = input.playerMarked(list.owner);
+  const ownerIgnored = input.ownerIgnored(list.owner);
   return {
     kind: 'list',
     owner: list.ownerName ?? input.playerName(list.owner) ?? String(list.owner),
     ownerId: list.owner,
     ownerUrl: input.playerUrl(list.owner),
     ...(ownerMarked !== undefined && { ownerMarked }),
+    ...(ownerIgnored !== undefined && { ownerIgnored }),
     ...activityOf(input.foestats, input.today),
     at: list.at,
     sort: input.sort,
