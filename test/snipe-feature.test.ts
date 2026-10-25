@@ -540,9 +540,28 @@ describe('Snipehilfe: marking with a star', () => {
     const heads = [...box.root.querySelectorAll('.snipe-table th')];
     const last = heads[heads.length - 1];
     expect(last?.getAttribute('aria-label')).toBe('Merken');
-    expect(last?.getAttribute('data-tip')).toBe('Merken');
+    expect(last?.getAttribute('data-tip')).toContain('Merken');
     expect(last?.querySelector('svg')).not.toBeNull();
     expect(stars(box)).toHaveLength(2);
+  });
+
+  it('sorts by the tier and by the mark on a click on their heads, the best and the marked first', async () => {
+    const { box, greatBuildings, list, rows, cells } = setup();
+    list([withRequired(zeus, 80, 20), withRequired(oracle, 100, 30)]);
+    await tick();
+    const head = (label: string) => box.root.querySelector(`.snipe-table th[aria-label="${label}"]`) as HTMLElement;
+    const names = () => rows().map((r) => cells(r)[1]);
+    expect(head('Sicherheit').classList.contains('sortable')).toBe(true);
+    expect(head('Merken').classList.contains('sortable')).toBe(true);
+    const last = names()[names().length - 1];
+    await greatBuildings.mark(playerId(1001), last === 'Zeusstatue' ? zeus.entity_id : oracle.entity_id, true);
+    head('Merken').click();
+    await tick();
+    expect(names()[0]).toBe(last);
+    expect(head('Merken').classList.contains('desc')).toBe(true);
+    head('Sicherheit').click();
+    await tick();
+    expect(head('Sicherheit').classList.contains('desc')).toBe(true);
   });
 
   it('marks a building on a click and redraws filled, a second click takes the mark away', async () => {

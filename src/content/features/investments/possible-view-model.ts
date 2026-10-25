@@ -4,7 +4,7 @@ import { formatAge, formatNumber, t } from '../../core/texts';
 import { type OwnerShare, ownerShare, type SnipeTier } from '../../domain/gb-snipe';
 import type { PossibleInvestment } from '../../domain/investments';
 import { progressPercent } from '../../ui/fp-bar';
-import { snipeNotes, snipeProfit, snipeProfitKey } from '../../ui/snipe-hit';
+import { snipeNotes, snipeProfit, snipeProfitKey, TIER_ORDER } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
 
 export type PossibleColumn =
@@ -145,8 +145,6 @@ const DAY = 24 * HOUR;
 /** "3 Std." for three hours and forty minutes: the largest unit only, so the column stays narrow */
 const age = (ms: number) =>
   formatAge(ms >= DAY ? Math.floor(ms / DAY) * DAY : ms >= HOUR ? Math.floor(ms / HOUR) * HOUR : ms);
-
-const TIER_ORDER: Record<SnipeTier, number> = { exact: 2, safe: 1, possible: 0 };
 
 type Named = PossibleInvestment & {
   ownerName: string;

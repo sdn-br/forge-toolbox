@@ -202,10 +202,10 @@ th.sortable.asc .sort-level::before { content: ' ▴'; font-size: 1.333em; }
 .snipe-table .c-progress { width: 112px; }
 .snipe-table .c-cost { width: 68px; }
 .snipe-table .c-profit { width: 112px; }
-.snipe-table .c-tier, .snipe-table .c-mark { width: 26px; }
+.snipe-table .c-tier, .snipe-table .c-mark { width: 38px; }
 .snipe-table td.snipe-name { overflow: hidden; text-overflow: ellipsis; }
 .snipe-table :is(.snipe-tier, .snipe-mark) { text-align: center; padding: 0; }
-.snipe-table th.snipe-mark svg { display: block; width: 14px; height: 14px; margin: auto; }
+.snipe-table th.icon-head:not(.num) { text-align: center; padding: 0; }
 .snipe-table .snipe-tier svg { display: block; width: 14px; height: 14px; margin: auto; }
 td.snipe-tier.exact { color: #8fd08f; }
 td.snipe-tier.safe { color: #5a9a4a; }

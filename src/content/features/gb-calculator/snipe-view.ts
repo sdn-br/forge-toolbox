@@ -29,6 +29,8 @@ const columns: SortColumn<SnipeColumn>[] = [
   { column: 'rank', label: 'gb.col.rank', num: true },
   { column: 'cost', label: 'gb.col.cost', num: true },
   { column: 'profit', label: 'gb.col.profit', num: true, icon: headerIcons.profit },
+  { column: 'tier', label: 'gb.col.tier', num: false, icon: headerIcons.info },
+  { column: 'mark', label: 'mark.col', num: false, icon: headerIcons.star },
 ];
 
 const row = (r: SnipeRowVm, actions: SnipeActions) => html`<tr data-tip=${r.notes.join('\n')}>
@@ -71,9 +73,7 @@ const table = (vm: Extract<SnipeVm, { kind: 'list' }>, actions: SnipeActions) =>
       <table class="gb-table snipe-table">
         <colgroup><col class="c-order" /><col class="c-name" /><col class="c-level" /><col class="c-progress" /><col class="c-rank" />
           <col class="c-cost" /><col class="c-profit" /><col class="c-tier" /><col class="c-mark" /></colgroup>
-        <thead><tr>${sortHeads(columns, vm.sort, actions.sort)}<th class="snipe-tier"
-          aria-label=${t('gb.col.tier')} data-tip=${t('gb.col.tier')}>${headerIcons.info}</th><th class="snipe-mark"
-          aria-label=${t('mark.col')} data-tip=${t('mark.col')}>${headerIcons.star}</th></tr></thead>
+        <thead><tr>${sortHeads(columns, vm.sort, actions.sort)}</tr></thead>
         <tbody>${vm.rows.slice(top, top + VISIBLE_ROWS).map((r) => row(r, actions))}</tbody>
       </table>
       ${

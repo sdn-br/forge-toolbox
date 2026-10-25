@@ -2,11 +2,11 @@ import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import { t } from '../../core/texts';
 import type { SnipeHit, SnipeList, SnipeTier } from '../../domain/gb-snipe';
 import type { FoestatsRecord } from '../../stores/foestats';
-import { signed, snipeNotes, snipeProfit, snipeProfitKey } from '../../ui/snipe-hit';
+import { signed, snipeNotes, snipeProfit, snipeProfitKey, TIER_ORDER } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
 import { type ActivityVm, activityVm } from './view-model';
 
-export type SnipeColumn = 'order' | 'name' | 'level' | 'progress' | 'rank' | 'cost' | 'profit';
+export type SnipeColumn = 'order' | 'name' | 'level' | 'progress' | 'rank' | 'cost' | 'profit' | 'tier' | 'mark';
 
 export type SnipeSort = Sort<SnipeColumn>;
 
@@ -14,7 +14,15 @@ export type SnipeSort = Sort<SnipeColumn>;
 export const DEFAULT_SORT: SnipeSort = [{ column: 'profit', desc: true }];
 
 /** names and the game's order read from the top, numbers from the largest */
-export const SNIPE_DESC_FIRST: ReadonlySet<SnipeColumn> = new Set(['level', 'progress', 'rank', 'cost', 'profit']);
+export const SNIPE_DESC_FIRST: ReadonlySet<SnipeColumn> = new Set([
+  'level',
+  'progress',
+  'rank',
+  'cost',
+  'profit',
+  'tier',
+  'mark',
+]);
 
 /** rows of the table in view at once; the rest scrolls */
 export const VISIBLE_ROWS = 6;
@@ -103,7 +111,7 @@ const activityOf = (record: FoestatsRecord | undefined, today: string) => {
   return activity ? { activity } : {};
 };
 
-const sortKey: Record<SnipeColumn, (r: SnipeHit, name: string, order: number) => number | string> = {
+const sortKey: Record<SnipeColumn, (r: SnipeHit, name: string, order: number, marked: boolean) => number | string> = {
   order: (_, __, order) => order,
   name: (_, name) => name,
   level: (r) => r.level,
@@ -111,6 +119,8 @@ const sortKey: Record<SnipeColumn, (r: SnipeHit, name: string, order: number) =>
   rank: (r) => r.place.rank,
   cost: (r) => r.place.cost,
   profit: snipeProfitKey,
+  tier: (r) => TIER_ORDER[r.tier],
+  mark: (_, __, ___, marked) => Number(marked),
 };
 
 export function snipeViewModel(input: SnipeInput): SnipeVm {
@@ -119,7 +129,11 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
   const name = (h: SnipeHit) => input.greatBuildingName(h.cityEntityId) ?? h.cityEntityId;
   const places = new Map([...list.entityIds].map((id, i) => [id, i + 1]));
   const order = (h: SnipeHit) => places.get(h.entityId) ?? 0;
-  const hits = sortRows([...result.hits], input.sort, (column) => (h) => sortKey[column](h, name(h), order(h)));
+  const hits = sortRows(
+    [...result.hits],
+    input.sort,
+    (column) => (h) => sortKey[column](h, name(h), order(h), input.isMarked(h.owner, h.entityId)),
+  );
   const rows = hits.map<SnipeRowVm>((h) => ({
     owner: h.owner,
     entityId: h.entityId,

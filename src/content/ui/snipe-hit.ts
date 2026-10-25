@@ -46,3 +46,6 @@ export const profitCell = (profit: string, estimate: boolean) =>
   html`<td class=${estimate ? 'num estimate' : 'num'} data-tip=${estimate ? t('gbCalc.estimate') : ''}>${
     estimate ? '≈ ' : ''
   }${profit}</td>`;
+
+/** the tiers from the best: exact over safe over possible, for sorting */
+export const TIER_ORDER: Record<SnipeTier, number> = { exact: 2, safe: 1, possible: 0 };
