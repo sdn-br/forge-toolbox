@@ -99,8 +99,3 @@ export const ownerCell = (r: OwnerCellRow, playerField: string, actions: OwnerCe
       ? ''
       : html`${starButton(r.ownerMarked, () => actions.markPlayer(r.owner, !r.ownerMarked))}${ignoreButton('player', r.ownerIgnored, () => actions.ignorePlayer(r.owner, !r.ownerIgnored))}`
   }${pickButton(r.ownerName, picks(playerField, r.ownerName), actions.pickPlayer)}</span></td>`;
-
-/** the building name with the closed eye at the right edge; `tip` is the name and, when ignored, why; `cls` is the cell's
- * class, the snipe helper has its own */
-export const buildingCell = (name: string, tip: string, ignored: boolean, toggle: () => void, cls = 'inv-name') =>
-  html`<td class=${cls} data-tip=${tip}><span class="inv-owner"><span class="inv-label">${name}</span>${ignoreButton('building', ignored, toggle)}</span></td>`;

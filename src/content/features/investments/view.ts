@@ -4,11 +4,11 @@ import { t } from '../../core/texts';
 import type { InvestmentStatus } from '../../domain/investments';
 import { progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
-import { ignoredFilter } from '../../ui/ignore';
+import { buildingCell, ignoredFilter } from '../../ui/ignore';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { starButton } from '../../ui/star';
 import { rowsIn, windowedRows } from '../../ui/windowed-rows';
-import { buildingCell, markedFilter, ownerCell, reachCell, reachFilter, text, toggleGroup } from './filter-parts';
+import { markedFilter, ownerCell, reachCell, reachFilter, text, toggleGroup } from './filter-parts';
 import {
   type InvestmentColumn,
   type InvestmentRowVm,

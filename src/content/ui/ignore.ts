@@ -32,3 +32,8 @@ export const ignoredFilter = (show: boolean, set: (show: boolean) => void) => {
   return html`<span class="inv-ignored-filter"><button class=${show ? 'on' : ''} aria-pressed=${show ? 'true' : 'false'}
     data-tip=${word} aria-label=${word} @click=${() => set(!show)}>${headerIcons.eye}</button></span>`;
 };
+
+/** the building name with the closed eye at the right edge; `tip` is the name and, when ignored, why; `cls` is the cell's
+ * class, the snipe helper has its own */
+export const buildingCell = (name: string, tip: string, ignored: boolean, toggle: () => void, cls = 'inv-name') =>
+  html`<td class=${cls} data-tip=${tip}><span class="inv-owner"><span class="inv-label">${name}</span>${ignoreButton('building', ignored, toggle)}</span></td>`;

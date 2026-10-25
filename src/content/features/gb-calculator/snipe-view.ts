@@ -4,12 +4,11 @@ import { formatAge, formatNumber, t } from '../../core/texts';
 import { foldToggle } from '../../ui/fold-toggle';
 import { progressCell, progressPercent } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
-import { ignoredFilter } from '../../ui/ignore';
+import { buildingCell, ignoredFilter } from '../../ui/ignore';
 import { profitCell, tierCell } from '../../ui/snipe-hit';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { starButton } from '../../ui/star';
 import { rowsIn, windowedRows } from '../../ui/windowed-rows';
-import { buildingCell } from '../investments/filter-parts';
 import type { SnipeColumn, SnipeRowVm, SnipeVm } from './snipe-view-model';
 import { activityLine, owner } from './view';
 

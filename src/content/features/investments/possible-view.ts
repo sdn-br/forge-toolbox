@@ -2,11 +2,11 @@ import { html, type TemplateResult } from 'lit-html';
 import { t } from '../../core/texts';
 import { progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
-import { ignoredFilter } from '../../ui/ignore';
+import { buildingCell, ignoredFilter } from '../../ui/ignore';
 import { profitCell, tierCell, tierIcon } from '../../ui/snipe-hit';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { rowsIn, windowedRows } from '../../ui/windowed-rows';
-import { buildingCell, markedFilter, ownerCell, reachCell, reachFilter, text, toggleGroup } from './filter-parts';
+import { markedFilter, ownerCell, reachCell, reachFilter, text, toggleGroup } from './filter-parts';
 import {
   type PossibleColumn,
   type PossibleFilter,
