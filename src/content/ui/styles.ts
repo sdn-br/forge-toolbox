@@ -35,7 +35,7 @@ td.num, th.num { text-align: right; }
 .error { color: #f07060; }
 button.action { margin: 2px 4px 2px 0; }
 /* text buttons in the box colours, like the fields; icon, header, menu and settings buttons have their own looks */
-.gb-factor button:not(.icon), .gb-levels button:not(.icon), button.action, .tabs button, .map-tools button,
+.gb-factor button:not(.icon), .gb-levels button:not(.icon), button.action, .map-tools button,
 .stats-tab, .power-open button {
   font: inherit; cursor: pointer; color: var(--ink); background: var(--btn); border: 1px solid var(--line);
   border-radius: 3px; padding: 1px 6px;
@@ -74,7 +74,16 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
 input[type=number] { appearance: textfield; -moz-appearance: textfield; }
 input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input.num, input[type=number] { text-align: right; }
-.tabs { display: flex; flex-wrap: wrap; gap: 2px; margin: 0 0 6px; }
+/* tabs: each with its own face, the active one opens into the box below it */
+.tabs { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 2px; margin: 0 -8px 8px; padding: 0 8px;
+  border-bottom: 1px solid var(--line); }
+.tabs button { font: inherit; cursor: pointer; color: var(--ink); background: var(--btn); border: 1px solid var(--line);
+  border-bottom: none; border-radius: 5px 5px 0 0; padding: 3px 10px; margin-bottom: -1px; opacity: .75;
+  &:hover { background: var(--btn-hover); opacity: 1; }
+  &.active { cursor: default; background: var(--bg); opacity: 1; font-weight: 600; border-top: 2px solid var(--accent);
+    padding-top: 2px; }
+  &:focus-visible { outline: none; box-shadow: 0 0 0 1px var(--accent); }
+}
 .split { display: flex; gap: 8px; align-items: flex-start; }
 .split > .side { flex: 0 0 150px; min-width: 0; }
 .split > .main { flex: 1; min-width: 0; }

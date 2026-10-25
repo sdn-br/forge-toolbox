@@ -81,10 +81,10 @@ const EMPTY = {
 } as const;
 
 const tabs = (current: PvpTab | undefined, actions: PvpActions) =>
-  html`<p>${(['battles', 'plunders', 'incoming'] as const).map(
+  html`<div class="tabs">${(['battles', 'plunders', 'incoming'] as const).map(
     (tab) =>
-      html`<button class=${tab === (current ?? 'battles') ? 'action active' : 'action'} ?disabled=${tab === (current ?? 'battles')} @click=${() => actions.tab(tab)}>${t(`pvp.tab.${tab}`)}</button> `,
-  )}</p>`;
+      html`<button class=${tab === (current ?? 'battles') ? 'active' : ''} ?disabled=${tab === (current ?? 'battles')} @click=${() => actions.tab(tab)}>${t(`pvp.tab.${tab}`)}</button>`,
+  )}</div>`;
 
 const paging = (vm: PvpVm, actions: PvpActions) =>
   vm.pages <= 1
