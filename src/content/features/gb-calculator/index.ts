@@ -126,6 +126,17 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       let scroll = 0;
       /** what the last list tone was for: the same hits stay quiet */
       let snipeToned: string | undefined;
+      /** the calculator is folded to one line; a new list folds it, opening a building unfolds it, else the player */
+      let calcFolded = false;
+      const calcFold = {
+        get folded() {
+          return calcFolded;
+        },
+        toggle: () => {
+          calcFolded = !calcFolded;
+          box.update();
+        },
+      };
       let loads = 0;
 
       const save = (key: string, value: boolean | number) =>
@@ -181,7 +192,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         width: 602,
         // 6 table rows, the section and the calculator fit without the body scrolling on a normal window
         maxHeight: 0.92,
-        render: () => html`${snipeView(snipeVm, snipeActions, expanded)}${gbCalculatorView(vm, actions)}`,
+        render: () => html`${snipeView(snipeVm, snipeActions, expanded)}${gbCalculatorView(vm, actions, calcFold)}`,
       });
 
       const refresh = () => {
@@ -276,6 +287,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         listed = [];
         scroll = 0;
         expanded = true;
+        calcFolded = true;
         onList().catch((error) => logError('reading the great building list failed', error));
       });
       /** the stored state of a building of the list changed: opened or changed in the game */
@@ -288,6 +300,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         if (own || !follow()) return;
         // a building of the list's owner keeps the list open, it is what the player is going through
         if (list?.owner !== owner) expanded = false;
+        calcFolded = false;
         toned = undefined;
         preview = undefined;
         refresh();
