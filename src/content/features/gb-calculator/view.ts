@@ -5,6 +5,7 @@ import { type FactorActions, factorBar } from '../../ui/factor-bar';
 import { foldToggle } from '../../ui/fold-toggle';
 import { fpBar, progressPercent } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
+import { ignoreButton } from '../../ui/ignore';
 import { levelBar } from '../../ui/level-bar';
 import { externalLink } from '../../ui/links';
 import { starButton } from '../../ui/star';
@@ -26,6 +27,10 @@ export interface GbCalculatorActions extends FactorActions {
   toggleMark(marked: boolean): void;
   /** puts the star on the owner of the shown building or takes it away */
   toggleOwnerMark(marked: boolean): void;
+  /** ignores the shown building or releases it */
+  toggleIgnore(ignored: boolean): void;
+  /** ignores the owner of the shown building or releases them */
+  toggleOwnerIgnore(ignored: boolean): void;
 }
 
 const percent = (n: number) => `${formatNumber(n)} %`;
@@ -36,18 +41,38 @@ export const activityLine = (a: ActivityVm) =>
       a.week ? ` · ${a.week}` : ''
     }</span>${a.loading ? html` <span class="spinner" data-tip=${t('foestats.loading')}></span>` : ''}`;
 
-/** the owner with a star when the player store knows them (`marked` set) */
-export const owner = (name: string, url: string, mark?: { marked: boolean; toggle(marked: boolean): void }) =>
+/** the owner with a star when the player store knows them (`marked` set) and the closed eye beside it (`ignore` set) */
+export const owner = (
+  name: string,
+  url: string,
+  mark?: { marked: boolean; toggle(marked: boolean): void },
+  ignore?: { ignored: boolean; toggle(ignored: boolean): void },
+) =>
   html`<span class="gb-owner">${t('gbCalc.ownerLabel')}: ${externalLink(name, url)}${
     mark ? html` ${starButton(mark.marked, () => mark.toggle(!mark.marked))}` : ''
-  }</span>`;
+  }${ignore ? ignoreButton('player', ignore.ignored, () => ignore.toggle(!ignore.ignored)) : ''}</span>`;
 
-const ownerOf = (h: { owner: string; ownerUrl: string; ownerMarked?: boolean }, actions: GbCalculatorActions) =>
+const ownerOf = (
+  h: { owner: string; ownerUrl: string; ownerMarked?: boolean; ownerIgnored?: boolean },
+  actions: GbCalculatorActions,
+) =>
   owner(
     h.owner,
     h.ownerUrl,
     h.ownerMarked === undefined ? undefined : { marked: h.ownerMarked, toggle: actions.toggleOwnerMark },
+    h.ownerIgnored === undefined ? undefined : { ignored: h.ownerIgnored, toggle: actions.toggleOwnerIgnore },
   );
+
+/** Above the header while the building or its owner is ignored: what is ignored and the button that lifts it. */
+const ignoreWarning = (h: GbHeader, actions: GbCalculatorActions) => {
+  if (!h.ignoreWords) return '';
+  const release = () => {
+    if (h.ignored) actions.toggleIgnore(false);
+    if (h.ownerIgnored) actions.toggleOwnerIgnore(false);
+  };
+  return html`<p class="warn ignore-warning"><span class="warn-icon" role="img" aria-hidden="true">${headerIcons.warning}</span>
+    ${h.ignoreWords.join(' · ')} ${ignoreButton('building', true, release)}</p>`;
+};
 
 function header(h: GbHeader, actions: GbCalculatorActions) {
   const fp =
@@ -56,8 +81,8 @@ function header(h: GbHeader, actions: GbCalculatorActions) {
       : t('gbCalc.availableFp', { fp: formatNumber(h.availableFp) });
   const part = (n: number | undefined) => (n === undefined ? '?' : formatNumber(n));
   const split = t('gbCalc.fpSplit', { bar: part(h.fpBar), packages: part(h.fpPackages) });
-  return html`<p><span class="gb-title">${t('gbCalc.heading', { name: h.name, level: h.level, next: h.next })}</span>
-    ${starButton(h.marked, () => actions.toggleMark(!h.marked))}
+  return html`${ignoreWarning(h, actions)}<p><span class="gb-title">${t('gbCalc.heading', { name: h.name, level: h.level, next: h.next })}</span>
+    ${starButton(h.marked, () => actions.toggleMark(!h.marked))}${ignoreButton('building', h.ignored, () => actions.toggleIgnore(!h.ignored))}
     <span class="muted">· ${t('gbCalc.unlocked', { max: h.maxLevel })}</span>
     <br />${ownerOf(h, actions)}${h.activity ? activityLine(h.activity) : ''}
     <br /><span class="muted"><span class="gb-fp" data-tip=${split}>${fp}</span> ·

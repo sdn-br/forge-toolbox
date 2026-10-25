@@ -7,6 +7,7 @@ import { logError } from '../../core/log';
 import { t } from '../../core/texts';
 import { arcBonus } from '../../domain/gb-calculator';
 import { type SnipeList, snipeList } from '../../domain/gb-snipe';
+import { ignoreReason } from '../../domain/ignore';
 import { FOESTATS_SETTING } from '../../stores/foestats';
 import type { Construction } from '../../stores/great-building-model';
 import { icons } from '../../ui/icons';
@@ -35,6 +36,8 @@ const RETENTION = 'snipe.retentionDays';
 const ASKED_BY_GAME = 3000;
 const SNIPE_OPEN = 'snipe.open';
 const SNIPE_SOUND = 'snipe.sound';
+/** the snipe section shows the rows of ignored buildings and owners; a view choice, saved as 'true' or 'false' */
+const SNIPE_SHOW_IGNORED = 'snipe.showIgnored';
 const FP = 'strategy_points';
 
 /** `tone` plays the sound for a profitable place; tests pass their own. */
@@ -122,6 +125,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       let snipe: SnipeList | undefined;
       let snipeVm: SnipeVm = { kind: 'none' };
       let sort: SnipeSort = DEFAULT_SORT;
+      let showIgnored = ctx.ui.pref(SNIPE_SHOW_IGNORED) === 'true';
       /** index of the first table row in view; a new list starts at the top, redraws of the same list keep it */
       let scroll = 0;
       /** what the last list tone was for: the same hits stay quiet */
@@ -150,6 +154,19 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       /** whether the player store knows the player and has them marked; undefined for an unknown one, who takes no star */
       const playerMarked = (id: PlayerId) =>
         ctx.players.get(id)?.marked === true || (ctx.players.get(id) ? false : undefined);
+      /** whether the player ignores the owner; undefined for a player the store does not know */
+      const ownerIgnored = (id: PlayerId) => {
+        const player = ctx.players.get(id);
+        return player && player.ignored === true;
+      };
+      const isIgnored = (owner: PlayerId, entityId: number) => ctx.greatBuildings.isIgnored(owner, entityId);
+      /** the building, or its owner, is ignored */
+      const ignores = (owner: PlayerId, entityId: number) =>
+        ignoreReason(isIgnored(owner, entityId), ownerIgnored(owner)) !== undefined;
+      const ignoreBuilding = (owner: PlayerId, entityId: number, ignored: boolean) =>
+        ctx.greatBuildings
+          .ignore(owner, entityId, ignored)
+          .catch((error) => logError('ignoring a great building failed', error));
       const markBuilding = (owner: PlayerId, entityId: number, marked: boolean) =>
         ctx.greatBuildings
           .mark(owner, entityId, marked)
@@ -170,6 +187,12 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         toggleOwnerMark: (marked) => {
           if (shown) ctx.players.setMarked(shown.owner, marked);
         },
+        toggleIgnore: (ignored) => {
+          if (shown) ignoreBuilding(shown.owner, shown.entityId, ignored);
+        },
+        toggleOwnerIgnore: (ignored) => {
+          if (shown) ctx.players.setIgnored(shown.owner, ignored);
+        },
       };
 
       const snipeActions: SnipeActions = {
@@ -189,14 +212,21 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         },
         mark: markBuilding,
         markPlayer: (player, marked) => ctx.players.setMarked(player, marked),
+        ignore: ignoreBuilding,
+        ignorePlayer: (player, ignored) => ctx.players.setIgnored(player, ignored),
+        showIgnored: (show) => {
+          showIgnored = show;
+          ctx.ui.savePref(SNIPE_SHOW_IGNORED, String(show));
+          refresh();
+        },
       };
 
       const box = ctx.createBox({
         id: 'gbCalculator',
         settings: 'gbCalc.title',
         title: () => t('gbCalc.title'),
-        // the snipe table: fixed columns of 518 px and the building name; until 2026-10-25 a CSS cap held fixed boxes at 520 px
-        width: 602,
+        // the snipe table: fixed columns of 518 px and the building name with its 16 px eye; until 2026-10-25 a CSS cap held fixed boxes at 520 px
+        width: 618,
         // 6 table rows, the section and the calculator fit without the body scrolling on a normal window
         maxHeight: 0.92,
         render: () =>
@@ -211,6 +241,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
           isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
           playerMarked,
+          isIgnored,
+          ownerIgnored,
           fpBar: ctx.resources.known ? ctx.resources.amount(FP) : undefined,
           fpPackages: ctx.inventory.knowsPackages ? ctx.inventory.forgePointPackages() : undefined,
           arcBonus: arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses()),
@@ -238,6 +270,9 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
           isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
           playerMarked,
+          isIgnored,
+          ownerIgnored,
+          showIgnored,
           foestats: list && ctx.settings.get(FOESTATS_SETTING.key) ? ctx.foestats.get(list.owner) : undefined,
           today: foestatsDay(Date.now()),
           now: Date.now(),
@@ -261,16 +296,22 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
 
       /** a new list: open the box when something pays, once per set of hits a tone */
       const onList = async () => {
-        if (!(await loadList()) || !snipe || snipe.hits.length === 0) return;
-        const key = `${list?.owner}|${snipe.hits.map((h) => `${h.entityId}:${h.tier}:${h.place.rank}:${h.place.cost}`).join(',')}`;
+        if (!(await loadList()) || !snipe) return;
+        // ignored buildings and owners are no reason to open the box or to beep
+        const hits = snipe.hits.filter((h) => !ignores(h.owner, h.entityId));
+        if (hits.length === 0) return;
+        const key = `${list?.owner}|${hits.map((h) => `${h.entityId}:${h.tier}:${h.place.rank}:${h.place.cost}`).join(',')}`;
         if (ctx.settings.get(SNIPE_OPEN)) box.open();
         if (ctx.settings.get(SNIPE_SOUND) && key !== snipeToned) tone();
         snipeToned = key;
       };
 
       /** a tone once per new state of the places that has a profitable one, and once for a level up */
+      /** the shown building, or its owner, is ignored */
+      const shownIgnored = () => shown !== undefined && ignores(shown.owner, shown.entityId);
+
       const maybeTone = (leveled: boolean) => {
-        if (vm.kind !== 'current' || !ctx.settings.get(SOUND)) return;
+        if (vm.kind !== 'current' || !ctx.settings.get(SOUND) || shownIgnored()) return;
         const profitable = vm.places.filter((p) => p.status === 'profit' && (p.profit ?? 0) > 0);
         const places = profitable.map((p) => `${p.rank}:${p.safe?.cost}`).join(',');
         const key = leveled ? `leveled:${vm.leveled}` : vm.profitable ? `${vm.header.name}:${places}` : undefined;
@@ -312,6 +353,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         toned = undefined;
         preview = undefined;
         refresh();
+        // an ignored building or player does not open the box; by hand it shows with a warning
+        if (shownIgnored()) return;
         box.open();
         maybeTone(false);
       });
@@ -322,6 +365,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         maybeTone(reason === 'leveled');
       });
       ctx.bus.on('greatBuilding.marked', refresh);
+      ctx.bus.on('greatBuilding.ignored', refresh);
       ctx.bus.on('resources.changed', refresh);
       ctx.bus.on('inventory.changed', refresh);
       ctx.bus.on('city.ownChanged', refresh);

@@ -67,6 +67,8 @@ export interface SortColumn<C extends string> {
   icon?: TemplateResult;
   /** the whole word of an abbreviated head, for tooltip and label */
   full?: TextKey;
+  /** an extra class of the head, for a column's own alignment */
+  cls?: string;
 }
 
 /** the head of a sortable column, marked with the direction (and from two levels on the level) while it is sorted */
@@ -84,7 +86,7 @@ function sortHead<C extends string>(
   const tip = [c.icon || c.full ? label : '', t('table.sortHint', { column: label }), t('table.sortMore'), order]
     .filter((line) => line !== '')
     .join('\n');
-  return html`<th class=${`sortable ${c.num ? 'num' : ''} ${c.icon ? 'icon-head' : ''} ${mark} ${multi ? 'multi' : ''}`} aria-label=${label}
+  return html`<th class=${`sortable ${c.num ? 'num' : ''} ${c.icon ? 'icon-head' : ''} ${mark} ${multi ? 'multi' : ''} ${c.cls ?? ''}`} aria-label=${label}
     aria-sort=${mark === '' ? 'none' : mark === 'desc' ? 'descending' : 'ascending'}
     data-tip=${tip} @click=${(e: MouseEvent) => onSort(c.column, e.shiftKey)}>${c.icon ?? t(c.label)}${multi ? html`<span class="sort-level">${index + 1}</span>` : ''}</th>`;
 }

@@ -18,6 +18,9 @@ export interface BoxOptions {
   maxHeight?: number;
   /** the size of a box with the handle until the viewer resizes it, from the window size; without it width and content height */
   defaultSize?: (window: { width: number; height: number }) => { width: number; height: number };
+  /** the smallest height a box with the handle can be dragged to or shows from a saved size (default `MIN_HEIGHT`), for a
+   * box whose content needs more than the default to avoid a second scrollbar */
+  minHeight?: number;
   /** the content fills the body once the box has a height (resized or popped out), e.g. a map */
   fill?: boolean;
   onClose?: () => void;
@@ -33,7 +36,7 @@ export const largeDefaultSize: NonNullable<BoxOptions['defaultSize']> = (win) =>
 
 let topZ = 2147480000;
 
-/** the smallest size a box can be dragged to */
+/** the smallest size a box can be dragged to; a box can ask for more height with `minHeight` */
 export const MIN_WIDTH = 260;
 export const MIN_HEIGHT = 150;
 
@@ -96,7 +99,8 @@ export class Box {
     const y = state.y ?? 90;
     // a saved height counts only while the box shows its body; minimized it is just the header
     const wanted = resizableBox ? (state.height ?? this.defaultSize()?.height) : undefined;
-    const height = wanted !== undefined && !state.minimized ? clamp(wanted, MIN_HEIGHT, window.innerHeight) : undefined;
+    const height =
+      wanted !== undefined && !state.minimized ? clamp(wanted, this.minHeight(), window.innerHeight) : undefined;
     const classes = [
       'box',
       state.pinned && 'pinned',
@@ -155,6 +159,10 @@ export class Box {
     return clamp(wanted, MIN_WIDTH, window.innerWidth);
   }
 
+  private minHeight(): number {
+    return this.options.minHeight ?? MIN_HEIGHT;
+  }
+
   private defaultSize() {
     return this.options.defaultSize?.({ width: window.innerWidth, height: window.innerHeight });
   }
@@ -202,7 +210,9 @@ export class Box {
     const start = box.getBoundingClientRect();
     const size = (e: PointerEvent) => ({
       width: Math.round(clamp(start.width + e.clientX - event.clientX, MIN_WIDTH, window.innerWidth - start.left)),
-      height: Math.round(clamp(start.height + e.clientY - event.clientY, MIN_HEIGHT, window.innerHeight - start.top)),
+      height: Math.round(
+        clamp(start.height + e.clientY - event.clientY, this.minHeight(), window.innerHeight - start.top),
+      ),
     });
     handle.setPointerCapture?.(event.pointerId);
     const move = (e: PointerEvent) => {

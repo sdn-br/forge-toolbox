@@ -55,13 +55,16 @@ export function applyListRow(
   return { ...next, ...place };
 }
 
+/** The player's own marks, the star and the ignore: they stay with the building and only the player removes them. */
+export const isFlagged = (b: KnownGreatBuilding): boolean => b.marked === true || b.ignored === true;
+
 /** An entry is safe from the retention when the session player invested in it. */
 export const hasOwnContribution = (b: KnownGreatBuilding): boolean =>
   b.ownContribution === true || (b.rankings?.some((r) => r.self && r.rank !== undefined) ?? false);
 
 /**
  * A building the town hall list no longer names (levelled, reward paid out) loses everything that made it an own
- * investment. The star is the player's own and stays with the building, which then stands as a plain foreign one.
+ * investment. The star and the ignore are the player's own and stay with the building, which then stands as a plain foreign one.
  */
 export function withoutOwnContribution(b: KnownGreatBuilding): KnownGreatBuilding {
   const {

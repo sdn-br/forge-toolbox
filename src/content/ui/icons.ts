@@ -277,4 +277,12 @@ export const headerIcons = {
   funnel: headerIcon(svg`<path d="${FUNNEL}"/>`),
   /** the funnel filled: this filter is set, like the filled star */
   funnelFilled: headerIcon(svg`<path d="${FUNNEL}" fill="currentColor"/>`),
+  /** a closed eye, lid with lashes: ignore this (chosen from the icon preview, 2026-10-25) */
+  eyeClosed: headerIcon(
+    svg`<path d="M3 10.5c2.5 3.6 5.6 5.4 9 5.4s6.5-1.8 9-5.4"/><path d="M6.2 14.2 4.8 16.6M12 16v2.8M17.8 14.2l1.4 2.4"/>`,
+  ),
+  /** an open eye: show what is ignored */
+  eye: headerIcon(
+    svg`<path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.8"/>`,
+  ),
 };

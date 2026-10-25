@@ -227,3 +227,133 @@ describe('PlayerStore: marks', () => {
     expect(store.get(playerId(1))?.marked).toBe(true);
   });
 });
+
+describe('PlayerStore: ignores', () => {
+  const persistedPlayer = (over: Partial<Player> = {}): Player => ({
+    ...obs(1, 'Old'),
+    score: 1,
+    rank: 1,
+    world,
+    guild: undefined,
+    relations: { neighbor: true, guildMember: false, friend: false },
+    firstSeenAt: 1,
+    seenAt: 1,
+    source: 'socialList',
+    ...over,
+  });
+
+  it('ignores a known player, saves it and tells the bus; releasing removes the field', async () => {
+    const { store, put, events } = setup();
+    store.apply(world, [obs(1)], 'visit');
+    await Promise.resolve();
+    put.mockClear();
+    expect(store.setIgnored(playerId(1), true)).toBe(true);
+    expect(store.get(playerId(1))?.ignored).toBe(true);
+    expect(store.get(playerId(1))?.source).toBe('visit');
+    expect(events.at(-1)).toEqual({ ids: [playerId(1)], source: 'ignore' });
+    await Promise.resolve();
+    expect(put.mock.calls[0]?.[0][0]).toMatchObject({ id: 1, ignored: true });
+    expect(store.setIgnored(playerId(1), false)).toBe(true);
+    expect(store.get(playerId(1))).not.toHaveProperty('ignored');
+    await Promise.resolve();
+    expect(put.mock.calls[1]?.[0][0]).not.toHaveProperty('ignored');
+  });
+
+  it('does not ignore a player the store does not know, and stays quiet when nothing changes', () => {
+    const { store, events } = setup();
+    expect(store.setIgnored(playerId(9), true)).toBe(false);
+    store.apply(world, [obs(1)], 'visit');
+    store.setIgnored(playerId(1), false);
+    expect(events).toEqual([{ ids: [playerId(1)], source: 'visit' }]);
+  });
+
+  it('clears the star when ignoring and tells the bus about both flags', async () => {
+    const { store, events, put } = setup();
+    store.apply(world, [obs(1)], 'visit');
+    store.setMarked(playerId(1), true);
+    events.length = 0;
+    store.setIgnored(playerId(1), true);
+    expect(store.get(playerId(1))).toMatchObject({ ignored: true });
+    expect(store.get(playerId(1))).not.toHaveProperty('marked');
+    expect(events).toEqual([
+      { ids: [playerId(1)], source: 'mark' },
+      { ids: [playerId(1)], source: 'ignore' },
+    ]);
+    await Promise.resolve();
+    expect(put.mock.calls.at(-1)?.[0][0]).not.toHaveProperty('marked');
+    expect(put.mock.calls.at(-1)?.[0][0]).toMatchObject({ ignored: true });
+  });
+
+  it('clears the ignore when marking and tells the bus about both flags', () => {
+    const { store, events } = setup();
+    store.apply(world, [obs(1)], 'visit');
+    store.setIgnored(playerId(1), true);
+    events.length = 0;
+    store.setMarked(playerId(1), true);
+    expect(store.get(playerId(1))).toMatchObject({ marked: true });
+    expect(store.get(playerId(1))).not.toHaveProperty('ignored');
+    expect(events).toEqual([
+      { ids: [playerId(1)], source: 'ignore' },
+      { ids: [playerId(1)], source: 'mark' },
+    ]);
+  });
+
+  it('keeps the other flag when a flag is only released', () => {
+    const { store } = setup();
+    store.apply(world, [obs(1)], 'visit');
+    store.setIgnored(playerId(1), true);
+    store.setMarked(playerId(1), false);
+    expect(store.get(playerId(1))?.ignored).toBe(true);
+  });
+
+  it('lets the choice of this session win over the other flag the database holds', async () => {
+    const { store } = setup([persistedPlayer({ ignored: true })]);
+    store.apply(world, [obs(1)], 'visit');
+    store.setMarked(playerId(1), true);
+    await store.load(world);
+    expect(store.get(playerId(1))).toMatchObject({ marked: true });
+    expect(store.get(playerId(1))).not.toHaveProperty('ignored');
+    const other = setup([persistedPlayer({ marked: true })]);
+    other.store.apply(world, [obs(1)], 'visit');
+    other.store.setIgnored(playerId(1), true);
+    await other.store.load(world);
+    expect(other.store.get(playerId(1))).toMatchObject({ ignored: true });
+    expect(other.store.get(playerId(1))).not.toHaveProperty('marked');
+  });
+
+  it('survives every source and the loss of every relation', () => {
+    const { store } = setup();
+    store.apply(world, [obs(1)], 'visit');
+    store.setIgnored(playerId(1), true);
+    store.apply(world, [obs(1, 'Renamed')], 'update');
+    expect(store.get(playerId(1))).toMatchObject({ name: 'Renamed', ignored: true });
+    store.applySocialList(world, { neighbor: [obs(1)], guildMember: [], friend: [] });
+    expect(store.get(playerId(1))?.ignored).toBe(true);
+    store.addFriend(world, obs(1));
+    expect(store.get(playerId(1))?.ignored).toBe(true);
+    store.removeFriend(world, playerId(1));
+    expect(store.get(playerId(1))?.ignored).toBe(true);
+    store.applySocialList(world, { neighbor: [], guildMember: [], friend: [] });
+    expect(store.get(playerId(1))).toMatchObject({
+      relations: { neighbor: false, guildMember: false, friend: false },
+      ignored: true,
+    });
+  });
+
+  it('reads the ignores of the database', async () => {
+    const { store } = setup([persistedPlayer({ ignored: true })]);
+    await store.load(world);
+    expect(store.get(playerId(1))?.ignored).toBe(true);
+  });
+
+  it('keeps the persisted ignore of a player the game reported before the load finished', async () => {
+    const { store, put } = setup([persistedPlayer({ ignored: true })]);
+    store.apply(world, [obs(1, 'New')], 'visit');
+    await Promise.resolve();
+    expect(put.mock.calls[0]?.[0][0]).not.toHaveProperty('ignored');
+    await store.load(world);
+    expect(store.get(playerId(1))).toMatchObject({ name: 'New', ignored: true });
+    await Promise.resolve();
+    expect(put.mock.calls.at(-1)?.[0][0]).toMatchObject({ id: 1, ignored: true });
+  });
+});

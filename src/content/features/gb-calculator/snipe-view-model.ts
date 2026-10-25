@@ -1,7 +1,9 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import { t } from '../../core/texts';
 import type { SnipeHit, SnipeList, SnipeTier } from '../../domain/gb-snipe';
+import { ignoreReason } from '../../domain/ignore';
 import type { FoestatsRecord } from '../../stores/foestats';
+import { ignoreWords } from '../../ui/ignore';
 import {
   ownerShareNote,
   signed,
@@ -12,6 +14,7 @@ import {
   TIER_ORDER,
 } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
+import { clampTop, type RowWindow, rowWindow } from '../../ui/windowed-rows';
 import { type ActivityVm, activityVm } from './view-model';
 
 export type SnipeColumn = 'order' | 'name' | 'level' | 'progress' | 'rank' | 'cost' | 'profit' | 'tier' | 'mark';
@@ -35,18 +38,10 @@ export const SNIPE_DESC_FIRST: ReadonlySet<SnipeColumn> = new Set([
 /** rows of the table in view at once; the rest scrolls */
 export const VISIBLE_ROWS = 6;
 
-export interface SnipeScroll {
-  /** index of the first row in view */
-  top: number;
-  /** rows hidden above and below */
-  above: number;
-  below: number;
-}
+export type SnipeScroll = RowWindow;
 
 /** the offset kept inside the list, so a shorter list or a stale offset never leaves the table empty */
-export function clampScroll(top: number, rows: number): number {
-  return Math.max(0, Math.min(top, rows - VISIBLE_ROWS));
-}
+export const clampScroll = (top: number, rows: number): number => clampTop(top, rows, VISIBLE_ROWS);
 
 export interface SnipeRowVm {
   owner: PlayerId;
@@ -68,6 +63,10 @@ export interface SnipeRowVm {
   tier: SnipeTier;
   /** the player put a star on the building */
   marked: boolean;
+  /** the building itself is ignored, for its eye; the note also names an ignored owner */
+  ignored: boolean;
+  /** why the row counts as ignored, in words; missing when it does not. Such rows show muted */
+  ignoreNote?: string;
   /** lines of the row tooltip */
   notes: string[];
   /** what the owner paid in, for the progress tooltip; missing when unknown */
@@ -81,6 +80,8 @@ export type SnipeVm =
       /** the player the list belongs to, with the foestats link and activity as on the LG tab */
       owner: string;
       ownerId: PlayerId;
+      /** missing for an owner the player store does not know, who cannot be ignored */
+      ownerIgnored?: boolean;
       ownerUrl: string;
       /** the player put a star on the owner; missing when the player store does not know them */
       ownerMarked?: boolean;
@@ -91,8 +92,14 @@ export type SnipeVm =
       rows: SnipeRowVm[];
       /** which rows of `rows` are in view */
       scroll: SnipeScroll;
-      /** the hit with the highest profit, whatever the sort; missing without hits */
+      /** the hit with the highest profit among the not ignored ones, whatever the sort; missing without such hits */
       best?: { name: string; profit: string };
+      /** hits that are not ignored: what the summary counts */
+      hitCount: number;
+      /** hits of ignored buildings and owners, shown or not */
+      ignoredCount: number;
+      /** also the rows of ignored buildings and owners, drawn muted */
+      showIgnored: boolean;
       /** counts under the table, those that are 0 left out */
       counts: string[];
     };
@@ -106,6 +113,11 @@ export interface SnipeInput {
   playerUrl(id: PlayerId): string;
   isMarked(owner: PlayerId, entityId: number): boolean;
   playerMarked(id: PlayerId): boolean | undefined;
+  isIgnored(owner: PlayerId, entityId: number): boolean;
+  /** undefined for a player the store does not know */
+  ownerIgnored(owner: PlayerId): boolean | undefined;
+  /** the rows of ignored buildings and owners show, muted */
+  showIgnored: boolean;
   /** what foestats knows about the owner of the list; missing while foestats is off */
   foestats?: FoestatsRecord;
   today: string;
@@ -122,6 +134,8 @@ const activityOf = (record: FoestatsRecord | undefined, today: string) => {
 };
 
 const withProfitRange = (range: string | undefined) => (range === undefined ? {} : { profitRange: range });
+
+const withIgnoreNote = (note: string | undefined) => (note === undefined ? {} : { ignoreNote: note });
 
 const withOwnerShare = (note: string | undefined) => (note === undefined ? {} : { ownerShare: note });
 
@@ -143,8 +157,13 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
   const name = (h: SnipeHit) => input.greatBuildingName(h.cityEntityId) ?? h.cityEntityId;
   const places = new Map([...list.entityIds].map((id, i) => [id, i + 1]));
   const order = (h: SnipeHit) => places.get(h.entityId) ?? 0;
+  const ignoreNote = (h: SnipeHit) => {
+    const reason = ignoreReason(input.isIgnored(h.owner, h.entityId), input.ownerIgnored(h.owner));
+    return reason ? ignoreWords(reason).join(', ') : undefined;
+  };
+  const kept = result.hits.filter((h) => ignoreNote(h) === undefined);
   const hits = sortRows(
-    [...result.hits],
+    input.showIgnored ? [...result.hits] : kept,
     input.sort,
     (column) => (h) => sortKey[column](h, name(h), order(h), input.isMarked(h.owner, h.entityId)),
   );
@@ -163,6 +182,8 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     estimate: h.estimate,
     tier: h.tier,
     marked: input.isMarked(h.owner, h.entityId),
+    ignored: input.isIgnored(h.owner, h.entityId),
+    ...withIgnoreNote(ignoreNote(h)),
     notes: snipeNotes(h),
     ...withOwnerShare(ownerShareNote(h.ownerShare, input.now)),
   }));
@@ -170,22 +191,27 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     result.none > 0 && t('snipe.countNone', { count: result.none }),
     result.ownContribution > 0 && t('snipe.countOwn', { count: result.ownContribution }),
     result.unknownReward > 0 && t('snipe.countUnknown', { count: result.unknownReward }),
+    result.hits.length > kept.length && t('snipe.countIgnored', { count: result.hits.length - kept.length }),
   ].filter((c): c is string => typeof c === 'string');
-  const best = [...result.hits].sort((a, b) => snipeProfitKey(b) - snipeProfitKey(a))[0];
-  const top = clampScroll(input.scroll ?? 0, rows.length);
+  const best = [...kept].sort((a, b) => snipeProfitKey(b) - snipeProfitKey(a))[0];
   const ownerMarked = input.playerMarked(list.owner);
+  const ownerIgnored = input.ownerIgnored(list.owner);
   return {
     kind: 'list',
     owner: list.ownerName ?? input.playerName(list.owner) ?? String(list.owner),
     ownerId: list.owner,
     ownerUrl: input.playerUrl(list.owner),
     ...(ownerMarked !== undefined && { ownerMarked }),
+    ...(ownerIgnored !== undefined && { ownerIgnored }),
     ...activityOf(input.foestats, input.today),
     at: list.at,
     sort: input.sort,
     rows,
-    scroll: { top, above: top, below: Math.max(0, rows.length - top - VISIBLE_ROWS) },
+    scroll: rowWindow(input.scroll ?? 0, rows.length, VISIBLE_ROWS),
     ...(best && { best: { name: name(best), profit: signed(best.profitHigh) } }),
     counts,
+    hitCount: kept.length,
+    ignoredCount: result.hits.length - kept.length,
+    showIgnored: input.showIgnored,
   };
 }

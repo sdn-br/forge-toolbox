@@ -26,13 +26,14 @@ const tick = async () => {
 };
 const MINUTE = 60_000;
 
-function setup() {
+function setup(prefs: Record<string, string> = {}) {
   // the stores, the handlers and the box all read the clock; only the date is faked
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(1_000_000);
   const now = () => Date.now();
   const env = featureContext({ now });
   const { ctx } = env;
+  for (const [key, value] of Object.entries(prefs)) ctx.ui.savePref(key, value);
   const ingestion = new Ingestion();
   registerGameHandlers(ingestion, { ...ctx, now });
   let tones = 0;
@@ -606,21 +607,25 @@ describe('Snipehilfe: stacked box', () => {
     const places = (rows: () => Element[], cells: (r: Element | undefined) => (string | undefined)[]) =>
       rows().map((r) => Number(cells(r)[0]));
     const button = (box: { root: ParentNode }, word: string) =>
-      box.root.querySelector(`.snipe-nav button[aria-label="${word}"]`) as HTMLElement;
-    const hiddenLine = (box: { root: ParentNode }) => box.root.querySelector('.snipe-hidden')?.textContent?.trim();
+      box.root.querySelector(`.win-nav button[aria-label="${word}"]`) as HTMLElement;
+    const hiddenLine = (box: { root: ParentNode }) => box.root.querySelector('.win-hidden')?.textContent?.trim();
     const wheel = (box: { root: ParentNode }, deltaY: number) => {
       const event = new WheelEvent('wheel', { deltaY, cancelable: true, bubbles: true });
       box.root.querySelector('.snipe-scroll')?.dispatchEvent(event);
       return event;
     };
 
-    it('shows six rows with the head, no buttons and no line when all fit', async () => {
+    it('shows six rows with the head, greyed buttons and no line when all fit', async () => {
       const { box, list, rows } = setup();
       list(many(6));
       await tick();
       expect(rows()).toHaveLength(6);
-      expect(box.root.querySelector('.snipe-nav')).toBeNull();
-      expect(box.root.querySelector('.snipe-hidden')).toBeNull();
+      // the buttons keep their room, greyed
+      expect([...box.root.querySelectorAll('.win-nav button')].map((b) => b.getAttribute('aria-disabled'))).toEqual([
+        'true',
+        'true',
+      ]);
+      expect(box.root.querySelector('.win-hidden')).toBeNull();
     });
 
     it('shows six rows of a longer list and says what is hidden below', async () => {
@@ -699,7 +704,7 @@ describe('Snipehilfe: stacked box', () => {
       await tick();
       const scroll = box.root.querySelector('.snipe-scroll');
       expect(scroll?.querySelector('.gb-title')).toBeNull();
-      expect(box.root.querySelector('.snipe-hidden')?.closest('.snipe-scroll')).toBeNull();
+      expect(box.root.querySelector('.win-hidden')?.closest('.snipe-scroll')).toBeNull();
       expect(box.text).toContain('Noch kein fremdes LG geöffnet.');
     });
   });
@@ -881,5 +886,212 @@ describe('Snipehilfe: marking the owner', () => {
     ownerStar(box)?.click();
     await tick();
     expect(players.get(playerId(1001))?.marked).toBe(true);
+  });
+});
+
+describe('Snipehilfe: ignorierte LGs und Spieler', () => {
+  const owner = playerId(1001);
+  const showToggle = (box: { root: ParentNode }) =>
+    box.root.querySelector('.inv-ignored-filter button') as HTMLButtonElement;
+  const social = (send: (...e: Entry[]) => void) =>
+    send({
+      requestClass: 'OtherPlayerService',
+      requestMethod: 'getSocialList',
+      requestData: null,
+      responseData: { friends: [{ player_id: 1001, name: 'Eigentümer 1001' }], neighbours: [], guildMembers: [] },
+    });
+
+  it('leaves an ignored building out of the rows and names how many are ignored', async () => {
+    const { box, greatBuildings, list, rows, cells } = setup();
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    expect(rows()).toHaveLength(2);
+    expect(box.text).not.toContain('ignoriert');
+    await greatBuildings.ignore(owner, zeus.entity_id, true);
+    await tick();
+    expect(rows()).toHaveLength(1);
+    expect(cells(rows()[0])[1]).toBe('Orakel von Delphi');
+    expect(box.text).toContain('ignoriert: 1');
+  });
+
+  it('shows ignored rows muted with "ignorierte zeigen", naming the reason, and remembers the toggle', async () => {
+    const { box, greatBuildings, list, rows, cells, ui } = setup();
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    await greatBuildings.ignore(owner, zeus.entity_id, true);
+    await tick();
+    expect(showToggle(box).getAttribute('aria-label')).toBe('ignorierte zeigen');
+    expect(showToggle(box).getAttribute('aria-pressed')).toBe('false');
+    showToggle(box).click();
+    await tick();
+    expect(showToggle(box).getAttribute('aria-pressed')).toBe('true');
+    expect(ui.pref('snipe.showIgnored')).toBe('true');
+    expect(rows()).toHaveLength(2);
+    const muted = rows().filter((r) => r.classList.contains('muted'));
+    expect(muted).toHaveLength(1);
+    expect(cells(muted[0])[1]).toBe('Zeusstatue');
+    expect(muted[0]?.getAttribute('data-tip')).toContain('LG ignoriert');
+    expect(box.text).toContain('ignoriert: 1');
+    showToggle(box).click();
+    await tick();
+    expect(ui.pref('snipe.showIgnored')).toBe('false');
+    expect(rows()).toHaveLength(1);
+  });
+
+  it('opens with the remembered toggle', async () => {
+    const { box, greatBuildings, list, rows } = setup({ 'snipe.showIgnored': 'true' });
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    await greatBuildings.ignore(owner, zeus.entity_id, true);
+    await tick();
+    expect(showToggle(box).getAttribute('aria-pressed')).toBe('true');
+    expect(rows()).toHaveLength(2);
+  });
+
+  it('treats the buildings of an ignored owner as ignored', async () => {
+    const { box, players, send, list, rows } = setup();
+    social(send);
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    players.setIgnored(owner, true);
+    await tick();
+    expect(rows()).toHaveLength(0);
+    expect(box.text).toContain('Kein LG mit lohnendem Platz.');
+    expect(box.text).toContain('ignoriert: 2');
+    showToggle(box).click();
+    await tick();
+    expect(rows()).toHaveLength(2);
+    expect(rows()[0]?.getAttribute('data-tip')).toContain('Spieler ignoriert');
+  });
+
+  it('does not open the box and does not beep for a list whose hits are all ignored', async () => {
+    const { box, greatBuildings, list, tones } = setup();
+    list([hitZeus()]);
+    await tick();
+    expect(tones()).toBe(1);
+    box.box.close();
+    await greatBuildings.ignore(owner, zeus.entity_id, true);
+    // other hits than before: a visible one would open the box and beep
+    list([withRequired(zeus, 90)]);
+    await tick();
+    expect(box.box.isOpen).toBe(false);
+    expect(tones()).toBe(1);
+  });
+
+  it('does not open the box for a list of an ignored owner', async () => {
+    const { box, players, send, list, tones } = setup();
+    social(send);
+    list([hitZeus()]);
+    await tick();
+    box.box.close();
+    players.setIgnored(owner, true);
+    list([withRequired(zeus, 90)]);
+    await tick();
+    expect(box.box.isOpen).toBe(false);
+    expect(tones()).toBe(1);
+  });
+
+  it('opens and beeps for the visible hits of a list that also has ignored ones', async () => {
+    const { box, greatBuildings, list, tones, rows } = setup();
+    list([hitZeus()]);
+    await tick();
+    box.box.close();
+    await greatBuildings.ignore(owner, zeus.entity_id, true);
+    list([withRequired(zeus, 90), hitOracle()]);
+    await tick();
+    expect(box.box.isOpen).toBe(true);
+    expect(tones()).toBe(2);
+    expect(rows()).toHaveLength(1);
+  });
+
+  it('counts only the visible hits in the folded line, also while the ignored ones show, and names the best of them', async () => {
+    const { box, greatBuildings, list, open, advance } = setup();
+    open(1909);
+    advance(10_000);
+    box.box.open();
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    // the better hit of the two is the ignored one
+    await greatBuildings.ignore(owner, oracle.entity_id, true);
+    await tick();
+    showToggle(box).click();
+    await tick();
+    toggle(box)?.click();
+    await tick();
+    expect(toggle(box)?.textContent).toMatch(/^Mögliche Einzahlungen: 1 mit Gewinn, bester Zeusstatue /);
+  });
+
+  it('keeps the toggle while it is on, after the last ignored building is released', async () => {
+    const { box, greatBuildings, list, rows } = setup();
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    await greatBuildings.ignore(owner, zeus.entity_id, true);
+    await tick();
+    showToggle(box).click();
+    await tick();
+    await greatBuildings.ignore(owner, zeus.entity_id, false);
+    await tick();
+    expect(rows()).toHaveLength(2);
+    expect(box.text).not.toContain('ignoriert');
+    expect(showToggle(box).getAttribute('aria-pressed')).toBe('true');
+    showToggle(box).click();
+    await tick();
+    expect(box.root.querySelector('.inv-ignored-filter')).toBeNull();
+  });
+
+  it('has no toggle while nothing is ignored and the toggle is off', async () => {
+    const { box, list } = setup();
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    expect(box.root.querySelector('.inv-ignored-filter')).toBeNull();
+  });
+
+  const headerEye = (box: { root: ParentNode }) =>
+    box.root.querySelector('.gb-owner button.ignore') as HTMLButtonElement;
+  const rowEye = (r: Element | undefined) =>
+    r?.querySelector('td.snipe-name .inv-owner button.ignore') as HTMLButtonElement;
+
+  it('puts the eye after the owner star in the section header, for a known player only', async () => {
+    const { box, players, send, list, rows } = setup();
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    expect(headerEye(box)).toBeNull();
+    social(send);
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    expect(headerEye(box).getAttribute('aria-label')).toBe('Spieler ignorieren');
+    expect(headerEye(box).previousElementSibling?.classList.contains('star')).toBe(true);
+    headerEye(box).click();
+    await tick();
+    expect(players.get(owner)?.ignored).toBe(true);
+    // all hits are ignored now, the header stays and releases
+    expect(rows()).toHaveLength(0);
+    expect(headerEye(box).getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(headerEye(box).classList.contains('on')).toBe(true);
+    headerEye(box).click();
+    await tick();
+    expect(players.get(owner)?.ignored).toBeUndefined();
+    expect(rows()).toHaveLength(2);
+  });
+
+  it('puts the building eye at the right edge of the name cell, which ignores and releases a shown ignored row', async () => {
+    const { box, greatBuildings, list, rows, cells } = setup();
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    const zeusRow = () => rows().find((r) => cells(r)[1] === 'Zeusstatue');
+    expect(rowEye(zeusRow()).getAttribute('aria-label')).toBe('LG ignorieren');
+    expect(rowEye(zeusRow()).getAttribute('aria-pressed')).toBe('false');
+    rowEye(zeusRow()).click();
+    await tick();
+    expect(greatBuildings.isIgnored(owner, zeus.entity_id)).toBe(true);
+    expect(rows()).toHaveLength(1);
+    showToggle(box).click();
+    await tick();
+    expect(rowEye(zeusRow()).getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(rowEye(zeusRow()).classList.contains('on')).toBe(true);
+    rowEye(zeusRow()).click();
+    await tick();
+    expect(greatBuildings.isIgnored(owner, zeus.entity_id)).toBe(false);
+    expect(rows().some((r) => r.classList.contains('muted'))).toBe(false);
   });
 });

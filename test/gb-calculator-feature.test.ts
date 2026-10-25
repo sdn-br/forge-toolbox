@@ -5,6 +5,7 @@ import { foestatsFeature } from '../src/content/features/foestats';
 import { createGbCalculatorFeature } from '../src/content/features/gb-calculator';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import type { FetchLike } from '../src/shared/foestats-api';
+import { playerId } from '../src/shared/ids';
 import definitions from './fixtures/gb-definitions.json';
 import levelUp from './fixtures/gb-level-up.json';
 import fixture from './fixtures/great-buildings.json';
@@ -760,5 +761,179 @@ describe('LG-Rechner', () => {
       expect(box.text).not.toContain('Vorschau Stufe');
       expect(levelInput(box.root).value).toBe('49');
     });
+  });
+});
+
+describe('LG-Rechner: ignorierte LGs und Spieler', () => {
+  const owner = playerId(1001);
+  const social = (send: (...e: Entry[]) => void) =>
+    send({
+      requestClass: 'OtherPlayerService',
+      requestMethod: 'getSocialList',
+      requestData: null,
+      responseData: { friends: [{ player_id: 1001, name: 'Eigentümer 1001' }], neighbours: [], guildMembers: [] },
+    });
+  const warning = (box: { root: ParentNode }) => box.root.querySelector('p.ignore-warning');
+  const headerEye = (box: { root: ParentNode }, kind: 'building' | 'player') =>
+    box.root.querySelector(
+      kind === 'building' ? 'p .gb-title ~ button.ignore' : '.gb-owner button.ignore',
+    ) as HTMLButtonElement | null;
+
+  it('does not open or beep for an ignored building, and shows it with a warning once the box is open', async () => {
+    const { box, open, tones, ctx } = setup();
+    open(1909);
+    await tick();
+    expect(tones()).toBe(1);
+    expect(warning(box)).toBeNull();
+    box.box.close();
+    await ctx.greatBuildings.ignore(owner, 1909, true);
+    open(1909);
+    await tick();
+    expect(box.box.isOpen).toBe(false);
+    expect(tones()).toBe(1);
+    box.box.open();
+    // the calculator shows the building as usual
+    expect(box.text).toContain('Aachener Dom St. 75 → 76');
+    expect(rowsOf(box)).toHaveLength(5);
+    const line = warning(box) as Element;
+    expect(line.textContent).toContain('LG ignoriert');
+    expect(line.textContent).not.toContain('Spieler ignoriert');
+    expect(line.querySelector('svg')).not.toBeNull();
+    const release = line.querySelector('button.ignore') as HTMLButtonElement;
+    expect(release.getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(release.getAttribute('data-tip')).toBe('Nicht mehr ignorieren');
+    expect(release.classList.contains('on')).toBe(true);
+    release.click();
+    await ctx.greatBuildings.known();
+    await tick();
+    expect(ctx.greatBuildings.isIgnored(owner, 1909)).toBe(false);
+    expect(warning(box)).toBeNull();
+  });
+
+  const rowsOf = (box: { root: ParentNode }) => [...box.root.querySelectorAll('tr')].slice(1);
+
+  it('does not open or beep for a building of an ignored player either', async () => {
+    const { box, open, send, tones, ctx } = setup();
+    social(send);
+    open(1909);
+    await tick();
+    box.box.close();
+    expect(ctx.players.setIgnored(owner, true)).toBe(true);
+    open(1909);
+    await tick();
+    expect(box.box.isOpen).toBe(false);
+    expect(tones()).toBe(1);
+    box.box.open();
+    expect(warning(box)?.textContent).toContain('Spieler ignoriert');
+    expect(warning(box)?.textContent).not.toContain('LG ignoriert');
+    ((warning(box) as Element).querySelector('button.ignore') as HTMLButtonElement).click();
+    await tick();
+    expect(ctx.players.get(owner)?.ignored).toBeUndefined();
+    expect(warning(box)).toBeNull();
+  });
+
+  it('names both reasons and one release button lifts both', async () => {
+    const { box, open, send, ctx } = setup();
+    social(send);
+    open(1909);
+    await tick();
+    await ctx.greatBuildings.ignore(owner, 1909, true);
+    ctx.players.setIgnored(owner, true);
+    await tick();
+    expect(warning(box)?.textContent).toContain('LG ignoriert');
+    expect(warning(box)?.textContent).toContain('Spieler ignoriert');
+    ((warning(box) as Element).querySelector('button.ignore') as HTMLButtonElement).click();
+    await ctx.greatBuildings.known();
+    await tick();
+    expect(ctx.greatBuildings.isIgnored(owner, 1909)).toBe(false);
+    expect(ctx.players.get(owner)?.ignored).toBeUndefined();
+    expect(warning(box)).toBeNull();
+  });
+
+  it('beeps for the same building again once it is released', async () => {
+    const { box, open, tones, ctx } = setup();
+    open(1909);
+    await tick();
+    box.box.close();
+    await ctx.greatBuildings.ignore(owner, 1909, true);
+    await ctx.greatBuildings.ignore(owner, 1909, false);
+    open(1909);
+    await tick();
+    expect(box.box.isOpen).toBe(true);
+    expect(tones()).toBe(2);
+  });
+
+  it('stays quiet for a level up of an ignored building that is open', async () => {
+    const { open, opening, send, ws, tones, ctx } = setup();
+    open(1909);
+    await tick();
+    await ctx.greatBuildings.ignore(owner, 1909, true);
+    const current = opening(1909).construction;
+    send({
+      ...current,
+      requestMethod: 'getConstructionRanking',
+      requestData: [1909, 1001, 76],
+      responseData: (current.responseData as { rankings: unknown }).rankings,
+    });
+    ws({
+      type: 'great_building_contribution',
+      other_player: { player_id: 1001, name: 'x' },
+      great_building_name: 'Aachener Dom',
+      level: 76,
+      rank: 1,
+    });
+    await tick();
+    expect(tones()).toBe(1);
+  });
+
+  it('offers the owner eye also while the building itself is not known', async () => {
+    const { box, opening, send } = setup();
+    social(send);
+    send(opening(1909).construction);
+    await tick();
+    expect(box.text).toContain('Zu diesem LG fehlen Stufe und Forge-Punkte');
+    expect(headerEye(box, 'player')?.getAttribute('aria-label')).toBe('Spieler ignorieren');
+  });
+
+  it('ignores the building from the header, beside the star, and releases it there', async () => {
+    const { box, open, ctx } = setup();
+    open(1909);
+    await tick();
+    const eye = () => headerEye(box, 'building') as HTMLButtonElement;
+    expect(eye().getAttribute('aria-label')).toBe('LG ignorieren');
+    expect(eye().previousElementSibling?.classList.contains('star')).toBe(true);
+    expect(eye().classList.contains('on')).toBe(false);
+    eye().click();
+    await ctx.greatBuildings.known();
+    await tick();
+    expect(ctx.greatBuildings.isIgnored(owner, 1909)).toBe(true);
+    expect(eye().getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(eye().getAttribute('aria-pressed')).toBe('true');
+    expect(warning(box)).not.toBeNull();
+    eye().click();
+    await ctx.greatBuildings.known();
+    await tick();
+    expect(ctx.greatBuildings.isIgnored(owner, 1909)).toBe(false);
+    expect(warning(box)).toBeNull();
+  });
+
+  it('ignores the owner from the header beside their star, only when the player store knows them', async () => {
+    const { box, open, send, ctx } = setup();
+    open(1909);
+    await tick();
+    expect(headerEye(box, 'player')).toBeNull();
+    social(send);
+    await tick();
+    const eye = () => headerEye(box, 'player') as HTMLButtonElement;
+    expect(eye().getAttribute('aria-label')).toBe('Spieler ignorieren');
+    expect(eye().previousElementSibling?.classList.contains('star')).toBe(true);
+    eye().click();
+    await tick();
+    expect(ctx.players.get(owner)?.ignored).toBe(true);
+    expect(eye().getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(warning(box)?.textContent).toContain('Spieler ignoriert');
+    eye().click();
+    await tick();
+    expect(ctx.players.get(owner)?.ignored).toBeUndefined();
   });
 });

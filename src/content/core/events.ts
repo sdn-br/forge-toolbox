@@ -9,7 +9,7 @@ export interface ToolboxEvents {
   /** a box asks to open the settings at the group of its feature */
   'settings.open': { group: string };
   /** `source` is where the data came from, or `mark` when the player put a star on a player or took it away */
-  'player.updated': { ids: PlayerId[]; source: PlayerSource | 'mark' };
+  'player.updated': { ids: PlayerId[]; source: PlayerSource | 'mark' | 'ignore' };
   'city.ownChanged': { buildingIds?: number[]; reset: boolean };
   'city.visited': { owner: PlayerId };
   'city.visitedChanged': { owner: PlayerId; buildingIds: number[] };
@@ -43,6 +43,8 @@ export interface ToolboxEvents {
   };
   /** the player put or removed the star of a stored great building */
   'greatBuilding.marked': { owner: PlayerId; entityId: number; marked: boolean };
+  /** the player ignored or released a stored great building */
+  'greatBuilding.ignored': { owner: PlayerId; entityId: number; ignored: boolean };
   /** the great building list of another player arrived (not the own one); `at` is when, `entityIds` its buildings */
   'greatBuildings.listed': { owner: PlayerId; ownerName?: string; entityIds: number[]; at: number };
   /**

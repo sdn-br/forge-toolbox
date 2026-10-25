@@ -171,20 +171,28 @@ button.snipe-toggle:hover { color: var(--accent); }
 button.snipe-toggle:focus-visible { outline: 1px solid var(--accent); }
 button.snipe-toggle svg { display: block; flex: none; width: 14px; height: 14px; }
 hr.snipe-sep { border: 0; border-top: 1px solid var(--line); margin: 6px 0; }
-.snipe-scroll { display: flex; align-items: stretch; gap: 4px; }
-.snipe-scroll .snipe-table { flex: 1 1 auto; min-width: 0; }
-.snipe-nav { flex: none; display: flex; flex-direction: column; justify-content: space-between; }
-.snipe-nav button.icon { all: unset; cursor: pointer; display: grid; place-items: center; width: 18px; height: 18px;
+/* windowed rows (ui/windowed-rows.ts): the table area, the two buttons beside it, the line of what is hidden */
+.win-scroll { display: flex; align-items: stretch; gap: 4px; }
+.win-area { flex: 1 1 auto; min-width: 0; }
+.win-nav { flex: none; display: flex; flex-direction: column; justify-content: space-between; }
+.win-nav button.icon { all: unset; cursor: pointer; display: grid; place-items: center; width: 18px; height: 18px;
   color: var(--ink); }
-.snipe-nav button.icon:hover { color: var(--accent); }
-.snipe-nav button.icon.off { cursor: default; opacity: .4; color: var(--ink); }
-.snipe-nav button.icon svg { display: block; width: 14px; height: 14px; }
-p.snipe-hidden { margin: 2px 0; }
+.win-nav button.icon:hover { color: var(--accent); }
+.win-nav button.icon.off { cursor: default; opacity: .4; color: var(--ink); }
+.win-nav button.icon svg { display: block; width: 14px; height: 14px; }
+p.win-hidden { margin: 2px 0; }
 /* a column head that sorts on a click (snipe helper, investments); an icon head marks the direction by its colour */
 /* the star that marks a great building or a player */
 button.star { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 18px; height: 18px; vertical-align: middle; color: var(--ink); opacity: .7; }
 button.star:hover, button.star.on { color: var(--accent); opacity: 1; }
 button.star svg { display: block; width: 14px; height: 14px; }
+/* the closed eye that ignores a great building or a player; in the calculator header it looks like the star */
+button.ignore { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 18px; height: 18px; vertical-align: middle; color: var(--ink); opacity: .7; }
+button.ignore:hover, button.ignore.on { color: var(--accent); opacity: 1; }
+button.ignore svg { display: block; width: 14px; height: 14px; }
+/* the calculator warns above its header while the building or its owner is ignored; the button lifts it */
+p.ignore-warning { display: flex; align-items: center; gap: 6px; }
+.ignore-warning .warn-icon svg { display: block; width: 14px; height: 14px; }
 th.sortable { cursor: pointer; user-select: none; }
 th.sortable:hover { color: var(--accent); }
 th.sortable.desc::after { content: ' ▾'; color: var(--accent); }
@@ -196,77 +204,115 @@ th.sortable.desc .sort-level::before { content: ' ▾'; font-size: 1.333em; }
 th.sortable.asc .sort-level::before { content: ' ▴'; font-size: 1.333em; }
 .snipe-table { table-layout: fixed; }
 /* "# ▾2" measured 31 px */
-.snipe-table .c-order { width: 34px; }
+.snipe-table .c-order { width: 32px; }
 /* sortable heads fit their word, the arrow and a level number (measured: "Stufe ▾2" 56 px, "Einsatz ▾2" 67 px) */
 .snipe-table .c-level, .snipe-table .c-rank { width: 56px; }
-.snipe-table .c-progress { width: 112px; }
+/* measured: "8.371 / 11.122" 83 px, the head "Fortschritt ▾2" 88 px, room up to "19.999 / 24.000" */
+.snipe-table .c-progress { width: 96px; }
 .snipe-table .c-cost { width: 68px; }
 /* the best case only, "≈ +12.345" at most; the range is in the tooltip */
 .snipe-table .c-profit { width: 64px; }
-.snipe-table .c-tier, .snipe-table .c-mark { width: 38px; }
+/* icon heads: icon, arrow and level number 29 px */
+.snipe-table .c-tier { width: 32px; }
+/* the star head with arrow and level number needs 29 px plus 4 px padding */
+.snipe-table .c-mark { width: 34px; }
 .snipe-table td.snipe-name { overflow: hidden; text-overflow: ellipsis; }
-.snipe-table :is(.snipe-tier, .snipe-mark) { text-align: center; padding: 0; }
-.snipe-table th.icon-head:not(.num) { text-align: center; padding: 0; }
+.snipe-table .snipe-tier, .snipe-table th.icon-head:not(.num) { text-align: center; padding: 0; }
+/* the star left, its icon in line with the number of # before it (the button centres a 14 px icon in 18 px) */
+.snipe-table td.snipe-mark { text-align: left; padding: 0 0 0 2px; }
+.snipe-table th.icon-head.snipe-mark { text-align: left; padding: 0 0 0 4px; }
 .snipe-table .snipe-tier svg { display: block; width: 14px; height: 14px; margin: auto; }
+/* an ignored hit shown on request: the whole row muted, links and tier colours too */
+.snipe-table tr.muted :is(td, a) { color: inherit; }
+.snipe-counts .inv-ignored-filter { margin-left: 6px; vertical-align: middle; }
 td.snipe-tier.exact { color: #8fd08f; }
 td.snipe-tier.safe { color: #5a9a4a; }
 td.snipe-tier.possible { color: #f0a050; }
 /* investments: fixed columns so heads show whole; owner and building names give way */
 .inv-table { table-layout: fixed; }
-.inv-table .c-mark { width: 38px; }
+/* the box can be resized: the fixed columns plus at least 122 px for the owner (name, star, eye, funnel) and 116 px for
+   the building (name, eye), "Meine" 506 + 238 px, "Mögliche" 594 + 238 px; narrower, the box scrolls sideways instead of squeezing the
+   names to nothing. debt: the sums are kept by hand. ceiling: a changed column width makes them stale.
+   upgrade: compute them from the column widths once those live in one place */
+.inv-table { min-width: 744px; }
+.inv-table.inv-possible { min-width: 832px; }
+.inv-table .c-mark { width: 34px; }
 .inv-table .c-level, .inv-table .c-rank { width: 56px; }
 .inv-table .c-deposit { width: 90px; }
 .inv-table .c-profit { width: 64px; }
-.inv-table .c-status { width: 38px; }
+.inv-table .c-status { width: 32px; }
 .inv-table .c-progress { width: 104px; }
+.inv-table .c-reach { width: 70px; }
 .inv-table td.inv-name { overflow: hidden; text-overflow: ellipsis; }
 .inv-table :is(.icon-head, .inv-status, .snipe-tier, .inv-mark) { text-align: center; padding: 0; }
+/* the star left, as in the snipe helper (the button centres a 14 px icon in 18 px) */
+.inv-table td.inv-mark { text-align: left; padding: 0 0 0 2px; }
+.inv-table th.icon-head.inv-mark { text-align: left; padding: 0 0 0 4px; }
 .inv-table :is(.inv-status, .snipe-tier) svg { display: block; width: 14px; height: 14px; margin: auto; }
 .inv-table .icon-head svg { display: inline-block; width: 14px; height: 14px; vertical-align: middle; }
 .inv-table .icon-head { white-space: nowrap; }
 td.inv-status.safe { color: #8fd08f; }
 td.inv-status.unsafe { color: #f0a050; }
 td.inv-status.unknown { color: #b8a27d; }
-.inv-table tr.grown { background: rgba(220, 190, 60, .32); }
+.inv-table tr.grown { background: rgba(220, 190, 60, .24); }
 .inv-possible .c-progress { width: 92px; }
 .inv-possible .c-share { width: 50px; }
 .inv-possible .c-cost { width: 68px; }
 .inv-possible .c-gain { width: 64px; }
-.inv-possible .c-tier { width: 38px; }
+.inv-possible .c-tier { width: 32px; }
 .inv-possible .c-seen { width: 72px; }
-.inv-possible .c-reach { width: 70px; }
+/* the head left, over the icons of the cells */
+.inv-table th.icon-head.inv-reach { text-align: left; padding: 0 0 0 4px; }
 .inv-reach svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px; }
 /* an owner out of reach: the whole row muted, links and tier colours too */
-.inv-possible tr.muted :is(td, a) { color: inherit; }
+.inv-table tr.muted :is(td, a) { color: inherit; }
 .inv-possible td { overflow: hidden; text-overflow: ellipsis; }
-/* the rows scroll in the body, the head stays */
-.inv-possible thead th { position: sticky; top: 0; z-index: 1; background: var(--bg); }
+/* investments: the body does not scroll, the pane fills it. The table area holds as many rows as fit (ui/fit-rows.ts),
+   the two buttons beside it scroll them, and the area itself scrolls only sideways when the box is narrower than the table */
+.body:has(> .inv-pane) { display: flex; flex-direction: column; overflow: hidden; }
+.inv-pane { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.inv-pane > :not(.inv-win) { flex: none; }
+.inv-win { flex: 1 1 auto; min-height: 0; }
+.inv-win .win-area { overflow-x: auto; overflow-y: hidden; }
 .inv-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .inv-filter input[type=search] { width: 10em; }
 .inv-count { margin-left: auto; }
-.inv-reach-filter, .inv-tier-filter, .inv-hits-filter, .inv-marked-filter { display: inline-flex; gap: 2px; }
-.inv-reach-filter button, .inv-tier-filter button, .inv-hits-filter button, .inv-marked-filter button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
-.inv-reach-filter button.on, .inv-tier-filter button.on, .inv-marked-filter button.on { color: var(--accent); opacity: 1; }
+.inv-reach-filter, .inv-tier-filter, .inv-status-filter, .inv-hits-filter, .inv-marked-filter, .inv-ignored-filter { display: inline-flex; gap: 2px; }
+.inv-reach-filter button, .inv-tier-filter button, .inv-status-filter button, .inv-hits-filter button, .inv-marked-filter button, .inv-ignored-filter button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
+.inv-reach-filter button.on, .inv-tier-filter button.on, .inv-status-filter button.on, .inv-marked-filter button.on, .inv-ignored-filter button.on { color: var(--accent); opacity: 1; }
 /* the profit icon keeps its own colours, switched on it only turns opaque */
 .inv-hits-filter button.on { opacity: 1; }
-.inv-reach-filter button svg, .inv-tier-filter button svg, .inv-hits-filter button svg, .inv-marked-filter button svg { display: block; width: 14px; height: 14px; }
+.inv-reach-filter button svg, .inv-tier-filter button svg, .inv-status-filter button svg, .inv-hits-filter button svg, .inv-marked-filter button svg, .inv-ignored-filter button svg { display: block; width: 14px; height: 14px; }
 .inv-owner { display: flex; align-items: center; }
 .inv-owner a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* always at the right edge of the column, so the mouse can run straight down it; hidden until the row is hovered */
 button.inv-pick { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 16px; height: 16px; margin-left: auto; opacity: 0; color: var(--ink); }
-tr:is(:hover, :focus-within) button.inv-pick { opacity: .7; }
+tr:is(:hover, :has(:focus-visible)) button.inv-pick { opacity: .7; }
 tr button.inv-pick:is(:hover, :focus-visible), button.inv-pick.on { opacity: 1; color: var(--accent); }
-.owner-star { flex: none; display: grid; place-items: center; margin-left: 3px; color: var(--accent); }
-.owner-star svg { display: block; width: 11px; height: 11px; }
+/* the star and the eye in a row: 16 px at the right edge like the funnel (which then follows them), faint on row hover or
+   focus while off, always in the accent while on. Name cells keep the name's ellipsis and give them their 16 px */
+.inv-owner .inv-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.inv-owner :is(button.star, button.ignore) { flex: none; width: 16px; height: 16px; margin-left: auto; opacity: 0; }
+.inv-owner :is(button.star, button.ignore) svg { width: 12px; height: 12px; }
+.inv-owner :is(button.star, button.ignore) + :is(button.ignore, button.inv-pick) { margin-left: 0; }
+/* keyboard focus shows them too, a mouse click does not keep them (:focus-within would, until the next click) */
+tr:is(:hover, :has(:focus-visible)) .inv-owner :is(button.star, button.ignore) { opacity: .7; }
+tr .inv-owner :is(button.star, button.ignore):is(:hover, :focus-visible), tr .inv-owner :is(button.star, button.ignore).on { opacity: 1; color: var(--accent); }
+.inv-ignored-total svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; }
 button.inv-pick svg { display: block; width: 12px; height: 12px; }
-.inv-growth { color: var(--accent); font-weight: 600; }
+/* the growth beside the bar; in "Meine" the bar line has one height in every row, so all rows are equally tall and the
+   row window counts them right */
+.inv-growth { flex: none; color: var(--accent); font-weight: 600; font-size: 10px; line-height: 1; }
+.fp-line { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+.fp-line .fp-bar { flex: 1 1 auto; margin-top: 0; }
+.inv-mine .fp-line { height: 11px; }
 /* a thin bar under "paid in / costs", filled towards the level up (investments, GB calculator) */
 .fp-bar { height: 3px; margin-top: 2px; background: var(--line); border-radius: 2px; overflow: hidden; }
 .fp-bar > div { height: 100%; background: var(--accent); }
 .gb-progress { margin: 0 0 6px; }
 tr.gb-profit { background: rgba(90, 170, 90, .28); }
 tr.gb-loss { background: rgba(200, 80, 60, .28); }
-tr.gb-levelWarning { background: rgba(220, 190, 60, .32); }
+tr.gb-levelWarning { background: rgba(220, 190, 60, .24); }
 tr.gb-mine { background: rgba(80, 140, 220, .32); }
 tr.own-row td { background: #3a2814; }
 td.own-fp, td.gain { color: #8fd08f; }
@@ -326,6 +372,7 @@ td.below-safe { font-style: italic; opacity: .75; }
 p.gb-me { margin: 6px 0; padding: 4px 6px; border: 1px solid #8a6a3a; border-radius: 4px; background: #3a2814; }
 p.gb-me.safe { border-color: #5a9a4a; }
 p.gb-me.safe, .gb-me .gain { color: #8fd08f; }
+.gb-me-line { display: block; }
 .gb-me .profit-icon { color: var(--ink); }
 .gb-me .profit-icon svg { width: 14px; height: 14px; vertical-align: -2px; }
 .gb-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 8px;
