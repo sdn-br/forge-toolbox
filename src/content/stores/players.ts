@@ -44,7 +44,8 @@ export class PlayerStore {
       const live = this.players.get(row.id);
       if (!live) this.players.set(row.id, row);
       // the star and the ignore are the player's own and the game never reports them, so what the database holds stays
-      else if ((row.marked && !live.marked) || (row.ignored && !live.ignored)) {
+      // (a flag the player set this session wins over the other one of the database, the two exclude each other)
+      else if ((row.marked && !live.marked && !live.ignored) || (row.ignored && !live.ignored && !live.marked)) {
         this.players.set(row.id, {
           ...live,
           ...(row.marked && { marked: true }),
@@ -65,12 +66,13 @@ export class PlayerStore {
     return filter.relation ? all.filter((p) => p.relations[filter.relation as keyof Relations]) : all;
   }
 
-  /** Puts a star on a player or takes it away. Only a player the store knows can be marked; false for any other. */
+  /** Puts a star on a player or takes it away. Only a player the store knows can be marked; false for any other.
+   * A star clears the ignore, the two exclude each other. */
   setMarked(id: PlayerId, marked: boolean): boolean {
     return this.setFlag(id, 'marked', marked, 'mark');
   }
 
-  /** Ignores a player or releases them, with the same rules as the star. */
+  /** Ignores a player or releases them, with the same rules as the star. Ignoring clears the star. */
   setIgnored(id: PlayerId, ignored: boolean): boolean {
     return this.setFlag(id, 'ignored', ignored, 'ignore');
   }
@@ -79,8 +81,12 @@ export class PlayerStore {
     const p = this.players.get(id);
     if (!p) return false;
     if ((p[kind] === true) !== value) {
-      const { [kind]: _, ...rest } = p;
+      const other = kind === 'marked' ? 'ignored' : 'marked';
+      const clears = value && p[other] === true;
+      // releasing never meets the other flag set, the two exclude each other
+      const { [kind]: _, [other]: __, ...rest } = p;
       this.players.set(id, value ? { ...rest, [kind]: true } : rest);
+      if (clears) this.changed(new Set([id]), source === 'mark' ? 'ignore' : 'mark');
       this.changed(new Set([id]), source);
     }
     return true;

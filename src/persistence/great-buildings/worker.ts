@@ -62,8 +62,14 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables): Handlers<Great
     'greatBuildings.setFlag': async ({ world, owner, entityId, flag, value }) => {
       const row = await db.greatBuildings.get([world, owner, entityId]);
       if (!row) return false;
-      const { [flag]: _, ...rest } = row;
-      await db.greatBuildings.put(value ? { ...rest, [flag]: true } : rest);
+      // the star and the ignore exclude each other: putting one drops the other in the same write
+      const other = flag === 'marked' ? 'ignored' : 'marked';
+      const { [flag]: _, [other]: __, ...rest } = row;
+      await db.greatBuildings.put({
+        ...rest,
+        ...(!value && row[other] && { [other]: true }),
+        ...(value && { [flag]: true }),
+      });
       return true;
     },
     'greatBuildings.flagged': async ({ world, flag }) =>

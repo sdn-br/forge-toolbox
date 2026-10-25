@@ -267,14 +267,58 @@ describe('PlayerStore: ignores', () => {
     expect(events).toEqual([{ ids: [playerId(1)], source: 'visit' }]);
   });
 
-  it('is independent of the star', () => {
-    const { store } = setup();
+  it('clears the star when ignoring and tells the bus about both flags', async () => {
+    const { store, events, put } = setup();
     store.apply(world, [obs(1)], 'visit');
     store.setMarked(playerId(1), true);
+    events.length = 0;
     store.setIgnored(playerId(1), true);
-    store.setMarked(playerId(1), false);
     expect(store.get(playerId(1))).toMatchObject({ ignored: true });
     expect(store.get(playerId(1))).not.toHaveProperty('marked');
+    expect(events).toEqual([
+      { ids: [playerId(1)], source: 'mark' },
+      { ids: [playerId(1)], source: 'ignore' },
+    ]);
+    await Promise.resolve();
+    expect(put.mock.calls.at(-1)?.[0][0]).not.toHaveProperty('marked');
+    expect(put.mock.calls.at(-1)?.[0][0]).toMatchObject({ ignored: true });
+  });
+
+  it('clears the ignore when marking and tells the bus about both flags', () => {
+    const { store, events } = setup();
+    store.apply(world, [obs(1)], 'visit');
+    store.setIgnored(playerId(1), true);
+    events.length = 0;
+    store.setMarked(playerId(1), true);
+    expect(store.get(playerId(1))).toMatchObject({ marked: true });
+    expect(store.get(playerId(1))).not.toHaveProperty('ignored');
+    expect(events).toEqual([
+      { ids: [playerId(1)], source: 'ignore' },
+      { ids: [playerId(1)], source: 'mark' },
+    ]);
+  });
+
+  it('keeps the other flag when a flag is only released', () => {
+    const { store } = setup();
+    store.apply(world, [obs(1)], 'visit');
+    store.setIgnored(playerId(1), true);
+    store.setMarked(playerId(1), false);
+    expect(store.get(playerId(1))?.ignored).toBe(true);
+  });
+
+  it('lets the choice of this session win over the other flag the database holds', async () => {
+    const { store } = setup([persistedPlayer({ ignored: true })]);
+    store.apply(world, [obs(1)], 'visit');
+    store.setMarked(playerId(1), true);
+    await store.load(world);
+    expect(store.get(playerId(1))).toMatchObject({ marked: true });
+    expect(store.get(playerId(1))).not.toHaveProperty('ignored');
+    const other = setup([persistedPlayer({ marked: true })]);
+    other.store.apply(world, [obs(1)], 'visit');
+    other.store.setIgnored(playerId(1), true);
+    await other.store.load(world);
+    expect(other.store.get(playerId(1))).toMatchObject({ ignored: true });
+    expect(other.store.get(playerId(1))).not.toHaveProperty('marked');
   });
 
   it('survives every source and the loss of every relation', () => {

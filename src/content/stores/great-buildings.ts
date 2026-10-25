@@ -17,7 +17,8 @@ export interface GreatBuildingPersistence {
   contributionsAt(world: WorldId): Promise<number | undefined>;
   /** deletes what was seen before `before`, except buildings with an own contribution, marked and ignored ones */
   prune(world: WorldId, before: number): Promise<void>;
-  /** puts or removes the star or the ignore of a stored building; false when it is not stored */
+  /** puts or removes the star or the ignore of a stored building, putting one clears the other in the same write;
+   * false when it is not stored */
   setFlag(world: WorldId, owner: PlayerId, entityId: number, flag: MarkKind, value: boolean): Promise<boolean>;
   flagged(world: WorldId, flag: MarkKind): Promise<{ owner: PlayerId; entityId: number }[]>;
   list(world: WorldId, owner?: PlayerId): Promise<KnownGreatBuilding[]>;
@@ -74,32 +75,42 @@ export class GreatBuildingStore {
 
   /**
    * Puts or removes the star. The write queues behind the pending ones, so a building opened a moment ago is stored by
-   * then. A building that is not stored (an own one) takes no star.
+   * then. A building that is not stored (an own one) takes no star. A star clears the ignore.
    */
   mark(owner: PlayerId, entityId: number, marked: boolean): Promise<void> {
-    return this.setFlag('marked', owner, entityId, marked).then((changed) => {
-      if (changed) this.bus.emit('greatBuilding.marked', { owner, entityId, marked });
+    return this.setFlag('marked', owner, entityId, marked).then((r) => {
+      if (r.cleared) this.bus.emit('greatBuilding.ignored', { owner, entityId, ignored: false });
+      if (r.changed) this.bus.emit('greatBuilding.marked', { owner, entityId, marked });
     });
   }
 
-  /** Ignores the building or releases it, with the same rules as the star. */
+  /** Ignores the building or releases it, with the same rules as the star. Ignoring clears the star. */
   ignore(owner: PlayerId, entityId: number, ignored: boolean): Promise<void> {
-    return this.setFlag('ignored', owner, entityId, ignored).then((changed) => {
-      if (changed) this.bus.emit('greatBuilding.ignored', { owner, entityId, ignored });
+    return this.setFlag('ignored', owner, entityId, ignored).then((r) => {
+      if (r.cleared) this.bus.emit('greatBuilding.marked', { owner, entityId, marked: false });
+      if (r.changed) this.bus.emit('greatBuilding.ignored', { owner, entityId, ignored });
     });
   }
 
-  private setFlag(kind: MarkKind, owner: PlayerId, entityId: number, value: boolean): Promise<boolean> {
+  private setFlag(
+    kind: MarkKind,
+    owner: PlayerId,
+    entityId: number,
+    value: boolean,
+  ): Promise<{ changed: boolean; cleared: boolean }> {
     return new Promise((resolve) => {
       this.enqueue(async () => {
-        let changed = false;
+        let result = { changed: false, cleared: false };
         try {
           if (!(await this.persistence.setFlag(this.world, owner, entityId, kind, value))) return;
-          if (value) this.flags[kind].add(key(owner, entityId));
-          else this.flags[kind].delete(key(owner, entityId));
-          changed = true;
+          const k = key(owner, entityId);
+          const other = this.flags[kind === 'marked' ? 'ignored' : 'marked'];
+          const cleared = value && other.delete(k);
+          if (value) this.flags[kind].add(k);
+          else this.flags[kind].delete(k);
+          result = { changed: true, cleared };
         } finally {
-          resolve(changed);
+          resolve(result);
         }
       });
     });

@@ -66,15 +66,49 @@ describe('ignoring great buildings', () => {
     ]);
   });
 
-  it('is independent of the star', async () => {
-    const { greatBuildings, row } = setup();
+  it('clears the star when ignoring, in memory and database, telling the bus about both', async () => {
+    const { greatBuildings, bus, row } = setup();
     greatBuildings.noteList([listRow(1)]);
     await greatBuildings.mark(owner, 1, true);
+    const events: unknown[] = [];
+    bus.on('greatBuilding.marked', (e) => events.push(e));
+    bus.on('greatBuilding.ignored', (e) => events.push(e));
+    await greatBuildings.ignore(owner, 1, true);
+    expect(greatBuildings.isIgnored(owner, 1)).toBe(true);
+    expect(greatBuildings.isMarked(owner, 1)).toBe(false);
+    expect(await row(1)).toMatchObject({ ignored: true });
+    expect((await row(1))?.marked).toBeUndefined();
+    expect(events).toEqual([
+      { owner, entityId: 1, marked: false },
+      { owner, entityId: 1, ignored: true },
+    ]);
+  });
+
+  it('clears the ignore when marking, in memory and database, telling the bus about both', async () => {
+    const { greatBuildings, bus, row } = setup();
+    greatBuildings.noteList([listRow(1)]);
+    await greatBuildings.ignore(owner, 1, true);
+    const events: unknown[] = [];
+    bus.on('greatBuilding.marked', (e) => events.push(e));
+    bus.on('greatBuilding.ignored', (e) => events.push(e));
+    await greatBuildings.mark(owner, 1, true);
+    expect(greatBuildings.isMarked(owner, 1)).toBe(true);
+    expect(greatBuildings.isIgnored(owner, 1)).toBe(false);
+    expect(await row(1)).toMatchObject({ marked: true });
+    expect((await row(1))?.ignored).toBeUndefined();
+    expect(events).toEqual([
+      { owner, entityId: 1, ignored: false },
+      { owner, entityId: 1, marked: true },
+    ]);
+  });
+
+  it('keeps the other flag when a flag is only released', async () => {
+    const { greatBuildings, row } = setup();
+    greatBuildings.noteList([listRow(1)]);
     await greatBuildings.ignore(owner, 1, true);
     await greatBuildings.mark(owner, 1, false);
     expect(greatBuildings.isIgnored(owner, 1)).toBe(true);
     expect(await row(1)).toMatchObject({ ignored: true });
-    expect((await row(1))?.marked).toBeUndefined();
   });
 
   it('ignores a building whose row is still being written', async () => {
