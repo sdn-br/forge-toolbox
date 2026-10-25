@@ -5,13 +5,13 @@ export const baseCss = `
 /* the accent parts of an icon */
 .acc { color: var(--accent); }
 * { box-sizing: border-box; }
-.box { position: fixed; min-width: 260px; max-width: 520px; background: var(--bg); color: var(--ink);
+.box { position: fixed; min-width: 260px; background: var(--bg); color: var(--ink);
   font: 12px/1.4 system-ui, sans-serif; border: 2px solid #8a6a3a; border-radius: 6px;
   box-shadow: 0 4px 16px rgba(0,0,0,.5); }
-.box.popped { position: static; max-width: none; height: 100vh; border: 0; border-radius: 0; }
-/* resized by the viewer: no width cap; with a height the body takes what the header leaves and scrolls */
-.box.sized { max-width: none; }
-/* a box without the resize handle (capped): the max height sits on the box, the body scrolls beyond it */
+.box.popped { position: static; height: 100vh; border: 0; border-radius: 0; }
+/* a box without the resize handle (capped): width and height are capped on the box, the body scrolls beyond them;
+   a box with the handle has the width it is given or resized to */
+.box.capped { max-width: 520px; }
 .box.tall, .box.popped, .box.capped { display: flex; flex-direction: column; }
 .box.tall .body, .box.popped .body, .box.capped .body { flex: 1 1 auto; min-height: 0; max-height: none; }
 .resize-handle { position: absolute; right: 0; bottom: 0; width: 14px; height: 14px; cursor: nwse-resize;

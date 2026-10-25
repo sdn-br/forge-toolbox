@@ -108,10 +108,7 @@ export class Box {
     ]
       .filter(Boolean)
       .join(' ');
-    // a box with the handle has the width it is given, also above the width cap of the fixed boxes
-    const cap = resizableBox
-      ? ';max-width:none'
-      : `;max-height:${Math.round((this.options.maxHeight ?? 0.7) * window.innerHeight)}px`;
+    const cap = resizableBox ? '' : `;max-height:${Math.round((this.options.maxHeight ?? 0.7) * window.innerHeight)}px`;
     const size = `width:${width}px${height === undefined ? '' : `;height:${height}px`}${cap}`;
     const style = popped ? '' : `left:${x}px;top:${y}px;${size};z-index:${this.z}`;
     const resizable = resizableBox && !popped && !state.minimized;
