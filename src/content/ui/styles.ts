@@ -132,6 +132,16 @@ button.marker.dim { opacity: .3; }
   white-space: nowrap; }
 .suggestions li:hover, .suggestions li.active { background: var(--btn-hover); }
 .suggestions .num { color: #b8a27d; }
+/* the selected buildings, one row per name: name, "selected/in the city", ✕ */
+.selection { margin: 4px 0; }
+.selection-list { list-style: none; margin: 0 0 2px; padding: 0; }
+.selection-list li { display: flex; align-items: center; gap: 8px; padding: 1px 0; }
+.selection-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.selection-list .num { color: #b8a27d; }
+.selection-list button.icon { all: unset; cursor: pointer; width: 18px; height: 18px; display: grid;
+  place-items: center; color: var(--ink); opacity: .8; }
+.selection-list button.icon:hover { opacity: 1; }
+.selection-list button.icon svg { display: block; width: 14px; height: 14px; }
 .city-map { margin: 4px 0; }
 .map-marks { display: flex; flex-wrap: wrap; gap: 0 12px; }
 .map-frame { position: relative; height: 55vh; min-height: 180px; overflow: hidden; border: 1px solid #8a6a3a; }
