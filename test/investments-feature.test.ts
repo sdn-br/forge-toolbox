@@ -273,12 +273,11 @@ describe('Investitionen: reading the known buildings', () => {
     const reads = vi.spyOn(greatBuildings, 'known');
     const drawn = box.updates.length;
     bus.emit('catalog.updated', { defs: [] });
-    await settings.set('gbCalc.factor', 80);
-    expect(box.updates.length).toBe(drawn + 2);
-    // a collection in the own city leaves the Arc bonus as it is, a setting the box does not read changes nothing
+    expect(box.updates.length).toBe(drawn + 1);
+    // a collection in the own city leaves the Arc bonus as it is; the factor is the calculator's, a snipe is about profit
     bus.emit('city.ownChanged', { reset: false, buildingIds: [1] });
-    await settings.set('investments.openWithList', false);
-    expect(box.updates.length).toBe(drawn + 2);
+    await settings.set('gbCalc.factor', 80);
+    expect(box.updates.length).toBe(drawn + 1);
     expect(reads).not.toHaveBeenCalled();
   });
 });

@@ -11,7 +11,6 @@ import {
   type PossibleInvestment,
   possibleInvestments,
 } from '../../domain/investments';
-import { CALCULATOR_FACTOR, calculatorFactor } from '../../ui/factor-bar';
 import { icons } from '../../ui/icons';
 import { nextSort } from '../../ui/sortable';
 import { type PossibleActions, possibleView } from './possible-view';
@@ -33,7 +32,6 @@ const OPEN_WITH_LIST = 'investments.openWithList';
 const TAB = 'investments.tab';
 const FILTER = 'investments.filter';
 /** the settings the rating reads */
-const FACTOR_KEYS = new Set(Object.values(CALCULATOR_FACTOR));
 
 /** the saved filters, each part that is missing or broken at its default */
 function savedFilter(saved: string | undefined): PossibleFilter {
@@ -68,8 +66,8 @@ export const investmentsFeature: Feature = {
     let known: KnownGreatBuilding[] = [];
     let arc = 0;
     let investments: Investments = { rows: [], totals: { circulating: 0, profitSafe: 0, profitTotal: 0 } };
-    /** the possible investments, rated only for their tab and kept while the read buildings, bonus and factor stay */
-    let rated: { known: KnownGreatBuilding[]; arc: number; factor: number; rows: PossibleInvestment[] } | undefined;
+    /** the possible investments, rated only for their tab and kept while the read buildings and bonus stay */
+    let rated: { known: KnownGreatBuilding[]; arc: number; rows: PossibleInvestment[] } | undefined;
     /** owner names the town hall list and the lists of others give, for owners the player store does not know */
     const ownerNames = new Map<PlayerId, string>();
 
@@ -104,11 +102,10 @@ export const investmentsFeature: Feature = {
     const ownArc = () => arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses());
 
     const possible = () => {
-      const factor = calculatorFactor(ctx.settings, arc);
-      if (!rated || rated.known !== known || rated.arc !== arc || rated.factor !== factor) {
+      if (!rated || rated.known !== known || rated.arc !== arc) {
         const greatBuilding = (def: KnownGreatBuilding['cityEntityId']) => ctx.catalog.get(def)?.greatBuilding;
-        const rows = possibleInvestments(known, greatBuilding, arc, factor, ctx.session.current?.playerId);
-        rated = { known, arc, factor, rows };
+        const rows = possibleInvestments(known, greatBuilding, arc, ctx.session.current?.playerId);
+        rated = { known, arc, rows };
       }
       return rated.rows;
     };
@@ -206,13 +203,10 @@ export const investmentsFeature: Feature = {
     ctx.bus.on('city.ownChanged', () => {
       if (ownArc() !== arc) rerate();
     });
-    // the rewards of a level and the factor decide which places pay
+    // the rewards of a level decide which places pay
     ctx.bus.on('catalog.updated', () => {
       rated = undefined;
       rerate();
-    });
-    ctx.settings.onChange((key) => {
-      if (FACTOR_KEYS.has(key)) rerate();
     });
     ctx.bus.on('player.updated', () => box.update());
     ctx.menu.add({

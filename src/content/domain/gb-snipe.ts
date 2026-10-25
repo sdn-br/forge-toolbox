@@ -45,8 +45,6 @@ export interface SnipeInput {
   greatBuilding(def: KnownGreatBuilding['cityEntityId']): GreatBuildingDef | undefined;
   /** Arc bonus of the session player in percent */
   arcBonus: number;
-  /** factor in percent for the rule of a worthwhile place */
-  factor: number;
 }
 
 export interface SnipeList {
@@ -89,7 +87,8 @@ function assumed(
 const worthwhile = (places: PlaceCalc[]): SnipePlace | undefined => {
   let best: SnipePlace | undefined;
   for (const p of places) {
-    if (!p.available || !p.worthwhile || p.safeCost === undefined || p.profit === undefined) continue;
+    // a snipe is about profit; paying a place at a factor is the calculator's business
+    if (!p.available || p.safeCost === undefined || p.profit === undefined || p.profit < 0) continue;
     if (!best || p.profit > best.profit) best = { rank: p.rank, cost: p.safeCost, profit: p.profit };
   }
   return best;
@@ -103,7 +102,6 @@ export function snipeBuilding(
   b: KnownGreatBuilding,
   def: GreatBuildingDef | undefined,
   arcBonus: number,
-  factor: number,
 ): SnipeHit | 'none' | 'ownContribution' | 'unknownReward' {
   if (b.ownContribution) return 'ownContribution';
   const level = def && emptyLevel(def, b.level);
@@ -113,7 +111,7 @@ export function snipeBuilding(
   const input = { level: b.level, maxLevel: b.maxLevel ?? b.level + 1, connected: b.connected ?? true };
   const solve = (c: Case) =>
     worthwhile(
-      calculateConstruction({ ...input, required: b.required, rankings: c.rankings, arcBonus, factor }).places,
+      calculateConstruction({ ...input, required: b.required, rankings: c.rankings, arcBonus, factor: 0 }).places,
     );
 
   const ranked = b.rankings && b.rankingsLevel === b.level ? b.rankings : undefined;
@@ -169,7 +167,7 @@ export function snipeBuilding(
 export function snipeList(input: SnipeInput): SnipeList {
   const out: SnipeList = { hits: [], none: 0, ownContribution: 0, unknownReward: 0 };
   for (const b of input.buildings) {
-    const r = snipeBuilding(b, input.greatBuilding(b.cityEntityId), input.arcBonus, input.factor);
+    const r = snipeBuilding(b, input.greatBuilding(b.cityEntityId), input.arcBonus);
     if (r === 'none') out.none++;
     else if (r === 'ownContribution') out.ownContribution++;
     else if (r === 'unknownReward') out.unknownReward++;

@@ -37,15 +37,15 @@ const ranking = (ownerFp: number, ...holders: number[]): Partial<KnownGreatBuild
   rankingsInvested: ownerFp + holders.reduce((a, b) => a + b, 0),
 });
 
-const run = (b: KnownGreatBuilding, arc = 0) => snipeBuilding(b, def, arc, 90);
+const run = (b: KnownGreatBuilding, arc = 0) => snipeBuilding(b, def, arc);
 
 describe('snipeBuilding', () => {
   it('leaves out a building with an own contribution, before anything else', () => {
-    expect(snipeBuilding(building({ ownContribution: true }), undefined, 0, 90)).toBe('ownContribution');
+    expect(snipeBuilding(building({ ownContribution: true }), undefined, 0)).toBe('ownContribution');
   });
 
   it('counts a building without a definition or with a level no table reaches as unknown reward', () => {
-    expect(snipeBuilding(building(), undefined, 0, 90)).toBe('unknownReward');
+    expect(snipeBuilding(building(), undefined, 0)).toBe('unknownReward');
     expect(run(building({ level: 600 }))).toBe('unknownReward');
   });
 
@@ -73,6 +73,11 @@ describe('snipeBuilding', () => {
       profitHigh: 10,
     });
     expect(hit).not.toHaveProperty('worst');
+  });
+
+  it('has no hit for a place with a loss, even one cheaper than paying it at a factor', () => {
+    // place 1 is safe at 500 for 485: a loss of 15, though below 485 at 1.9
+    expect(run(building({ invested: 0, required: 1_000 }))).toBe('none');
   });
 
   it('has no hit when not even the best case pays a place', () => {
@@ -134,7 +139,6 @@ describe('snipeList', () => {
       ],
       greatBuilding: (id) => (id === DEF_ID ? def : undefined),
       arcBonus: 0,
-      factor: 90,
     });
     expect(list.hits.map((h) => [h.entityId, h.profitHigh])).toEqual([
       [1, 285],

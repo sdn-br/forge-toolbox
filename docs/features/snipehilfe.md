@@ -34,13 +34,21 @@ Stand 2026-10-24. Altes Modul `calculator-overview` („Mögliche Investitionen�
 
 ## Rechnung
 
-Je LG der Liste: Stufe, eingezahlte FP (`current_progress`, fehlt bei 0) und Kosten der Stufe (`max_progress`). Wer welchen Platz hält, nennt die Liste nicht, und eigene Anfragen ans Spiel sind ausgeschlossen. Belohnungen der fünf Plätze kommen wie in der Stufenvorschau aus der P1-Tabelle (`emptyLevel`), mit dem Arche-Bonus. Gerechnet wird immer mit `calculateConstruction` auf einer angenommenen Rangliste, so gelten dieselben Regeln wie im LG-Rechner (Sichern, Gleichstand, Gewinn). Ein Platz lohnt nach derselben Regel wie in der Zeile „Du:“ ohne eigene Einzahlung: Gewinn ≥ 0 oder Sichern nicht über Belohnung mal Förderfaktor.
+Je LG der Liste: Stufe, eingezahlte FP (`current_progress`, fehlt bei 0) und Kosten der Stufe (`max_progress`). Wer welchen Platz hält, nennt die Liste nicht, und eigene Anfragen ans Spiel sind ausgeschlossen. Belohnungen der fünf Plätze kommen wie in der Stufenvorschau aus der P1-Tabelle (`emptyLevel`), mit dem Arche-Bonus. Gerechnet wird immer mit `calculateConstruction` auf einer angenommenen Rangliste, so gelten dieselben Regeln wie im LG-Rechner (Sichern, Gleichstand, Gewinn). Ein Platz lohnt nur mit Gewinn ≥ 0, also gemessen am eigenen Arche-Bonus. Beim Durchklicken interessiert, wo es Gewinn gibt. Fördern zu einem Faktor ist Sache des LG-Rechners, der Faktor spielt hier keine Rolle (Nutzer, 2026-10-25). Bis dahin galt die Regel der Zeile „Du:“ (Gewinn ≥ 0 oder Sichern nicht über Belohnung mal Förderfaktor), mit Faktor 2 über dem eigenen Arche-Bonus erschienen so Plätze mit Verlust als Treffer.
 
 - **Ohne bekannte Rangliste:** Die eingezahlten FP verraten, wie stark der stärkste Inhaber höchstens ist: nie mehr als alle zusammen. Bester Fall: die Rangliste ist leer, die FP stammen vom Eigentümer. Schlechtester Fall: ein einziger Spieler hält alle eingezahlten FP. Der Gewinn ist der des besten lohnenden Platzes, je Fall gerechnet.
 - **Mit bekannter Rangliste derselben Stufe:** Ist die Summe gleich, ist die Rangliste aktuell und die Zeile exakt. Ist die Liste neuer und die Summe um Δ größer, sind Δ FP unbekannt eingezahlt worden. Bester Fall: Δ kam vom Eigentümer, die Rangliste gilt. Schlechtester Fall: Δ landete beim stärksten Inhaber (Beispiel: gestern 400 auf P1 bei 1.000 gesamt, heute 1.300, dann hält P1 zwischen 400 und 700).
 - **Rangliste einer anderen Stufe:** wertlos, es gilt die Rechnung ohne Rangliste.
 - Sicher heißt, der schlechteste Fall lohnt. Möglich heißt, nur der beste. Lohnt keiner, fehlt die Zeile.
 - Belohnungen über das Ende der Tabelle hinaus sind geschätzt (≈ im Tooltip). Ist die Belohnung unbekannt, fehlt die Zeile und zählt unter der Tabelle mit.
+
+## Ideen (nicht geplant)
+
+Vom Nutzer genannt, 2026-10-25, ohne Zusage:
+
+- Am Spieler merken: „Mögliche Einzahlungen nicht anzeigen“, damit die Box etwa bei bestimmten Spielern nicht aufgeht.
+- Einstellung „Gildenmitglieder ignorieren“, damit sie beim Durchklicken der Gilde nicht ständig aufgeht.
+- Am Spieler den vereinbarten Förderfaktor merken. Eher nischig, meist fördert man in Gruppen mit festen Faktoren.
 
 ## Aktualisierung
 

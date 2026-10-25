@@ -131,12 +131,11 @@ export function possibleInvestments(
   buildings: KnownGreatBuilding[],
   greatBuilding: (def: BuildingDefId) => GreatBuildingDef | undefined,
   arcBonus: number,
-  factor: number,
   me?: PlayerId,
 ): PossibleInvestment[] {
   return buildings.flatMap<PossibleInvestment>((b) => {
     if (b.owner === me) return [];
-    const r = snipeBuilding(b, greatBuilding(b.cityEntityId), arcBonus, factor);
+    const r = snipeBuilding(b, greatBuilding(b.cityEntityId), arcBonus);
     if (r === 'ownContribution') return [];
     return [typeof r === 'string' ? { building: b } : { building: b, hit: r }];
   });

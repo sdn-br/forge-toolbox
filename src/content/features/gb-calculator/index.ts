@@ -9,7 +9,6 @@ import { arcBonus } from '../../domain/gb-calculator';
 import { type SnipeList, snipeList } from '../../domain/gb-snipe';
 import { FOESTATS_SETTING } from '../../stores/foestats';
 import type { Construction } from '../../stores/great-building-model';
-import { CALCULATOR_FACTOR, calculatorFactor } from '../../ui/factor-bar';
 import { icons } from '../../ui/icons';
 import { nextSort } from '../../ui/sortable';
 import { playTone } from '../../ui/tone';
@@ -28,6 +27,7 @@ import { type GbCalculatorVm, gbCalculatorViewModel } from './view-model';
 /** the menu entry and the settings group show it */
 const ICON = icons.gbCalculator;
 
+const CALCULATOR_FACTOR = { value: 'gbCalc.factor', arc: 'gbCalc.factorArc', arcButton: 'gbCalc.arcButton' };
 const FACTOR_BUTTONS = 'gbCalc.factorButtons';
 const SOUND = 'gbCalc.sound';
 const RETENTION = 'snipe.retentionDays';
@@ -192,7 +192,6 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
             buildings: listed,
             greatBuilding: (def) => ctx.catalog.get(def)?.greatBuilding,
             arcBonus: arc,
-            factor: calculatorFactor(ctx.settings, arc),
           });
         snipeVm = snipeViewModel({
           list,

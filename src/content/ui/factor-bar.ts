@@ -1,6 +1,5 @@
 // The factor buttons of the great building calculators: presets and the own Arc bonus, sorted by value, plus a field.
 import { html, type TemplateResult } from 'lit-html';
-import type { Settings } from '../core/settings';
 import { formatNumber, t } from '../core/texts';
 import { keepKeys } from './inputs';
 
@@ -29,16 +28,6 @@ export const factorText = (percent: number) => formatNumber((100 + percent) / 10
 /** the factor in effect: the Arc bonus only while its button shows */
 export const effectiveFactor = (choice: FactorChoice, arcBonus: number | undefined) =>
   choice.arc && arcBonus !== undefined ? arcBonus : choice.value;
-
-/** the calculator's factor settings; the snipe helper and the possible investments rate places with them too */
-export const CALCULATOR_FACTOR = { value: 'gbCalc.factor', arc: 'gbCalc.factorArc', arcButton: 'gbCalc.arcButton' };
-
-/** the factor the calculator settings put in effect for the own Arc bonus `arcBonus` */
-export const calculatorFactor = (settings: Settings, arcBonus: number) =>
-  effectiveFactor(
-    { value: settings.number(CALCULATOR_FACTOR.value), arc: settings.get(CALCULATOR_FACTOR.arc) },
-    settings.get(CALCULATOR_FACTOR.arcButton) ? arcBonus : undefined,
-  );
 
 /** the factor of each place, one choice per place */
 export const effectiveFactors = (choices: FactorChoice[], arcBonus: number | undefined) =>

@@ -37,7 +37,7 @@ const names: Record<number, string> = { 1001: 'Anna', 1002: 'Bert', 1003: 'Carla
 const defNames: Record<string, string> = { [DEF_ID]: 'Kathedrale von Aachen', [OTHER_DEF]: 'Leuchtturm' };
 
 const candidates = (buildings: KnownGreatBuilding[]) =>
-  possibleInvestments(buildings, (d) => (d === DEF_ID ? def : undefined), 0, 90, ME);
+  possibleInvestments(buildings, (d) => (d === DEF_ID ? def : undefined), 0, ME);
 
 const vm = (buildings: KnownGreatBuilding[], filter: Partial<PossibleFilter> = {}, sort?: PossibleSort) =>
   possibleViewModel({

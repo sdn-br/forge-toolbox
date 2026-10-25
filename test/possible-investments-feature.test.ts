@@ -255,7 +255,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
   });
 
   it('rates the buildings of others only for their tab, once until an input changes', async () => {
-    const { box, list, catalog, settings } = setup();
+    const { box, list, catalog, bus } = setup();
     box.box.open();
     list([hitZeus(), lighthouse, hitOracle()]);
     await tick();
@@ -267,7 +267,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     rewards.mockClear();
     box.box.update();
     expect(rewards).not.toHaveBeenCalled();
-    await settings.set('gbCalc.factor', 80);
+    bus.emit('catalog.updated', { defs: [] });
     expect(rewards).toHaveBeenCalled();
   });
 });
