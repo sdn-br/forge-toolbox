@@ -52,7 +52,7 @@ const row = (r: SnipeRowVm, actions: SnipeActions) => html`<tr data-tip=${r.note
   )}
   <td class="num">${t('gb.rank', { rank: r.rank })}</td>
   <td class="num" data-tip=${t('snipe.costHint')}>${formatNumber(r.cost)}</td>
-  ${profitCell(r.profit, r.estimate)}
+  ${profitCell(r.profit, r.estimate, r.profitRange)}
   ${tierCell(r.tier)}
 </tr>`;
 

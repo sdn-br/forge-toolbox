@@ -110,7 +110,8 @@ describe('possibleViewModel', () => {
       required: '800',
       rest: '400',
       percent: 50,
-      hit: { rank: 1, cost: '200', profit: '+45 … +285', estimate: false, tier: 'safe' },
+      // the cell shows the best case, the range goes to its tooltip
+      hit: { rank: 1, cost: '200', profit: '+285', range: 'Gewinn +45 bis +285', estimate: false, tier: 'safe' },
       notes: ['Im schlechtesten Fall: P2 mit 200 FP, Gewinn +45'],
       // the largest unit only
       age: 'vor 3 Std.',

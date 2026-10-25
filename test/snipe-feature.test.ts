@@ -465,12 +465,14 @@ describe('Snipehilfe: stacked box', () => {
     expect(rows()[0]?.getAttribute('data-tip')).not.toContain('Eigenanteil:');
   });
 
-  it('gives a range as profit when not exact and sorts by a clicked column head', async () => {
+  it('shows the best profit with its range in the tooltip and sorts by a clicked column head', async () => {
     const { box, list, rows, cells } = setup();
     list([withRequired(zeus, 80, 20), withRequired(oracle, 100, 30)]);
     await tick();
     const profits = rows().map((r) => cells(r)[6] ?? '');
-    expect(profits.every((p) => /^[+−]?\d[\d.]* … [+−]?\d[\d.]*$|^[+−]?\d[\d.]*$/.test(p))).toBe(true);
+    expect(profits.every((p) => /^[+−]?\d[\d.]*$/.test(p))).toBe(true);
+    const tips = rows().map((r) => r.querySelectorAll('td:not(.snipe-mark)')[6]?.getAttribute('data-tip') ?? '');
+    expect(tips.some((tip) => /^Gewinn [+−]?\d[\d.]* bis [+−]?\d[\d.]*$/m.test(tip))).toBe(true);
     const names = () => rows().map((r) => cells(r)[1]);
     const before = names();
     (box.root.querySelectorAll('th')[2] as HTMLElement).click();
