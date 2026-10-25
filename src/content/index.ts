@@ -84,6 +84,9 @@ async function main() {
     }
   }
 
+  // a sideways two-finger swipe on a Mac trackpad that runs past a box would otherwise navigate back and leave the game
+  document.documentElement.style.overscrollBehaviorX = 'none';
+
   onExtensionLost(() => menu.showNotice(t('core.extensionLost')));
   connectProxy((traffic) => {
     // without the extension nothing can be saved; the notice asks for a reload instead of failing on every message
