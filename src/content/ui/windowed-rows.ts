@@ -51,8 +51,9 @@ export interface WindowedRows {
   measure?: (area: Element | undefined) => void;
 }
 
-/** The frame around the table: the table area, the two buttons beside it (only when rows are hidden) and the line of
- * what is hidden after it. The wheel over the frame steps a row and passes at the ends. */
+/** The frame around the table: the table area and, only when rows are hidden, a line after it with what is hidden and
+ * the two buttons at its right end. The buttons take no room beside the table, so its width never jumps. The wheel over
+ * the frame steps a row and passes at the ends. */
 export function windowedRows({ cls, table, window, scroll, measure }: WindowedRows): TemplateResult {
   const { above, below } = window;
   const scrolls = above > 0 || below > 0;
@@ -64,13 +65,12 @@ export function windowedRows({ cls, table, window, scroll, measure }: WindowedRo
   };
   return html`<div class="win-scroll ${cls}" @wheel=${wheel}>
       <div class="win-area" ${ref(measure)}>${table}</div>
-      ${
-        scrolls
-          ? html`<div class="win-nav">
+    </div>${
+      scrolls
+        ? html`<p class="muted win-hidden"><span>${hidden(window)}</span><span class="win-nav">
             ${navButton(above > 0, t('snipe.scrollUp'), headerIcons.chevronUp, () => scroll(-1))}
             ${navButton(below > 0, t('snipe.scrollDown'), headerIcons.chevronDown, () => scroll(1))}
-          </div>`
-          : ''
-      }
-    </div>${scrolls ? html`<p class="muted win-hidden">${hidden(window)}</p>` : ''}`;
+          </span></p>`
+        : ''
+    }`;
 }
