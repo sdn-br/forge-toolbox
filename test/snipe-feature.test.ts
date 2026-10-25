@@ -68,8 +68,9 @@ function setup() {
     send(o.construction as Entry);
   };
   const rows = () => [...box.root.querySelectorAll('tr')].slice(1);
+  // the star cell comes first and has no text; the indices count from the place in the game's list
   const cells = (row: Element | undefined) =>
-    [...(row?.querySelectorAll('td') ?? [])].map((td) => td.textContent?.trim());
+    [...(row?.querySelectorAll('td:not(.snipe-mark)') ?? [])].map((td) => td.textContent?.trim());
   return {
     ...env,
     ...ctx,
@@ -393,6 +394,7 @@ describe('Snipehilfe: stacked box', () => {
     expect(box.text).toContain('Stand: vor 4 Min.');
     expect([...box.root.querySelectorAll('th')].map((th) => th.getAttribute('aria-label'))).toEqual([
       '#',
+      'Merken',
       'LG',
       'Stufe',
       'Fortschritt',
@@ -400,7 +402,6 @@ describe('Snipehilfe: stacked box', () => {
       'Einsatz',
       'Gewinn',
       'Sicherheit',
-      'Merken',
     ]);
     // the lighthouse has no loaded definition: unknown reward; the others pay a place
     expect(rows()).toHaveLength(2);
@@ -414,7 +415,7 @@ describe('Snipehilfe: stacked box', () => {
     const { list, rows } = setup();
     list([withRequired(zeus, 80, 20)]);
     await tick();
-    const progress = rows()[0]?.querySelectorAll('td')[3] as HTMLElement;
+    const progress = rows()[0]?.querySelectorAll('td:not(.snipe-mark)')[3] as HTMLElement;
     expect(progress.querySelector('.fp-bar')).not.toBeNull();
     expect(progress.dataset.tip).toMatch(/^Fehlt bis zum Level-up: [\d.]+ von [\d.]+ FP$/m);
     expect(progress.dataset.tip).not.toContain('der Stufe sind eingezahlt');
@@ -455,7 +456,7 @@ describe('Snipehilfe: stacked box', () => {
     advance(10_000);
     list([{ ...dom, current_progress: 2_900 }]);
     await tick();
-    const progressTip = () => rows()[0]?.querySelectorAll('td')[3]?.getAttribute('data-tip') ?? '';
+    const progressTip = () => rows()[0]?.querySelectorAll('td:not(.snipe-mark)')[3]?.getAttribute('data-tip') ?? '';
     expect(progressTip()).not.toContain('Eigenanteil:');
     advance(10_000);
     open(1909);
@@ -472,11 +473,11 @@ describe('Snipehilfe: stacked box', () => {
     expect(profits.every((p) => /^[+−]?\d[\d.]* … [+−]?\d[\d.]*$|^[+−]?\d[\d.]*$/.test(p))).toBe(true);
     const names = () => rows().map((r) => cells(r)[1]);
     const before = names();
-    (box.root.querySelectorAll('th')[1] as HTMLElement).click();
+    (box.root.querySelectorAll('th')[2] as HTMLElement).click();
     await tick();
     const ascending = names();
     expect(ascending).toEqual([...before].sort((a, b) => (a ?? '').localeCompare(b ?? '', 'de')));
-    (box.root.querySelectorAll('th')[1] as HTMLElement).click();
+    (box.root.querySelectorAll('th')[2] as HTMLElement).click();
     await tick();
     expect(names()).toEqual([...ascending].reverse());
     expect(box.root.querySelector('th.desc')?.getAttribute('aria-label')).toBe('LG');
@@ -486,7 +487,7 @@ describe('Snipehilfe: stacked box', () => {
     const { box, list } = setup();
     list([withRequired(zeus, 80, 20), withRequired(oracle, 100, 30)]);
     await tick();
-    (box.root.querySelectorAll('th')[1] as HTMLElement).dispatchEvent(
+    (box.root.querySelectorAll('th')[2] as HTMLElement).dispatchEvent(
       new MouseEvent('click', { bubbles: true, shiftKey: true }),
     );
     await tick();
@@ -705,15 +706,16 @@ describe('Snipehilfe: stacked box', () => {
 describe('Snipehilfe: marking with a star', () => {
   const stars = (box: { root: ParentNode }) => [...box.root.querySelectorAll('.snipe-table td.snipe-mark button')];
 
-  it('has a star column after the tier, the word in tooltip and label', async () => {
+  it('has a star column between # and the name, as in the investments, the word in tooltip and label', async () => {
     const { box, list } = setup();
     list([hitZeus(), hitOracle()]);
     await tick();
     const heads = [...box.root.querySelectorAll('.snipe-table th')];
-    const last = heads[heads.length - 1];
-    expect(last?.getAttribute('aria-label')).toBe('Merken');
-    expect(last?.getAttribute('data-tip')).toContain('Merken');
-    expect(last?.querySelector('svg')).not.toBeNull();
+    expect(heads.map((h) => h.getAttribute('aria-label')).slice(0, 3)).toEqual(['#', 'Merken', 'LG']);
+    const star = heads[1];
+    expect(star?.getAttribute('data-tip')).toContain('Merken');
+    expect(star?.querySelector('svg')).not.toBeNull();
+    expect(box.root.querySelector('.snipe-table tbody tr td:nth-child(2) button.star')).not.toBeNull();
     expect(stars(box)).toHaveLength(2);
   });
 

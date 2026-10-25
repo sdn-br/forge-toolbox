@@ -129,8 +129,8 @@ describe('Investitionen: Mögliche Investitionen', () => {
     const helper = rows(snipe).map((r) => cells(r));
     expect(mine.map((c) => c[3])).toEqual(['Orakel von Delphi', 'Zeusstatue']);
     for (const c of mine) {
-      const same = helper.find((h) => h[1] === c[3]);
-      expect(c.slice(7, 10)).toEqual(same?.slice(4, 7));
+      const same = helper.find((h) => h[2] === c[3]);
+      expect(c.slice(7, 10)).toEqual(same?.slice(5, 8));
     }
     expect(mine[0]?.[1]).toBe('Eigentümer 1001');
     // the owners are known only from their lists, not to the player store
