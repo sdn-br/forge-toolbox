@@ -79,7 +79,14 @@ describe('LG-Rechner', () => {
     expect(owner?.target).toBe('_blank');
     expect(box.text).toContain('Arche-Bonus: 95,5 %');
     expect(box.text).toContain('Verfügbare FP: unbekannt');
-    expect(box.text).toContain('Bis Level-Up fehlen 2.811 FP');
+    expect(box.text).toContain('noch 2.811 FP bis zum Level-up');
+    // the progress stands in the head, above the places, with its bar
+    const progress = box.root.querySelector('.gb-progress') as HTMLElement;
+    expect(progress.textContent).toMatch(/^\s*Fortschritt: [\d.]+ \/ [\d.]+ · noch 2\.811 FP bis zum Level-up/);
+    expect(progress.compareDocumentPosition(box.root.querySelector('.gb-places') as Node)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect((progress.querySelector('.fp-bar > div') as HTMLElement).style.width).toMatch(/%$/);
     expect(rows().map((r) => r.className)).toEqual([
       'gb-profit',
       'gb-unavailable',
@@ -90,15 +97,10 @@ describe('LG-Rechner', () => {
     // place, invested, safe, gross, profit, demand at 90 %, rate; blueprints and medals are not shown
     const cells = (row: Element | undefined) =>
       [...(row?.querySelectorAll('td') ?? [])].map((td) => td.textContent?.trim());
-    expect([...box.root.querySelectorAll('th')].map((th) => th.textContent?.trim())).toEqual([
-      'Platz',
-      'Investiert',
-      'Sicher',
-      'FP',
-      'Gewinn',
-      'Fördern',
-      'Kurs',
-    ]);
+    // the profit head is an icon, its word in the label
+    expect(
+      [...box.root.querySelectorAll('th')].map((th) => th.textContent?.trim() || th.getAttribute('aria-label')),
+    ).toEqual(['Platz', 'Investiert', 'Sicher', 'FP', 'Gewinn', 'Fördern', 'Kurs']);
     expect(cells(rows()[0])).toEqual(['1', '–', '1.406', '1.427', '21', '1.387', '192,6 %']);
     // place 2 costs the same 1406 as place 1, which is better: no safe cost, profit or rate, reward and demand stay
     expect(cells(rows()[1])).toEqual(['2', '–', '–', '714', '–', '694', '–']);
@@ -322,7 +324,7 @@ describe('LG-Rechner', () => {
       expect(box.root.querySelector('.gb-overlay')).toBeNull();
       expect(box.text).toContain('Zeusstatue St. 8 → 9');
       // the empty places of level 8 with the costs of the new level, nothing paid in yet
-      expect(box.text).toContain('Bis Level-Up fehlen 450 FP');
+      expect(box.text).toContain('noch 450 FP bis zum Level-up');
       expect(box.text).toContain('Du: noch nichts eingezahlt');
       expect(rows().map((r) => r.querySelectorAll('td')[1]?.textContent?.trim())).toEqual(['–', '–', '–', '–', '–']);
       expect(box.text).toContain('kein Platz lohnt');
@@ -440,7 +442,7 @@ describe('LG-Rechner', () => {
     it('nothing paid in: the places that can be had with their safe total, the best profit in bold', () => {
       // seen in the browser: 1970 missing, place 1 holds 3099, place 2 holds 479, gross 4291/2151/714/176/39
       const { box, rows } = scenario([3099, 479], undefined, [2195, 1100, 365, 90, 20], 251 + 3578 + 1970);
-      expect(box.text).toContain('Bis Level-Up fehlen 1.970 FP');
+      expect(box.text).toContain('noch 1.970 FP bis zum Level-up');
       expect(rows().map((r) => cells(r)[3])).toEqual(['4.291', '2.151', '714', '176', '39']);
       // place 1: round((3099 + 1970) / 2) = 2535 cannot pass 3099; place 2: round(2449 / 2) = 1225 for 926 profit;
       // place 3: round(1970 / 2) = 985 for -271; place 4 the same 985: dominated
@@ -459,7 +461,7 @@ describe('LG-Rechner', () => {
     it('partly filled with me on place 3: every place I can still make safe, my rate now and when safe', () => {
       // others 1500 and 900, me 400: rest 3004, 2604 missing
       const { box, rows } = scenario([1500, 900, 400], 3);
-      expect(box.text).toContain('Bis Level-Up fehlen 2.604 FP');
+      expect(box.text).toContain('noch 2.604 FP bis zum Level-up');
       expect(cells(rows()[0])?.slice(0, 3)).toEqual(['1', '1.500', '2.252 (+1.852)']);
       // 1952 passes place 1 for now, but place 1 can pass back and place 2 cannot: place 2 is safe at 1952
       expect(cells(rows()[1])?.slice(0, 3)).toEqual(['2', '900', '1.952 (+1.552)']);
@@ -638,7 +640,7 @@ describe('LG-Rechner', () => {
 
     it('shows leveling now plus place 1 of the next level in the line about the own deposit', () => {
       const { box } = levelUpCase();
-      expect(box.text).toContain('Bis Level-Up fehlen 40 FP');
+      expect(box.text).toContain('noch 40 FP bis zum Level-up');
       const line = box.root.querySelector('.gb-me .gb-levelup');
       expect(line?.textContent?.replace(/\s+/g, ' ').trim()).toBe(LEVEL_UP);
       expect(line?.querySelector('b.gain')?.textContent).toBe('+125');
@@ -674,7 +676,7 @@ describe('LG-Rechner', () => {
       expect(box.text).toContain('Vorschau Stufe 76 → 77');
       expect(box.text).toContain('noch nicht freigeschaltet');
       expect(box.text).toContain('Die Stufe kostet 3.138 FP');
-      expect(box.text).not.toContain('Bis Level-Up fehlen');
+      expect(box.text).not.toContain('Fortschritt:');
       expect(box.root.querySelector('.gb-overlay')).toBeNull();
       // empty: only the first place can be had, a deposit on any other would land on it
       expect(rows().map((r) => r.className)).toEqual([
@@ -705,7 +707,7 @@ describe('LG-Rechner', () => {
       expect(cells(rows()[0])?.[5]).toBe('1.820');
       box.click('Laufend');
       expect(box.text).not.toContain('Vorschau Stufe');
-      expect(box.text).toContain('Bis Level-Up fehlen 2.811 FP');
+      expect(box.text).toContain('noch 2.811 FP bis zum Level-up');
       expect(levelInput(box.root).value).toBe('75');
     });
 
@@ -716,7 +718,7 @@ describe('LG-Rechner', () => {
       choose(box.root, 90);
       choose(box.root, 75);
       expect(box.text).not.toContain('Vorschau Stufe');
-      expect(box.text).toContain('Bis Level-Up fehlen 2.811 FP');
+      expect(box.text).toContain('noch 2.811 FP bis zum Level-up');
     });
 
     it('ignores a level that is not after the current construction', () => {

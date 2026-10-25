@@ -1,0 +1,30 @@
+{
+  "note": "FriendService.acceptInvitation recorded on de10 2026-10-20: the new friend as a whole player. Ids, names, city and guild anonymized (friend 1001, guild 1), profile text and guild description dropped.",
+  "accept": {
+    "requestClass": "FriendService",
+    "requestMethod": "acceptInvitation",
+    "requestData": [1001],
+    "responseData": {
+      "player_id": 1001,
+      "name": "Neuer Freund",
+      "avatar": "",
+      "city_name": "Freundesstadt",
+      "is_friend": true,
+      "has_great_building": true,
+      "is_active": true,
+      "era": "FutureEra",
+      "incoming": true,
+      "accepted": true,
+      "activity": 2,
+      "__class__": "Friend",
+      "id": 5001,
+      "clan_id": 1,
+      "clan": {
+        "id": 1,
+        "name": "Testgilde",
+        "flag": "premium_flag_8",
+        "__class__": "Clan"
+      }
+    }
+  }
+}

@@ -14,7 +14,7 @@ export interface Relations {
   friend: boolean;
 }
 
-export type PlayerSource = 'socialList' | 'visit' | 'update' | 'ranking' | 'gbg' | 'event';
+export type PlayerSource = 'socialList' | 'visit' | 'update' | 'ranking' | 'gbg' | 'event' | 'friend';
 
 /** When the session player may attack or plunder this player again, as the game last reported it. */
 export interface AttackTimer {
@@ -36,6 +36,8 @@ export interface Player {
   active: boolean;
   guild?: GuildRef;
   relations: Relations;
+  /** the session player put a star on the player; only the player removes it, never a change of relations */
+  marked?: boolean;
   /** missing until a source that carries the timers reported the player */
   attack?: AttackTimer;
   firstSeenAt: number;
@@ -147,6 +149,17 @@ export interface NotePage {
   player?: PlayerId;
 }
 
+/** The session player's place in a great building of another player. */
+export interface OwnContribution {
+  rank: number;
+  /** own deposit */
+  forgePoints: number;
+  /** net reward of the place, before the own Arc bonus */
+  reward: number;
+  /** when it was seen */
+  at: number;
+}
+
 /**
  * The last known state of a great building of another player, kept for the snipe helper. Written when the session
  * player opens or updates the construction of that building, and from great building lists.
@@ -176,6 +189,15 @@ export interface KnownGreatBuilding {
   bestRate?: number;
   /** the session player invested here (own row in the rankings, or the town hall list); such a row is never pruned */
   ownContribution?: boolean;
+  /**
+   * the session player's place in the current level: from the town hall list or the own row of the rankings of an
+   * opened building; gone when a building is seen without the own row or on another level
+   */
+  contribution?: OwnContribution;
+  /** the session player marked the building with a star; such a row is never pruned, and only the player removes it */
+  marked?: boolean;
+  /** the progress (`invested`) when the building was last seen open in the game; growth beyond it means others pay in */
+  growthBase?: number;
   /** last seen, in the building or in a list */
   seenAt: number;
 }

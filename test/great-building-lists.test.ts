@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { Ingestion } from '../src/content/core/ingestion';
 import { registerGameHandlers } from '../src/content/game/handlers';
+import { GreatBuildingStore } from '../src/content/stores/great-buildings';
 import { applyListRow, hasOwnContribution } from '../src/persistence/great-buildings/merge';
 import { playerId, worldId } from '../src/shared/ids';
 import type { KnownGreatBuilding } from '../src/shared/model';
+import contributionFixture from './fixtures/gb-contribution.json';
 import contributions from './fixtures/gb-contributions.json';
 import levelUp from './fixtures/gb-level-up.json';
 import fixture from './fixtures/great-buildings.json';
@@ -21,7 +23,7 @@ const DAY = 24 * 60 * 60 * 1000;
 function setup() {
   let clock = 5_000;
   const ingestion = new Ingestion();
-  const { world, bus, now, stores } = testStores({ now: () => clock });
+  const { db, world, bus, now, stores } = testStores({ now: () => clock });
   registerGameHandlers(ingestion, { world, bus, now, ...stores });
   const send = (...entries: Entry[]) =>
     ingestion.accept({
@@ -60,6 +62,9 @@ function setup() {
   });
   return {
     ...stores,
+    db,
+    world,
+    bus,
     send,
     open,
     list,
@@ -201,6 +206,34 @@ describe('own contribution list (getContributions)', () => {
     expect(ids).toEqual([777, 1909, ...rows.slice(0, 2).map((r) => r.entity_id)].sort((a, b) => a - b));
   });
 
+  it('keeps the time of the list in the database, so it survives a reload', async () => {
+    const { greatBuildings, db, world, bus, send, at } = setup();
+    expect(greatBuildings.contributionsAt()).toBeUndefined();
+    send(...(contributions.startup as Entry[]));
+    at(8_000);
+    send(contributions.contributions as Entry);
+    // known at once, without waiting for the database
+    expect(greatBuildings.contributionsAt()).toBe(8_000);
+    await greatBuildings.known();
+    const reloaded = new GreatBuildingStore(bus, world, db.greatBuildings);
+    expect(reloaded.contributionsAt()).toBeUndefined();
+    await reloaded.load();
+    expect(reloaded.contributionsAt()).toBe(8_000);
+  });
+
+  it('keeps a list that arrives while the time from before the reload is read', async () => {
+    const { greatBuildings, db, world, bus, send, at } = setup();
+    send(...(contributions.startup as Entry[]));
+    at(8_000);
+    send(contributions.contributions as Entry);
+    await greatBuildings.known();
+    const reloaded = new GreatBuildingStore(bus, world, db.greatBuildings, () => 9_000);
+    const loading = reloaded.load();
+    reloaded.noteContributions([]);
+    await loading;
+    expect(reloaded.contributionsAt()).toBe(9_000);
+  });
+
   it('does not take the own city for a foreign building', async () => {
     const { greatBuildings, send } = setup();
     send(...(contributions.startup as Entry[]));
@@ -209,6 +242,114 @@ describe('own contribution list (getContributions)', () => {
       responseData: rows.map((r) => ({ ...r, player: { ...r.player, player_id: 1000 } })),
     } as Entry);
     expect(await greatBuildings.known()).toEqual([]);
+  });
+});
+
+describe('own contribution and progress at the last opening', () => {
+  const rows = contributions.contributions.responseData;
+
+  it('keeps rank, own deposit and net reward of each town hall row with the time of the list', async () => {
+    const { greatBuildings, send, at } = setup();
+    send(...(contributions.startup as Entry[]));
+    at(8_000);
+    send(contributions.contributions as Entry);
+    const first = rows[0];
+    const b = (await greatBuildings.known()).find((x) => x.entityId === first?.entity_id);
+    expect(b?.contribution).toEqual({ rank: 5, forgePoints: 50, reward: 25, at: 8_000 });
+    // never opened: growth counts from the first town hall list
+    expect(b?.growthBase).toBe(first?.current_progress);
+  });
+
+  it('counts growth from the first town hall list until the building is opened', async () => {
+    const { greatBuildings, send, at } = setup();
+    send(...(contributions.startup as Entry[]));
+    const first = rows[0] as (typeof rows)[number];
+    const listed = (progress: number, level = first.level) =>
+      send({
+        ...contributions.contributions,
+        responseData: [{ ...first, level, current_progress: progress }],
+      } as Entry);
+    at(8_000);
+    listed(24_602);
+    at(9_000);
+    listed(25_000);
+    const known = async () => (await greatBuildings.known()).find((x) => x.entityId === first.entity_id);
+    expect(await known()).toMatchObject({ invested: 25_000, growthBase: 24_602 });
+    // a new level starts the count anew
+    at(10_000);
+    listed(100, first.level + 1);
+    expect(await known()).toMatchObject({ invested: 100, growthBase: 100 });
+  });
+
+  it('tells when the town hall list came', () => {
+    const { bus, send, at } = setup();
+    const seen: number[] = [];
+    bus.on('greatBuildings.contributions', ({ at: t }) => seen.push(t));
+    send(...(contributions.startup as Entry[]));
+    at(8_000);
+    send(contributions.contributions as Entry);
+    expect(seen).toEqual([8_000]);
+  });
+
+  it('takes the own place from an opened building and remembers its progress', async () => {
+    const { greatBuildings, send, at } = setup();
+    send(...(contributionFixture.startup as Entry[]));
+    at(9_000);
+    for (const e of contributionFixture.opening as Entry[]) send(e);
+    const [b] = await greatBuildings.known();
+    const mine = contributionFixture.opening[1]?.responseData as { rankings: { player?: { is_self?: boolean } }[] };
+    expect(mine.rankings.some((r) => r.player?.is_self)).toBe(false);
+    expect(b?.contribution).toBeUndefined();
+    expect(b?.growthBase).toBe(1455);
+  });
+
+  it('takes the own place of an own contribution and the progress after it', async () => {
+    const { greatBuildings, send, at } = setup();
+    send(...(contributionFixture.startup as Entry[]));
+    for (const e of contributionFixture.opening as Entry[]) send(e);
+    at(9_500);
+    send(...(contributionFixture.contribution as Entry[]));
+    const [b] = await greatBuildings.known();
+    expect(b?.contribution).toEqual({ rank: 2, forgePoints: 301, reward: 255, at: 9_500 });
+    expect(b?.growthBase).toBe(1756);
+  });
+
+  it('keeps the progress of the last opening when the town hall list brings a newer one', async () => {
+    const { greatBuildings, send, at } = setup();
+    send(...(contributionFixture.startup as Entry[]));
+    for (const e of contributionFixture.opening as Entry[]) send(e);
+    send(...(contributionFixture.contribution as Entry[]));
+    at(20_000);
+    send({
+      ...contributions.contributions,
+      responseData: [
+        {
+          ...rows[0],
+          entity_id: 222,
+          level: 63,
+          current_progress: 1800,
+          max_progress: 3000,
+          player: { player_id: 1001 },
+        },
+      ],
+    } as Entry);
+    const [b] = await greatBuildings.known();
+    expect(b).toMatchObject({ invested: 1800, growthBase: 1756 });
+    expect(b?.contribution).toEqual({ rank: 5, forgePoints: 50, reward: 25, at: 20_000 });
+  });
+
+  it('drops the own place and the progress of the last opening when a list brings a new level', async () => {
+    const { greatBuildings, send, list, row, at } = setup();
+    send(...(contributions.startup as Entry[]));
+    send({
+      ...contributions.contributions,
+      responseData: [{ ...rows[0], entity_id: 1, level: 5, player: { player_id: 1001 } }],
+    } as Entry);
+    at(30_000);
+    list([row(1, 6, 0, 900)]);
+    const [b] = await greatBuildings.known();
+    expect(b?.level).toBe(6);
+    expect(b?.contribution).toBeUndefined();
   });
 });
 
@@ -245,9 +386,9 @@ describe('applyListRow', () => {
     expect(applyListRow(w, undefined, r, 2_000)).toEqual({ world: w, ...r, seenAt: 2_000 });
   });
 
-  it('marks an older row as own contribution without touching its numbers', () => {
+  it('marks an older row as own contribution without touching its numbers, growth counting from them', () => {
     const old = known();
-    expect(applyListRow(w, old, r, 500, true)).toEqual({ ...old, ownContribution: true });
+    expect(applyListRow(w, old, r, 500, true)).toEqual({ ...old, ownContribution: true, growthBase: old.invested });
     expect(applyListRow(w, old, r, 500)).toBeUndefined();
   });
 

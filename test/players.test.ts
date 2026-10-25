@@ -64,6 +64,8 @@ describe('PlayerStore', () => {
   it('keeps live data over persisted data when loading late', async () => {
     const old: Player = {
       ...obs(1, 'Old'),
+      score: 1,
+      rank: 1,
       world,
       guild: undefined,
       relations: { neighbor: true, guildMember: false, friend: false },
@@ -76,5 +78,152 @@ describe('PlayerStore', () => {
     await store.load(world);
     expect(store.get(playerId(1))?.name).toBe('New');
     expect(store.get(playerId(9))?.name).toBe('Only persisted');
+  });
+
+  it('sets friend from an accepted invitation, keeps the other relations and what the message lacks', () => {
+    const { store, events } = setup();
+    store.applySocialList(world, { neighbor: [{ ...obs(1), score: 500, rank: 7 }], guildMember: [], friend: [] });
+    const { score: _score, rank: _rank, ...friend } = obs(1, 'Friend');
+    store.addFriend(world, friend);
+    expect(store.get(playerId(1))).toMatchObject({
+      name: 'Friend',
+      score: 500,
+      rank: 7,
+      relations: { neighbor: true, guildMember: false, friend: true },
+      source: 'friend',
+    });
+    expect(events.at(-1)).toEqual({ ids: [playerId(1)], source: 'friend' });
+  });
+
+  it('takes only friend away on a deleted friendship and ignores players it does not know', () => {
+    const { store, events } = setup();
+    store.applySocialList(world, { neighbor: [], guildMember: [obs(1)], friend: [obs(1)] });
+    store.removeFriend(world, playerId(1));
+    expect(store.get(playerId(1))?.relations).toEqual({ neighbor: false, guildMember: true, friend: false });
+    expect(events.at(-1)).toEqual({ ids: [playerId(1)], source: 'friend' });
+    const before = events.length;
+    store.removeFriend(world, playerId(1));
+    store.removeFriend(world, playerId(9));
+    expect(store.get(playerId(9))).toBeUndefined();
+    expect(events).toHaveLength(before);
+  });
+});
+
+describe('PlayerStore: marks', () => {
+  it('marks a known player, saves it and tells the bus; unmarking removes the field', async () => {
+    const { store, put, events } = setup();
+    store.apply(world, [obs(1)], 'visit');
+    await Promise.resolve();
+    put.mockClear();
+    expect(store.setMarked(playerId(1), true)).toBe(true);
+    expect(store.get(playerId(1))?.marked).toBe(true);
+    // the data came from a visit and stay that way
+    expect(store.get(playerId(1))?.source).toBe('visit');
+    expect(events.at(-1)).toEqual({ ids: [playerId(1)], source: 'mark' });
+    await Promise.resolve();
+    expect(put.mock.calls[0]?.[0][0]).toMatchObject({ id: 1, marked: true });
+    expect(store.setMarked(playerId(1), false)).toBe(true);
+    expect(store.get(playerId(1))).not.toHaveProperty('marked');
+    await Promise.resolve();
+    expect(put.mock.calls[1]?.[0][0]).not.toHaveProperty('marked');
+  });
+
+  it('does not mark a player the store does not know', () => {
+    const { store, events } = setup();
+    expect(store.setMarked(playerId(9), true)).toBe(false);
+    expect(store.get(playerId(9))).toBeUndefined();
+    expect(events).toEqual([]);
+  });
+
+  it('tells nothing when the mark does not change', () => {
+    const { store, events } = setup();
+    store.apply(world, [obs(1)], 'visit');
+    store.setMarked(playerId(1), true);
+    const before = events.length;
+    store.setMarked(playerId(1), true);
+    store.setMarked(playerId(2), false);
+    expect(events).toHaveLength(before);
+  });
+
+  it('keeps the mark through every other source and every change of relations', () => {
+    const { store } = setup();
+    store.applySocialList(world, { neighbor: [obs(1)], guildMember: [], friend: [] });
+    store.setMarked(playerId(1), true);
+    store.apply(world, [obs(1, 'Visited')], 'visit');
+    expect(store.get(playerId(1))).toMatchObject({ name: 'Visited', marked: true });
+    store.applySocialList(world, { neighbor: [obs(1)], guildMember: [], friend: [obs(1, 'Social')] });
+    expect(store.get(playerId(1))?.marked).toBe(true);
+    const { score: _score, rank: _rank, ...friend } = obs(1, 'Friend');
+    store.addFriend(world, friend);
+    expect(store.get(playerId(1))?.marked).toBe(true);
+    store.removeFriend(world, playerId(1));
+    expect(store.get(playerId(1))?.marked).toBe(true);
+    // the player left the neighbourhood, friends and guild: gone from the social list, still marked
+    store.applySocialList(world, { neighbor: [], guildMember: [], friend: [] });
+    expect(store.get(playerId(1))).toMatchObject({
+      relations: { neighbor: false, guildMember: false, friend: false },
+      marked: true,
+    });
+  });
+
+  it('reads the marks of the database', async () => {
+    const old: Player = {
+      ...obs(1, 'Old'),
+      score: 1,
+      rank: 1,
+      world,
+      guild: undefined,
+      relations: { neighbor: false, guildMember: false, friend: false },
+      marked: true,
+      firstSeenAt: 1,
+      seenAt: 1,
+      source: 'socialList',
+    };
+    const { store } = setup([old]);
+    await store.load(world);
+    expect(store.get(playerId(1))?.marked).toBe(true);
+  });
+
+  it('keeps the persisted mark of a player the game reported before the load finished', async () => {
+    const old: Player = {
+      ...obs(1, 'Old'),
+      score: 1,
+      rank: 1,
+      world,
+      guild: undefined,
+      relations: { neighbor: true, guildMember: false, friend: false },
+      marked: true,
+      firstSeenAt: 1,
+      seenAt: 1,
+      source: 'socialList',
+    };
+    const { store, put } = setup([old]);
+    store.apply(world, [obs(1, 'New')], 'visit');
+    await Promise.resolve();
+    // the row of the visit went to the database without the mark; the load writes it back
+    expect(put.mock.calls[0]?.[0][0]).not.toHaveProperty('marked');
+    await store.load(world);
+    expect(store.get(playerId(1))).toMatchObject({ name: 'New', marked: true });
+    await Promise.resolve();
+    expect(put.mock.calls.at(-1)?.[0][0]).toMatchObject({ id: 1, marked: true });
+  });
+
+  it('keeps a mark set while the load runs', async () => {
+    const old: Player = {
+      ...obs(1, 'Old'),
+      score: 1,
+      rank: 1,
+      world,
+      guild: undefined,
+      relations: { neighbor: true, guildMember: false, friend: false },
+      firstSeenAt: 1,
+      seenAt: 1,
+      source: 'socialList',
+    };
+    const { store } = setup([old]);
+    store.apply(world, [obs(1, 'New')], 'visit');
+    store.setMarked(playerId(1), true);
+    await store.load(world);
+    expect(store.get(playerId(1))?.marked).toBe(true);
   });
 });

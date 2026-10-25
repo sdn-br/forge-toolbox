@@ -1,0 +1,20 @@
+// The thin bar under "paid in / costs", filled towards the level up (investments, GB calculator, snipe helper).
+import { html, type TemplateResult } from 'lit-html';
+import { t } from '../core/texts';
+
+/** paid in of a level in percent, 0 to 100 */
+export const progressPercent = (invested: number, required: number) =>
+  required > 0 ? Math.min(100, (invested / required) * 100) : 0;
+
+export const fpBar = (percent: number) => html`<div class="fp-bar"><div style=${`width: ${percent}%`}></div></div>`;
+
+/** a progress cell: "paid in / costs" over the bar, the rest to the level up in the tooltip, below it `notes` */
+export const progressCell = (
+  p: { invested: string; required: string; rest: string; percent: number },
+  extra: TemplateResult | '' = '',
+  notes: string[] = [],
+) => html`<td class="num inv-progress" data-tip=${[t('investments.restHint', { rest: p.rest, required: p.required }), ...notes].join('\n')}>
+    ${p.invested} / ${p.required}
+    ${fpBar(p.percent)}
+    ${extra}
+  </td>`;

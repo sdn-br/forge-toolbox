@@ -1,26 +1,28 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
-import { formatNumber, t } from '../../core/texts';
-import type { SnipeHit, SnipeList, SnipePlace, SnipeTier } from '../../domain/gb-snipe';
+import { t } from '../../core/texts';
+import type { SnipeHit, SnipeList, SnipeTier } from '../../domain/gb-snipe';
 import type { FoestatsRecord } from '../../stores/foestats';
+import { ownerShareNote, signed, snipeNotes, snipeProfit, snipeProfitKey, TIER_ORDER } from '../../ui/snipe-hit';
+import { type Sort, sortRows } from '../../ui/sortable';
 import { type ActivityVm, activityVm } from './view-model';
 
-export type SnipeColumn = 'order' | 'name' | 'level' | 'progress' | 'rank' | 'cost' | 'profit';
+export type SnipeColumn = 'order' | 'name' | 'level' | 'progress' | 'rank' | 'cost' | 'profit' | 'tier' | 'mark';
 
-export interface SnipeSort {
-  column: SnipeColumn;
-  /** largest first */
-  desc: boolean;
-}
+export type SnipeSort = Sort<SnipeColumn>;
 
 /** profit first, the best on top */
-export const DEFAULT_SORT: SnipeSort = { column: 'profit', desc: true };
+export const DEFAULT_SORT: SnipeSort = [{ column: 'profit', desc: true }];
 
-/** a click on a column head: the same column turns around, another starts with its natural direction */
-export function nextSort(current: SnipeSort, column: SnipeColumn): SnipeSort {
-  if (current.column === column) return { column, desc: !current.desc };
-  // names and the game's order read from the top, numbers from the largest
-  return { column, desc: column !== 'name' && column !== 'order' };
-}
+/** names and the game's order read from the top, numbers from the largest */
+export const SNIPE_DESC_FIRST: ReadonlySet<SnipeColumn> = new Set([
+  'level',
+  'progress',
+  'rank',
+  'cost',
+  'profit',
+  'tier',
+  'mark',
+]);
 
 /** rows of the table in view at once; the rest scrolls */
 export const VISIBLE_ROWS = 6;
@@ -47,8 +49,6 @@ export interface SnipeRowVm {
   level: number;
   invested: number;
   required: number;
-  /** invested in percent of the cost, whole */
-  percent: number;
   rank: number;
   cost: number;
   /** "+85" when exact, "+40 … +310" as a range */
@@ -56,8 +56,12 @@ export interface SnipeRowVm {
   /** the rewards are estimated */
   estimate: boolean;
   tier: SnipeTier;
+  /** the player put a star on the building */
+  marked: boolean;
   /** lines of the row tooltip */
   notes: string[];
+  /** what the owner paid in, for the progress tooltip; missing when unknown */
+  ownerShare?: string;
 }
 
 export type SnipeVm =
@@ -66,7 +70,10 @@ export type SnipeVm =
       kind: 'list';
       /** the player the list belongs to, with the foestats link and activity as on the LG tab */
       owner: string;
+      ownerId: PlayerId;
       ownerUrl: string;
+      /** the player put a star on the owner; missing when the player store does not know them */
+      ownerMarked?: boolean;
       activity?: ActivityVm;
       /** when the list came; the view shows its age as of drawing */
       at: number;
@@ -87,9 +94,13 @@ export interface SnipeInput {
   greatBuildingName(def: BuildingDefId): string | undefined;
   playerName(id: PlayerId): string | undefined;
   playerUrl(id: PlayerId): string;
+  isMarked(owner: PlayerId, entityId: number): boolean;
+  playerMarked(id: PlayerId): boolean | undefined;
   /** what foestats knows about the owner of the list; missing while foestats is off */
   foestats?: FoestatsRecord;
   today: string;
+  /** the time the age in a row tooltip counts to */
+  now: number;
   sort: SnipeSort;
   /** index of the first row in view; default the top */
   scroll?: number;
@@ -100,23 +111,18 @@ const activityOf = (record: FoestatsRecord | undefined, today: string) => {
   return activity ? { activity } : {};
 };
 
-const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatNumber(Math.abs(n))}`;
+const withOwnerShare = (note: string | undefined) => (note === undefined ? {} : { ownerShare: note });
 
-function profitText(h: SnipeHit): string {
-  return h.profitLow === h.profitHigh ? signed(h.profitHigh) : `${signed(h.profitLow)} … ${signed(h.profitHigh)}`;
-}
-
-const worstNote = (w: SnipePlace) =>
-  t('snipe.worst', { rank: w.rank, cost: formatNumber(w.cost), profit: signed(w.profit) });
-
-const sortKey: Record<SnipeColumn, (r: SnipeHit, name: string, order: number) => number | string> = {
+const sortKey: Record<SnipeColumn, (r: SnipeHit, name: string, order: number, marked: boolean) => number | string> = {
   order: (_, __, order) => order,
   name: (_, name) => name,
   level: (r) => r.level,
   progress: (r) => (r.required > 0 ? r.invested / r.required : 0),
   rank: (r) => r.place.rank,
   cost: (r) => r.place.cost,
-  profit: (r) => r.profitHigh * 1e9 + r.profitLow,
+  profit: snipeProfitKey,
+  tier: (r) => TIER_ORDER[r.tier],
+  mark: (_, __, ___, marked) => Number(marked),
 };
 
 export function snipeViewModel(input: SnipeInput): SnipeVm {
@@ -125,13 +131,11 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
   const name = (h: SnipeHit) => input.greatBuildingName(h.cityEntityId) ?? h.cityEntityId;
   const places = new Map([...list.entityIds].map((id, i) => [id, i + 1]));
   const order = (h: SnipeHit) => places.get(h.entityId) ?? 0;
-  const key = sortKey[input.sort.column];
-  const sign = input.sort.desc ? -1 : 1;
-  const hits = [...result.hits].sort((a, b) => {
-    const x = key(a, name(a), order(a));
-    const y = key(b, name(b), order(b));
-    return sign * (typeof x === 'string' ? x.localeCompare(String(y), 'de') : x - (y as number));
-  });
+  const hits = sortRows(
+    [...result.hits],
+    input.sort,
+    (column) => (h) => sortKey[column](h, name(h), order(h), input.isMarked(h.owner, h.entityId)),
+  );
   const rows = hits.map<SnipeRowVm>((h) => ({
     owner: h.owner,
     entityId: h.entityId,
@@ -140,29 +144,29 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     level: h.level,
     invested: h.invested,
     required: h.required,
-    percent: h.required > 0 ? Math.floor((h.invested / h.required) * 100) : 0,
     rank: h.place.rank,
     cost: h.place.cost,
-    profit: profitText(h),
+    profit: snipeProfit(h),
     estimate: h.estimate,
     tier: h.tier,
-    notes: [h.worst && worstNote(h.worst), h.maybeLocked && t('snipe.maybeLocked')].filter(
-      (n): n is string => typeof n === 'string',
-    ),
+    marked: input.isMarked(h.owner, h.entityId),
+    notes: snipeNotes(h),
+    ...withOwnerShare(ownerShareNote(h.ownerShare, input.now)),
   }));
   const counts = [
     result.none > 0 && t('snipe.countNone', { count: result.none }),
     result.ownContribution > 0 && t('snipe.countOwn', { count: result.ownContribution }),
     result.unknownReward > 0 && t('snipe.countUnknown', { count: result.unknownReward }),
   ].filter((c): c is string => typeof c === 'string');
-  const best = [...result.hits].sort(
-    (a, b) => (sortKey.profit(b, '', 0) as number) - (sortKey.profit(a, '', 0) as number),
-  )[0];
+  const best = [...result.hits].sort((a, b) => snipeProfitKey(b) - snipeProfitKey(a))[0];
   const top = clampScroll(input.scroll ?? 0, rows.length);
+  const ownerMarked = input.playerMarked(list.owner);
   return {
     kind: 'list',
     owner: list.ownerName ?? input.playerName(list.owner) ?? String(list.owner),
+    ownerId: list.owner,
     ownerUrl: input.playerUrl(list.owner),
+    ...(ownerMarked !== undefined && { ownerMarked }),
     ...activityOf(input.foestats, input.today),
     at: list.at,
     sort: input.sort,

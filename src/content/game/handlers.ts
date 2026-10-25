@@ -24,6 +24,7 @@ import {
   toBuilding,
   toCity,
   toCityGrid,
+  toFormerFriend,
   toGreatBuildingEntity,
   toGreatBuildingLevelUp,
   toGreatBuildingListRows,
@@ -34,6 +35,8 @@ import {
   toItemAmount,
   toItemUpdates,
   toLimitedBonuses,
+  toListOwners,
+  toNewFriend,
   toNextProduction,
   toObservation,
   toObservationWithAttack,
@@ -118,6 +121,18 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
       guildMember: observations(d.guildMembers),
       friend: observations(d.friends),
     });
+  });
+
+  // Single friend messages change only `friend`; the social list stays the full truth. An accepted invitation brings
+  // the new friend as a whole player (recorded 2026-10-20). A deleted friendship answers with the player id, as only
+  // the old toolbox names it.
+  ingestion.on('FriendService', 'acceptInvitation', ({ data }) => {
+    const friend = toNewFriend(data);
+    if (friend) players.addFriend(world, friend);
+  });
+  ingestion.on('FriendService', 'deleteFriend', ({ data }) => {
+    const id = toFormerFriend(data);
+    if (id !== null) players.removeFriend(world, id);
   });
 
   ingestion.on('OtherPlayerService', 'visitPlayer', ({ data }) => {
@@ -406,7 +421,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   ingestion.on('GreatBuildingsService', 'getContributions', ({ data }) => {
     if (!Array.isArray(data)) return;
     catalog.setGreatBuildingNames(toGreatBuildingNames(data));
-    greatBuildings.noteContributions(toGreatBuildingListRows(data, session.current?.playerId));
+    greatBuildings.noteContributions(toGreatBuildingListRows(data, session.current?.playerId), toListOwners(data));
   });
   ingestion.on('BonusService', 'getLimitedBonuses', ({ data }) => {
     greatBuildings.setLimitedBonuses(toLimitedBonuses(data));

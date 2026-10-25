@@ -34,6 +34,10 @@ export interface GbHeader {
   arcBonus: number;
   /** the level selector: live or a preview of a later level */
   levels: LevelChoice;
+  /** the player put a star on the building */
+  marked: boolean;
+  /** the player put a star on the owner; missing when the player store does not know the owner */
+  ownerMarked?: boolean;
 }
 
 export interface CostCell {
@@ -126,7 +130,7 @@ export interface MeVm {
 
 export type GbCalculatorVm =
   | { kind: 'none' }
-  | { kind: 'noEntity'; owner: string; ownerUrl: string }
+  | { kind: 'noEntity'; owner: string; ownerUrl: string; ownerMarked?: boolean }
   | {
       kind: 'past';
       header: GbHeader;
@@ -159,6 +163,9 @@ export type GbCalculatorVm =
       me?: MeVm;
       /** Forge points until the level is full */
       missing: number;
+      /** paid in of the level and its costs, for the progress line in the head */
+      invested: number;
+      required: number;
       /** at least one place pays more than it costs */
       profitable: boolean;
     };
@@ -171,6 +178,9 @@ export interface GbCalculatorInput {
   playerName(id: Construction['owner']): string | undefined;
   /** a player's page at foestats */
   playerUrl(id: PlayerId): string;
+  isMarked(owner: PlayerId, entityId: number): boolean;
+  /** whether the owner carries a star; undefined for a player the store does not know */
+  playerMarked(id: PlayerId): boolean | undefined;
   /** Forge points of the bar; undefined while the resources are not known */
   fpBar?: number;
   /** Forge points in the packages of the inventory; undefined while the inventory is not known */
@@ -320,7 +330,8 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
   const owner = ownerName(c, c.rankings, input.playerName);
   const ownerUrl = input.playerUrl(c.owner);
   const entity = c.entity;
-  if (!entity) return { kind: 'noEntity', owner, ownerUrl };
+  const ownerMarked = input.playerMarked(c.owner);
+  if (!entity) return { kind: 'noEntity', owner, ownerUrl, ...(ownerMarked !== undefined && { ownerMarked }) };
   // the preview starts where the live construction ends; a level up can overtake a chosen level
   const levels = levelChoice(entity.level, input.previewLevel);
   const preview = levels.preview ? levels.chosen : undefined;
@@ -341,6 +352,8 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     fpPackages: input.fpPackages,
     arcBonus: input.arcBonus,
     levels,
+    marked: input.isMarked(c.owner, c.entityId),
+    ...(ownerMarked !== undefined && { ownerMarked }),
   };
   const arcButton = input.arcButton ? input.arcBonus : undefined;
   const effectiveFactor = effective(input.factor, arcButton);
@@ -389,6 +402,8 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     places,
     ...(!calc.blocked && { me: { ...meVm(calc), ...(levelUp && { levelUp }) } }),
     missing: Math.max(0, calc.missing),
+    invested: entity.invested,
+    required: entity.required,
     profitable: !calc.blocked && !c.leveled && places.some((p) => p.status === 'profit' && (p.profit ?? 0) > 0),
   };
 }

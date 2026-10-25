@@ -17,6 +17,7 @@ import { foestatsFeature } from './features/foestats';
 import { gbCalculatorFeature } from './features/gb-calculator';
 import { gbOwnShareFeature } from './features/gb-own-share';
 import { gbPowerLevelFeature } from './features/gb-power-level';
+import { investmentsFeature } from './features/investments';
 import { notesFeature } from './features/notes';
 import { pvpFeature } from './features/pvp';
 import { sabotageFeature } from './features/sabotage';
@@ -35,6 +36,7 @@ const features: Feature[] = [
   gbCalculatorFeature,
   gbOwnShareFeature,
   gbPowerLevelFeature,
+  investmentsFeature,
   foestatsFeature,
   settingsFeature,
 ];
@@ -60,6 +62,7 @@ async function main() {
     ui.load(),
     stores.players.load(world).catch((e) => logError('loading players failed', e)),
     stores.notes.load().catch((e) => logError('loading notes failed', e)),
+    stores.greatBuildings.load().catch((e) => logError('loading the time of the town hall list failed', e)),
   ]);
 
   const ctx: FeatureContext = {

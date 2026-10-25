@@ -46,6 +46,9 @@ export function formatDuration(ms: number): string {
   return withRest(t('duration.days', { days: Math.floor(hours / 24) }), hours % 24, hoursText);
 }
 
+/** how long ago something was, `ms` back, at least "1 Min.", so what just came never reads as 0 */
+export const formatAge = (ms: number) => formatDuration(Math.max(MINUTE, ms));
+
 /** "heute 14:05", "morgen 04:14", otherwise date and time. */
 export function formatWhen(epochMs: number, now: number): string {
   const day = (ms: number) => new Date(ms).toDateString();

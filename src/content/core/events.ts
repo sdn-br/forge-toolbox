@@ -8,7 +8,8 @@ export interface ToolboxEvents {
   'session.started': { session: Session };
   /** a box asks to open the settings at the group of its feature */
   'settings.open': { group: string };
-  'player.updated': { ids: PlayerId[]; source: PlayerSource };
+  /** `source` is where the data came from, or `mark` when the player put a star on a player or took it away */
+  'player.updated': { ids: PlayerId[]; source: PlayerSource | 'mark' };
   'city.ownChanged': { buildingIds?: number[]; reset: boolean };
   'city.visited': { owner: PlayerId };
   'city.visitedChanged': { owner: PlayerId; buildingIds: number[] };
@@ -40,8 +41,15 @@ export interface ToolboxEvents {
     entityId: number;
     reason: 'entity' | 'ranking' | 'contributed' | 'leveled';
   };
+  /** the player put or removed the star of a stored great building */
+  'greatBuilding.marked': { owner: PlayerId; entityId: number; marked: boolean };
   /** the great building list of another player arrived (not the own one); `at` is when, `entityIds` its buildings */
   'greatBuildings.listed': { owner: PlayerId; ownerName?: string; entityIds: number[]; at: number };
+  /**
+   * the town hall list of the own contributions arrived at `at`, with the names of the owners as it gives them;
+   * `known()` has it once read
+   */
+  'greatBuildings.contributions': { at: number; owners: { id: PlayerId; name: string }[] };
   /** the factors per place of a building changed (any of the three levels); without `def` those of every building */
   'gbOwn.factorsChanged': { def?: string };
   /** the Ext of a building's level changed */

@@ -9,21 +9,26 @@ import { arcBonus } from '../../domain/gb-calculator';
 import { type SnipeList, snipeList } from '../../domain/gb-snipe';
 import { FOESTATS_SETTING } from '../../stores/foestats';
 import type { Construction } from '../../stores/great-building-model';
-import { effectiveFactor } from '../../ui/factor-bar';
 import { icons } from '../../ui/icons';
+import { nextSort } from '../../ui/sortable';
 import { playTone } from '../../ui/tone';
 import { type SnipeActions, snipeView } from './snipe-view';
-import { clampScroll, DEFAULT_SORT, nextSort, type SnipeSort, type SnipeVm, snipeViewModel } from './snipe-view-model';
+import {
+  clampScroll,
+  DEFAULT_SORT,
+  SNIPE_DESC_FIRST,
+  type SnipeSort,
+  type SnipeVm,
+  snipeViewModel,
+} from './snipe-view-model';
 import { type GbCalculatorActions, gbCalculatorView } from './view';
 import { type GbCalculatorVm, gbCalculatorViewModel } from './view-model';
 
 /** the menu entry and the settings group show it */
 const ICON = icons.gbCalculator;
 
-const FACTOR = 'gbCalc.factor';
-const FACTOR_ARC = 'gbCalc.factorArc';
+const CALCULATOR_FACTOR = { value: 'gbCalc.factor', arc: 'gbCalc.factorArc', arcButton: 'gbCalc.arcButton' };
 const FACTOR_BUTTONS = 'gbCalc.factorButtons';
-const ARC_BUTTON = 'gbCalc.arcButton';
 const SOUND = 'gbCalc.sound';
 const RETENTION = 'snipe.retentionDays';
 /** a list this soon after the owner's building was opened or paid into is the game's own question, not the player's */
@@ -39,7 +44,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
     setup(ctx) {
       ctx.settings.registerGroup('gbCalc.title', ICON);
       ctx.settings.register({
-        key: FACTOR,
+        key: CALCULATOR_FACTOR.value,
         group: 'gbCalc.title',
         label: 'gbCalc.factorSetting',
         default: 90,
@@ -49,7 +54,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         asFactor: true,
       });
       ctx.settings.register({
-        key: FACTOR_ARC,
+        key: CALCULATOR_FACTOR.arc,
         group: 'gbCalc.title',
         label: 'gbCalc.factorArcSetting',
         default: false,
@@ -66,7 +71,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         asFactor: true,
       });
       ctx.settings.register({
-        key: ARC_BUTTON,
+        key: CALCULATOR_FACTOR.arcButton,
         group: 'gbCalc.title',
         label: 'gbCalc.arcButtonSetting',
         default: true,
@@ -125,21 +130,34 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
 
       const save = (key: string, value: boolean | number) =>
         ctx.settings.set(key, value).catch((error) => logError('saving settings failed', error));
+      /** whether the player store knows the player and has them marked; undefined for an unknown one, who takes no star */
+      const playerMarked = (id: PlayerId) =>
+        ctx.players.get(id)?.marked === true || (ctx.players.get(id) ? false : undefined);
+      const markBuilding = (owner: PlayerId, entityId: number, marked: boolean) =>
+        ctx.greatBuildings
+          .mark(owner, entityId, marked)
+          .catch((error) => logError('marking a great building failed', error));
       const actions: GbCalculatorActions = {
         setFactor: (value) => {
-          save(FACTOR, value);
-          save(FACTOR_ARC, false);
+          save(CALCULATOR_FACTOR.value, value);
+          save(CALCULATOR_FACTOR.arc, false);
         },
-        useArc: () => save(FACTOR_ARC, true),
+        useArc: () => save(CALCULATOR_FACTOR.arc, true),
         previewLevel: (level) => {
           preview = level;
           refresh();
         },
+        toggleMark: (marked) => {
+          if (shown) markBuilding(shown.owner, shown.entityId, marked);
+        },
+        toggleOwnerMark: (marked) => {
+          if (shown) ctx.players.setMarked(shown.owner, marked);
+        },
       };
 
       const snipeActions: SnipeActions = {
-        sort: (column) => {
-          sort = nextSort(sort, column);
+        sort: (column, append) => {
+          sort = nextSort(sort, column, SNIPE_DESC_FIRST, append);
           refresh();
         },
         scroll: (rows) => {
@@ -151,13 +169,16 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           expanded = !expanded;
           box.update();
         },
+        mark: markBuilding,
+        markPlayer: (player, marked) => ctx.players.setMarked(player, marked),
       };
 
       const box = ctx.createBox({
         id: 'gbCalculator',
         settings: 'gbCalc.title',
         title: () => t('gbCalc.title'),
-        width: 520,
+        // the snipe table: fixed columns of 518 px and the building name; until 2026-10-25 a CSS cap held fixed boxes at 520 px
+        width: 602,
         // 6 table rows, the section and the calculator fit without the body scrolling on a normal window
         maxHeight: 0.92,
         render: () => html`${snipeView(snipeVm, snipeActions, expanded)}${gbCalculatorView(vm, actions)}`,
@@ -169,12 +190,14 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
           playerName: (id) => ctx.players.get(id)?.name,
           playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
+          isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
+          playerMarked,
           fpBar: ctx.resources.known ? ctx.resources.amount(FP) : undefined,
           fpPackages: ctx.inventory.knowsPackages ? ctx.inventory.forgePointPackages() : undefined,
           arcBonus: arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses()),
-          factor: { value: ctx.settings.number(FACTOR), arc: ctx.settings.get(FACTOR_ARC) },
+          factor: { value: ctx.settings.number(CALCULATOR_FACTOR.value), arc: ctx.settings.get(CALCULATOR_FACTOR.arc) },
           factorButtons: ctx.settings.numbers(FACTOR_BUTTONS),
-          arcButton: ctx.settings.get(ARC_BUTTON),
+          arcButton: ctx.settings.get(CALCULATOR_FACTOR.arcButton),
           foestats: shown && ctx.settings.get(FOESTATS_SETTING.key) ? ctx.foestats.get(shown.owner) : undefined,
           today: foestatsDay(Date.now()),
           previewLevel: preview,
@@ -187,10 +210,6 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
             buildings: listed,
             greatBuilding: (def) => ctx.catalog.get(def)?.greatBuilding,
             arcBonus: arc,
-            factor: effectiveFactor(
-              { value: ctx.settings.number(FACTOR), arc: ctx.settings.get(FACTOR_ARC) },
-              ctx.settings.get(ARC_BUTTON) ? arc : undefined,
-            ),
           });
         snipeVm = snipeViewModel({
           list,
@@ -198,8 +217,11 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
           playerName: (id) => ctx.players.get(id)?.name,
           playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
+          isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
+          playerMarked,
           foestats: list && ctx.settings.get(FOESTATS_SETTING.key) ? ctx.foestats.get(list.owner) : undefined,
           today: foestatsDay(Date.now()),
+          now: Date.now(),
           sort,
           scroll,
         });
@@ -278,6 +300,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         refresh();
         maybeTone(reason === 'leveled');
       });
+      ctx.bus.on('greatBuilding.marked', refresh);
       ctx.bus.on('resources.changed', refresh);
       ctx.bus.on('inventory.changed', refresh);
       ctx.bus.on('city.ownChanged', refresh);

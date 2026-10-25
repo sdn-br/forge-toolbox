@@ -100,8 +100,13 @@ export const icons = {
   gbOwnShare: menuIcon(svg`${castle(0.82, 2.2, 0)}
     <rect x="3" y="19.2" width="18" height="3.2" rx="1"/>
     <rect class="acc" x="3" y="19.2" width="7.5" height="3.2" rx="1" fill="currentColor"/>`),
+  /** the castle small, beside it in the accent the FP coin of the game: rim and stamp */
+  investments: menuIcon(svg`${castle(0.78, 0, 5.2)}
+    <g class="acc"><circle cx="18" cy="6.5" r="4.6"/><circle cx="18" cy="6.5" r="2" stroke-width="1.4"/></g>`),
 };
 
+const FORWARD = 'M20 12a8 8 0 1 1-2.3-5.6';
+const FUNNEL = 'M3.5 4.5h17l-6.5 8v6l-4 2v-8Z';
 const STAR = 'M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9Z';
 
 /** the icons of the box header */
@@ -122,18 +127,32 @@ export const headerIcons = {
   ),
   /** an arrow turning back counter-clockwise: reset */
   reset: headerIcon(svg`<path d="M4 12a8 8 0 1 0 2.3-5.6"/><path d="M4 4v4.5h4.5"/>`),
-  /** the great building castle: values of this building only, beside the star of the standard */
+  /** the great building castle: values of this building only, beside the checked arrow of the standard */
   castle: headerIcon(castleShape),
   /** a pencil: changed, not saved */
   pencil: headerIcon(
     svg`<path d="M4 20l1-4.5L15.5 5a2 2 0 0 1 2.8 0l.7.7a2 2 0 0 1 0 2.8L8.5 19Z"/><path d="M13.5 7l3.5 3.5"/>`,
   ),
-  /** a five-pointed star: make it the standard */
+  /** a five-pointed star: remember a building or a player */
   star: headerIcon(svg`<path d="${STAR}"/>`),
-  /** the star filled: the standard applies */
+  /** the star filled: remembered */
   starFilled: headerIcon(svg`<path d="${STAR}" fill="currentColor"/>`),
+  /** the reset arrow mirrored, turning clockwise: make it the standard */
+  adopt: headerIcon(svg`<path d="${FORWARD}"/><path d="M20 4v4.5h-4.5"/>`),
+  /** the same arrow with an accent check inside: the standard applies */
+  adopted: headerIcon(svg`<path d="${FORWARD}"/><path class="acc" d="M8.6 12.2l2.4 2.4 4.4-4.6"/>`),
   /** head and shoulders: a player */
   person: headerIcon(svg`<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5c0-4.2 3.3-6.8 7.5-6.8s7.5 2.6 7.5 6.8"/>`),
+  /** the motifs of the game's social bar: a gabled house with a smaller one behind, a neighbour */
+  neighbor: headerIcon(
+    svg`<path d="M2.5 13 8.5 7.5l6 5.5"/><path d="M4.2 11.8V20.5h8.6v-8.7"/><path d="M7.3 20.5v-4h2.4v4"/><path d="M12.8 9.2 16.6 6l4.6 4"/><path d="M19.8 9v11.5h-7"/>`,
+  ),
+  /** two people, the one behind a bit higher: a friend */
+  friend: headerIcon(
+    svg`<circle cx="8.3" cy="7" r="3"/><path d="M2.5 18.5c0-3.6 2.4-6 5.8-6 1 0 1.9.2 2.7.6"/><circle cx="15.6" cy="10" r="3.2"/><path d="M9.6 21.5c0-3.6 2.6-6 6-6s6 2.4 6 6"/>`,
+  ),
+  /** the whole heraldic shield: a guild member (the sabotage shield is broken in two) */
+  guild: headerIcon(svg`<path d="M5 4h14v7.2c0 4.6-3 7.8-7 9.3-4-1.5-7-4.7-7-9.3Z"/>`),
   /** a clock: a promised payment, not paid yet */
   clock: headerIcon(svg`<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.2 2"/>`),
   /** a warning triangle: danger */
@@ -244,4 +263,18 @@ export const headerIcons = {
   fit: headerIcon(svg`<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>`),
   /** a circle with a slash: nothing to get here */
   noReward: headerIcon(svg`<circle cx="12" cy="12" r="8.5"/><path d="m6 6 12 12"/>`),
+  /** the FP coin, three arrows rising in the accent cut into it: profit */
+  profit:
+    headerIcon(svg`<circle cx="8.6" cy="9.6" r="6.4" stroke-width="2"/><circle cx="8.6" cy="9.6" r="2.56" stroke-width="1.4"/>
+    <g class="acc" fill="currentColor" stroke="var(--btn)" stroke-width="1.4" stroke-linejoin="miter" paint-order="stroke">
+      <path d="M11.6 21V16H10.8L12.6 13.2L14.4 16H13.6V21Z"/><path d="M15.6 21V12.4H14.8L16.6 9.6L18.4 12.4H17.6V21Z"/>
+      <path d="M19.6 21V8.4H18.8L20.6 5.6L22.4 8.4H21.6V21Z"/></g>`),
+  /** the person struck through, the stroke cut out of the person: out of reach */
+  notReachable:
+    headerIcon(svg`<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5c0-4.2 3.3-6.8 7.5-6.8s7.5 2.6 7.5 6.8"/>
+    <path d="M4 4 20 20" stroke="var(--btn)" stroke-width="5"/><path d="M4 4 20 20"/>`),
+  /** a funnel: filter by this */
+  funnel: headerIcon(svg`<path d="${FUNNEL}"/>`),
+  /** the funnel filled: this filter is set, like the filled star */
+  funnelFilled: headerIcon(svg`<path d="${FUNNEL}" fill="currentColor"/>`),
 };

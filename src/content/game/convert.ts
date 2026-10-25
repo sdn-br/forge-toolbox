@@ -274,6 +274,21 @@ export function toObservation(p: GamePlayer): PlayerObservation | null {
   };
 }
 
+/** The new friend of an accepted invitation (recorded 2026-10-20): the whole player with `is_friend`, no score or rank. */
+export function toNewFriend(data: unknown): PlayerObservation | null {
+  const p = data as GamePlayer | null;
+  if (!p || typeof p !== 'object' || p.is_friend !== true) return null;
+  const o = toObservation(p);
+  if (!o) return null;
+  const { score, rank, ...rest } = o;
+  return { ...rest, ...(typeof p.score === 'number' && { score }), ...(typeof p.rank === 'number' && { rank }) };
+}
+
+/** The player of a deleted friendship: the response is the bare player id (recorded 2026-10-25). */
+export function toFormerFriend(data: unknown): PlayerId | null {
+  return typeof data === 'number' && Number.isInteger(data) && data > 0 ? playerId(data) : null;
+}
+
 /**
  * The attack timers of a player that the game sends whole. A missing field means it is not set: after a plunder
  * `canSabotage` is gone (seen 2026-10-21), so the player is no longer plunderable.
@@ -587,6 +602,8 @@ export function toGreatBuildingListRows(data: unknown, except?: PlayerId): Great
       return [];
     if (owner === except) return [];
     const rank = num(r?.rank);
+    const forgePoints = num(r?.forge_points);
+    const reward = num(r?.reward?.strategy_point_amount);
     return [
       {
         owner: playerId(owner),
@@ -596,9 +613,21 @@ export function toGreatBuildingListRows(data: unknown, except?: PlayerId): Great
         invested: num(r?.current_progress) ?? 0,
         required,
         ...(rank !== undefined && { rank }),
+        ...(rank !== undefined && forgePoints !== undefined && { forgePoints, reward: reward ?? 0 }),
       },
     ];
   });
+}
+
+/** The owners of the rows of a great building list with the names the list gives them. */
+export function toListOwners(data: unknown): { id: PlayerId; name: string }[] {
+  const owners = new Map<PlayerId, string>();
+  for (const r of (Array.isArray(data) ? data : []) as (GameGreatBuildingListRow | null)[]) {
+    const id = num(r?.player?.player_id);
+    const name = r?.player?.name;
+    if (id !== undefined && typeof name === 'string' && name !== '') owners.set(playerId(id), name);
+  }
+  return [...owners].map(([id, name]) => ({ id, name }));
 }
 
 /** Display names of great buildings by definition, from the inventory list or the overview of a player. */

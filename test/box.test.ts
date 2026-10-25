@@ -112,6 +112,13 @@ describe('box resize', () => {
     expect(handle()).not.toBeNull();
   });
 
+  it('keeps a configured width above the width cap of the fixed boxes', async () => {
+    const { frame } = await shownBox();
+    // the cap sits on the class of the fixed boxes
+    expect(frame().classList.contains('capped')).toBe(false);
+    expect(frame().style.maxWidth).toBe('');
+  });
+
   it('resizes from the handle, saves the size and restores it on the next open', async () => {
     const { resize, frame, ui } = await shownBox();
     await resize(180, 100);

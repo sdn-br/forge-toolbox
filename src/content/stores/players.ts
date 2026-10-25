@@ -10,8 +10,9 @@ export interface PlayerObservation {
   avatar: string;
   cityName: string;
   era: EraId;
-  score: number;
-  rank: number;
+  /** missing keeps what is known, as from an accepted friend invitation */
+  score?: number;
+  rank?: number;
   active: boolean;
   guild: GuildRef | null;
   /** only from sources that carry the whole player with its timers; missing keeps what is known */
@@ -39,7 +40,16 @@ export class PlayerStore {
   /** Persisted players fill the gaps; whatever the game already reported this session wins. */
   async load(world: WorldId): Promise<void> {
     const rows = await this.persistence.load(world);
-    for (const row of rows) if (!this.players.has(row.id)) this.players.set(row.id, row);
+    for (const row of rows) {
+      const live = this.players.get(row.id);
+      if (!live) this.players.set(row.id, row);
+      // the mark is the player's own and the game never reports it, so what the database holds stays
+      else if (row.marked && !live.marked) {
+        this.players.set(row.id, { ...live, marked: true });
+        this.dirty.add(row.id);
+        this.scheduleFlush();
+      }
+    }
   }
 
   get(id: PlayerId): Player | undefined {
@@ -49,6 +59,18 @@ export class PlayerStore {
   list(filter: { relation?: keyof Relations } = {}): Player[] {
     const all = [...this.players.values()];
     return filter.relation ? all.filter((p) => p.relations[filter.relation as keyof Relations]) : all;
+  }
+
+  /** Puts a star on a player or takes it away. Only a player the store knows can be marked; false for any other. */
+  setMarked(id: PlayerId, marked: boolean): boolean {
+    const p = this.players.get(id);
+    if (!p) return false;
+    if ((p.marked === true) !== marked) {
+      const { marked: _, ...rest } = p;
+      this.players.set(id, marked ? { ...rest, marked: true } : rest);
+      this.changed(new Set([id]), 'mark');
+    }
+    return true;
   }
 
   /** The social list is the full truth about relations: whoever is missing from a list loses that relation. */
@@ -78,6 +100,21 @@ export class PlayerStore {
     this.changed(touched, source);
   }
 
+  /** An accepted friend invitation: the new friend with what the player brings; the other relations stay. */
+  addFriend(world: WorldId, o: PlayerObservation): void {
+    const touched = new Set<PlayerId>();
+    this.merge(world, o, 'friend', { ...(this.players.get(o.id)?.relations ?? NO_RELATIONS), friend: true }, touched);
+    this.changed(touched, 'friend');
+  }
+
+  /** A deleted friendship takes only `friend`; a player the store does not know stays unknown. */
+  removeFriend(world: WorldId, id: PlayerId): void {
+    const p = this.players.get(id);
+    if (!p || p.world !== world || !p.relations.friend) return;
+    this.players.set(id, { ...p, relations: { ...p.relations, friend: false } });
+    this.changed(new Set([id]), 'friend');
+  }
+
   private merge(
     world: WorldId,
     o: PlayerObservation,
@@ -87,14 +124,17 @@ export class PlayerStore {
   ) {
     const old = this.players.get(o.id);
     const now = this.now();
-    const { guild, attack, ...fields } = o;
+    const { guild, attack, score, rank, ...fields } = o;
     const known = attack ?? old?.attack;
     this.players.set(o.id, {
       ...fields,
+      score: score ?? old?.score ?? 0,
+      rank: rank ?? old?.rank ?? 0,
       world,
       guild: guild ?? undefined,
       relations: relations ?? old?.relations ?? NO_RELATIONS,
       ...(known && { attack: known }),
+      ...(old?.marked && { marked: true }),
       firstSeenAt: old?.firstSeenAt ?? now,
       seenAt: now,
       source,
@@ -102,7 +142,7 @@ export class PlayerStore {
     touched.add(o.id);
   }
 
-  private changed(ids: Set<PlayerId>, source: PlayerSource) {
+  private changed(ids: Set<PlayerId>, source: PlayerSource | 'mark') {
     if (ids.size === 0) return;
     for (const id of ids) this.dirty.add(id);
     this.scheduleFlush();

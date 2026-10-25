@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { snipeBuilding, snipeList } from '../src/content/domain/gb-snipe';
+import { ownerShare, snipeBuilding, snipeList } from '../src/content/domain/gb-snipe';
 import type { GreatBuildingDef } from '../src/content/stores/catalog';
 import type { RankingRow } from '../src/content/stores/great-building-model';
 import { buildingDefId, playerId, worldId } from '../src/shared/ids';
@@ -37,15 +37,15 @@ const ranking = (ownerFp: number, ...holders: number[]): Partial<KnownGreatBuild
   rankingsInvested: ownerFp + holders.reduce((a, b) => a + b, 0),
 });
 
-const run = (b: KnownGreatBuilding, arc = 0) => snipeBuilding(b, def, arc, 90);
+const run = (b: KnownGreatBuilding, arc = 0) => snipeBuilding(b, def, arc);
 
 describe('snipeBuilding', () => {
   it('leaves out a building with an own contribution, before anything else', () => {
-    expect(snipeBuilding(building({ ownContribution: true }), undefined, 0, 90)).toBe('ownContribution');
+    expect(snipeBuilding(building({ ownContribution: true }), undefined, 0)).toBe('ownContribution');
   });
 
   it('counts a building without a definition or with a level no table reaches as unknown reward', () => {
-    expect(snipeBuilding(building(), undefined, 0, 90)).toBe('unknownReward');
+    expect(snipeBuilding(building(), undefined, 0)).toBe('unknownReward');
     expect(run(building({ level: 600 }))).toBe('unknownReward');
   });
 
@@ -73,6 +73,11 @@ describe('snipeBuilding', () => {
       profitHigh: 10,
     });
     expect(hit).not.toHaveProperty('worst');
+  });
+
+  it('has no hit for a place with a loss, even one cheaper than paying it at a factor', () => {
+    // place 1 is safe at 500 for 485: a loss of 15, though below 485 at 1.9
+    expect(run(building({ invested: 0, required: 1_000 }))).toBe('none');
   });
 
   it('has no hit when not even the best case pays a place', () => {
@@ -134,12 +139,64 @@ describe('snipeList', () => {
       ],
       greatBuilding: (id) => (id === DEF_ID ? def : undefined),
       arcBonus: 0,
-      factor: 90,
     });
     expect(list.hits.map((h) => [h.entityId, h.profitHigh])).toEqual([
       [1, 285],
       [2, 135],
     ]);
     expect(list).toMatchObject({ none: 1, ownContribution: 1, unknownReward: 1 });
+  });
+});
+
+describe('ownerShare', () => {
+  const OWNER = playerId(1001);
+  const ownerRow = (fp: number | undefined, over: Partial<RankingRow> = {}): RankingRow => ({
+    name: 'Eigentümer',
+    self: false,
+    ...(fp !== undefined && { fp }),
+    ...over,
+  });
+
+  it('is current for a ranking of the level whose sum is the progress', () => {
+    expect(ownerShare(building({ invested: 400, ...ranking(100, 300) }))).toEqual({ state: 'current', fp: 100 });
+  });
+
+  it('is stale, with the time of the ranking, when the progress moved since', () => {
+    expect(ownerShare(building({ invested: 450, ...ranking(100, 300) }))).toEqual({
+      state: 'stale',
+      fp: 100,
+      at: 900,
+    });
+  });
+
+  it('dates a stale share by the sight of the building when the ranking carries no time', () => {
+    const b = building({ invested: 450, ...ranking(100, 300), rankingsAt: undefined, seenAt: 1_234 });
+    expect(ownerShare(b)).toEqual({ state: 'stale', fp: 100, at: 1_234 });
+  });
+
+  it('is unknown without a ranking or with one of another level', () => {
+    expect(ownerShare(building({ invested: 400 }))).toEqual({ state: 'unknown' });
+    expect(ownerShare(building({ invested: 400, ...ranking(100, 300), rankingsLevel: 49 }))).toEqual({
+      state: 'unknown',
+    });
+  });
+
+  it('is 0 when the owner row has no points', () => {
+    const b = building({ invested: 300, ...ranking(0, 300), rankings: [ownerRow(undefined), place(1, 300)] });
+    expect(ownerShare(b)).toEqual({ state: 'current', fp: 0 });
+  });
+
+  it('is 0 when the ranking has no owner row at all', () => {
+    const b = building({ invested: 300, ...ranking(0, 300), rankings: [place(1, 300)] });
+    expect(ownerShare(b)).toEqual({ state: 'current', fp: 0 });
+  });
+
+  it('finds the owner row by player id, whatever its rank, before the row without a rank', () => {
+    const b = building({
+      invested: 400,
+      ...ranking(100, 300),
+      rankings: [ownerRow(100, { player: OWNER, rank: 2 }), ownerRow(7), place(1, 300)],
+    });
+    expect(ownerShare(b)).toEqual({ state: 'current', fp: 100 });
   });
 });

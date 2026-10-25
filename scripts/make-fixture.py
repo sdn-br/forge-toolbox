@@ -36,6 +36,11 @@
 # keeps the metadata file of each named great building, trimmed to id, name, type, min_era, the level costs and the type
 # and values of its production bonus (the Forge points per level of a Forge point building).
 
+# Friend accepted: python3 -I scripts/make-fixture.py friend-accept <recording.json> <out.json>
+# Friend deleted: python3 -I scripts/make-fixture.py friend-delete <recording.json> <out.json>
+# keeps the first FriendService.acceptInvitation (request: the player id, response: the new friend as a whole player),
+# with a fake player id, name, city, guild and friendship id, without profile text and guild description.
+
 import json,sys
 
 def battle_fixture(rec,out):
@@ -447,6 +452,44 @@ def gb_contributions_fixture(rec,out,rows):
       'contributions':{'requestClass':data['requestClass'],'requestMethod':data['requestMethod'],'requestData':None,'responseData':[row(x) for x in data['responseData'][:rows]]}}
     json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
 
+def friend_accept_fixture(rec,out):
+    FRIEND=1001
+    entry=world=None
+    for r in rec:
+        if r['kind']!='json' or entry: continue
+        try: res=json.loads(r['response'])
+        except (TypeError,ValueError): continue
+        for e in (res if isinstance(res,list) else []):
+            if isinstance(e,dict) and e.get('requestClass')=='FriendService' and e.get('requestMethod')=='acceptInvitation':
+                entry=e; world=r['url'].split('//')[1].split('.')[0]
+    d=entry['responseData']
+    keep={k:d[k] for k in ('is_friend','has_great_building','is_active','era','incoming','accepted','activity','__class__') if k in d}
+    clan={'id':1,'name':'Testgilde','flag':d['clan'].get('flag',''),'__class__':d['clan'].get('__class__')} if d.get('clan') else None
+    player={'player_id':FRIEND,'name':'Neuer Freund','avatar':'','city_name':'Freundesstadt',**keep,'id':5001}
+    if clan: player.update(clan_id=1,clan=clan)
+    fixture={'note':f'FriendService.acceptInvitation recorded on {world} 2026-10-20: the new friend as a whole player. Ids, names, city and guild anonymized (friend 1001, guild 1), profile text and guild description dropped.',
+      'accept':{'requestClass':'FriendService','requestMethod':'acceptInvitation','requestData':[FRIEND],'responseData':player}}
+    json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
+
+def friend_delete_fixture(rec,out):
+    FRIEND=1001
+    entry=world=None
+    for r in rec:
+        if r['kind']!='json' or entry: continue
+        try: res=json.loads(r['response'])
+        except (TypeError,ValueError): continue
+        for e in (res if isinstance(res,list) else []):
+            if isinstance(e,dict) and e.get('requestClass')=='FriendService' and e.get('requestMethod')=='deleteFriend':
+                entry=e; world=r['url'].split('//')[1].split('.')[0]
+    assert isinstance(entry['responseData'],int), 'deleteFriend no longer answers the bare player id'
+    fixture={'note':f'FriendService.deleteFriend recorded on {world} 2026-10-25: the request is [player id], the response the bare player id. Id anonymized (friend 1001).',
+      'delete':{'requestClass':'FriendService','requestMethod':'deleteFriend','requestData':[FRIEND],'responseData':FRIEND}}
+    json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
+
+if sys.argv[1]=='friend-delete':
+    friend_delete_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
+if sys.argv[1]=='friend-accept':
+    friend_accept_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
 if sys.argv[1]=='gb-contributions':
     gb_contributions_fixture(json.load(open(sys.argv[2])),sys.argv[3],int(sys.argv[4]) if len(sys.argv)>4 else 12); sys.exit()
 if sys.argv[1] in ('gb-own-level-up','gb-level-up'):

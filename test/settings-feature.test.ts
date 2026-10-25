@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
+import { Recorder } from '../src/content/core/recorder';
 import { createGbOwnShareFeature } from '../src/content/features/gb-own-share';
 import { settingsFeature } from '../src/content/features/settings-feature';
 import { featureContext } from './helpers/feature-context';
@@ -65,5 +66,26 @@ describe('settings box layout', () => {
     ctx.bus.emit('settings.open', { group: 'gbOwn.title' });
     await tick();
     expect(box.root.querySelector('.settings-main h2')?.textContent).toBe('Eigenanteil');
+  });
+});
+
+describe('settings box recording', () => {
+  it('clears the recorded data, greyed while there is none', async () => {
+    const env = featureContext();
+    const { ctx } = env;
+    ctx.recorder = new Recorder(() => true);
+    settingsFeature.setup(ctx);
+    await ctx.settings.set('core.record', true);
+    ctx.bus.emit('settings.open', { group: 'settings.core' });
+    const box = env.boxes.get('settings') as NonNullable<ReturnType<typeof env.boxes.get>>;
+    ctx.recorder.add({ kind: 'ws', data: '[]', at: 0 });
+    ctx.recorder.add({ kind: 'ws', data: '[]', at: 0 });
+    await tick();
+    const clear = () => box.root.querySelector('[aria-label="Aufnahmedaten löschen"]') as HTMLButtonElement;
+    expect(clear().getAttribute('aria-disabled')).toBe('false');
+    clear().click();
+    await tick();
+    expect(ctx.recorder.count).toBe(0);
+    expect(clear().getAttribute('aria-disabled')).toBe('true');
   });
 });

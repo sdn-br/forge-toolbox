@@ -2,8 +2,11 @@ import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import type { LevelUpAndFirst } from '../../domain/gb-level-preview';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
+import { fpBar, progressPercent } from '../../ui/fp-bar';
+import { headerIcons } from '../../ui/icons';
 import { levelBar } from '../../ui/level-bar';
 import { externalLink } from '../../ui/links';
+import { starButton } from '../../ui/star';
 import type {
   ActivityVm,
   CostCell,
@@ -18,6 +21,10 @@ import type {
 export interface GbCalculatorActions extends FactorActions {
   /** preview a later level; undefined goes back to the current construction */
   previewLevel(level: number | undefined): void;
+  /** puts the star on the shown building or takes it away */
+  toggleMark(marked: boolean): void;
+  /** puts the star on the owner of the shown building or takes it away */
+  toggleOwnerMark(marked: boolean): void;
 }
 
 const percent = (n: number) => `${formatNumber(n)} %`;
@@ -28,9 +35,20 @@ export const activityLine = (a: ActivityVm) =>
       a.week ? ` · ${a.week}` : ''
     }</span>${a.loading ? html` <span class="spinner" data-tip=${t('foestats.loading')}></span>` : ''}`;
 
-export const owner = (name: string, url: string) => html`${t('gbCalc.ownerLabel')}: ${externalLink(name, url)}`;
+/** the owner with a star when the player store knows them (`marked` set) */
+export const owner = (name: string, url: string, mark?: { marked: boolean; toggle(marked: boolean): void }) =>
+  html`<span class="gb-owner">${t('gbCalc.ownerLabel')}: ${externalLink(name, url)}${
+    mark ? html` ${starButton(mark.marked, () => mark.toggle(!mark.marked))}` : ''
+  }</span>`;
 
-function header(h: GbHeader) {
+const ownerOf = (h: { owner: string; ownerUrl: string; ownerMarked?: boolean }, actions: GbCalculatorActions) =>
+  owner(
+    h.owner,
+    h.ownerUrl,
+    h.ownerMarked === undefined ? undefined : { marked: h.ownerMarked, toggle: actions.toggleOwnerMark },
+  );
+
+function header(h: GbHeader, actions: GbCalculatorActions) {
   const fp =
     h.availableFp === undefined
       ? t('gbCalc.availableUnknown')
@@ -38,10 +56,19 @@ function header(h: GbHeader) {
   const part = (n: number | undefined) => (n === undefined ? '?' : formatNumber(n));
   const split = t('gbCalc.fpSplit', { bar: part(h.fpBar), packages: part(h.fpPackages) });
   return html`<p><span class="gb-title">${t('gbCalc.heading', { name: h.name, level: h.level, next: h.next })}</span>
+    ${starButton(h.marked, () => actions.toggleMark(!h.marked))}
     <span class="muted">· ${t('gbCalc.unlocked', { max: h.maxLevel })}</span>
-    <br />${owner(h.owner, h.ownerUrl)}${h.activity ? activityLine(h.activity) : ''}
+    <br />${ownerOf(h, actions)}${h.activity ? activityLine(h.activity) : ''}
     <br /><span class="muted"><span class="gb-fp" data-tip=${split}>${fp}</span> ·
       ${t('gbCalc.arc', { arc: formatNumber(h.arcBonus) })}</span></p>`;
+}
+
+/** paid in of the running level with a thin bar under it, as the investments show it */
+function progressLine(invested: number, required: number, missing: number) {
+  return html`<div class="gb-progress">
+    ${t('gbCalc.progress', { invested: formatNumber(invested), required: formatNumber(required), fp: formatNumber(missing) })}
+    ${fpBar(progressPercent(invested, required))}
+  </div>`;
 }
 
 /** stands where a place has no cost, below the own one */
@@ -155,7 +182,7 @@ function placesTable(places: PlaceRow[]) {
       <th class="num" data-tip=${t('gbCalc.investedHint')}>${t('gbCalc.invested')}</th>
       <th class="num" data-tip=${t('gbCalc.safeHint')}>${t('gbCalc.safe')}</th>
       <th class="num" data-tip=${t('gbCalc.grossHint')}>${t('gbCalc.gross')}</th>
-      <th class="num">${t('gbCalc.profit')}</th>
+      <th class="num" data-tip=${t('gbCalc.profit')} aria-label=${t('gbCalc.profit')}>${headerIcons.profit}</th>
       <th class="num" data-tip=${t('gbCalc.demandHint')}>${t('gbCalc.demand')}</th>
       <th class="num" data-tip=${t('gbCalc.rateHint')}>${t('gbCalc.rate')}</th>
     </tr>
@@ -185,9 +212,9 @@ export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorAction
     case 'none':
       return html`<p class="muted">${t('gbCalc.none')}</p>`;
     case 'noEntity':
-      return html`<p>${owner(vm.owner, vm.ownerUrl)}</p><p class="warn">${t('gbCalc.noEntity')}</p>`;
+      return html`<p>${ownerOf(vm, actions)}</p><p class="warn">${t('gbCalc.noEntity')}</p>`;
     case 'past':
-      return html`${header(vm.header)}
+      return html`${header(vm.header, actions)}
         ${levelBar(vm.header.levels, (level) => actions.previewLevel(level))}
         <p class="warn">${t('gbCalc.pastLevel', { from: vm.level - 1, to: vm.level })}</p>
         <table class="gb-table">
@@ -199,22 +226,22 @@ export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorAction
           )}
         </table>`;
     case 'preview':
-      return html`${header(vm.header)}
+      return html`${header(vm.header, actions)}
         ${levelBar(vm.header.levels, (level) => actions.previewLevel(level))}
         ${factorBar(vm.factorButtons, vm.effectiveFactor, actions)}
         ${vm.levelUp ? html`<p class="gb-me">${levelUpLine(vm.levelUp)}</p>` : ''}
         ${previewPart(vm.preview)}`;
     case 'current': {
       const overlay = overlayText(vm);
-      return html`${header(vm.header)}
+      return html`${header(vm.header, actions)}
+        ${progressLine(vm.invested, vm.required, vm.missing)}
         ${levelBar(vm.header.levels, (level) => actions.previewLevel(level))}
         ${factorBar(vm.factorButtons, vm.effectiveFactor, actions)}
         ${vm.me ? meLine(vm.me) : ''}
         <div class="gb-places">
           ${placesTable(vm.places)}
           ${overlay ? html`<div class="gb-overlay"><p>${overlay}</p></div>` : ''}
-        </div>
-        <p>${t('gbCalc.missing', { fp: formatNumber(vm.missing) })}</p>`;
+        </div>`;
     }
   }
 }

@@ -5,13 +5,12 @@ export const baseCss = `
 /* the accent parts of an icon */
 .acc { color: var(--accent); }
 * { box-sizing: border-box; }
-.box { position: fixed; min-width: 260px; max-width: 520px; background: var(--bg); color: var(--ink);
+.box { position: fixed; min-width: 260px; background: var(--bg); color: var(--ink);
   font: 12px/1.4 system-ui, sans-serif; border: 2px solid #8a6a3a; border-radius: 6px;
   box-shadow: 0 4px 16px rgba(0,0,0,.5); }
-.box.popped { position: static; max-width: none; height: 100vh; border: 0; border-radius: 0; }
-/* resized by the viewer: no width cap; with a height the body takes what the header leaves and scrolls */
-.box.sized { max-width: none; }
-/* a box without the resize handle (capped): the max height sits on the box, the body scrolls beyond it */
+.box.popped { position: static; height: 100vh; border: 0; border-radius: 0; }
+/* a box without the resize handle (capped): its height is capped (inline), the body scrolls beyond it; its width is the
+   configured one, only the window caps it (box.ts). A box with the handle has the width it is given or resized to */
 .box.tall, .box.popped, .box.capped { display: flex; flex-direction: column; }
 .box.tall .body, .box.popped .body, .box.capped .body { flex: 1 1 auto; min-height: 0; max-height: none; }
 .resize-handle { position: absolute; right: 0; bottom: 0; width: 14px; height: 14px; cursor: nwse-resize;
@@ -35,7 +34,7 @@ td.num, th.num { text-align: right; }
 .error { color: #f07060; }
 button.action { margin: 2px 4px 2px 0; }
 /* text buttons in the box colours, like the fields; icon, header, menu and settings buttons have their own looks */
-.gb-factor button:not(.icon), .gb-levels button:not(.icon), button.action, .tabs button, .map-tools button,
+.gb-factor button:not(.icon), .gb-levels button:not(.icon), button.action, .map-tools button,
 .stats-tab, .power-open button {
   font: inherit; cursor: pointer; color: var(--ink); background: var(--btn); border: 1px solid var(--line);
   border-radius: 3px; padding: 1px 6px;
@@ -74,7 +73,16 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
 input[type=number] { appearance: textfield; -moz-appearance: textfield; }
 input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input.num, input[type=number] { text-align: right; }
-.tabs { display: flex; flex-wrap: wrap; gap: 2px; margin: 0 0 6px; }
+/* tabs: each with its own face, the active one opens into the box below it */
+.tabs { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 2px; margin: 0 -8px 8px; padding: 0 8px;
+  border-bottom: 1px solid var(--line); }
+.tabs button { font: inherit; cursor: pointer; color: var(--ink); background: var(--btn); border: 1px solid var(--line);
+  border-bottom: none; border-radius: 5px 5px 0 0; padding: 3px 10px; margin-bottom: -1px; opacity: .75;
+  &:hover { background: var(--btn-hover); opacity: 1; }
+  &.active { cursor: default; background: var(--bg); opacity: 1; font-weight: 600; border-top: 2px solid var(--accent);
+    padding-top: 2px; }
+  &:focus-visible { outline: none; box-shadow: 0 0 0 1px var(--accent); }
+}
 .split { display: flex; gap: 8px; align-items: flex-start; }
 .split > .side { flex: 0 0 150px; min-width: 0; }
 .split > .main { flex: 1; min-width: 0; }
@@ -172,23 +180,88 @@ hr.snipe-sep { border: 0; border-top: 1px solid var(--line); margin: 6px 0; }
 .snipe-nav button.icon.off { cursor: default; opacity: .4; color: var(--ink); }
 .snipe-nav button.icon svg { display: block; width: 14px; height: 14px; }
 p.snipe-hidden { margin: 2px 0; }
+/* a column head that sorts on a click (snipe helper, investments); an icon head marks the direction by its colour */
+/* the star that marks a great building or a player */
+button.star { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 18px; height: 18px; vertical-align: middle; color: var(--ink); opacity: .7; }
+button.star:hover, button.star.on { color: var(--accent); opacity: 1; }
+button.star svg { display: block; width: 14px; height: 14px; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--accent); }
+th.sortable.desc::after { content: ' ▾'; color: var(--accent); }
+th.sortable.asc::after { content: ' ▴'; color: var(--accent); }
+/* several sort levels: the arrow moves into the level number's span so the number follows it, small */
+th.sortable.multi::after { content: none; }
+th.sortable .sort-level { color: var(--accent); font-size: .75em; }
+th.sortable.desc .sort-level::before { content: ' ▾'; font-size: 1.333em; }
+th.sortable.asc .sort-level::before { content: ' ▴'; font-size: 1.333em; }
 .snipe-table { table-layout: fixed; }
-.snipe-table .c-order { width: 30px; }
-.snipe-table .c-level, .snipe-table .c-rank { width: 46px; }
+.snipe-table .c-order { width: 38px; }
+/* sortable heads fit their word, the arrow and a level number (measured: "Stufe ▾2" 56 px, "Einsatz ▾2" 67 px) */
+.snipe-table .c-level, .snipe-table .c-rank { width: 56px; }
 .snipe-table .c-progress { width: 112px; }
-.snipe-table .c-cost { width: 64px; }
+.snipe-table .c-cost { width: 68px; }
 .snipe-table .c-profit { width: 112px; }
-.snipe-table .c-tier { width: 26px; }
+.snipe-table .c-tier, .snipe-table .c-mark { width: 38px; }
 .snipe-table td.snipe-name { overflow: hidden; text-overflow: ellipsis; }
-.snipe-table th.sortable { cursor: pointer; }
-.snipe-table th.sortable:hover { color: var(--accent); }
-.snipe-table th.desc::after { content: ' ▾'; color: var(--accent); }
-.snipe-table th.asc::after { content: ' ▴'; color: var(--accent); }
-.snipe-table .snipe-tier { text-align: center; padding: 0; }
+.snipe-table :is(.snipe-tier, .snipe-mark) { text-align: center; padding: 0; }
+.snipe-table th.icon-head:not(.num) { text-align: center; padding: 0; }
 .snipe-table .snipe-tier svg { display: block; width: 14px; height: 14px; margin: auto; }
 td.snipe-tier.exact { color: #8fd08f; }
 td.snipe-tier.safe { color: #5a9a4a; }
 td.snipe-tier.possible { color: #f0a050; }
+/* investments: fixed columns so heads show whole; owner and building names give way */
+.inv-table { table-layout: fixed; }
+.inv-table .c-mark { width: 38px; }
+.inv-table .c-level, .inv-table .c-rank { width: 56px; }
+.inv-table .c-deposit { width: 90px; }
+.inv-table .c-profit { width: 64px; }
+.inv-table .c-status { width: 38px; }
+.inv-table .c-progress { width: 104px; }
+.inv-table td.inv-name { overflow: hidden; text-overflow: ellipsis; }
+.inv-table :is(.icon-head, .inv-status, .snipe-tier, .inv-mark) { text-align: center; padding: 0; }
+.inv-table :is(.inv-status, .snipe-tier) svg { display: block; width: 14px; height: 14px; margin: auto; }
+.inv-table .icon-head svg { display: inline-block; width: 14px; height: 14px; vertical-align: middle; }
+.inv-table .icon-head { white-space: nowrap; }
+td.inv-status.safe { color: #8fd08f; }
+td.inv-status.unsafe { color: #f0a050; }
+td.inv-status.unknown { color: #b8a27d; }
+.inv-table tr.grown { background: rgba(220, 190, 60, .32); }
+.inv-possible .c-progress { width: 92px; }
+.inv-possible .c-share { width: 50px; }
+.inv-possible .c-cost { width: 68px; }
+.inv-possible .c-gain { width: 96px; }
+.inv-possible .c-tier { width: 38px; }
+.inv-possible .c-seen { width: 72px; }
+.inv-possible .c-reach { width: 70px; }
+.inv-reach svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px; }
+/* an owner out of reach: the whole row muted, links and tier colours too */
+.inv-possible tr.muted :is(td, a) { color: inherit; }
+.inv-possible td { overflow: hidden; text-overflow: ellipsis; }
+/* the rows scroll in the body, the head stays */
+.inv-possible thead th { position: sticky; top: 0; z-index: 1; background: var(--bg); }
+.inv-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.inv-filter input[type=search] { width: 10em; }
+.inv-count { margin-left: auto; }
+.inv-reach-filter, .inv-tier-filter, .inv-hits-filter, .inv-marked-filter { display: inline-flex; gap: 2px; }
+.inv-reach-filter button, .inv-tier-filter button, .inv-hits-filter button, .inv-marked-filter button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
+.inv-reach-filter button.on, .inv-tier-filter button.on, .inv-marked-filter button.on { color: var(--accent); opacity: 1; }
+/* the profit icon keeps its own colours, switched on it only turns opaque */
+.inv-hits-filter button.on { opacity: 1; }
+.inv-reach-filter button svg, .inv-tier-filter button svg, .inv-hits-filter button svg, .inv-marked-filter button svg { display: block; width: 14px; height: 14px; }
+.inv-owner { display: flex; align-items: center; }
+.inv-owner a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* always at the right edge of the column, so the mouse can run straight down it; hidden until the row is hovered */
+button.inv-pick { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 16px; height: 16px; margin-left: auto; opacity: 0; color: var(--ink); }
+tr:is(:hover, :focus-within) button.inv-pick { opacity: .7; }
+tr button.inv-pick:is(:hover, :focus-visible), button.inv-pick.on { opacity: 1; color: var(--accent); }
+.owner-star { flex: none; display: grid; place-items: center; margin-left: 3px; color: var(--accent); }
+.owner-star svg { display: block; width: 11px; height: 11px; }
+button.inv-pick svg { display: block; width: 12px; height: 12px; }
+.inv-growth { color: var(--accent); font-weight: 600; }
+/* a thin bar under "paid in / costs", filled towards the level up (investments, GB calculator) */
+.fp-bar { height: 3px; margin-top: 2px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.fp-bar > div { height: 100%; background: var(--accent); }
+.gb-progress { margin: 0 0 6px; }
 tr.gb-profit { background: rgba(90, 170, 90, .28); }
 tr.gb-loss { background: rgba(200, 80, 60, .28); }
 tr.gb-levelWarning { background: rgba(220, 190, 60, .32); }
@@ -251,6 +324,8 @@ td.below-safe { font-style: italic; opacity: .75; }
 p.gb-me { margin: 6px 0; padding: 4px 6px; border: 1px solid #8a6a3a; border-radius: 4px; background: #3a2814; }
 p.gb-me.safe { border-color: #5a9a4a; }
 p.gb-me.safe, .gb-me .gain { color: #8fd08f; }
+.gb-me .profit-icon { color: var(--ink); }
+.gb-me .profit-icon svg { width: 14px; height: 14px; vertical-align: -2px; }
 .gb-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 8px;
   background: rgba(43, 29, 16, .88); text-align: center; color: var(--accent); }
 `;

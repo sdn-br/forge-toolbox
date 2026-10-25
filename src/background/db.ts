@@ -64,5 +64,9 @@ export function openDb(name = 'forge-toolbox'): ToolboxDb {
   db.version(11).stores({
     greatBuildings: '[world+owner+entityId], [world+owner], world, seenAt',
   });
+  // when the town hall list of the own contributions last came, one row per world
+  db.version(12).stores({
+    greatBuildingLists: 'world',
+  });
   return db;
 }

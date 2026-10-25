@@ -24,6 +24,16 @@ export class Recorder {
       if (traffic.kind === 'json') traffic = { ...traffic, request: null };
     }
     this.traffic.push(traffic);
+    this.changed();
+  }
+
+  /** drops what was kept, so a recording of one action stays small */
+  clear(): void {
+    this.traffic = [];
+    this.changed();
+  }
+
+  private changed(): void {
     for (const listener of this.listeners) listener();
   }
 

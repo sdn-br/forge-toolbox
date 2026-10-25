@@ -83,7 +83,7 @@ describe('recorded own contribution', () => {
     expect(events.filter((e) => e.startsWith('gb:'))).toEqual(['gb:contributed']);
     expect(box.text).toContain('Verfügbare FP: 108.198');
     expect(box.root.querySelector('.gb-fp')?.getAttribute('data-tip')).toBe('Leiste 0 + Pakete 108.198');
-    expect(box.text).toContain('Bis Level-Up fehlen 179 FP');
+    expect(box.text).toContain('noch 179 FP bis zum Level-up');
     // the own place is safe with what was paid: round((121 + 480) / 2) = 301
     expect(rows()[1]?.className).toBe('gb-mine');
     expect(ctx.cities.visited()).toBeUndefined();
@@ -145,7 +145,7 @@ describe('recorded contribution to place 2 with empty places below', () => {
       expect(gross).toMatch(/^\d/);
       expect(demand).toMatch(/^\d/);
     }
-    expect(box.text).toContain('Bis Level-Up fehlen 278 FP');
+    expect(box.text).toContain('noch 278 FP bis zum Level-up');
   });
 
   it('covers a building at its unlocked level and names a far higher unlocked level', async () => {
