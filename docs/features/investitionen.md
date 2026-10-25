@@ -42,7 +42,7 @@ Quelle: `GreatBuildingsService.getContributions` (Rathausliste), dazu jedes geö
   - „Stand“: Die Zeit der letzten Rathausliste steht je Welt in der Datenbank bei den LG-Daten (Tabelle `greatBuildingLists`), so steht sie auch nach einem Neuladen und gehört zu einer späteren Sicherung (Nutzer, 2026-10-24). Ohne Rathausliste steht dort die Bitte, sie zu öffnen.
   - Eigentümernamen: aus dem Player-Store, sonst aus der letzten Rathausliste (nur im Speicher), sonst die ID.
   - Status mit Rangliste: rechnet auch bei einem LG auf Höchststufe oder ohne Verbindung mit der Regel „Eigener Platz“, denn der LG-Rechner zeigt dort keine Plätze.
-- **Nicht übernommen (YAGNI):** Ausblenden einzelner LGs, Eintragsdatum, Zuwachsdatum als eigene Spalte, Verlauf der Zuwächse.
+- **Nicht übernommen (YAGNI):** Eintragsdatum, Zuwachsdatum als eigene Spalte, Verlauf der Zuwächse.
 
 ## Reiter „Mögliche Investitionen“
 
@@ -95,6 +95,19 @@ Quelle: alle bekannten fremden LGs der Tabelle `greatBuildings`, ohne eigene Bet
   - „nur gemerkte“ lässt nun auch die LGs eines gemerkten Eigentümers durch.
   - In beiden Reitern steht hinter dem Namen eines gemerkten Eigentümers ein kleiner gefüllter Stern in Akzent, nur zur Anzeige (Tooltip „Spieler gemerkt“). So sieht man, warum eine Zeile durch „nur gemerkte“ kommt. Umschalten geht dort, wo man den Spieler sieht (Snipehilfe, LG-Rechner, Stadtinformationen). Nutzer, 2026-10-25.
   - „nur gemerkte“ ist seit 2026-10-25 ein Schalter mit dem gefüllten Stern statt einer Checkbox, wie die übrigen Filter (Nutzer).
+
+## Ignorieren
+
+Der Spieler blendet LGs und Spieler aus, die ihn nicht interessieren (Nutzer, 2026-10-25). Ignorierte Zeilen stehen nicht in der Liste und zählen in keiner Summe. Das ersetzt das frühere „Ausblenden einzelner LGs“ der YAGNI-Liste. Ein LG gilt als ignoriert, wenn das LG oder sein Eigentümer ignoriert ist, der Grund (LG, Spieler, beides) ist für die Tooltips bekannt.
+
+- **Speicher** wie beim [Merken](#merken), unabhängig vom Stern: Feld `ignored` an der Zeile der Tabelle `greatBuildings` und am Spieler im Player-Store (`setIgnored`). Jeder Schreibweg behält es, die Aufbewahrung und die Rathausliste löschen ein ignoriertes LG nie, nur der Spieler nimmt es von Hand weg. Der Bus meldet `greatBuilding.ignored { owner, entityId, ignored }` und `player.updated` mit der Quelle `ignore`. Ein LG ohne Zeile (ein eigenes) und ein Spieler, den der Player-Store nicht kennt, lassen sich nicht ignorieren. Felder und Schreibwege: [Great Buildings](../datenmodell/great-buildings.md), [Player](../datenmodell/player.md).
+- **Icons** (aus der Icon-Vorschau gewählt, Nutzer, 2026-10-25): ignorieren ist ein geschlossenes Auge mit Wimpern, ohne Strich (`eyeClosed`), „ignorierte zeigen“ ein offenes Auge (`eye`).
+- **Knöpfe in beiden Reitern:** Das geschlossene Auge steht blass nur bei Maus über der Zeile oder Fokus in der Zeile, wie der Trichter. Tooltip und `aria-label` „LG ignorieren“ (neben dem Namen des LGs) und „Spieler ignorieren“ (in der Zelle des Eigentümers, links vom Trichter, nur für einen Spieler, den der Player-Store kennt). Ist es ignoriert, bleibt das Auge sichtbar in Akzent, der Tooltip heißt „Nicht mehr ignorieren“, ein Klick hebt es auf, `aria-pressed` sagt den Zustand. Beide Augen stehen immer am rechten Rand ihrer Zelle und halten dort ihre 16 px frei, so fährt man mit der Maus gerade nach unten. Ein langer Name wird dafür 16 px früher gekürzt.
+- **Breiten:** Die Tabellen brauchen 32 px mehr. Eigentümer (Name, Stern, Auge, Trichter) mindestens 106 px, LG (Name, Auge) mindestens 116 px, die Mindestbreite der Tabelle ist 728 px („Meine“, 506 plus 222) und 816 px („Mögliche“, 594 plus 222), von Hand gezählt wie vorher. Die Box ist 850 px breit (vorher 818 px).
+- **Ausblenden und Zeigen:** Ignorierte Zeilen sind standardmäßig ausgeblendet. Der Filterschalter „ignorierte zeigen“ (offenes Auge, Standard aus) zeigt sie gedämpft (die vorhandene Klasse `muted`), der Tooltip der Zeile nennt den Grund („LG ignoriert“, „Spieler ignoriert“, bei beidem „LG ignoriert, Spieler ignoriert“). Der Schalter wird mit den Filtern des Reiters gemerkt (`showIgnored`, bei einem fehlenden oder kaputten Feld gilt aus). Die Teile liegen in `ui/ignore.ts` (Knopf, Schalter, Grund in Worten) und in `filter-parts.ts` (Zellen von Eigentümer und LG).
+- **Summen in „Meine Investitionen“:** Ignorierte Zeilen zählen weder im Umlauf noch bei Gewinn sicher und gesamt. Die Summenzeile nennt sie getrennt und knapp, mit dem geschlossenen Auge vorn und im Stil der übrigen Zeile: „3 ignoriert, 1.200 FP“ (Anzahl und Summe der Einzahlungen). Bei einer schmalen Box kann die Zeile dadurch umbrechen (die Mindesthöhe der Box rechnet mit einer Zeile). Die Zeile der Auswahl folgt derselben Regel: Sie summiert nur nicht ignorierte Zeilen und erscheint, wenn die Filter diese weiter einschränken, nicht schon weil Ignorierte ausgeblendet sind. Sie nennt keine Ignorierten.
+- **Zählzeile in „Mögliche Investitionen“:** „X mit Gewinn von Y LGs“ zählt ohne ignorierte, auch wenn der Schalter sie zeigt.
+- **Snipehilfe und LG-Rechner:** siehe [Snipehilfe](snipehilfe.md#ignorieren) und [LG-Rechner](lg-rechner.md#ignorieren).
 
 ## Erreichbarkeit
 

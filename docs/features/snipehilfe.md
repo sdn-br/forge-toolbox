@@ -37,6 +37,7 @@ Stand 2026-10-24. Altes Modul `calculator-overview` („Mögliche Investitionen�
 - **Eigenanteil des Eigentümers** (Nutzer, 2026-10-25): Der Tooltip von Fortschritt nennt unter dem Rest bis zum Level-up, was der Eigentümer in die Stufe eingezahlt hat, etwa „Eigenanteil: 320 FP“. Zuerst stand die Zeile als „Eigentümer: 320 FP“ im Zeilentooltip, der Nutzer erwartet sie aber beim Fortschritt und mit dem Wort Eigenanteil. Gelesen wird die Zeile des Eigentümers aus der gespeicherten Rangliste (`ownerShare` in `gb-snipe.ts`, dieselbe Funktion wie die Spalte EA der [Investitionen](investitionen.md)). Ist die Summe der Einzahlungen seit der Rangliste gewachsen, steht das Alter dabei: „Eigenanteil: 320 FP, Stand vor 2 T.“. Ohne Rangliste der aktuellen Stufe entfällt die Zeile. Eine eigene Spalte und eine Summe im Kopf der Liste gibt es nicht. In „Mögliche Investitionen“ zeigt die Spalte EA den Wert, dort steht er in keinem Tooltip.
 - **LG-Name im Tooltip** (Nutzer, 2026-10-25): Der Name wird in der schmalen Spalte oft gekürzt. Der Tooltip über dem Namen nennt ihn deshalb ganz, darunter die Hinweise des Zeilentooltips, damit über dem Namen nichts fehlt. Gleich in „Mögliche Investitionen“.
 - **Merken:** Stern je Zeile (LG) und im Kopf (Spieler). Gemerktes findet der Reiter „Mögliche Investitionen“ der [Investitionen](investitionen.md#merken) über alle Spieler wieder.
+- **Ignorieren** (Nutzer, 2026-10-25, Grundlagen in den [Investitionen](investitionen.md#ignorieren)): Ignorierte LGs und alle LGs eines ignorierten Eigentümers fehlen in den Zeilen von „Mögliche Einzahlungen“. Die Zeile unter der Tabelle nennt, wie viele ignoriert sind („ignoriert: 2“), und trägt den Schalter „ignorierte zeigen“ (offenes Auge), solange es ignorierte Treffer gibt oder der Schalter an ist. Ist er an, stehen die ignorierten Treffer gedämpft in der Tabelle, der Zeilentooltip nennt den Grund. Der Schalter wird als Ansichtswahl gemerkt (`snipe.showIgnored`). Die Zeilen haben keinen eigenen Knopf zum Ignorieren, das geht in den Investitionen und im Kopf des [LG-Rechners](lg-rechner.md#ignorieren). Ignorierte Treffer zählen nicht für das Aufgehen der Box und nicht für den Ton: Eine Liste, deren Treffer alle ignoriert sind, verhält sich wie eine Liste ohne Treffer (die Box geht nicht auf, kein Ton, der Abschnitt klappt wie sonst auf, wenn die Box offen ist). Die zusammengeklappte Zeile zählt und nennt nur nicht ignorierte Treffer.
 - Die Liste veraltet: Sie zeigt den Stand beim Anklicken. Spätere Einzahlungen sieht die Toolbox nur bei einem LG, das der Spieler öffnet.
 
 ## Rechnung
@@ -53,7 +54,7 @@ Je LG der Liste: Stufe, eingezahlte FP (`current_progress`, fehlt bei 0) und Kos
 
 Vom Nutzer genannt, 2026-10-25, ohne Zusage:
 
-- Am Spieler merken: „Mögliche Einzahlungen nicht anzeigen“, damit die Box etwa bei bestimmten Spielern nicht aufgeht.
+- Am Spieler merken: „Mögliche Einzahlungen nicht anzeigen“, damit die Box etwa bei bestimmten Spielern nicht aufgeht. Seit 2026-10-25 gibt es dafür das [Ignorieren](#ignorieren) eines Spielers.
 - Einstellung „Gildenmitglieder ignorieren“, damit sie beim Durchklicken der Gilde nicht ständig aufgeht.
 - Am Spieler den vereinbarten Förderfaktor merken. Eher nischig, meist fördert man in Gruppen mit festen Faktoren.
 

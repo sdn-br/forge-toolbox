@@ -28,3 +28,11 @@ Stand 2026-10-25. Erste Stufe des LG-Kostenrechners, nur für LGs anderer Spiele
 Entscheidung Faktor als Einstellung: Settings kennen dafür Zahlen mit Grenzen (`NumberSettingDef`), der Einstellungsdialog zeigt sie als Zahlenfeld. Verworfen: den Faktor nur als Ansichtswahl (`ui.pref`) zu merken, dann stünde er nicht in den Einstellungen.
 
 **Noch nicht enthalten:** Klick kopiert die Einzahlung ins Spielfeld, Faktor je Gespräch, FP aus Quests (Quest-Daten liest die Ingestion noch nicht), eigene LGs (eigene Box [Eigenanteil](eigenanteil.md)), Snipehilfe (die bekannten fremden LGs werden schon gespeichert), Belohnungen der Vorschau ab Stufe 422 und für Ären nach der Stellar Age (dafür fehlen Daten, eine neue Ära braucht einen Eintrag in der Ärenliste von `gb-p1.json`), Blaupausen und Medaillen in der Tabelle (vorerst ausgeblendet) und in der Vorschau.
+
+## Ignorieren
+
+Nutzer, 2026-10-25. Grundlagen, Icons und Speicher stehen bei den [Investitionen](investitionen.md#ignorieren).
+
+- **Kein Öffnen, kein Ton:** Öffnet der Spieler ein ignoriertes LG oder ein LG eines ignorierten Spielers, geht die Box nicht von selbst auf und es gibt keinen Ton, auch nicht bei einem Level-up des offenen LGs. Der Rechner hält das LG trotzdem bereit.
+- **Von Hand offen:** Ist die Box offen oder öffnet sie der Spieler, zeigt der Rechner das LG wie sonst, mit einer Warnzeile über dem Kopf: Warndreieck und „LG ignoriert“ und/oder „Spieler ignoriert“, dazu der Knopf „Nicht mehr ignorieren“ (geschlossenes Auge in Akzent, das Wort im Tooltip und `aria-label`). Der Knopf hebt beide Gründe auf, die einzelnen Augen im Kopf nur ihren.
+- **Augen im Kopf:** Neben dem Stern des LGs und neben dem Stern des Eigentümers steht je ein geschlossenes Auge („LG ignorieren“, „Spieler ignorieren“, ignoriert „Nicht mehr ignorieren“), so lässt sich auch hier ignorieren. Wie die Sterne stehen sie immer sichtbar da, in den Zeilen der Investitionen erscheinen sie nur bei Maus über der Zeile. Das Auge des Spielers gibt es nur für einen Spieler, den der Player-Store kennt, auch wenn Stufe und Forge-Punkte des LGs fehlen.
