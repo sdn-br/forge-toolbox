@@ -14,6 +14,7 @@ import {
 import { rowFit } from '../../ui/fit-rows';
 import { icons } from '../../ui/icons';
 import { nextSort } from '../../ui/sortable';
+import { savedReach, savedToggles } from './filter-model';
 import { type PossibleActions, possibleView } from './possible-view';
 import {
   DEFAULT_FILTER,
@@ -22,8 +23,6 @@ import {
   type PossibleFilter,
   type PossibleSort,
   possibleViewModel,
-  REACH_TOGGLES,
-  type ReachFilter,
   TIER_TOGGLES,
   type TierFilter,
 } from './possible-view-model';
@@ -38,23 +37,8 @@ const TAB = 'investments.tab';
 const FILTER = 'investments.filter';
 /** the settings the rating reads */
 
-/** the saved reason toggles; the former checkbox "only reachable" maps to the default (on) or to all four (off) */
-function savedReach(f: Partial<PossibleFilter> & { onlyReachable?: unknown }): ReachFilter {
-  const base: ReachFilter =
-    f.onlyReachable === false ? { neighbor: true, friend: true, guildMember: true, none: true } : DEFAULT_FILTER.reach;
-  const saved: Partial<ReachFilter> = f.reach ?? {};
-  return Object.fromEntries(
-    REACH_TOGGLES.map((key) => [key, typeof saved[key] === 'boolean' ? saved[key] : base[key]]),
-  ) as ReachFilter;
-}
-
 /** the saved tier toggles, each one that is missing at its default */
-function savedTier(f: Partial<PossibleFilter>): TierFilter {
-  const saved: Partial<TierFilter> = f.tier ?? {};
-  return Object.fromEntries(
-    TIER_TOGGLES.map((key) => [key, typeof saved[key] === 'boolean' ? saved[key] : DEFAULT_FILTER.tier[key]]),
-  ) as TierFilter;
-}
+const savedTier = (f: Partial<PossibleFilter>): TierFilter => savedToggles(TIER_TOGGLES, f.tier, DEFAULT_FILTER.tier);
 
 /** the saved filters, each part that is missing or broken at its default */
 function savedFilter(saved: string | undefined): PossibleFilter {

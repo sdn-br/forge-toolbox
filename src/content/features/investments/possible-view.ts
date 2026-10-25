@@ -2,21 +2,20 @@ import { html, type TemplateResult } from 'lit-html';
 import { t } from '../../core/texts';
 import { progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
-import { keepKeys } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
 import { profitCell, tierCell, tierIcon } from '../../ui/snipe-hit';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { rowsIn, windowedRows } from '../../ui/windowed-rows';
+import { picks } from './filter-model';
+import { markedFilter, ownerStar, pickButton, reachCell, reachFilter, text, toggleGroup } from './filter-parts';
 import {
   type PossibleColumn,
   type PossibleFilter,
   type PossibleRowVm,
   type PossibleVm,
-  REACH_TOGGLES,
-  type Reach,
   TIER_TOGGLES,
 } from './possible-view-model';
-import { type InvestmentsActions, markCell, ownerStar, tabs } from './view';
+import { type InvestmentsActions, markCell, tabs } from './view';
 import type { InvestmentsTab } from './view-model';
 
 export interface PossibleActions {
@@ -46,37 +45,14 @@ const columns: SortColumn<PossibleColumn>[] = [
   { column: 'seen', label: 'investments.col.seen', num: true },
 ];
 
-const REACH_ICONS: Partial<Record<Reach, TemplateResult>> = {
-  neighbor: headerIcons.neighbor,
-  friend: headerIcons.friend,
-  guildMember: headerIcons.guild,
-};
-
-/** an icon per reason; out of reach and unknown stay words */
-const reachCell = (r: PossibleRowVm) =>
-  r.reach === 'none' || r.reach === 'unknown'
-    ? t(`investments.reach.${r.reach}`)
-    : r.reasons.map((reason) => REACH_ICONS[reason]);
-
-/** the player field names this owner exactly, in any case; the field is the only state, a part of a name marks nothing */
-const picks = (field: string, name: string) => field.trim().toLowerCase() === name.toLowerCase();
-
-/** shown on row hover or focus (styles), always and in the accent while the player field names this owner; then a click
- * empties the field */
-const pickButton = (name: string, picked: boolean, actions: PossibleActions) => {
-  const word = t(picked ? 'investments.possible.unpickPlayer' : 'investments.possible.pickPlayer');
-  return html`<button class=${picked ? 'inv-pick on' : 'inv-pick'} aria-pressed=${picked ? 'true' : 'false'} data-tip=${word}
-    aria-label=${word} @click=${() => actions.pickPlayer(picked ? '' : name)}>${picked ? headerIcons.funnelFilled : headerIcons.funnel}</button>`;
-};
-
 const row = (
   r: PossibleRowVm,
   playerField: string,
   actions: PossibleActions,
 ) => html`<tr class=${r.reach === 'none' ? 'muted' : ''} data-tip=${r.notes.join('\n')}>
   ${markCell(r, actions.mark)}
-  <td class="inv-name" data-tip=${r.ownerName}><span class="inv-owner">${externalLink(r.ownerName, r.ownerUrl)}${ownerStar(r.ownerMarked)}${pickButton(r.ownerName, picks(playerField, r.ownerName), actions)}</span></td>
-  <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r)}</td>
+  <td class="inv-name" data-tip=${r.ownerName}><span class="inv-owner">${externalLink(r.ownerName, r.ownerUrl)}${ownerStar(r.ownerMarked)}${pickButton(r.ownerName, picks(playerField, r.ownerName), actions.pickPlayer)}</span></td>
+  <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r.reach, r.reasons)}</td>
   <td class="inv-name" data-tip=${[r.name, ...r.notes].join('\n')}>${r.name}</td>
   <td class="num">${r.level}</td>
   ${progressCell(r)}
@@ -92,25 +68,6 @@ const row = (
   <td class="num">${r.age}</td>
 </tr>`;
 
-const text = (value: string, label: string, set: (value: string) => void) =>
-  html`<input type="search" placeholder=${label} aria-label=${label} .value=${value}
-    @input=${(e: Event) => set((e.target as HTMLInputElement).value)}
-    @keydown=${keepKeys} @keypress=${keepKeys} @keyup=${keepKeys} />`;
-
-const REACH_FILTER_ICONS: Record<(typeof REACH_TOGGLES)[number], TemplateResult> = {
-  ...REACH_ICONS,
-  none: headerIcons.notReachable,
-} as Record<(typeof REACH_TOGGLES)[number], TemplateResult>;
-
-/** one toggle per reason, any switched on lets a row through */
-const reachFilter = (f: PossibleFilter, actions: PossibleActions) =>
-  html`<span class="inv-reach-filter">${REACH_TOGGLES.map((key) => {
-    const word = t(key === 'none' ? 'investments.reachHint.none' : `investments.reach.${key}`);
-    const on = f.reach[key];
-    return html`<button class=${on ? 'on' : ''} aria-pressed=${on ? 'true' : 'false'} data-tip=${word} aria-label=${word}
-    @click=${() => actions.filter({ reach: { ...f.reach, [key]: !on } })}>${REACH_FILTER_ICONS[key]}</button>`;
-  })}</span>`;
-
 /** a toggle with the profit icon: only rows with a profitable place */
 const hitsFilter = (f: PossibleFilter, actions: PossibleActions) => {
   const word = t('investments.possible.onlyHits');
@@ -118,30 +75,25 @@ const hitsFilter = (f: PossibleFilter, actions: PossibleActions) => {
     data-tip=${word} aria-label=${word} @click=${() => actions.filter({ onlyHits: !f.onlyHits })}>${headerIcons.profit}</button></span>`;
 };
 
-/** a toggle with the star: only marked buildings and buildings of marked owners */
-const markedFilter = (f: PossibleFilter, actions: PossibleActions) => {
-  const word = t('investments.possible.onlyMarked');
-  return html`<span class="inv-marked-filter"><button class=${f.onlyMarked ? 'on' : ''} aria-pressed=${f.onlyMarked ? 'true' : 'false'}
-    data-tip=${word} aria-label=${word} @click=${() => actions.filter({ onlyMarked: !f.onlyMarked })}>${headerIcons.starFilled}</button></span>`;
-};
-
 /** one toggle per tier, with the icons of the column "Sicherheit"; any switched on lets a row with that tier through */
 const tierFilter = (f: PossibleFilter, actions: PossibleActions) =>
-  html`<span class="inv-tier-filter">${TIER_TOGGLES.map((key) => {
-    const word = t(`investments.tierFilter.${key}`);
-    const on = f.tier[key];
-    return html`<button class=${on ? 'on' : ''} aria-pressed=${on ? 'true' : 'false'} data-tip=${word} aria-label=${word}
-    @click=${() => actions.filter({ tier: { ...f.tier, [key]: !on } })}>${tierIcon[key]}</button>`;
-  })}</span>`;
+  toggleGroup(
+    'inv-tier-filter',
+    TIER_TOGGLES,
+    f.tier,
+    (key) => t(`investments.tierFilter.${key}`),
+    (key) => tierIcon[key],
+    (tier) => actions.filter({ tier }),
+  );
 
 /** the filters, the count at the end of the same row so it shows without scrolling */
 const filters = (f: PossibleFilter, count: string, actions: PossibleActions) => html`<p class="inv-filter">
     ${text(f.player, t('investments.possible.player'), (player) => actions.filter({ player }))}
     ${text(f.name, t('investments.possible.name'), (name) => actions.filter({ name }))}
     ${hitsFilter(f, actions)}
-    ${reachFilter(f, actions)}
+    ${reachFilter(f.reach, (reach) => actions.filter({ reach }))}
     ${tierFilter(f, actions)}
-    ${markedFilter(f, actions)}
+    ${markedFilter(f.onlyMarked, (onlyMarked) => actions.filter({ onlyMarked }))}
     <span class="inv-count muted">${count}</span>
   </p>`;
 

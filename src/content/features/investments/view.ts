@@ -8,6 +8,7 @@ import { externalLink } from '../../ui/links';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { starButton } from '../../ui/star';
 import { rowsIn, windowedRows } from '../../ui/windowed-rows';
+import { ownerStar } from './filter-parts';
 import {
   type InvestmentColumn,
   type InvestmentRowVm,
@@ -79,13 +80,6 @@ export const tabs = (current: InvestmentsTab, actions: { tab(tab: InvestmentsTab
     (tab) =>
       html`<button class=${tab === current ? 'active' : ''} ?disabled=${tab === current} @click=${() => actions.tab(tab)}>${t(`investments.tab.${tab}`)}</button>`,
   )}</div>`;
-
-/** a filled star beside the name of a marked owner; only shown, the star to toggle sits where the player is seen */
-export const ownerStar = (marked: boolean) => {
-  if (!marked) return '';
-  const word = t('investments.ownerMarked');
-  return html`<span class="owner-star" role="img" data-tip=${word} aria-label=${word}>${headerIcons.starFilled}</span>`;
-};
 
 const table = (vm: InvestmentsVm, actions: InvestmentsActions) =>
   windowedRows({
