@@ -121,13 +121,15 @@ const tierFilter = (f: PossibleFilter, actions: PossibleActions) =>
     @click=${() => actions.filter({ tier: { ...f.tier, [key]: !on } })}>${tierIcon[key]}</button>`;
   })}</span>`;
 
-const filters = (f: PossibleFilter, actions: PossibleActions) => html`<p class="inv-filter">
+/** the filters, the count at the end of the same row so it shows without scrolling */
+const filters = (f: PossibleFilter, count: string, actions: PossibleActions) => html`<p class="inv-filter">
     ${text(f.player, t('investments.possible.player'), (player) => actions.filter({ player }))}
     ${text(f.name, t('investments.possible.name'), (name) => actions.filter({ name }))}
     ${hitsFilter(f, actions)}
     ${reachFilter(f, actions)}
     ${tierFilter(f, actions)}
     ${check(f.onlyMarked, t('investments.possible.onlyMarked'), (onlyMarked) => actions.filter({ onlyMarked }))}
+    <span class="inv-count muted">${count}</span>
   </p>`;
 
 const table = (vm: PossibleVm, actions: PossibleActions) => html`<table class="gb-table inv-table inv-possible">
@@ -140,11 +142,12 @@ const table = (vm: PossibleVm, actions: PossibleActions) => html`<table class="g
 const content = (vm: PossibleVm, actions: PossibleActions) =>
   vm.empty
     ? html`<p class="muted">${t('investments.possible.none')}</p>`
-    : html`${vm.rows.length === 0 ? html`<p class="muted">${t('investments.possible.noRow')}</p>` : table(vm, actions)}
-      <p class="muted">${vm.count}</p>`;
+    : vm.rows.length === 0
+      ? html`<p class="muted">${t('investments.possible.noRow')}</p>`
+      : table(vm, actions);
 
-/** The tab "Mögliche Investitionen": the filters above the table, the count below; the head stays while the rows scroll. */
+/** The tab "Mögliche Investitionen": the filters and the count above the table; the head stays while the rows scroll. */
 export function possibleView(vm: PossibleVm, actions: PossibleActions): TemplateResult {
   // the filter fields stay in one outer template: swapping templates would replace them and take their focus mid-typing
-  return html`${tabs('possible', actions)}${filters(vm.filter, actions)}${content(vm, actions)}`;
+  return html`${tabs('possible', actions)}${filters(vm.filter, vm.empty ? '' : vm.count, actions)}${content(vm, actions)}`;
 }

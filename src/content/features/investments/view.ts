@@ -89,8 +89,12 @@ const table = (vm: InvestmentsVm, actions: InvestmentsActions) => html`<table cl
       <col class="c-deposit" /><col class="c-profit" /><col class="c-status" /><col class="c-progress" /></colgroup>
     <thead><tr>${sortHeads(columns, vm.sort, actions.sort)}</tr></thead>
     <tbody>${vm.rows.map((r) => row(r, actions))}</tbody>
-  </table>
-  <p class="gb-me">${t('investments.circulating', { fp: vm.totals.circulating })}
+  </table>`;
+
+/** the totals above the table, so they show without scrolling */
+const totals = (
+  vm: InvestmentsVm,
+) => html`<p class="gb-me">${t('investments.circulating', { fp: vm.totals.circulating })}
     · <span class="profit-icon" role="img" data-tip=${t('gb.col.profit')} aria-label=${t('gb.col.profit')}>${headerIcons.profit}</span>
     <b class=${vm.totals.gain ? 'gain' : ''}><span class="profit-icon" role="img" data-tip=${t('investments.profitSafe')}
       aria-label=${t('investments.profitSafe')}>${headerIcons.checkCircle}</span> ${vm.totals.profitSafe}</b>
@@ -99,5 +103,5 @@ const table = (vm: InvestmentsVm, actions: InvestmentsActions) => html`<table cl
 export function investmentsView(vm: InvestmentsVm, actions: InvestmentsActions): TemplateResult {
   const age = vm.age === undefined ? t('investments.noList') : t('gb.age', { duration: vm.age });
   return html`${tabs('mine', actions)}<p class="muted">${age}</p>
-    ${vm.rows.length === 0 ? html`<p class="muted">${t('investments.none')}</p>` : table(vm, actions)}`;
+    ${vm.rows.length === 0 ? html`<p class="muted">${t('investments.none')}</p>` : html`${totals(vm)}${table(vm, actions)}`}`;
 }
