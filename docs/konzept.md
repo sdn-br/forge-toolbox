@@ -64,7 +64,7 @@ Spielseite (MAIN world)          Content Script (isolated world)               S
 - Der Request kommt als `ArrayBuffer` mit JSON. Der Proxy dekodiert ihn, und jeder Handler bekommt die `requestData` des passenden Requests (etwa `plunderById` mit `[Spieler-ID, Gebäude-ID]`).
 - Was das Spiel auf mehrere Einträge einer Antwort verteilt (eine Plünderung: Beute, Gebäude, Double-Loot-Symbol), sammeln die Handler und werten es am Ende der Antwort aus (`onBatchEnd`). Die Reihenfolge der Einträge ist nicht fest.
 - Nach einem Neuladen der Extension laufen Content Scripts in offenen Tabs ohne Extension weiter. Die Toolbox erkennt das, verarbeitet nichts mehr und bittet um Neuladen des Spiels.
-- Der Proxy kann Antworten aufzeichnen. Die Aufnahmen sind Testdaten (siehe Tests).
+- Der Proxy kann Antworten aufzeichnen. Die Aufnahmen sind Testdaten (siehe Tests). Im Einstellungsfenster unter Allgemein stehen bei laufender Aufnahme zwei Knöpfe: Aufnahme speichern (Download, Zahl der Nachrichten daneben) und Aufnahmedaten löschen (Mülleimer, ohne Rückfrage, ausgegraut ohne Daten). Löschen vor einer Aktion hält die Datei klein, die man aufnehmen will (Nutzer, 2026-10-25).
 
 ### Domain-Stores
 

@@ -17,6 +17,7 @@ export const de = {
   'settings.recordTraffic': 'Spielverkehr aufzeichnen (für Testdaten)',
   'settings.recordRequests': 'Requests mitschreiben',
   'settings.saveRecording': 'Aufnahme speichern ({count} Nachrichten)',
+  'settings.clearRecording': 'Aufnahmedaten löschen',
   'sabotage.title': 'Stadtinformationen',
   'sabotage.menu': 'Stadtinformationen',
   'sabotage.autoOpen': 'Beim Besuch einer Stadt automatisch öffnen',

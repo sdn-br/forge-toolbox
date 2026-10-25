@@ -144,7 +144,11 @@ export const settingsFeature: Feature = {
               group === 'settings.core' && ctx.settings.get('core.record')
                 ? html`<button class="action icon-only" data-tip=${t('settings.saveRecording', { count: ctx.recorder.count })}
                     aria-label=${t('settings.saveRecording', { count: ctx.recorder.count })}
-                    @click=${() => ctx.recorder.save()}>${headerIcons.download}${ctx.recorder.count}</button>`
+                    @click=${() => ctx.recorder.save()}>${headerIcons.download}${ctx.recorder.count}</button>
+                  <button class="action icon-only"
+                    aria-disabled=${ctx.recorder.count ? 'false' : 'true'} data-tip=${t('settings.clearRecording')}
+                    aria-label=${t('settings.clearRecording')}
+                    @click=${() => ctx.recorder.clear()}>${headerIcons.trash}</button>`
                 : ''
             }
           </div>

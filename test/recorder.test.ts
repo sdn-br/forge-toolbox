@@ -23,6 +23,18 @@ describe('Recorder', () => {
     expect(counts).toEqual([1, 2]);
   });
 
+  it('starts over when cleared and tells its listeners', () => {
+    const recorder = new Recorder(() => true);
+    const counts: number[] = [];
+    recorder.onChange(() => counts.push(recorder.count));
+    recorder.add(traffic);
+    recorder.add(traffic);
+    recorder.clear();
+    recorder.add(traffic);
+    expect(recorder.serialize()).toBe(JSON.stringify([traffic]));
+    expect(counts).toEqual([1, 2, 0, 1]);
+  });
+
   it('keeps requests only when asked to', () => {
     let withRequests = false;
     const recorder = new Recorder(
