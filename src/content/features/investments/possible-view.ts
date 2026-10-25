@@ -31,7 +31,7 @@ export interface PossibleActions {
 const columns: SortColumn<PossibleColumn>[] = [
   { column: 'mark', label: 'mark.col', num: false, icon: headerIcons.star, cls: 'inv-mark' },
   { column: 'owner', label: 'investments.col.owner', num: false },
-  { column: 'reach', label: 'investments.col.reach', num: false, icon: headerIcons.person },
+  { column: 'reach', label: 'investments.col.reach', num: false, icon: headerIcons.person, cls: 'inv-reach' },
   { column: 'name', label: 'gb.col.name', num: false },
   { column: 'level', label: 'gb.col.level', num: true },
   { column: 'progress', label: 'gb.col.progress', num: true },
