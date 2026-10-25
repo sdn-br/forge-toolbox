@@ -62,7 +62,7 @@ const picks = (field: string, name: string) => field.trim().toLowerCase() === na
 const pickButton = (name: string, picked: boolean, actions: PossibleActions) => {
   const word = t(picked ? 'investments.possible.unpickPlayer' : 'investments.possible.pickPlayer');
   return html`<button class=${picked ? 'inv-pick on' : 'inv-pick'} aria-pressed=${picked ? 'true' : 'false'} data-tip=${word}
-    aria-label=${word} @click=${() => actions.pickPlayer(picked ? '' : name)}>${headerIcons.funnel}</button>`;
+    aria-label=${word} @click=${() => actions.pickPlayer(picked ? '' : name)}>${picked ? headerIcons.funnelFilled : headerIcons.funnel}</button>`;
 };
 
 const row = (

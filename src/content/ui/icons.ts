@@ -106,6 +106,7 @@ export const icons = {
 };
 
 const FORWARD = 'M20 12a8 8 0 1 1-2.3-5.6';
+const FUNNEL = 'M3.5 4.5h17l-6.5 8v6l-4 2v-8Z';
 const STAR = 'M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9Z';
 
 /** the icons of the box header */
@@ -273,5 +274,7 @@ export const headerIcons = {
     headerIcon(svg`<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5c0-4.2 3.3-6.8 7.5-6.8s7.5 2.6 7.5 6.8"/>
     <path d="M4 4 20 20" stroke="var(--btn)" stroke-width="5"/><path d="M4 4 20 20"/>`),
   /** a funnel: filter by this */
-  funnel: headerIcon(svg`<path d="M3.5 4.5h17l-6.5 8v6l-4 2v-8Z"/>`),
+  funnel: headerIcon(svg`<path d="${FUNNEL}"/>`),
+  /** the funnel filled: this filter is set, like the filled star */
+  funnelFilled: headerIcon(svg`<path d="${FUNNEL}" fill="currentColor"/>`),
 };

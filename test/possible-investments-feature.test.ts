@@ -296,6 +296,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     expect(pick().classList.contains('on')).toBe(true);
     expect(pick().getAttribute('aria-pressed')).toBe('true');
     expect(pick().getAttribute('aria-label')).toBe('Spielerfilter entfernen');
+    expect(pick().querySelector('path')?.getAttribute('fill')).toBe('currentColor');
     pick().click();
     await tick();
     expect(input('Spieler').value).toBe('');
