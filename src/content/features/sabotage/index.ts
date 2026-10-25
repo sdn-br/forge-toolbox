@@ -74,6 +74,11 @@ export const sabotageFeature: Feature = {
       },
     };
     ctx.bus.on('markers.changed', () => box.update());
+    // the arrow belongs to the visit it was set in; back home or anywhere else it goes (Nutzer, 2026-10-25)
+    ctx.bus.on('city.shown', ({ city }) => {
+      const marked = ctx.markers.current();
+      if (marked?.by === ID && marked.city !== city) ctx.markers.clear(ID);
+    });
     // after a plunder, won or repelled, the building has nothing more to give; its arrow goes
     ctx.bus.on('plunder.attempted', ({ opponent, entityId }) => {
       if (ctx.markers.has(ID, opponent, entityId)) ctx.markers.clear(ID);

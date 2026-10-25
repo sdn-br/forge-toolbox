@@ -268,14 +268,17 @@ describe('sabotage feature', () => {
       expect(marked()).toEqual([]);
     });
 
-    it('hides the arrow at home and leaves an arrow set elsewhere alone on a visit', async () => {
-      const { ctx, marker, row } = markSetup();
+    it('drops the arrow back home, so a later visit of the same city shows none, and leaves an arrow set elsewhere alone', async () => {
+      const { ctx, marker, row, marked } = markSetup();
       ctx.cities.setVisited(coinsAndPoints(1));
       await tick();
       row('Münzhaus').click();
       ctx.cities.showOwn();
       expect(marker.last?.type).toBe('hide');
-      expect(ctx.markers.current()?.city).toBe(playerId(1));
+      expect(ctx.markers.current()).toBeUndefined();
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      expect(marked()).toEqual([]);
 
       ctx.markers.set('cityMap', 'own', [{ id: 9, x: 0, y: 0, width: 1, length: 1 }]);
       ctx.cities.setVisited(coinsAndPoints(2));
