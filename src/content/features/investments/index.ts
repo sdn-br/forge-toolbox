@@ -57,8 +57,6 @@ export const investmentsFeature: Feature = {
       default: true,
     });
 
-    /** when the last town hall list came; the store keeps it across reloads */
-    let listedAt: number | undefined;
     let tab: InvestmentsTab = ctx.ui.pref(TAB) === 'possible' ? 'possible' : 'mine';
     let sort: InvestmentSort | undefined;
     let possibleSort: PossibleSort = DEFAULT_POSSIBLE_SORT;
@@ -124,7 +122,7 @@ export const investmentsFeature: Feature = {
           : investmentsView(
               investmentsViewModel({
                 investments,
-                ...(listedAt !== undefined && { listedAt }),
+                listedAt: ctx.greatBuildings.contributionsAt(),
                 now: Date.now(),
                 ...(sort && { sort }),
                 greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
@@ -134,16 +132,6 @@ export const investmentsFeature: Feature = {
               actions,
             ),
     });
-
-    ctx.greatBuildings
-      .contributionsAt()
-      .then((at) => {
-        // a list arriving meanwhile is newer
-        if (listedAt !== undefined || at === undefined) return;
-        listedAt = at;
-        box.update();
-      })
-      .catch((error) => logError('reading the time of the town hall list failed', error));
 
     /** reads the known buildings again; a stale answer is dropped */
     const load = async () => {
@@ -165,8 +153,7 @@ export const investmentsFeature: Feature = {
       if (box.isOpen) load().catch((error) => logError('reading the investments failed', error));
     };
 
-    ctx.bus.on('greatBuildings.contributions', ({ at, owners }) => {
-      listedAt = at;
+    ctx.bus.on('greatBuildings.contributions', ({ owners }) => {
       for (const o of owners) ownerNames.set(o.id, o.name);
       if (ctx.settings.get(OPEN_WITH_LIST)) {
         showTab('mine');

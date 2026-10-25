@@ -3,8 +3,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Ingestion } from '../src/content/core/ingestion';
 import { investmentsFeature } from '../src/content/features/investments';
 import { registerGameHandlers } from '../src/content/game/handlers';
+import { GreatBuildingStore } from '../src/content/stores/great-buildings';
+import { worldId } from '../src/shared/ids';
 import contributionFixture from './fixtures/gb-contribution.json';
 import contributions from './fixtures/gb-contributions.json';
+import { testDb } from './helpers/battle-db';
 import { featureContext } from './helpers/feature-context';
 
 interface Entry {
@@ -111,15 +114,19 @@ describe('Investitionen box', () => {
   it('shows the age of a town hall list from before a reload', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(1_000_000);
-    const env = featureContext({ now: () => Date.now() });
+    const now = () => Date.now();
     // the list came before this page load: it is in the database, but no event reaches the box
-    env.ctx.greatBuildings.noteContributions([]);
+    const db = testDb({ now });
+    await db.greatBuildings.putContributions(worldId('de20'), [], 1_000_000);
+    const env = featureContext({
+      now,
+      overrides: ({ bus, world }) => ({ greatBuildings: new GreatBuildingStore(bus, world, db.greatBuildings, now) }),
+    });
+    await env.ctx.greatBuildings.load();
     vi.setSystemTime(1_000_000 + 7 * MINUTE);
     investmentsFeature.setup(env.ctx);
     env.menu('investments');
-    // queues behind the box's own read of the time
-    await env.ctx.greatBuildings.contributionsAt();
-    await tick();
+    await env.ctx.greatBuildings.known();
     expect(env.boxes.get('investments')?.text).toContain('Stand: vor 7 Min.');
   });
 

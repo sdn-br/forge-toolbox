@@ -208,13 +208,30 @@ describe('own contribution list (getContributions)', () => {
 
   it('keeps the time of the list in the database, so it survives a reload', async () => {
     const { greatBuildings, db, world, bus, send, at } = setup();
-    expect(await greatBuildings.contributionsAt()).toBeUndefined();
+    expect(greatBuildings.contributionsAt()).toBeUndefined();
     send(...(contributions.startup as Entry[]));
     at(8_000);
     send(contributions.contributions as Entry);
-    expect(await greatBuildings.contributionsAt()).toBe(8_000);
+    // known at once, without waiting for the database
+    expect(greatBuildings.contributionsAt()).toBe(8_000);
+    await greatBuildings.known();
     const reloaded = new GreatBuildingStore(bus, world, db.greatBuildings);
-    expect(await reloaded.contributionsAt()).toBe(8_000);
+    expect(reloaded.contributionsAt()).toBeUndefined();
+    await reloaded.load();
+    expect(reloaded.contributionsAt()).toBe(8_000);
+  });
+
+  it('keeps a list that arrives while the time from before the reload is read', async () => {
+    const { greatBuildings, db, world, bus, send, at } = setup();
+    send(...(contributions.startup as Entry[]));
+    at(8_000);
+    send(contributions.contributions as Entry);
+    await greatBuildings.known();
+    const reloaded = new GreatBuildingStore(bus, world, db.greatBuildings, () => 9_000);
+    const loading = reloaded.load();
+    reloaded.noteContributions([]);
+    await loading;
+    expect(reloaded.contributionsAt()).toBe(9_000);
   });
 
   it('does not take the own city for a foreign building', async () => {

@@ -62,6 +62,7 @@ async function main() {
     ui.load(),
     stores.players.load(world).catch((e) => logError('loading players failed', e)),
     stores.notes.load().catch((e) => logError('loading notes failed', e)),
+    stores.greatBuildings.load().catch((e) => logError('loading the time of the town hall list failed', e)),
   ]);
 
   const ctx: FeatureContext = {

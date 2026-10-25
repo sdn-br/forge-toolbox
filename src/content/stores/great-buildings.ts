@@ -33,6 +33,7 @@ export class GreatBuildingStore {
   private open?: Construction;
   private entities = new Map<string, GreatBuildingEntity>();
   private limited: LimitedBonus[] = [];
+  private listedAt?: number;
   private pending: KnownGreatBuilding[] = [];
   private writes: Promise<unknown> = Promise.resolve();
   private flushQueued = false;
@@ -43,6 +44,12 @@ export class GreatBuildingStore {
     private persistence: GreatBuildingPersistence,
     private now: () => number = Date.now,
   ) {}
+
+  /** Reads when the town hall list came before this page load; a list arriving meanwhile is newer. */
+  async load(): Promise<void> {
+    const at = await this.persistence.contributionsAt(this.world);
+    this.listedAt ??= at;
+  }
 
   /** the construction open in the game, or the last one opened */
   current(): Construction | undefined {
@@ -176,13 +183,14 @@ export class GreatBuildingStore {
   /** The town hall list of the buildings the session player invested in (`getContributions`), with owner names. */
   noteContributions(rows: GreatBuildingListRow[], owners: { id: PlayerId; name: string }[] = []): void {
     const at = this.now();
+    this.listedAt = at;
     this.enqueue(() => this.persistence.putContributions(this.world, rows, at));
     this.bus.emit('greatBuildings.contributions', { at, owners });
   }
 
-  /** when the town hall list of the own contributions last came, also from before a reload */
-  contributionsAt(): Promise<number | undefined> {
-    return this.writes.then(() => this.persistence.contributionsAt(this.world));
+  /** when the town hall list of the own contributions last came, also from before a reload once `load` ran */
+  contributionsAt(): number | undefined {
+    return this.listedAt;
   }
 
   /** Deletes buildings not seen for `days`, except those with an own contribution; run at the start. */
