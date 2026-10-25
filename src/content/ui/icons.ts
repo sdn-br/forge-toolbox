@@ -225,8 +225,6 @@ export const headerIcons = {
   questionCircle: headerIcon(
     svg`<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.7a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.8M12 16.6v.2"/>`,
   ),
-  /** the folded map: open the map */
-  map: headerIcon(foldedMap),
   /** a sheet with a folded corner and two lines: a note */
   note: headerIcon(
     svg`<path d="M6 3.5h8.5L19 8v11.5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z"/><path d="M14.5 3.5V8H19"/><path d="M8.5 13h7M8.5 16.5h5"/>`,

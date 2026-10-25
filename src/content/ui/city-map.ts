@@ -7,7 +7,6 @@ import { type Bounds, gridBounds, type Tile, type TileRect } from '../domain/cit
 import { headerIcons } from './icons';
 import {
   backToFront,
-  centerOn,
   corners,
   type MapMode,
   type MapView,
@@ -16,7 +15,6 @@ import {
   switchMode,
   tileAt,
   toScreen,
-  WHOLE_MAP,
   zoomAt,
 } from './map-projection';
 
@@ -39,8 +37,6 @@ export interface CityMapData {
   marked?: { tiles: Tile[]; color: string };
   /** ground beside or under the city, e.g. free expansion blocks; the map widens to show them */
   zones?: MapZone[];
-  /** one building to point at, framed above everything else; `focus()` brings it into view */
-  focus?: { rect: TileRect; color: string };
 }
 
 export interface MapZone {
@@ -70,8 +66,6 @@ const HOVER = '#ffffff';
 const ZOOM_STEP = 1.25;
 /** a city opens, and the reset button returns, five zoom steps in from the whole map, centered */
 export const START_VIEW: MapView = { zoom: ZOOM_STEP ** 5, panX: 0, panY: 0 };
-/** a focused building shows at least this many pixels wide; the isometric diamond is squashed and needs more */
-const FOCUS_SIZE: Record<MapMode, number> = { top: 56, iso: 112 };
 
 export const legendView = (items: LegendItem[]) =>
   html`<ul class="map-legend">${items.map(
@@ -98,10 +92,6 @@ export class CityMap {
   private drag?: { x: number; y: number; view: MapView; moved: boolean };
   private observer?: ResizeObserver;
   private observedIn?: Window;
-  /** asked to focus before the canvas had a size */
-  private pendingFocus?: TileRect;
-  /** focused since the data last changed, possibly still on the old data */
-  private focusedSinceData?: TileRect;
   mode: MapMode;
 
   constructor(private options: CityMapOptions = {}) {
@@ -136,42 +126,17 @@ export class CityMap {
   private setData(data: CityMapData) {
     this.data = data;
     const bounds = gridBounds([...data.areas, ...data.tiles, ...(data.zones ?? []).flatMap((z) => z.rects)]);
-    // a city that grew or shrank shows in the start view again; a focus asked for this data but applied to the old one comes back
-    if (!sameBounds(bounds, this.bounds)) {
-      this.view = START_VIEW;
-      this.pendingFocus ??= this.focusedSinceData;
-    }
-    this.focusedSinceData = undefined;
+    // a city that grew or shrank shows in the start view again
+    if (!sameBounds(bounds, this.bounds)) this.view = START_VIEW;
     this.bounds = bounds;
     this.hovered = -1;
   }
 
-  /**
-   * Centers `rect` and zooms in if it would be tiny. A map that has no size yet (its box just opened) does it as soon
-   * as it is laid out.
-   */
-  focus(rect: TileRect): void {
-    this.pendingFocus = rect;
-    this.draw();
-  }
-
-  private applyFocus() {
-    const size = this.size();
-    const rect = this.pendingFocus;
-    if (!rect || !size || !this.bounds) return;
-    this.view = centerOn(this.mode, this.bounds, size.width, size.height, this.view, rect, FOCUS_SIZE[this.mode]);
-    this.pendingFocus = undefined;
-    this.focusedSinceData = rect;
-  }
-
-  /** a framed building is focused again as from the list, else the zoom and the middle of the view stay */
+  /** the zoom and the middle of the view stay */
   private setMode(mode: MapMode) {
     if (mode === this.mode) return;
     const size = this.size();
-    const focus = this.data?.focus?.rect;
     if (!size || !this.bounds) this.view = START_VIEW;
-    else if (focus)
-      this.view = centerOn(mode, this.bounds, size.width, size.height, WHOLE_MAP, focus, FOCUS_SIZE[mode]);
     else this.view = switchMode(this.mode, mode, this.bounds, size.width, size.height, this.view);
     this.mode = mode;
     this.options.onMode?.(mode);
@@ -237,7 +202,6 @@ export class CityMap {
 
   draw(): void {
     this.observe();
-    this.applyFocus();
     const c = this.canvas;
     const size = this.size();
     const p = this.projection();
@@ -262,11 +226,6 @@ export class CityMap {
     if (marked) for (const tile of marked.tiles) this.shape(ctx, p, { ...tile, width: 1, length: 1 }, marked.color);
     const gaps = p.scale >= (this.mode === 'iso' ? 8 : 5);
     for (const tile of backToFront(this.mode, this.data.tiles)) this.drawTile(ctx, p, tile, gaps);
-    const focus = this.data.focus;
-    if (focus) {
-      this.outline(ctx, p, focus.rect, BACKGROUND, 6);
-      this.outline(ctx, p, focus.rect, focus.color, 3.5);
-    }
     const hovered = this.data.tiles[this.hovered];
     if (hovered) this.outline(ctx, p, hovered, HOVER, 2);
   }
@@ -386,19 +345,8 @@ export class CityMap {
     this.draw();
   }
 
-  /** the reset button: a framed building is focused again as from the list, else the start view */
+  /** the reset button: the start view */
   private reset() {
-    const size = this.size();
-    const focus = this.data.focus?.rect;
-    if (!focus || !size || !this.bounds) return this.showCity();
-    this.view = centerOn(this.mode, this.bounds, size.width, size.height, WHOLE_MAP, focus, FOCUS_SIZE[this.mode]);
-    this.draw();
-  }
-
-  /** the start view again, dropping a focus still waiting for its data */
-  showCity(): void {
-    this.pendingFocus = undefined;
-    this.focusedSinceData = undefined;
     this.view = START_VIEW;
     this.draw();
   }

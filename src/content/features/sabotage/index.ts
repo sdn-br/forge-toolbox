@@ -1,15 +1,10 @@
-import { html } from 'lit-html';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
 import { assessCity } from '../../domain/assess-city';
-import { largeDefaultSize } from '../../ui/box';
-import { CityMap, legendView } from '../../ui/city-map';
 import { icons } from '../../ui/icons';
-import { toMode } from '../../ui/map-projection';
 import { PlayerNoteCard } from '../../ui/note-card';
-import { type VisitedMapVm, visitedCityMap } from './city-map';
-import { type SabotageActions, sabotageView } from './view';
+import { sabotageView } from './view';
 import { type SabotageVm, sabotageViewModel } from './view-model';
 import { visitedRecord } from './visited-record';
 
@@ -36,42 +31,6 @@ export const sabotageFeature: Feature = {
     });
 
     let vm: SabotageVm | undefined;
-    let mapVm: VisitedMapVm | undefined;
-    /** the building picked in the list of plunderable ones; a new visit drops it */
-    let focused: number | undefined;
-    const MODE = 'cityMap.visited.mode';
-    const map = new CityMap({ mode: toMode(ctx.ui.pref(MODE)), onMode: (mode) => ctx.ui.savePref(MODE, mode) });
-    // the map of the visited city in a box of its own; it follows the visits and keeps the last city after going home
-    const mapBox = ctx.createBox({
-      id: 'visitedCityMap',
-      title: () => {
-        const owner = ctx.cities.visited()?.owner;
-        const name = owner === undefined ? undefined : ctx.players.get(owner)?.name;
-        return name ? t('sabotage.mapTitle', { name }) : t('cityMap.title');
-      },
-      width: 500,
-      resizable: true,
-      defaultSize: largeDefaultSize,
-      fill: true,
-      render: () =>
-        mapVm ? map.render(mapVm.data, legendView(mapVm.legend)) : html`<p class="muted">${t('sabotage.noMap')}</p>`,
-    });
-    const actions: SabotageActions = {
-      // the map button shows the city in its start view, without the building picked before
-      openMap: () => {
-        focused = undefined;
-        refresh();
-        mapBox.open();
-        map.showCity();
-      },
-      showOnMap: (building) => {
-        focused = building;
-        refresh();
-        mapBox.open();
-        const rect = mapVm?.data.focus?.rect;
-        if (rect) map.focus(rect);
-      },
-    };
     // the countdowns of the attack line run on while the box is open; the ticker stops with the box
     let ticker: ReturnType<typeof setInterval> | undefined;
     const keepTicking = () => {
@@ -91,7 +50,7 @@ export const sabotageFeature: Feature = {
         const owner = ctx.cities.visited()?.owner;
         const note = vm && owner !== undefined ? card.render(owner, ctx.players.get(owner)?.name) : undefined;
         const markPlayer = owner === undefined ? undefined : (marked: boolean) => ctx.players.setMarked(owner, marked);
-        return sabotageView(vm, note, mapVm && actions, markPlayer);
+        return sabotageView(vm, note, markPlayer);
       },
     });
     const card = new PlayerNoteCard(ctx.notes, () => box.update());
@@ -112,15 +71,12 @@ export const sabotageFeature: Feature = {
         now: Date.now(),
         record: record.current(city.owner),
       });
-      mapVm = city.buildings.size > 0 ? visitedCityMap(city, assessment.plunderable, ctx.catalog, focused) : undefined;
       box.update();
-      mapBox.update();
     };
     // what is recorded about the visited player; redraws whenever a part of it arrives
     const record = visitedRecord(ctx, refresh);
 
     ctx.bus.on('city.visited', () => {
-      focused = undefined;
       refresh();
       if (ctx.settings.get('sabotage.autoOpen')) box.open();
     });

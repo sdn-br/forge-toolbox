@@ -2,7 +2,6 @@ import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { battleDetailsView } from '../../ui/battle-details';
-import { headerIcons } from '../../ui/icons';
 import { externalLink } from '../../ui/links';
 import { starButton } from '../../ui/star';
 import type { PlunderItem, SabotageVm } from './view-model';
@@ -32,32 +31,11 @@ function armyTable(army: NonNullable<SabotageVm['army']>, repel: number, measure
   ${measured ? html`<p class="muted">${t('sabotage.measuredHint')}</p>` : ''}`;
 }
 
-export interface SabotageActions {
-  /** opens the box with the map of the visited city */
-  openMap(): void;
-  /** opens that box and points at a building there */
-  showOnMap(building: number): void;
-}
-
-/** Enter and space press a row like a button; the keys are not meant for the game. */
-const pressKeys = (action: () => void) => (e: KeyboardEvent) => {
-  e.stopPropagation();
-  if (e.key !== 'Enter' && e.key !== ' ') return;
-  e.preventDefault();
-  action();
-};
-
-/** without actions there is no map, so the rows are plain */
-const plunderTable = (items: PlunderItem[], actions?: SabotageActions) =>
-  html`<table>${items.map((p) => {
-    const loot = html`<td>${p.name}</td>
-      <td>${p.items.map((i) => html`${formatNumber(i.amount)} ${i.label}<br />`)}</td>`;
-    const muted = p.important ? '' : ' muted';
-    if (!actions) return html`<tr class=${muted.trim()}>${loot}</tr>`;
-    const show = () => actions.showOnMap(p.building);
-    return html`<tr class=${`plunder-row${muted}`} role="button" tabindex="0" data-tip=${t('sabotage.showOnMap')}
-      @click=${show} @keydown=${pressKeys(show)}>${loot}</tr>`;
-  })}</table>`;
+const plunderTable = (items: PlunderItem[]) =>
+  html`<table>${items.map(
+    (p) => html`<tr class=${p.important ? '' : 'muted'}><td>${p.name}</td>
+      <td>${p.items.map((i) => html`${formatNumber(i.amount)} ${i.label}<br />`)}</td></tr>`,
+  )}</table>`;
 
 function plunderedPart({ last, totals }: NonNullable<SabotageVm['plundered']>) {
   if (!last) return html`<p class="muted">${t('sabotage.neverPlundered')}</p>`;
@@ -72,11 +50,10 @@ function plunderedPart({ last, totals }: NonNullable<SabotageVm['plundered']>) {
     <br />${totals}</p>`;
 }
 
-/** `note` is the note card of the visited player; `actions` only when the visited city has a map */
+/** `note` is the note card of the visited player */
 export function sabotageView(
   vm: SabotageVm | undefined,
   note?: TemplateResult,
-  actions?: SabotageActions,
   /** puts the star on the visited player or takes it away */
   markPlayer?: (marked: boolean) => void,
 ): TemplateResult {
@@ -89,10 +66,6 @@ export function sabotageView(
     }${
       vm.player.guild
         ? html` <span class="muted">[${externalLink(vm.player.guild.name, vm.player.guild.url)}]</span>`
-        : ''
-    }${
-      actions
-        ? html` <button class="map-button" data-tip=${t('sabotage.openMap')} aria-label=${t('sabotage.openMap')} @click=${() => actions.openMap()}>${headerIcons.map}</button>`
         : ''
     }
       <br /><span class="muted">${t('sabotage.era')}: ${vm.player.era}</span>
@@ -117,7 +90,7 @@ export function sabotageView(
     ${
       vm.plunderable.length === 0
         ? html`<p class="muted">${t('sabotage.nothingPlunderable')}</p>`
-        : plunderTable(vm.plunderable, actions)
+        : plunderTable(vm.plunderable)
     }
     ${vm.incomplete ? html`<p class="warn">${t('sabotage.incomplete')}</p>` : ''}`;
 }

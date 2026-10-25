@@ -27,5 +27,5 @@ function mix(color: string, toward: string, amount: number): string {
 /** the group color faded into the background, for buildings that are not the point of a map */
 export const mutedColor = (category: BuildingCategory) => mix(CATEGORY_COLORS[category], BACKGROUND, 0.6);
 
-export const categoryLegend = (muted = false): LegendItem[] =>
-  CATEGORIES.map((c) => ({ color: muted ? mutedColor(c) : CATEGORY_COLORS[c], label: t(`category.${c}`) }));
+export const categoryLegend = (): LegendItem[] =>
+  CATEGORIES.map((c) => ({ color: CATEGORY_COLORS[c], label: t(`category.${c}`) }));

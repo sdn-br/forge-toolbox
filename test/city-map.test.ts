@@ -105,53 +105,13 @@ describe('city map', () => {
     document.removeEventListener('wheel', outside);
   });
 
-  it.each(['top', 'iso'] as const)('centers a building it is asked to focus (%s)', (mode) => {
-    const { map } = mount(new CityMap({ mode }));
-    expect(map.tileIndexAt(100, 50)).not.toBe(0);
-    map.focus(data.tiles[0] as CityMapData['tiles'][number]);
-    expect(map.tileIndexAt(100, 50)).toBe(0);
-  });
-
-  it.each(['top', 'iso'] as const)(
-    'keeps the focus when the data it was asked for arrives after it, with other bounds (%s)',
-    async (mode) => {
-      // a closed box keeps the last city; the row of a city visited since then focuses before the new city renders
-      const { map, root } = mount(new CityMap({ mode }));
-      const next: CityMapData = {
-        areas: [{ x: 0, y: 0, width: 40, length: 30 }],
-        tiles: [{ x: 30, y: 20, width: 2, length: 2, fill: '#f00', tooltip: 'Münzhaus' }],
-      };
-      map.focus(next.tiles[0] as CityMapData['tiles'][number]);
-      render(map.render(next), root);
-      await tick();
-      expect(map.tileIndexAt(100, 50)).toBe(0);
-    },
-  );
-
-  it('resets to the framed building when there is one, else to the start view', () => {
-    const { map, root, button } = mount();
-    const hall = data.tiles[0] as CityMapData['tiles'][number];
-    render(map.render({ ...data, focus: { rect: hall, color: '#ff0' } }), root);
-    button('Ganze Stadt').click();
-    expect(map.tileIndexAt(100, 50)).toBe(0);
-    render(map.render(data), root);
+  it('resets to the start view', () => {
+    const { map, button, canvas } = mount();
+    canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, clientX: 10, clientY: 10, cancelable: true }));
+    expect(map.tileIndexAt(100, 50)).not.toBe(1);
     button('Ganze Stadt').click();
     // the start view is centered on the middle of the city, where the street stands
     expect(map.tileIndexAt(100, 50)).toBe(1);
-  });
-
-  it('focuses once the canvas has a size when asked before', () => {
-    const map = new CityMap();
-    const root = document.createElement('div');
-    document.body.append(root);
-    render(map.render(data), root);
-    map.focus({ x: 0, y: 0, width: 3, length: 2 });
-    const canvas = root.querySelector('canvas') as HTMLCanvasElement;
-    Object.defineProperty(canvas, 'clientWidth', { value: 200 });
-    Object.defineProperty(canvas, 'clientHeight', { value: 100 });
-    // what the size observer does once the box is laid out
-    map.draw();
-    expect(map.tileIndexAt(100, 50)).toBe(0);
   });
 });
 
