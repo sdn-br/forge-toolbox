@@ -27,7 +27,16 @@ import {
   type TierFilter,
 } from './possible-view-model';
 import { type InvestmentsActions, investmentsView } from './view';
-import { INVESTMENT_DESC_FIRST, type InvestmentSort, type InvestmentsTab, investmentsViewModel } from './view-model';
+import {
+  DEFAULT_MINE_FILTER,
+  INVESTMENT_DESC_FIRST,
+  type InvestmentSort,
+  type InvestmentsTab,
+  investmentsViewModel,
+  type MineFilter,
+  STATUS_TOGGLES,
+  type StatusFilter,
+} from './view-model';
 
 /** the menu entry and the settings group show it */
 const ICON = icons.investments;
@@ -35,6 +44,8 @@ const OPEN_WITH_LIST = 'investments.openWithList';
 /** view choices: the tab and the filters of the possible investments */
 const TAB = 'investments.tab';
 const FILTER = 'investments.filter';
+/** the filters of the own investments, kept apart from those of the possible ones */
+const MINE_FILTER = 'investments.mineFilter';
 /** the settings the rating reads */
 
 /** the saved tier toggles, each one that is missing at its default */
@@ -57,6 +68,22 @@ function savedFilter(saved: string | undefined): PossibleFilter {
   }
 }
 
+/** the saved filters of the own investments, each part that is missing or broken at its default */
+function savedMineFilter(saved: string | undefined): MineFilter {
+  try {
+    const f = JSON.parse(saved ?? '{}') as Partial<MineFilter>;
+    return {
+      player: typeof f.player === 'string' ? f.player : DEFAULT_MINE_FILTER.player,
+      name: typeof f.name === 'string' ? f.name : DEFAULT_MINE_FILTER.name,
+      reach: savedReach(f),
+      onlyMarked: typeof f.onlyMarked === 'boolean' ? f.onlyMarked : DEFAULT_MINE_FILTER.onlyMarked,
+      status: savedToggles<keyof StatusFilter>(STATUS_TOGGLES, f.status, DEFAULT_MINE_FILTER.status),
+    };
+  } catch {
+    return DEFAULT_MINE_FILTER;
+  }
+}
+
 export const investmentsFeature: Feature = {
   id: 'investments',
   setup(ctx) {
@@ -72,6 +99,7 @@ export const investmentsFeature: Feature = {
     let sort: InvestmentSort | undefined;
     let possibleSort: PossibleSort = DEFAULT_POSSIBLE_SORT;
     let filter = savedFilter(ctx.ui.pref(FILTER));
+    let mineFilter = savedMineFilter(ctx.ui.pref(MINE_FILTER));
     /** the known buildings as last read; data events read them again, the other inputs only rate them anew */
     let known: KnownGreatBuilding[] = [];
     let arc = 0;
@@ -108,6 +136,12 @@ export const investmentsFeature: Feature = {
         sort = nextSort(sort, column, INVESTMENT_DESC_FIRST, append);
         box.update();
       },
+      filter: (patch) => {
+        mineFilter = { ...mineFilter, ...patch };
+        ctx.ui.savePref(MINE_FILTER, JSON.stringify(mineFilter));
+        box.update();
+      },
+      pickPlayer: (player) => actions.filter({ player }),
       scroll: scrollBy,
       measure: fit.measure,
     };
@@ -140,12 +174,13 @@ export const investmentsFeature: Feature = {
       return rated.rows;
     };
 
-    /** the height the box needs for what always shows, so the table area never gets a second scrollbar:
-     * border 4 + header 29 + body padding 12 + tabs 32 + the taller top block (age and totals, 2 x 41) + head row 22
-     * + two rows 2 x 23 + the line of hidden rows 21 = 248, rounded up. Worked out from the styles, not measured.
-     * debt: kept by hand. ceiling: a filter row that wraps at a narrow width, other fonts or a changed padding need
-     * more. upgrade: measure the fixed parts in the box once a second box needs it */
-    const MIN_HEIGHT = 250;
+    /** the height the box needs for what always shows, so the table area never gets a second scrollbar: border 4 +
+     * header 29 + body padding 12 + tabs 32 + filter row 46 (22 high, 2 x 12 margin) + the totals of the own tab at
+     * their tallest, two lines of 60 (one line 41, the line of the selection 19 more) + head row 22 + two rows
+     * 2 x 23 + the line of hidden rows 21 = 272, rounded up. Worked out from the styles, not measured.
+     * debt: kept by hand. ceiling: a filter row that wraps (a narrow box, the long hint without a town hall list), other
+     * fonts or a changed padding need more. upgrade: measure the fixed parts in the box once a second box needs it */
+    const MIN_HEIGHT = 275;
     const WIDTH = 818;
 
     const render = () => {
@@ -179,6 +214,8 @@ export const investmentsFeature: Feature = {
         playerUrl,
         isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
         ownerMarked: (id) => ctx.players.get(id)?.marked === true,
+        filter: mineFilter,
+        relations: (id) => ctx.players.get(id)?.relations,
       });
       tops.mine = vm.scroll.top;
       return investmentsView(vm, actions);

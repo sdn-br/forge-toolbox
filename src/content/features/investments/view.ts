@@ -8,13 +8,17 @@ import { externalLink } from '../../ui/links';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { starButton } from '../../ui/star';
 import { rowsIn, windowedRows } from '../../ui/windowed-rows';
-import { ownerStar } from './filter-parts';
+import { picks } from './filter-model';
+import { markedFilter, ownerStar, pickButton, reachCell, reachFilter, text, toggleGroup } from './filter-parts';
 import {
   type InvestmentColumn,
   type InvestmentRowVm,
   type InvestmentsTab,
   type InvestmentsVm,
+  type MineFilter,
+  STATUS_TOGGLES,
   TABS,
+  type TotalsVm,
 } from './view-model';
 
 export interface InvestmentsActions {
@@ -22,6 +26,9 @@ export interface InvestmentsActions {
   /** puts the star on a building or takes it away */
   mark(owner: PlayerId, entityId: number, marked: boolean): void;
   sort(column: InvestmentColumn, append: boolean): void;
+  filter(patch: Partial<MineFilter>): void;
+  /** put the owner's name into the "Spieler" filter, as if typed */
+  pickPlayer(name: string): void;
   /** moves the table of the tab by rows, down for positive; the owner keeps the offset inside the list */
   scroll(rows: number): void;
   /** gets the table area on every render, to measure how many rows fit */
@@ -34,17 +41,19 @@ const statusIcon: Record<InvestmentStatus, TemplateResult> = {
   unknown: headerIcons.questionCircle,
 };
 
-/** Columns in table order; heads show the whole word, the narrow status and star their icon; the widths are in the styles. */
+/** Columns in table order, the same as the possible tab where both have one; heads show the whole word, the narrow
+ * status, relation and star their icon; the widths are in the styles. */
 const columns: SortColumn<InvestmentColumn>[] = [
   { column: 'mark', label: 'mark.col', num: false, icon: headerIcons.star, cls: 'inv-mark' },
   { column: 'owner', label: 'investments.col.owner', num: false },
+  { column: 'reach', label: 'investments.col.reach', num: false, icon: headerIcons.person, cls: 'inv-reach' },
   { column: 'name', label: 'gb.col.name', num: false },
   { column: 'level', label: 'gb.col.level', num: true },
+  { column: 'progress', label: 'gb.col.progress', num: true },
   { column: 'rank', label: 'gb.col.rank', num: true },
   { column: 'deposit', label: 'investments.col.deposit', num: true },
   { column: 'profit', label: 'gb.col.profit', num: true, icon: headerIcons.profit },
   { column: 'status', label: 'investments.col.status', num: false, icon: headerIcons.info },
-  { column: 'progress', label: 'gb.col.progress', num: true },
 ];
 
 /** the first cell of a row: the star of the building */
@@ -52,17 +61,14 @@ export const markCell = (r: { owner: PlayerId; entityId: number; marked: boolean
   html`<td class="inv-mark">${starButton(r.marked, () => mark(r.owner, r.entityId, !r.marked))}</td>`;
 
 /** "x / y" of the level with the thin bar below, the rest to the level up in the tooltip; `extra` goes under the bar */
-const row = (r: InvestmentRowVm, actions: InvestmentsActions) => {
+const row = (r: InvestmentRowVm, playerField: string, actions: InvestmentsActions) => {
   const status = t(`investments.status.${r.status}`);
-  return html`<tr class=${r.growth ? 'grown' : ''}>
+  return html`<tr class=${[r.growth ? 'grown' : '', r.reach === 'none' ? 'muted' : ''].join(' ').trim()}>
   ${markCell(r, actions.mark)}
-  <td class="inv-name" data-tip=${r.ownerName}><span class="inv-owner">${externalLink(r.ownerName, r.ownerUrl)}${ownerStar(r.ownerMarked)}</span></td>
+  <td class="inv-name" data-tip=${r.ownerName}><span class="inv-owner">${externalLink(r.ownerName, r.ownerUrl)}${ownerStar(r.ownerMarked)}${pickButton(r.ownerName, picks(playerField, r.ownerName), actions.pickPlayer)}</span></td>
+  <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r.reach, r.reasons)}</td>
   <td class="inv-name" data-tip=${r.name}>${r.name}</td>
   <td class="num">${r.level}</td>
-  <td class="num">${t('gb.rank', { rank: r.rank })}</td>
-  <td class="num">${r.deposit}</td>
-  <td class="num" data-tip=${t('investments.profitHint', { gross: r.gross })}>${r.profit}</td>
-  <td class=${`inv-status ${r.status}`} data-tip=${status} aria-label=${status}>${statusIcon[r.status]}</td>
   ${progressCell(
     r,
     r.growth
@@ -72,6 +78,10 @@ const row = (r: InvestmentRowVm, actions: InvestmentsActions) => {
         )}</div>`
       : '',
   )}
+  <td class="num">${t('gb.rank', { rank: r.rank })}</td>
+  <td class="num">${r.deposit}</td>
+  <td class="num" data-tip=${t('investments.profitHint', { gross: r.gross })}>${r.profit}</td>
+  <td class=${`inv-status ${r.status}`} data-tip=${status} aria-label=${status}>${statusIcon[r.status]}</td>
 </tr>`;
 };
 
@@ -88,25 +98,57 @@ const table = (vm: InvestmentsVm, actions: InvestmentsActions) =>
     scroll: actions.scroll,
     measure: actions.measure,
     table: html`<table class="gb-table inv-table">
-    <colgroup><col class="c-mark" /><col class="c-owner" /><col class="c-name" /><col class="c-level" /><col class="c-rank" />
-      <col class="c-deposit" /><col class="c-profit" /><col class="c-status" /><col class="c-progress" /></colgroup>
+    <colgroup><col class="c-mark" /><col class="c-owner" /><col class="c-reach" /><col class="c-name" /><col class="c-level" /><col class="c-progress" />
+      <col class="c-rank" /><col class="c-deposit" /><col class="c-profit" /><col class="c-status" /></colgroup>
     <thead><tr>${sortHeads(columns, vm.sort, actions.sort)}</tr></thead>
-    <tbody>${rowsIn(vm.rows, vm.scroll).map((r) => row(r, actions))}</tbody>
+    <tbody>${rowsIn(vm.rows, vm.scroll).map((r) => row(r, vm.filter.player, actions))}</tbody>
   </table>`,
   });
 
-/** the totals above the table, so they show without scrolling */
-const totals = (
-  vm: InvestmentsVm,
-) => html`<p class="gb-me">${t('investments.circulating', { fp: vm.totals.circulating })}
+/** one status toggle per status, with the icons of the column; any switched on lets its rows through */
+const statusFilter = (f: MineFilter, actions: InvestmentsActions) =>
+  toggleGroup(
+    'inv-status-filter',
+    STATUS_TOGGLES,
+    f.status,
+    (key) => t(`investments.statusFilter.${key}`),
+    (key) => statusIcon[key],
+    (status) => actions.filter({ status }),
+  );
+
+/** the filters, the age of the town hall list at the end of the same row so it shows without scrolling */
+const filters = (f: MineFilter, age: string, actions: InvestmentsActions) => html`<p class="inv-filter">
+    ${text(f.player, t('investments.possible.player'), (player) => actions.filter({ player }))}
+    ${text(f.name, t('investments.possible.name'), (name) => actions.filter({ name }))}
+    ${reachFilter(f.reach, (reach) => actions.filter({ reach }))}
+    ${statusFilter(f, actions)}
+    ${markedFilter(f.onlyMarked, (onlyMarked) => actions.filter({ onlyMarked }))}
+    <span class="inv-count muted">${age}</span>
+  </p>`;
+
+/** a line of the totals: the deposits, then the profit icon once, the safe profit and the total */
+const totalsLine = (totals: TotalsVm, selection: boolean) =>
+  html`<span class="gb-me-line">${
+    selection
+      ? html`<span class="profit-icon" role="img" data-tip=${t('investments.selection')} aria-label=${t('investments.selection')}>${headerIcons.funnel}</span> `
+      : ''
+  }${t('investments.circulating', { fp: totals.circulating })}
     · <span class="profit-icon" role="img" data-tip=${t('gb.col.profit')} aria-label=${t('gb.col.profit')}>${headerIcons.profit}</span>
-    <b class=${vm.totals.gain ? 'gain' : ''}><span class="profit-icon" role="img" data-tip=${t('investments.profitSafe')}
-      aria-label=${t('investments.profitSafe')}>${headerIcons.checkCircle}</span> ${vm.totals.profitSafe}</b>
-    <span class="muted">· <span data-tip=${t('investments.profitTotal')} aria-label=${t('investments.profitTotal')}>Σ</span> ${vm.totals.profitTotal}</span></p>`;
+    <b class=${totals.gain ? 'gain' : ''}><span class="profit-icon" role="img" data-tip=${t('investments.profitSafe')}
+      aria-label=${t('investments.profitSafe')}>${headerIcons.checkCircle}</span> ${totals.profitSafe}</b>
+    <span class="muted">· <span data-tip=${t('investments.profitTotal')} aria-label=${t('investments.profitTotal')}>Σ</span> ${totals.profitTotal}</span></span>`;
+
+/** the totals above the table, so they show without scrolling: over all own investments, and under them, with the
+ * funnel in front, over the filtered rows while the filters leave some out */
+const totals = (vm: InvestmentsVm) =>
+  html`<p class="gb-me">${totalsLine(vm.totals, false)}${vm.selection ? totalsLine(vm.selection, true) : ''}</p>`;
 
 export function investmentsView(vm: InvestmentsVm, actions: InvestmentsActions): TemplateResult {
   const age = vm.age === undefined ? t('investments.noList') : t('gb.age', { duration: vm.age });
-  // tabs, age and totals stay, the rows that fit are drawn and the two buttons scroll them, sideways the area scrolls
-  return html`<div class="inv-pane">${tabs('mine', actions)}<p class="muted">${age}</p>
-    ${vm.rows.length === 0 ? html`<p class="muted">${t('investments.none')}</p>` : html`${totals(vm)}${table(vm, actions)}`}</div>`;
+  // the filter fields stay in one outer template: swapping templates would replace them and take their focus mid-typing
+  const content = vm.empty
+    ? html`<p class="muted">${t('investments.none')}</p>`
+    : html`${totals(vm)}${vm.rows.length === 0 ? html`<p class="muted">${t('investments.possible.noRow')}</p>` : table(vm, actions)}`;
+  // tabs, filters and totals stay, the rows that fit are drawn and the two buttons scroll them, sideways the area scrolls
+  return html`<div class="inv-pane">${tabs('mine', actions)}${filters(vm.filter, age, actions)}${content}</div>`;
 }

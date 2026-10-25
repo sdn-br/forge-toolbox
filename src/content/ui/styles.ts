@@ -221,10 +221,10 @@ td.snipe-tier.possible { color: #f0a050; }
 /* investments: fixed columns so heads show whole; owner and building names give way */
 .inv-table { table-layout: fixed; }
 /* the box can be resized: the fixed columns plus at least 90 px for the owner (name, star, funnel) and 100 px for the
-   building, "Meine" 436 + 190 px, "Mögliche" 594 + 190 px; narrower, the box scrolls sideways instead of squeezing the
+   building, "Meine" 506 + 190 px, "Mögliche" 594 + 190 px; narrower, the box scrolls sideways instead of squeezing the
    names to nothing. debt: the sums are kept by hand. ceiling: a changed column width makes them stale.
    upgrade: compute them from the column widths once those live in one place */
-.inv-table { min-width: 626px; }
+.inv-table { min-width: 696px; }
 .inv-table.inv-possible { min-width: 784px; }
 .inv-table .c-mark { width: 34px; }
 .inv-table .c-level, .inv-table .c-rank { width: 56px; }
@@ -232,6 +232,7 @@ td.snipe-tier.possible { color: #f0a050; }
 .inv-table .c-profit { width: 64px; }
 .inv-table .c-status { width: 32px; }
 .inv-table .c-progress { width: 104px; }
+.inv-table .c-reach { width: 70px; }
 .inv-table td.inv-name { overflow: hidden; text-overflow: ellipsis; }
 .inv-table :is(.icon-head, .inv-status, .snipe-tier, .inv-mark) { text-align: center; padding: 0; }
 /* the star left, as in the snipe helper (the button centres a 14 px icon in 18 px) */
@@ -250,12 +251,11 @@ td.inv-status.unknown { color: #b8a27d; }
 .inv-possible .c-gain { width: 64px; }
 .inv-possible .c-tier { width: 32px; }
 .inv-possible .c-seen { width: 72px; }
-.inv-possible .c-reach { width: 70px; }
 /* the head left, over the icons of the cells */
 .inv-table th.icon-head.inv-reach { text-align: left; padding: 0 0 0 4px; }
 .inv-reach svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px; }
 /* an owner out of reach: the whole row muted, links and tier colours too */
-.inv-possible tr.muted :is(td, a) { color: inherit; }
+.inv-table tr.muted :is(td, a) { color: inherit; }
 .inv-possible td { overflow: hidden; text-overflow: ellipsis; }
 /* investments: the body does not scroll, the pane fills it. The table area holds as many rows as fit (ui/fit-rows.ts),
    the two buttons beside it scroll them, and the area itself scrolls only sideways when the box is narrower than the table */
@@ -267,12 +267,12 @@ td.inv-status.unknown { color: #b8a27d; }
 .inv-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .inv-filter input[type=search] { width: 10em; }
 .inv-count { margin-left: auto; }
-.inv-reach-filter, .inv-tier-filter, .inv-hits-filter, .inv-marked-filter { display: inline-flex; gap: 2px; }
-.inv-reach-filter button, .inv-tier-filter button, .inv-hits-filter button, .inv-marked-filter button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
-.inv-reach-filter button.on, .inv-tier-filter button.on, .inv-marked-filter button.on { color: var(--accent); opacity: 1; }
+.inv-reach-filter, .inv-tier-filter, .inv-status-filter, .inv-hits-filter, .inv-marked-filter { display: inline-flex; gap: 2px; }
+.inv-reach-filter button, .inv-tier-filter button, .inv-status-filter button, .inv-hits-filter button, .inv-marked-filter button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
+.inv-reach-filter button.on, .inv-tier-filter button.on, .inv-status-filter button.on, .inv-marked-filter button.on { color: var(--accent); opacity: 1; }
 /* the profit icon keeps its own colours, switched on it only turns opaque */
 .inv-hits-filter button.on { opacity: 1; }
-.inv-reach-filter button svg, .inv-tier-filter button svg, .inv-hits-filter button svg, .inv-marked-filter button svg { display: block; width: 14px; height: 14px; }
+.inv-reach-filter button svg, .inv-tier-filter button svg, .inv-status-filter button svg, .inv-hits-filter button svg, .inv-marked-filter button svg { display: block; width: 14px; height: 14px; }
 .inv-owner { display: flex; align-items: center; }
 .inv-owner a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* always at the right edge of the column, so the mouse can run straight down it; hidden until the row is hovered */
@@ -349,6 +349,7 @@ td.below-safe { font-style: italic; opacity: .75; }
 p.gb-me { margin: 6px 0; padding: 4px 6px; border: 1px solid #8a6a3a; border-radius: 4px; background: #3a2814; }
 p.gb-me.safe { border-color: #5a9a4a; }
 p.gb-me.safe, .gb-me .gain { color: #8fd08f; }
+.gb-me-line { display: block; }
 .gb-me .profit-icon { color: var(--ink); }
 .gb-me .profit-icon svg { width: 14px; height: 14px; vertical-align: -2px; }
 .gb-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 8px;

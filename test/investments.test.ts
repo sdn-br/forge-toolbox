@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { myInvestments } from '../src/content/domain/investments';
-import { investmentsViewModel } from '../src/content/features/investments/view-model';
+import {
+  DEFAULT_MINE_FILTER,
+  type InvestmentsInput,
+  investmentsViewModel,
+  type MineFilter,
+} from '../src/content/features/investments/view-model';
 import { toGreatBuildingListRows } from '../src/content/game/convert';
 import type { RankingRow } from '../src/content/stores/great-building-model';
 import { applyListRow } from '../src/persistence/great-buildings/merge';
 import { type BuildingDefId, playerId, worldId } from '../src/shared/ids';
-import type { KnownGreatBuilding } from '../src/shared/model';
+import type { KnownGreatBuilding, Relations } from '../src/shared/model';
 import contributions from './fixtures/gb-contributions.json';
 
 const world = worldId('de20');
@@ -177,6 +182,8 @@ describe('marked owner', () => {
       playerUrl: () => '',
       isMarked: () => false,
       ownerMarked: (id) => id === playerId(2002),
+      filter: DEFAULT_MINE_FILTER,
+      relations: () => undefined,
     }).rows;
     expect(rows.map((r) => [r.entityId, r.ownerMarked])).toEqual([
       [1, false],
@@ -196,11 +203,135 @@ describe('totals line', () => {
       playerUrl: () => '',
       isMarked: () => false,
       ownerMarked: () => false,
+      filter: DEFAULT_MINE_FILTER,
+      relations: () => undefined,
     }).totals;
 
   it('shows the safe profit green only above 0', () => {
     expect(vm(12)).toMatchObject({ profitSafe: '+12', gain: true });
     expect(vm(0).gain).toBe(false);
     expect(vm(-3)).toMatchObject({ profitSafe: '−3', gain: false });
+  });
+});
+
+describe('relation and filters of the own investments', () => {
+  const ALL_REACH = { neighbor: true, friend: true, guildMember: true, none: true };
+  const owners: Record<number, Relations | undefined> = {
+    2001: { neighbor: true, friend: false, guildMember: true },
+    2002: { neighbor: false, friend: false, guildMember: false },
+    2003: undefined,
+  };
+  const names: Record<number, string> = { 2001: 'Anna', 2002: 'Bert', 2003: 'Carla' };
+  /** three buildings: Anna (neighbor, guild) safe +50, Bert (no relation) unknown −20, Carla (unknown owner) unsafe +10 */
+  const rows = () => {
+    const safe = building({
+      owner: playerId(2001),
+      entityId: 1,
+      cityEntityId: 'X_Test_Alpha' as BuildingDefId,
+      contribution: { rank: 1, forgePoints: 150, reward: 200, at: 1 },
+    });
+    const unknown = building({
+      owner: playerId(2002),
+      entityId: 2,
+      cityEntityId: 'X_Test_Beta' as BuildingDefId,
+      invested: 1000,
+      required: 2000,
+      contribution: { rank: 2, forgePoints: 80, reward: 60, at: 1 },
+    });
+    const unsafe = withRankings(counterRankings, {
+      owner: playerId(2003),
+      entityId: 3,
+      cityEntityId: 'X_Test_Gamma' as BuildingDefId,
+      contribution: { rank: 1, forgePoints: 100, reward: 110, at: 1 },
+    });
+    return [safe, unknown, unsafe];
+  };
+  const vm = (over: Partial<MineFilter> = {}, extra: Partial<InvestmentsInput> = {}) =>
+    investmentsViewModel({
+      visible: 100,
+      investments: myInvestments(rows(), 0),
+      now: 0,
+      greatBuildingName: (def) => def.replace('X_Test_', ''),
+      playerName: (id) => names[id],
+      playerUrl: () => '',
+      isMarked: (_o, entityId) => entityId === 2,
+      ownerMarked: (id) => id === playerId(2003),
+      relations: (id) => owners[id],
+      filter: { ...DEFAULT_MINE_FILTER, reach: ALL_REACH, ...over },
+      ...extra,
+    });
+  const names3 = (v: ReturnType<typeof vm>) => v.rows.map((r) => r.ownerName).sort();
+
+  it('names the relation per row like the possible tab, an owner the store does not know as unknown', () => {
+    const byOwner = Object.fromEntries(vm().rows.map((r) => [r.ownerName, r]));
+    expect(byOwner.Anna).toMatchObject({
+      reach: 'neighbor',
+      reasons: ['neighbor', 'guildMember'],
+      reachTip: 'Nachbar, Gilde',
+    });
+    expect(byOwner.Bert).toMatchObject({
+      reach: 'none',
+      reasons: ['none'],
+      reachTip: 'keine Beziehung, nicht erreichbar',
+    });
+    expect(byOwner.Carla).toMatchObject({ reach: 'unknown', reasons: ['unknown'] });
+  });
+
+  it('sorts by the relation: neighbors first, out of reach last', () => {
+    const sorted = vm({}, { sort: [{ column: 'reach', desc: false }] });
+    expect(sorted.rows.map((r) => r.ownerName)).toEqual(['Anna', 'Carla', 'Bert']);
+  });
+
+  it('keeps by default the reachable and the unknown owners, as the possible tab does', () => {
+    expect(names3(vm({ reach: DEFAULT_MINE_FILTER.reach }))).toEqual(['Anna', 'Carla']);
+  });
+
+  it('keeps a row when one of its reasons is on', () => {
+    const guild = { neighbor: false, friend: false, guildMember: true, none: false };
+    expect(names3(vm({ reach: guild }))).toEqual(['Anna', 'Carla']);
+    const none = { neighbor: false, friend: false, guildMember: false, none: true };
+    expect(names3(vm({ reach: none }))).toEqual(['Bert', 'Carla']);
+  });
+
+  it('filters by a part of the player and of the building name, in any case', () => {
+    expect(names3(vm({ player: ' AN' }))).toEqual(['Anna']);
+    expect(names3(vm({ name: 'ETA' }))).toEqual(['Bert']);
+  });
+
+  it('filters the marked buildings and those of marked owners', () => {
+    expect(names3(vm({ onlyMarked: true }))).toEqual(['Bert', 'Carla']);
+  });
+
+  it('filters by the status, each toggle on lets its rows through', () => {
+    const only = (key: 'safe' | 'unsafe' | 'unknown') => ({
+      status: { safe: false, unsafe: false, unknown: false, [key]: true },
+    });
+    expect(names3(vm(only('safe')))).toEqual(['Anna']);
+    expect(names3(vm(only('unknown')))).toEqual(['Bert']);
+    expect(names3(vm(only('unsafe')))).toEqual(['Carla']);
+    expect(vm({ status: { safe: false, unsafe: false, unknown: false } }).rows).toEqual([]);
+  });
+
+  it('has no totals of a selection while nothing is left out, the totals of the filtered rows when rows are', () => {
+    const all = vm();
+    expect(all.rows).toHaveLength(3);
+    expect(all.selection).toBeUndefined();
+    const some = vm({ player: 'an' });
+    // the totals line stays over all own investments
+    expect(some.totals).toEqual(all.totals);
+    expect(some.selection).toEqual({ circulating: '150', profitSafe: '+50', profitTotal: '+50', gain: true });
+    const none = vm({ player: 'x' });
+    expect(none.selection).toEqual({ circulating: '0', profitSafe: '0', profitTotal: '0', gain: false });
+  });
+
+  it('counts only the safe rows in the safe profit of the selection', () => {
+    const sel = vm({ status: { safe: false, unsafe: true, unknown: true } }).selection;
+    expect(sel).toMatchObject({ circulating: '180', profitSafe: '0', profitTotal: '−10' });
+  });
+
+  it('tells apart no investment at all from a filter that leaves none', () => {
+    expect(vm().empty).toBe(false);
+    expect(vm({ player: 'x' }).empty).toBe(false);
+    expect(vm({}, { investments: myInvestments([], 0) }).empty).toBe(true);
   });
 });

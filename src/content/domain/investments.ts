@@ -78,6 +78,17 @@ function statusByRankings(b: KnownGreatBuilding): InvestmentStatus | undefined {
 const statusWithout = (own: number, invested: number, rest: number): InvestmentStatus =>
   own >= invested - own + rest ? 'safe' : 'unknown';
 
+/** the sums of some rows: the own deposits, the profit of the safe rows and of all */
+export const sumTotals = (rows: Investment[]): InvestmentTotals =>
+  rows.reduce<InvestmentTotals>(
+    (sum, r) => ({
+      circulating: sum.circulating + r.forgePoints,
+      profitSafe: sum.profitSafe + (r.status === 'safe' ? r.profit : 0),
+      profitTotal: sum.profitTotal + r.profit,
+    }),
+    { circulating: 0, profitSafe: 0, profitTotal: 0 },
+  );
+
 export function myInvestments(buildings: KnownGreatBuilding[], arcBonus: number): Investments {
   const rows = buildings.flatMap<Investment>((b) => {
     const c = b.contribution;
@@ -105,15 +116,7 @@ export function myInvestments(buildings: KnownGreatBuilding[], arcBonus: number)
     ];
   });
   rows.sort((a, b) => Number(b.growth !== undefined) - Number(a.growth !== undefined) || a.rest - b.rest);
-  const totals = rows.reduce<InvestmentTotals>(
-    (sum, r) => ({
-      circulating: sum.circulating + r.forgePoints,
-      profitSafe: sum.profitSafe + (r.status === 'safe' ? r.profit : 0),
-      profitTotal: sum.profitTotal + r.profit,
-    }),
-    { circulating: 0, profitSafe: 0, profitTotal: 0 },
-  );
-  return { rows, totals };
+  return { rows, totals: sumTotals(rows) };
 }
 
 /** A great building of another player without an own place, with the best place the snipe helper finds there. */

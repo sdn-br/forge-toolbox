@@ -84,13 +84,14 @@ describe('Investitionen box', () => {
     expect(cells(rows()[0])).toEqual([
       '',
       'Eigentümer 2005',
+      'unbekannt',
       'Leuchtturm von Alexandria',
       '30',
+      '907 / 924',
       'P1',
       '242',
       '−12',
       '',
-      '907 / 924',
     ]);
     const progress = rows()[0]?.querySelector('td.inv-progress') as HTMLElement;
     expect(progress.dataset.tip).toBe('Fehlt bis zum Level-up: 17 von 924 FP');
@@ -153,7 +154,7 @@ describe('Investitionen box', () => {
     const { send, rows } = setup();
     send(contributions.contributions as Entry);
     await tick();
-    const status = rows()[0]?.querySelectorAll('td')[7];
+    const status = rows()[0]?.querySelectorAll('td')[9];
     expect(status?.getAttribute('aria-label')).toBe('unbekannt: ohne passende Rangliste nicht entscheidbar, LG öffnen');
     expect(status?.querySelector('svg')).not.toBeNull();
   });
@@ -173,10 +174,10 @@ describe('Investitionen box', () => {
     const deposit = heads().find((h) => h.textContent?.trim() === 'Einzahlung') as HTMLElement;
     deposit.click();
     await tick();
-    expect(cells(rows()[0])[5]).toBe('1.886');
+    expect(cells(rows()[0])[7]).toBe('1.886');
     (heads().find((h) => h.textContent?.trim() === 'Einzahlung') as HTMLElement).click();
     await tick();
-    expect(cells(rows()[0])[5]).toBe('1');
+    expect(cells(rows()[0])[7]).toBe('1');
   });
 
   it('sorts by several columns: shift appends a level, a plain click starts over', async () => {
@@ -336,7 +337,7 @@ describe('Investitionen: long lists', () => {
   it('shows the rows that fit, with the head and nothing else in the table area', async () => {
     const { box, texts, all, heads } = await listed(5);
     expect(texts()).toEqual(all.slice(0, 5));
-    expect(heads().length).toBe(9);
+    expect(heads().length).toBe(10);
     expect(hiddenLine(box)).toBe('noch 7 weitere unten');
     expect(button(box, 'Nach oben').getAttribute('aria-disabled')).toBe('true');
     expect(button(box, 'Nach unten').getAttribute('aria-disabled')).toBe('false');
@@ -394,7 +395,8 @@ describe('Investitionen: long lists', () => {
 
   it('asks the box for room for the tabs, the head and two rows so that no second scrollbar appears', () => {
     const { box } = setup();
-    expect(box.options.minHeight).toBeGreaterThan(150);
+    // tabs 32, filter row 46, two lines of totals 60, head 22, two rows 46 and the hidden line 21 on top of 45 of frame and padding
+    expect(box.options.minHeight).toBeGreaterThanOrEqual(272);
     expect(box.options.defaultSize?.({ width: 1200, height: 900 }).height).toBeGreaterThanOrEqual(
       box.options.minHeight ?? 0,
     );
@@ -435,12 +437,305 @@ describe('Investitionen: Merken', () => {
     send(contributions.contributions as Entry);
     await tick();
     const last = rows()[rows().length - 1] as Element;
-    const name = cells(last)[2];
+    const name = cells(last)[3];
     (last.querySelector('button.star') as HTMLElement).click();
     await tick();
     (heads()[0] as HTMLElement).click();
     await tick();
-    expect(cells(rows()[0])[2]).toBe(name);
+    expect(cells(rows()[0])[3]).toBe(name);
     expect(rows()[0]?.querySelector('button.star')?.getAttribute('aria-pressed')).toBe('true');
+  });
+});
+
+const SOCIAL = (friends: number[]) =>
+  ({
+    requestClass: 'OtherPlayerService',
+    requestMethod: 'getSocialList',
+    requestData: null,
+    responseData: {
+      friends: friends.map((id) => ({ player_id: id, name: `Eigentümer ${id}` })),
+      neighbours: [],
+      guildMembers: [],
+    },
+  }) as Entry;
+
+describe('Investitionen: Beziehung in Meine Investitionen', () => {
+  it('has the same columns in the same order as the possible tab, the relation after the owner', async () => {
+    const { send, heads } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    expect(heads().map((th) => th.getAttribute('aria-label'))).toEqual([
+      'Merken',
+      'Eigentümer',
+      'Beziehung',
+      'LG',
+      'Stufe',
+      'Fortschritt',
+      'Platz',
+      'Einzahlung',
+      'Gewinn',
+      'Status',
+    ]);
+    expect(heads()[2]?.querySelector('svg')).not.toBeNull();
+  });
+
+  it('shows the reason as an icon with the word in the tooltip, an unknown owner as a word, and sorts by it', async () => {
+    const { send, rows, cells, heads } = setup();
+    send(SOCIAL([2005, 2008]));
+    send(contributions.contributions as Entry);
+    await tick();
+    const reach = (r: Element) => r.querySelectorAll('td')[2] as HTMLElement;
+    const byOwner = (owner: string) => rows().filter((r) => cells(r)[1] === owner);
+    expect(reach(byOwner('Eigentümer 2005')[0] as Element).dataset.tip).toBe('Freund');
+    expect(reach(byOwner('Eigentümer 2005')[0] as Element).querySelector('svg')).not.toBeNull();
+    expect(cells(byOwner('Eigentümer 2001')[0])[2]).toBe('unbekannt');
+    (heads()[2] as HTMLElement).click();
+    await tick();
+    // friends before unknown owners
+    expect(
+      rows()
+        .slice(0, 4)
+        .map((r) => cells(r)[1]),
+    ).toEqual(['Eigentümer 2005', 'Eigentümer 2008', 'Eigentümer 2008', 'Eigentümer 2008']);
+  });
+
+  it('hides an owner out of reach by default and draws him muted, with "keine", once the filter lets him in', async () => {
+    const { box, send, rows, cells } = setup();
+    send(SOCIAL([2005, 2006]));
+    send({ requestClass: 'FriendService', requestMethod: 'deleteFriend', requestData: null, responseData: 2006 });
+    send(contributions.contributions as Entry);
+    await tick();
+    expect(rows()).toHaveLength(10);
+    const toggles = [...box.root.querySelectorAll('.inv-reach-filter button')] as HTMLButtonElement[];
+    expect(toggles.map((b) => [b.getAttribute('aria-label'), b.getAttribute('aria-pressed')])).toEqual([
+      ['Nachbar', 'true'],
+      ['Freund', 'true'],
+      ['Gilde', 'true'],
+      ['keine Beziehung, nicht erreichbar', 'false'],
+    ]);
+    (toggles[3] as HTMLButtonElement).click();
+    await tick();
+    expect(rows()).toHaveLength(12);
+    const out = rows().filter((r) => cells(r)[1] === 'Eigentümer 2006');
+    expect(out.map((r) => [cells(r)[2], r.className])).toEqual([
+      ['keine', 'muted'],
+      ['keine', 'muted'],
+    ]);
+    expect(out[0]?.querySelectorAll('td')[2]?.getAttribute('data-tip')).toBe('keine Beziehung, nicht erreichbar');
+  });
+});
+
+describe('Investitionen: Filter in Meine Investitionen', () => {
+  const field = (box: { root: ParentNode }, label: string) =>
+    box.root.querySelector(`input[aria-label="${label}"]`) as HTMLInputElement;
+  const type = (box: { root: ParentNode }, label: string, value: string) => {
+    const f = field(box, label);
+    f.value = value;
+    f.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  const KEY = 'investments.mineFilter';
+
+  it('has the filter row above the totals and the table, with the age at its end', async () => {
+    const { box, send } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    const kids = [...box.root.querySelectorAll('.inv-pane > *')].map((e) => e.className.split(' ')[0]);
+    expect(kids).toEqual(['tabs', 'inv-filter', 'gb-me', 'win-scroll']);
+    expect(box.root.querySelector('.inv-filter .inv-count')?.textContent).toContain('Stand: vor');
+    expect(field(box, 'Spieler')).not.toBeNull();
+    expect(field(box, 'LG')).not.toBeNull();
+    expect(box.root.querySelector('.inv-hits-filter')).toBeNull();
+  });
+
+  it('filters by a part of the player and of the building, and remembers them apart from the possible tab', async () => {
+    const { box, send, rows, cells, ui } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    type(box, 'Spieler', 'eigentümer 2008');
+    await tick();
+    expect(rows()).toHaveLength(3);
+    type(box, 'LG', 'arche');
+    await tick();
+    expect(rows().map((r) => cells(r)[3])).toEqual(['Die Arche']);
+    expect(JSON.parse(ui.pref(KEY) ?? '{}')).toMatchObject({ player: 'eigentümer 2008', name: 'arche' });
+    expect(ui.pref('investments.filter')).toBeUndefined();
+  });
+
+  it('has toggles for status with the icons of the column, all on, and filters by them', async () => {
+    const { box, send, rows, ui } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    const toggles = () => [...box.root.querySelectorAll('.inv-status-filter button')] as HTMLButtonElement[];
+    expect(toggles().map((b) => [b.getAttribute('data-tip'), b.getAttribute('aria-pressed')])).toEqual([
+      ['sicher', 'true'],
+      ['unsicher', 'true'],
+      ['unbekannt', 'true'],
+    ]);
+    expect(toggles().every((b) => b.getAttribute('aria-label') === b.getAttribute('data-tip'))).toBe(true);
+    const statusIcon = rows()[0]?.querySelector('td.inv-status svg')?.innerHTML;
+    expect(toggles()[2]?.querySelector('svg')?.innerHTML).toBe(statusIcon);
+    // all twelve rows are unknown
+    toggles()[2]?.click();
+    await tick();
+    expect(rows()).toHaveLength(0);
+    expect(box.root.querySelector('.inv-pane')?.textContent).toContain('Kein LG passt zum Filter.');
+    expect(JSON.parse(ui.pref(KEY) ?? '{}').status).toEqual({ safe: true, unsafe: true, unknown: false });
+    toggles()[2]?.click();
+    await tick();
+    expect(rows()).toHaveLength(12);
+  });
+
+  it('filters by "nur gemerkte", off by default', async () => {
+    const { box, send, rows, cells, ui } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    const marked = box.root.querySelector('.inv-marked-filter button') as HTMLButtonElement;
+    expect(marked.getAttribute('aria-label')).toBe('nur gemerkte');
+    expect(marked.getAttribute('aria-pressed')).toBe('false');
+    const last = rows()[rows().length - 1] as Element;
+    const name = cells(last)[3];
+    (last.querySelector('button.star') as HTMLElement).click();
+    await tick();
+    marked.click();
+    await tick();
+    expect(rows().map((r) => cells(r)[3])).toEqual([name]);
+    expect(JSON.parse(ui.pref(KEY) ?? '{}')).toMatchObject({ onlyMarked: true });
+  });
+
+  it('opens with the remembered filters, each missing part at its default, a broken value as all defaults', async () => {
+    const open = (saved: string | undefined) => {
+      const env = featureContext({ now: () => Date.now() });
+      if (saved !== undefined) env.ctx.ui.savePref(KEY, saved);
+      investmentsFeature.setup(env.ctx);
+      env.menu('investments');
+      return env.boxes.get('investments')?.root as HTMLElement;
+    };
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const root = open(
+      JSON.stringify({ player: 'Anna', status: { safe: false }, reach: { none: true }, onlyMarked: true }),
+    );
+    await tick();
+    expect((root.querySelector('input[aria-label="Spieler"]') as HTMLInputElement).value).toBe('Anna');
+    expect((root.querySelector('input[aria-label="LG"]') as HTMLInputElement).value).toBe('');
+    const pressed = (sel: string) =>
+      [...root.querySelectorAll(`${sel} button`)].map((b) => b.getAttribute('aria-pressed'));
+    expect(pressed('.inv-status-filter')).toEqual(['false', 'true', 'true']);
+    expect(pressed('.inv-reach-filter')).toEqual(['true', 'true', 'true', 'true']);
+    expect(pressed('.inv-marked-filter')).toEqual(['true']);
+    const broken = open('{nope');
+    await tick();
+    expect(
+      [...broken.querySelectorAll('.inv-status-filter button')].map((b) => b.getAttribute('aria-pressed')),
+    ).toEqual(['true', 'true', 'true']);
+    expect([...broken.querySelectorAll('.inv-reach-filter button')].map((b) => b.getAttribute('aria-pressed'))).toEqual(
+      ['true', 'true', 'true', 'false'],
+    );
+  });
+
+  it('writes the owner into the player field from a funnel at the right edge of the owner cell, and marks it active', async () => {
+    const { box, send, rows, cells } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    const pick = () => rows()[0]?.querySelector('td.inv-name .inv-pick') as HTMLButtonElement;
+    expect(pick().getAttribute('aria-label')).toBe('Nur diesen Spieler zeigen');
+    expect(pick().previousElementSibling?.tagName).toBe('A');
+    const name = cells(rows()[0])[1] as string;
+    pick().click();
+    await tick();
+    expect(field(box, 'Spieler').value).toBe(name);
+    expect(rows()).toHaveLength(1);
+    expect(pick().classList.contains('on')).toBe(true);
+    expect(pick().getAttribute('aria-label')).toBe('Spielerfilter entfernen');
+    pick().click();
+    await tick();
+    expect(field(box, 'Spieler').value).toBe('');
+    expect(rows()).toHaveLength(12);
+  });
+
+  it('shows a star beside a marked owner', async () => {
+    const { send, rows, players, cells } = setup();
+    send(SOCIAL([2005]));
+    send(contributions.contributions as Entry);
+    await tick();
+    players.setMarked(playerId(2005), true);
+    await tick();
+    const row = rows().find((r) => cells(r)[1] === 'Eigentümer 2005') as Element;
+    expect(row.querySelector('.inv-owner .owner-star')?.getAttribute('aria-label')).toBe('Spieler gemerkt');
+  });
+});
+
+describe('Investitionen: Summenzeile mit Auswahl', () => {
+  const lines = (box: { root: ParentNode }) => [...box.root.querySelectorAll('p.gb-me .gb-me-line')] as HTMLElement[];
+  const text = (el: Element | undefined) => el?.textContent?.replace(/\s+/g, ' ').trim();
+
+  it('is one line over all own investments while the filters leave none out', async () => {
+    const { box, send } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    expect(lines(box)).toHaveLength(1);
+    expect(text(lines(box)[0])).toContain('Umlauf: 4.896 FP');
+  });
+
+  it('adds a line with the totals of the filtered rows, keeping the line of all, once the filters leave rows out', async () => {
+    const { box, send, ui } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    const f = box.root.querySelector('input[aria-label="Spieler"]') as HTMLInputElement;
+    f.value = 'Eigentümer 2005';
+    f.dispatchEvent(new Event('input', { bubbles: true }));
+    await tick();
+    expect(lines(box)).toHaveLength(2);
+    expect(text(lines(box)[0])).toContain('Umlauf: 4.896 FP');
+    expect(text(lines(box)[1])).toContain('Umlauf: 242 FP');
+    expect(text(lines(box)[1])).toContain('Σ −12');
+    const mark = lines(box)[1]?.querySelector('[role=img]');
+    expect(mark?.getAttribute('aria-label')).toBe('Auswahl');
+    expect(mark?.getAttribute('data-tip')).toBe('Auswahl');
+    expect(mark?.querySelector('svg')).not.toBeNull();
+    // the filter that leaves nothing out takes the line away again
+    f.value = '';
+    f.dispatchEvent(new Event('input', { bubbles: true }));
+    await tick();
+    expect(lines(box)).toHaveLength(1);
+    expect(ui.pref('investments.mineFilter')).toBeDefined();
+  });
+
+  it('stays above the table, outside the scrolled area', async () => {
+    const { box, send } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    expect(box.root.querySelector('.inv-pane > p.gb-me')).not.toBeNull();
+    expect(box.root.querySelector('.win-scroll p.gb-me')).toBeNull();
+  });
+});
+
+describe('Investitionen: Meine Investitionen scrolled and filtered', () => {
+  let layout: ReturnType<typeof fakeLayout>;
+  beforeEach(() => {
+    layout = fakeLayout();
+  });
+  afterEach(() => layout.restore());
+
+  it('clamps the offset when a filter shrinks the list', async () => {
+    layout.rows(12);
+    const env = setup();
+    env.send(contributions.contributions as Entry);
+    await tick();
+    const texts = () => env.rows().map((r) => env.cells(r).join('|'));
+    const all = texts();
+    layout.rows(4);
+    layout.resize();
+    const down = () => env.box.root.querySelector('.win-nav button[aria-label="Nach unten"]') as HTMLElement;
+    for (let i = 0; i < 8; i++) down().click();
+    expect(texts()).toEqual(all.slice(8));
+    const f = env.box.root.querySelector('input[aria-label="LG"]') as HTMLInputElement;
+    f.value = 'Zeusstatue';
+    f.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(texts()).toHaveLength(2);
+    expect(env.box.root.querySelector('.win-nav')).toBeNull();
+    f.value = '';
+    f.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(texts()).toHaveLength(4);
+    expect(env.box.root.querySelector('.win-hidden')?.textContent?.trim()).toBe('noch 8 weitere unten');
   });
 });
