@@ -135,7 +135,28 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     if (id !== null) players.removeFriend(world, id);
   });
 
+  // Back in the own city. The game reloads the own city (`CityMapService.getEntities` with `main`) after a battle and
+  // asks for the announcements when it returns from the battle, the battleground or the guild screens (recordings of
+  // 2026-10-19 to 2026-10-20). After a battle from a visited city the same response also brings the visit again, then
+  // the visited city shows. Going home from a visit with the home button sends nothing and stays unseen.
+  let home = false;
+  let visit = false;
+  ingestion.on('CityMapService', 'getEntities', ({ request }) => {
+    // another map (a settlement, a colony) is not the own city
+    if (Array.isArray(request) && request.length > 0 && request[0] !== 'main') return;
+    home = true;
+  });
+  ingestion.on('AnnouncementsService', 'fetchAllAnnouncements', () => {
+    home = true;
+  });
+  ingestion.onBatchEnd(() => {
+    if (home && !visit) cities.showOwn();
+    home = false;
+    visit = false;
+  });
+
   ingestion.on('OtherPlayerService', 'visitPlayer', ({ data }) => {
+    visit = true;
     const d = data as GameVisit;
     const o = d.other_player ? toObservation(d.other_player) : null;
     if (!o || !d.other_player) return;

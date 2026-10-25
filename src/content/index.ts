@@ -7,6 +7,8 @@ import { boxFactory, type Feature, type FeatureContext } from './core/feature';
 import { Ingestion } from './core/ingestion';
 import { chromeLocal } from './core/kv';
 import { logError } from './core/log';
+import { windowMarkerLink } from './core/marker-link';
+import { Markers } from './core/markers';
 import { connectProxy } from './core/proxy-link';
 import { Recorder } from './core/recorder';
 import { callBackground } from './core/rpc';
@@ -72,6 +74,7 @@ async function main() {
     menu,
     ...stores,
     recorder,
+    markers: new Markers(bus, stores.cities, windowMarkerLink),
     ui,
     gbOwn: createGbOwnState(bus, ui, settings),
     createBox: boxFactory(ui, (group) => bus.emit('settings.open', { group })),

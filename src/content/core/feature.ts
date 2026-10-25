@@ -5,6 +5,7 @@ import { Box, type BoxOptions } from '../ui/box';
 import type { Menu } from '../ui/menu';
 import type { UiState } from '../ui/ui-state';
 import type { ToolboxBus } from './events';
+import type { Markers } from './markers';
 import type { Recorder } from './recorder';
 import type { Settings } from './settings';
 
@@ -15,6 +16,8 @@ export interface FeatureContext extends Stores {
   settings: Settings;
   menu: Menu;
   recorder: Recorder;
+  /** arrows over buildings in the game view */
+  markers: Markers;
   /** remembered view choices of the viewer */
   ui: UiState;
   /** the factors and Ext the two own-share boxes share */

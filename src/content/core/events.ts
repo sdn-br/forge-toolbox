@@ -1,6 +1,7 @@
 // Contracts of all domain events. A listener gets exactly this payload and reads the rest from the stores.
 import type { BuildingDefId, PlayerId } from '../../shared/ids';
 import type { PlayerSource } from '../../shared/model';
+import type { CityKey } from '../stores/cities';
 import type { Session } from '../stores/session';
 import { EventBus } from './bus';
 
@@ -13,6 +14,10 @@ export interface ToolboxEvents {
   'city.ownChanged': { buildingIds?: number[]; reset: boolean };
   'city.visited': { owner: PlayerId };
   'city.visitedChanged': { owner: PlayerId; buildingIds: number[] };
+  /** the game shows another city, as far as its traffic tells */
+  'city.shown': { city: CityKey };
+  /** the buildings marked with arrows in the game changed: set, cleared, or dismissed in the game */
+  'markers.changed': Record<string, never>;
   'catalog.updated': { defs: BuildingDefId[] };
   /** the main city grid arrived */
   'catalog.grid': Record<string, never>;

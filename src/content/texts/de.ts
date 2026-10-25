@@ -471,6 +471,7 @@ export const de = {
   'cityMap.freeUnknown': 'Freie Felder unbekannt, das Spiel hat die freigeschalteten Gebiete nicht geschickt.',
   'cityMap.incomplete': 'Noch nicht alle Gebäudedaten geladen, Größen können fehlen.',
   'cityMap.searchHit': 'Suchtreffer',
+  'marker.clear': 'Markierungen entfernen',
   'cityMap.stats': 'Statistik',
   'cityMap.statsOpen': 'Statistik zeigen',
   'cityMap.statsClose': 'Statistik ausblenden',
