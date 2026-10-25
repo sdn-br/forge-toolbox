@@ -26,7 +26,7 @@ export interface SnipeActions {
 const columns: SortColumn<SnipeColumn>[] = [
   // left-aligned: a short number would leave the column empty on the left
   { column: 'order', label: 'snipe.col.order', num: false },
-  { column: 'mark', label: 'mark.col', num: false, icon: headerIcons.star },
+  { column: 'mark', label: 'mark.col', num: false, icon: headerIcons.star, cls: 'snipe-mark' },
   { column: 'name', label: 'gb.col.name', num: false },
   { column: 'level', label: 'gb.col.level', num: true },
   { column: 'progress', label: 'gb.col.progress', num: true },

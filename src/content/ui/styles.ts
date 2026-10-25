@@ -196,7 +196,7 @@ th.sortable.desc .sort-level::before { content: ' ▾'; font-size: 1.333em; }
 th.sortable.asc .sort-level::before { content: ' ▴'; font-size: 1.333em; }
 .snipe-table { table-layout: fixed; }
 /* "# ▾2" measured 31 px */
-.snipe-table .c-order { width: 34px; }
+.snipe-table .c-order { width: 32px; }
 /* sortable heads fit their word, the arrow and a level number (measured: "Stufe ▾2" 56 px, "Einsatz ▾2" 67 px) */
 .snipe-table .c-level, .snipe-table .c-rank { width: 56px; }
 .snipe-table .c-progress { width: 112px; }
@@ -205,8 +205,10 @@ th.sortable.asc .sort-level::before { content: ' ▴'; font-size: 1.333em; }
 .snipe-table .c-profit { width: 64px; }
 .snipe-table .c-tier, .snipe-table .c-mark { width: 38px; }
 .snipe-table td.snipe-name { overflow: hidden; text-overflow: ellipsis; }
-.snipe-table :is(.snipe-tier, .snipe-mark) { text-align: center; padding: 0; }
-.snipe-table th.icon-head:not(.num) { text-align: center; padding: 0; }
+.snipe-table .snipe-tier, .snipe-table th.icon-head:not(.num) { text-align: center; padding: 0; }
+/* the star left, its icon in line with the number of # before it (the button centres a 14 px icon in 18 px) */
+.snipe-table td.snipe-mark { text-align: left; padding: 0 0 0 2px; }
+.snipe-table th.icon-head.snipe-mark { text-align: left; padding: 0 0 0 4px; }
 .snipe-table .snipe-tier svg { display: block; width: 14px; height: 14px; margin: auto; }
 td.snipe-tier.exact { color: #8fd08f; }
 td.snipe-tier.safe { color: #5a9a4a; }
