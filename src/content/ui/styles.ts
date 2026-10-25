@@ -251,9 +251,9 @@ td.inv-status.unknown { color: #b8a27d; }
 .inv-reach-filter button svg, .inv-tier-filter button svg, .inv-hits-filter button svg { display: block; width: 14px; height: 14px; }
 .inv-owner { display: flex; align-items: center; }
 .inv-owner a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-/* collapsed until the row is hovered or holds focus, so the name keeps its width; still focusable */
-button.inv-pick { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 0; height: 16px; overflow: hidden; opacity: 0; color: var(--ink); }
-tr:is(:hover, :focus-within) button.inv-pick { width: 16px; opacity: .7; }
+/* always at the right edge of the column, so the mouse can run straight down it; hidden until the row is hovered */
+button.inv-pick { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 16px; height: 16px; margin-left: auto; opacity: 0; color: var(--ink); }
+tr:is(:hover, :focus-within) button.inv-pick { opacity: .7; }
 tr button.inv-pick:is(:hover, :focus-visible) { opacity: 1; color: var(--accent); }
 button.inv-pick svg { display: block; width: 12px; height: 12px; }
 .inv-growth { color: var(--accent); font-weight: 600; }
