@@ -60,8 +60,8 @@ export interface CityMapOptions {
   mode?: MapMode;
   /** the viewer switched the mode, to remember it */
   onMode?: (mode: MapMode) => void;
-  /** the viewer clicked a building; dragging the map is no click */
-  onTileClick?: (tile: MapTile) => void;
+  /** the viewer clicked a building, `shift` with the shift key held; dragging the map is no click */
+  onTileClick?: (tile: MapTile, how: { shift: boolean }) => void;
 }
 
 const BACKGROUND = '#1d140a';
@@ -328,7 +328,7 @@ export class CityMap {
     if (!click || !drag || drag.moved) return;
     const at = this.local(e);
     const tile = this.data.tiles[this.tileIndexAt(at.x, at.y)];
-    if (tile) this.options.onTileClick?.(tile);
+    if (tile) this.options.onTileClick?.(tile, { shift: e.shiftKey });
   }
 
   private hover(index: number, at?: { x: number; y: number }) {

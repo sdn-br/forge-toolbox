@@ -1,7 +1,7 @@
 // The own city as a map: colors by building group, switchable marks, name search and free tiles.
 import type { BuildingDefId } from '../../../shared/ids';
 import { t } from '../../core/texts';
-import { buildingCategory, footprints, freeTiles, matchesName, needsRoad } from '../../domain/city-grid';
+import { buildingCategory, footprints, freeTiles, matchesName, nameOf, needsRoad } from '../../domain/city-grid';
 import { expansionBlocks } from '../../domain/expansions';
 import type { BuildingDef, CityGrid } from '../../stores/catalog';
 import type { City } from '../../stores/city-model';
@@ -9,10 +9,8 @@ import { CATEGORY_COLORS, categoryLegend, mutedColor } from '../../ui/city-color
 import type { CityMapData, LegendItem, MapTile } from '../../ui/city-map';
 
 export interface OwnMapUi {
-  /** the text of the search field; hits are the names that contain it */
+  /** the text of the search field; hits are the names that contain it, a preview while typing */
   search: string;
-  /** the suggestion picked last, while the field still holds it; hits are then exactly the buildings of that name */
-  picked?: string;
   /** mark finished productions */
   finished: boolean;
   /** mark buildings without road connection */
@@ -36,9 +34,9 @@ export interface OwnMapVm {
   incomplete: boolean;
 }
 
-/** `arrow` is the accent of the boxes, as on a marked plunder row */
+/** `selected` is the accent of the boxes, as on a marked plunder row */
 export const MARK = {
-  arrow: '#e8861c',
+  selected: '#e8861c',
   search: '#ffe04a',
   unconnected: '#ff4040',
   finished: '#7cff7c',
@@ -51,33 +49,31 @@ export const ZONE = {
 };
 
 /**
- * `grid` is the city grid; without it, or without areas, no expansion blocks are drawn. `arrows` are the buildings that
- * carry an arrow the city map set in the game.
+ * `grid` is the city grid; without it, or without areas, no expansion blocks are drawn. `selected` are the selected
+ * buildings of the own city, which carry the arrows in the game.
  */
 export function ownCityMapViewModel(
   city: City,
   def: (id: BuildingDefId) => BuildingDef | undefined,
   ui: OwnMapUi,
   grid?: CityGrid,
-  arrows: ReadonlySet<number> = new Set(),
+  selected: ReadonlySet<number> = new Set(),
 ) {
   const fps = footprints(city.buildings.values(), def);
   const searching = ui.search.trim() !== '';
   let matches = 0;
   const tiles: MapTile[] = fps.map((f) => {
     const b = f.building;
-    const name = f.def?.name ?? b.def;
+    const name = nameOf(f);
     const category = buildingCategory(b.type);
-    const hit = ui.picked === undefined ? matchesName(name, ui.search) : name === ui.picked;
+    const hit = matchesName(name, ui.search);
     if (hit) matches++;
     const finished = b.state.kind === 'finished';
     const unconnected = needsRoad(b);
     const lines = [name];
     if (finished) lines.push(t('cityMap.finished'));
     if (unconnected) lines.push(t('cityMap.unconnected'));
-    const arrow = arrows.has(b.id);
-    // a click marks this building alone; on the one building that alone carries the arrow it takes the arrow away
-    lines.push(t(arrow && arrows.size === 1 ? 'cityMap.clickUnmark' : 'cityMap.clickMark'));
+    lines.push(t('cityMap.clickSelect'));
     const tile: MapTile = {
       id: b.id,
       x: f.x,
@@ -87,7 +83,7 @@ export function ownCityMapViewModel(
       fill: searching && !hit ? mutedColor(category) : CATEGORY_COLORS[category],
       tooltip: lines.join('\n'),
     };
-    if (arrow) Object.assign(tile, { outline: MARK.arrow, strong: true });
+    if (selected.has(b.id)) Object.assign(tile, { outline: MARK.selected, strong: true });
     else if (hit) Object.assign(tile, { outline: MARK.search, strong: true });
     else if (ui.unconnected && unconnected) Object.assign(tile, { outline: MARK.unconnected, strong: true });
     else if (ui.finished && finished) Object.assign(tile, { outline: MARK.finished });
@@ -108,8 +104,8 @@ export function ownCityMapViewModel(
   };
   const legend: LegendItem[] = [
     ...(ui.stats ? [] : categoryLegend()),
-    ...(fps.some((f) => arrows.has(f.building.id))
-      ? [{ color: MARK.arrow, label: t('cityMap.arrow'), outline: true }]
+    ...(fps.some((f) => selected.has(f.building.id))
+      ? [{ color: MARK.selected, label: t('cityMap.selected'), outline: true }]
       : []),
     ...(ui.finished ? [{ color: MARK.finished, label: t('cityMap.finished'), outline: true }] : []),
     ...(ui.unconnected ? [{ color: MARK.unconnected, label: t('cityMap.unconnected'), outline: true }] : []),

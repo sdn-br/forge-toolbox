@@ -1,5 +1,6 @@
-// A search field that suggests names while typing, each with how often it occurs. Typing only narrows the list; what
-// the owner acts on is the pick (click, or Enter on the highlighted suggestion) and the emptied field.
+// A search field that suggests names while typing, each with how often it occurs. The field is only for finding:
+// typing narrows the list, and what the owner acts on is the pick (click, or Enter on the highlighted suggestion),
+// after which the field is empty again.
 import { html, type TemplateResult } from 'lit-html';
 import { keepKeys } from './inputs';
 
@@ -33,12 +34,10 @@ export interface NameSearchOptions {
   names: () => Iterable<string>;
   /** the owner renders again; the field keeps its state between renders */
   update: () => void;
-  /** the text changed by typing */
+  /** the text changed: by typing, by the ✕ of the field, or emptied after a pick */
   onInput?: (text: string) => void;
-  /** a suggestion was picked; the field now holds its name */
+  /** a suggestion was picked; the field is empty again */
   onPick: (name: string) => void;
-  /** the field was emptied, by the ✕ of the field, Escape on a closed list or deleting the text */
-  onClear: () => void;
   /** the list takes room below the field instead of lying over what follows, for a box that grows with its content */
   inline?: boolean;
 }
@@ -87,7 +86,6 @@ export class NameSearch {
     this.open = text.trim() !== '';
     this.active = 0;
     this.options.onInput?.(text);
-    if (!this.open) this.options.onClear();
     this.options.update();
   }
 
@@ -126,10 +124,11 @@ export class NameSearch {
   }
 
   private pick(name: string) {
-    this.text = name;
+    this.text = '';
     this.open = false;
     this.active = 0;
     this.options.onPick(name);
+    this.options.onInput?.('');
     this.options.update();
   }
 

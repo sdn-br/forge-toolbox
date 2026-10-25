@@ -106,12 +106,16 @@ function statsPanel(s: OwnStatsVm) {
   </div>`;
 }
 
-/** `field` is the search field, `map` the drawn city map with its legend, `stats` the content of the side panel */
+/**
+ * `field` is the search field, `selection` the list of the selected buildings, `map` the drawn city map with its legend,
+ * `stats` the content of the side panel
+ */
 export function cityMapView(
   vm: OwnMapVm | undefined,
   ui: OwnMapUi,
   actions: CityMapActions,
   field?: TemplateResult,
+  selection?: TemplateResult,
   map?: TemplateResult,
   stats?: OwnStatsVm,
 ): TemplateResult {
@@ -123,6 +127,7 @@ export function cityMapView(
         ${field ?? ''}
         <span class="matches">${vm.matches === undefined ? '' : t('cityMap.matches', { count: formatNumber(vm.matches) })}</span>
       </p>
+      ${selection ?? ''}
       <div class="map-marks">${toggle(ui, 'finished', actions)}${toggle(ui, 'unconnected', actions)}${toggle(ui, 'free', actions)}${toggle(
         ui,
         'expansions',

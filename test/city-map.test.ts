@@ -140,9 +140,9 @@ describe('city map in another window', () => {
 describe('clicks on the city map', () => {
   const press = (canvas: HTMLCanvasElement, type: string, x: number, y: number, button = 0) =>
     canvas.dispatchEvent(new PointerEvent(type, { clientX: x, clientY: y, button, bubbles: true }));
-  const click = (canvas: HTMLCanvasElement, x: number, y: number, button = 0) => {
+  const click = (canvas: HTMLCanvasElement, x: number, y: number, button = 0, shiftKey = false) => {
     press(canvas, 'pointerdown', x, y, button);
-    press(canvas, 'pointerup', x, y, button);
+    canvas.dispatchEvent(new PointerEvent('pointerup', { clientX: x, clientY: y, button, shiftKey, bubbles: true }));
   };
 
   it('hands the clicked building back, from above and isometric', () => {
@@ -152,13 +152,17 @@ describe('clicks on the city map', () => {
     const inHall = toScreen(top, 1.5, 1);
     click(canvas, inHall.x, inHall.y);
     expect(onTileClick).toHaveBeenCalledTimes(1);
-    expect(onTileClick.mock.calls[0]?.[0]).toMatchObject({ tooltip: 'Rathaus' });
+    expect(onTileClick.mock.calls[0]).toEqual([expect.objectContaining({ tooltip: 'Rathaus' }), { shift: false }]);
 
     button('Isometrisch').click();
     const iso = project('iso', { x1: 0, y1: 0, x2: 9, y2: 9 }, 200, 100, START_VIEW);
     const onStreet = toScreen(iso, 5.5, 5.5);
     click(canvas, onStreet.x, onStreet.y);
     expect(onTileClick.mock.calls[1]?.[0]).toMatchObject({ tooltip: 'Straße' });
+
+    // with the shift key held
+    click(canvas, onStreet.x, onStreet.y, 0, true);
+    expect(onTileClick.mock.calls[2]?.[1]).toEqual({ shift: true });
   });
 
   it('takes no click where no building stands, nor from another button', () => {

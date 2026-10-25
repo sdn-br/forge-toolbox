@@ -32,14 +32,12 @@ function mount(names = ['Sakura', 'Sakura', 'Ahorn', 'Sakura-Garten']) {
   const root = document.createElement('div');
   document.body.append(root);
   const onPick = vi.fn();
-  const onClear = vi.fn();
   const onInput = vi.fn();
   const search: NameSearch = new NameSearch({
     placeholder: () => 'Gebäude suchen',
     names: () => names,
     update: () => render(search.render(), root),
     onPick,
-    onClear,
     onInput,
   });
   render(search.render(), root);
@@ -59,7 +57,7 @@ function mount(names = ['Sakura', 'Sakura', 'Ahorn', 'Sakura-Garten']) {
     );
   const active = () => root.querySelector('li.active')?.querySelector('span')?.textContent;
   const listHidden = () => (root.querySelector('ul') as HTMLElement).hidden;
-  return { root, search, field, type, key, options, active, listHidden, onPick, onClear, onInput };
+  return { root, search, field, type, key, options, active, listHidden, onPick, onInput };
 }
 
 describe('name search field', () => {
@@ -72,7 +70,6 @@ describe('name search field', () => {
     expect(s.field().getAttribute('aria-expanded')).toBe('true');
     expect(s.onInput).toHaveBeenCalledWith('sak');
     expect(s.onPick).not.toHaveBeenCalled();
-    expect(s.onClear).not.toHaveBeenCalled();
   });
 
   it('moves the highlight with the arrow keys and picks it with Enter', () => {
@@ -91,17 +88,18 @@ describe('name search field', () => {
     s.key('ArrowDown');
     s.key('Enter');
     expect(s.onPick).toHaveBeenCalledWith('Sakura-Garten');
-    expect(s.field().value).toBe('Sakura-Garten');
-    expect(s.search.text).toBe('Sakura-Garten');
     expect(s.listHidden()).toBe(true);
   });
 
-  it('picks a suggestion with a click', () => {
+  it('picks a suggestion with a click and empties the field, which the owner hears as input', () => {
     const s = mount();
     s.type('horn');
     (s.root.querySelector('li') as HTMLElement).click();
     expect(s.onPick).toHaveBeenCalledWith('Ahorn');
-    expect(s.field().value).toBe('Ahorn');
+    expect(s.field().value).toBe('');
+    expect(s.search.text).toBe('');
+    expect(s.onInput).toHaveBeenLastCalledWith('');
+    expect(s.listHidden()).toBe(true);
   });
 
   it('closes the list with Escape and opens it again with the down key', () => {
@@ -118,11 +116,12 @@ describe('name search field', () => {
     expect(s.key('Escape').defaultPrevented).toBe(false);
   });
 
-  it('reports an emptied field and suggests nothing then', () => {
+  it('reports an emptied field as input and suggests nothing then', () => {
     const s = mount();
     s.type('sak');
     s.type(' ');
-    expect(s.onClear).toHaveBeenCalledTimes(1);
+    expect(s.onInput).toHaveBeenLastCalledWith(' ');
+    expect(s.onPick).not.toHaveBeenCalled();
     expect(s.listHidden()).toBe(true);
     s.key('ArrowDown');
     expect(s.listHidden()).toBe(true);

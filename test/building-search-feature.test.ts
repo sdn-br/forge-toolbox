@@ -54,6 +54,10 @@ const pick = (box: Recorded, name: string) => {
   if (!li) throw new Error(`no suggestion "${name}"`);
   (li as HTMLElement).click();
 };
+const entries = (box: Recorded) =>
+  [...box.root.querySelectorAll('.selection-list li')].map((li) =>
+    [...li.querySelectorAll('span')].map((s) => s.textContent).join(' '),
+  );
 const idsOf = (ctx: Env['ctx'], name: string) =>
   [...(ctx.cities.own()?.buildings.values() ?? [])]
     .filter((b) => ctx.catalog.get(b.def)?.name === name)
@@ -75,6 +79,7 @@ describe('building search feature', () => {
     const { ctx, box, menu, marker } = setup();
     loadOwnCity(ctx);
     menu('buildingSearch');
+    expect(box.text).toContain('Nichts ausgewählt');
     type(box, 'SCHREIN');
     expect(suggestions(box)).toEqual([`${shrine} 25`, `${shrine} - St. 2 6`]);
     type(box, 'rathaus');
@@ -83,38 +88,56 @@ describe('building search feature', () => {
     type(box, 'Hafen');
     expect(suggestions(box)).toEqual([]);
     expect(marker.posted).toEqual([]);
-    expect(box.text).toContain('Einen Vorschlag wählen');
+    expect(box.text).toContain('Nichts ausgewählt');
   });
 
-  it('marks all buildings of a picked name, by click or keyboard, and keeps the name in the field', () => {
+  it('adds all buildings of a picked name, by click or keyboard, and empties the field', () => {
     const { ctx, box, menu, marker } = setup();
     loadOwnCity(ctx);
     menu('buildingSearch');
     type(box, 'schrein');
     pick(box, shrine);
-    expect(input(box).value).toBe(shrine);
+    expect(input(box).value).toBe('');
+    expect(suggestions(box)).toEqual([]);
     expect(marker.shown.sort()).toEqual(idsOf(ctx, shrine));
-    expect(ctx.markers.current()).toMatchObject({ by: 'buildingSearch', city: 'own' });
-    expect(box.text).toContain('25 im Spiel markiert');
+    expect(ctx.markers.current()).toMatchObject({ city: 'own' });
+    expect(entries(box)).toEqual([`${shrine} 25/25`]);
 
     type(box, 'schrein');
     key(box, 'ArrowDown');
     key(box, 'Enter');
-    expect(input(box).value).toBe(`${shrine} - St. 2`);
-    expect(marker.shown.sort()).toEqual(idsOf(ctx, `${shrine} - St. 2`));
-    expect(box.text).toContain('6 im Spiel markiert');
+    expect(input(box).value).toBe('');
+    expect(marker.shown.sort()).toEqual([...idsOf(ctx, shrine), ...idsOf(ctx, `${shrine} - St. 2`)].sort());
+    expect(entries(box)).toEqual([`${shrine} 25/25`, `${shrine} - St. 2 6/6`]);
   });
 
-  it('takes its arrows away when the field is emptied', () => {
+  it('selects all of a name when some were selected, and a pick never removes', () => {
+    const { ctx, box, menu } = setup();
+    loadOwnCity(ctx);
+    menu('buildingSearch');
+    ctx.selection.toggle(idsOf(ctx, shrine)[0] as number);
+    expect(entries(box)).toEqual([`${shrine} 1/25`]);
+    type(box, 'schrein');
+    pick(box, shrine);
+    expect(entries(box)).toEqual([`${shrine} 25/25`]);
+    type(box, 'schrein');
+    pick(box, shrine);
+    expect(entries(box)).toEqual([`${shrine} 25/25`]);
+  });
+
+  it('removes a name with its ✕ and everything with the button below the list', () => {
     const { ctx, box, menu, marker } = setup();
     loadOwnCity(ctx);
     menu('buildingSearch');
-    type(box, 'rathaus');
-    pick(box, 'Rathaus');
-    type(box, '');
+    ctx.selection.addName('Rathaus');
+    ctx.selection.addName(shrine);
+    box.click(`${shrine} entfernen`);
+    expect(entries(box)).toEqual(['Rathaus 1/1']);
+    expect(marker.shown).toEqual(idsOf(ctx, 'Rathaus'));
+    box.click('Alle entfernen');
+    expect(entries(box)).toEqual([]);
+    expect(box.text).toContain('Nichts ausgewählt');
     expect(marker.last?.type).toBe('hide');
-    expect(ctx.markers.current()).toBeUndefined();
-    expect(box.text).toContain('Einen Vorschlag wählen');
   });
 
   it('follows the own city and the building definitions as they arrive', () => {
@@ -160,11 +183,11 @@ describe('building search feature', () => {
     expect(reached).toBe(false);
   });
 
-  describe('one marking of the own city', () => {
-    const mapInput = (env: Env) =>
-      (env.boxes.get('cityMap') as Recorded).root.querySelector('input') as HTMLInputElement;
+  describe('one selection with the city map', () => {
+    const mapBox = (env: Env) => env.boxes.get('cityMap') as Recorded;
+    const legend = (env: Env) => mapBox(env).root.querySelector('.map-legend')?.textContent ?? '';
 
-    it('gives way to a pick in the city map and keeps its text without claiming arrows', () => {
+    it('shows a pick of either box in both, and the city map frames it', () => {
       const env = setup({ withCityMap: true });
       const { ctx, box, menu, marker } = env;
       loadOwnCity(ctx);
@@ -172,36 +195,35 @@ describe('building search feature', () => {
       menu('cityMap');
       type(box, 'schrein');
       pick(box, shrine);
-      const map = env.boxes.get('cityMap') as Recorded;
-      type(map, 'rathaus');
-      pick(map, 'Rathaus');
-      expect(marker.shown).toEqual(idsOf(ctx, 'Rathaus'));
-      expect(input(box).value).toBe(shrine);
-      expect(box.text).not.toContain('im Spiel markiert');
-      expect(box.text).toContain('Einen Vorschlag wählen');
+      expect(entries(mapBox(env))).toEqual([`${shrine} 25/25`]);
+      expect(legend(env)).toContain('Ausgewählt (Pfeil im Spiel)');
 
-      // emptying the field of the building search leaves the arrows of the city map alone
-      type(box, '');
-      expect(ctx.markers.current()?.by).toBe('cityMap');
-      expect(marker.shown).toEqual(idsOf(ctx, 'Rathaus'));
-      expect(mapInput(env).value).toBe('Rathaus');
+      type(mapBox(env), 'rathaus');
+      pick(mapBox(env), 'Rathaus');
+      expect(input(mapBox(env)).value).toBe('');
+      expect(entries(box)).toEqual(['Rathaus 1/1', `${shrine} 25/25`]);
+      expect(entries(mapBox(env))).toEqual(entries(box));
+      expect(marker.shown.sort()).toEqual([...idsOf(ctx, 'Rathaus'), ...idsOf(ctx, shrine)].sort());
 
-      // a new pick here takes the marking back
-      type(box, 'schrein');
-      pick(box, shrine);
-      expect(marker.shown.sort()).toEqual(idsOf(ctx, shrine));
-      expect(map.root.querySelector('.map-legend')?.textContent).not.toContain('Pfeil im Spiel');
+      // the ✕ of an entry in the city map takes it from both
+      mapBox(env).click(`${shrine} entfernen`);
+      expect(entries(box)).toEqual(['Rathaus 1/1']);
+      box.click('Alle entfernen');
+      expect(entries(mapBox(env))).toEqual([]);
+      expect(legend(env)).not.toContain('Ausgewählt');
     });
 
-    it('forgets its arrows when the viewer dismisses them in the game', () => {
+    it('forgets the buildings whose arrows the viewer dismissed in the game', () => {
       const { ctx, box, menu, marker } = setup();
       loadOwnCity(ctx);
       menu('buildingSearch');
       type(box, 'rathaus');
       pick(box, 'Rathaus');
+      ctx.selection.addName(shrine);
+      marker.dismiss(idsOf(ctx, 'Rathaus'));
+      expect(entries(box)).toEqual([`${shrine} 25/25`]);
       marker.dismiss(marker.shown);
-      expect(box.text).not.toContain('im Spiel markiert');
-      expect(input(box).value).toBe('Rathaus');
+      expect(box.text).toContain('Nichts ausgewählt');
     });
   });
 });
