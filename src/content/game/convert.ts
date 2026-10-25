@@ -284,13 +284,9 @@ export function toNewFriend(data: unknown): PlayerObservation | null {
   return { ...rest, ...(typeof p.score === 'number' && { score }), ...(typeof p.rank === 'number' && { rank }) };
 }
 
-/**
- * The player of a deleted friendship. Only the old toolbox names the format: the response is the player id. Taken
- * as well from a list or an object with `player_id`, until a recording shows it.
- */
+/** The player of a deleted friendship: the response is the bare player id (recorded 2026-10-25). */
 export function toFormerFriend(data: unknown): PlayerId | null {
-  const id = Array.isArray(data) ? data[0] : data && typeof data === 'object' ? (data as GamePlayer).player_id : data;
-  return typeof id === 'number' && Number.isInteger(id) && id > 0 ? playerId(id) : null;
+  return typeof data === 'number' && Number.isInteger(data) && data > 0 ? playerId(data) : null;
 }
 
 /**

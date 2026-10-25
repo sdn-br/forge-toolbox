@@ -130,10 +130,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     const friend = toNewFriend(data);
     if (friend) players.addFriend(world, friend);
   });
-  ingestion.on('FriendService', 'deleteFriend', ({ data, via }) => {
-    // debt: logs every deleteFriend raw. ceiling: console noise once the format is confirmed.
-    // upgrade: remove after the format is confirmed in the game.
-    logInfo('deleteFriend (format unconfirmed)', via, data);
+  ingestion.on('FriendService', 'deleteFriend', ({ data }) => {
     const id = toFormerFriend(data);
     if (id !== null) players.removeFriend(world, id);
   });

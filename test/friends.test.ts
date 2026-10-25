@@ -3,6 +3,7 @@ import { Ingestion } from '../src/content/core/ingestion';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import { playerId } from '../src/shared/ids';
 import fixture from './fixtures/friend-accept.json';
+import deleted from './fixtures/friend-delete.json';
 import { testStores } from './helpers/stores';
 
 function setup() {
@@ -64,26 +65,18 @@ describe('friend messages', () => {
     expect(players.get(FRIEND)).toBeUndefined();
   });
 
-  it.each([
-    ['the player id', 1001],
-    ['a list', [1001]],
-    ['a player', { player_id: 1001 }],
-  ])('takes friend away on a deleted friendship given as %s', (_shape, responseData) => {
-    vi.spyOn(console, 'info').mockImplementation(() => {});
+  it('takes friend away on a deleted friendship', () => {
     const { players, send, social } = setup();
     social([player(1001)], [player(1001)]);
-    send('FriendService', 'deleteFriend', responseData);
+    send('FriendService', 'deleteFriend', deleted.delete.responseData);
     expect(players.get(FRIEND)?.relations).toEqual({ neighbor: true, guildMember: false, friend: false });
   });
 
-  it('logs the raw deleteFriend once per message and skips a shape without a player id', () => {
-    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+  it('skips a deleted friendship without a player id', () => {
     const { players, ws, social } = setup();
     social([player(1001)]);
     ws('FriendService', 'deleteFriend', 'gone');
-    ws('FriendService', 'deleteFriend', { ok: true });
+    ws('FriendService', 'deleteFriend', [1001]);
     expect(players.get(FRIEND)?.relations.friend).toBe(true);
-    expect(info).toHaveBeenCalledTimes(2);
-    expect(info.mock.calls[0]).toEqual(['[Forge Toolbox]', 'deleteFriend (format unconfirmed)', 'ws', 'gone']);
   });
 });

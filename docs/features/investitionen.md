@@ -71,7 +71,7 @@ Einzahlen kann man nur in LGs von Nachbarn, Freunden und Gildenmitgliedern. Die 
 - Jede Zeile zeigt den Grund (Nachbar, Freund, Gilde) oder „nicht erreichbar“. Nicht erreichbare Zeilen stehen gedämpft da und fehlen im Filter „nur erreichbare“. Ein Eigentümer, den der Player-Store nicht kennt, gilt als unbekannt und bleibt im Filter.
 - **Aktualisierung:** `getSocialList` setzt alle Beziehungen neu, meist beim Spielstart. Dazu kommen einzelne Meldungen, sobald sie bekannt sind:
   - `FriendService.acceptInvitation` (aufgenommen 2026-10-20): Antwort ist der neue Freund als ganzer Spieler mit `is_friend` und Gilde. Setzt `friend`.
-  - `FriendService.deleteFriend` (Format laut alter Toolbox, nicht selbst gesehen): Antwort ist die Spieler-ID. Nimmt `friend` weg. Bis zur Bestätigung per Aufnahme roh in die Konsole schreiben, wie bei den Schilden.
+  - `FriendService.deleteFriend` (aufgenommen 2026-10-25): Anfrage `[Spieler-ID]`, Antwort die Spieler-ID als nackte Zahl. Nimmt `friend` weg, im Spiel bestätigt (Nutzer, 2026-10-25).
   - **Später mit dem Guild-Store (Phase 4):** Abgleich der Mitgliederliste aus `ClanService.getOwnClanData`. Wer fehlt, verliert `guildMember`. So bemerkt die alte Toolbox Austritte, also erst beim nächsten Abruf der Liste.
   - **Offen, keine Aufnahme:** der andere beendet die Freundschaft, der Spieler wird aus der Gilde entfernt, der Spieler verlässt selbst die Gilde. Ob das Spiel das live meldet (eigene Methode, Websocket) oder nur über ein neues `getSocialList`, zeigt erst eine Aufnahme. Bis dahin kann eine Zeile bis zum nächsten `getSocialList` falsch als erreichbar stehen.
 - **Umsetzung (2026-10-25):**
@@ -89,4 +89,4 @@ Einzahlen kann man nur in LGs von Nachbarn, Freunden und Gildenmitgliedern. Die 
 
 - `test/fixtures/gb-contributions.json` (Rathausliste, anonymisiert) für Zeilen, Gewinn, Status ohne Rangliste und Fußzeile.
 - `test/fixtures/great-buildings.json` und `gb-contribution.json` für Status mit Rangliste und Zuwachs.
-- `test/fixtures/friend-accept.json` (`acceptInvitation`, anonymisiert, gebaut mit `scripts/make-fixture.py friend-accept` aus der privaten Aufnahme vom 2026-10-20) für Freund setzen und den Live-Test des Reiters. `deleteFriend` ohne Aufnahme mit selbst gebauten Antworten.
+- `test/fixtures/friend-accept.json` (`acceptInvitation`, anonymisiert, gebaut mit `scripts/make-fixture.py friend-accept` aus der privaten Aufnahme vom 2026-10-20) für Freund setzen und den Live-Test des Reiters. `test/fixtures/friend-delete.json` (`deleteFriend`, anonymisiert, `scripts/make-fixture.py friend-delete` aus der privaten Aufnahme vom 2026-10-25).

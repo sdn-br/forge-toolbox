@@ -1,0 +1,9 @@
+{
+  "note": "FriendService.deleteFriend recorded on de11 2026-10-25: the request is [player id], the response the bare player id. Id anonymized (friend 1001).",
+  "delete": {
+    "requestClass": "FriendService",
+    "requestMethod": "deleteFriend",
+    "requestData": [1001],
+    "responseData": 1001
+  }
+}

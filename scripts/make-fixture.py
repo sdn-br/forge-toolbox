@@ -37,6 +37,7 @@
 # and values of its production bonus (the Forge points per level of a Forge point building).
 
 # Friend accepted: python3 -I scripts/make-fixture.py friend-accept <recording.json> <out.json>
+# Friend deleted: python3 -I scripts/make-fixture.py friend-delete <recording.json> <out.json>
 # keeps the first FriendService.acceptInvitation (request: the player id, response: the new friend as a whole player),
 # with a fake player id, name, city, guild and friendship id, without profile text and guild description.
 
@@ -470,6 +471,23 @@ def friend_accept_fixture(rec,out):
       'accept':{'requestClass':'FriendService','requestMethod':'acceptInvitation','requestData':[FRIEND],'responseData':player}}
     json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
 
+def friend_delete_fixture(rec,out):
+    FRIEND=1001
+    entry=world=None
+    for r in rec:
+        if r['kind']!='json' or entry: continue
+        try: res=json.loads(r['response'])
+        except (TypeError,ValueError): continue
+        for e in (res if isinstance(res,list) else []):
+            if isinstance(e,dict) and e.get('requestClass')=='FriendService' and e.get('requestMethod')=='deleteFriend':
+                entry=e; world=r['url'].split('//')[1].split('.')[0]
+    assert isinstance(entry['responseData'],int), 'deleteFriend no longer answers the bare player id'
+    fixture={'note':f'FriendService.deleteFriend recorded on {world} 2026-10-25: the request is [player id], the response the bare player id. Id anonymized (friend 1001).',
+      'delete':{'requestClass':'FriendService','requestMethod':'deleteFriend','requestData':[FRIEND],'responseData':FRIEND}}
+    json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
+
+if sys.argv[1]=='friend-delete':
+    friend_delete_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
 if sys.argv[1]=='friend-accept':
     friend_accept_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
 if sys.argv[1]=='gb-contributions':
