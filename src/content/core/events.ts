@@ -18,6 +18,8 @@ export interface ToolboxEvents {
   'city.shown': { city: CityKey };
   /** the buildings marked with arrows in the game changed: set, cleared, or dismissed in the game */
   'markers.changed': Record<string, never>;
+  /** the selection of buildings in the own city changed */
+  'selection.changed': Record<string, never>;
   'catalog.updated': { defs: BuildingDefId[] };
   /** the main city grid arrived */
   'catalog.grid': Record<string, never>;

@@ -3,6 +3,7 @@ import type { FeatureContext } from '../../src/content/core/feature';
 import { memoryKv } from '../../src/content/core/kv';
 import { type MarkerLink, Markers } from '../../src/content/core/markers';
 import { Recorder } from '../../src/content/core/recorder';
+import { OwnSelection } from '../../src/content/core/selection';
 import { Settings } from '../../src/content/core/settings';
 import { createGbOwnState } from '../../src/content/stores/gb-own-state';
 import type { Box, BoxOptions } from '../../src/content/ui/box';
@@ -106,6 +107,7 @@ export function featureContext(options: TestStoresOptions = {}) {
   const settings = new Settings(memoryKv());
   const ui = new UiState(memoryKv());
   const marker = fakeMarkerLink();
+  const markers = new Markers(bus, stores.cities, marker.link);
   const ctx: FeatureContext = {
     world,
     bus,
@@ -113,7 +115,8 @@ export function featureContext(options: TestStoresOptions = {}) {
     menu: { add: (item: MenuItem) => menuItems.set(item.id, item), setIconSize: () => {} } as unknown as Menu,
     ...stores,
     recorder: new Recorder(() => false),
-    markers: new Markers(bus, stores.cities, marker.link),
+    markers,
+    selection: new OwnSelection(bus, stores.cities, stores.catalog, markers),
     ui,
     gbOwn: createGbOwnState(bus, ui, settings),
     createBox: (options) => {

@@ -25,6 +25,9 @@ export const spotOf = (f: Footprint): MarkerSpot => ({
   length: f.length,
 });
 
+/** The name a building shows: that of its definition, or its definition id while the definition is missing. */
+export const nameOf = (f: Footprint): string => f.def?.name ?? f.building.def;
+
 export interface Tile {
   x: number;
   y: number;

@@ -7,6 +7,7 @@ import type { UiState } from '../ui/ui-state';
 import type { ToolboxBus } from './events';
 import type { Markers } from './markers';
 import type { Recorder } from './recorder';
+import type { OwnSelection } from './selection';
 import type { Settings } from './settings';
 
 /** Everything a feature may use. Features never import each other. */
@@ -18,6 +19,8 @@ export interface FeatureContext extends Stores {
   recorder: Recorder;
   /** arrows over buildings in the game view */
   markers: Markers;
+  /** the selected buildings of the own city, shown in the boxes and with arrows in the game */
+  selection: OwnSelection;
   /** remembered view choices of the viewer */
   ui: UiState;
   /** the factors and Ext the two own-share boxes share */

@@ -12,6 +12,7 @@ import { Markers } from './core/markers';
 import { connectProxy } from './core/proxy-link';
 import { Recorder } from './core/recorder';
 import { callBackground } from './core/rpc';
+import { OwnSelection } from './core/selection';
 import { Settings } from './core/settings';
 import { t } from './core/texts';
 import { buildingSearchFeature } from './features/building-search';
@@ -69,6 +70,7 @@ async function main() {
     stores.greatBuildings.load().catch((e) => logError('loading the time of the town hall list failed', e)),
   ]);
 
+  const markers = new Markers(bus, stores.cities, windowMarkerLink);
   const ctx: FeatureContext = {
     world,
     bus,
@@ -76,7 +78,8 @@ async function main() {
     menu,
     ...stores,
     recorder,
-    markers: new Markers(bus, stores.cities, windowMarkerLink),
+    markers,
+    selection: new OwnSelection(bus, stores.cities, stores.catalog, markers),
     ui,
     gbOwn: createGbOwnState(bus, ui, settings),
     createBox: boxFactory(ui, (group) => bus.emit('settings.open', { group })),
