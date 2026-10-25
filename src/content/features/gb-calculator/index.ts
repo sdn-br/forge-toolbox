@@ -28,10 +28,7 @@ import { type GbCalculatorVm, gbCalculatorViewModel } from './view-model';
 /** the menu entry and the settings group show it */
 const ICON = icons.gbCalculator;
 
-const FACTOR = CALCULATOR_FACTOR.value;
-const FACTOR_ARC = CALCULATOR_FACTOR.arc;
 const FACTOR_BUTTONS = 'gbCalc.factorButtons';
-const ARC_BUTTON = CALCULATOR_FACTOR.arcButton;
 const SOUND = 'gbCalc.sound';
 const RETENTION = 'snipe.retentionDays';
 /** a list this soon after the owner's building was opened or paid into is the game's own question, not the player's */
@@ -47,7 +44,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
     setup(ctx) {
       ctx.settings.registerGroup('gbCalc.title', ICON);
       ctx.settings.register({
-        key: FACTOR,
+        key: CALCULATOR_FACTOR.value,
         group: 'gbCalc.title',
         label: 'gbCalc.factorSetting',
         default: 90,
@@ -57,7 +54,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         asFactor: true,
       });
       ctx.settings.register({
-        key: FACTOR_ARC,
+        key: CALCULATOR_FACTOR.arc,
         group: 'gbCalc.title',
         label: 'gbCalc.factorArcSetting',
         default: false,
@@ -74,7 +71,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         asFactor: true,
       });
       ctx.settings.register({
-        key: ARC_BUTTON,
+        key: CALCULATOR_FACTOR.arcButton,
         group: 'gbCalc.title',
         label: 'gbCalc.arcButtonSetting',
         default: true,
@@ -135,10 +132,10 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         ctx.settings.set(key, value).catch((error) => logError('saving settings failed', error));
       const actions: GbCalculatorActions = {
         setFactor: (value) => {
-          save(FACTOR, value);
-          save(FACTOR_ARC, false);
+          save(CALCULATOR_FACTOR.value, value);
+          save(CALCULATOR_FACTOR.arc, false);
         },
-        useArc: () => save(FACTOR_ARC, true),
+        useArc: () => save(CALCULATOR_FACTOR.arc, true),
         previewLevel: (level) => {
           preview = level;
           refresh();
@@ -180,9 +177,9 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           fpBar: ctx.resources.known ? ctx.resources.amount(FP) : undefined,
           fpPackages: ctx.inventory.knowsPackages ? ctx.inventory.forgePointPackages() : undefined,
           arcBonus: arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses()),
-          factor: { value: ctx.settings.number(FACTOR), arc: ctx.settings.get(FACTOR_ARC) },
+          factor: { value: ctx.settings.number(CALCULATOR_FACTOR.value), arc: ctx.settings.get(CALCULATOR_FACTOR.arc) },
           factorButtons: ctx.settings.numbers(FACTOR_BUTTONS),
-          arcButton: ctx.settings.get(ARC_BUTTON),
+          arcButton: ctx.settings.get(CALCULATOR_FACTOR.arcButton),
           foestats: shown && ctx.settings.get(FOESTATS_SETTING.key) ? ctx.foestats.get(shown.owner) : undefined,
           today: foestatsDay(Date.now()),
           previewLevel: preview,

@@ -210,7 +210,6 @@ export class GreatBuildingStore {
     const rate = bestRate(calculateConstruction({ ...entity, rankings: open.rankings, arcBonus: 0, factor: 0 }));
     const invested = open.rankings.reduce((sum, r) => sum + (r.fp ?? 0), 0);
     const self = open.rankings.find((r) => r.self && r.rank !== undefined);
-    const mine = self !== undefined;
     const at = this.now();
     this.pending.push({
       world: this.world,
@@ -227,8 +226,8 @@ export class GreatBuildingStore {
       rankingsAt: open.seenAt,
       rankingsInvested: invested,
       ...(rate !== undefined && { bestRate: rate }),
-      ...(mine && { ownContribution: true }),
       ...(self?.rank !== undefined && {
+        ownContribution: true,
         contribution: { rank: self.rank, forgePoints: self.fp ?? 0, reward: self.reward?.fp ?? 0, at },
       }),
       // the building is open in the game now: what is paid in from here on is growth
