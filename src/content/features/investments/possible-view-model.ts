@@ -49,6 +49,8 @@ export interface PossibleFilter {
   onlyHits: boolean;
   /** which reasons let a row through; owners the player store does not know always pass */
   reach: ReachFilter;
+  /** which tiers let a row through; rows without a tier always pass */
+  tier: TierFilter;
   /** only buildings the player marked and buildings of marked owners */
   onlyMarked: boolean;
 }
@@ -56,7 +58,13 @@ export interface PossibleFilter {
 /** a switch per reason to pay in, and one for the rows out of reach */
 export type ReachFilter = Record<keyof Relations | 'none', boolean>;
 
-/** the toggles in their order */
+/** a switch per tier of the rating */
+export type TierFilter = Record<SnipeTier, boolean>;
+
+/** the tier toggles in their order, the surest first */
+export const TIER_TOGGLES: SnipeTier[] = ['exact', 'safe', 'possible'];
+
+/** the reason toggles in their order */
 export const REACH_TOGGLES: (keyof ReachFilter)[] = ['neighbor', 'friend', 'guildMember', 'none'];
 
 export const DEFAULT_FILTER: PossibleFilter = {
@@ -64,6 +72,7 @@ export const DEFAULT_FILTER: PossibleFilter = {
   name: '',
   onlyHits: true,
   reach: { neighbor: true, friend: true, guildMember: true, none: false },
+  tier: { exact: true, safe: true, possible: true },
   onlyMarked: false,
 };
 
@@ -195,6 +204,7 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
     }))
     .filter((r) => contains(r.ownerName, filter.player) && contains(r.name, filter.name))
     .filter((r) => r.reasons.some((reason) => reason === 'unknown' || filter.reach[reason]))
+    .filter((r) => !r.hit || filter.tier[r.hit.tier])
     .filter((r) => !filter.onlyMarked || r.marked || input.ownerMarked(r.building.owner));
   const hits = named.filter((r) => r.hit).length;
   const shown = filter.onlyHits ? named.filter((r) => r.hit) : named;

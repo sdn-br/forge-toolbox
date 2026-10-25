@@ -170,6 +170,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
       name: 'zeus',
       onlyHits: false,
       reach: { neighbor: true, friend: true, guildMember: true, none: false },
+      tier: { exact: true, safe: true, possible: true },
       onlyMarked: false,
     });
   });
@@ -205,6 +206,51 @@ describe('Investitionen: Mögliche Investitionen', () => {
     await tick();
     const root = env.boxes.get('investments')?.root as HTMLElement;
     const buttons = [...root.querySelectorAll('.inv-reach-filter button')];
+    expect(buttons.map((b) => b.getAttribute('aria-pressed') === 'true')).toEqual(pressed);
+  });
+
+  it('filters by the tier with three icon toggles, remembers them and reads old stored filters', async () => {
+    const { box, list, rows, showPossible, ui } = setup();
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    await showPossible();
+    const toggles = () => [...box.root.querySelectorAll('.inv-tier-filter button')] as HTMLButtonElement[];
+    expect(toggles().map((b) => [b.getAttribute('aria-label'), b.getAttribute('aria-pressed')])).toEqual([
+      ['exakt', 'true'],
+      ['sicher', 'true'],
+      ['möglich', 'true'],
+    ]);
+    expect(toggles().every((b) => b.getAttribute('data-tip') === b.getAttribute('aria-label'))).toBe(true);
+    expect(toggles().every((b) => b.querySelector('svg') !== null)).toBe(true);
+    const tiers = () => rows().map((r) => r.querySelector('td.snipe-tier')?.className.replace('snipe-tier ', ''));
+    const before = tiers();
+    expect(before).toHaveLength(2);
+    const order = ['exact', 'safe', 'possible'];
+    const first = before[0] as string;
+    (toggles()[order.indexOf(first)] as HTMLButtonElement).click();
+    await tick();
+    expect(toggles().map((x) => x.getAttribute('aria-pressed'))).toEqual(
+      order.map((tier) => (tier === first ? 'false' : 'true')),
+    );
+    expect(tiers()).toEqual(before.filter((tier) => tier !== first));
+    expect(JSON.parse(ui.pref('investments.filter') ?? '{}').tier).toMatchObject({ [first]: false });
+  });
+
+  it.each([
+    [{}, [true, true, true]],
+    [{ tier: { exact: true, safe: false, possible: true } }, [true, false, true]],
+    [{ tier: { safe: false } }, [true, false, true]],
+  ])('reads the stored filter %j as the tier toggles %j', async (stored, pressed) => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const env = featureContext({ now: () => Date.now() });
+    env.ctx.ui.savePref('investments.tab', 'possible');
+    env.ctx.ui.savePref('investments.filter', JSON.stringify({ player: '', name: '', onlyHits: false, ...stored }));
+    investmentsFeature.setup(env.ctx);
+    drain = () => env.ctx.greatBuildings.known();
+    env.menu('investments');
+    await tick();
+    const root = env.boxes.get('investments')?.root as HTMLElement;
+    const buttons = [...root.querySelectorAll('.inv-tier-filter button')];
     expect(buttons.map((b) => b.getAttribute('aria-pressed') === 'true')).toEqual(pressed);
   });
 

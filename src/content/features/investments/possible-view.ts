@@ -3,7 +3,7 @@ import { t } from '../../core/texts';
 import { headerIcons } from '../../ui/icons';
 import { keepKeys } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
-import { profitCell, tierCell } from '../../ui/snipe-hit';
+import { profitCell, tierCell, tierIcon } from '../../ui/snipe-hit';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import {
   type PossibleColumn,
@@ -12,6 +12,7 @@ import {
   type PossibleVm,
   REACH_TOGGLES,
   type Reach,
+  TIER_TOGGLES,
 } from './possible-view-model';
 import { type InvestmentsActions, markCell, progressCell, tabs } from './view';
 import type { InvestmentsTab } from './view-model';
@@ -104,11 +105,21 @@ const reachFilter = (f: PossibleFilter, actions: PossibleActions) =>
     @click=${() => actions.filter({ reach: { ...f.reach, [key]: !on } })}>${REACH_FILTER_ICONS[key]}</button>`;
   })}</span>`;
 
+/** one toggle per tier, with the icons of the column "Sicherheit"; any switched on lets a row with that tier through */
+const tierFilter = (f: PossibleFilter, actions: PossibleActions) =>
+  html`<span class="inv-tier-filter">${TIER_TOGGLES.map((key) => {
+    const word = t(`investments.tierFilter.${key}`);
+    const on = f.tier[key];
+    return html`<button class=${on ? 'on' : ''} aria-pressed=${on ? 'true' : 'false'} data-tip=${word} aria-label=${word}
+    @click=${() => actions.filter({ tier: { ...f.tier, [key]: !on } })}>${tierIcon[key]}</button>`;
+  })}</span>`;
+
 const filters = (f: PossibleFilter, actions: PossibleActions) => html`<p class="inv-filter">
     ${text(f.player, t('investments.possible.player'), (player) => actions.filter({ player }))}
     ${text(f.name, t('investments.possible.name'), (name) => actions.filter({ name }))}
     ${check(f.onlyHits, t('investments.possible.onlyHits'), (onlyHits) => actions.filter({ onlyHits }))}
     ${reachFilter(f, actions)}
+    ${tierFilter(f, actions)}
     ${check(f.onlyMarked, t('investments.possible.onlyMarked'), (onlyMarked) => actions.filter({ onlyMarked }))}
   </p>`;
 

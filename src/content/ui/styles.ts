@@ -241,10 +241,10 @@ td.inv-status.unknown { color: #b8a27d; }
 .inv-possible thead th { position: sticky; top: 0; z-index: 1; background: var(--bg); }
 .inv-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .inv-filter input[type=search] { width: 10em; }
-.inv-reach-filter { display: inline-flex; gap: 2px; }
-.inv-reach-filter button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
-.inv-reach-filter button.on { color: var(--accent); opacity: 1; }
-.inv-reach-filter button svg { display: block; width: 14px; height: 14px; }
+.inv-reach-filter, .inv-tier-filter { display: inline-flex; gap: 2px; }
+.inv-reach-filter button, .inv-tier-filter button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
+.inv-reach-filter button.on, .inv-tier-filter button.on { color: var(--accent); opacity: 1; }
+.inv-reach-filter button svg, .inv-tier-filter button svg { display: block; width: 14px; height: 14px; }
 .inv-owner { display: flex; align-items: center; }
 .inv-owner a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* collapsed until the row is hovered or holds focus, so the name keeps its width; still focusable */

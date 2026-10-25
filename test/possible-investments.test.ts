@@ -131,6 +131,19 @@ describe('possibleViewModel', () => {
     expect(up.rows.map((r) => r.entityId)).toEqual([2, 1, 3]);
   });
 
+  it('filters by the tier: a row passes when its tier is on, rows without a tier are not touched, the count follows', () => {
+    const all = [safe, possible, none, unknown];
+    const tiers = (tier: Partial<PossibleFilter['tier']>, onlyHits = true) =>
+      vm(all, { onlyHits, tier: { exact: true, safe: true, possible: true, ...tier } });
+    expect(tiers({}).rows.map((r) => r.entityId)).toEqual([1, 2]);
+    expect(tiers({ safe: false }).rows.map((r) => r.entityId)).toEqual([2]);
+    expect(tiers({ possible: false }).rows.map((r) => r.entityId)).toEqual([1]);
+    expect(tiers({ safe: false, possible: false }).rows).toEqual([]);
+    expect(tiers({ safe: false }).count).toBe('1 mit Gewinn von 3 LGs');
+    // the rows without a place stay, whatever the tiers say
+    expect(tiers({ safe: false, possible: false }, false).rows.map((r) => r.entityId)).toEqual([3, 4]);
+  });
+
   it('filters by a part of the owner and of the building name, ignoring case; the count follows', () => {
     const all = [safe, possible, none, unknown];
     expect(vm(all, { player: 'ber', onlyHits: false }).rows.map((r) => r.entityId)).toEqual([2]);

@@ -31,7 +31,7 @@ export const snipeNotes = (h: SnipeHit, now: number): string[] =>
     (n): n is string => typeof n === 'string',
   );
 
-const tierIcon: Record<SnipeTier, TemplateResult> = {
+export const tierIcon: Record<SnipeTier, TemplateResult> = {
   exact: headerIcons.check,
   safe: headerIcons.checkCircle,
   possible: headerIcons.questionCircle,

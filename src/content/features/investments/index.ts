@@ -23,6 +23,8 @@ import {
   possibleViewModel,
   REACH_TOGGLES,
   type ReachFilter,
+  TIER_TOGGLES,
+  type TierFilter,
 } from './possible-view-model';
 import { type InvestmentsActions, investmentsView } from './view';
 import { INVESTMENT_DESC_FIRST, type InvestmentSort, type InvestmentsTab, investmentsViewModel } from './view-model';
@@ -45,6 +47,14 @@ function savedReach(f: Partial<PossibleFilter> & { onlyReachable?: unknown }): R
   ) as ReachFilter;
 }
 
+/** the saved tier toggles, each one that is missing at its default */
+function savedTier(f: Partial<PossibleFilter>): TierFilter {
+  const saved: Partial<TierFilter> = f.tier ?? {};
+  return Object.fromEntries(
+    TIER_TOGGLES.map((key) => [key, typeof saved[key] === 'boolean' ? saved[key] : DEFAULT_FILTER.tier[key]]),
+  ) as TierFilter;
+}
+
 /** the saved filters, each part that is missing or broken at its default */
 function savedFilter(saved: string | undefined): PossibleFilter {
   try {
@@ -54,6 +64,7 @@ function savedFilter(saved: string | undefined): PossibleFilter {
       name: typeof f.name === 'string' ? f.name : DEFAULT_FILTER.name,
       onlyHits: typeof f.onlyHits === 'boolean' ? f.onlyHits : DEFAULT_FILTER.onlyHits,
       reach: savedReach(f),
+      tier: savedTier(f),
       onlyMarked: typeof f.onlyMarked === 'boolean' ? f.onlyMarked : DEFAULT_FILTER.onlyMarked,
     };
   } catch {
