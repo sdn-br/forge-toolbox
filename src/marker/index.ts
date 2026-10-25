@@ -33,6 +33,8 @@ interface EngineNode {
   /** false while the game shows another view over the city (research, continent map, expedition, battlegrounds) */
   __visible?: unknown;
   gameContainer?: EngineNode;
+  /** holds the game's windows (market, inventory, army); empty but for a hidden backdrop while none is open */
+  windowContainer?: EngineNode;
   _isoScene?: IsoScene;
 }
 interface IsoScene {
@@ -115,11 +117,13 @@ function captureEngine(): Promise<LimeApp | undefined> {
  * The iso scene of the city view the game shows now, or undefined in other views. Looked up fresh every frame. Other
  * views (research, continent map, expedition, battlegrounds) lie beside the city view, which stays but turns invisible
  * (seen 2026-10-25). The game keeps the one scene for the own and visited cities; which city it shows, the content script
- * knows from the game traffic.
+ * knows from the game traffic. A game window (market, inventory, army) shows in the window container, over the city;
+ * the arrows hide meanwhile, since the game sends nothing when it closes (seen 2026-10-25).
  */
 function currentScene(): IsoScene | undefined {
   for (const child of app?.stage.__children ?? []) {
     if (child?.__visible === false || child?.gameContainer?.__visible === false) continue;
+    if (child?.windowContainer?.__children?.some((w) => w?.__visible !== false)) return undefined;
     for (const view of child?.gameContainer?.__children ?? []) {
       if (view?.__visible === false) continue;
       const scene = view?._isoScene;
