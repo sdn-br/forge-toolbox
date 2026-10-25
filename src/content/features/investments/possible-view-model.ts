@@ -47,17 +47,23 @@ export interface PossibleFilter {
   name: string;
   /** only rows with a worthwhile place */
   onlyHits: boolean;
-  /** only owners the player can pay into, and those the player store does not know */
-  onlyReachable: boolean;
+  /** which reasons let a row through; owners the player store does not know always pass */
+  reach: ReachFilter;
   /** only buildings the player marked and buildings of marked owners */
   onlyMarked: boolean;
 }
+
+/** a switch per reason to pay in, and one for the rows out of reach */
+export type ReachFilter = Record<keyof Relations | 'none', boolean>;
+
+/** the toggles in their order */
+export const REACH_TOGGLES: (keyof ReachFilter)[] = ['neighbor', 'friend', 'guildMember', 'none'];
 
 export const DEFAULT_FILTER: PossibleFilter = {
   player: '',
   name: '',
   onlyHits: true,
-  onlyReachable: true,
+  reach: { neighbor: true, friend: true, guildMember: true, none: false },
   onlyMarked: false,
 };
 
@@ -188,7 +194,7 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
       marked: input.isMarked(c.building.owner, c.building.entityId),
     }))
     .filter((r) => contains(r.ownerName, filter.player) && contains(r.name, filter.name))
-    .filter((r) => !filter.onlyReachable || r.reasons[0] !== 'none')
+    .filter((r) => r.reasons.some((reason) => reason === 'unknown' || filter.reach[reason]))
     .filter((r) => !filter.onlyMarked || r.marked || input.ownerMarked(r.building.owner));
   const hits = named.filter((r) => r.hit).length;
   const shown = filter.onlyHits ? named.filter((r) => r.hit) : named;

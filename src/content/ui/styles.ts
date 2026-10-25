@@ -236,6 +236,17 @@ td.inv-status.unknown { color: #b8a27d; }
 .inv-possible thead th { position: sticky; top: 0; z-index: 1; background: var(--bg); }
 .inv-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .inv-filter input[type=search] { width: 10em; }
+.inv-reach-filter { display: inline-flex; gap: 2px; }
+.inv-reach-filter button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
+.inv-reach-filter button.on { color: var(--accent); opacity: 1; }
+.inv-reach-filter button svg { display: block; width: 14px; height: 14px; }
+.inv-owner { display: flex; align-items: center; }
+.inv-owner a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* collapsed until the row is hovered or holds focus, so the name keeps its width; still focusable */
+button.inv-pick { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 0; height: 16px; overflow: hidden; opacity: 0; color: var(--ink); }
+tr:is(:hover, :focus-within) button.inv-pick { width: 16px; opacity: .7; }
+tr button.inv-pick:is(:hover, :focus-visible) { opacity: 1; color: var(--accent); }
+button.inv-pick svg { display: block; width: 12px; height: 12px; }
 .inv-growth { color: var(--accent); font-weight: 600; }
 /* a thin bar under "paid in / costs", filled towards the level up (investments, GB calculator) */
 .fp-bar { height: 3px; margin-top: 2px; background: var(--line); border-radius: 2px; overflow: hidden; }

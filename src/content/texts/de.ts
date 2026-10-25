@@ -204,7 +204,7 @@ export const de = {
   'investments.possible.player': 'Spieler',
   'investments.possible.name': 'LG',
   'investments.possible.onlyHits': 'nur mit Gewinn',
-  'investments.possible.onlyReachable': 'nur erreichbare',
+  'investments.possible.pickPlayer': 'Nur diesen Spieler zeigen',
   'investments.possible.onlyMarked': 'nur gemerkte',
   'investments.possible.none':
     'Noch keine fremden LGs bekannt. Der Reiter füllt sich, sobald LG-Listen anderer Spieler geöffnet werden.',

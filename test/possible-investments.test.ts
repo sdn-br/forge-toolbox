@@ -18,6 +18,7 @@ const def: GreatBuildingDef = { era: 'HighMiddleAge', levelCosts: Array(10).fill
 const DEF_ID = buildingDefId('X_HighMiddleAge_Landmark1');
 const OTHER_DEF = buildingDefId('X_Unknown_Landmark1');
 const ME = playerId(1);
+const EVERY = { neighbor: true, friend: true, guildMember: true, none: true };
 const HOUR = 3_600_000;
 const NOW = 100 * HOUR;
 
@@ -170,11 +171,34 @@ describe('possibleViewModel', () => {
   it('leaves out owners out of reach by default; without the filter they show as such', () => {
     relations[1002] = NONE;
     expect(vm([safe, possible]).rows.map((r) => r.entityId)).toEqual([1]);
-    const all = vm([safe, possible], { onlyReachable: false });
+    const all = vm([safe, possible], { reach: EVERY });
     expect(all.rows.map((r) => [r.entityId, r.reach, r.reachTip])).toEqual([
       [1, 'neighbor', 'Nachbar'],
       [2, 'none', 'nicht erreichbar'],
     ]);
+  });
+
+  it('passes a row when any of its reasons is switched on, an unreachable one when "none" is', () => {
+    relations[1001] = { ...NONE, neighbor: true, guildMember: true };
+    relations[1002] = { ...NONE, friend: true };
+    relations[1003] = NONE;
+    const three = { ...safe, entityId: 3, owner: playerId(1003) };
+    const ids = (reach: Partial<typeof EVERY>) =>
+      vm([safe, possible, three], { reach: { ...EVERY, ...reach } })
+        .rows.map((r) => r.entityId)
+        .sort();
+    expect(ids({})).toEqual([1, 2, 3]);
+    expect(ids({ none: false })).toEqual([1, 2]);
+    expect(ids({ none: false, neighbor: false })).toEqual([1, 2]);
+    expect(ids({ none: false, neighbor: false, guildMember: false })).toEqual([2]);
+    expect(ids({ none: false, friend: false })).toEqual([1]);
+    expect(ids({ neighbor: false, friend: false, guildMember: false })).toEqual([3]);
+  });
+
+  it('keeps owners the player store does not know with every reason off', () => {
+    delete relations[1001];
+    const off = { neighbor: false, friend: false, guildMember: false, none: false };
+    expect(vm([safe], { reach: off }).rows.map((r) => r.reach)).toEqual(['unknown']);
   });
 
   it('keeps owners the player store does not know in the filter, marked as unknown', () => {
@@ -186,7 +210,7 @@ describe('possibleViewModel', () => {
   it('counts hits among the buildings the name and reach filters leave', () => {
     relations[1002] = NONE;
     expect(vm([safe, possible, none]).count).toBe('1 mit Gewinn von 2 LGs');
-    expect(vm([safe, possible, none], { onlyReachable: false }).count).toBe('2 mit Gewinn von 3 LGs');
+    expect(vm([safe, possible, none], { reach: EVERY }).count).toBe('2 mit Gewinn von 3 LGs');
     expect(vm([safe, possible, none], { onlyHits: false }).count).toBe('1 mit Gewinn von 2 LGs');
   });
 
@@ -195,7 +219,7 @@ describe('possibleViewModel', () => {
     delete relations[1002];
     const sort = nextSort(DEFAULT_POSSIBLE_SORT, 'reach', POSSIBLE_DESC_FIRST);
     expect(sort).toEqual({ column: 'reach', desc: false });
-    const v = vm([safe, possible, none], { onlyHits: false, onlyReachable: false }, sort);
+    const v = vm([safe, possible, none], { onlyHits: false, reach: EVERY }, sort);
     expect(v.rows.map((r) => r.reach)).toEqual(['friend', 'unknown', 'none']);
   });
 });
@@ -203,16 +227,14 @@ describe('possibleViewModel', () => {
 describe('marks', () => {
   it('carries the star of each building and sorts the marked ones first', () => {
     markedBuildings.add('1002:2');
-    const v = vm([safe, possible], { onlyHits: false, onlyReachable: false });
+    const v = vm([safe, possible], { onlyHits: false, reach: EVERY });
     expect(v.rows.map((r) => [r.entityId, r.marked])).toEqual([
       [1, false],
       [2, true],
     ]);
     const sort = nextSort(DEFAULT_POSSIBLE_SORT, 'mark', POSSIBLE_DESC_FIRST);
     expect(sort).toEqual({ column: 'mark', desc: true });
-    expect(vm([safe, possible], { onlyHits: false, onlyReachable: false }, sort).rows.map((r) => r.entityId)).toEqual([
-      2, 1,
-    ]);
+    expect(vm([safe, possible], { onlyHits: false, reach: EVERY }, sort).rows.map((r) => r.entityId)).toEqual([2, 1]);
   });
 
   it('shows every row by default and only the marked ones with "nur gemerkte"', () => {
@@ -256,7 +278,7 @@ describe('possibleViewModel, the owner share (EA)', () => {
   const current = building({ entityId: 1, invested: 400, ...ranked(320, 80) });
   const stale = building({ owner: playerId(1002), entityId: 2, invested: 500, ...ranked(100, 300) });
   const unknown = building({ owner: playerId(1003), entityId: 3, invested: 400 });
-  const all = { onlyHits: false, onlyReachable: false };
+  const all = { onlyHits: false, reach: EVERY };
 
   it('shows the share plain when current, muted with the age when stale, and "?" when unknown', () => {
     const v = vm([current, stale, unknown], all);

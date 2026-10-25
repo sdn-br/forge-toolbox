@@ -5,7 +5,14 @@ import { keepKeys } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
 import { profitCell, tierCell } from '../../ui/snipe-hit';
 import { type SortColumn, sortHead } from '../../ui/sortable';
-import type { PossibleColumn, PossibleFilter, PossibleRowVm, PossibleVm, Reach } from './possible-view-model';
+import {
+  type PossibleColumn,
+  type PossibleFilter,
+  type PossibleRowVm,
+  type PossibleVm,
+  REACH_TOGGLES,
+  type Reach,
+} from './possible-view-model';
 import { type InvestmentsActions, markCell, progressCell, tabs } from './view';
 import type { InvestmentsTab } from './view-model';
 
@@ -13,6 +20,8 @@ export interface PossibleActions {
   tab(tab: InvestmentsTab): void;
   sort(column: PossibleColumn): void;
   filter(patch: Partial<PossibleFilter>): void;
+  /** put the owner's name into the "Spieler" filter, as if typed */
+  pickPlayer(name: string): void;
   mark: InvestmentsActions['mark'];
 }
 
@@ -44,12 +53,18 @@ const reachCell = (r: PossibleRowVm) =>
     ? t(`investments.reach.${r.reach}`)
     : r.reasons.map((reason) => REACH_ICONS[reason]);
 
+/** shown on row hover or focus (styles); debt: the funnel icon is still to be chosen, `person` stands in. ceiling: it reads as the reach column's head. upgrade: the user picks the funnel from the icon preview. */
+const pickButton = (name: string, actions: PossibleActions) => {
+  const word = t('investments.possible.pickPlayer');
+  return html`<button class="inv-pick" data-tip=${word} aria-label=${word} @click=${() => actions.pickPlayer(name)}>${headerIcons.person}</button>`;
+};
+
 const row = (
   r: PossibleRowVm,
   actions: PossibleActions,
 ) => html`<tr class=${r.reach === 'none' ? 'muted' : ''} data-tip=${r.notes.join('\n')}>
   ${markCell(r, actions.mark)}
-  <td class="inv-name" data-tip=${r.ownerName}>${externalLink(r.ownerName, r.ownerUrl)}</td>
+  <td class="inv-name" data-tip=${r.ownerName}><span class="inv-owner">${externalLink(r.ownerName, r.ownerUrl)}${pickButton(r.ownerName, actions)}</span></td>
   <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r)}</td>
   <td class="inv-name" data-tip=${r.name}>${r.name}</td>
   <td class="num">${r.level}</td>
@@ -75,11 +90,26 @@ const check = (checked: boolean, label: string, set: (checked: boolean) => void)
   html`<label><input type="checkbox" .checked=${checked}
     @change=${(e: Event) => set((e.target as HTMLInputElement).checked)} />${label}</label>`;
 
+/** debt: "not reachable" shows `noReward` (circle with a slash) until the user picks an icon. ceiling: the slash reads as "no reward" elsewhere. upgrade: the user picks it from the icon preview. */
+const REACH_FILTER_ICONS: Record<(typeof REACH_TOGGLES)[number], TemplateResult> = {
+  ...REACH_ICONS,
+  none: headerIcons.noReward,
+} as Record<(typeof REACH_TOGGLES)[number], TemplateResult>;
+
+/** one toggle per reason, any switched on lets a row through */
+const reachFilter = (f: PossibleFilter, actions: PossibleActions) =>
+  html`<span class="inv-reach-filter">${REACH_TOGGLES.map((key) => {
+    const word = t(key === 'none' ? 'investments.reachHint.none' : `investments.reach.${key}`);
+    const on = f.reach[key];
+    return html`<button class=${on ? 'on' : ''} aria-pressed=${on ? 'true' : 'false'} data-tip=${word} aria-label=${word}
+    @click=${() => actions.filter({ reach: { ...f.reach, [key]: !on } })}>${REACH_FILTER_ICONS[key]}</button>`;
+  })}</span>`;
+
 const filters = (f: PossibleFilter, actions: PossibleActions) => html`<p class="inv-filter">
     ${text(f.player, t('investments.possible.player'), (player) => actions.filter({ player }))}
     ${text(f.name, t('investments.possible.name'), (name) => actions.filter({ name }))}
     ${check(f.onlyHits, t('investments.possible.onlyHits'), (onlyHits) => actions.filter({ onlyHits }))}
-    ${check(f.onlyReachable, t('investments.possible.onlyReachable'), (onlyReachable) => actions.filter({ onlyReachable }))}
+    ${reachFilter(f, actions)}
     ${check(f.onlyMarked, t('investments.possible.onlyMarked'), (onlyMarked) => actions.filter({ onlyMarked }))}
   </p>`;
 

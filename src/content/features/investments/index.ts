@@ -21,6 +21,8 @@ import {
   type PossibleFilter,
   type PossibleSort,
   possibleViewModel,
+  REACH_TOGGLES,
+  type ReachFilter,
 } from './possible-view-model';
 import { type InvestmentsActions, investmentsView } from './view';
 import { INVESTMENT_DESC_FIRST, type InvestmentSort, type InvestmentsTab, investmentsViewModel } from './view-model';
@@ -33,6 +35,16 @@ const TAB = 'investments.tab';
 const FILTER = 'investments.filter';
 /** the settings the rating reads */
 
+/** the saved reason toggles; the former checkbox "only reachable" maps to the default (on) or to all four (off) */
+function savedReach(f: Partial<PossibleFilter> & { onlyReachable?: unknown }): ReachFilter {
+  const base: ReachFilter =
+    f.onlyReachable === false ? { neighbor: true, friend: true, guildMember: true, none: true } : DEFAULT_FILTER.reach;
+  const saved: Partial<ReachFilter> = f.reach ?? {};
+  return Object.fromEntries(
+    REACH_TOGGLES.map((key) => [key, typeof saved[key] === 'boolean' ? saved[key] : base[key]]),
+  ) as ReachFilter;
+}
+
 /** the saved filters, each part that is missing or broken at its default */
 function savedFilter(saved: string | undefined): PossibleFilter {
   try {
@@ -41,7 +53,7 @@ function savedFilter(saved: string | undefined): PossibleFilter {
       player: typeof f.player === 'string' ? f.player : DEFAULT_FILTER.player,
       name: typeof f.name === 'string' ? f.name : DEFAULT_FILTER.name,
       onlyHits: typeof f.onlyHits === 'boolean' ? f.onlyHits : DEFAULT_FILTER.onlyHits,
-      onlyReachable: typeof f.onlyReachable === 'boolean' ? f.onlyReachable : DEFAULT_FILTER.onlyReachable,
+      reach: savedReach(f),
       onlyMarked: typeof f.onlyMarked === 'boolean' ? f.onlyMarked : DEFAULT_FILTER.onlyMarked,
     };
   } catch {
@@ -104,6 +116,7 @@ export const investmentsFeature: Feature = {
         ctx.ui.savePref(FILTER, JSON.stringify(filter));
         box.update();
       },
+      pickPlayer: (player) => possibleActions.filter({ player }),
     };
     const playerName = (id: PlayerId) => ctx.players.get(id)?.name ?? ownerNames.get(id);
     const playerUrl = (id: PlayerId) => foestatsPlayerUrl(ctx.world, id);

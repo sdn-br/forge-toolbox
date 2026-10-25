@@ -169,7 +169,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
       player: '',
       name: 'zeus',
       onlyHits: false,
-      onlyReachable: true,
+      reach: { neighbor: true, friend: true, guildMember: true, none: false },
       onlyMarked: false,
     });
   });
@@ -187,6 +187,46 @@ describe('Investitionen: Mögliche Investitionen', () => {
     expect(root.querySelector('.tabs button.active')?.textContent).toBe('Mögliche Investitionen');
     expect((root.querySelector('input[aria-label="Spieler"]') as HTMLInputElement).value).toBe('Anna');
     expect((root.querySelector('input[type=checkbox]') as HTMLInputElement).checked).toBe(false);
+  });
+
+  it.each([
+    [{ onlyReachable: true }, [true, true, true, false]],
+    [{ onlyReachable: false }, [true, true, true, true]],
+    [{ reach: { neighbor: false, friend: true, guildMember: false, none: true } }, [false, true, false, true]],
+    [{}, [true, true, true, false]],
+  ])('reads the stored filter %j as the reason toggles %j', async (stored, pressed) => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const env = featureContext({ now: () => Date.now() });
+    env.ctx.ui.savePref('investments.tab', 'possible');
+    env.ctx.ui.savePref('investments.filter', JSON.stringify({ player: '', name: '', onlyHits: false, ...stored }));
+    investmentsFeature.setup(env.ctx);
+    drain = () => env.ctx.greatBuildings.known();
+    env.menu('investments');
+    await tick();
+    const root = env.boxes.get('investments')?.root as HTMLElement;
+    const buttons = [...root.querySelectorAll('.inv-reach-filter button')];
+    expect(buttons.map((b) => b.getAttribute('aria-pressed') === 'true')).toEqual(pressed);
+  });
+
+  it('writes the owner into the player filter from the row', async () => {
+    const { box, list, rows, input, showPossible, ui } = setup();
+    list([hitZeus()], 1001);
+    list([{ ...hitOracle(), player: { player_id: 1002, name: 'Bert' } }], 1002);
+    await tick();
+    await showPossible();
+    expect(rows()).toHaveLength(2);
+    const pick = rows()[0]?.querySelector('td.inv-name .inv-pick') as HTMLButtonElement;
+    expect(pick.getAttribute('aria-label')).toBe('Nur diesen Spieler zeigen');
+    expect(pick.getAttribute('data-tip')).toBe('Nur diesen Spieler zeigen');
+    // the filter sits after the name, the name stays the link
+    expect(pick.previousElementSibling?.tagName).toBe('A');
+    const name = pick.previousElementSibling?.textContent;
+    pick.click();
+    await tick();
+    expect(input('Spieler').value).toBe(name);
+    expect(rows()).toHaveLength(1);
+    expect(JSON.parse(ui.pref('investments.filter') ?? '{}').player).toBe(name);
+    expect(box.text).toContain('1 mit Gewinn von 1 LGs');
   });
 
   it('uses the stored ranking of an opened building: the row turns exact', async () => {
@@ -343,18 +383,22 @@ describe('Investitionen: Mögliche Investitionen', () => {
     await tick();
     expect(rows()).toHaveLength(0);
     expect(box.text).toContain('0 mit Gewinn von 0 LGs');
-    const reachable = box.root.querySelectorAll('input[type=checkbox]')[1] as HTMLInputElement;
-    expect(reachable.parentElement?.textContent).toBe('nur erreichbare');
-    expect(reachable.checked).toBe(true);
-    reachable.checked = false;
-    reachable.dispatchEvent(new Event('change'));
+    const toggles = [...box.root.querySelectorAll('.inv-reach-filter button')] as HTMLButtonElement[];
+    expect(toggles.map((b) => [b.getAttribute('aria-label'), b.getAttribute('aria-pressed')])).toEqual([
+      ['Nachbar', 'true'],
+      ['Freund', 'true'],
+      ['Gilde', 'true'],
+      ['nicht erreichbar', 'false'],
+    ]);
+    expect(toggles.every((b) => b.getAttribute('data-tip') === b.getAttribute('aria-label'))).toBe(true);
+    (toggles[3] as HTMLButtonElement).click();
     await tick();
     expect(rows().map((r) => [cells(r)[2], r.className])).toEqual([
       ['nein', 'muted'],
       ['nein', 'muted'],
     ]);
     expect(box.text).toContain('2 mit Gewinn von 2 LGs');
-    expect(JSON.parse(ui.pref('investments.filter') ?? '{}')).toMatchObject({ onlyReachable: false });
+    expect(JSON.parse(ui.pref('investments.filter') ?? '{}')).toMatchObject({ reach: { none: true } });
     send(friendAccept.accept as Entry);
     await tick();
     expect(rows().map((r) => [reach(r)?.getAttribute('data-tip'), r.className])).toEqual([
