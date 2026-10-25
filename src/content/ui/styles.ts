@@ -254,7 +254,7 @@ td.snipe-tier.possible { color: #f0a050; }
 td.inv-status.safe { color: #8fd08f; }
 td.inv-status.unsafe { color: #f0a050; }
 td.inv-status.unknown { color: #b8a27d; }
-.inv-table tr.grown { background: rgba(220, 190, 60, .32); }
+.inv-table tr.grown { background: rgba(220, 190, 60, .24); }
 .inv-possible .c-progress { width: 92px; }
 .inv-possible .c-share { width: 50px; }
 .inv-possible .c-cost { width: 68px; }
@@ -313,7 +313,7 @@ button.inv-pick svg { display: block; width: 12px; height: 12px; }
 .gb-progress { margin: 0 0 6px; }
 tr.gb-profit { background: rgba(90, 170, 90, .28); }
 tr.gb-loss { background: rgba(200, 80, 60, .28); }
-tr.gb-levelWarning { background: rgba(220, 190, 60, .32); }
+tr.gb-levelWarning { background: rgba(220, 190, 60, .24); }
 tr.gb-mine { background: rgba(80, 140, 220, .32); }
 tr.own-row td { background: #3a2814; }
 td.own-fp, td.gain { color: #8fd08f; }
