@@ -7,6 +7,7 @@ import { headerIcons } from '../../ui/icons';
 import { profitCell, tierCell } from '../../ui/snipe-hit';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { starButton } from '../../ui/star';
+import { windowedRows } from '../../ui/windowed-rows';
 import { type SnipeColumn, type SnipeRowVm, type SnipeVm, VISIBLE_ROWS } from './snipe-view-model';
 import { activityLine, owner } from './view';
 
@@ -57,47 +58,19 @@ const row = (r: SnipeRowVm, actions: SnipeActions) => html`<tr data-tip=${r.note
   ${tierCell(r.tier)}
 </tr>`;
 
-/** one of the two scroll buttons; greyed at its end like the factor status buttons */
-const scrollButton = (on: boolean, word: string, icon: TemplateResult, action: () => void) =>
-  html`<button class=${on ? 'icon' : 'icon off'} aria-disabled=${on ? 'false' : 'true'} data-tip=${word}
-    aria-label=${word} @click=${() => on && action()}>${icon}</button>`;
-
-const hidden = ({ above, below }: { above: number; below: number }) =>
-  above > 0 && below > 0
-    ? t('snipe.hiddenBoth', { above, below })
-    : above > 0
-      ? t('snipe.hiddenAbove', { count: above })
-      : below > 0
-        ? t('snipe.hiddenBelow', { count: below })
-        : '';
-
 /** the head stays, the body shows six rows; wheel and the two buttons move it by a row */
-const table = (vm: Extract<SnipeVm, { kind: 'list' }>, actions: SnipeActions) => {
-  const { top, above, below } = vm.scroll;
-  const scrolls = vm.rows.length > VISIBLE_ROWS;
-  const wheel = (e: WheelEvent) => {
-    const step = Math.sign(e.deltaY);
-    if (!scrolls || step === 0 || (step < 0 ? above : below) === 0) return;
-    e.preventDefault();
-    actions.scroll(step);
-  };
-  return html`<div class="snipe-scroll" @wheel=${wheel}>
-      <table class="gb-table snipe-table">
+const table = (vm: Extract<SnipeVm, { kind: 'list' }>, actions: SnipeActions) =>
+  windowedRows({
+    cls: 'snipe-scroll',
+    window: vm.scroll,
+    scroll: actions.scroll,
+    table: html`<table class="gb-table snipe-table">
         <colgroup><col class="c-order" /><col class="c-mark" /><col class="c-name" /><col class="c-level" /><col class="c-progress" /><col class="c-rank" />
           <col class="c-cost" /><col class="c-profit" /><col class="c-tier" /></colgroup>
         <thead><tr>${sortHeads(columns, vm.sort, actions.sort)}</tr></thead>
-        <tbody>${vm.rows.slice(top, top + VISIBLE_ROWS).map((r) => row(r, actions))}</tbody>
-      </table>
-      ${
-        scrolls
-          ? html`<div class="snipe-nav">
-            ${scrollButton(above > 0, t('snipe.scrollUp'), headerIcons.chevronUp, () => actions.scroll(-1))}
-            ${scrollButton(below > 0, t('snipe.scrollDown'), headerIcons.chevronDown, () => actions.scroll(1))}
-          </div>`
-          : ''
-      }
-    </div>${scrolls ? html`<p class="muted snipe-hidden">${hidden(vm.scroll)}</p>` : ''}`;
-};
+        <tbody>${vm.rows.slice(vm.scroll.top, vm.scroll.top + VISIBLE_ROWS).map((r) => row(r, actions))}</tbody>
+      </table>`,
+  });
 
 const toggle = (expanded: boolean, text: TemplateResult | string, actions: SnipeActions) =>
   foldToggle('snipe-fold', expanded, text, t(expanded ? 'snipe.collapse' : 'snipe.expand'), actions.toggle);

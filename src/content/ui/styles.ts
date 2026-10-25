@@ -171,15 +171,16 @@ button.snipe-toggle:hover { color: var(--accent); }
 button.snipe-toggle:focus-visible { outline: 1px solid var(--accent); }
 button.snipe-toggle svg { display: block; flex: none; width: 14px; height: 14px; }
 hr.snipe-sep { border: 0; border-top: 1px solid var(--line); margin: 6px 0; }
-.snipe-scroll { display: flex; align-items: stretch; gap: 4px; }
-.snipe-scroll .snipe-table { flex: 1 1 auto; min-width: 0; }
-.snipe-nav { flex: none; display: flex; flex-direction: column; justify-content: space-between; }
-.snipe-nav button.icon { all: unset; cursor: pointer; display: grid; place-items: center; width: 18px; height: 18px;
+/* windowed rows (ui/windowed-rows.ts): the table area, the two buttons beside it, the line of what is hidden */
+.win-scroll { display: flex; align-items: stretch; gap: 4px; }
+.win-area { flex: 1 1 auto; min-width: 0; }
+.win-nav { flex: none; display: flex; flex-direction: column; justify-content: space-between; }
+.win-nav button.icon { all: unset; cursor: pointer; display: grid; place-items: center; width: 18px; height: 18px;
   color: var(--ink); }
-.snipe-nav button.icon:hover { color: var(--accent); }
-.snipe-nav button.icon.off { cursor: default; opacity: .4; color: var(--ink); }
-.snipe-nav button.icon svg { display: block; width: 14px; height: 14px; }
-p.snipe-hidden { margin: 2px 0; }
+.win-nav button.icon:hover { color: var(--accent); }
+.win-nav button.icon.off { cursor: default; opacity: .4; color: var(--ink); }
+.win-nav button.icon svg { display: block; width: 14px; height: 14px; }
+p.win-hidden { margin: 2px 0; }
 /* a column head that sorts on a click (snipe helper, investments); an icon head marks the direction by its colour */
 /* the star that marks a great building or a player */
 button.star { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 18px; height: 18px; vertical-align: middle; color: var(--ink); opacity: .7; }

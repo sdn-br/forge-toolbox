@@ -606,8 +606,8 @@ describe('Snipehilfe: stacked box', () => {
     const places = (rows: () => Element[], cells: (r: Element | undefined) => (string | undefined)[]) =>
       rows().map((r) => Number(cells(r)[0]));
     const button = (box: { root: ParentNode }, word: string) =>
-      box.root.querySelector(`.snipe-nav button[aria-label="${word}"]`) as HTMLElement;
-    const hiddenLine = (box: { root: ParentNode }) => box.root.querySelector('.snipe-hidden')?.textContent?.trim();
+      box.root.querySelector(`.win-nav button[aria-label="${word}"]`) as HTMLElement;
+    const hiddenLine = (box: { root: ParentNode }) => box.root.querySelector('.win-hidden')?.textContent?.trim();
     const wheel = (box: { root: ParentNode }, deltaY: number) => {
       const event = new WheelEvent('wheel', { deltaY, cancelable: true, bubbles: true });
       box.root.querySelector('.snipe-scroll')?.dispatchEvent(event);
@@ -619,8 +619,8 @@ describe('Snipehilfe: stacked box', () => {
       list(many(6));
       await tick();
       expect(rows()).toHaveLength(6);
-      expect(box.root.querySelector('.snipe-nav')).toBeNull();
-      expect(box.root.querySelector('.snipe-hidden')).toBeNull();
+      expect(box.root.querySelector('.win-nav')).toBeNull();
+      expect(box.root.querySelector('.win-hidden')).toBeNull();
     });
 
     it('shows six rows of a longer list and says what is hidden below', async () => {
@@ -699,7 +699,7 @@ describe('Snipehilfe: stacked box', () => {
       await tick();
       const scroll = box.root.querySelector('.snipe-scroll');
       expect(scroll?.querySelector('.gb-title')).toBeNull();
-      expect(box.root.querySelector('.snipe-hidden')?.closest('.snipe-scroll')).toBeNull();
+      expect(box.root.querySelector('.win-hidden')?.closest('.snipe-scroll')).toBeNull();
       expect(box.text).toContain('Noch kein fremdes LG geöffnet.');
     });
   });

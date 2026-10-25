@@ -12,6 +12,7 @@ import {
   TIER_ORDER,
 } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
+import { clampTop, type RowWindow, rowWindow } from '../../ui/windowed-rows';
 import { type ActivityVm, activityVm } from './view-model';
 
 export type SnipeColumn = 'order' | 'name' | 'level' | 'progress' | 'rank' | 'cost' | 'profit' | 'tier' | 'mark';
@@ -35,18 +36,10 @@ export const SNIPE_DESC_FIRST: ReadonlySet<SnipeColumn> = new Set([
 /** rows of the table in view at once; the rest scrolls */
 export const VISIBLE_ROWS = 6;
 
-export interface SnipeScroll {
-  /** index of the first row in view */
-  top: number;
-  /** rows hidden above and below */
-  above: number;
-  below: number;
-}
+export type SnipeScroll = RowWindow;
 
 /** the offset kept inside the list, so a shorter list or a stale offset never leaves the table empty */
-export function clampScroll(top: number, rows: number): number {
-  return Math.max(0, Math.min(top, rows - VISIBLE_ROWS));
-}
+export const clampScroll = (top: number, rows: number): number => clampTop(top, rows, VISIBLE_ROWS);
 
 export interface SnipeRowVm {
   owner: PlayerId;
@@ -172,7 +165,6 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     result.unknownReward > 0 && t('snipe.countUnknown', { count: result.unknownReward }),
   ].filter((c): c is string => typeof c === 'string');
   const best = [...result.hits].sort((a, b) => snipeProfitKey(b) - snipeProfitKey(a))[0];
-  const top = clampScroll(input.scroll ?? 0, rows.length);
   const ownerMarked = input.playerMarked(list.owner);
   return {
     kind: 'list',
@@ -184,7 +176,7 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     at: list.at,
     sort: input.sort,
     rows,
-    scroll: { top, above: top, below: Math.max(0, rows.length - top - VISIBLE_ROWS) },
+    scroll: rowWindow(input.scroll ?? 0, rows.length, VISIBLE_ROWS),
     ...(best && { best: { name: name(best), profit: signed(best.profitHigh) } }),
     counts,
   };
