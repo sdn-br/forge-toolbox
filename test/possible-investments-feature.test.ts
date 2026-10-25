@@ -117,6 +117,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
       'LG',
       'Stufe',
       'Fortschritt',
+      'Eigenanteil des Eigentümers',
       'Platz',
       'Einsatz',
       'Gewinn',
@@ -129,12 +130,12 @@ describe('Investitionen: Mögliche Investitionen', () => {
     expect(mine.map((c) => c[3])).toEqual(['Orakel von Delphi', 'Zeusstatue']);
     for (const c of mine) {
       const same = helper.find((h) => h[1] === c[3]);
-      expect(c.slice(6, 9)).toEqual(same?.slice(4, 7));
+      expect(c.slice(7, 10)).toEqual(same?.slice(4, 7));
     }
     expect(mine[0]?.[1]).toBe('Eigentümer 1001');
     // the owners are known only from their lists, not to the player store
     expect(mine[0]?.[2]).toBe('unbekannt');
-    expect(mine[0]?.[10]).toBe('vor 1 Min.');
+    expect(mine[0]?.[11]).toBe('vor 1 Min.');
     const tier = rows()[0]?.querySelector('td.snipe-tier');
     expect(tier?.getAttribute('aria-label')).toContain('sicher');
     expect(tier?.querySelector('svg')).not.toBeNull();
@@ -156,7 +157,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     only.dispatchEvent(new Event('change'));
     await tick();
     expect(rows()).toHaveLength(3);
-    expect(cells(rows()[2]).slice(3, 10)).toEqual(['Leuchtturm von Alexandria', '9', '10 / 550', '', '', '', '']);
+    expect(cells(rows()[2]).slice(3, 11)).toEqual(['Leuchtturm von Alexandria', '9', '10 / 550', '?', '', '', '', '']);
     const name = input('LG');
     name.value = 'zeus';
     name.dispatchEvent(new Event('input'));
@@ -208,8 +209,45 @@ describe('Investitionen: Mögliche Investitionen', () => {
     vi.setSystemTime(Date.now() + 10_000);
     open(1909);
     await tick();
-    expect(cells(rows()[0]).slice(3, 7)).toEqual(['Aachener Dom', '75', '251 / 3.062', 'P1']);
+    expect(cells(rows()[0]).slice(3, 6)).toEqual(['Aachener Dom', '75', '251 / 3.062']);
+    expect(cells(rows()[0])[7]).toBe('P1');
     expect(rows()[0]?.querySelector('td.snipe-tier')?.className).toContain('exact');
+  });
+
+  it('shows the share of the owner: "?" until the building was opened, plain when current, muted when stale', async () => {
+    const { box, list, open, rows, showPossible } = setup();
+    const dom: Row = {
+      entity_id: 1909,
+      city_entity_id: 'X_EarlyMiddleAge_Landmark2',
+      name: 'Aachener Dom',
+      level: 75,
+      current_progress: 2_900,
+      max_progress: 3062,
+      player: { player_id: 1001, name: 'Eigentümer 1001' },
+    };
+    const share = () => rows()[0]?.querySelectorAll('td')[6] as HTMLElement;
+    list([dom]);
+    await tick();
+    await showPossible();
+    const head = box.root.querySelector('thead th[aria-label="Eigenanteil des Eigentümers"]') as HTMLElement | null;
+    expect(head?.textContent?.trim()).toBe('EA');
+    expect(head?.getAttribute('data-tip')).toBe(
+      'Eigenanteil des Eigentümers\nKlick sortiert nach Eigenanteil des Eigentümers',
+    );
+    expect(share().textContent).toBe('?');
+    vi.setSystemTime(Date.now() + 10_000);
+    open(1909);
+    await tick();
+    expect(share().textContent).toMatch(/^\d[\d.]*$/);
+    expect(share().className).not.toContain('muted');
+    // the list moves the progress on: the ranking is of an earlier state, its number stays, drawn muted with its age
+    const fp = share().textContent;
+    vi.setSystemTime(Date.now() + 5 * MINUTE);
+    list([{ ...dom, current_progress: 2_950 }]);
+    await tick();
+    expect(share().textContent).toBe(fp);
+    expect(share().className).toContain('muted');
+    expect(share().getAttribute('data-tip')).toBe('Stand vor 5 Min.');
   });
 
   it('sorts by a clicked column head', async () => {
@@ -263,7 +301,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     await tick();
     vi.setSystemTime(Date.now() + 3 * 60 * MINUTE + 40 * MINUTE);
     await showPossible();
-    expect(cells(rows()[0])[10]).toBe('vor 3 Std.');
+    expect(cells(rows()[0])[11]).toBe('vor 3 Std.');
     expect(box.text).not.toContain('40 Min.');
   });
 

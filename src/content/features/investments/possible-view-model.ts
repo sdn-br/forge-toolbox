@@ -1,7 +1,7 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import type { Relations } from '../../../shared/model';
 import { formatAge, formatNumber, t } from '../../core/texts';
-import type { SnipeTier } from '../../domain/gb-snipe';
+import { type OwnerShare, ownerShare, type SnipeTier } from '../../domain/gb-snipe';
 import type { PossibleInvestment } from '../../domain/investments';
 import { progressPercent } from '../../ui/fp-bar';
 import { snipeNotes, snipeProfit, snipeProfitKey } from '../../ui/snipe-hit';
@@ -14,6 +14,7 @@ export type PossibleColumn =
   | 'name'
   | 'level'
   | 'progress'
+  | 'share'
   | 'rank'
   | 'cost'
   | 'profit'
@@ -30,6 +31,7 @@ export const POSSIBLE_DESC_FIRST: ReadonlySet<PossibleColumn> = new Set([
   'mark',
   'level',
   'progress',
+  'share',
   'rank',
   'cost',
   'profit',
@@ -85,6 +87,8 @@ export interface PossibleRowVm {
   rest: string;
   /** paid in of the level, 0 to 100, for the bar */
   percent: number;
+  /** the owner's share of the level: "320", "?" when unknown; `stale` when drawn muted, with its age as the tip */
+  share: { text: string; stale: boolean; tip: string };
   /** the best place; missing when none pays */
   hit?: { rank: number; cost: string; profit: string; estimate: boolean; tier: SnipeTier };
   /** lines of the row tooltip */
@@ -144,12 +148,25 @@ const sortKey: Record<PossibleColumn, (r: Named) => number | string | undefined>
   name: (r) => r.name,
   level: (r) => r.building.level,
   progress: ({ building: b }) => progressPercent(b.invested, b.required),
+  share: (r) => {
+    const share = ownerShare(r.building);
+    return share.state === 'unknown' ? undefined : share.fp;
+  },
   rank: (r) => r.hit?.place.rank,
   cost: (r) => r.hit?.place.cost,
   profit: (r) => r.hit && snipeProfitKey(r.hit),
   tier: (r) => r.hit && TIER_ORDER[r.hit.tier],
   seen: (r) => r.building.seenAt,
 };
+
+const shareCell = (share: OwnerShare, now: number): PossibleRowVm['share'] =>
+  share.state === 'unknown'
+    ? { text: '?', stale: false, tip: '' }
+    : {
+        text: formatNumber(share.fp),
+        stale: share.state === 'stale',
+        tip: share.state === 'stale' ? t('investments.shareStale', { age: formatAge(now - share.at) }) : '',
+      };
 
 const reachTip = (reasons: Reach[]) => {
   const [first] = reasons;
@@ -195,6 +212,7 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
       required: formatNumber(b.required),
       rest: formatNumber(Math.max(0, b.required - b.invested)),
       percent: progressPercent(b.invested, b.required),
+      share: shareCell(ownerShare(b), input.now),
       ...(hit && {
         hit: {
           rank: hit.place.rank,

@@ -240,3 +240,39 @@ describe('marks', () => {
     expect(vm([safe, possible, none], { onlyMarked: true }).count).toBe('1 mit Gewinn von 1 LGs');
   });
 });
+
+describe('possibleViewModel, the owner share (EA)', () => {
+  const DAY = 24 * HOUR;
+  /** a ranking of level 50 from two days ago: the owner paid `ownerFp`, the holder of place 1 `holder` */
+  const ranked = (ownerFp: number, holder: number): Partial<KnownGreatBuilding> => ({
+    rankings: [
+      { name: 'Eigentümer', self: false, fp: ownerFp },
+      { rank: 1, name: 'Spieler 1', self: false, fp: holder, reward: { fp: 1, blueprints: 0, medals: 0 } },
+    ],
+    rankingsLevel: 50,
+    rankingsAt: NOW - 2 * DAY,
+    rankingsInvested: ownerFp + holder,
+  });
+  const current = building({ entityId: 1, invested: 400, ...ranked(320, 80) });
+  const stale = building({ owner: playerId(1002), entityId: 2, invested: 500, ...ranked(100, 300) });
+  const unknown = building({ owner: playerId(1003), entityId: 3, invested: 400 });
+  const all = { onlyHits: false, onlyReachable: false };
+
+  it('shows the share plain when current, muted with the age when stale, and "?" when unknown', () => {
+    const v = vm([current, stale, unknown], all);
+    expect(Object.fromEntries(v.rows.map((r) => [r.entityId, r.share]))).toEqual({
+      1: { text: '320', stale: false, tip: '' },
+      2: { text: '100', stale: true, tip: 'Stand vor 2 T.' },
+      3: { text: '?', stale: false, tip: '' },
+    });
+  });
+
+  it('sorts by the share from the largest, and unknown goes last in either direction', () => {
+    const sort = nextSort(DEFAULT_POSSIBLE_SORT, 'share', POSSIBLE_DESC_FIRST);
+    expect(sort).toEqual({ column: 'share', desc: true });
+    expect(vm([unknown, stale, current], all, sort).rows.map((r) => r.entityId)).toEqual([1, 2, 3]);
+    expect(vm([unknown, stale, current], all, { column: 'share', desc: false }).rows.map((r) => r.entityId)).toEqual([
+      2, 1, 3,
+    ]);
+  });
+});

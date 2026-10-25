@@ -30,20 +30,22 @@ export function sortRows<T>(rows: T[], key: (row: T) => number | string | undefi
   });
 }
 
-/** a sortable column; a narrow column shows `icon` with the word in tooltip and label */
+/** a sortable column; a narrow column shows `icon` or an abbreviation with the word in tooltip and label */
 export interface SortColumn<C extends string> {
   column: C;
   label: TextKey;
   num: boolean;
   icon?: TemplateResult;
+  /** the whole word of an abbreviated head, for tooltip and label */
+  full?: TextKey;
 }
 
 /** the head of a sortable column, marked with the direction while the rows are sorted by it */
 export function sortHead<C extends string>(c: SortColumn<C>, sort: Sort<C> | undefined, onSort: (column: C) => void) {
-  const label = t(c.label);
+  const label = t(c.full ?? c.label);
   const hint = t('table.sortHint', { column: label });
   const mark = sort?.column === c.column ? (sort.desc ? 'desc' : 'asc') : '';
   return html`<th class=${`sortable ${c.num ? 'num' : ''} ${c.icon ? 'icon-head' : ''} ${mark}`} aria-label=${label}
     aria-sort=${mark === '' ? 'none' : mark === 'desc' ? 'descending' : 'ascending'}
-    data-tip=${c.icon ? `${label}\n${hint}` : hint} @click=${() => onSort(c.column)}>${c.icon ?? label}</th>`;
+    data-tip=${c.icon || c.full ? `${label}\n${hint}` : hint} @click=${() => onSort(c.column)}>${c.icon ?? t(c.label)}</th>`;
 }

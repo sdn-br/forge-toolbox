@@ -24,6 +24,7 @@ const columns: SortColumn<PossibleColumn>[] = [
   { column: 'name', label: 'gb.col.name', num: false },
   { column: 'level', label: 'gb.col.level', num: true },
   { column: 'progress', label: 'gb.col.progress', num: true },
+  { column: 'share', label: 'investments.col.share', full: 'investments.col.shareFull', num: true },
   { column: 'rank', label: 'gb.col.rank', num: true },
   { column: 'cost', label: 'gb.col.cost', num: true },
   { column: 'profit', label: 'gb.col.profit', num: true },
@@ -53,6 +54,7 @@ const row = (
   <td class="inv-name" data-tip=${r.name}>${r.name}</td>
   <td class="num">${r.level}</td>
   ${progressCell(r)}
+  <td class=${r.share.stale ? 'num muted' : 'num'} data-tip=${r.share.tip}>${r.share.text}</td>
   ${
     r.hit
       ? html`<td class="num">${t('gb.rank', { rank: r.hit.rank })}</td>
@@ -82,7 +84,7 @@ const filters = (f: PossibleFilter, actions: PossibleActions) => html`<p class="
   </p>`;
 
 const table = (vm: PossibleVm, actions: PossibleActions) => html`<table class="gb-table inv-table inv-possible">
-    <colgroup><col class="c-mark" /><col class="c-owner" /><col class="c-reach" /><col class="c-name" /><col class="c-level" /><col class="c-progress" />
+    <colgroup><col class="c-mark" /><col class="c-owner" /><col class="c-reach" /><col class="c-name" /><col class="c-level" /><col class="c-progress" /><col class="c-share" />
       <col class="c-rank" /><col class="c-cost" /><col class="c-gain" /><col class="c-tier" /><col class="c-seen" /></colgroup>
     <thead><tr>${columns.map((c) => sortHead(c, vm.sort, (column) => actions.sort(column)))}</tr></thead>
     <tbody>${vm.rows.map((r) => row(r, actions))}</tbody>

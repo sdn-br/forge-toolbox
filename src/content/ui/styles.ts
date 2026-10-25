@@ -222,6 +222,7 @@ td.inv-status.unsafe { color: #f0a050; }
 td.inv-status.unknown { color: #b8a27d; }
 .inv-table tr.grown { background: rgba(220, 190, 60, .32); }
 .inv-possible .c-progress { width: 92px; }
+.inv-possible .c-share { width: 50px; }
 .inv-possible .c-cost { width: 60px; }
 .inv-possible .c-gain { width: 96px; }
 .inv-possible .c-tier { width: 26px; }
