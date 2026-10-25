@@ -53,7 +53,9 @@ export const sabotageFeature: Feature = {
         const owner = ctx.cities.visited()?.owner;
         const note = vm && owner !== undefined ? card.render(owner, ctx.players.get(owner)?.name) : undefined;
         const markPlayer = owner === undefined ? undefined : (marked: boolean) => ctx.players.setMarked(owner, marked);
-        return sabotageView(vm, note, marks, markPlayer);
+        // rows set arrows only while the game shows this city; back home the box still shows it, without arrows
+        const markable = owner !== undefined && ctx.cities.shown() === owner;
+        return sabotageView(vm, note, markable ? marks : undefined, markPlayer);
       },
     });
     const card = new PlayerNoteCard(ctx.notes, () => box.update());
@@ -78,6 +80,7 @@ export const sabotageFeature: Feature = {
     ctx.bus.on('city.shown', ({ city }) => {
       const marked = ctx.markers.of(ID);
       if (marked && marked.city !== city) ctx.markers.clear(ID);
+      box.update();
     });
     // after a plunder, won or repelled, the building has nothing more to give; its arrow goes
     ctx.bus.on('plunder.attempted', ({ opponent, entityId }) => {

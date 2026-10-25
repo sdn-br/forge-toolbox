@@ -285,6 +285,21 @@ describe('sabotage feature', () => {
       expect(ctx.markers.of('cityMap')?.city).toBe('own');
     });
 
+    it('offers no arrows from the rows while the game shows another city, and again once it shows this one', async () => {
+      const { ctx, marker, row, box } = markSetup();
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      ctx.cities.showOwn();
+      await tick();
+      expect(row('Münzhaus')).toBeUndefined();
+      expect(box.root.textContent).toContain('Münzhaus');
+      expect(marker.posted).toEqual([]);
+
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      expect(row('Münzhaus')).toBeDefined();
+    });
+
     it('sets no arrow for a building without a place on the grid', async () => {
       const { ctx, marker, row } = markSetup();
       const city = coinsAndPoints(1);
