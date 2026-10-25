@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Ingestion } from '../src/content/core/ingestion';
 import { createGbCalculatorFeature } from '../src/content/features/gb-calculator';
 import { registerGameHandlers } from '../src/content/game/handlers';
+import { playerId } from '../src/shared/ids';
 import definitions from './fixtures/gb-definitions.json';
 import levelUp from './fixtures/gb-level-up.json';
 import fixture from './fixtures/great-buildings.json';
@@ -250,6 +251,7 @@ describe('Snipehilfe: stacked box', () => {
       'Einsatz',
       'Gewinn',
       'Sicherheit',
+      'Merken',
     ]);
     // the lighthouse has no loaded definition: unknown reward; the others pay a place
     expect(rows()).toHaveLength(2);
@@ -419,7 +421,7 @@ describe('Snipehilfe: stacked box', () => {
       list(many(10));
       await tick();
       expect(places(rows, cells)).toEqual([1, 2, 3, 4, 5, 6]);
-      expect(box.root.querySelectorAll('thead th').length).toBe(8);
+      expect(box.root.querySelectorAll('thead th').length).toBe(9);
       expect(hiddenLine(box)).toBe('noch 4 weitere unten');
       expect(button(box, 'Nach oben').getAttribute('aria-disabled')).toBe('true');
       expect(button(box, 'Nach unten').getAttribute('aria-disabled')).toBe('false');
@@ -493,5 +495,77 @@ describe('Snipehilfe: stacked box', () => {
       expect(box.root.querySelector('.snipe-hidden')?.closest('.snipe-scroll')).toBeNull();
       expect(box.text).toContain('Noch kein fremdes LG geöffnet.');
     });
+  });
+});
+
+describe('Snipehilfe: marking with a star', () => {
+  const stars = (box: { root: ParentNode }) => [...box.root.querySelectorAll('.snipe-table td.snipe-mark button')];
+
+  it('has a star column after the tier, the word in tooltip and label', async () => {
+    const { box, list } = setup();
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    const heads = [...box.root.querySelectorAll('.snipe-table th')];
+    const last = heads[heads.length - 1];
+    expect(last?.getAttribute('aria-label')).toBe('Merken');
+    expect(last?.getAttribute('data-tip')).toBe('Merken');
+    expect(last?.querySelector('svg')).not.toBeNull();
+    expect(stars(box)).toHaveLength(2);
+  });
+
+  it('marks a building on a click and redraws filled, a second click takes the mark away', async () => {
+    const { box, greatBuildings, list } = setup();
+    list([hitZeus()]);
+    await tick();
+    const star = () => stars(box)[0] as HTMLElement;
+    expect(star().getAttribute('aria-label')).toBe('Merken');
+    expect(star().getAttribute('aria-pressed')).toBe('false');
+    const outline = star().innerHTML;
+    star().click();
+    await tick();
+    expect(greatBuildings.isMarked(playerId(1001), zeus.entity_id)).toBe(true);
+    expect(star().getAttribute('aria-label')).toBe('Nicht mehr merken');
+    expect(star().getAttribute('aria-pressed')).toBe('true');
+    expect(star().classList.contains('on')).toBe(true);
+    expect(star().innerHTML).not.toBe(outline);
+    star().click();
+    await tick();
+    expect(greatBuildings.isMarked(playerId(1001), zeus.entity_id)).toBe(false);
+    expect(star().getAttribute('aria-label')).toBe('Merken');
+  });
+
+  it('shows a mark set elsewhere, and the star of the open building in the calculator header', async () => {
+    const { box, greatBuildings, list, open, advance } = setup();
+    advance(10_000);
+    open(1909);
+    await tick();
+    const header = () => box.root.querySelector('.gb-title')?.closest('p')?.querySelector('button.star') as HTMLElement;
+    expect(header().getAttribute('aria-label')).toBe('Merken');
+    header().click();
+    await tick();
+    expect(greatBuildings.isMarked(playerId(1001), 1909)).toBe(true);
+    expect(header().getAttribute('aria-label')).toBe('Nicht mehr merken');
+    header().click();
+    await tick();
+    expect(greatBuildings.isMarked(playerId(1001), 1909)).toBe(false);
+    header().click();
+    await tick();
+    // the same building in a list of its owner shows the mark too
+    advance(10_000);
+    list([{ ...hitZeus(), entity_id: 1909 }]);
+    await tick();
+    expect(stars(box)[0]?.getAttribute('aria-label')).toBe('Nicht mehr merken');
+  });
+
+  it('keeps the stored mark when the player opens the building again', async () => {
+    const { greatBuildings, list, open, advance } = setup();
+    list([hitZeus()]);
+    await tick();
+    await greatBuildings.mark(playerId(1001), zeus.entity_id, true);
+    advance(10_000);
+    open(1909);
+    await tick();
+    expect(greatBuildings.isMarked(playerId(1001), zeus.entity_id)).toBe(true);
+    expect((await greatBuildings.known()).find((b) => b.entityId === zeus.entity_id)?.marked).toBe(true);
   });
 });

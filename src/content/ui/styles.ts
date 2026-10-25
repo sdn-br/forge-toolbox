@@ -182,6 +182,10 @@ hr.snipe-sep { border: 0; border-top: 1px solid var(--line); margin: 6px 0; }
 .snipe-nav button.icon svg { display: block; width: 14px; height: 14px; }
 p.snipe-hidden { margin: 2px 0; }
 /* a column head that sorts on a click (snipe helper, investments); an icon head marks the direction by its colour */
+/* the star that marks a great building or a player */
+button.star { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 18px; height: 18px; vertical-align: middle; color: var(--ink); opacity: .7; }
+button.star:hover, button.star.on { color: var(--accent); opacity: 1; }
+button.star svg { display: block; width: 14px; height: 14px; }
 th.sortable { cursor: pointer; }
 th.sortable:hover { color: var(--accent); }
 th.sortable.desc::after { content: ' ▾'; color: var(--accent); }
@@ -194,22 +198,24 @@ th.sortable.icon-head.desc::after, th.sortable.icon-head.asc::after { content: n
 .snipe-table .c-progress { width: 112px; }
 .snipe-table .c-cost { width: 64px; }
 .snipe-table .c-profit { width: 112px; }
-.snipe-table .c-tier { width: 26px; }
+.snipe-table .c-tier, .snipe-table .c-mark { width: 26px; }
 .snipe-table td.snipe-name { overflow: hidden; text-overflow: ellipsis; }
-.snipe-table .snipe-tier { text-align: center; padding: 0; }
+.snipe-table :is(.snipe-tier, .snipe-mark) { text-align: center; padding: 0; }
+.snipe-table th.snipe-mark svg { display: block; width: 14px; height: 14px; margin: auto; }
 .snipe-table .snipe-tier svg { display: block; width: 14px; height: 14px; margin: auto; }
 td.snipe-tier.exact { color: #8fd08f; }
 td.snipe-tier.safe { color: #5a9a4a; }
 td.snipe-tier.possible { color: #f0a050; }
 /* investments: fixed columns so heads show whole; owner and building names give way */
 .inv-table { table-layout: fixed; }
+.inv-table .c-mark { width: 30px; }
 .inv-table .c-level, .inv-table .c-rank { width: 46px; }
 .inv-table .c-deposit { width: 80px; }
 .inv-table .c-profit { width: 64px; }
 .inv-table .c-status { width: 30px; }
 .inv-table .c-progress { width: 104px; }
 .inv-table td.inv-name { overflow: hidden; text-overflow: ellipsis; }
-.inv-table .icon-head, .inv-table .inv-status, .inv-table .snipe-tier { text-align: center; padding: 0; }
+.inv-table :is(.icon-head, .inv-status, .snipe-tier, .inv-mark) { text-align: center; padding: 0; }
 .inv-table :is(.icon-head, .inv-status, .snipe-tier) svg { display: block; width: 14px; height: 14px; margin: auto; }
 td.inv-status.safe { color: #8fd08f; }
 td.inv-status.unsafe { color: #f0a050; }

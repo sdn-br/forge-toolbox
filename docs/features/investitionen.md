@@ -42,7 +42,7 @@ Quelle: alle bekannten fremden LGs der Tabelle `greatBuildings`, ohne eigene Bet
 - **Filter:** Spieler (Teil des Namens), LG (Teil des Namens), nur gemerkte (LG gemerkt oder Eigentümer gemerkt), „nur mit Gewinn“ (Standard an, hieß bis 2026-10-25 „nur Treffer“, Nutzer: „Treffer“ versteht man nicht direkt), nur erreichbare (Standard an).
 - **Sortierung:** Standard nach Gewinn, der beste oben.
 - Der Reiter zeigt den letzten gesehenen Stand. Ob ein gemerktes LG inzwischen reif ist, weiß die Toolbox erst, wenn der Spieler es oder die LG-Liste des Eigentümers öffnet, denn sie fragt nichts im Hintergrund ab. Der Reiter sagt also, wo es sich lohnt vorbeizuschauen.
-- **Umsetzung (erster Schnitt, 2026-10-25):** ohne Merken (Spalte Merken und Filter „nur gemerkte“ folgen später). Die Erreichbarkeit kam danach, siehe [Erreichbarkeit](#erreichbarkeit).
+- **Umsetzung (erster Schnitt, 2026-10-25):** ohne Merken. Die Erreichbarkeit kam danach, siehe [Erreichbarkeit](#erreichbarkeit), das Merken ebenso, siehe [Merken](#merken).
   - Zeilen: alle LGs der Tabelle `greatBuildings` der aktuellen Welt ohne eigene LGs und ohne eigene Einzahlung. Gerechnet wird je LG mit derselben Funktion wie in der Snipehilfe (`snipeBuilding`), also auch mit der gespeicherten Rangliste, wenn sie zur Stufe passt. Ein Treffer braucht Gewinn ≥ 0 mit dem eigenen Arche-Bonus, wie in der Snipehilfe, der Faktor des LG-Rechners zählt nicht.
   - Spalten: Eigentümer (Link zu foestats), LG, Stufe, Fortschritt (wie bei „Meine Investitionen“: „x / y“ mit dünnem Balken, Rest im Tooltip), Platz, Einsatz, Gewinn (Zahl oder Spanne, ≈ bei geschätzter Belohnung), Sicherheit (Icon wie in der Snipehilfe, der Spaltenkopf ein Info-Icon mit dem Wort im Tooltip), Stand. Der Zeilentooltip nennt wie in der Snipehilfe den Platz im schlechtesten Fall und „eventuell gesperrt“.
   - Eigentümernamen: aus dem Player-Store, sonst aus der Rathausliste oder der zuletzt geöffneten LG-Liste des Spielers (nur im Speicher, gilt jetzt für beide Reiter), sonst die ID.
@@ -63,6 +63,12 @@ Quelle: alle bekannten fremden LGs der Tabelle `greatBuildings`, ohne eigene Bet
 - Gemerkte Spieler sind ein Zustand im Player-Store, nicht in den Investitionen. Andere Features dürfen ihn mitnutzen (Nutzer, 2026-10-24: Spieler zu merken kann über die Investitionen hinaus nützen).
 - Gemerkte LGs löscht die Aufbewahrung nach „Fremde LGs aufbewahren (Tage)“ nicht.
 - Icon: der vorhandene Stern aus `icons.ts`, Umriss für nicht gemerkt, gefüllt für gemerkt (Nutzer, 2026-10-25). Der Eigenanteil nutzt dafür jetzt einen Pfeil im Uhrzeigersinn, damit der Stern nur eine Bedeutung hat.
+- **Umsetzung (2026-10-25), gemerkte LGs:**
+  - Gespeichert als Feld `marked` an der Zeile der Tabelle `greatBuildings` (Nutzer, 2026-10-25), nicht indiziert, die Dexie-Version bleibt. Jeder Schreibweg behält es: das Öffnen eines LGs, jede LG-Liste (neuer oder älter als der Eintrag, auch mit neuer Stufe) und die Rathausliste. Steht ein gemerktes LG nicht mehr in der Rathausliste (gelevelt, Belohnung ausgezahlt), löscht sie es nicht wie sonst, sondern lässt es als gewöhnliches fremdes LG ohne eigene Beteiligung und ohne Rangliste stehen.
+  - Die Aufbewahrung löscht gemerkte LGs nie. Nimmt der Spieler den Stern weg, gilt sie wieder.
+  - Der Store hält die Sterne im Speicher (`isMarked`), gelesen beim Start, und ändert sie nur über `mark`. Das Setzen läuft hinter den offenen Schreibvorgängen, ein eben geöffnetes LG hat dann schon seine Zeile. Ein LG ohne Zeile (ein eigenes) nimmt keinen Stern. Danach meldet der Bus `greatBuilding.marked { owner, entityId, marked }`, und alle offenen Ansichten zeichnen neu.
+  - Der Stern steht in der Snipehilfe als letzte Spalte (nach der Sicherheit, die Box ist dafür 546 px breit statt 520 px), im Kopf des LG-Rechners neben dem Titel und als erste Spalte in beiden Reitern. Der Spaltenkopf ist der Stern, „Merken“ steht im Tooltip und im `aria-label`, ein Klick sortiert die gemerkten nach oben. Der Knopf zeigt „Merken“ oder „Nicht mehr merken“ im Tooltip und sagt seinen Zustand mit `aria-pressed`.
+  - Filter „nur gemerkte“ in „Mögliche Investitionen“: Standard aus, gemerkt mit den anderen Filtern, die Zählzeile zählt über die LGs, die er übrig lässt. Die Box ist jetzt 740 px breit (vorher 710 px), die Spalte Merken 30 px.
 
 ## Erreichbarkeit
 

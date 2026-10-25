@@ -81,6 +81,7 @@ describe('Investitionen box', () => {
     expect(rows()).toHaveLength(12);
     // nearest level up first: the Leuchtturm misses 17
     expect(cells(rows()[0])).toEqual([
+      '',
       'Eigentümer 2005',
       'Leuchtturm von Alexandria',
       '30',
@@ -150,7 +151,7 @@ describe('Investitionen box', () => {
     const { send, rows } = setup();
     send(contributions.contributions as Entry);
     await tick();
-    const status = rows()[0]?.querySelectorAll('td')[6];
+    const status = rows()[0]?.querySelectorAll('td')[7];
     expect(status?.getAttribute('aria-label')).toBe('unbekannt: ohne passende Rangliste nicht entscheidbar, LG öffnen');
     expect(status?.querySelector('svg')).not.toBeNull();
   });
@@ -170,10 +171,10 @@ describe('Investitionen box', () => {
     const deposit = heads().find((h) => h.textContent?.trim() === 'Einzahlung') as HTMLElement;
     deposit.click();
     await tick();
-    expect(cells(rows()[0])[4]).toBe('1.886');
+    expect(cells(rows()[0])[5]).toBe('1.886');
     (heads().find((h) => h.textContent?.trim() === 'Einzahlung') as HTMLElement).click();
     await tick();
-    expect(cells(rows()[0])[4]).toBe('1');
+    expect(cells(rows()[0])[5]).toBe('1');
   });
 
   it('opens from the menu and tells when no town hall list was seen', async () => {
@@ -279,5 +280,39 @@ describe('Investitionen: reading the known buildings', () => {
     await settings.set('gbCalc.factor', 80);
     expect(box.updates.length).toBe(drawn + 1);
     expect(reads).not.toHaveBeenCalled();
+  });
+});
+
+describe('Investitionen: Merken', () => {
+  it('starts each own row with a star that marks the building', async () => {
+    const { box, send, rows, heads } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    expect(heads()[0]?.getAttribute('aria-label')).toBe('Merken');
+    expect(heads()[0]?.querySelector('svg')).not.toBeNull();
+    const star = () => rows()[0]?.querySelector('td:first-child button.star') as HTMLElement;
+    expect(star().getAttribute('aria-label')).toBe('Merken');
+    star().click();
+    await tick();
+    expect(star().getAttribute('aria-pressed')).toBe('true');
+    expect(star().getAttribute('aria-label')).toBe('Nicht mehr merken');
+    expect(box.root.querySelectorAll('button.star[aria-pressed=true]')).toHaveLength(1);
+    star().click();
+    await tick();
+    expect(star().getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('sorts the marked rows first on a click on the star head', async () => {
+    const { send, rows, heads, cells } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    const last = rows()[rows().length - 1] as Element;
+    const name = cells(last)[2];
+    (last.querySelector('button.star') as HTMLElement).click();
+    await tick();
+    (heads()[0] as HTMLElement).click();
+    await tick();
+    expect(cells(rows()[0])[2]).toBe(name);
+    expect(rows()[0]?.querySelector('button.star')?.getAttribute('aria-pressed')).toBe('true');
   });
 });

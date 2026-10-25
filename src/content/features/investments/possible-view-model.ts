@@ -8,6 +8,7 @@ import { snipeNotes, snipeProfit, snipeProfitKey } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
 
 export type PossibleColumn =
+  | 'mark'
   | 'owner'
   | 'reach'
   | 'name'
@@ -26,6 +27,7 @@ export const DEFAULT_POSSIBLE_SORT: PossibleSort = { column: 'profit', desc: tru
 
 /** names read from the top; numbers, the best tier and the newest entry from the largest */
 export const POSSIBLE_DESC_FIRST: ReadonlySet<PossibleColumn> = new Set([
+  'mark',
   'level',
   'progress',
   'rank',
@@ -45,9 +47,17 @@ export interface PossibleFilter {
   onlyHits: boolean;
   /** only owners the player can pay into, and those the player store does not know */
   onlyReachable: boolean;
+  /** only buildings the player marked and buildings of marked owners */
+  onlyMarked: boolean;
 }
 
-export const DEFAULT_FILTER: PossibleFilter = { player: '', name: '', onlyHits: true, onlyReachable: true };
+export const DEFAULT_FILTER: PossibleFilter = {
+  player: '',
+  name: '',
+  onlyHits: true,
+  onlyReachable: true,
+  onlyMarked: false,
+};
 
 /** why the player can pay into the owner's buildings; `none` when not at all, `unknown` for an owner never seen */
 export type Reach = keyof Relations | 'none' | 'unknown';
@@ -58,6 +68,8 @@ const REACH_ORDER: Reach[] = ['neighbor', 'friend', 'guildMember', 'unknown', 'n
 export interface PossibleRowVm {
   owner: PlayerId;
   entityId: number;
+  /** the player put a star on the building */
+  marked: boolean;
   ownerName: string;
   ownerUrl: string;
   /** the first reason, `none` drawn muted */
@@ -100,6 +112,9 @@ export interface PossibleInput {
   playerName(id: PlayerId): string | undefined;
   /** undefined for an owner the player store does not know */
   relations(id: PlayerId): Relations | undefined;
+  isMarked(owner: PlayerId, entityId: number): boolean;
+  /** the player put a star on the owner */
+  ownerMarked(owner: PlayerId): boolean;
   playerUrl(id: PlayerId): string;
 }
 
@@ -112,7 +127,7 @@ const age = (ms: number) =>
 
 const TIER_ORDER: Record<SnipeTier, number> = { exact: 2, safe: 1, possible: 0 };
 
-type Named = PossibleInvestment & { ownerName: string; name: string; reasons: Reach[] };
+type Named = PossibleInvestment & { ownerName: string; name: string; reasons: Reach[]; marked: boolean };
 
 /** the relations that let the player pay in, in the fixed order */
 const reasonsOf = (relations: Relations | undefined): Reach[] => {
@@ -123,6 +138,7 @@ const reasonsOf = (relations: Relations | undefined): Reach[] => {
 
 /** undefined for a row without a hit in a column of the hit; such rows go last in either direction */
 const sortKey: Record<PossibleColumn, (r: Named) => number | string | undefined> = {
+  mark: (r) => Number(r.marked),
   owner: (r) => r.ownerName,
   reach: (r) => REACH_ORDER.indexOf(r.reasons[0] as Reach),
   name: (r) => r.name,
@@ -152,9 +168,11 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
       ownerName: input.playerName(c.building.owner) ?? String(c.building.owner),
       name: input.greatBuildingName(c.building.cityEntityId) ?? c.building.cityEntityId,
       reasons: reasonsOf(input.relations(c.building.owner)),
+      marked: input.isMarked(c.building.owner, c.building.entityId),
     }))
     .filter((r) => contains(r.ownerName, filter.player) && contains(r.name, filter.name))
-    .filter((r) => !filter.onlyReachable || r.reasons[0] !== 'none');
+    .filter((r) => !filter.onlyReachable || r.reasons[0] !== 'none')
+    .filter((r) => !filter.onlyMarked || r.marked || input.ownerMarked(r.building.owner));
   const hits = named.filter((r) => r.hit).length;
   const shown = filter.onlyHits ? named.filter((r) => r.hit) : named;
   sortRows(shown, sortKey[sort.column], sort.desc);
@@ -162,9 +180,10 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
     filter,
     sort,
     empty: input.candidates.length === 0,
-    rows: shown.map(({ building: b, hit, ownerName, name, reasons }) => ({
+    rows: shown.map(({ building: b, hit, ownerName, name, reasons, marked }) => ({
       owner: b.owner,
       entityId: b.entityId,
+      marked,
       ownerName,
       ownerUrl: input.playerUrl(b.owner),
       reach: reasons[0] as Reach,

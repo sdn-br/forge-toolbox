@@ -5,6 +5,7 @@ import { type FactorActions, factorBar } from '../../ui/factor-bar';
 import { fpBar, progressPercent } from '../../ui/fp-bar';
 import { levelBar } from '../../ui/level-bar';
 import { externalLink } from '../../ui/links';
+import { starButton } from '../../ui/star';
 import type {
   ActivityVm,
   CostCell,
@@ -19,6 +20,8 @@ import type {
 export interface GbCalculatorActions extends FactorActions {
   /** preview a later level; undefined goes back to the current construction */
   previewLevel(level: number | undefined): void;
+  /** puts the star on the shown building or takes it away */
+  toggleMark(marked: boolean): void;
 }
 
 const percent = (n: number) => `${formatNumber(n)} %`;
@@ -31,7 +34,7 @@ export const activityLine = (a: ActivityVm) =>
 
 export const owner = (name: string, url: string) => html`${t('gbCalc.ownerLabel')}: ${externalLink(name, url)}`;
 
-function header(h: GbHeader) {
+function header(h: GbHeader, actions: GbCalculatorActions) {
   const fp =
     h.availableFp === undefined
       ? t('gbCalc.availableUnknown')
@@ -39,6 +42,7 @@ function header(h: GbHeader) {
   const part = (n: number | undefined) => (n === undefined ? '?' : formatNumber(n));
   const split = t('gbCalc.fpSplit', { bar: part(h.fpBar), packages: part(h.fpPackages) });
   return html`<p><span class="gb-title">${t('gbCalc.heading', { name: h.name, level: h.level, next: h.next })}</span>
+    ${starButton(h.marked, () => actions.toggleMark(!h.marked))}
     <span class="muted">· ${t('gbCalc.unlocked', { max: h.maxLevel })}</span>
     <br />${owner(h.owner, h.ownerUrl)}${h.activity ? activityLine(h.activity) : ''}
     <br /><span class="muted"><span class="gb-fp" data-tip=${split}>${fp}</span> ·
@@ -196,7 +200,7 @@ export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorAction
     case 'noEntity':
       return html`<p>${owner(vm.owner, vm.ownerUrl)}</p><p class="warn">${t('gbCalc.noEntity')}</p>`;
     case 'past':
-      return html`${header(vm.header)}
+      return html`${header(vm.header, actions)}
         ${levelBar(vm.header.levels, (level) => actions.previewLevel(level))}
         <p class="warn">${t('gbCalc.pastLevel', { from: vm.level - 1, to: vm.level })}</p>
         <table class="gb-table">
@@ -208,14 +212,14 @@ export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorAction
           )}
         </table>`;
     case 'preview':
-      return html`${header(vm.header)}
+      return html`${header(vm.header, actions)}
         ${levelBar(vm.header.levels, (level) => actions.previewLevel(level))}
         ${factorBar(vm.factorButtons, vm.effectiveFactor, actions)}
         ${vm.levelUp ? html`<p class="gb-me">${levelUpLine(vm.levelUp)}</p>` : ''}
         ${previewPart(vm.preview)}`;
     case 'current': {
       const overlay = overlayText(vm);
-      return html`${header(vm.header)}
+      return html`${header(vm.header, actions)}
         ${progressLine(vm.invested, vm.required, vm.missing)}
         ${levelBar(vm.header.levels, (level) => actions.previewLevel(level))}
         ${factorBar(vm.factorButtons, vm.effectiveFactor, actions)}

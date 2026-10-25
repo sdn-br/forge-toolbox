@@ -4,6 +4,7 @@ import { Ingestion } from '../src/content/core/ingestion';
 import { createGbCalculatorFeature } from '../src/content/features/gb-calculator';
 import { investmentsFeature } from '../src/content/features/investments';
 import { registerGameHandlers } from '../src/content/game/handlers';
+import { playerId } from '../src/shared/ids';
 import friendAccept from './fixtures/friend-accept.json';
 import contributions from './fixtures/gb-contributions.json';
 import definitions from './fixtures/gb-definitions.json';
@@ -110,6 +111,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     await tick();
     await showPossible();
     expect([...box.root.querySelectorAll('thead th')].map((th) => th.getAttribute('aria-label'))).toEqual([
+      'Merken',
       'Eigentümer',
       'Erreichbar',
       'LG',
@@ -124,15 +126,15 @@ describe('Investitionen: Mögliche Investitionen', () => {
     // the best profit on top; place, stake and profit as in the snipe helper
     const mine = rows().map((r) => cells(r));
     const helper = rows(snipe).map((r) => cells(r));
-    expect(mine.map((c) => c[2])).toEqual(['Orakel von Delphi', 'Zeusstatue']);
+    expect(mine.map((c) => c[3])).toEqual(['Orakel von Delphi', 'Zeusstatue']);
     for (const c of mine) {
-      const same = helper.find((h) => h[1] === c[2]);
-      expect(c.slice(5, 8)).toEqual(same?.slice(4, 7));
+      const same = helper.find((h) => h[1] === c[3]);
+      expect(c.slice(6, 9)).toEqual(same?.slice(4, 7));
     }
-    expect(mine[0]?.[0]).toBe('Eigentümer 1001');
+    expect(mine[0]?.[1]).toBe('Eigentümer 1001');
     // the owners are known only from their lists, not to the player store
-    expect(mine[0]?.[1]).toBe('unbekannt');
-    expect(mine[0]?.[9]).toBe('vor 1 Min.');
+    expect(mine[0]?.[2]).toBe('unbekannt');
+    expect(mine[0]?.[10]).toBe('vor 1 Min.');
     const tier = rows()[0]?.querySelector('td.snipe-tier');
     expect(tier?.getAttribute('aria-label')).toContain('sicher');
     expect(tier?.querySelector('svg')).not.toBeNull();
@@ -154,12 +156,12 @@ describe('Investitionen: Mögliche Investitionen', () => {
     only.dispatchEvent(new Event('change'));
     await tick();
     expect(rows()).toHaveLength(3);
-    expect(cells(rows()[2]).slice(2, 9)).toEqual(['Leuchtturm von Alexandria', '9', '10 / 550', '', '', '', '']);
+    expect(cells(rows()[2]).slice(3, 10)).toEqual(['Leuchtturm von Alexandria', '9', '10 / 550', '', '', '', '']);
     const name = input('LG');
     name.value = 'zeus';
     name.dispatchEvent(new Event('input'));
     await tick();
-    expect(rows().map((r) => cells(r)[2])).toEqual(['Zeusstatue']);
+    expect(rows().map((r) => cells(r)[3])).toEqual(['Zeusstatue']);
     expect(box.text).toContain('1 mit Gewinn von 1 LGs');
     expect(ui.pref('investments.tab')).toBe('possible');
     expect(JSON.parse(ui.pref('investments.filter') ?? '{}')).toEqual({
@@ -167,6 +169,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
       name: 'zeus',
       onlyHits: false,
       onlyReachable: true,
+      onlyMarked: false,
     });
   });
 
@@ -205,7 +208,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     vi.setSystemTime(Date.now() + 10_000);
     open(1909);
     await tick();
-    expect(cells(rows()[0]).slice(2, 6)).toEqual(['Aachener Dom', '75', '251 / 3.062', 'P1']);
+    expect(cells(rows()[0]).slice(3, 7)).toEqual(['Aachener Dom', '75', '251 / 3.062', 'P1']);
     expect(rows()[0]?.querySelector('td.snipe-tier')?.className).toContain('exact');
   });
 
@@ -217,10 +220,10 @@ describe('Investitionen: Mögliche Investitionen', () => {
     const head = (label: string) => box.root.querySelector(`thead th[aria-label="${label}"]`) as HTMLElement;
     head('LG').click();
     await tick();
-    expect(rows().map((r) => cells(r)[2])).toEqual(['Orakel von Delphi', 'Zeusstatue']);
+    expect(rows().map((r) => cells(r)[3])).toEqual(['Orakel von Delphi', 'Zeusstatue']);
     head('LG').click();
     await tick();
-    expect(rows().map((r) => cells(r)[2])).toEqual(['Zeusstatue', 'Orakel von Delphi']);
+    expect(rows().map((r) => cells(r)[3])).toEqual(['Zeusstatue', 'Orakel von Delphi']);
     expect(head('LG').getAttribute('aria-sort')).toBe('descending');
   });
 
@@ -260,7 +263,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     await tick();
     vi.setSystemTime(Date.now() + 3 * 60 * MINUTE + 40 * MINUTE);
     await showPossible();
-    expect(cells(rows()[0])[9]).toBe('vor 3 Std.');
+    expect(cells(rows()[0])[10]).toBe('vor 3 Std.');
     expect(box.text).not.toContain('40 Min.');
   });
 
@@ -295,7 +298,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     await tick();
     await showPossible();
     // a reason is its icon with the word in the tooltip; out of reach stays a word
-    const reach = (r: Element) => r.querySelectorAll('td')[1];
+    const reach = (r: Element) => r.querySelectorAll('td')[2];
     expect(rows().map((r) => reach(r)?.getAttribute('data-tip'))).toEqual(['Freund', 'Freund']);
     expect(reach(rows()[0] as Element)?.querySelector('svg')).not.toBeNull();
     send({ requestClass: 'FriendService', requestMethod: 'deleteFriend', requestData: null, responseData: 1001 });
@@ -308,7 +311,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     reachable.checked = false;
     reachable.dispatchEvent(new Event('change'));
     await tick();
-    expect(rows().map((r) => [cells(r)[1], r.className])).toEqual([
+    expect(rows().map((r) => [cells(r)[2], r.className])).toEqual([
       ['nein', 'muted'],
       ['nein', 'muted'],
     ]);
@@ -320,5 +323,75 @@ describe('Investitionen: Mögliche Investitionen', () => {
       ['Freund', ''],
       ['Freund', ''],
     ]);
+  });
+});
+
+describe('Investitionen: Merken', () => {
+  const star = (r: Element | undefined) => r?.querySelector('td:first-child button.star') as HTMLElement;
+
+  it('starts every row with a star and the column head is the star, the word in tooltip and label', async () => {
+    const { box, list, rows, showPossible } = setup();
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    await showPossible();
+    const head = box.root.querySelector('thead th') as HTMLElement;
+    expect(head.getAttribute('aria-label')).toBe('Merken');
+    expect(head.getAttribute('data-tip')).toContain('Merken');
+    expect(head.querySelector('svg')).not.toBeNull();
+    expect(rows().map((r) => star(r)?.getAttribute('aria-label'))).toEqual(['Merken', 'Merken']);
+  });
+
+  it('marks a building on a click, redraws it filled and keeps it in the other views', async () => {
+    const { greatBuildings, snipe, list, rows, showPossible } = setup();
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    await showPossible();
+    star(rows()[1])?.click();
+    await tick();
+    expect(greatBuildings.isMarked(playerId(1001), zeus.entity_id)).toBe(true);
+    expect(rows().map((r) => star(r)?.getAttribute('aria-pressed'))).toEqual(['false', 'true']);
+    // the snipe helper shows the same mark
+    const marked = [...snipe.root.querySelectorAll('.snipe-table td.snipe-mark button')].map((b) =>
+      b.getAttribute('aria-pressed'),
+    );
+    expect(marked.sort()).toEqual(['false', 'true']);
+    star(rows()[1])?.click();
+    await tick();
+    expect(rows().map((r) => star(r)?.getAttribute('aria-pressed'))).toEqual(['false', 'false']);
+  });
+
+  it('shows only the marked buildings with "nur gemerkte", which is off by default and remembered', async () => {
+    const { box, list, rows, cells, showPossible, ui, greatBuildings } = setup();
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    await greatBuildings.mark(playerId(1001), zeus.entity_id, true);
+    await showPossible();
+    const marked = [...box.root.querySelectorAll('input[type=checkbox]')].find(
+      (c) => c.parentElement?.textContent === 'nur gemerkte',
+    ) as HTMLInputElement;
+    expect(marked.checked).toBe(false);
+    expect(rows()).toHaveLength(2);
+    marked.checked = true;
+    marked.dispatchEvent(new Event('change'));
+    await tick();
+    expect(rows().map((r) => cells(r)[3])).toEqual(['Zeusstatue']);
+    expect(box.text).toContain('1 mit Gewinn von 1 LGs');
+    expect(JSON.parse(ui.pref('investments.filter') ?? '{}')).toMatchObject({ onlyMarked: true });
+  });
+
+  it('opens with the remembered "nur gemerkte"', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const env = featureContext({ now: () => Date.now() });
+    env.ctx.ui.savePref('investments.tab', 'possible');
+    env.ctx.ui.savePref('investments.filter', JSON.stringify({ onlyMarked: true }));
+    investmentsFeature.setup(env.ctx);
+    drain = () => env.ctx.greatBuildings.known();
+    env.menu('investments');
+    await tick();
+    const root = env.boxes.get('investments')?.root as HTMLElement;
+    const marked = [...root.querySelectorAll('input[type=checkbox]')].find(
+      (c) => c.parentElement?.textContent === 'nur gemerkte',
+    ) as HTMLInputElement;
+    expect(marked.checked).toBe(true);
   });
 });

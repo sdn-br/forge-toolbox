@@ -50,6 +50,8 @@ export interface SnipeRowVm {
   /** the rewards are estimated */
   estimate: boolean;
   tier: SnipeTier;
+  /** the player put a star on the building */
+  marked: boolean;
   /** lines of the row tooltip */
   notes: string[];
 }
@@ -81,6 +83,7 @@ export interface SnipeInput {
   greatBuildingName(def: BuildingDefId): string | undefined;
   playerName(id: PlayerId): string | undefined;
   playerUrl(id: PlayerId): string;
+  isMarked(owner: PlayerId, entityId: number): boolean;
   /** what foestats knows about the owner of the list; missing while foestats is off */
   foestats?: FoestatsRecord;
   today: string;
@@ -126,6 +129,7 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     profit: snipeProfit(h),
     estimate: h.estimate,
     tier: h.tier,
+    marked: input.isMarked(h.owner, h.entityId),
     notes: snipeNotes(h),
   }));
   const counts = [

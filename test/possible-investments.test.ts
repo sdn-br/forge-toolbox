@@ -37,7 +37,12 @@ const names: Record<number, string> = { 1001: 'Anna', 1002: 'Bert', 1003: 'Carla
 const NONE: Relations = { neighbor: false, guildMember: false, friend: false };
 /** Anna a neighbour, Bert and Carla friends; others unknown */
 let relations: Record<number, Relations> = {};
+/** marked buildings as "owner:entity", marked owners by id */
+let markedBuildings = new Set<string>();
+let markedOwners = new Set<number>();
 beforeEach(() => {
+  markedBuildings = new Set();
+  markedOwners = new Set();
   relations = { 1001: { ...NONE, neighbor: true }, 1002: { ...NONE, friend: true }, 1003: { ...NONE, friend: true } };
 });
 const defNames: Record<string, string> = { [DEF_ID]: 'Kathedrale von Aachen', [OTHER_DEF]: 'Leuchtturm' };
@@ -54,6 +59,8 @@ const vm = (buildings: KnownGreatBuilding[], filter: Partial<PossibleFilter> = {
     greatBuildingName: (d: BuildingDefId) => defNames[d],
     playerName: (id: PlayerId) => names[id],
     relations: (id: PlayerId) => relations[id],
+    isMarked: (owner: PlayerId, entityId: number) => markedBuildings.has(`${owner}:${entityId}`),
+    ownerMarked: (id: PlayerId) => markedOwners.has(id),
     playerUrl: (id: PlayerId) => `https://foestats.example/${id}`,
   });
 
@@ -190,5 +197,46 @@ describe('possibleViewModel', () => {
     expect(sort).toEqual({ column: 'reach', desc: false });
     const v = vm([safe, possible, none], { onlyHits: false, onlyReachable: false }, sort);
     expect(v.rows.map((r) => r.reach)).toEqual(['friend', 'unknown', 'none']);
+  });
+});
+
+describe('marks', () => {
+  it('carries the star of each building and sorts the marked ones first', () => {
+    markedBuildings.add('1002:2');
+    const v = vm([safe, possible], { onlyHits: false, onlyReachable: false });
+    expect(v.rows.map((r) => [r.entityId, r.marked])).toEqual([
+      [1, false],
+      [2, true],
+    ]);
+    const sort = nextSort(DEFAULT_POSSIBLE_SORT, 'mark', POSSIBLE_DESC_FIRST);
+    expect(sort).toEqual({ column: 'mark', desc: true });
+    expect(vm([safe, possible], { onlyHits: false, onlyReachable: false }, sort).rows.map((r) => r.entityId)).toEqual([
+      2, 1,
+    ]);
+  });
+
+  it('shows every row by default and only the marked ones with "nur gemerkte"', () => {
+    expect(DEFAULT_FILTER.onlyMarked).toBe(false);
+    markedBuildings.add('1001:1');
+    const all = [safe, possible, none];
+    expect(vm(all, { onlyHits: false }).rows).toHaveLength(3);
+    expect(vm(all, { onlyHits: false, onlyMarked: true }).rows.map((r) => r.entityId)).toEqual([1]);
+  });
+
+  it('lets a marked owner pass with all of its buildings', () => {
+    markedOwners.add(1003);
+    const all = [safe, none, unknown];
+    expect(vm(all, { onlyHits: false, onlyMarked: true }).rows.map((r) => r.entityId)).toEqual([3, 4]);
+  });
+
+  it('passes a building that is marked and has a marked owner once', () => {
+    markedBuildings.add('1003:3');
+    markedOwners.add(1003);
+    expect(vm([none], { onlyHits: false, onlyMarked: true }).rows).toHaveLength(1);
+  });
+
+  it('counts among the buildings the marks filter leaves', () => {
+    markedBuildings.add('1001:1');
+    expect(vm([safe, possible, none], { onlyMarked: true }).count).toBe('1 mit Gewinn von 1 LGs');
   });
 });

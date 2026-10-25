@@ -34,6 +34,8 @@ export interface GbHeader {
   arcBonus: number;
   /** the level selector: live or a preview of a later level */
   levels: LevelChoice;
+  /** the player put a star on the building */
+  marked: boolean;
 }
 
 export interface CostCell {
@@ -174,6 +176,7 @@ export interface GbCalculatorInput {
   playerName(id: Construction['owner']): string | undefined;
   /** a player's page at foestats */
   playerUrl(id: PlayerId): string;
+  isMarked(owner: PlayerId, entityId: number): boolean;
   /** Forge points of the bar; undefined while the resources are not known */
   fpBar?: number;
   /** Forge points in the packages of the inventory; undefined while the inventory is not known */
@@ -344,6 +347,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     fpPackages: input.fpPackages,
     arcBonus: input.arcBonus,
     levels,
+    marked: input.isMarked(c.owner, c.entityId),
   };
   const arcButton = input.arcButton ? input.arcBonus : undefined;
   const effectiveFactor = effective(input.factor, arcButton);

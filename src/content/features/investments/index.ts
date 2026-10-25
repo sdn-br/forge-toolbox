@@ -42,6 +42,7 @@ function savedFilter(saved: string | undefined): PossibleFilter {
       name: typeof f.name === 'string' ? f.name : DEFAULT_FILTER.name,
       onlyHits: typeof f.onlyHits === 'boolean' ? f.onlyHits : DEFAULT_FILTER.onlyHits,
       onlyReachable: typeof f.onlyReachable === 'boolean' ? f.onlyReachable : DEFAULT_FILTER.onlyReachable,
+      onlyMarked: typeof f.onlyMarked === 'boolean' ? f.onlyMarked : DEFAULT_FILTER.onlyMarked,
     };
   } catch {
     return DEFAULT_FILTER;
@@ -76,11 +77,16 @@ export const investmentsFeature: Feature = {
       tab = next;
       ctx.ui.savePref(TAB, next);
     };
+    const mark = (owner: PlayerId, entityId: number, marked: boolean) =>
+      ctx.greatBuildings
+        .mark(owner, entityId, marked)
+        .catch((error) => logError('marking a great building failed', error));
     const actions: InvestmentsActions = {
       tab: (next) => {
         showTab(next);
         box.update();
       },
+      mark,
       sort: (column) => {
         sort = nextSort(sort, column, INVESTMENT_DESC_FIRST);
         box.update();
@@ -88,6 +94,7 @@ export const investmentsFeature: Feature = {
     };
     const possibleActions: PossibleActions = {
       tab: actions.tab,
+      mark,
       sort: (column) => {
         possibleSort = nextSort(possibleSort, column, POSSIBLE_DESC_FIRST);
         box.update();
@@ -115,8 +122,8 @@ export const investmentsFeature: Feature = {
       id: 'investments',
       settings: 'investments.title',
       title: () => t('investments.title'),
-      // ten columns on the possible investments, their heads whole
-      width: 710,
+      // eleven columns on the possible investments, their heads whole
+      width: 740,
       // the lists grow with every building invested in or seen; the height is the viewer's
       resizable: true,
       // the ages are drawn as of now, so each redraw shows them current
@@ -131,6 +138,10 @@ export const investmentsFeature: Feature = {
                 greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
                 playerName,
                 relations: (id) => ctx.players.get(id)?.relations,
+                isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
+                // debt: players cannot be marked yet. ceiling: the filter never lets a marked owner pass.
+                // upgrade: the player store keeps the mark (package 2 of the marks).
+                ownerMarked: () => false,
                 playerUrl,
               }),
               possibleActions,
@@ -144,6 +155,7 @@ export const investmentsFeature: Feature = {
                 greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
                 playerName,
                 playerUrl,
+                isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
               }),
               actions,
             ),
@@ -196,6 +208,8 @@ export const investmentsFeature: Feature = {
       if (!own) reload();
     });
     ctx.bus.on('greatBuilding.changed', reload);
+    // a star put on or taken from a building shows at once, the data stay as read
+    ctx.bus.on('greatBuilding.marked', () => box.update());
     // a list of another player brings the state of its buildings
     ctx.bus.on('greatBuildings.listed', ({ owner, ownerName }) => {
       if (ownerName !== undefined) ownerNames.set(owner, ownerName);

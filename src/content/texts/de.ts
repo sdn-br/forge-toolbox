@@ -156,6 +156,9 @@ export const de = {
   'notes.card': 'Notiz',
   'notes.add': 'Notiz hinzufügen',
   'gb.age': 'Stand: vor {duration}',
+  'mark.add': 'Merken',
+  'mark.remove': 'Nicht mehr merken',
+  'mark.col': 'Merken',
   'gb.col.name': 'LG',
   'gb.col.level': 'Stufe',
   'gb.col.progress': 'Fortschritt',
@@ -199,6 +202,7 @@ export const de = {
   'investments.possible.name': 'LG',
   'investments.possible.onlyHits': 'nur mit Gewinn',
   'investments.possible.onlyReachable': 'nur erreichbare',
+  'investments.possible.onlyMarked': 'nur gemerkte',
   'investments.possible.none':
     'Noch keine fremden LGs bekannt. Der Reiter füllt sich, sobald LG-Listen anderer Spieler geöffnet werden.',
   'investments.possible.noRow': 'Kein LG passt zum Filter.',

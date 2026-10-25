@@ -9,17 +9,28 @@ import { type Sort, sortRows } from '../../ui/sortable';
 export type InvestmentsTab = 'mine' | 'possible';
 export const TABS: InvestmentsTab[] = ['mine', 'possible'];
 
-export type InvestmentColumn = 'owner' | 'name' | 'level' | 'rank' | 'deposit' | 'profit' | 'status' | 'progress';
+export type InvestmentColumn =
+  | 'mark'
+  | 'owner'
+  | 'name'
+  | 'level'
+  | 'rank'
+  | 'deposit'
+  | 'profit'
+  | 'status'
+  | 'progress';
 
 /** without a sort the rows keep the default order (growth first, then the rest to the level up ascending) */
 export type InvestmentSort = Sort<InvestmentColumn>;
 
 /** names, places, status and progress (nearest level up) read from the top, deposit, profit and level from the largest */
-export const INVESTMENT_DESC_FIRST: ReadonlySet<InvestmentColumn> = new Set(['deposit', 'profit', 'level']);
+export const INVESTMENT_DESC_FIRST: ReadonlySet<InvestmentColumn> = new Set(['mark', 'deposit', 'profit', 'level']);
 
 export interface InvestmentRowVm {
   owner: PlayerId;
   entityId: number;
+  /** the player put a star on the building */
+  marked: boolean;
   ownerName: string;
   ownerUrl: string;
   name: string;
@@ -56,13 +67,15 @@ export interface InvestmentsInput {
   greatBuildingName(def: BuildingDefId): string | undefined;
   playerName(id: PlayerId): string | undefined;
   playerUrl(id: PlayerId): string;
+  isMarked(owner: PlayerId, entityId: number): boolean;
 }
 
 const STATUS_ORDER: Record<InvestmentStatus, number> = { safe: 0, unsafe: 1, unknown: 2 };
 
-type Named = Investment & { ownerName: string; name: string };
+type Named = Investment & { ownerName: string; name: string; marked: boolean };
 
 const sortKey: Record<InvestmentColumn, (r: Named) => number | string> = {
+  mark: (r) => Number(r.marked),
   owner: (r) => r.ownerName,
   name: (r) => r.name,
   level: (r) => r.level,
@@ -79,6 +92,7 @@ export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
     ...r,
     ownerName: input.playerName(r.owner) ?? String(r.owner),
     name: input.greatBuildingName(r.cityEntityId) ?? r.cityEntityId,
+    marked: input.isMarked(r.owner, r.entityId),
   }));
   const { sort } = input;
   // stable: equal keys keep the default order
@@ -90,6 +104,7 @@ export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
     rows: named.map((r) => ({
       owner: r.owner,
       entityId: r.entityId,
+      marked: r.marked,
       ownerName: r.ownerName,
       ownerUrl: input.playerUrl(r.owner),
       name: r.name,

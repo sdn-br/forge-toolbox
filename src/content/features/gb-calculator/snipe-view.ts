@@ -1,8 +1,10 @@
 import { html, type TemplateResult } from 'lit-html';
+import type { PlayerId } from '../../../shared/ids';
 import { formatAge, formatNumber, t } from '../../core/texts';
 import { headerIcons } from '../../ui/icons';
 import { profitCell, tierCell } from '../../ui/snipe-hit';
 import { type SortColumn, sortHead } from '../../ui/sortable';
+import { starButton } from '../../ui/star';
 import { type SnipeColumn, type SnipeRowVm, type SnipeVm, VISIBLE_ROWS } from './snipe-view-model';
 import { activityLine, owner } from './view';
 
@@ -12,6 +14,8 @@ export interface SnipeActions {
   scroll(rows: number): void;
   /** folds the section in or out */
   toggle(): void;
+  /** puts the star on a building or takes it away */
+  mark(owner: PlayerId, entityId: number, marked: boolean): void;
 }
 
 /** Columns in table order; heads show the whole word, the widths are in the styles. */
@@ -25,7 +29,7 @@ const columns: SortColumn<SnipeColumn>[] = [
   { column: 'profit', label: 'gb.col.profit', num: true },
 ];
 
-const row = (r: SnipeRowVm) => html`<tr data-tip=${r.notes.join('\n')}>
+const row = (r: SnipeRowVm, actions: SnipeActions) => html`<tr data-tip=${r.notes.join('\n')}>
   <td class="num">${r.order}</td>
   <td class="snipe-name">${r.name}</td>
   <td class="num">${r.level}</td>
@@ -34,6 +38,7 @@ const row = (r: SnipeRowVm) => html`<tr data-tip=${r.notes.join('\n')}>
   <td class="num" data-tip=${t('snipe.costHint')}>${formatNumber(r.cost)}</td>
   ${profitCell(r.profit, r.estimate)}
   ${tierCell(r.tier)}
+  <td class="snipe-mark">${starButton(r.marked, () => actions.mark(r.owner, r.entityId, !r.marked))}</td>
 </tr>`;
 
 /** one of the two scroll buttons; greyed at its end like the factor status buttons */
@@ -63,10 +68,11 @@ const table = (vm: Extract<SnipeVm, { kind: 'list' }>, actions: SnipeActions) =>
   return html`<div class="snipe-scroll" @wheel=${wheel}>
       <table class="gb-table snipe-table">
         <colgroup><col class="c-order" /><col class="c-name" /><col class="c-level" /><col class="c-progress" /><col class="c-rank" />
-          <col class="c-cost" /><col class="c-profit" /><col class="c-tier" /></colgroup>
+          <col class="c-cost" /><col class="c-profit" /><col class="c-tier" /><col class="c-mark" /></colgroup>
         <thead><tr>${columns.map((c) => sortHead(c, vm.sort, (column) => actions.sort(column)))}<th class="snipe-tier"
-          aria-label=${t('gb.col.tier')} data-tip=${t('gb.col.tier')}>${headerIcons.info}</th></tr></thead>
-        <tbody>${vm.rows.slice(top, top + VISIBLE_ROWS).map(row)}</tbody>
+          aria-label=${t('gb.col.tier')} data-tip=${t('gb.col.tier')}>${headerIcons.info}</th><th class="snipe-mark"
+          aria-label=${t('mark.col')} data-tip=${t('mark.col')}>${headerIcons.star}</th></tr></thead>
+        <tbody>${vm.rows.slice(top, top + VISIBLE_ROWS).map((r) => row(r, actions))}</tbody>
       </table>
       ${
         scrolls

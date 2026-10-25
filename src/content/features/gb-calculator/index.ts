@@ -130,6 +130,10 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
 
       const save = (key: string, value: boolean | number) =>
         ctx.settings.set(key, value).catch((error) => logError('saving settings failed', error));
+      const markBuilding = (owner: PlayerId, entityId: number, marked: boolean) =>
+        ctx.greatBuildings
+          .mark(owner, entityId, marked)
+          .catch((error) => logError('marking a great building failed', error));
       const actions: GbCalculatorActions = {
         setFactor: (value) => {
           save(CALCULATOR_FACTOR.value, value);
@@ -139,6 +143,9 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         previewLevel: (level) => {
           preview = level;
           refresh();
+        },
+        toggleMark: (marked) => {
+          if (shown) markBuilding(shown.owner, shown.entityId, marked);
         },
       };
 
@@ -156,13 +163,15 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           expanded = !expanded;
           box.update();
         },
+        mark: markBuilding,
       };
 
       const box = ctx.createBox({
         id: 'gbCalculator',
         settings: 'gbCalc.title',
         title: () => t('gbCalc.title'),
-        width: 520,
+        // the star column of the snipe table takes 26 px more
+        width: 546,
         // 6 table rows, the section and the calculator fit without the body scrolling on a normal window
         maxHeight: 0.92,
         render: () => html`${snipeView(snipeVm, snipeActions, expanded)}${gbCalculatorView(vm, actions)}`,
@@ -174,6 +183,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
           playerName: (id) => ctx.players.get(id)?.name,
           playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
+          isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
           fpBar: ctx.resources.known ? ctx.resources.amount(FP) : undefined,
           fpPackages: ctx.inventory.knowsPackages ? ctx.inventory.forgePointPackages() : undefined,
           arcBonus: arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses()),
@@ -199,6 +209,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
           playerName: (id) => ctx.players.get(id)?.name,
           playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
+          isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
           foestats: list && ctx.settings.get(FOESTATS_SETTING.key) ? ctx.foestats.get(list.owner) : undefined,
           today: foestatsDay(Date.now()),
           sort,
@@ -279,6 +290,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         refresh();
         maybeTone(reason === 'leveled');
       });
+      ctx.bus.on('greatBuilding.marked', refresh);
       ctx.bus.on('resources.changed', refresh);
       ctx.bus.on('inventory.changed', refresh);
       ctx.bus.on('city.ownChanged', refresh);

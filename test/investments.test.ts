@@ -174,6 +174,7 @@ describe('totals line', () => {
       greatBuildingName: () => undefined,
       playerName: () => undefined,
       playerUrl: () => '',
+      isMarked: () => false,
     }).totals;
 
   it('shows the safe profit green only above 0', () => {
