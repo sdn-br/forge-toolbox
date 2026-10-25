@@ -261,6 +261,17 @@ describe('Snipehilfe: stacked box', () => {
     expect(tones()).toBe(1);
   });
 
+  it('names the building in the tooltip of its cut name, above the notes of the row', async () => {
+    const { box, list, rows } = setup();
+    list([hitZeus()]);
+    await tick();
+    const row = rows()[0] as HTMLElement;
+    const tip = (row.querySelector('td.snipe-name') as HTMLElement).dataset.tip ?? '';
+    expect(tip.split('\n')[0]).toBe('Zeusstatue');
+    expect(tip).toContain(row.dataset.tip ?? '');
+    expect(box.root.querySelectorAll('td.snipe-name[data-tip]')).toHaveLength(1);
+  });
+
   it('marks a building without a deposit as maybe locked and shows the tier with a tooltip', async () => {
     const { box, list, rows } = setup();
     list([hitZeus()]);

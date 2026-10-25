@@ -73,7 +73,7 @@ const row = (
   ${markCell(r, actions.mark)}
   <td class="inv-name" data-tip=${r.ownerName}><span class="inv-owner">${externalLink(r.ownerName, r.ownerUrl)}${ownerStar(r.ownerMarked)}${pickButton(r.ownerName, picks(playerField, r.ownerName), actions)}</span></td>
   <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r)}</td>
-  <td class="inv-name" data-tip=${r.name}>${r.name}</td>
+  <td class="inv-name" data-tip=${[r.name, ...r.notes].join('\n')}>${r.name}</td>
   <td class="num">${r.level}</td>
   ${progressCell(r)}
   <td class=${r.share.stale ? 'num muted' : 'num'} data-tip=${r.share.tip}>${r.share.text}</td>

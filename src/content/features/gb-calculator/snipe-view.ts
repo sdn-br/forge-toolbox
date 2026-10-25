@@ -35,7 +35,7 @@ const columns: SortColumn<SnipeColumn>[] = [
 
 const row = (r: SnipeRowVm, actions: SnipeActions) => html`<tr data-tip=${r.notes.join('\n')}>
   <td class="num">${r.order}</td>
-  <td class="snipe-name">${r.name}</td>
+  <td class="snipe-name" data-tip=${[r.name, ...r.notes].join('\n')}>${r.name}</td>
   <td class="num">${r.level}</td>
   <td class="num" data-tip=${t('snipe.progressHint', { percent: r.percent })}>${formatNumber(r.invested)} / ${formatNumber(r.required)}</td>
   <td class="num">${t('gb.rank', { rank: r.rank })}</td>
