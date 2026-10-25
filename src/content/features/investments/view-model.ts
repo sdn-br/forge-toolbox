@@ -2,9 +2,9 @@ import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import { formatDuration, formatNumber, t } from '../../core/texts';
 import type { Investment, InvestmentStatus, Investments } from '../../domain/investments';
 
-/** the tabs of the box; "Mögliche Investitionen" joins later */
-export type InvestmentsTab = 'mine';
-export const TABS: InvestmentsTab[] = ['mine'];
+/** the tabs of the box: the own investments and the buildings of others worth a place */
+export type InvestmentsTab = 'mine' | 'possible';
+export const TABS: InvestmentsTab[] = ['mine', 'possible'];
 
 export type InvestmentColumn = 'owner' | 'name' | 'level' | 'rank' | 'deposit' | 'profit' | 'status' | 'progress';
 

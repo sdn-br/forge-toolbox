@@ -1,7 +1,8 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
-import { formatNumber, t } from '../../core/texts';
-import type { SnipeHit, SnipeList, SnipePlace, SnipeTier } from '../../domain/gb-snipe';
+import { t } from '../../core/texts';
+import type { SnipeHit, SnipeList, SnipeTier } from '../../domain/gb-snipe';
 import type { FoestatsRecord } from '../../stores/foestats';
+import { signed, snipeNotes, snipeProfit, snipeProfitKey } from '../../ui/snipe-hit';
 import { type ActivityVm, activityVm } from './view-model';
 
 export type SnipeColumn = 'order' | 'name' | 'level' | 'progress' | 'rank' | 'cost' | 'profit';
@@ -100,15 +101,6 @@ const activityOf = (record: FoestatsRecord | undefined, today: string) => {
   return activity ? { activity } : {};
 };
 
-const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatNumber(Math.abs(n))}`;
-
-function profitText(h: SnipeHit): string {
-  return h.profitLow === h.profitHigh ? signed(h.profitHigh) : `${signed(h.profitLow)} … ${signed(h.profitHigh)}`;
-}
-
-const worstNote = (w: SnipePlace) =>
-  t('snipe.worst', { rank: w.rank, cost: formatNumber(w.cost), profit: signed(w.profit) });
-
 const sortKey: Record<SnipeColumn, (r: SnipeHit, name: string, order: number) => number | string> = {
   order: (_, __, order) => order,
   name: (_, name) => name,
@@ -116,7 +108,7 @@ const sortKey: Record<SnipeColumn, (r: SnipeHit, name: string, order: number) =>
   progress: (r) => (r.required > 0 ? r.invested / r.required : 0),
   rank: (r) => r.place.rank,
   cost: (r) => r.place.cost,
-  profit: (r) => r.profitHigh * 1e9 + r.profitLow,
+  profit: snipeProfitKey,
 };
 
 export function snipeViewModel(input: SnipeInput): SnipeVm {
@@ -143,21 +135,17 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     percent: h.required > 0 ? Math.floor((h.invested / h.required) * 100) : 0,
     rank: h.place.rank,
     cost: h.place.cost,
-    profit: profitText(h),
+    profit: snipeProfit(h),
     estimate: h.estimate,
     tier: h.tier,
-    notes: [h.worst && worstNote(h.worst), h.maybeLocked && t('snipe.maybeLocked')].filter(
-      (n): n is string => typeof n === 'string',
-    ),
+    notes: snipeNotes(h),
   }));
   const counts = [
     result.none > 0 && t('snipe.countNone', { count: result.none }),
     result.ownContribution > 0 && t('snipe.countOwn', { count: result.ownContribution }),
     result.unknownReward > 0 && t('snipe.countUnknown', { count: result.unknownReward }),
   ].filter((c): c is string => typeof c === 'string');
-  const best = [...result.hits].sort(
-    (a, b) => (sortKey.profit(b, '', 0) as number) - (sortKey.profit(a, '', 0) as number),
-  )[0];
+  const best = [...result.hits].sort((a, b) => snipeProfitKey(b) - snipeProfitKey(a))[0];
   const top = clampScroll(input.scroll ?? 0, rows.length);
   return {
     kind: 'list',

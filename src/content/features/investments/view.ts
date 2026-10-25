@@ -35,18 +35,39 @@ const columns: { column: InvestmentColumn; label: TextKey; num: boolean }[] = [
   { column: 'progress', label: 'investments.col.progress', num: true },
 ];
 
-const head = (c: (typeof columns)[number], sort: InvestmentSort | undefined, actions: InvestmentsActions) => {
-  const label = t(c.label);
+/** which way the sorted column runs; empty for the others */
+export type SortMark = '' | 'asc' | 'desc';
+
+export const sortMark = (sort: { column: string; desc: boolean } | undefined, column: string): SortMark =>
+  sort?.column === column ? (sort.desc ? 'desc' : 'asc') : '';
+
+/** a sortable column head; a narrow column shows `icon` with the word in tooltip and label */
+export const sortHead = (label: string, num: boolean, mark: SortMark, sort: () => void, icon?: TemplateResult) => {
   const hint = t('investments.sortHint', { column: label });
-  const mark = sort?.column === c.column ? (sort.desc ? 'desc' : 'asc') : '';
-  // the status column is narrow: its head is an icon, the word in tooltip and label
-  const icon = c.column === 'status';
-  return html`<th class=${`sortable ${c.num ? 'num' : ''} ${icon ? 'inv-status' : ''} ${mark}`} aria-label=${label}
+  return html`<th class=${`sortable ${num ? 'num' : ''} ${icon ? 'inv-icon' : ''} ${mark}`} aria-label=${label}
     aria-sort=${mark === '' ? 'none' : mark === 'desc' ? 'descending' : 'ascending'}
-    data-tip=${icon ? `${label}\n${hint}` : hint} @click=${() => actions.sort(c.column)}>${
-      icon ? headerIcons.info : label
-    }</th>`;
+    data-tip=${icon ? `${label}\n${hint}` : hint} @click=${sort}>${icon ?? label}</th>`;
 };
+
+// the status column is narrow: its head is an icon
+const head = (c: (typeof columns)[number], sort: InvestmentSort | undefined, actions: InvestmentsActions) =>
+  sortHead(
+    t(c.label),
+    c.num,
+    sortMark(sort, c.column),
+    () => actions.sort(c.column),
+    c.column === 'status' ? headerIcons.info : undefined,
+  );
+
+/** "x / y" of the level with the thin bar below, the rest to the level up in the tooltip; `extra` goes under the bar */
+export const progressCell = (
+  p: { invested: string; required: string; rest: string; percent: number },
+  extra: TemplateResult | '' = '',
+) => html`<td class="num inv-progress" data-tip=${t('investments.restHint', { rest: p.rest, required: p.required })}>
+    ${p.invested} / ${p.required}
+    <div class="fp-bar"><div style=${`width: ${p.percent}%`}></div></div>
+    ${extra}
+  </td>`;
 
 const row = (r: InvestmentRowVm) => {
   const status = t(`investments.status.${r.status}`);
@@ -58,19 +79,16 @@ const row = (r: InvestmentRowVm) => {
   <td class="num">${r.deposit}</td>
   <td class="num" data-tip=${t('investments.profitHint', { gross: r.gross })}>${r.profit}</td>
   <td class=${`inv-status ${r.status}`} data-tip=${status} aria-label=${status}>${statusIcon[r.status]}</td>
-  <td class="num inv-progress" data-tip=${t('investments.restHint', { rest: r.rest, required: r.required })}>
-    ${r.invested} / ${r.required}
-    <div class="fp-bar"><div style=${`width: ${r.percent}%`}></div></div>
-    ${
-      r.growth
-        ? html`<div class="inv-growth" data-tip=${t('investments.growthHint', { growth: r.growthFp ?? '' })}>${r.growth}</div>`
-        : ''
-    }
-  </td>
+  ${progressCell(
+    r,
+    r.growth
+      ? html`<div class="inv-growth" data-tip=${t('investments.growthHint', { growth: r.growthFp ?? '' })}>${r.growth}</div>`
+      : '',
+  )}
 </tr>`;
 };
 
-const tabs = (current: InvestmentsTab, actions: InvestmentsActions) =>
+export const tabs = (current: InvestmentsTab, actions: { tab(tab: InvestmentsTab): void }) =>
   html`<div class="tabs">${TABS.map(
     (tab) =>
       html`<button class=${tab === current ? 'active' : ''} ?disabled=${tab === current} @click=${() => actions.tab(tab)}>${t(`investments.tab.${tab}`)}</button>`,

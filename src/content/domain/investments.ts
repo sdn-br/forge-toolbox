@@ -1,7 +1,9 @@
 // The own investments: where the session player's Forge points sit in great buildings of others and what they bring.
 import type { BuildingDefId, PlayerId } from '../../shared/ids';
 import type { KnownGreatBuilding } from '../../shared/model';
+import type { GreatBuildingDef } from '../stores/catalog';
 import { calculateConstruction, plusPercent } from './gb-calculator';
+import { type SnipeHit, snipeBuilding } from './gb-snipe';
 
 /**
  * `safe`: nobody can pass the own place anymore. `unsafe`: the stored rankings fit the progress and someone can. `unknown`:
@@ -112,4 +114,30 @@ export function myInvestments(buildings: KnownGreatBuilding[], arcBonus: number)
     { circulating: 0, profitSafe: 0, profitTotal: 0 },
   );
   return { rows, totals };
+}
+
+/** A great building of another player without an own place, with the best place the snipe helper finds there. */
+export interface PossibleInvestment {
+  building: KnownGreatBuilding;
+  /** missing when no place pays or the rewards of the level are unknown */
+  hit?: SnipeHit;
+}
+
+/**
+ * Every known great building of another player the session player has not invested in, rated as the snipe helper rates
+ * a list. `me` leaves out the own buildings; buildings with an own contribution belong to the own investments.
+ */
+export function possibleInvestments(
+  buildings: KnownGreatBuilding[],
+  greatBuilding: (def: BuildingDefId) => GreatBuildingDef | undefined,
+  arcBonus: number,
+  factor: number,
+  me?: PlayerId,
+): PossibleInvestment[] {
+  return buildings.flatMap<PossibleInvestment>((b) => {
+    if (b.owner === me) return [];
+    const r = snipeBuilding(b, greatBuilding(b.cityEntityId), arcBonus, factor);
+    if (r === 'ownContribution') return [];
+    return [typeof r === 'string' ? { building: b } : { building: b, hit: r }];
+  });
 }

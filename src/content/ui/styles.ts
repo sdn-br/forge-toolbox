@@ -199,16 +199,26 @@ td.snipe-tier.possible { color: #f0a050; }
 .inv-table td.inv-name { overflow: hidden; text-overflow: ellipsis; }
 .inv-table th.sortable { cursor: pointer; }
 .inv-table th.sortable:hover { color: var(--accent); }
-.inv-table th.inv-status.desc::after, .inv-table th.inv-status.asc::after { content: none; }
-.inv-table th.inv-status.desc, .inv-table th.inv-status.asc { color: var(--accent); }
+.inv-table th.inv-icon.desc::after, .inv-table th.inv-icon.asc::after { content: none; }
+.inv-table th.inv-icon.desc, .inv-table th.inv-icon.asc { color: var(--accent); }
 .inv-table th.desc::after { content: ' ▾'; color: var(--accent); }
 .inv-table th.asc::after { content: ' ▴'; color: var(--accent); }
-.inv-table .inv-status { text-align: center; padding: 0; }
-.inv-table .inv-status svg { display: block; width: 14px; height: 14px; margin: auto; }
+.inv-table .inv-icon, .inv-table .inv-status, .inv-table .snipe-tier { text-align: center; padding: 0; }
+.inv-table :is(.inv-icon, .inv-status, .snipe-tier) svg { display: block; width: 14px; height: 14px; margin: auto; }
 td.inv-status.safe { color: #8fd08f; }
 td.inv-status.unsafe { color: #f0a050; }
 td.inv-status.unknown { color: #b8a27d; }
 .inv-table tr.grown { background: rgba(220, 190, 60, .32); }
+.inv-possible .c-progress { width: 92px; }
+.inv-possible .c-cost { width: 60px; }
+.inv-possible .c-gain { width: 96px; }
+.inv-possible .c-tier { width: 26px; }
+.inv-possible .c-seen { width: 72px; }
+.inv-possible td { overflow: hidden; text-overflow: ellipsis; }
+/* the rows scroll in the body, the head stays */
+.inv-possible thead th { position: sticky; top: 0; z-index: 1; background: var(--bg); }
+.inv-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.inv-filter input[type=search] { width: 10em; }
 .inv-growth { color: var(--accent); font-weight: 600; }
 /* a thin bar under "paid in / costs", filled towards the level up (investments, GB calculator) */
 .fp-bar { height: 3px; margin-top: 2px; background: var(--line); border-radius: 2px; overflow: hidden; }

@@ -1,7 +1,7 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatDuration, formatNumber, type TextKey, t } from '../../core/texts';
-import type { SnipeTier } from '../../domain/gb-snipe';
 import { headerIcons } from '../../ui/icons';
+import { profitCell, tierCell } from '../../ui/snipe-hit';
 import { type SnipeColumn, type SnipeRowVm, type SnipeSort, type SnipeVm, VISIBLE_ROWS } from './snipe-view-model';
 import { activityLine, owner } from './view';
 
@@ -14,12 +14,6 @@ export interface SnipeActions {
   /** folds the section in or out */
   toggle(): void;
 }
-
-const tierIcon: Record<SnipeTier, TemplateResult> = {
-  exact: headerIcons.check,
-  safe: headerIcons.checkCircle,
-  possible: headerIcons.questionCircle,
-};
 
 /** Columns in table order; heads show the whole word, the widths are in the styles. */
 const columns: { column: SnipeColumn; label: TextKey; num: boolean }[] = [
@@ -47,10 +41,8 @@ const row = (r: SnipeRowVm) => html`<tr data-tip=${r.notes.join('\n')}>
   <td class="num" data-tip=${t('snipe.progressHint', { percent: r.percent })}>${formatNumber(r.invested)} / ${formatNumber(r.required)}</td>
   <td class="num">${t('snipe.rank', { rank: r.rank })}</td>
   <td class="num" data-tip=${t('snipe.costHint')}>${formatNumber(r.cost)}</td>
-  <td class=${r.estimate ? 'num estimate' : 'num'} data-tip=${r.estimate ? t('gbCalc.estimate') : ''}>${
-    r.estimate ? '≈ ' : ''
-  }${r.profit}</td>
-  <td class=${`snipe-tier ${r.tier}`} data-tip=${t(`snipe.tier.${r.tier}`)} aria-label=${t(`snipe.tier.${r.tier}`)}>${tierIcon[r.tier]}</td>
+  ${profitCell(r.profit, r.estimate)}
+  ${tierCell(r.tier)}
 </tr>`;
 
 /** one of the two scroll buttons; greyed at its end like the factor status buttons */

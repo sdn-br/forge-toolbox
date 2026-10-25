@@ -4,14 +4,46 @@ import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
 import { arcBonus } from '../../domain/gb-calculator';
-import { type Investments, myInvestments } from '../../domain/investments';
+import {
+  type Investments,
+  myInvestments,
+  type PossibleInvestment,
+  possibleInvestments,
+} from '../../domain/investments';
+import { calculatorFactor } from '../../ui/factor-bar';
 import { icons } from '../../ui/icons';
+import { type PossibleActions, possibleView } from './possible-view';
+import {
+  DEFAULT_FILTER,
+  DEFAULT_POSSIBLE_SORT,
+  nextPossibleSort,
+  type PossibleFilter,
+  type PossibleSort,
+  possibleViewModel,
+} from './possible-view-model';
 import { type InvestmentsActions, investmentsView } from './view';
 import { type InvestmentSort, type InvestmentsTab, investmentsViewModel, nextSort } from './view-model';
 
 /** the menu entry and the settings group show it */
 const ICON = icons.investments;
 const OPEN_WITH_LIST = 'investments.openWithList';
+/** view choices: the tab and the filters of the possible investments */
+const TAB = 'investments.tab';
+const FILTER = 'investments.filter';
+
+/** the saved filters, each part that is missing or broken at its default */
+function savedFilter(saved: string | undefined): PossibleFilter {
+  try {
+    const f = JSON.parse(saved ?? '{}') as Partial<PossibleFilter>;
+    return {
+      player: typeof f.player === 'string' ? f.player : DEFAULT_FILTER.player,
+      name: typeof f.name === 'string' ? f.name : DEFAULT_FILTER.name,
+      onlyHits: typeof f.onlyHits === 'boolean' ? f.onlyHits : DEFAULT_FILTER.onlyHits,
+    };
+  } catch {
+    return DEFAULT_FILTER;
+  }
+}
 
 export const investmentsFeature: Feature = {
   id: 'investments',
@@ -26,16 +58,23 @@ export const investmentsFeature: Feature = {
 
     /** when the last town hall list came; the store keeps it across reloads */
     let listedAt: number | undefined;
-    let tab: InvestmentsTab = 'mine';
+    let tab: InvestmentsTab = ctx.ui.pref(TAB) === 'possible' ? 'possible' : 'mine';
     let sort: InvestmentSort | undefined;
+    let possibleSort: PossibleSort = DEFAULT_POSSIBLE_SORT;
+    let filter = savedFilter(ctx.ui.pref(FILTER));
     let investments: Investments = { rows: [], totals: { circulating: 0, profitSafe: 0, profitTotal: 0 } };
-    /** owner names the town hall list gives, for owners the player store does not know */
+    let possible: PossibleInvestment[] = [];
+    /** owner names the town hall list and the lists of others give, for owners the player store does not know */
     const ownerNames = new Map<PlayerId, string>();
     let loads = 0;
 
+    const showTab = (next: InvestmentsTab) => {
+      tab = next;
+      ctx.ui.savePref(TAB, next);
+    };
     const actions: InvestmentsActions = {
       tab: (next) => {
-        tab = next;
+        showTab(next);
         box.update();
       },
       sort: (column) => {
@@ -43,29 +82,57 @@ export const investmentsFeature: Feature = {
         box.update();
       },
     };
+    const possibleActions: PossibleActions = {
+      tab: actions.tab,
+      sort: (column) => {
+        possibleSort = nextPossibleSort(possibleSort, column);
+        box.update();
+      },
+      filter: (patch) => {
+        filter = { ...filter, ...patch };
+        ctx.ui.savePref(FILTER, JSON.stringify(filter));
+        box.update();
+      },
+    };
+    const playerName = (id: PlayerId) => ctx.players.get(id)?.name ?? ownerNames.get(id);
+    const playerUrl = (id: PlayerId) => foestatsPlayerUrl(ctx.world, id);
 
     const box = ctx.createBox({
       id: 'investments',
       settings: 'investments.title',
       title: () => t('investments.title'),
-      width: 560,
-      // the list grows with every building invested in; the height is the viewer's
+      // nine columns on the possible investments, their heads whole
+      width: 640,
+      // the lists grow with every building invested in or seen; the height is the viewer's
       resizable: true,
-      // the age is drawn as of now, so each redraw shows it current
+      // the ages are drawn as of now, so each redraw shows them current
       render: () =>
-        investmentsView(
-          investmentsViewModel({
-            tab,
-            investments,
-            ...(listedAt !== undefined && { listedAt }),
-            now: Date.now(),
-            ...(sort && { sort }),
-            greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
-            playerName: (id) => ctx.players.get(id)?.name ?? ownerNames.get(id),
-            playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
-          }),
-          actions,
-        ),
+        tab === 'possible'
+          ? possibleView(
+              possibleViewModel({
+                candidates: possible,
+                filter,
+                sort: possibleSort,
+                now: Date.now(),
+                greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
+                playerName,
+                playerUrl,
+              }),
+              possibleActions,
+            )
+          : investmentsView(
+              investmentsViewModel({
+                tab,
+                investments,
+                ...(listedAt !== undefined && { listedAt }),
+                now: Date.now(),
+                ...(sort && { sort }),
+                greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
+                playerName,
+                playerUrl,
+              }),
+              actions,
+            ),
     });
 
     ctx.greatBuildings
@@ -83,7 +150,15 @@ export const investmentsFeature: Feature = {
       const current = ++loads;
       const known = await ctx.greatBuildings.known();
       if (current !== loads) return;
-      investments = myInvestments(known, arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses()));
+      const arc = arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses());
+      investments = myInvestments(known, arc);
+      possible = possibleInvestments(
+        known,
+        (def) => ctx.catalog.get(def)?.greatBuilding,
+        arc,
+        calculatorFactor(ctx.settings, arc),
+        ctx.session.current?.playerId,
+      );
       box.update();
     };
     const reload = () => {
@@ -94,7 +169,7 @@ export const investmentsFeature: Feature = {
       listedAt = at;
       for (const o of owners) ownerNames.set(o.id, o.name);
       if (ctx.settings.get(OPEN_WITH_LIST)) {
-        tab = 'mine';
+        showTab('mine');
         box.open();
       }
       reload();
@@ -104,8 +179,15 @@ export const investmentsFeature: Feature = {
       if (!own) reload();
     });
     ctx.bus.on('greatBuilding.changed', reload);
+    // a list of another player brings the state of its buildings
+    ctx.bus.on('greatBuildings.listed', ({ owner, ownerName }) => {
+      if (ownerName !== undefined) ownerNames.set(owner, ownerName);
+      reload();
+    });
     ctx.bus.on('city.ownChanged', reload);
-    ctx.bus.on('catalog.updated', () => box.update());
+    // the rewards of a level and the factor decide which places pay
+    ctx.bus.on('catalog.updated', reload);
+    ctx.settings.onChange(reload);
     ctx.bus.on('player.updated', () => box.update());
     ctx.menu.add({
       id: 'investments',

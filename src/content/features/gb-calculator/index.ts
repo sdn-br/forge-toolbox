@@ -9,7 +9,7 @@ import { arcBonus } from '../../domain/gb-calculator';
 import { type SnipeList, snipeList } from '../../domain/gb-snipe';
 import { FOESTATS_SETTING } from '../../stores/foestats';
 import type { Construction } from '../../stores/great-building-model';
-import { effectiveFactor } from '../../ui/factor-bar';
+import { CALCULATOR_FACTOR, calculatorFactor } from '../../ui/factor-bar';
 import { icons } from '../../ui/icons';
 import { playTone } from '../../ui/tone';
 import { type SnipeActions, snipeView } from './snipe-view';
@@ -20,10 +20,10 @@ import { type GbCalculatorVm, gbCalculatorViewModel } from './view-model';
 /** the menu entry and the settings group show it */
 const ICON = icons.gbCalculator;
 
-const FACTOR = 'gbCalc.factor';
-const FACTOR_ARC = 'gbCalc.factorArc';
+const FACTOR = CALCULATOR_FACTOR.value;
+const FACTOR_ARC = CALCULATOR_FACTOR.arc;
 const FACTOR_BUTTONS = 'gbCalc.factorButtons';
-const ARC_BUTTON = 'gbCalc.arcButton';
+const ARC_BUTTON = CALCULATOR_FACTOR.arcButton;
 const SOUND = 'gbCalc.sound';
 const RETENTION = 'snipe.retentionDays';
 /** a list this soon after the owner's building was opened or paid into is the game's own question, not the player's */
@@ -187,10 +187,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
             buildings: listed,
             greatBuilding: (def) => ctx.catalog.get(def)?.greatBuilding,
             arcBonus: arc,
-            factor: effectiveFactor(
-              { value: ctx.settings.number(FACTOR), arc: ctx.settings.get(FACTOR_ARC) },
-              ctx.settings.get(ARC_BUTTON) ? arc : undefined,
-            ),
+            factor: calculatorFactor(ctx.settings, arc),
           });
         snipeVm = snipeViewModel({
           list,

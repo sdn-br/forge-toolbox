@@ -22,7 +22,7 @@ Quelle: `GreatBuildingsService.getContributions` (Rathausliste), dazu jedes geö
   - **sicher ohne Rangliste:** eigene Einzahlung ≥ (Summe aller Einzahlungen minus eigene Einzahlung) + Rest. Niemand hinter dem Spieler kann mehr halten als alle anderen zusammen, also überholt ihn keiner.
   - **?** (unbekannt): sonst. Ein Öffnen des LGs macht daraus eine genaue Aussage.
   - Die alte Toolbox nannte einen Platz sicher, sobald die eigene Einzahlung den Rest erreichte. Das übersieht die Einzahlungen der Spieler dahinter (100 FP auf Platz 1, Platz 2 hält 90, Rest 50: Platz 2 kommt auf 140). Ihre Regel gilt deshalb nicht als Vorlage.
-- **Fortschritt** (Nutzer, 2026-10-25, wie in der alten Toolbox): „eingezahlt / Kosten der Stufe“, darunter ein dünner Balken in der Akzentfarbe. Der Rest bis zum Level-up steht im Tooltip, eine eigene Spalte Rest entfällt. Die Box ist dafür 560 px breit.
+- **Fortschritt** (Nutzer, 2026-10-25, wie in der alten Toolbox): „eingezahlt / Kosten der Stufe“, darunter ein dünner Balken in der Akzentfarbe. Der Rest bis zum Level-up steht im Tooltip, eine eigene Spalte Rest entfällt. Die Box ist dafür 560 px breit (seit dem Reiter „Mögliche Investitionen“ 640 px, siehe dort).
 - **Zuwachs:** Ist der Fortschritt eines LGs gewachsen, zahlt dort jemand ein. Die Zeile ist hervorgehoben, „+X“ steht in der Zelle Fortschritt unter dem Balken. Gezählt wird ab dem letzten Öffnen des LGs, bei einem nie geöffneten LG ab der ersten Rathausliste, in der es stand (Nutzer, 2026-10-25). Die Hervorhebung bleibt, bis der Spieler das LG öffnet.
 - **Fußzeile:** FP im Umlauf (Summe der eigenen Einzahlungen), Gewinn „sicher“ (nur Zeilen mit Status sicher) und „gesamt“ (alle Zeilen). Eine Einstellung dafür entfällt.
 - **Sortierung:** Standard nach Zuwachs, dann nach Rest aufsteigend (was bald levelt, steht oben). Der Spaltenkopf Fortschritt sortiert ebenso nach dem Rest. Ein Klick auf einen Spaltenkopf sortiert nach dieser Spalte.
@@ -42,6 +42,18 @@ Quelle: alle bekannten fremden LGs der Tabelle `greatBuildings`, ohne eigene Bet
 - **Filter:** Spieler (Teil des Namens), LG (Teil des Namens), nur gemerkte (LG gemerkt oder Eigentümer gemerkt), nur Treffer (Standard an), nur erreichbare (Standard an).
 - **Sortierung:** Standard nach Gewinn, der beste oben.
 - Der Reiter zeigt den letzten gesehenen Stand. Ob ein gemerktes LG inzwischen reif ist, weiß die Toolbox erst, wenn der Spieler es oder die LG-Liste des Eigentümers öffnet, denn sie fragt nichts im Hintergrund ab. Der Reiter sagt also, wo es sich lohnt vorbeizuschauen.
+- **Umsetzung (erster Schnitt, 2026-10-25):** ohne Merken und Erreichbarkeit (Spalten Merken und Erreichbar, Filter „nur gemerkte“ und „nur erreichbare“ folgen später).
+  - Zeilen: alle LGs der Tabelle `greatBuildings` der aktuellen Welt ohne eigene LGs und ohne eigene Einzahlung. Gerechnet wird je LG mit derselben Funktion wie in der Snipehilfe (`snipeBuilding`), also auch mit der gespeicherten Rangliste, wenn sie zur Stufe passt. Faktor und Arche-Bonus wie in der Snipehilfe (Einstellungen des LG-Rechners).
+  - Spalten: Eigentümer (Link zu foestats), LG, Stufe, Fortschritt (wie bei „Meine Investitionen“: „x / y“ mit dünnem Balken, Rest im Tooltip), Platz, Einsatz, Gewinn (Zahl oder Spanne, ≈ bei geschätzter Belohnung), Sicherheit (Icon wie in der Snipehilfe, der Spaltenkopf ein Info-Icon mit dem Wort im Tooltip), Stand. Der Zeilentooltip nennt wie in der Snipehilfe den Platz im schlechtesten Fall und „eventuell gesperrt“.
+  - Eigentümernamen: aus dem Player-Store, sonst aus der Rathausliste oder der zuletzt geöffneten LG-Liste des Spielers (nur im Speicher, gilt jetzt für beide Reiter), sonst die ID.
+  - Stand: Alter des Eintrags nur in der größten Einheit („vor 3 Std.“, „vor 2 T.“), damit die Spalte schmal bleibt.
+  - Filter über der Tabelle: Spieler und LG (Teil des Namens, Groß- und Kleinschreibung egal), „nur Treffer“ (Standard an). Ohne „nur Treffer“ stehen LGs ohne lohnenden Platz und LGs mit unbekannter Belohnung mit leeren Zellen Platz, Einsatz, Gewinn und Sicherheit da, bei jeder Sortierung nach diesen Spalten unten.
+  - Unter der Tabelle: „12 Treffer von 85 LGs“, gezählt über die LGs, die die Filter Spieler und LG übrig lassen. Ohne bekanntes fremdes LG steht dort ein Hinweis, dass sich der Reiter mit geöffneten LG-Listen anderer Spieler füllt.
+  - Sortierung: Standard nach Gewinn im besten Fall, der beste oben (wie in der Snipehilfe). Ein Klick auf einen Spaltenkopf sortiert nach dieser Spalte, Namen von oben, Zahlen, Sicherheit und Stand vom größten bzw. besten oder neuesten.
+  - Gemerkt (als Ansichtswahl wie der Modus der Karten): der gewählte Reiter und die Filter. Kommt die Rathausliste, geht die Box weiter auf „Meine Investitionen“ auf. Die Sortierung gilt nur bis zum Neuladen, wie bei „Meine Investitionen“.
+  - Lange Listen scrollen in der Box, der Tabellenkopf bleibt stehen. Keine Pfeilknöpfe wie in der Snipehilfe.
+  - Aktualisierung: bei jeder LG-Liste eines anderen Spielers, jedem geöffneten oder geänderten LG, der Rathausliste, neuen Spieldaten (Belohnungen) und geänderten Einstellungen (Faktor).
+  - Breite: Die Box ist 640 px breit, damit alle neun Spaltenköpfe ganz stehen. Dabei fiel auf, dass eine Box mit Griff nie breiter als 520 px aufging, solange sie nicht von Hand vergrößert war (die Obergrenze der festen Boxen). Boxen mit Griff haben jetzt ihre eingestellte Breite.
 
 ## Merken
 
