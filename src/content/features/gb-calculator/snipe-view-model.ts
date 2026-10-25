@@ -1,7 +1,9 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import { t } from '../../core/texts';
 import type { SnipeHit, SnipeList, SnipeTier } from '../../domain/gb-snipe';
+import { ignoreReason } from '../../domain/ignore';
 import type { FoestatsRecord } from '../../stores/foestats';
+import { ignoreWords } from '../../ui/ignore';
 import {
   ownerShareNote,
   signed,
@@ -61,6 +63,8 @@ export interface SnipeRowVm {
   tier: SnipeTier;
   /** the player put a star on the building */
   marked: boolean;
+  /** why the row counts as ignored, in words; missing when it does not. Such rows show muted */
+  ignoreNote?: string;
   /** lines of the row tooltip */
   notes: string[];
   /** what the owner paid in, for the progress tooltip; missing when unknown */
@@ -84,8 +88,14 @@ export type SnipeVm =
       rows: SnipeRowVm[];
       /** which rows of `rows` are in view */
       scroll: SnipeScroll;
-      /** the hit with the highest profit, whatever the sort; missing without hits */
+      /** the hit with the highest profit among the not ignored ones, whatever the sort; missing without such hits */
       best?: { name: string; profit: string };
+      /** hits that are not ignored: what the summary counts */
+      hitCount: number;
+      /** hits of ignored buildings and owners, shown or not */
+      ignoredCount: number;
+      /** also the rows of ignored buildings and owners, drawn muted */
+      showIgnored: boolean;
       /** counts under the table, those that are 0 left out */
       counts: string[];
     };
@@ -99,6 +109,11 @@ export interface SnipeInput {
   playerUrl(id: PlayerId): string;
   isMarked(owner: PlayerId, entityId: number): boolean;
   playerMarked(id: PlayerId): boolean | undefined;
+  isIgnored(owner: PlayerId, entityId: number): boolean;
+  /** undefined for a player the store does not know */
+  ownerIgnored(owner: PlayerId): boolean | undefined;
+  /** the rows of ignored buildings and owners show, muted */
+  showIgnored: boolean;
   /** what foestats knows about the owner of the list; missing while foestats is off */
   foestats?: FoestatsRecord;
   today: string;
@@ -115,6 +130,8 @@ const activityOf = (record: FoestatsRecord | undefined, today: string) => {
 };
 
 const withProfitRange = (range: string | undefined) => (range === undefined ? {} : { profitRange: range });
+
+const withIgnoreNote = (note: string | undefined) => (note === undefined ? {} : { ignoreNote: note });
 
 const withOwnerShare = (note: string | undefined) => (note === undefined ? {} : { ownerShare: note });
 
@@ -136,8 +153,13 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
   const name = (h: SnipeHit) => input.greatBuildingName(h.cityEntityId) ?? h.cityEntityId;
   const places = new Map([...list.entityIds].map((id, i) => [id, i + 1]));
   const order = (h: SnipeHit) => places.get(h.entityId) ?? 0;
+  const ignoreNote = (h: SnipeHit) => {
+    const reason = ignoreReason(input.isIgnored(h.owner, h.entityId), input.ownerIgnored(h.owner));
+    return reason ? ignoreWords(reason).join(', ') : undefined;
+  };
+  const kept = result.hits.filter((h) => ignoreNote(h) === undefined);
   const hits = sortRows(
-    [...result.hits],
+    input.showIgnored ? [...result.hits] : kept,
     input.sort,
     (column) => (h) => sortKey[column](h, name(h), order(h), input.isMarked(h.owner, h.entityId)),
   );
@@ -156,6 +178,7 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     estimate: h.estimate,
     tier: h.tier,
     marked: input.isMarked(h.owner, h.entityId),
+    ...withIgnoreNote(ignoreNote(h)),
     notes: snipeNotes(h),
     ...withOwnerShare(ownerShareNote(h.ownerShare, input.now)),
   }));
@@ -163,8 +186,9 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     result.none > 0 && t('snipe.countNone', { count: result.none }),
     result.ownContribution > 0 && t('snipe.countOwn', { count: result.ownContribution }),
     result.unknownReward > 0 && t('snipe.countUnknown', { count: result.unknownReward }),
+    result.hits.length > kept.length && t('snipe.countIgnored', { count: result.hits.length - kept.length }),
   ].filter((c): c is string => typeof c === 'string');
-  const best = [...result.hits].sort((a, b) => snipeProfitKey(b) - snipeProfitKey(a))[0];
+  const best = [...kept].sort((a, b) => snipeProfitKey(b) - snipeProfitKey(a))[0];
   const ownerMarked = input.playerMarked(list.owner);
   return {
     kind: 'list',
@@ -179,5 +203,8 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     scroll: rowWindow(input.scroll ?? 0, rows.length, VISIBLE_ROWS),
     ...(best && { best: { name: name(best), profit: signed(best.profitHigh) } }),
     counts,
+    hitCount: kept.length,
+    ignoredCount: result.hits.length - kept.length,
+    showIgnored: input.showIgnored,
   };
 }

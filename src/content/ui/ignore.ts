@@ -25,3 +25,10 @@ export const ignoreButton = (kind: 'building' | 'player', ignored: boolean, togg
   return html`<button class=${ignored ? 'ignore on' : 'ignore'} aria-pressed=${ignored ? 'true' : 'false'} data-tip=${word}
     aria-label=${word} @click=${toggle}>${headerIcons.eyeClosed}</button>`;
 };
+
+/** a toggle with the open eye: also the rows of ignored buildings and owners, muted */
+export const ignoredFilter = (show: boolean, set: (show: boolean) => void) => {
+  const word = t('ignore.show');
+  return html`<span class="inv-ignored-filter"><button class=${show ? 'on' : ''} aria-pressed=${show ? 'true' : 'false'}
+    data-tip=${word} aria-label=${word} @click=${() => set(!show)}>${headerIcons.eye}</button></span>`;
+};

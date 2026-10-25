@@ -190,6 +190,9 @@ button.star svg { display: block; width: 14px; height: 14px; }
 button.ignore { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 18px; height: 18px; vertical-align: middle; color: var(--ink); opacity: .7; }
 button.ignore:hover, button.ignore.on { color: var(--accent); opacity: 1; }
 button.ignore svg { display: block; width: 14px; height: 14px; }
+/* the calculator warns above its header while the building or its owner is ignored; the button lifts it */
+p.ignore-warning { display: flex; align-items: center; gap: 6px; }
+.ignore-warning .warn-icon svg { display: block; width: 14px; height: 14px; }
 th.sortable { cursor: pointer; user-select: none; }
 th.sortable:hover { color: var(--accent); }
 th.sortable.desc::after { content: ' ▾'; color: var(--accent); }
@@ -219,6 +222,9 @@ th.sortable.asc .sort-level::before { content: ' ▴'; font-size: 1.333em; }
 .snipe-table td.snipe-mark { text-align: left; padding: 0 0 0 2px; }
 .snipe-table th.icon-head.snipe-mark { text-align: left; padding: 0 0 0 4px; }
 .snipe-table .snipe-tier svg { display: block; width: 14px; height: 14px; margin: auto; }
+/* an ignored hit shown on request: the whole row muted, links and tier colours too */
+.snipe-table tr.muted :is(td, a) { color: inherit; }
+.snipe-counts .inv-ignored-filter { margin-left: 6px; vertical-align: middle; }
 td.snipe-tier.exact { color: #8fd08f; }
 td.snipe-tier.safe { color: #5a9a4a; }
 td.snipe-tier.possible { color: #f0a050; }

@@ -78,13 +78,6 @@ export const pickButton = (name: string, picked: boolean, pick: (name: string) =
     aria-label=${word} @click=${() => pick(picked ? '' : name)}>${picked ? headerIcons.funnelFilled : headerIcons.funnel}</button>`;
 };
 
-/** a toggle with the open eye: also the rows of ignored buildings and owners, muted */
-export const ignoredFilter = (show: boolean, set: (show: boolean) => void) => {
-  const word = t('ignore.show');
-  return html`<span class="inv-ignored-filter"><button class=${show ? 'on' : ''} aria-pressed=${show ? 'true' : 'false'}
-    data-tip=${word} aria-label=${word} @click=${() => set(!show)}>${headerIcons.eye}</button></span>`;
-};
-
 /** what a row says about its owner */
 export interface OwnerCellRow {
   owner: PlayerId;

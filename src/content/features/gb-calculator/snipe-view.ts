@@ -4,6 +4,7 @@ import { formatAge, formatNumber, t } from '../../core/texts';
 import { foldToggle } from '../../ui/fold-toggle';
 import { progressCell, progressPercent } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
+import { ignoredFilter } from '../../ui/ignore';
 import { profitCell, tierCell } from '../../ui/snipe-hit';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { starButton } from '../../ui/star';
@@ -21,6 +22,8 @@ export interface SnipeActions {
   mark(owner: PlayerId, entityId: number, marked: boolean): void;
   /** puts the star on a player or takes it away */
   markPlayer(player: PlayerId, marked: boolean): void;
+  /** shows the rows of ignored buildings and owners, or hides them */
+  showIgnored(show: boolean): void;
 }
 
 /** Columns in table order; heads show the whole word, the widths are in the styles. */
@@ -37,10 +40,11 @@ const columns: SortColumn<SnipeColumn>[] = [
   { column: 'tier', label: 'gb.col.tier', num: false, icon: headerIcons.info },
 ];
 
-const row = (r: SnipeRowVm, actions: SnipeActions) => html`<tr data-tip=${r.notes.join('\n')}>
+const row = (r: SnipeRowVm, actions: SnipeActions) =>
+  html`<tr class=${r.ignoreNote === undefined ? '' : 'muted'} data-tip=${[r.ignoreNote, ...r.notes].filter(Boolean).join('\n')}>
   <td>${r.order}</td>
   <td class="snipe-mark">${starButton(r.marked, () => actions.mark(r.owner, r.entityId, !r.marked))}</td>
-  <td class="snipe-name" data-tip=${[r.name, ...r.notes].join('\n')}>${r.name}</td>
+  <td class="snipe-name" data-tip=${[r.name, r.ignoreNote, ...r.notes].filter(Boolean).join('\n')}>${r.name}</td>
   <td class="num">${r.level}</td>
   ${progressCell(
     {
@@ -79,7 +83,7 @@ const summary = (vm: Extract<SnipeVm, { kind: 'list' }>) => {
   const duration = formatAge(Date.now() - vm.at);
   return vm.best
     ? t('snipe.summaryHits', {
-        count: vm.rows.length,
+        count: vm.hitCount,
         name: vm.best.name,
         profit: vm.best.profit,
         owner: vm.owner,
@@ -87,6 +91,14 @@ const summary = (vm: Extract<SnipeVm, { kind: 'list' }>) => {
       })
     : t('snipe.summaryNone', { owner: vm.owner, duration });
 };
+
+/** the counts under the table; the toggle for ignored rows stands at their end while there are some */
+const notices = (vm: Extract<SnipeVm, { kind: 'list' }>, actions: SnipeActions) =>
+  vm.counts.length > 0 || vm.showIgnored
+    ? html`<p class="muted snipe-counts">${vm.counts.join(' · ')}${
+        vm.ignoredCount > 0 || vm.showIgnored ? ignoredFilter(vm.showIgnored, actions.showIgnored) : ''
+      }</p>`
+    : '';
 
 /** The section "Mögliche Einzahlungen" above the calculator; nothing without a list, since there is nothing to fold.
  * While the calculator shows no building the section is the only part with content: it stays open, without fold line. */
@@ -98,5 +110,5 @@ export function snipeView(vm: SnipeVm, actions: SnipeActions, expanded: boolean,
     <p>${owner(vm.owner, vm.ownerUrl, vm.ownerMarked === undefined ? undefined : { marked: vm.ownerMarked, toggle: (marked) => actions.markPlayer(vm.ownerId, marked) })}${vm.activity ? activityLine(vm.activity) : ''}
     <br /><span class="muted">${t('gb.age', { duration: formatAge(Date.now() - vm.at) })}</span></p>
     ${vm.rows.length === 0 ? html`<p class="muted">${t('snipe.noHit')}</p>` : table(vm, actions)}
-    ${vm.counts.length ? html`<p class="muted">${vm.counts.join(' · ')}</p>` : ''}<hr class="snipe-sep" />`;
+    ${notices(vm, actions)}<hr class="snipe-sep" />`;
 }

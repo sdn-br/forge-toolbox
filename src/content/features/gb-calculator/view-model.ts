@@ -8,10 +8,12 @@ import {
   type PlaceStatus,
 } from '../../domain/gb-calculator';
 import { type LevelUpAndFirst, levelUpAndFirst, previewLevel } from '../../domain/gb-level-preview';
+import { ignoreReason } from '../../domain/ignore';
 import type { GreatBuildingDef } from '../../stores/catalog';
 import type { FoestatsRecord } from '../../stores/foestats';
 import type { Construction, RankingRow } from '../../stores/great-building-model';
 import { effectiveFactor as effective, type FactorButton, type FactorChoice, factorButtons } from '../../ui/factor-bar';
+import { ignoreWords } from '../../ui/ignore';
 import { type LevelChoice, levelChoice } from '../../ui/level-bar';
 
 export interface GbHeader {
@@ -38,6 +40,12 @@ export interface GbHeader {
   marked: boolean;
   /** the player put a star on the owner; missing when the player store does not know the owner */
   ownerMarked?: boolean;
+  /** the player ignores the building */
+  ignored: boolean;
+  /** the player ignores the owner; missing when the player store does not know the owner */
+  ownerIgnored?: boolean;
+  /** why the building counts as ignored, one word per reason; missing when it does not */
+  ignoreWords?: string[];
 }
 
 export interface CostCell {
@@ -130,7 +138,7 @@ export interface MeVm {
 
 export type GbCalculatorVm =
   | { kind: 'none' }
-  | { kind: 'noEntity'; owner: string; ownerUrl: string; ownerMarked?: boolean }
+  | { kind: 'noEntity'; owner: string; ownerUrl: string; ownerMarked?: boolean; ownerIgnored?: boolean }
   | {
       kind: 'past';
       header: GbHeader;
@@ -181,6 +189,9 @@ export interface GbCalculatorInput {
   isMarked(owner: PlayerId, entityId: number): boolean;
   /** whether the owner carries a star; undefined for a player the store does not know */
   playerMarked(id: PlayerId): boolean | undefined;
+  isIgnored(owner: PlayerId, entityId: number): boolean;
+  /** whether the owner is ignored; undefined for a player the store does not know */
+  ownerIgnored(id: PlayerId): boolean | undefined;
   /** Forge points of the bar; undefined while the resources are not known */
   fpBar?: number;
   /** Forge points in the packages of the inventory; undefined while the inventory is not known */
@@ -331,7 +342,15 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
   const ownerUrl = input.playerUrl(c.owner);
   const entity = c.entity;
   const ownerMarked = input.playerMarked(c.owner);
-  if (!entity) return { kind: 'noEntity', owner, ownerUrl, ...(ownerMarked !== undefined && { ownerMarked }) };
+  const ownerIgnored = input.ownerIgnored(c.owner);
+  if (!entity)
+    return {
+      kind: 'noEntity',
+      owner,
+      ownerUrl,
+      ...(ownerMarked !== undefined && { ownerMarked }),
+      ...(ownerIgnored !== undefined && { ownerIgnored }),
+    };
   // the preview starts where the live construction ends; a level up can overtake a chosen level
   const levels = levelChoice(entity.level, input.previewLevel);
   const preview = levels.preview ? levels.chosen : undefined;
@@ -339,6 +358,8 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     input.fpBar === undefined && input.fpPackages === undefined
       ? undefined
       : (input.fpBar ?? 0) + (input.fpPackages ?? 0);
+  const ignored = input.isIgnored(c.owner, c.entityId);
+  const reason = ignoreReason(ignored, ownerIgnored);
   const header: GbHeader = {
     name: input.greatBuildingName(entity.def) ?? entity.def,
     level: entity.level,
@@ -354,6 +375,9 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     levels,
     marked: input.isMarked(c.owner, c.entityId),
     ...(ownerMarked !== undefined && { ownerMarked }),
+    ignored,
+    ...(ownerIgnored !== undefined && { ownerIgnored }),
+    ...(reason && { ignoreWords: ignoreWords(reason) }),
   };
   const arcButton = input.arcButton ? input.arcBonus : undefined;
   const effectiveFactor = effective(input.factor, arcButton);
