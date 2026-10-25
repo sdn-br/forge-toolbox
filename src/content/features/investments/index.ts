@@ -41,6 +41,7 @@ function savedFilter(saved: string | undefined): PossibleFilter {
       player: typeof f.player === 'string' ? f.player : DEFAULT_FILTER.player,
       name: typeof f.name === 'string' ? f.name : DEFAULT_FILTER.name,
       onlyHits: typeof f.onlyHits === 'boolean' ? f.onlyHits : DEFAULT_FILTER.onlyHits,
+      onlyReachable: typeof f.onlyReachable === 'boolean' ? f.onlyReachable : DEFAULT_FILTER.onlyReachable,
     };
   } catch {
     return DEFAULT_FILTER;
@@ -114,8 +115,8 @@ export const investmentsFeature: Feature = {
       id: 'investments',
       settings: 'investments.title',
       title: () => t('investments.title'),
-      // nine columns on the possible investments, their heads whole
-      width: 640,
+      // ten columns on the possible investments, their heads whole
+      width: 710,
       // the lists grow with every building invested in or seen; the height is the viewer's
       resizable: true,
       // the ages are drawn as of now, so each redraw shows them current
@@ -129,6 +130,7 @@ export const investmentsFeature: Feature = {
                 now: Date.now(),
                 greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
                 playerName,
+                relations: (id) => ctx.players.get(id)?.relations,
                 playerUrl,
               }),
               possibleActions,
@@ -208,6 +210,7 @@ export const investmentsFeature: Feature = {
       rated = undefined;
       rerate();
     });
+    // names and relations, for example a new friend or the social list at the start
     ctx.bus.on('player.updated', () => box.update());
     ctx.menu.add({
       id: 'investments',

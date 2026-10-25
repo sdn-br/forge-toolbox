@@ -1,4 +1,5 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
+import type { Relations } from '../../../shared/model';
 import { formatAge, formatNumber, t } from '../../core/texts';
 import type { SnipeTier } from '../../domain/gb-snipe';
 import type { PossibleInvestment } from '../../domain/investments';
@@ -6,7 +7,17 @@ import { progressPercent } from '../../ui/fp-bar';
 import { snipeNotes, snipeProfit, snipeProfitKey } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
 
-export type PossibleColumn = 'owner' | 'name' | 'level' | 'progress' | 'rank' | 'cost' | 'profit' | 'tier' | 'seen';
+export type PossibleColumn =
+  | 'owner'
+  | 'reach'
+  | 'name'
+  | 'level'
+  | 'progress'
+  | 'rank'
+  | 'cost'
+  | 'profit'
+  | 'tier'
+  | 'seen';
 
 export type PossibleSort = Sort<PossibleColumn>;
 
@@ -32,15 +43,27 @@ export interface PossibleFilter {
   name: string;
   /** only rows with a worthwhile place */
   onlyHits: boolean;
+  /** only owners the player can pay into, and those the player store does not know */
+  onlyReachable: boolean;
 }
 
-export const DEFAULT_FILTER: PossibleFilter = { player: '', name: '', onlyHits: true };
+export const DEFAULT_FILTER: PossibleFilter = { player: '', name: '', onlyHits: true, onlyReachable: true };
+
+/** why the player can pay into the owner's buildings; `none` when not at all, `unknown` for an owner never seen */
+export type Reach = keyof Relations | 'none' | 'unknown';
+
+/** the first reason in this order names the cell; the reachable ones first when sorted */
+const REACH_ORDER: Reach[] = ['neighbor', 'friend', 'guildMember', 'unknown', 'none'];
 
 export interface PossibleRowVm {
   owner: PlayerId;
   entityId: number;
   ownerName: string;
   ownerUrl: string;
+  /** the first reason, `none` drawn muted */
+  reach: Reach;
+  /** every reason, for the tooltip */
+  reachTip: string;
   name: string;
   level: number;
   invested: string;
@@ -62,7 +85,7 @@ export interface PossibleVm {
   /** no building of another player is known at all */
   empty: boolean;
   rows: PossibleRowVm[];
-  /** "12 Treffer von 85 LGs" among the buildings the name filters leave */
+  /** "12 Treffer von 85 LGs" among the buildings the name and reach filters leave */
   count: string;
 }
 
@@ -73,6 +96,8 @@ export interface PossibleInput {
   now: number;
   greatBuildingName(def: BuildingDefId): string | undefined;
   playerName(id: PlayerId): string | undefined;
+  /** undefined for an owner the player store does not know */
+  relations(id: PlayerId): Relations | undefined;
   playerUrl(id: PlayerId): string;
 }
 
@@ -85,11 +110,19 @@ const age = (ms: number) =>
 
 const TIER_ORDER: Record<SnipeTier, number> = { exact: 2, safe: 1, possible: 0 };
 
-type Named = PossibleInvestment & { ownerName: string; name: string };
+type Named = PossibleInvestment & { ownerName: string; name: string; reasons: Reach[] };
+
+/** the relations that let the player pay in, in the fixed order */
+const reasonsOf = (relations: Relations | undefined): Reach[] => {
+  if (!relations) return ['unknown'];
+  const found = REACH_ORDER.filter((r) => relations[r as keyof Relations] === true);
+  return found.length > 0 ? found : ['none'];
+};
 
 /** undefined for a row without a hit in a column of the hit; such rows go last in either direction */
 const sortKey: Record<PossibleColumn, (r: Named) => number | string | undefined> = {
   owner: (r) => r.ownerName,
+  reach: (r) => REACH_ORDER.indexOf(r.reasons[0] as Reach),
   name: (r) => r.name,
   level: (r) => r.building.level,
   progress: ({ building: b }) => progressPercent(b.invested, b.required),
@@ -98,6 +131,12 @@ const sortKey: Record<PossibleColumn, (r: Named) => number | string | undefined>
   profit: (r) => r.hit && snipeProfitKey(r.hit),
   tier: (r) => r.hit && TIER_ORDER[r.hit.tier],
   seen: (r) => r.building.seenAt,
+};
+
+const reachTip = (reasons: Reach[]) => {
+  const [first] = reasons;
+  if (first === 'none' || first === 'unknown') return t(`investments.reachHint.${first}`);
+  return reasons.map((r) => t(`investments.reach.${r}`)).join(', ');
 };
 
 const contains = (text: string, part: string) =>
@@ -110,8 +149,10 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
       ...c,
       ownerName: input.playerName(c.building.owner) ?? String(c.building.owner),
       name: input.greatBuildingName(c.building.cityEntityId) ?? c.building.cityEntityId,
+      reasons: reasonsOf(input.relations(c.building.owner)),
     }))
-    .filter((r) => contains(r.ownerName, filter.player) && contains(r.name, filter.name));
+    .filter((r) => contains(r.ownerName, filter.player) && contains(r.name, filter.name))
+    .filter((r) => !filter.onlyReachable || r.reasons[0] !== 'none');
   const hits = named.filter((r) => r.hit).length;
   const shown = filter.onlyHits ? named.filter((r) => r.hit) : named;
   sortRows(shown, sortKey[sort.column], sort.desc);
@@ -119,11 +160,13 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
     filter,
     sort,
     empty: input.candidates.length === 0,
-    rows: shown.map(({ building: b, hit, ownerName, name }) => ({
+    rows: shown.map(({ building: b, hit, ownerName, name, reasons }) => ({
       owner: b.owner,
       entityId: b.entityId,
       ownerName,
       ownerUrl: input.playerUrl(b.owner),
+      reach: reasons[0] as Reach,
+      reachTip: reachTip(reasons),
       name,
       level: b.level,
       invested: formatNumber(b.invested),

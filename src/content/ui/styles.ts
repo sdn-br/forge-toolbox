@@ -220,6 +220,9 @@ td.inv-status.unknown { color: #b8a27d; }
 .inv-possible .c-gain { width: 96px; }
 .inv-possible .c-tier { width: 26px; }
 .inv-possible .c-seen { width: 72px; }
+.inv-possible .c-reach { width: 70px; }
+/* an owner out of reach: the whole row muted, links and tier colours too */
+.inv-possible tr.muted :is(td, a) { color: inherit; }
 .inv-possible td { overflow: hidden; text-overflow: ellipsis; }
 /* the rows scroll in the body, the head stays */
 .inv-possible thead th { position: sticky; top: 0; z-index: 1; background: var(--bg); }

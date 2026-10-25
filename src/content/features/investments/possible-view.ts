@@ -15,9 +15,10 @@ export interface PossibleActions {
   filter(patch: Partial<PossibleFilter>): void;
 }
 
-/** Columns in table order; heads show the whole word, the tier its icon; the widths are in the styles. */
+/** Columns in table order; heads show the whole word, reach and tier their icon; the widths are in the styles. */
 const columns: SortColumn<PossibleColumn>[] = [
   { column: 'owner', label: 'investments.col.owner', num: false },
+  { column: 'reach', label: 'investments.col.reach', num: false, icon: headerIcons.person },
   { column: 'name', label: 'gb.col.name', num: false },
   { column: 'level', label: 'gb.col.level', num: true },
   { column: 'progress', label: 'gb.col.progress', num: true },
@@ -28,8 +29,9 @@ const columns: SortColumn<PossibleColumn>[] = [
   { column: 'seen', label: 'investments.col.seen', num: true },
 ];
 
-const row = (r: PossibleRowVm) => html`<tr data-tip=${r.notes.join('\n')}>
+const row = (r: PossibleRowVm) => html`<tr class=${r.reach === 'none' ? 'muted' : ''} data-tip=${r.notes.join('\n')}>
   <td class="inv-name" data-tip=${r.ownerName}>${externalLink(r.ownerName, r.ownerUrl)}</td>
+  <td data-tip=${r.reachTip}>${t(`investments.reach.${r.reach}`)}</td>
   <td class="inv-name" data-tip=${r.name}>${r.name}</td>
   <td class="num">${r.level}</td>
   ${progressCell(r)}
@@ -49,17 +51,19 @@ const text = (value: string, label: string, set: (value: string) => void) =>
     @input=${(e: Event) => set((e.target as HTMLInputElement).value)}
     @keydown=${keepKeys} @keypress=${keepKeys} @keyup=${keepKeys} />`;
 
+const check = (checked: boolean, label: string, set: (checked: boolean) => void) =>
+  html`<label><input type="checkbox" .checked=${checked}
+    @change=${(e: Event) => set((e.target as HTMLInputElement).checked)} />${label}</label>`;
+
 const filters = (f: PossibleFilter, actions: PossibleActions) => html`<p class="inv-filter">
     ${text(f.player, t('investments.possible.player'), (player) => actions.filter({ player }))}
     ${text(f.name, t('investments.possible.name'), (name) => actions.filter({ name }))}
-    <label><input type="checkbox" .checked=${f.onlyHits}
-      @change=${(e: Event) => actions.filter({ onlyHits: (e.target as HTMLInputElement).checked })} />${t(
-        'investments.possible.onlyHits',
-      )}</label>
+    ${check(f.onlyHits, t('investments.possible.onlyHits'), (onlyHits) => actions.filter({ onlyHits }))}
+    ${check(f.onlyReachable, t('investments.possible.onlyReachable'), (onlyReachable) => actions.filter({ onlyReachable }))}
   </p>`;
 
 const table = (vm: PossibleVm, actions: PossibleActions) => html`<table class="gb-table inv-table inv-possible">
-    <colgroup><col class="c-owner" /><col class="c-name" /><col class="c-level" /><col class="c-progress" />
+    <colgroup><col class="c-owner" /><col class="c-reach" /><col class="c-name" /><col class="c-level" /><col class="c-progress" />
       <col class="c-rank" /><col class="c-cost" /><col class="c-gain" /><col class="c-tier" /><col class="c-seen" /></colgroup>
     <thead><tr>${columns.map((c) => sortHead(c, vm.sort, (column) => actions.sort(column)))}</tr></thead>
     <tbody>${vm.rows.map(row)}</tbody>

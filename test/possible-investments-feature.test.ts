@@ -4,6 +4,7 @@ import { Ingestion } from '../src/content/core/ingestion';
 import { createGbCalculatorFeature } from '../src/content/features/gb-calculator';
 import { investmentsFeature } from '../src/content/features/investments';
 import { registerGameHandlers } from '../src/content/game/handlers';
+import friendAccept from './fixtures/friend-accept.json';
 import contributions from './fixtures/gb-contributions.json';
 import definitions from './fixtures/gb-definitions.json';
 import levelUp from './fixtures/gb-level-up.json';
@@ -99,6 +100,7 @@ function setup() {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe('Investitionen: Mögliche Investitionen', () => {
@@ -109,6 +111,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     await showPossible();
     expect([...box.root.querySelectorAll('thead th')].map((th) => th.getAttribute('aria-label'))).toEqual([
       'Eigentümer',
+      'Erreichbar',
       'LG',
       'Stufe',
       'Fortschritt',
@@ -121,13 +124,15 @@ describe('Investitionen: Mögliche Investitionen', () => {
     // the best profit on top; place, stake and profit as in the snipe helper
     const mine = rows().map((r) => cells(r));
     const helper = rows(snipe).map((r) => cells(r));
-    expect(mine.map((c) => c[1])).toEqual(['Orakel von Delphi', 'Zeusstatue']);
+    expect(mine.map((c) => c[2])).toEqual(['Orakel von Delphi', 'Zeusstatue']);
     for (const c of mine) {
-      const same = helper.find((h) => h[1] === c[1]);
-      expect(c.slice(4, 7)).toEqual(same?.slice(4, 7));
+      const same = helper.find((h) => h[1] === c[2]);
+      expect(c.slice(5, 8)).toEqual(same?.slice(4, 7));
     }
     expect(mine[0]?.[0]).toBe('Eigentümer 1001');
-    expect(mine[0]?.[8]).toBe('vor 1 Min.');
+    // the owners are known only from their lists, not to the player store
+    expect(mine[0]?.[1]).toBe('unbekannt');
+    expect(mine[0]?.[9]).toBe('vor 1 Min.');
     const tier = rows()[0]?.querySelector('td.snipe-tier');
     expect(tier?.getAttribute('aria-label')).toContain('sicher');
     expect(tier?.querySelector('svg')).not.toBeNull();
@@ -149,15 +154,20 @@ describe('Investitionen: Mögliche Investitionen', () => {
     only.dispatchEvent(new Event('change'));
     await tick();
     expect(rows()).toHaveLength(3);
-    expect(cells(rows()[2]).slice(1, 8)).toEqual(['Leuchtturm von Alexandria', '9', '10 / 550', '', '', '', '']);
+    expect(cells(rows()[2]).slice(2, 9)).toEqual(['Leuchtturm von Alexandria', '9', '10 / 550', '', '', '', '']);
     const name = input('LG');
     name.value = 'zeus';
     name.dispatchEvent(new Event('input'));
     await tick();
-    expect(rows().map((r) => cells(r)[1])).toEqual(['Zeusstatue']);
+    expect(rows().map((r) => cells(r)[2])).toEqual(['Zeusstatue']);
     expect(box.text).toContain('1 Treffer von 1 LGs');
     expect(ui.pref('investments.tab')).toBe('possible');
-    expect(JSON.parse(ui.pref('investments.filter') ?? '{}')).toEqual({ player: '', name: 'zeus', onlyHits: false });
+    expect(JSON.parse(ui.pref('investments.filter') ?? '{}')).toEqual({
+      player: '',
+      name: 'zeus',
+      onlyHits: false,
+      onlyReachable: true,
+    });
   });
 
   it('opens with the remembered tab and filters', async () => {
@@ -195,7 +205,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     vi.setSystemTime(Date.now() + 10_000);
     open(1909);
     await tick();
-    expect(cells(rows()[0]).slice(1, 5)).toEqual(['Aachener Dom', '75', '251 / 3.062', 'P1']);
+    expect(cells(rows()[0]).slice(2, 6)).toEqual(['Aachener Dom', '75', '251 / 3.062', 'P1']);
     expect(rows()[0]?.querySelector('td.snipe-tier')?.className).toContain('exact');
   });
 
@@ -207,10 +217,10 @@ describe('Investitionen: Mögliche Investitionen', () => {
     const head = (label: string) => box.root.querySelector(`thead th[aria-label="${label}"]`) as HTMLElement;
     head('LG').click();
     await tick();
-    expect(rows().map((r) => cells(r)[1])).toEqual(['Orakel von Delphi', 'Zeusstatue']);
+    expect(rows().map((r) => cells(r)[2])).toEqual(['Orakel von Delphi', 'Zeusstatue']);
     head('LG').click();
     await tick();
-    expect(rows().map((r) => cells(r)[1])).toEqual(['Zeusstatue', 'Orakel von Delphi']);
+    expect(rows().map((r) => cells(r)[2])).toEqual(['Zeusstatue', 'Orakel von Delphi']);
     expect(head('LG').getAttribute('aria-sort')).toBe('descending');
   });
 
@@ -250,7 +260,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     await tick();
     vi.setSystemTime(Date.now() + 3 * 60 * MINUTE + 40 * MINUTE);
     await showPossible();
-    expect(cells(rows()[0])[8]).toBe('vor 3 Std.');
+    expect(cells(rows()[0])[9]).toBe('vor 3 Std.');
     expect(box.text).not.toContain('40 Min.');
   });
 
@@ -269,5 +279,45 @@ describe('Investitionen: Mögliche Investitionen', () => {
     expect(rewards).not.toHaveBeenCalled();
     bus.emit('catalog.updated', { defs: [] });
     expect(rewards).toHaveBeenCalled();
+  });
+
+  it('shows why an owner is reachable, hides those out of reach and follows the friend messages live', async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const { box, send, list, rows, cells, showPossible, ui } = setup();
+    // the owner of both buildings is the friend of the recorded invitation
+    send({
+      requestClass: 'OtherPlayerService',
+      requestMethod: 'getSocialList',
+      requestData: null,
+      responseData: { friends: [{ player_id: 1001, name: 'Eigentümer 1001' }], neighbours: [], guildMembers: [] },
+    });
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    await showPossible();
+    expect(rows().map((r) => cells(r)[1])).toEqual(['Freund', 'Freund']);
+    const reach = rows()[0]?.querySelectorAll('td')[1];
+    expect(reach?.getAttribute('data-tip')).toBe('Freund');
+    send({ requestClass: 'FriendService', requestMethod: 'deleteFriend', requestData: null, responseData: 1001 });
+    await tick();
+    expect(rows()).toHaveLength(0);
+    expect(box.text).toContain('0 Treffer von 0 LGs');
+    const reachable = box.root.querySelectorAll('input[type=checkbox]')[1] as HTMLInputElement;
+    expect(reachable.parentElement?.textContent).toBe('nur erreichbare');
+    expect(reachable.checked).toBe(true);
+    reachable.checked = false;
+    reachable.dispatchEvent(new Event('change'));
+    await tick();
+    expect(rows().map((r) => [cells(r)[1], r.className])).toEqual([
+      ['nein', 'muted'],
+      ['nein', 'muted'],
+    ]);
+    expect(box.text).toContain('2 Treffer von 2 LGs');
+    expect(JSON.parse(ui.pref('investments.filter') ?? '{}')).toMatchObject({ onlyReachable: false });
+    send(friendAccept.accept as Entry);
+    await tick();
+    expect(rows().map((r) => [cells(r)[1], r.className])).toEqual([
+      ['Freund', ''],
+      ['Freund', ''],
+    ]);
   });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { possibleInvestments } from '../src/content/domain/investments';
 import {
   DEFAULT_FILTER,
@@ -11,7 +11,7 @@ import {
 import type { GreatBuildingDef } from '../src/content/stores/catalog';
 import { nextSort } from '../src/content/ui/sortable';
 import { type BuildingDefId, buildingDefId, type PlayerId, playerId, worldId } from '../src/shared/ids';
-import type { KnownGreatBuilding } from '../src/shared/model';
+import type { KnownGreatBuilding, Relations } from '../src/shared/model';
 
 // HighMiddleAge on level 50 pays 485, 245, 80, 20, 5 FP on places 1 to 5 (the table of the level preview)
 const def: GreatBuildingDef = { era: 'HighMiddleAge', levelCosts: Array(10).fill(1000) };
@@ -34,6 +34,12 @@ const building = (over: Partial<KnownGreatBuilding> = {}): KnownGreatBuilding =>
 });
 
 const names: Record<number, string> = { 1001: 'Anna', 1002: 'Bert', 1003: 'Carla' };
+const NONE: Relations = { neighbor: false, guildMember: false, friend: false };
+/** Anna a neighbour, Bert and Carla friends; others unknown */
+let relations: Record<number, Relations> = {};
+beforeEach(() => {
+  relations = { 1001: { ...NONE, neighbor: true }, 1002: { ...NONE, friend: true }, 1003: { ...NONE, friend: true } };
+});
 const defNames: Record<string, string> = { [DEF_ID]: 'Kathedrale von Aachen', [OTHER_DEF]: 'Leuchtturm' };
 
 const candidates = (buildings: KnownGreatBuilding[]) =>
@@ -47,6 +53,7 @@ const vm = (buildings: KnownGreatBuilding[], filter: Partial<PossibleFilter> = {
     now: NOW,
     greatBuildingName: (d: BuildingDefId) => defNames[d],
     playerName: (id: PlayerId) => names[id],
+    relations: (id: PlayerId) => relations[id],
     playerUrl: (id: PlayerId) => `https://foestats.example/${id}`,
   });
 
@@ -141,5 +148,47 @@ describe('possibleViewModel', () => {
     const v = vm([]);
     expect(v.empty).toBe(true);
     expect(v.rows).toEqual([]);
+  });
+
+  it('names the first reason in the cell by a fixed order and every reason in the tooltip', () => {
+    relations[1001] = { neighbor: true, guildMember: true, friend: true };
+    relations[1002] = { ...NONE, guildMember: true };
+    const v = vm([safe, possible]);
+    expect(v.rows.map((r) => [r.reach, r.reachTip])).toEqual([
+      ['neighbor', 'Nachbar, Freund, Gilde'],
+      ['guildMember', 'Gilde'],
+    ]);
+  });
+
+  it('leaves out owners out of reach by default; without the filter they show as such', () => {
+    relations[1002] = NONE;
+    expect(vm([safe, possible]).rows.map((r) => r.entityId)).toEqual([1]);
+    const all = vm([safe, possible], { onlyReachable: false });
+    expect(all.rows.map((r) => [r.entityId, r.reach, r.reachTip])).toEqual([
+      [1, 'neighbor', 'Nachbar'],
+      [2, 'none', 'nicht erreichbar'],
+    ]);
+  });
+
+  it('keeps owners the player store does not know in the filter, marked as unknown', () => {
+    delete relations[1001];
+    const [row] = vm([safe]).rows;
+    expect(row).toMatchObject({ reach: 'unknown', reachTip: 'unbekannt: die Toolbox kennt den Spieler noch nicht' });
+  });
+
+  it('counts hits among the buildings the name and reach filters leave', () => {
+    relations[1002] = NONE;
+    expect(vm([safe, possible, none]).count).toBe('1 Treffer von 2 LGs');
+    expect(vm([safe, possible, none], { onlyReachable: false }).count).toBe('2 Treffer von 3 LGs');
+    expect(vm([safe, possible, none], { onlyHits: false }).count).toBe('1 Treffer von 2 LGs');
+  });
+
+  it('sorts by reach: the reachable first, unknown before those out of reach', () => {
+    relations[1001] = NONE;
+    delete relations[1002];
+    const sort = nextSort(DEFAULT_POSSIBLE_SORT, 'reach', POSSIBLE_DESC_FIRST);
+    expect(sort).toEqual({ column: 'reach', desc: false });
+    const v = vm([safe, possible, none], { onlyHits: false, onlyReachable: false }, sort);
+    expect(v.rows.map((r) => r.reach)).toEqual(['friend', 'unknown', 'none']);
   });
 });
