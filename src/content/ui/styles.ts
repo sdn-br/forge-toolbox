@@ -120,6 +120,18 @@ tr.battle-row.expanded, tr.details { background: #3a2a16; }
 details { margin: 6px 0; }
 summary { cursor: pointer; color: var(--accent); }
 button.marker.dim { opacity: .3; }
+.name-search { position: relative; display: inline-block; vertical-align: middle; }
+/* the suggestions lie over what follows (the map); inline they push it down, for a box that grows with its content */
+.name-search .suggestions { position: absolute; left: 0; top: 100%; z-index: 5; min-width: 100%; max-height: 16em;
+  overflow: auto; margin: 2px 0 0; padding: 2px 0; list-style: none; background: var(--field);
+  border: 1px solid var(--line); border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,.5); }
+.name-search.inline { display: block; }
+.name-search.inline input { width: 100%; }
+.name-search.inline .suggestions { position: static; box-shadow: none; }
+.suggestions li { display: flex; justify-content: space-between; gap: 12px; padding: 1px 6px; cursor: pointer;
+  white-space: nowrap; }
+.suggestions li:hover, .suggestions li.active { background: var(--btn-hover); }
+.suggestions .num { color: #b8a27d; }
 .city-map { margin: 4px 0; }
 .map-marks { display: flex; flex-wrap: wrap; gap: 0 12px; }
 .map-frame { position: relative; height: 55vh; min-height: 180px; overflow: hidden; border: 1px solid #8a6a3a; }
