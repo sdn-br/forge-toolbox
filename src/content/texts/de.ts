@@ -226,6 +226,8 @@ export const de = {
   'snipe.tier.possible': 'möglich: nur im besten Fall lohnt ein Platz',
   'snipe.worst': 'Im schlechtesten Fall: P{rank} mit {cost} FP, Gewinn {profit}',
   'snipe.maybeLocked': 'eventuell gesperrt',
+  'snipe.owner': 'Eigentümer: {fp} FP',
+  'snipe.ownerStale': 'Eigentümer: {fp} FP, Stand vor {age}',
   'snipe.scrollUp': 'Nach oben',
   'snipe.scrollDown': 'Nach unten',
   'snipe.hiddenBelow': 'noch {count} weitere unten',

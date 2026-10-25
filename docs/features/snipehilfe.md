@@ -29,6 +29,7 @@ Stand 2026-10-24. Altes Modul `calculator-overview` („Mögliche Investitionen�
   - Icons (2026-10-24, Abnahme im Spiel offen): Haken für exakt, Haken im Kreis für sicher, Fragezeichen im Kreis für möglich.
 - Unter der Tabelle: Anzahl der LGs ohne Gewinn („ohne Gewinn: 3“), LGs mit eigener Einzahlung (sie fehlen in der Liste, dafür sind die [Investitionen](investitionen.md) da), LGs mit unbekannter Belohnung.
 - Ein LG mit 0 eingezahlten FP kann gesperrt sein (nicht verbunden oder auf der freigeschalteten Höchststufe), die Liste sagt das nicht. Die Zeile trägt dann den Tooltip „eventuell gesperrt“.
+- **Eigenanteil des Eigentümers** (Nutzer, 2026-10-25): Der Zeilentooltip nennt, was der Eigentümer in die Stufe eingezahlt hat, etwa „Eigentümer: 320 FP“. Gelesen wird die Zeile des Eigentümers aus der gespeicherten Rangliste (`ownerShare` in `gb-snipe.ts`, dieselbe Funktion wie die Spalte EA der [Investitionen](investitionen.md)). Ist die Summe der Einzahlungen seit der Rangliste gewachsen, steht das Alter dabei: „Eigentümer: 320 FP, Stand vor 2 T.“. Ohne Rangliste der aktuellen Stufe entfällt die Zeile. Eine eigene Spalte und eine Summe im Kopf der Liste gibt es nicht.
 - **Merken:** Stern je Zeile (LG) und im Kopf (Spieler). Gemerktes findet der Reiter „Mögliche Investitionen“ der [Investitionen](investitionen.md#merken) über alle Spieler wieder.
 - Die Liste veraltet: Sie zeigt den Stand beim Anklicken. Spätere Einzahlungen sieht die Toolbox nur bei einem LG, das der Spieler öffnet.
 

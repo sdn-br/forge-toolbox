@@ -38,6 +38,27 @@ export interface SnipeHit {
   maybeLocked: boolean;
   /** when the list or the opened building told the state */
   seenAt: number;
+  ownerShare: OwnerShare;
+}
+
+/**
+ * What the owner paid into the level, from the stored ranking: `current` when the ranking is the building's state,
+ * `stale` when the progress moved since (the value is of the time `at`), `unknown` without a ranking of the level.
+ */
+export type OwnerShare =
+  | { state: 'current'; fp: number }
+  | { state: 'stale'; fp: number; at: number }
+  | { state: 'unknown' };
+
+/** the owner's row: by player id, else the row without a place, which only the owner has */
+const ownerRow = (rows: RankingRow[], owner: KnownGreatBuilding['owner']) =>
+  rows.find((r) => r.player === owner) ?? rows.find((r) => r.rank === undefined && !r.self);
+
+export function ownerShare(b: KnownGreatBuilding): OwnerShare {
+  if (!b.rankings || b.rankingsLevel !== b.level) return { state: 'unknown' };
+  const fp = ownerRow(b.rankings, b.owner)?.fp ?? 0;
+  if (b.rankingsInvested === b.invested) return { state: 'current', fp };
+  return { state: 'stale', fp, at: b.rankingsAt ?? b.seenAt };
 }
 
 export interface SnipeInput {
@@ -120,7 +141,7 @@ export function snipeBuilding(
   );
   const sum = b.rankingsInvested ?? 0;
   const beyond = (ranked ?? []).filter((r) => r.rank !== undefined && r.rank > places.length && !r.self);
-  const ownerFp = (ranked ?? []).find((r) => r.rank === undefined && !r.self)?.fp ?? 0;
+  const ownerFp = (ranked && ownerRow(ranked, b.owner)?.fp) || 0;
   let exact = false;
   let best: Case;
   let worst: Case;
@@ -160,6 +181,7 @@ export function snipeBuilding(
     estimate: level.reward?.estimate ?? false,
     maybeLocked: b.invested === 0,
     seenAt: b.seenAt,
+    ownerShare: ownerShare(b),
   };
 }
 

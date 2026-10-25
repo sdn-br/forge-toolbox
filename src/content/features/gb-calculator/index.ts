@@ -221,6 +221,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           playerMarked,
           foestats: list && ctx.settings.get(FOESTATS_SETTING.key) ? ctx.foestats.get(list.owner) : undefined,
           today: foestatsDay(Date.now()),
+          now: Date.now(),
           sort,
           scroll,
         });

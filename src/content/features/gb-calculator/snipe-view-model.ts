@@ -91,6 +91,8 @@ export interface SnipeInput {
   /** what foestats knows about the owner of the list; missing while foestats is off */
   foestats?: FoestatsRecord;
   today: string;
+  /** the time the age in a row tooltip counts to */
+  now: number;
   sort: SnipeSort;
   /** index of the first row in view; default the top */
   scroll?: number;
@@ -134,7 +136,7 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     estimate: h.estimate,
     tier: h.tier,
     marked: input.isMarked(h.owner, h.entityId),
-    notes: snipeNotes(h),
+    notes: snipeNotes(h, input.now),
   }));
   const counts = [
     result.none > 0 && t('snipe.countNone', { count: result.none }),

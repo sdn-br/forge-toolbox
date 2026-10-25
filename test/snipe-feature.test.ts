@@ -272,6 +272,26 @@ describe('Snipehilfe: stacked box', () => {
     expect(box.root.querySelector('td.snipe-tier svg')).not.toBeNull();
   });
 
+  it('names what the owner paid in the row tooltip once the building was opened, not before', async () => {
+    const { list, open, advance, rows } = setup();
+    const dom = {
+      entity_id: 1909,
+      city_entity_id: 'X_EarlyMiddleAge_Landmark2',
+      name: 'Aachener Dom',
+      level: 75,
+      max_progress: 3062,
+      player: { player_id: 1001, name: 'Eigentümer 1001' },
+    };
+    advance(10_000);
+    list([{ ...dom, current_progress: 2_900 }]);
+    await tick();
+    expect(rows()[0]?.getAttribute('data-tip')).not.toContain('Eigentümer:');
+    advance(10_000);
+    open(1909);
+    await tick();
+    expect(rows()[0]?.getAttribute('data-tip')).toMatch(/^Eigentümer: \d[\d.]* FP$/m);
+  });
+
   it('gives a range as profit when not exact and sorts by a clicked column head', async () => {
     const { box, list, rows, cells } = setup();
     list([withRequired(zeus, 80, 20), withRequired(oracle, 100, 30)]);
