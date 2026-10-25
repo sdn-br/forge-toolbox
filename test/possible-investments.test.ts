@@ -87,7 +87,7 @@ describe('possibleViewModel', () => {
   it('shows only hits by default, the best profit on top, and counts hits of all buildings', () => {
     const v = vm([possible, none, safe, unknown]);
     expect(v.rows.map((r) => r.entityId)).toEqual([1, 2]);
-    expect(v.count).toBe('2 Treffer von 4 LGs');
+    expect(v.count).toBe('2 mit Gewinn von 4 LGs');
     expect(v.empty).toBe(false);
   });
 
@@ -114,7 +114,7 @@ describe('possibleViewModel', () => {
     expect(row?.notes).toContain('eventuell gesperrt');
   });
 
-  it('without "nur Treffer" shows the rows without a place, empty and last', () => {
+  it('without "nur mit Gewinn" shows the rows without a place, empty and last', () => {
     const v = vm([none, safe, possible], { onlyHits: false });
     expect(v.rows.map((r) => r.entityId)).toEqual([1, 2, 3]);
     expect(v.rows[2]?.hit).toBeUndefined();
@@ -127,7 +127,7 @@ describe('possibleViewModel', () => {
     const all = [safe, possible, none, unknown];
     expect(vm(all, { player: 'ber', onlyHits: false }).rows.map((r) => r.entityId)).toEqual([2]);
     expect(vm(all, { name: ' leucht', onlyHits: false }).rows.map((r) => r.entityId)).toEqual([4]);
-    expect(vm(all, { player: 'carla' }).count).toBe('0 Treffer von 2 LGs');
+    expect(vm(all, { player: 'carla' }).count).toBe('0 mit Gewinn von 2 LGs');
   });
 
   it('sorts by a clicked column, names from the top, numbers from the largest', () => {
@@ -178,9 +178,9 @@ describe('possibleViewModel', () => {
 
   it('counts hits among the buildings the name and reach filters leave', () => {
     relations[1002] = NONE;
-    expect(vm([safe, possible, none]).count).toBe('1 Treffer von 2 LGs');
-    expect(vm([safe, possible, none], { onlyReachable: false }).count).toBe('2 Treffer von 3 LGs');
-    expect(vm([safe, possible, none], { onlyHits: false }).count).toBe('1 Treffer von 2 LGs');
+    expect(vm([safe, possible, none]).count).toBe('1 mit Gewinn von 2 LGs');
+    expect(vm([safe, possible, none], { onlyReachable: false }).count).toBe('2 mit Gewinn von 3 LGs');
+    expect(vm([safe, possible, none], { onlyHits: false }).count).toBe('1 mit Gewinn von 2 LGs');
   });
 
   it('sorts by reach: the reachable first, unknown before those out of reach', () => {

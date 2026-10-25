@@ -146,7 +146,7 @@ describe('Snipehilfe: stacked box', () => {
     await tick();
     expect(expanded(box)).toBe(false);
     expect(toggle(box)?.textContent).toMatch(
-      /^Mögliche Einzahlungen: 2 Treffer, bester Orakel von Delphi \+97 \(Eigentümer 1001, vor 2 Min\.\)$/,
+      /^Mögliche Einzahlungen: 2 mit Gewinn, bester Orakel von Delphi \+97 \(Eigentümer 1001, vor 2 Min\.\)$/,
     );
     expect(box.root.querySelector('table')).toBeNull();
   });
@@ -158,7 +158,9 @@ describe('Snipehilfe: stacked box', () => {
     await tick();
     toggle(box)?.click();
     await tick();
-    expect(toggle(box)?.textContent).toMatch(/^Mögliche Einzahlungen: kein Treffer \(Eigentümer 1001, vor 1 Min\.\)$/);
+    expect(toggle(box)?.textContent).toMatch(
+      /^Mögliche Einzahlungen: kein LG mit Gewinn \(Eigentümer 1001, vor 1 Min\.\)$/,
+    );
   });
 
   it('folds and unfolds by a click on the line, the heading line too', async () => {
@@ -307,7 +309,7 @@ describe('Snipehilfe: stacked box', () => {
     box.box.open();
     expect(expanded(box)).toBe(true);
     expect(box.text).toContain('Kein LG mit lohnendem Platz.');
-    expect(box.text).toContain('ohne Treffer: 1');
+    expect(box.text).toContain('ohne Gewinn: 1');
   });
 
   it('unfolds the section of an open box even without a hit', async () => {

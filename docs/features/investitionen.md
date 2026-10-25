@@ -39,7 +39,7 @@ Quelle: `GreatBuildingsService.getContributions` (Rathausliste), dazu jedes geö
 Quelle: alle bekannten fremden LGs der Tabelle `greatBuildings`, ohne eigene Beteiligung. Gerechnet wird wie in der Snipehilfe (drei Stufen exakt, sicher, möglich, siehe dort), nur über alle Spieler statt über eine Liste.
 
 - **Spalten:** Merken (Stern), Eigentümer, Erreichbar, LG, Stufe, Fortschritt, Platz, Einsatz, Gewinn, Stufe der Sicherheit, Stand (Alter des Eintrags).
-- **Filter:** Spieler (Teil des Namens), LG (Teil des Namens), nur gemerkte (LG gemerkt oder Eigentümer gemerkt), nur Treffer (Standard an), nur erreichbare (Standard an).
+- **Filter:** Spieler (Teil des Namens), LG (Teil des Namens), nur gemerkte (LG gemerkt oder Eigentümer gemerkt), „nur mit Gewinn“ (Standard an, hieß bis 2026-10-25 „nur Treffer“, Nutzer: „Treffer“ versteht man nicht direkt), nur erreichbare (Standard an).
 - **Sortierung:** Standard nach Gewinn, der beste oben.
 - Der Reiter zeigt den letzten gesehenen Stand. Ob ein gemerktes LG inzwischen reif ist, weiß die Toolbox erst, wenn der Spieler es oder die LG-Liste des Eigentümers öffnet, denn sie fragt nichts im Hintergrund ab. Der Reiter sagt also, wo es sich lohnt vorbeizuschauen.
 - **Umsetzung (erster Schnitt, 2026-10-25):** ohne Merken (Spalte Merken und Filter „nur gemerkte“ folgen später). Die Erreichbarkeit kam danach, siehe [Erreichbarkeit](#erreichbarkeit).
@@ -47,8 +47,8 @@ Quelle: alle bekannten fremden LGs der Tabelle `greatBuildings`, ohne eigene Bet
   - Spalten: Eigentümer (Link zu foestats), LG, Stufe, Fortschritt (wie bei „Meine Investitionen“: „x / y“ mit dünnem Balken, Rest im Tooltip), Platz, Einsatz, Gewinn (Zahl oder Spanne, ≈ bei geschätzter Belohnung), Sicherheit (Icon wie in der Snipehilfe, der Spaltenkopf ein Info-Icon mit dem Wort im Tooltip), Stand. Der Zeilentooltip nennt wie in der Snipehilfe den Platz im schlechtesten Fall und „eventuell gesperrt“.
   - Eigentümernamen: aus dem Player-Store, sonst aus der Rathausliste oder der zuletzt geöffneten LG-Liste des Spielers (nur im Speicher, gilt jetzt für beide Reiter), sonst die ID.
   - Stand: Alter des Eintrags nur in der größten Einheit („vor 3 Std.“, „vor 2 T.“), damit die Spalte schmal bleibt.
-  - Filter über der Tabelle: Spieler und LG (Teil des Namens, Groß- und Kleinschreibung egal), „nur Treffer“ (Standard an). Ohne „nur Treffer“ stehen LGs ohne lohnenden Platz und LGs mit unbekannter Belohnung mit leeren Zellen Platz, Einsatz, Gewinn und Sicherheit da, bei jeder Sortierung nach diesen Spalten unten.
-  - Unter der Tabelle: „12 Treffer von 85 LGs“, gezählt über die LGs, die die Filter Spieler und LG übrig lassen (seit der Erreichbarkeit auch „nur erreichbare“). Ohne bekanntes fremdes LG steht dort ein Hinweis, dass sich der Reiter mit geöffneten LG-Listen anderer Spieler füllt.
+  - Filter über der Tabelle: Spieler und LG (Teil des Namens, Groß- und Kleinschreibung egal), „nur mit Gewinn“ (Standard an). Ohne „nur mit Gewinn“ stehen LGs ohne lohnenden Platz und LGs mit unbekannter Belohnung mit leeren Zellen Platz, Einsatz, Gewinn und Sicherheit da, bei jeder Sortierung nach diesen Spalten unten.
+  - Unter der Tabelle: „12 mit Gewinn von 85 LGs“, gezählt über die LGs, die die Filter Spieler und LG übrig lassen (seit der Erreichbarkeit auch „nur erreichbare“). Ohne bekanntes fremdes LG steht dort ein Hinweis, dass sich der Reiter mit geöffneten LG-Listen anderer Spieler füllt.
   - Sortierung: Standard nach Gewinn im besten Fall, der beste oben (wie in der Snipehilfe). Ein Klick auf einen Spaltenkopf sortiert nach dieser Spalte, Namen von oben, Zahlen, Sicherheit und Stand vom größten bzw. besten oder neuesten.
   - Gemerkt (als Ansichtswahl wie der Modus der Karten): der gewählte Reiter und die Filter. Kommt die Rathausliste, geht die Box weiter auf „Meine Investitionen“ auf. Die Sortierung gilt nur bis zum Neuladen, wie bei „Meine Investitionen“.
   - Lange Listen scrollen in der Box, der Tabellenkopf bleibt stehen. Keine Pfeilknöpfe wie in der Snipehilfe.
@@ -79,8 +79,8 @@ Einzahlen kann man nur in LGs von Nachbarn, Freunden und Gildenmitgliedern. Die 
   - Die Zelle nennt den ersten Grund in fester Reihenfolge Nachbar, Freund, Gilde. Der Tooltip nennt alle Gründe („Nachbar, Gilde“).
   - Nicht erreichbar: „nein“ in der Zelle, „nicht erreichbar“ im Tooltip, die ganze Zeile gedämpft (Klasse `muted`, auch Link und Farbe der Sicherheit). Ausgeschrieben passt „nicht erreichbar“ nicht in die Spalte.
   - Unbekannt: „unbekannt“ in der Zelle, nicht gedämpft. Unbekannt ist ein Eigentümer, den der Player-Store nicht kennt, etwa wenn er nur aus einer LG-Liste bekannt ist.
-  - Filter „nur erreichbare“ neben „nur Treffer“, Standard an, gemerkt mit den anderen Filtern. Unbekannte bleiben drin.
-  - Zählzeile: „X Treffer von Y LGs“ zählt über die LGs, die Spieler, LG und „nur erreichbare“ übrig lassen. Nur „nur Treffer“ macht aus Y die X, so bleibt die Zeile bei jedem Filter gleich gebaut.
+  - Filter „nur erreichbare“ neben „nur mit Gewinn“, Standard an, gemerkt mit den anderen Filtern. Unbekannte bleiben drin.
+  - Zählzeile: „X mit Gewinn von Y LGs“ zählt über die LGs, die Spieler, LG und „nur erreichbare“ übrig lassen. Nur „nur mit Gewinn“ macht aus Y die X, so bleibt die Zeile bei jedem Filter gleich gebaut.
   - Sortierung nach der Spalte: erst Nachbarn, dann Freunde, Gilde, unbekannt, zuletzt nicht erreichbar.
   - Breite: Die Box ist 710 px breit (vorher 640 px), die neue Spalte 70 px. So behalten Eigentümer und LG ihren Platz.
   - Live: Jede Änderung im Player-Store (`player.updated`) zeichnet den Reiter neu, also auch `getSocialList`, `acceptInvitation` und `deleteFriend`.

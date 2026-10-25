@@ -140,10 +140,10 @@ describe('Investitionen: Mögliche Investitionen', () => {
     expect(rows()[1]?.getAttribute('data-tip')).toContain('eventuell gesperrt');
     expect(rows()[0]?.querySelector('td.inv-progress .fp-bar')).not.toBeNull();
     // the lighthouse has no loaded definition: no place
-    expect(box.text).toContain('2 Treffer von 3 LGs');
+    expect(box.text).toContain('2 mit Gewinn von 3 LGs');
   });
 
-  it('shows the rows without a place when "nur Treffer" is off, and remembers the filters and the tab', async () => {
+  it('shows the rows without a place when "nur mit Gewinn" is off, and remembers the filters and the tab', async () => {
     const { box, list, rows, cells, showPossible, input, ui } = setup();
     list([hitZeus(), lighthouse, hitOracle()]);
     await tick();
@@ -160,7 +160,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     name.dispatchEvent(new Event('input'));
     await tick();
     expect(rows().map((r) => cells(r)[2])).toEqual(['Zeusstatue']);
-    expect(box.text).toContain('1 Treffer von 1 LGs');
+    expect(box.text).toContain('1 mit Gewinn von 1 LGs');
     expect(ui.pref('investments.tab')).toBe('possible');
     expect(JSON.parse(ui.pref('investments.filter') ?? '{}')).toEqual({
       player: '',
@@ -300,7 +300,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     send({ requestClass: 'FriendService', requestMethod: 'deleteFriend', requestData: null, responseData: 1001 });
     await tick();
     expect(rows()).toHaveLength(0);
-    expect(box.text).toContain('0 Treffer von 0 LGs');
+    expect(box.text).toContain('0 mit Gewinn von 0 LGs');
     const reachable = box.root.querySelectorAll('input[type=checkbox]')[1] as HTMLInputElement;
     expect(reachable.parentElement?.textContent).toBe('nur erreichbare');
     expect(reachable.checked).toBe(true);
@@ -311,7 +311,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
       ['nein', 'muted'],
       ['nein', 'muted'],
     ]);
-    expect(box.text).toContain('2 Treffer von 2 LGs');
+    expect(box.text).toContain('2 mit Gewinn von 2 LGs');
     expect(JSON.parse(ui.pref('investments.filter') ?? '{}')).toMatchObject({ onlyReachable: false });
     send(friendAccept.accept as Entry);
     await tick();
