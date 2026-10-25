@@ -114,7 +114,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     expect([...box.root.querySelectorAll('thead th')].map((th) => th.getAttribute('aria-label'))).toEqual([
       'Merken',
       'Eigentümer',
-      'Erreichbar',
+      'Beziehung',
       'LG',
       'Stufe',
       'Fortschritt',
@@ -501,14 +501,14 @@ describe('Investitionen: Mögliche Investitionen', () => {
       ['Nachbar', 'true'],
       ['Freund', 'true'],
       ['Gilde', 'true'],
-      ['nicht erreichbar', 'false'],
+      ['keine Beziehung, nicht erreichbar', 'false'],
     ]);
     expect(toggles.every((b) => b.getAttribute('data-tip') === b.getAttribute('aria-label'))).toBe(true);
     (toggles[3] as HTMLButtonElement).click();
     await tick();
     expect(rows().map((r) => [cells(r)[2], r.className])).toEqual([
-      ['nein', 'muted'],
-      ['nein', 'muted'],
+      ['keine', 'muted'],
+      ['keine', 'muted'],
     ]);
     expect(box.text).toContain('2 mit Gewinn von 2 LGs');
     expect(JSON.parse(ui.pref('investments.filter') ?? '{}')).toMatchObject({ reach: { none: true } });

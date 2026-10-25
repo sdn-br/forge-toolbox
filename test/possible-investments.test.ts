@@ -189,7 +189,7 @@ describe('possibleViewModel', () => {
     const all = vm([safe, possible], { reach: EVERY });
     expect(all.rows.map((r) => [r.entityId, r.reach, r.reachTip])).toEqual([
       [1, 'neighbor', 'Nachbar'],
-      [2, 'none', 'nicht erreichbar'],
+      [2, 'none', 'keine Beziehung, nicht erreichbar'],
     ]);
   });
 
