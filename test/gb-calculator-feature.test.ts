@@ -97,15 +97,10 @@ describe('LG-Rechner', () => {
     // place, invested, safe, gross, profit, demand at 90 %, rate; blueprints and medals are not shown
     const cells = (row: Element | undefined) =>
       [...(row?.querySelectorAll('td') ?? [])].map((td) => td.textContent?.trim());
-    expect([...box.root.querySelectorAll('th')].map((th) => th.textContent?.trim())).toEqual([
-      'Platz',
-      'Investiert',
-      'Sicher',
-      'FP',
-      'Gewinn',
-      'Fördern',
-      'Kurs',
-    ]);
+    // the profit head is an icon, its word in the label
+    expect(
+      [...box.root.querySelectorAll('th')].map((th) => th.textContent?.trim() || th.getAttribute('aria-label')),
+    ).toEqual(['Platz', 'Investiert', 'Sicher', 'FP', 'Gewinn', 'Fördern', 'Kurs']);
     expect(cells(rows()[0])).toEqual(['1', '–', '1.406', '1.427', '21', '1.387', '192,6 %']);
     // place 2 costs the same 1406 as place 1, which is better: no safe cost, profit or rate, reward and demand stay
     expect(cells(rows()[1])).toEqual(['2', '–', '–', '714', '–', '694', '–']);

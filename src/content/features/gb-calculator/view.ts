@@ -3,6 +3,7 @@ import { formatNumber, t } from '../../core/texts';
 import type { LevelUpAndFirst } from '../../domain/gb-level-preview';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
 import { fpBar, progressPercent } from '../../ui/fp-bar';
+import { headerIcons } from '../../ui/icons';
 import { levelBar } from '../../ui/level-bar';
 import { externalLink } from '../../ui/links';
 import { starButton } from '../../ui/star';
@@ -181,7 +182,7 @@ function placesTable(places: PlaceRow[]) {
       <th class="num" data-tip=${t('gbCalc.investedHint')}>${t('gbCalc.invested')}</th>
       <th class="num" data-tip=${t('gbCalc.safeHint')}>${t('gbCalc.safe')}</th>
       <th class="num" data-tip=${t('gbCalc.grossHint')}>${t('gbCalc.gross')}</th>
-      <th class="num">${t('gbCalc.profit')}</th>
+      <th class="num" data-tip=${t('gbCalc.profit')} aria-label=${t('gbCalc.profit')}>${headerIcons.profit}</th>
       <th class="num" data-tip=${t('gbCalc.demandHint')}>${t('gbCalc.demand')}</th>
       <th class="num" data-tip=${t('gbCalc.rateHint')}>${t('gbCalc.rate')}</th>
     </tr>
