@@ -1,5 +1,5 @@
 import type { EraId, PlayerId, WorldId } from '../../shared/ids';
-import type { AttackTimer, GuildRef, Player, PlayerSource, Relations } from '../../shared/model';
+import type { AttackTimer, GuildRef, MarkKind, Player, PlayerSource, Relations } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
 
@@ -43,9 +43,13 @@ export class PlayerStore {
     for (const row of rows) {
       const live = this.players.get(row.id);
       if (!live) this.players.set(row.id, row);
-      // the mark is the player's own and the game never reports it, so what the database holds stays
-      else if (row.marked && !live.marked) {
-        this.players.set(row.id, { ...live, marked: true });
+      // the star and the ignore are the player's own and the game never reports them, so what the database holds stays
+      else if ((row.marked && !live.marked) || (row.ignored && !live.ignored)) {
+        this.players.set(row.id, {
+          ...live,
+          ...(row.marked && { marked: true }),
+          ...(row.ignored && { ignored: true }),
+        });
         this.dirty.add(row.id);
         this.scheduleFlush();
       }
@@ -63,12 +67,21 @@ export class PlayerStore {
 
   /** Puts a star on a player or takes it away. Only a player the store knows can be marked; false for any other. */
   setMarked(id: PlayerId, marked: boolean): boolean {
+    return this.setFlag(id, 'marked', marked, 'mark');
+  }
+
+  /** Ignores a player or releases them, with the same rules as the star. */
+  setIgnored(id: PlayerId, ignored: boolean): boolean {
+    return this.setFlag(id, 'ignored', ignored, 'ignore');
+  }
+
+  private setFlag(id: PlayerId, kind: MarkKind, value: boolean, source: 'mark' | 'ignore'): boolean {
     const p = this.players.get(id);
     if (!p) return false;
-    if ((p.marked === true) !== marked) {
-      const { marked: _, ...rest } = p;
-      this.players.set(id, marked ? { ...rest, marked: true } : rest);
-      this.changed(new Set([id]), 'mark');
+    if ((p[kind] === true) !== value) {
+      const { [kind]: _, ...rest } = p;
+      this.players.set(id, value ? { ...rest, [kind]: true } : rest);
+      this.changed(new Set([id]), source);
     }
     return true;
   }
@@ -135,6 +148,7 @@ export class PlayerStore {
       relations: relations ?? old?.relations ?? NO_RELATIONS,
       ...(known && { attack: known }),
       ...(old?.marked && { marked: true }),
+      ...(old?.ignored && { ignored: true }),
       firstSeenAt: old?.firstSeenAt ?? now,
       seenAt: now,
       source,
@@ -142,7 +156,7 @@ export class PlayerStore {
     touched.add(o.id);
   }
 
-  private changed(ids: Set<PlayerId>, source: PlayerSource | 'mark') {
+  private changed(ids: Set<PlayerId>, source: PlayerSource | 'mark' | 'ignore') {
     if (ids.size === 0) return;
     for (const id of ids) this.dirty.add(id);
     this.scheduleFlush();

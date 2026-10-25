@@ -1,6 +1,6 @@
 import type { GreatBuildingListRow } from '../../persistence/great-buildings/contract';
 import type { BuildingDefId, PlayerId, WorldId } from '../../shared/ids';
-import type { KnownGreatBuilding } from '../../shared/model';
+import type { KnownGreatBuilding, MarkKind } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
 import { bestRate, calculateConstruction, type LimitedBonus } from '../domain/gb-calculator';
@@ -15,11 +15,11 @@ export interface GreatBuildingPersistence {
   putContributions(world: WorldId, rows: GreatBuildingListRow[], at: number): Promise<void>;
   /** when the town hall list last came, if ever */
   contributionsAt(world: WorldId): Promise<number | undefined>;
-  /** deletes what was seen before `before`, except buildings with an own contribution and marked ones */
+  /** deletes what was seen before `before`, except buildings with an own contribution, marked and ignored ones */
   prune(world: WorldId, before: number): Promise<void>;
-  /** puts or removes the star of a stored building; false when it is not stored */
-  setMarked(world: WorldId, owner: PlayerId, entityId: number, marked: boolean): Promise<boolean>;
-  marked(world: WorldId): Promise<{ owner: PlayerId; entityId: number }[]>;
+  /** puts or removes the star or the ignore of a stored building; false when it is not stored */
+  setFlag(world: WorldId, owner: PlayerId, entityId: number, flag: MarkKind, value: boolean): Promise<boolean>;
+  flagged(world: WorldId, flag: MarkKind): Promise<{ owner: PlayerId; entityId: number }[]>;
   list(world: WorldId, owner?: PlayerId): Promise<KnownGreatBuilding[]>;
 }
 
@@ -40,8 +40,8 @@ export class GreatBuildingStore {
   private pending: KnownGreatBuilding[] = [];
   private writes: Promise<unknown> = Promise.resolve();
   private flushQueued = false;
-  /** the stars; they change only through `mark`, so memory and database agree */
-  private marks = new Set<string>();
+  /** the stars and the ignores; they change only through `mark` and `ignore`, so memory and database agree */
+  private flags: Record<MarkKind, Set<string>> = { marked: new Set(), ignored: new Set() };
 
   constructor(
     private bus: ToolboxBus,
@@ -52,17 +52,24 @@ export class GreatBuildingStore {
 
   /** Reads when the town hall list came before this page load; a list arriving meanwhile is newer. */
   async load(): Promise<void> {
-    const [at, marked] = await Promise.all([
+    const [at, marked, ignored] = await Promise.all([
       this.persistence.contributionsAt(this.world),
-      this.persistence.marked(this.world),
+      this.persistence.flagged(this.world, 'marked'),
+      this.persistence.flagged(this.world, 'ignored'),
     ]);
     this.listedAt ??= at;
-    for (const m of marked) this.marks.add(key(m.owner, m.entityId));
+    for (const m of marked) this.flags.marked.add(key(m.owner, m.entityId));
+    for (const m of ignored) this.flags.ignored.add(key(m.owner, m.entityId));
   }
 
   /** whether the player put a star on the building */
   isMarked(owner: PlayerId, entityId: number): boolean {
-    return this.marks.has(key(owner, entityId));
+    return this.flags.marked.has(key(owner, entityId));
+  }
+
+  /** whether the player ignores the building */
+  isIgnored(owner: PlayerId, entityId: number): boolean {
+    return this.flags.ignored.has(key(owner, entityId));
   }
 
   /**
@@ -70,15 +77,29 @@ export class GreatBuildingStore {
    * then. A building that is not stored (an own one) takes no star.
    */
   mark(owner: PlayerId, entityId: number, marked: boolean): Promise<void> {
+    return this.setFlag('marked', owner, entityId, marked).then((changed) => {
+      if (changed) this.bus.emit('greatBuilding.marked', { owner, entityId, marked });
+    });
+  }
+
+  /** Ignores the building or releases it, with the same rules as the star. */
+  ignore(owner: PlayerId, entityId: number, ignored: boolean): Promise<void> {
+    return this.setFlag('ignored', owner, entityId, ignored).then((changed) => {
+      if (changed) this.bus.emit('greatBuilding.ignored', { owner, entityId, ignored });
+    });
+  }
+
+  private setFlag(kind: MarkKind, owner: PlayerId, entityId: number, value: boolean): Promise<boolean> {
     return new Promise((resolve) => {
       this.enqueue(async () => {
+        let changed = false;
         try {
-          if (!(await this.persistence.setMarked(this.world, owner, entityId, marked))) return;
-          if (marked) this.marks.add(key(owner, entityId));
-          else this.marks.delete(key(owner, entityId));
-          this.bus.emit('greatBuilding.marked', { owner, entityId, marked });
+          if (!(await this.persistence.setFlag(this.world, owner, entityId, kind, value))) return;
+          if (value) this.flags[kind].add(key(owner, entityId));
+          else this.flags[kind].delete(key(owner, entityId));
+          changed = true;
         } finally {
-          resolve();
+          resolve(changed);
         }
       });
     });
@@ -226,7 +247,7 @@ export class GreatBuildingStore {
     return this.listedAt;
   }
 
-  /** Deletes buildings not seen for `days`, except those with an own contribution and marked ones; run at the start. */
+  /** Deletes buildings not seen for `days`, except those with an own contribution, marked and ignored ones; run at the start. */
   prune(days: number): Promise<void> {
     const before = this.now() - days * DAY;
     this.enqueue(() => this.persistence.prune(this.world, before));

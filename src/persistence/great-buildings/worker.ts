@@ -3,7 +3,7 @@ import type { PlayerId, WorldId } from '../../shared/ids';
 import type { KnownGreatBuilding } from '../../shared/model';
 import type { Handlers } from '../../shared/rpc';
 import type { GreatBuildingListRow, GreatBuildingsApi } from './contract';
-import { applyListRow, hasOwnContribution, withoutOwnContribution } from './merge';
+import { applyListRow, hasOwnContribution, isFlagged, withoutOwnContribution } from './merge';
 
 /** when the town hall list of the own contributions last came in a world */
 export interface GreatBuildingListTimes {
@@ -33,6 +33,7 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables): Handlers<Great
           ...row,
           ...(known[i]?.ownContribution && { ownContribution: true }),
           ...(known[i]?.marked && { marked: true }),
+          ...(known[i]?.ignored && { ignored: true }),
         })),
       );
     },
@@ -46,28 +47,28 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables): Handlers<Great
         (b) => b.ownContribution && !listed.has(`${b.owner}:${b.entityId}`),
       );
       await db.greatBuildings.bulkDelete(
-        gone.filter((b) => !b.marked).map((b): [WorldId, PlayerId, number] => [b.world, b.owner, b.entityId]),
+        gone.filter((b) => !isFlagged(b)).map((b): [WorldId, PlayerId, number] => [b.world, b.owner, b.entityId]),
       );
-      await db.greatBuildings.bulkPut(gone.filter((b) => b.marked).map(withoutOwnContribution));
+      await db.greatBuildings.bulkPut(gone.filter(isFlagged).map(withoutOwnContribution));
       await db.greatBuildingLists.put({ world, contributionsAt: at });
     },
     'greatBuildings.contributionsAt': async ({ world }) => (await db.greatBuildingLists.get(world))?.contributionsAt,
     'greatBuildings.prune': async ({ world, before }) => {
       const stale = (await db.greatBuildings.where('seenAt').below(before).toArray())
-        .filter((b) => b.world === world && !hasOwnContribution(b) && !b.marked)
+        .filter((b) => b.world === world && !hasOwnContribution(b) && !isFlagged(b))
         .map((b): [WorldId, PlayerId, number] => [b.world, b.owner, b.entityId]);
       await db.greatBuildings.bulkDelete(stale);
     },
-    'greatBuildings.setMarked': async ({ world, owner, entityId, marked }) => {
+    'greatBuildings.setFlag': async ({ world, owner, entityId, flag, value }) => {
       const row = await db.greatBuildings.get([world, owner, entityId]);
       if (!row) return false;
-      const { marked: _, ...rest } = row;
-      await db.greatBuildings.put(marked ? { ...rest, marked: true } : rest);
+      const { [flag]: _, ...rest } = row;
+      await db.greatBuildings.put(value ? { ...rest, [flag]: true } : rest);
       return true;
     },
-    'greatBuildings.marked': async ({ world }) =>
+    'greatBuildings.flagged': async ({ world, flag }) =>
       (await db.greatBuildings.where('world').equals(world).toArray())
-        .filter((b) => b.marked)
+        .filter((b) => b[flag])
         .map((b) => ({ owner: b.owner, entityId: b.entityId })),
     'greatBuildings.list': ({ world, owner }) =>
       owner === undefined

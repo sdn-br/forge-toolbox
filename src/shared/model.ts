@@ -16,6 +16,9 @@ export interface Relations {
 
 export type PlayerSource = 'socialList' | 'visit' | 'update' | 'ranking' | 'gbg' | 'event' | 'friend';
 
+/** what the session player may put on a player or a great building: a star, or an ignore */
+export type MarkKind = 'marked' | 'ignored';
+
 /** When the session player may attack or plunder this player again, as the game last reported it. */
 export interface AttackTimer {
   /** a won battle that is not plundered yet (the game's `canSabotage`) */
@@ -38,6 +41,8 @@ export interface Player {
   relations: Relations;
   /** the session player put a star on the player; only the player removes it, never a change of relations */
   marked?: boolean;
+  /** the session player ignores the player: their rows are hidden and do not count; removed only by hand, like `marked` */
+  ignored?: boolean;
   /** missing until a source that carries the timers reported the player */
   attack?: AttackTimer;
   firstSeenAt: number;
@@ -196,6 +201,8 @@ export interface KnownGreatBuilding {
   contribution?: OwnContribution;
   /** the session player marked the building with a star; such a row is never pruned, and only the player removes it */
   marked?: boolean;
+  /** the session player ignores the building; kept and never pruned exactly like `marked` */
+  ignored?: boolean;
   /** the progress (`invested`) when the building was last seen open in the game; growth beyond it means others pay in */
   growthBase?: number;
   /** last seen, in the building or in a list */
