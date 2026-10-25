@@ -1,6 +1,7 @@
 import { html, type TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
 import { formatAge, formatNumber, t } from '../../core/texts';
+import { progressCell, progressPercent } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { profitCell, tierCell } from '../../ui/snipe-hit';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
@@ -37,7 +38,16 @@ const row = (r: SnipeRowVm, actions: SnipeActions) => html`<tr data-tip=${r.note
   <td class="num">${r.order}</td>
   <td class="snipe-name" data-tip=${[r.name, ...r.notes].join('\n')}>${r.name}</td>
   <td class="num">${r.level}</td>
-  <td class="num" data-tip=${[t('snipe.progressHint', { percent: r.percent }), r.ownerShare].filter(Boolean).join('\n')}>${formatNumber(r.invested)} / ${formatNumber(r.required)}</td>
+  ${progressCell(
+    {
+      invested: formatNumber(r.invested),
+      required: formatNumber(r.required),
+      rest: formatNumber(Math.max(0, r.required - r.invested)),
+      percent: progressPercent(r.invested, r.required),
+    },
+    '',
+    r.ownerShare === undefined ? [] : [r.ownerShare],
+  )}
   <td class="num">${t('gb.rank', { rank: r.rank })}</td>
   <td class="num" data-tip=${t('snipe.costHint')}>${formatNumber(r.cost)}</td>
   ${profitCell(r.profit, r.estimate)}

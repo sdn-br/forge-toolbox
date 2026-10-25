@@ -49,8 +49,6 @@ export interface SnipeRowVm {
   level: number;
   invested: number;
   required: number;
-  /** invested in percent of the cost, whole */
-  percent: number;
   rank: number;
   cost: number;
   /** "+85" when exact, "+40 … +310" as a range */
@@ -146,7 +144,6 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     level: h.level,
     invested: h.invested,
     required: h.required,
-    percent: h.required > 0 ? Math.floor((h.invested / h.required) * 100) : 0,
     rank: h.place.rank,
     cost: h.place.cost,
     profit: snipeProfit(h),

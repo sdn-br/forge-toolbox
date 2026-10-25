@@ -227,7 +227,6 @@ export const de = {
   'snipe.collapse': 'Mögliche Einzahlungen zuklappen',
   'snipe.noHit': 'Kein LG mit lohnendem Platz.',
   'snipe.col.order': '#',
-  'snipe.progressHint': '{percent} % der Stufe sind eingezahlt',
   'snipe.costHint': 'Einzahlung insgesamt, mit der der Platz sicher ist',
   'investments.tierFilter.exact': 'exakt',
   'investments.tierFilter.safe': 'sicher',

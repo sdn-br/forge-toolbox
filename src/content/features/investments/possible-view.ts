@@ -1,5 +1,6 @@
 import { html, type TemplateResult } from 'lit-html';
 import { t } from '../../core/texts';
+import { progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { keepKeys } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
@@ -14,7 +15,7 @@ import {
   type Reach,
   TIER_TOGGLES,
 } from './possible-view-model';
-import { type InvestmentsActions, markCell, ownerStar, progressCell, tabs } from './view';
+import { type InvestmentsActions, markCell, ownerStar, tabs } from './view';
 import type { InvestmentsTab } from './view-model';
 
 export interface PossibleActions {

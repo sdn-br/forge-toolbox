@@ -261,6 +261,16 @@ describe('Snipehilfe: stacked box', () => {
     expect(tones()).toBe(1);
   });
 
+  it('shows the progress like the investments: a thin bar under the numbers and the rest in the tooltip', async () => {
+    const { list, rows } = setup();
+    list([withRequired(zeus, 80, 20)]);
+    await tick();
+    const progress = rows()[0]?.querySelectorAll('td')[3] as HTMLElement;
+    expect(progress.querySelector('.fp-bar')).not.toBeNull();
+    expect(progress.dataset.tip).toMatch(/^Fehlt bis zum Level-up: [\d.]+ von [\d.]+ FP$/m);
+    expect(progress.dataset.tip).not.toContain('der Stufe sind eingezahlt');
+  });
+
   it('names the building in the tooltip of its cut name, above the notes of the row', async () => {
     const { box, list, rows } = setup();
     list([hitZeus()]);

@@ -2,7 +2,7 @@ import { html, type TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
 import { t } from '../../core/texts';
 import type { InvestmentStatus } from '../../domain/investments';
-import { fpBar } from '../../ui/fp-bar';
+import { progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { externalLink } from '../../ui/links';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
@@ -46,15 +46,6 @@ export const markCell = (r: { owner: PlayerId; entityId: number; marked: boolean
   html`<td class="inv-mark">${starButton(r.marked, () => mark(r.owner, r.entityId, !r.marked))}</td>`;
 
 /** "x / y" of the level with the thin bar below, the rest to the level up in the tooltip; `extra` goes under the bar */
-export const progressCell = (
-  p: { invested: string; required: string; rest: string; percent: number },
-  extra: TemplateResult | '' = '',
-) => html`<td class="num inv-progress" data-tip=${t('investments.restHint', { rest: p.rest, required: p.required })}>
-    ${p.invested} / ${p.required}
-    ${fpBar(p.percent)}
-    ${extra}
-  </td>`;
-
 const row = (r: InvestmentRowVm, actions: InvestmentsActions) => {
   const status = t(`investments.status.${r.status}`);
   return html`<tr class=${r.growth ? 'grown' : ''}>
