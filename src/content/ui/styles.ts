@@ -199,11 +199,13 @@ th.sortable.asc .sort-level::before { content: ' ▴'; font-size: 1.333em; }
 .snipe-table .c-order { width: 32px; }
 /* sortable heads fit their word, the arrow and a level number (measured: "Stufe ▾2" 56 px, "Einsatz ▾2" 67 px) */
 .snipe-table .c-level, .snipe-table .c-rank { width: 56px; }
-.snipe-table .c-progress { width: 112px; }
+/* measured: "8.371 / 11.122" 83 px, the head "Fortschritt ▾2" 88 px, room up to "19.999 / 24.000" */
+.snipe-table .c-progress { width: 96px; }
 .snipe-table .c-cost { width: 68px; }
 /* the best case only, "≈ +12.345" at most; the range is in the tooltip */
 .snipe-table .c-profit { width: 64px; }
-.snipe-table .c-tier { width: 38px; }
+/* icon heads: icon, arrow and level number 29 px */
+.snipe-table .c-tier { width: 32px; }
 /* the star head with arrow and level number needs 29 px plus 4 px padding */
 .snipe-table .c-mark { width: 34px; }
 .snipe-table td.snipe-name { overflow: hidden; text-overflow: ellipsis; }
@@ -221,7 +223,7 @@ td.snipe-tier.possible { color: #f0a050; }
 .inv-table .c-level, .inv-table .c-rank { width: 56px; }
 .inv-table .c-deposit { width: 90px; }
 .inv-table .c-profit { width: 64px; }
-.inv-table .c-status { width: 38px; }
+.inv-table .c-status { width: 32px; }
 .inv-table .c-progress { width: 104px; }
 .inv-table td.inv-name { overflow: hidden; text-overflow: ellipsis; }
 .inv-table :is(.icon-head, .inv-status, .snipe-tier, .inv-mark) { text-align: center; padding: 0; }
@@ -239,7 +241,7 @@ td.inv-status.unknown { color: #b8a27d; }
 .inv-possible .c-share { width: 50px; }
 .inv-possible .c-cost { width: 68px; }
 .inv-possible .c-gain { width: 64px; }
-.inv-possible .c-tier { width: 38px; }
+.inv-possible .c-tier { width: 32px; }
 .inv-possible .c-seen { width: 72px; }
 .inv-possible .c-reach { width: 70px; }
 .inv-reach svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px; }
