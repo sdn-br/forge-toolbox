@@ -135,6 +135,9 @@ export const investmentsFeature: Feature = {
     const ignorePlayer = (owner: PlayerId, ignored: boolean) => {
       ctx.players.setIgnored(owner, ignored);
     };
+    const markPlayer = (owner: PlayerId, marked: boolean) => {
+      ctx.players.setMarked(owner, marked);
+    };
     const actions: InvestmentsActions = {
       tab: (next) => {
         showTab(next);
@@ -143,6 +146,7 @@ export const investmentsFeature: Feature = {
       mark,
       ignore,
       ignorePlayer,
+      markPlayer,
       sort: (column, append) => {
         sort = nextSort(sort, column, INVESTMENT_DESC_FIRST, append);
         box.update();
@@ -161,6 +165,7 @@ export const investmentsFeature: Feature = {
       mark,
       ignore,
       ignorePlayer,
+      markPlayer,
       sort: (column, append) => {
         possibleSort = nextSort(possibleSort, column, POSSIBLE_DESC_FIRST, append);
         box.update();

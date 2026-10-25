@@ -695,11 +695,11 @@ describe('Investitionen: Merken', () => {
     expect(rows()).toHaveLength(2);
     players.setMarked(playerId(1002), true);
     await tick();
-    // a marked owner carries a star beside the name, the other none
-    const ownerStar = (row: Element | undefined) => row?.querySelector('.inv-owner .owner-star');
+    // a marked owner shows its star on, the other a star off
+    const ownerStar = (row: Element | undefined) => row?.querySelector('.inv-owner button.star');
     const byName = (name: string) => rows().find((r) => cells(r)[3] === name);
-    expect(ownerStar(byName('Orakel von Delphi'))?.getAttribute('aria-label')).toBe('Spieler gemerkt');
-    expect(ownerStar(byName('Zeusstatue'))).toBeNull();
+    expect(ownerStar(byName('Orakel von Delphi'))?.getAttribute('aria-label')).toBe('Nicht mehr merken');
+    expect(ownerStar(byName('Zeusstatue'))?.getAttribute('aria-label')).toBe('Merken');
     (box.root.querySelector('.inv-marked-filter button') as HTMLButtonElement).click();
     await tick();
     expect(rows().map((r) => cells(r)[3])).toEqual(['Orakel von Delphi']);
@@ -707,6 +707,48 @@ describe('Investitionen: Merken', () => {
     players.setMarked(playerId(1001), true);
     await tick();
     expect(rows()).toHaveLength(2);
+  });
+});
+
+describe('Investitionen: Spielerstern in Mögliche Investitionen', () => {
+  it('puts a star toggle before the eye of a known owner, which marks the player and clears an ignore', async () => {
+    const { list, rows, send, showPossible, players, box } = setup();
+    send({
+      requestClass: 'OtherPlayerService',
+      requestMethod: 'getSocialList',
+      requestData: null,
+      responseData: { friends: [{ player_id: 1001, name: 'Eigentümer 1001' }], neighbours: [], guildMembers: [] },
+    });
+    list([hitZeus()], 1001);
+    list([{ ...hitOracle(), player: { player_id: 1002, name: 'Bert' } }], 1002);
+    await tick();
+    await showPossible();
+    const row = (name: string) => rows().find((r) => r.textContent?.includes(name)) as Element;
+    const star = () => row('Zeusstatue').querySelector('.inv-owner button.star') as HTMLButtonElement;
+    expect(star().getAttribute('aria-label')).toBe('Merken');
+    expect(star().getAttribute('aria-pressed')).toBe('false');
+    expect(star().nextElementSibling?.classList.contains('ignore')).toBe(true);
+    star().click();
+    await tick();
+    expect(players.get(playerId(1001))?.marked).toBe(true);
+    expect(star().getAttribute('aria-label')).toBe('Nicht mehr merken');
+    expect(star().classList.contains('on')).toBe(true);
+    // ignoring the marked owner removes the star
+    (row('Zeusstatue').querySelector('.inv-owner button.ignore') as HTMLButtonElement).click();
+    await tick();
+    expect(players.get(playerId(1001))).toMatchObject({ ignored: true });
+    expect(players.get(playerId(1001))).not.toHaveProperty('marked');
+    (box.root.querySelector('.inv-ignored-filter button') as HTMLButtonElement).click();
+    await tick();
+    star().click();
+    await tick();
+    expect(players.get(playerId(1001))).toMatchObject({ marked: true });
+    expect(players.get(playerId(1001))).not.toHaveProperty('ignored');
+    star().click();
+    await tick();
+    expect(players.get(playerId(1001))).not.toHaveProperty('marked');
+    // an owner the store does not know has no star
+    expect(row('Orakel').querySelector('.inv-owner button.star')).toBeNull();
   });
 });
 

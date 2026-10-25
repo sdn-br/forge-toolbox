@@ -26,6 +26,7 @@ export interface PossibleActions {
   mark: InvestmentsActions['mark'];
   ignore: InvestmentsActions['ignore'];
   ignorePlayer: InvestmentsActions['ignorePlayer'];
+  markPlayer: InvestmentsActions['markPlayer'];
   scroll: InvestmentsActions['scroll'];
   measure: InvestmentsActions['measure'];
 }

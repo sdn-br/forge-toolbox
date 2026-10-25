@@ -658,15 +658,40 @@ describe('Investitionen: Filter in Meine Investitionen', () => {
     expect(rows()).toHaveLength(12);
   });
 
-  it('shows a star beside a marked owner', async () => {
-    const { send, rows, players, cells } = setup();
+  it('puts a star toggle before the eye of a known owner, which marks the player and clears an ignore', async () => {
+    const { send, rows, players, cells, box } = setup();
     send(SOCIAL([2005]));
     send(contributions.contributions as Entry);
     await tick();
-    players.setMarked(playerId(2005), true);
+    const first = () => rows().find((r) => cells(r)[1] === 'Eigentümer 2005') as Element;
+    const star = () => first().querySelector('.inv-owner button.star') as HTMLButtonElement;
+    expect(star().getAttribute('aria-label')).toBe('Merken');
+    expect(star().getAttribute('data-tip')).toBe('Merken');
+    expect(star().getAttribute('aria-pressed')).toBe('false');
+    expect(star().nextElementSibling?.classList.contains('ignore')).toBe(true);
+    star().click();
     await tick();
-    const row = rows().find((r) => cells(r)[1] === 'Eigentümer 2005') as Element;
-    expect(row.querySelector('.inv-owner .owner-star')?.getAttribute('aria-label')).toBe('Spieler gemerkt');
+    expect(players.get(playerId(2005))?.marked).toBe(true);
+    expect(star().getAttribute('aria-label')).toBe('Nicht mehr merken');
+    expect(star().classList.contains('on')).toBe(true);
+    // marking and ignoring exclude each other
+    (first().querySelector('.inv-owner button.ignore') as HTMLButtonElement).click();
+    await tick();
+    expect(players.get(playerId(2005))).toMatchObject({ ignored: true });
+    expect(players.get(playerId(2005))).not.toHaveProperty('marked');
+    // the ignored owner's rows are hidden; show them again and mark: the ignore goes
+    (box.root.querySelector('.inv-ignored-filter button') as HTMLButtonElement).click();
+    await tick();
+    star().click();
+    await tick();
+    expect(players.get(playerId(2005))).toMatchObject({ marked: true });
+    expect(players.get(playerId(2005))).not.toHaveProperty('ignored');
+    star().click();
+    await tick();
+    expect(players.get(playerId(2005))).not.toHaveProperty('marked');
+    // an owner the store does not know has no star
+    const unknown = rows().find((r) => cells(r)[1] !== 'Eigentümer 2005') as Element;
+    expect(unknown.querySelector('.inv-owner button.star')).toBeNull();
   });
 });
 

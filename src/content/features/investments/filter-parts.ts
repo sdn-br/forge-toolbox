@@ -6,6 +6,7 @@ import { headerIcons } from '../../ui/icons';
 import { ignoreButton } from '../../ui/ignore';
 import { keepKeys } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
+import { starButton } from '../../ui/star';
 import { picks, REACH_TOGGLES, type Reach, type ReachFilter } from './filter-model';
 
 export const REACH_ICONS: Partial<Record<Reach, TemplateResult>> = {
@@ -19,13 +20,6 @@ export const reachCell = (reach: Reach, reasons: Reach[]) =>
   reach === 'none' || reach === 'unknown'
     ? t(`investments.reach.${reach}`)
     : reasons.map((reason) => REACH_ICONS[reason]);
-
-/** a filled star beside the name of a marked owner; only shown, the star to toggle sits where the player is seen */
-export const ownerStar = (marked: boolean) => {
-  if (!marked) return '';
-  const word = t('investments.ownerMarked');
-  return html`<span class="owner-star" role="img" data-tip=${word} aria-label=${word}>${headerIcons.starFilled}</span>`;
-};
 
 export const text = (value: string, label: string, set: (value: string) => void) =>
   html`<input type="search" placeholder=${label} aria-label=${label} .value=${value}
@@ -92,17 +86,18 @@ export interface OwnerCellActions {
   /** put the owner's name into the "Spieler" filter, as if typed */
   pickPlayer(name: string): void;
   ignorePlayer(owner: PlayerId, ignored: boolean): void;
+  markPlayer(owner: PlayerId, marked: boolean): void;
 }
 
 /**
- * The owner: link, star of a marked owner, then at the right edge the closed eye and the funnel. Both keep their place
- * in every row, so the mouse can run straight down the column.
+ * The owner: link, then at the right edge the star, the closed eye and the funnel. Star and eye only for a player the
+ * store knows. All keep their place in every row, so the mouse can run straight down the column.
  */
 export const ownerCell = (r: OwnerCellRow, playerField: string, actions: OwnerCellActions) =>
-  html`<td class="inv-name" data-tip=${r.ownerName}><span class="inv-owner">${externalLink(r.ownerName, r.ownerUrl)}${ownerStar(r.ownerMarked)}${
+  html`<td class="inv-name" data-tip=${r.ownerName}><span class="inv-owner">${externalLink(r.ownerName, r.ownerUrl)}${
     r.ownerIgnored === undefined
       ? ''
-      : ignoreButton('player', r.ownerIgnored, () => actions.ignorePlayer(r.owner, !r.ownerIgnored))
+      : html`${starButton(r.ownerMarked, () => actions.markPlayer(r.owner, !r.ownerMarked))}${ignoreButton('player', r.ownerIgnored, () => actions.ignorePlayer(r.owner, !r.ownerIgnored))}`
   }${pickButton(r.ownerName, picks(playerField, r.ownerName), actions.pickPlayer)}</span></td>`;
 
 /** the building name with the closed eye at the right edge; `tip` is the name and, when ignored, why */

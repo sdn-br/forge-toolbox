@@ -28,6 +28,8 @@ export interface InvestmentsActions {
   ignore(owner: PlayerId, entityId: number, ignored: boolean): void;
   /** ignores a player or releases them */
   ignorePlayer(owner: PlayerId, ignored: boolean): void;
+  /** puts the star on a player or takes it away */
+  markPlayer(owner: PlayerId, marked: boolean): void;
   sort(column: InvestmentColumn, append: boolean): void;
   filter(patch: Partial<MineFilter>): void;
   /** put the owner's name into the "Spieler" filter, as if typed */

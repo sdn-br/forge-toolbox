@@ -230,12 +230,12 @@ td.snipe-tier.safe { color: #5a9a4a; }
 td.snipe-tier.possible { color: #f0a050; }
 /* investments: fixed columns so heads show whole; owner and building names give way */
 .inv-table { table-layout: fixed; }
-/* the box can be resized: the fixed columns plus at least 106 px for the owner (name, star, eye, funnel) and 116 px for
-   the building (name, eye), "Meine" 506 + 222 px, "Mögliche" 594 + 222 px; narrower, the box scrolls sideways instead of squeezing the
+/* the box can be resized: the fixed columns plus at least 122 px for the owner (name, star, eye, funnel) and 116 px for
+   the building (name, eye), "Meine" 506 + 238 px, "Mögliche" 594 + 238 px; narrower, the box scrolls sideways instead of squeezing the
    names to nothing. debt: the sums are kept by hand. ceiling: a changed column width makes them stale.
    upgrade: compute them from the column widths once those live in one place */
-.inv-table { min-width: 728px; }
-.inv-table.inv-possible { min-width: 816px; }
+.inv-table { min-width: 744px; }
+.inv-table.inv-possible { min-width: 832px; }
 .inv-table .c-mark { width: 34px; }
 .inv-table .c-level, .inv-table .c-rank { width: 56px; }
 .inv-table .c-deposit { width: 90px; }
@@ -289,17 +289,15 @@ td.inv-status.unknown { color: #b8a27d; }
 button.inv-pick { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 16px; height: 16px; margin-left: auto; opacity: 0; color: var(--ink); }
 tr:is(:hover, :focus-within) button.inv-pick { opacity: .7; }
 tr button.inv-pick:is(:hover, :focus-visible), button.inv-pick.on { opacity: 1; color: var(--accent); }
-/* the eye in a row: 16 px at the right edge like the funnel (which then follows it), faint on row hover or focus while not
-   ignored, always in the accent while ignored. Name cells keep the name's ellipsis and give the eye its 16 px */
+/* the star and the eye in a row: 16 px at the right edge like the funnel (which then follows them), faint on row hover or
+   focus while off, always in the accent while on. Name cells keep the name's ellipsis and give them their 16 px */
 .inv-owner .inv-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.inv-owner button.ignore { flex: none; width: 16px; height: 16px; margin-left: auto; opacity: 0; }
-.inv-owner button.ignore svg { width: 12px; height: 12px; }
-.inv-owner button.ignore + button.inv-pick { margin-left: 0; }
-tr:is(:hover, :focus-within) .inv-owner button.ignore { opacity: .7; }
-tr .inv-owner button.ignore:is(:hover, :focus-visible), tr .inv-owner button.ignore.on { opacity: 1; color: var(--accent); }
+.inv-owner :is(button.star, button.ignore) { flex: none; width: 16px; height: 16px; margin-left: auto; opacity: 0; }
+.inv-owner :is(button.star, button.ignore) svg { width: 12px; height: 12px; }
+.inv-owner :is(button.star, button.ignore) + :is(button.ignore, button.inv-pick) { margin-left: 0; }
+tr:is(:hover, :focus-within) .inv-owner :is(button.star, button.ignore) { opacity: .7; }
+tr .inv-owner :is(button.star, button.ignore):is(:hover, :focus-visible), tr .inv-owner :is(button.star, button.ignore).on { opacity: 1; color: var(--accent); }
 .inv-ignored-total svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; }
-.owner-star { flex: none; display: grid; place-items: center; margin-left: 3px; color: var(--accent); }
-.owner-star svg { display: block; width: 11px; height: 11px; }
 button.inv-pick svg { display: block; width: 12px; height: 12px; }
 /* the growth beside the bar; in "Meine" the bar line has one height in every row, so all rows are equally tall and the
    row window counts them right */
