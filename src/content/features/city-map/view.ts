@@ -1,14 +1,12 @@
 import { html, type TemplateResult } from 'lit-html';
 import { ref } from 'lit-html/directives/ref.js';
 import { formatNumber, formatPrice, t } from '../../core/texts';
-import { keepKeys } from '../../ui/inputs';
 import type { Offer, OwnStatsVm } from './stats';
 import type { OwnMapUi, OwnMapVm } from './view-model';
 
 export type MapMark = 'finished' | 'unconnected' | 'free' | 'expansions';
 
 export interface CityMapActions {
-  search(text: string): void;
   toggle(mark: MapMark): void;
   toggleStats(): void;
 }
@@ -108,11 +106,12 @@ function statsPanel(s: OwnStatsVm) {
   </div>`;
 }
 
-/** `map` is the drawn city map with its legend, `stats` the content of the side panel */
+/** `field` is the search field, `map` the drawn city map with its legend, `stats` the content of the side panel */
 export function cityMapView(
   vm: OwnMapVm | undefined,
   ui: OwnMapUi,
   actions: CityMapActions,
+  field?: TemplateResult,
   map?: TemplateResult,
   stats?: OwnStatsVm,
 ): TemplateResult {
@@ -121,9 +120,7 @@ export function cityMapView(
   return html`<div class="map-stats-layout">
     <div class="map-main">
       <p>
-        <input type="search" placeholder=${t('cityMap.search')} .value=${ui.search}
-          @input=${(e: Event) => actions.search((e.target as HTMLInputElement).value)}
-          @keydown=${keepKeys} @keypress=${keepKeys} @keyup=${keepKeys} />
+        ${field ?? ''}
         <span class="matches">${vm.matches === undefined ? '' : t('cityMap.matches', { count: formatNumber(vm.matches) })}</span>
       </p>
       <div class="map-marks">${toggle(ui, 'finished', actions)}${toggle(ui, 'unconnected', actions)}${toggle(ui, 'free', actions)}${toggle(

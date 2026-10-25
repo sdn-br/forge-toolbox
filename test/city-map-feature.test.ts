@@ -1,10 +1,13 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
+import { type Bounds, footprints, gridBounds } from '../src/content/domain/city-grid';
 import { cityMapFeature } from '../src/content/features/city-map/index';
 import { toBuildingDef } from '../src/content/game/building-defs';
 import { toCity, toResearchExpansions } from '../src/content/game/convert';
 import type { GameCityEntity } from '../src/content/game/game-types';
-import type { Building } from '../src/content/stores/city-model';
+import type { Building, City } from '../src/content/stores/city-model';
+import { START_VIEW } from '../src/content/ui/city-map';
+import { project, toScreen } from '../src/content/ui/map-projection';
 import { buildingDefId, playerId, worldId } from '../src/shared/ids';
 import ownCity from './fixtures/own-city.json';
 import { featureContext } from './helpers/feature-context';
@@ -98,28 +101,102 @@ describe('city map feature', () => {
       field.value = text;
       field.dispatchEvent(new Event('input'));
     };
+    const suggestions = (box: ReturnType<typeof setup>['box']) =>
+      [...box.root.querySelectorAll('.suggestions li')].map((li) => li.querySelector('span')?.textContent);
+    const pick = (box: ReturnType<typeof setup>['box'], name: string) => {
+      const li = [...box.root.querySelectorAll('.suggestions li')].find(
+        (l) => l.querySelector('span')?.textContent === name,
+      );
+      if (!li) throw new Error(`no suggestion "${name}"`);
+      (li as HTMLElement).click();
+    };
+    const legend = (box: ReturnType<typeof setup>['box']) => box.root.querySelector('.map-legend')?.textContent ?? '';
+    const shrine = 'Schrein des Wissens';
+    const idsOf = (ctx: ReturnType<typeof setup>['ctx'], name: string) =>
+      [...(ctx.cities.own()?.buildings.values() ?? [])]
+        .filter((b) => ctx.catalog.get(b.def)?.name === name)
+        .map((b) => b.id);
 
-    it('marks the search hits in the game and removes the arrows with an empty search', () => {
+    /**
+     * The pointer over the top left tile of building `id`, in the view from above the map opens with: `click` presses
+     * there, `drag` presses `drag` pixels to the left and lets go there.
+     */
+    const pointAt = (env: ReturnType<typeof setup>, id: number, act: 'hover' | 'click' | number = 'click') => {
+      const canvas = env.box.root.querySelector('canvas') as HTMLCanvasElement;
+      Object.defineProperty(canvas, 'clientWidth', { value: 400, configurable: true });
+      Object.defineProperty(canvas, 'clientHeight', { value: 300, configurable: true });
+      canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 400, height: 300 }) as DOMRect;
+      const city = env.ctx.cities.own() as City;
+      const b = city.buildings.get(id) as Building;
+      const fps = footprints(city.buildings.values(), (d) => env.ctx.catalog.get(d));
+      const bounds = gridBounds([...(city.areas ?? []), ...fps]) as Bounds;
+      const p = project('top', bounds, 400, 300, START_VIEW);
+      const at = toScreen(p, b.x + 0.5, b.y + 0.5);
+      const pointer = (type: string, x: number) =>
+        canvas.dispatchEvent(new PointerEvent(type, { clientX: x, clientY: at.y, bubbles: true }));
+      const drag = typeof act === 'number' ? act : 0;
+      // the pointer comes over the building first, which shows its tooltip
+      pointer('pointermove', at.x - drag);
+      if (act === 'hover') return canvas.dataset.tip;
+      pointer('pointerdown', at.x - drag);
+      if (drag) pointer('pointermove', at.x);
+      pointer('pointerup', at.x);
+      return undefined;
+    };
+    const clickBuilding = (env: ReturnType<typeof setup>, id: number) => pointAt(env, id);
+
+    it('suggests only names of the own city, each with its count, and sets no arrows while typing', () => {
       const { ctx, box, menu, marker } = setup();
       loadOwnCity(ctx);
       menu('cityMap');
-      search(box, 'sakura');
-      const count = Number(box.text.match(/(\d+) Treffer/)?.[1]);
-      expect(count).toBeGreaterThan(0);
+      search(box, 'schrein');
+      expect(suggestions(box)).toEqual([shrine, `${shrine} - St. 2`]);
+      expect(box.root.querySelector('.suggestions')?.textContent).toContain('25');
+      // the substring hits are highlighted and counted, as before
+      expect(box.text).toContain('31 Treffer');
+      expect(box.text).toContain('Suchtreffer');
+      expect(marker.posted).toEqual([]);
+      expect(ctx.markers.current()).toBeUndefined();
+      search(box, 'Burg der Zwerge');
+      expect(suggestions(box)).toEqual([]);
+    });
+
+    it('marks exactly the buildings of a picked name in the map and the game, emptying takes both away', () => {
+      const { ctx, box, menu, marker } = setup();
+      loadOwnCity(ctx);
+      menu('cityMap');
+      search(box, 'schrein');
+      pick(box, shrine);
+      expect(input(box).value).toBe(shrine);
+      expect(box.text).toContain('25 Treffer');
       expect(marker.last).toMatchObject({ type: 'show', settle: false });
-      expect(marker.shown).toHaveLength(count);
+      expect(marker.shown.sort()).toEqual(idsOf(ctx, shrine).sort());
       expect(ctx.markers.current()).toMatchObject({ by: 'cityMap', city: 'own' });
       const first = marker.last?.type === 'show' ? marker.last.spots[0] : undefined;
       expect(first && ctx.cities.own()?.buildings.get(first.id)?.x).toBe(first?.x);
+      expect(legend(box)).toContain('Pfeil im Spiel');
 
-      search(box, 'kein Gebäude heißt so');
-      expect(marker.last?.type).toBe('hide');
-      search(box, 'sakura');
+      // typing again leaves the arrows of the pick until the next pick or an empty field
+      search(box, 'schrein des');
+      expect(box.text).toContain('31 Treffer');
+      expect(marker.shown).toHaveLength(25);
       search(box, '  ');
       expect(marker.last?.type).toBe('hide');
       expect(ctx.markers.current()).toBeUndefined();
-      // the hits stay highlighted in the box only while searching
       expect(box.text).not.toContain('Suchtreffer');
+      expect(legend(box)).not.toContain('Pfeil im Spiel');
+    });
+
+    it('picks with the keyboard', () => {
+      const { ctx, box, menu, marker } = setup();
+      loadOwnCity(ctx);
+      menu('cityMap');
+      search(box, 'schrein');
+      const key = (k: string) => input(box).dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
+      key('ArrowDown');
+      key('Enter');
+      expect(input(box).value).toBe(`${shrine} - St. 2`);
+      expect(marker.shown.sort()).toEqual(idsOf(ctx, `${shrine} - St. 2`).sort());
     });
 
     it('puts no arrows into a visited city and shows them when the own city returns', () => {
@@ -130,25 +207,94 @@ describe('city map feature', () => {
         visit: { neighbor: true, friend: false, guildMember: false },
       });
       menu('cityMap');
-      search(box, 'sakura');
-      expect(box.text).toMatch(/\d+ Treffer/);
+      search(box, 'schrein');
+      pick(box, shrine);
+      expect(box.text).toContain('25 Treffer');
       expect(marker.posted).toEqual([]);
 
       ctx.cities.showOwn();
       expect(marker.last).toMatchObject({ type: 'show', settle: true });
     });
 
-    it('leaves arrows another feature set alone when the search empties', () => {
+    it('marks a clicked building alone, replacing the arrows of the search, and a second click takes it away', () => {
+      const env = setup();
+      const { ctx, box, menu, marker } = env;
+      loadOwnCity(ctx);
+      menu('cityMap');
+      search(box, 'schrein');
+      pick(box, shrine);
+      const [hall] = idsOf(ctx, 'Rathaus') as [number];
+      clickBuilding(env, hall);
+      expect(marker.shown).toEqual([hall]);
+      expect(ctx.markers.current()).toMatchObject({ by: 'cityMap', city: 'own' });
+      // the field keeps its text and the map its hits, the arrow frame marks the clicked building
+      expect(input(box).value).toBe(shrine);
+      expect(box.text).toContain('25 Treffer');
+      expect(legend(box)).toContain('Pfeil im Spiel');
+      expect(pointAt(env, hall, 'hover')).toContain('Klick: Pfeil entfernen');
+      expect(pointAt(env, idsOf(ctx, shrine)[0] as number, 'hover')).toContain('Klick: Pfeil im Spiel');
+
+      // emptying the field takes only arrows of a pick, not the clicked one
+      search(box, '');
+      expect(marker.shown).toEqual([hall]);
+
+      clickBuilding(env, hall);
+      expect(marker.last?.type).toBe('hide');
+      expect(ctx.markers.current()).toBeUndefined();
+      expect(legend(box)).not.toContain('Pfeil im Spiel');
+    });
+
+    it('moves the arrow to another clicked building and ignores a drag of the map', () => {
+      const env = setup();
+      const { ctx, box, menu, marker } = env;
+      loadOwnCity(ctx);
+      menu('cityMap');
+      const [hall] = idsOf(ctx, 'Rathaus') as [number];
+      const [shrineId] = idsOf(ctx, shrine) as [number];
+      pointAt(env, hall, 30);
+      expect(marker.posted).toEqual([]);
+      // the drag panned the map; back to the view the clicks are computed for
+      box.click('Ganze Stadt');
+      clickBuilding(env, hall);
+      clickBuilding(env, shrineId);
+      expect(marker.shown).toEqual([shrineId]);
+    });
+
+    it('leaves arrows another feature set alone, and shows that its own are gone', () => {
+      const env = setup();
+      const { ctx, box, menu, marker } = env;
+      loadOwnCity(ctx);
+      menu('cityMap');
+      search(box, 'schrein');
+      pick(box, shrine);
+      ctx.markers.set('buildingSearch', 'own', [{ id: 1, x: 0, y: 0, width: 1, length: 1 }]);
+      expect(legend(box)).not.toContain('Pfeil im Spiel');
+      // the field still holds the name, its hits stay highlighted
+      expect(box.text).toContain('25 Treffer');
+      search(box, '');
+      expect(marker.last?.type).toBe('show');
+      expect(ctx.markers.current()?.by).toBe('buildingSearch');
+
+      // a click on a building that carries an arrow of another feature marks it for the map
+      const [hall] = idsOf(ctx, 'Rathaus') as [number];
+      clickBuilding(env, hall);
+      expect(ctx.markers.current()).toMatchObject({ by: 'cityMap' });
+      expect(marker.shown).toEqual([hall]);
+    });
+
+    it('lets go of the arrows the viewer dismissed in the game', () => {
       const { ctx, box, menu, marker } = setup();
       loadOwnCity(ctx);
       menu('cityMap');
-      ctx.markers.set('sabotage', 'own', [{ id: 1, x: 0, y: 0, width: 1, length: 1 }]);
+      search(box, 'schrein');
+      pick(box, `${shrine} - St. 2`);
+      marker.dismiss(marker.shown);
+      expect(legend(box)).not.toContain('Pfeil im Spiel');
+      ctx.markers.set('buildingSearch', 'own', [{ id: 1, x: 0, y: 0, width: 1, length: 1 }]);
       search(box, '');
-      expect(marker.last?.type).toBe('show');
-      expect(ctx.markers.current()?.by).toBe('sabotage');
+      expect(ctx.markers.current()?.by).toBe('buildingSearch');
     });
   });
-
   it('switches the marks on and off', () => {
     const { ctx, box, menu } = setup();
     loadOwnCity(ctx);

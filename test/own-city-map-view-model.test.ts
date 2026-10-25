@@ -61,16 +61,23 @@ const tileOf = (vm: ReturnType<typeof ownCityMapViewModel>, x: number, y: number
 describe('own city map view model', () => {
   it('colors buildings by group', () => {
     const vm = ownCityMapViewModel(town, lookup, ui);
-    expect(tileOf(vm, 0, 0)).toMatchObject({ fill: CATEGORY_COLORS.residential, tooltip: 'Strohdachhaus' });
+    expect(tileOf(vm, 0, 0)).toMatchObject({
+      id: 1,
+      fill: CATEGORY_COLORS.residential,
+      tooltip: 'Strohdachhaus\nKlick: Pfeil im Spiel',
+    });
     expect(tileOf(vm, 2, 1)?.fill).toBe(CATEGORY_COLORS.street);
     expect(vm.legend.map((l) => l.label)).toContain('Legendäres Bauwerk');
   });
 
   it('marks finished productions and buildings without road, each switchable', () => {
     const vm = ownCityMapViewModel(town, lookup, ui);
-    expect(tileOf(vm, 2, 0)).toMatchObject({ outline: MARK.finished, tooltip: 'Bauernhof\nProduktion fertig' });
+    expect(tileOf(vm, 2, 0)).toMatchObject({
+      outline: MARK.finished,
+      tooltip: 'Bauernhof\nProduktion fertig\nKlick: Pfeil im Spiel',
+    });
     expect(tileOf(vm, 0, 2)).toMatchObject({ outline: MARK.unconnected, strong: true });
-    expect(tileOf(vm, 0, 2)?.tooltip).toBe('Strohdachhaus\nOhne Straßenanbindung');
+    expect(tileOf(vm, 0, 2)?.tooltip).toBe('Strohdachhaus\nOhne Straßenanbindung\nKlick: Pfeil im Spiel');
     const off = ownCityMapViewModel(town, lookup, { ...ui, finished: false, unconnected: false });
     expect(tileOf(off, 2, 0)?.outline).toBeUndefined();
     expect(tileOf(off, 0, 2)?.outline).toBeUndefined();
@@ -83,6 +90,29 @@ describe('own city map view model', () => {
     expect(tileOf(vm, 0, 0)).toMatchObject({ outline: MARK.search, strong: true, fill: CATEGORY_COLORS.residential });
     expect(tileOf(vm, 2, 0)?.fill).toBe(mutedColor('production'));
     expect(ownCityMapViewModel(town, lookup, ui).matches).toBeUndefined();
+  });
+
+  it('highlights exactly the buildings of a picked name', () => {
+    const vm = ownCityMapViewModel(town, lookup, { ...ui, search: 'Bauernhof', picked: 'Bauernhof' });
+    expect(vm.matches).toBe(1);
+    const partly = ownCityMapViewModel(town, lookup, { ...ui, search: 'Bauer', picked: 'Bauer' });
+    expect(partly.matches).toBe(0);
+  });
+
+  it('frames the buildings with an arrow of the map in the accent, before any other mark', () => {
+    const vm = ownCityMapViewModel(town, lookup, { ...ui, search: 'dach' }, undefined, new Set([1, 3]));
+    expect(tileOf(vm, 0, 0)).toMatchObject({ outline: MARK.arrow, strong: true });
+    expect(tileOf(vm, 0, 2)).toMatchObject({ outline: MARK.arrow, strong: true });
+    expect(tileOf(vm, 2, 0)?.outline).toBe(MARK.finished);
+    expect(vm.legend).toContainEqual({ color: MARK.arrow, label: 'Pfeil im Spiel', outline: true });
+    // a click marks a building alone; on the one that alone carries the arrow it takes the arrow away
+    expect(tileOf(vm, 0, 0)?.tooltip).toContain('Klick: Pfeil im Spiel');
+    const alone = ownCityMapViewModel(town, lookup, ui, undefined, new Set([2]));
+    expect(tileOf(alone, 2, 0)?.tooltip).toBe('Bauernhof\nProduktion fertig\nKlick: Pfeil entfernen');
+    expect(tileOf(alone, 0, 0)?.tooltip).toContain('Klick: Pfeil im Spiel');
+    expect(ownCityMapViewModel(town, lookup, ui, undefined, new Set([99])).legend.map((l) => l.label)).not.toContain(
+      'Pfeil im Spiel',
+    );
   });
 
   it('counts and shows the free tiles of the unlocked areas', () => {
@@ -100,7 +130,7 @@ describe('own city map view model', () => {
     expect(vm.free).toBeUndefined();
     expect(vm.data.marked).toBeUndefined();
     expect(vm.incomplete).toBe(true);
-    expect(tileOf(vm, 0, 0)?.tooltip).toBe('Castle');
+    expect(tileOf(vm, 0, 0)?.tooltip).toBe('Castle\nKlick: Pfeil im Spiel');
   });
 
   it('leaves the groups out of the legend while the statistics show them', () => {
