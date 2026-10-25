@@ -19,6 +19,8 @@ import {
 } from './map-projection';
 
 export interface MapTile extends TileRect {
+  /** the caller's key of the building, handed back on a click */
+  id?: number;
   fill: string;
   /** a frame around the building, for marks and search hits */
   outline?: string;
@@ -58,6 +60,8 @@ export interface CityMapOptions {
   mode?: MapMode;
   /** the viewer switched the mode, to remember it */
   onMode?: (mode: MapMode) => void;
+  /** the viewer clicked a building; dragging the map is no click */
+  onTileClick?: (tile: MapTile) => void;
 }
 
 const BACKGROUND = '#1d140a';
@@ -110,6 +114,7 @@ export class CityMap {
           @pointermove=${(e: PointerEvent) => this.pointerMove(e)}
           @pointerdown=${(e: PointerEvent) => this.pointerDown(e)}
           @pointerup=${(e: PointerEvent) => this.pointerUp(e)}
+          @pointercancel=${(e: PointerEvent) => this.pointerUp(e, false)}
           @pointerleave=${() => this.hover(-1)}
           @wheel=${{ handleEvent: (e: WheelEvent) => this.wheel(e), passive: false }}></canvas>
         <div class="map-tools">
@@ -297,7 +302,8 @@ export class CityMap {
       const dx = at.x - this.drag.x;
       const dy = at.y - this.drag.y;
       if (Math.abs(dx) + Math.abs(dy) > 3) this.drag.moved = true;
-      if (this.drag.moved) {
+      // the whole city shows at zoom 1, there is nothing to pan
+      if (this.drag.moved && this.drag.view.zoom > 1) {
         this.view = { ...this.drag.view, panX: this.drag.view.panX + dx, panY: this.drag.view.panY + dy };
         this.hover(-1);
         this.draw();
@@ -307,16 +313,22 @@ export class CityMap {
     this.hover(this.tileIndexAt(at.x, at.y), at);
   }
 
+  /** a press starts a drag that pans the map once it moves; one that does not move is a click */
   private pointerDown(e: PointerEvent) {
-    if (this.view.zoom <= 1) return;
+    if (e.button !== 0) return;
     const at = this.local(e);
     this.drag = { ...at, view: this.view, moved: false };
     this.canvas?.setPointerCapture?.(e.pointerId);
   }
 
-  private pointerUp(e: PointerEvent) {
+  private pointerUp(e: PointerEvent, click = true) {
+    const drag = this.drag;
     this.drag = undefined;
     if (this.canvas?.hasPointerCapture?.(e.pointerId)) this.canvas.releasePointerCapture(e.pointerId);
+    if (!click || !drag || drag.moved) return;
+    const at = this.local(e);
+    const tile = this.data.tiles[this.tileIndexAt(at.x, at.y)];
+    if (tile) this.options.onTileClick?.(tile);
   }
 
   private hover(index: number, at?: { x: number; y: number }) {
