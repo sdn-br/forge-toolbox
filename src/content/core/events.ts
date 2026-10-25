@@ -40,6 +40,8 @@ export interface ToolboxEvents {
     entityId: number;
     reason: 'entity' | 'ranking' | 'contributed' | 'leveled';
   };
+  /** the player put or removed the star of a stored great building */
+  'greatBuilding.marked': { owner: PlayerId; entityId: number; marked: boolean };
   /** the great building list of another player arrived (not the own one); `at` is when, `entityIds` its buildings */
   'greatBuildings.listed': { owner: PlayerId; ownerName?: string; entityIds: number[]; at: number };
   /**

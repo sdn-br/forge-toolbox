@@ -192,6 +192,8 @@ export interface KnownGreatBuilding {
    * opened building; gone when a building is seen without the own row or on another level
    */
   contribution?: OwnContribution;
+  /** the session player marked the building with a star; such a row is never pruned, and only the player removes it */
+  marked?: boolean;
   /** the progress (`invested`) when the building was last seen open in the game; growth beyond it means others pay in */
   growthBase?: number;
   /** last seen, in the building or in a list */

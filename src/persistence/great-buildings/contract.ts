@@ -17,7 +17,7 @@ export interface GreatBuildingListRow {
 }
 
 export interface GreatBuildingsApi {
-  /** a row of an opened building replaces what was known, except the own contribution mark, which stays */
+  /** a row of an opened building replaces what was known, except the own contribution mark and the star, which stay */
   'greatBuildings.put': { arg: { rows: KnownGreatBuilding[] }; result: undefined };
   /** rows of the great building list of a player, seen at `at`; a row older than what is known changes nothing */
   'greatBuildings.putList': { arg: { world: WorldId; rows: GreatBuildingListRow[]; at: number }; result: undefined };
@@ -31,8 +31,15 @@ export interface GreatBuildingsApi {
   };
   /** when the town hall list last came in the world, if ever */
   'greatBuildings.contributionsAt': { arg: { world: WorldId }; result: number | undefined };
-  /** deletes what was seen before `before`, except buildings with an own contribution */
+  /** deletes what was seen before `before`, except buildings with an own contribution and marked ones */
   'greatBuildings.prune': { arg: { world: WorldId; before: number }; result: undefined };
+  /** puts or removes the star of a stored building; false when no such building is stored */
+  'greatBuildings.setMarked': {
+    arg: { world: WorldId; owner: PlayerId; entityId: number; marked: boolean };
+    result: boolean;
+  };
+  /** the marked buildings of the world */
+  'greatBuildings.marked': { arg: { world: WorldId }; result: { owner: PlayerId; entityId: number }[] };
   /** the known buildings of one owner, or of all owners of the world */
   'greatBuildings.list': { arg: { world: WorldId; owner?: PlayerId }; result: KnownGreatBuilding[] };
 }

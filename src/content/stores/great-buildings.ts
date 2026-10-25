@@ -15,8 +15,11 @@ export interface GreatBuildingPersistence {
   putContributions(world: WorldId, rows: GreatBuildingListRow[], at: number): Promise<void>;
   /** when the town hall list last came, if ever */
   contributionsAt(world: WorldId): Promise<number | undefined>;
-  /** deletes what was seen before `before`, except buildings with an own contribution */
+  /** deletes what was seen before `before`, except buildings with an own contribution and marked ones */
   prune(world: WorldId, before: number): Promise<void>;
+  /** puts or removes the star of a stored building; false when it is not stored */
+  setMarked(world: WorldId, owner: PlayerId, entityId: number, marked: boolean): Promise<boolean>;
+  marked(world: WorldId): Promise<{ owner: PlayerId; entityId: number }[]>;
   list(world: WorldId, owner?: PlayerId): Promise<KnownGreatBuilding[]>;
 }
 
@@ -37,6 +40,8 @@ export class GreatBuildingStore {
   private pending: KnownGreatBuilding[] = [];
   private writes: Promise<unknown> = Promise.resolve();
   private flushQueued = false;
+  /** the stars; they change only through `mark`, so memory and database agree */
+  private marks = new Set<string>();
 
   constructor(
     private bus: ToolboxBus,
@@ -47,8 +52,36 @@ export class GreatBuildingStore {
 
   /** Reads when the town hall list came before this page load; a list arriving meanwhile is newer. */
   async load(): Promise<void> {
-    const at = await this.persistence.contributionsAt(this.world);
+    const [at, marked] = await Promise.all([
+      this.persistence.contributionsAt(this.world),
+      this.persistence.marked(this.world),
+    ]);
     this.listedAt ??= at;
+    for (const m of marked) this.marks.add(key(m.owner, m.entityId));
+  }
+
+  /** whether the player put a star on the building */
+  isMarked(owner: PlayerId, entityId: number): boolean {
+    return this.marks.has(key(owner, entityId));
+  }
+
+  /**
+   * Puts or removes the star. The write queues behind the pending ones, so a building opened a moment ago is stored by
+   * then. A building that is not stored (an own one) takes no star.
+   */
+  mark(owner: PlayerId, entityId: number, marked: boolean): Promise<void> {
+    return new Promise((resolve) => {
+      this.enqueue(async () => {
+        try {
+          if (!(await this.persistence.setMarked(this.world, owner, entityId, marked))) return;
+          if (marked) this.marks.add(key(owner, entityId));
+          else this.marks.delete(key(owner, entityId));
+          this.bus.emit('greatBuilding.marked', { owner, entityId, marked });
+        } finally {
+          resolve();
+        }
+      });
+    });
   }
 
   /** the construction open in the game, or the last one opened */
@@ -193,7 +226,7 @@ export class GreatBuildingStore {
     return this.listedAt;
   }
 
-  /** Deletes buildings not seen for `days`, except those with an own contribution; run at the start. */
+  /** Deletes buildings not seen for `days`, except those with an own contribution and marked ones; run at the start. */
   prune(days: number): Promise<void> {
     const before = this.now() - days * DAY;
     this.enqueue(() => this.persistence.prune(this.world, before));
