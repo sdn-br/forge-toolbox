@@ -64,6 +64,8 @@ describe('PlayerStore', () => {
   it('keeps live data over persisted data when loading late', async () => {
     const old: Player = {
       ...obs(1, 'Old'),
+      score: 1,
+      rank: 1,
       world,
       guild: undefined,
       relations: { neighbor: true, guildMember: false, friend: false },
@@ -76,5 +78,33 @@ describe('PlayerStore', () => {
     await store.load(world);
     expect(store.get(playerId(1))?.name).toBe('New');
     expect(store.get(playerId(9))?.name).toBe('Only persisted');
+  });
+
+  it('sets friend from an accepted invitation, keeps the other relations and what the message lacks', () => {
+    const { store, events } = setup();
+    store.applySocialList(world, { neighbor: [{ ...obs(1), score: 500, rank: 7 }], guildMember: [], friend: [] });
+    const { score: _score, rank: _rank, ...friend } = obs(1, 'Friend');
+    store.addFriend(world, friend);
+    expect(store.get(playerId(1))).toMatchObject({
+      name: 'Friend',
+      score: 500,
+      rank: 7,
+      relations: { neighbor: true, guildMember: false, friend: true },
+      source: 'friend',
+    });
+    expect(events.at(-1)).toEqual({ ids: [playerId(1)], source: 'friend' });
+  });
+
+  it('takes only friend away on a deleted friendship and ignores players it does not know', () => {
+    const { store, events } = setup();
+    store.applySocialList(world, { neighbor: [], guildMember: [obs(1)], friend: [obs(1)] });
+    store.removeFriend(world, playerId(1));
+    expect(store.get(playerId(1))?.relations).toEqual({ neighbor: false, guildMember: true, friend: false });
+    expect(events.at(-1)).toEqual({ ids: [playerId(1)], source: 'friend' });
+    const before = events.length;
+    store.removeFriend(world, playerId(1));
+    store.removeFriend(world, playerId(9));
+    expect(store.get(playerId(9))).toBeUndefined();
+    expect(events).toHaveLength(before);
   });
 });

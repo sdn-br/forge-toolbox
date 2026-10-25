@@ -44,6 +44,8 @@ Je Domäne eine Datei. Für ein Feature nur die Dateien lesen, die es berührt.
 | `OtherPlayerService.visitPlayer` | Player, City | Spieler aktualisieren, besuchte Stadt setzen |
 | `OtherPlayerService.updatePlayer` | Player | Spieler aktualisieren, Angriffs-Zeitgeber setzen |
 | `OtherPlayerService.getCityProtections` (laut alter Toolbox) | CityShield | Schilde ersetzen |
+| `FriendService.acceptInvitation` | Player | neuen Freund aktualisieren, `friend` setzen |
+| `FriendService.deleteFriend` (laut alter Toolbox) | Player | `friend` wegnehmen |
 | `BattlefieldService.startByBattleType` | Battle | eigenen PvP-Angriff speichern, manuellen Kampf bis zum Ende vormerken |
 | `BattlefieldService.*` mit `BattleRealmState` (gesehen: `submitMove`) | Battle | vorgemerkten manuellen Kampf mit dem Ergebnis speichern |
 | `CityMapService.updateEntity`, `reset` | City | eigene oder besuchte Stadt je nach Spieler-ID |

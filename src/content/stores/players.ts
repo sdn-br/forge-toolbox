@@ -10,8 +10,9 @@ export interface PlayerObservation {
   avatar: string;
   cityName: string;
   era: EraId;
-  score: number;
-  rank: number;
+  /** missing keeps what is known, as from an accepted friend invitation */
+  score?: number;
+  rank?: number;
   active: boolean;
   guild: GuildRef | null;
   /** only from sources that carry the whole player with its timers; missing keeps what is known */
@@ -78,6 +79,21 @@ export class PlayerStore {
     this.changed(touched, source);
   }
 
+  /** An accepted friend invitation: the new friend with what the player brings; the other relations stay. */
+  addFriend(world: WorldId, o: PlayerObservation): void {
+    const touched = new Set<PlayerId>();
+    this.merge(world, o, 'friend', { ...(this.players.get(o.id)?.relations ?? NO_RELATIONS), friend: true }, touched);
+    this.changed(touched, 'friend');
+  }
+
+  /** A deleted friendship takes only `friend`; a player the store does not know stays unknown. */
+  removeFriend(world: WorldId, id: PlayerId): void {
+    const p = this.players.get(id);
+    if (!p || p.world !== world || !p.relations.friend) return;
+    this.players.set(id, { ...p, relations: { ...p.relations, friend: false } });
+    this.changed(new Set([id]), 'friend');
+  }
+
   private merge(
     world: WorldId,
     o: PlayerObservation,
@@ -87,10 +103,12 @@ export class PlayerStore {
   ) {
     const old = this.players.get(o.id);
     const now = this.now();
-    const { guild, attack, ...fields } = o;
+    const { guild, attack, score, rank, ...fields } = o;
     const known = attack ?? old?.attack;
     this.players.set(o.id, {
       ...fields,
+      score: score ?? old?.score ?? 0,
+      rank: rank ?? old?.rank ?? 0,
       world,
       guild: guild ?? undefined,
       relations: relations ?? old?.relations ?? NO_RELATIONS,

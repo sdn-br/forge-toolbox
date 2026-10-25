@@ -14,7 +14,7 @@ export interface Relations {
   friend: boolean;
 }
 
-export type PlayerSource = 'socialList' | 'visit' | 'update' | 'ranking' | 'gbg' | 'event';
+export type PlayerSource = 'socialList' | 'visit' | 'update' | 'ranking' | 'gbg' | 'event' | 'friend';
 
 /** When the session player may attack or plunder this player again, as the game last reported it. */
 export interface AttackTimer {

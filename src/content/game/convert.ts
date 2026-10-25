@@ -274,6 +274,25 @@ export function toObservation(p: GamePlayer): PlayerObservation | null {
   };
 }
 
+/** The new friend of an accepted invitation (recorded 2026-10-20): the whole player with `is_friend`, no score or rank. */
+export function toNewFriend(data: unknown): PlayerObservation | null {
+  const p = data as GamePlayer | null;
+  if (!p || typeof p !== 'object' || p.is_friend !== true) return null;
+  const o = toObservation(p);
+  if (!o) return null;
+  const { score, rank, ...rest } = o;
+  return { ...rest, ...(typeof p.score === 'number' && { score }), ...(typeof p.rank === 'number' && { rank }) };
+}
+
+/**
+ * The player of a deleted friendship. Only the old toolbox names the format: the response is the player id. Taken
+ * as well from a list or an object with `player_id`, until a recording shows it.
+ */
+export function toFormerFriend(data: unknown): PlayerId | null {
+  const id = Array.isArray(data) ? data[0] : data && typeof data === 'object' ? (data as GamePlayer).player_id : data;
+  return typeof id === 'number' && Number.isInteger(id) && id > 0 ? playerId(id) : null;
+}
+
 /**
  * The attack timers of a player that the game sends whole. A missing field means it is not set: after a plunder
  * `canSabotage` is gone (seen 2026-10-21), so the player is no longer plunderable.

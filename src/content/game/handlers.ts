@@ -24,6 +24,7 @@ import {
   toBuilding,
   toCity,
   toCityGrid,
+  toFormerFriend,
   toGreatBuildingEntity,
   toGreatBuildingLevelUp,
   toGreatBuildingListRows,
@@ -35,6 +36,7 @@ import {
   toItemUpdates,
   toLimitedBonuses,
   toListOwners,
+  toNewFriend,
   toNextProduction,
   toObservation,
   toObservationWithAttack,
@@ -119,6 +121,21 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
       guildMember: observations(d.guildMembers),
       friend: observations(d.friends),
     });
+  });
+
+  // Single friend messages change only `friend`; the social list stays the full truth. An accepted invitation brings
+  // the new friend as a whole player (recorded 2026-10-20). A deleted friendship answers with the player id, as only
+  // the old toolbox names it.
+  ingestion.on('FriendService', 'acceptInvitation', ({ data }) => {
+    const friend = toNewFriend(data);
+    if (friend) players.addFriend(world, friend);
+  });
+  ingestion.on('FriendService', 'deleteFriend', ({ data, via }) => {
+    // debt: logs every deleteFriend raw. ceiling: console noise once the format is confirmed.
+    // upgrade: remove after the format is confirmed in the game.
+    logInfo('deleteFriend (format unconfirmed)', via, data);
+    const id = toFormerFriend(data);
+    if (id !== null) players.removeFriend(world, id);
   });
 
   ingestion.on('OtherPlayerService', 'visitPlayer', ({ data }) => {
