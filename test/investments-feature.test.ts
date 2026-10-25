@@ -111,7 +111,9 @@ describe('Investitionen box', () => {
     listed(25_002);
     await tick();
     expect(rows()[0]?.classList.contains('grown')).toBe(true);
-    expect(rows()[0]?.querySelector('td.inv-progress .inv-growth')?.textContent).toBe('+400');
+    // the growth sits beside the bar, in the line every row has, so all rows keep one height
+    expect(rows()[0]?.querySelector('td.inv-progress .fp-line .inv-growth')?.textContent).toBe('+400');
+    expect(rows()[0]?.closest('table')?.classList.contains('inv-mine')).toBe(true);
   });
 
   it('shows the age of a town hall list from before a reload', async () => {

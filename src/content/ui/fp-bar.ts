@@ -8,13 +8,13 @@ export const progressPercent = (invested: number, required: number) =>
 
 export const fpBar = (percent: number) => html`<div class="fp-bar"><div style=${`width: ${percent}%`}></div></div>`;
 
-/** a progress cell: "paid in / costs" over the bar, the rest to the level up in the tooltip, below it `notes` */
+/** a progress cell: "paid in / costs" over the bar, `extra` beside the bar (the growth), the rest to the level up in the
+ * tooltip, below it `notes` */
 export const progressCell = (
   p: { invested: string; required: string; rest: string; percent: number },
   extra: TemplateResult | '' = '',
   notes: string[] = [],
 ) => html`<td class="num inv-progress" data-tip=${[t('investments.restHint', { rest: p.rest, required: p.required }), ...notes].join('\n')}>
     ${p.invested} / ${p.required}
-    ${fpBar(p.percent)}
-    ${extra}
+    <div class="fp-line">${fpBar(p.percent)}${extra}</div>
   </td>`;

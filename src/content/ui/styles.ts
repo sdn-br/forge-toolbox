@@ -282,7 +282,12 @@ tr button.inv-pick:is(:hover, :focus-visible), button.inv-pick.on { opacity: 1; 
 .owner-star { flex: none; display: grid; place-items: center; margin-left: 3px; color: var(--accent); }
 .owner-star svg { display: block; width: 11px; height: 11px; }
 button.inv-pick svg { display: block; width: 12px; height: 12px; }
-.inv-growth { color: var(--accent); font-weight: 600; }
+/* the growth beside the bar; in "Meine" the bar line has one height in every row, so all rows are equally tall and the
+   row window counts them right */
+.inv-growth { flex: none; color: var(--accent); font-weight: 600; font-size: 10px; line-height: 1; }
+.fp-line { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+.fp-line .fp-bar { flex: 1 1 auto; margin-top: 0; }
+.inv-mine .fp-line { height: 11px; }
 /* a thin bar under "paid in / costs", filled towards the level up (investments, GB calculator) */
 .fp-bar { height: 3px; margin-top: 2px; background: var(--line); border-radius: 2px; overflow: hidden; }
 .fp-bar > div { height: 100%; background: var(--accent); }

@@ -72,10 +72,10 @@ const row = (r: InvestmentRowVm, playerField: string, actions: InvestmentsAction
   ${progressCell(
     r,
     r.growth
-      ? html`<div class="inv-growth" data-tip=${t('investments.growthHint', { growth: r.growth })}>${t(
+      ? html`<span class="inv-growth" data-tip=${t('investments.growthHint', { growth: r.growth })}>${t(
           'investments.growth',
           { growth: r.growth },
-        )}</div>`
+        )}</span>`
       : '',
   )}
   <td class="num">${t('gb.rank', { rank: r.rank })}</td>
@@ -97,7 +97,7 @@ const table = (vm: InvestmentsVm, actions: InvestmentsActions) =>
     window: vm.scroll,
     scroll: actions.scroll,
     measure: actions.measure,
-    table: html`<table class="gb-table inv-table">
+    table: html`<table class="gb-table inv-table inv-mine">
     <colgroup><col class="c-mark" /><col class="c-owner" /><col class="c-reach" /><col class="c-name" /><col class="c-level" /><col class="c-progress" />
       <col class="c-rank" /><col class="c-deposit" /><col class="c-profit" /><col class="c-status" /></colgroup>
     <thead><tr>${sortHeads(columns, vm.sort, actions.sort)}</tr></thead>
