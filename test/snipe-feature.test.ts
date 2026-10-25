@@ -110,7 +110,11 @@ const withRequired = (r: Row, required: number, invested?: number): Row => ({
 afterEach(() => vi.useRealTimers());
 
 const toggle = (box: { root: ParentNode }) => box.root.querySelector('button.snipe-fold') as HTMLElement | null;
-const expanded = (box: { root: ParentNode }) => toggle(box)?.getAttribute('aria-expanded') === 'true';
+/** the section is open: its fold line says so, or it has no fold line (the calculator shows no building) but its heading */
+const expanded = (box: { root: ParentNode }) => {
+  const line = toggle(box);
+  return line ? line.getAttribute('aria-expanded') === 'true' : box.root.querySelector('.snipe-head') !== null;
+};
 
 const calcToggle = (box: { root: ParentNode }) => box.root.querySelector('button.calc-toggle') as HTMLElement | null;
 const calcOpen = (box: { root: ParentNode }) => calcToggle(box)?.getAttribute('aria-expanded') === 'true';
@@ -130,7 +134,6 @@ describe('LG-Rechner: foldable part of the box', () => {
     advance(10_000);
     open(1909);
     expect(calcBody(box)).toBe(true);
-    expect(calcOpen(box)).toBe(true);
     advance(10_000);
     list([hitZeus()]);
     await tick();
@@ -185,6 +188,54 @@ describe('LG-Rechner: foldable part of the box', () => {
     expect(calcOpen(box)).toBe(false);
   });
 
+  it('keeps one part open: folding the snipe section while the calculator is folded unfolds the calculator', async () => {
+    const { box, list, open, advance } = setup();
+    advance(10_000);
+    open(1909);
+    advance(10_000);
+    list([hitZeus()]);
+    await tick();
+    expect(expanded(box)).toBe(true);
+    expect(calcOpen(box)).toBe(false);
+    toggle(box)?.click();
+    await tick();
+    expect(expanded(box)).toBe(false);
+    expect(calcOpen(box)).toBe(true);
+  });
+
+  it('keeps one part open: folding the calculator while the snipe section is folded unfolds the snipe section', async () => {
+    const { box, list, open, advance } = setup();
+    list([hitZeus()]);
+    await tick();
+    advance(10_000);
+    open(650);
+    await tick();
+    expect(expanded(box)).toBe(false);
+    expect(calcOpen(box)).toBe(true);
+    calcToggle(box)?.click();
+    await tick();
+    expect(calcOpen(box)).toBe(false);
+    expect(expanded(box)).toBe(true);
+  });
+
+  it('has no fold line on the snipe section while the calculator shows no building, it would be the only part', async () => {
+    const { box, list } = setup();
+    list([hitZeus()]);
+    await tick();
+    expect(toggle(box)).toBeNull();
+    expect(box.text).toContain('Mögliche Einzahlungen');
+    expect(box.root.querySelectorAll('.snipe-table tbody tr')).toHaveLength(1);
+  });
+
+  it('has no fold line on the calculator without a list, it is the only part', async () => {
+    const { box, open, advance } = setup();
+    advance(10_000);
+    open(1909);
+    await tick();
+    expect(calcToggle(box)).toBeNull();
+    expect(calcBody(box)).toBe(true);
+  });
+
   it('leaves the snipe section alone when the calculator is toggled', async () => {
     const { box, list, open, advance } = setup();
     advance(10_000);
@@ -222,7 +273,10 @@ describe('Snipehilfe: stacked box', () => {
   });
 
   it('shows one line with count, best hit, owner and age when folded, and the heading when unfolded', async () => {
-    const { box, list, advance } = setup();
+    const { box, list, advance, open } = setup();
+    // a building in the calculator, so the section may fold
+    open(1909);
+    advance(10_000);
     list([hitZeus(), lighthouse, hitOracle()]);
     await tick();
     expect(expanded(box)).toBe(true);
@@ -235,11 +289,14 @@ describe('Snipehilfe: stacked box', () => {
     expect(toggle(box)?.textContent).toMatch(
       /^Mögliche Einzahlungen: 2 mit Gewinn, bester Orakel von Delphi \+97 \(Eigentümer 1001, vor 2 Min\.\)$/,
     );
-    expect(box.root.querySelector('table')).toBeNull();
+    expect(box.root.querySelector('table.snipe-table')).toBeNull();
   });
 
   it('says there is no hit in the folded line', async () => {
-    const { box, list } = setup();
+    const { box, list, open, advance } = setup();
+    // a building in the calculator, so the section may fold
+    open(1909);
+    advance(10_000);
     box.box.open();
     list([withRequired(zeus, 9_000, 400)]);
     await tick();
@@ -251,16 +308,19 @@ describe('Snipehilfe: stacked box', () => {
   });
 
   it('folds and unfolds by a click on the line, the heading line too', async () => {
-    const { box, list } = setup();
+    const { box, list, open, advance } = setup();
+    // a building in the calculator, so the section may fold
+    open(1909);
+    advance(10_000);
     list([hitZeus()]);
     await tick();
-    expect(box.root.querySelector('table')).not.toBeNull();
+    expect(box.root.querySelector('table.snipe-table')).not.toBeNull();
     toggle(box)?.click();
     await tick();
-    expect(box.root.querySelector('table')).toBeNull();
+    expect(box.root.querySelector('table.snipe-table')).toBeNull();
     toggle(box)?.click();
     await tick();
-    expect(box.root.querySelector('table')).not.toBeNull();
+    expect(box.root.querySelector('table.snipe-table')).not.toBeNull();
     expect(expanded(box)).toBe(true);
   });
 
@@ -289,7 +349,10 @@ describe('Snipehilfe: stacked box', () => {
   });
 
   it('stays as the player left it when no list or building comes', async () => {
-    const { box, list, send } = setup();
+    const { box, list, send, open, advance } = setup();
+    // a building in the calculator, so the section may fold
+    open(1909);
+    advance(10_000);
     list([hitZeus()]);
     await tick();
     toggle(box)?.click();

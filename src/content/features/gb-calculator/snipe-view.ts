@@ -114,11 +114,13 @@ const summary = (vm: Extract<SnipeVm, { kind: 'list' }>) => {
     : t('snipe.summaryNone', { owner: vm.owner, duration });
 };
 
-/** The section "Mögliche Einzahlungen" above the calculator; nothing without a list, since there is nothing to fold. */
-export function snipeView(vm: SnipeVm, actions: SnipeActions, expanded: boolean): TemplateResult | '' {
+/** The section "Mögliche Einzahlungen" above the calculator; nothing without a list, since there is nothing to fold.
+ * While the calculator shows no building the section is the only part with content: it stays open, without fold line. */
+export function snipeView(vm: SnipeVm, actions: SnipeActions, expanded: boolean, foldable = true): TemplateResult | '' {
   if (vm.kind === 'none') return '';
-  if (!expanded) return html`${toggle(false, summary(vm), actions)}<hr class="snipe-sep" />`;
-  return html`${toggle(true, html`<span class="gb-title">${t('snipe.heading')}</span>`, actions)}
+  if (foldable && !expanded) return html`${toggle(false, summary(vm), actions)}<hr class="snipe-sep" />`;
+  const heading = html`<span class="gb-title">${t('snipe.heading')}</span>`;
+  return html`${foldable ? toggle(true, heading, actions) : html`<p class="snipe-head">${heading}</p>`}
     <p>${owner(vm.owner, vm.ownerUrl, vm.ownerMarked === undefined ? undefined : { marked: vm.ownerMarked, toggle: (marked) => actions.markPlayer(vm.ownerId, marked) })}${vm.activity ? activityLine(vm.activity) : ''}
     <br /><span class="muted">${t('gb.age', { duration: formatAge(Date.now() - vm.at) })}</span></p>
     ${vm.rows.length === 0 ? html`<p class="muted">${t('snipe.noHit')}</p>` : table(vm, actions)}

@@ -128,12 +128,18 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       let snipeToned: string | undefined;
       /** the calculator is folded to one line; a new list folds it, opening a building unfolds it, else the player */
       let calcFolded = false;
+      /** one part stays open: folding the last open part unfolds the other; without a list the calculator is alone */
+      const hasSection = () => snipeVm.kind !== 'none';
       const calcFold = {
         get folded() {
           return calcFolded;
         },
+        get foldable() {
+          return hasSection();
+        },
         toggle: () => {
           calcFolded = !calcFolded;
+          if (calcFolded && !expanded) expanded = true;
           box.update();
         },
       };
@@ -178,6 +184,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         },
         toggle: () => {
           expanded = !expanded;
+          if (!expanded && calcFolded) calcFolded = false;
           box.update();
         },
         mark: markBuilding,
@@ -192,7 +199,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         width: 602,
         // 6 table rows, the section and the calculator fit without the body scrolling on a normal window
         maxHeight: 0.92,
-        render: () => html`${snipeView(snipeVm, snipeActions, expanded)}${gbCalculatorView(vm, actions, calcFold)}`,
+        render: () =>
+          html`${snipeView(snipeVm, snipeActions, expanded, vm.kind !== 'none' && vm.kind !== 'noEntity')}${gbCalculatorView(vm, actions, calcFold)}`,
       });
 
       const refresh = () => {
