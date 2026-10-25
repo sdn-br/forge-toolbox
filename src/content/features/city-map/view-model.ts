@@ -6,7 +6,7 @@ import { expansionBlocks } from '../../domain/expansions';
 import type { BuildingDef, CityGrid } from '../../stores/catalog';
 import type { City } from '../../stores/city-model';
 import { CATEGORY_COLORS, categoryLegend, mutedColor } from '../../ui/city-colors';
-import type { CityMapData, LegendItem, MapTile } from '../../ui/city-map';
+import type { CityMapData, LegendItem, MapBadge, MapTile } from '../../ui/city-map';
 
 export interface OwnMapUi {
   /** the text of the search field; hits are the names that contain it, a preview while typing */
@@ -81,8 +81,11 @@ export function ownCityMapViewModel(
       tooltip: lines.join('\n'),
     };
     if (selected.has(b.id)) Object.assign(tile, { outline: MARK.selected, strong: true });
-    else if (ui.unconnected && unconnected) Object.assign(tile, { outline: MARK.unconnected, strong: true });
-    else if (ui.finished && finished) Object.assign(tile, { outline: MARK.finished });
+    // states as badges on the building, so frames stay for the selection (Nutzer, 2026-10-26)
+    const badges: MapBadge[] = [];
+    if (ui.finished && finished) badges.push({ color: MARK.finished, symbol: 'check' });
+    if (ui.unconnected && unconnected) badges.push({ color: MARK.unconnected, symbol: 'cross' });
+    if (badges.length > 0) tile.badges = badges;
     return tile;
   });
   const free = city.areas && freeTiles(city.areas, fps);
@@ -101,8 +104,8 @@ export function ownCityMapViewModel(
   const legend: LegendItem[] = [
     ...(ui.stats ? [] : categoryLegend()),
     ...(selecting ? [{ color: MARK.selected, label: t('cityMap.selected'), outline: true }] : []),
-    ...(ui.finished ? [{ color: MARK.finished, label: t('cityMap.finished'), outline: true }] : []),
-    ...(ui.unconnected ? [{ color: MARK.unconnected, label: t('cityMap.unconnected'), outline: true }] : []),
+    ...(ui.finished ? [{ color: MARK.finished, label: t('cityMap.finished'), symbol: 'check' as const }] : []),
+    ...(ui.unconnected ? [{ color: MARK.unconnected, label: t('cityMap.unconnected'), symbol: 'cross' as const }] : []),
     ...(free && ui.free ? [{ color: MARK.free, label: t('cityMap.free') }] : []),
     ...(blocks
       ? [

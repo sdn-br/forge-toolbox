@@ -1,6 +1,6 @@
 // City map: draws a grid with its buildings from plain data. Colors, marks and tooltips come from the caller;
 // the map knows nothing about building types or plundering.
-import { html, type TemplateResult } from 'lit-html';
+import { html, svg, type TemplateResult } from 'lit-html';
 import { ref } from 'lit-html/directives/ref.js';
 import { t } from '../core/texts';
 import { type Bounds, gridBounds, type Tile, type TileRect } from '../domain/city-grid';
@@ -26,8 +26,16 @@ export interface MapTile extends TileRect {
   outline?: string;
   /** a thick frame */
   strong?: boolean;
+  /** small symbols in the middle of the building, side by side; they keep the frames free for the selection */
+  badges?: MapBadge[];
   /** shown on hover; lines separated by `\n` */
   tooltip: string;
+}
+
+/** a round symbol: `check` a tick, `cross` a struck circle */
+export interface MapBadge {
+  color: string;
+  symbol: 'check' | 'cross';
 }
 
 export interface CityMapData {
@@ -54,6 +62,8 @@ export interface LegendItem {
   label: string;
   /** shown as a frame instead of a filled square */
   outline?: boolean;
+  /** shown as this badge instead of a filled square */
+  symbol?: MapBadge['symbol'];
 }
 
 export interface CityMapOptions {
@@ -71,11 +81,25 @@ const ZOOM_STEP = 1.25;
 /** a city opens, and the reset button returns, five zoom steps in from the whole map, centered */
 export const START_VIEW: MapView = { zoom: ZOOM_STEP ** 5, panX: 0, panY: 0 };
 
+/** the badge of the map as a legend swatch, drawn on the same 10 px as the others */
+const badgeSwatch = (color: string, symbol: MapBadge['symbol']) =>
+  html`<svg class="swatch badge" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4.2" fill=${BACKGROUND}
+    stroke=${color} stroke-width="1.2"/>${
+      symbol === 'check'
+        ? svg`<path d="M3 5.1l1.4 1.5L7 3.8" fill="none" stroke=${color} stroke-width="1.3" stroke-linecap="round"
+            stroke-linejoin="round"/>`
+        : svg`<path d="M3.2 6.8 6.8 3.2" stroke=${color} stroke-width="1.3" stroke-linecap="round"/>`
+    }</svg>`;
+
 export const legendView = (items: LegendItem[]) =>
   html`<ul class="map-legend">${items.map(
     (i) =>
-      html`<li><span class=${i.outline ? 'swatch outline' : 'swatch'}
-        style=${i.outline ? `border-color:${i.color}` : `background:${i.color}`}></span>${i.label}</li>`,
+      html`<li>${
+        i.symbol
+          ? badgeSwatch(i.color, i.symbol)
+          : html`<span class=${i.outline ? 'swatch outline' : 'swatch'}
+              style=${i.outline ? `border-color:${i.color}` : `background:${i.color}`}></span>`
+      }${i.label}</li>`,
   )}</ul>`;
 
 /**
@@ -240,10 +264,42 @@ export class CityMap {
     this.shape(ctx, p, tile, tile.fill);
     // every building keeps a dark border, thinner while the map is small (Nutzer, 2026-10-26)
     this.outline(ctx, p, tile, BACKGROUND, gaps ? 1 : 0.5);
+    if (tile.badges) this.badges(ctx, p, tile, tile.badges);
     if (!tile.outline) return;
     // a strong frame gets a dark seam, so a light frame shows on a light fill too
     if (tile.strong) this.outline(ctx, p, tile, BACKGROUND, 5);
     this.outline(ctx, p, tile, tile.outline, tile.strong ? 3 : 1.5);
+  }
+
+  /** the badges side by side in the middle of the building, sized to it within limits */
+  private badges(ctx: CanvasRenderingContext2D, p: Projection, r: TileRect, badges: MapBadge[]) {
+    const mid = toScreen(p, r.x + r.width / 2, r.y + r.length / 2);
+    const side = Math.min(r.width, r.length) * p.scale * (this.mode === 'iso' ? 0.7 : 1);
+    const radius = Math.max(2.5, Math.min(9, side * 0.16));
+    const line = Math.max(1, radius * 0.28);
+    badges.forEach((b, i) => {
+      const x = mid.x + (i - (badges.length - 1) / 2) * radius * 2.6;
+      const y = mid.y;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = BACKGROUND;
+      ctx.fill();
+      ctx.strokeStyle = b.color;
+      ctx.lineWidth = line;
+      ctx.stroke();
+      ctx.beginPath();
+      if (b.symbol === 'check') {
+        ctx.moveTo(x - radius * 0.45, y);
+        ctx.lineTo(x - radius * 0.13, y + radius * 0.35);
+        ctx.lineTo(x + radius * 0.47, y - radius * 0.35);
+      } else {
+        ctx.moveTo(x - radius * 0.5, y + radius * 0.5);
+        ctx.lineTo(x + radius * 0.5, y - radius * 0.5);
+      }
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+    });
   }
 
   private path(ctx: CanvasRenderingContext2D, p: Projection, r: TileRect, inset = 0) {

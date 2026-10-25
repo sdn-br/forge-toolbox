@@ -161,6 +161,7 @@ button.marker.dim { opacity: .3; }
 .map-legend .swatch { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: -1px;
   border: 2px solid transparent; }
 .map-legend .swatch.outline { background: none; }
+.map-legend .swatch.badge { border: none; background: none; }
 .map-stats-layout { display: flex; align-items: flex-start; gap: 6px; }
 .map-main { flex: 1; min-width: 0; }
 /* docked: the statistics hang out of the side of the box and leave the map whole; the body's overflow does not clip

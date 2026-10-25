@@ -70,28 +70,35 @@ describe('own city map view model', () => {
     expect(vm.legend.map((l) => l.label)).toContain('Legendäres Bauwerk');
   });
 
-  it('marks finished productions and buildings without road, each switchable', () => {
+  it('marks finished productions and buildings without road with badges, each switchable', () => {
     const vm = ownCityMapViewModel(town, lookup, ui);
     expect(tileOf(vm, 2, 0)).toMatchObject({
-      outline: MARK.finished,
+      badges: [{ color: MARK.finished, symbol: 'check' }],
       tooltip: 'Bauernhof\nProduktion fertig\nKlick: nur dieses auswählen, Umschalt+Klick: hinzufügen/entfernen',
     });
-    expect(tileOf(vm, 0, 2)).toMatchObject({ outline: MARK.unconnected, strong: true });
+    expect(tileOf(vm, 0, 2)).toMatchObject({ badges: [{ color: MARK.unconnected, symbol: 'cross' }] });
+    expect(tileOf(vm, 0, 2)?.outline).toBeUndefined();
     expect(tileOf(vm, 0, 2)?.tooltip).toBe(
       'Strohdachhaus\nOhne Straßenanbindung\nKlick: nur dieses auswählen, Umschalt+Klick: hinzufügen/entfernen',
     );
     const off = ownCityMapViewModel(town, lookup, { ...ui, finished: false, unconnected: false });
-    expect(tileOf(off, 2, 0)?.outline).toBeUndefined();
-    expect(tileOf(off, 0, 2)?.outline).toBeUndefined();
-    expect(off.legend.some((l) => l.outline)).toBe(false);
+    expect(tileOf(off, 2, 0)?.badges).toBeUndefined();
+    expect(tileOf(off, 0, 2)?.badges).toBeUndefined();
+    expect(off.legend.some((l) => l.symbol)).toBe(false);
+    expect(vm.legend).toContainEqual({ color: MARK.finished, label: 'Produktion fertig', symbol: 'check' });
   });
 
   it('frames the selected buildings light, before any other mark, and mutes the rest', () => {
     const vm = ownCityMapViewModel(town, lookup, ui, undefined, new Set([1, 2]));
     expect(tileOf(vm, 0, 0)).toMatchObject({ outline: MARK.selected, strong: true, fill: CATEGORY_COLORS.residential });
     expect(tileOf(vm, 2, 0)).toMatchObject({ outline: MARK.selected, strong: true, fill: CATEGORY_COLORS.production });
-    // the other house is not selected: muted, and still framed as without road
-    expect(tileOf(vm, 0, 2)).toMatchObject({ outline: MARK.unconnected, fill: mutedColor('residential') });
+    // the other house is not selected: muted, its badge stays
+    expect(tileOf(vm, 0, 2)).toMatchObject({
+      badges: [{ color: MARK.unconnected, symbol: 'cross' }],
+      fill: mutedColor('residential'),
+    });
+    // a selected building keeps its badge under the frame
+    expect(tileOf(vm, 2, 0)?.badges).toEqual([{ color: MARK.finished, symbol: 'check' }]);
     expect(vm.legend).toContainEqual({ color: MARK.selected, label: 'Ausgewählt (Pfeil im Spiel)', outline: true });
     const none = ownCityMapViewModel(town, lookup, ui, undefined, new Set([99]));
     expect(none.legend.map((l) => l.label)).not.toContain('Ausgewählt (Pfeil im Spiel)');
