@@ -113,6 +113,8 @@ button.marker svg { display: block; width: 14px; height: 14px; }
 tr.battle-row { cursor: pointer; }
 tr.plunder-row { cursor: pointer; }
 tr.plunder-row:hover, tr.plunder-row:focus-visible { background: #3a2a16; outline: none; }
+/* the row whose building carries the arrow in the game */
+tr.plunder-row.marked { background: #3a2a16; box-shadow: inset 3px 0 var(--accent); }
 tr.battle-row.expanded, tr.details { background: #3a2a16; }
 .battle p { margin: 2px 0 4px; }
 details { margin: 6px 0; }

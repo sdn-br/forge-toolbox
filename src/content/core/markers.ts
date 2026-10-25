@@ -1,7 +1,7 @@
 // Which buildings carry an arrow in the game view. One marking at a time: a new one replaces the old, whoever set it.
 // A marking belongs to a city and shows only while the game shows that city (CityStore.shown). The marker module in
 // the page draws it and reports the arrows the viewer dismissed there.
-import { MARKER_TAG, type MarkerCommand, type MarkerSpot } from '../../shared/marker-protocol';
+import { MARKER_TAG, MAX_MARKERS, type MarkerCommand, type MarkerSpot } from '../../shared/marker-protocol';
 import type { CityKey } from '../stores/cities';
 import type { ToolboxBus } from './events';
 import { t } from './texts';
@@ -47,14 +47,18 @@ export class Markers {
     return m?.by === by && m.city === city && m.spots.some((s) => s.id === id);
   }
 
-  /** Arrows on these buildings of `city`, replacing any marking. None clears what `by` marked. */
+  /**
+   * Arrows on these buildings of `city`, replacing any marking; beyond the first MAX_MARKERS none. None clears what
+   * `by` marked.
+   */
   set(by: string, city: CityKey, spots: MarkerSpot[]): void {
     if (spots.length === 0) {
       this.clear(by);
       return;
     }
     this.seq++;
-    this.marking = { by, city, spots: spots.map(({ id, x, y, width, length }) => ({ id, x, y, width, length })) };
+    const kept = spots.slice(0, MAX_MARKERS).map(({ id, x, y, width, length }) => ({ id, x, y, width, length }));
+    this.marking = { by, city, spots: kept };
     this.sync(false);
     this.bus.emit('markers.changed', {});
   }

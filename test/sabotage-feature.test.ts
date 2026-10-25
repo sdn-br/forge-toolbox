@@ -2,7 +2,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { sabotageFeature } from '../src/content/features/sabotage/index';
 import { type BattlePersistence, BattleStore } from '../src/content/stores/battles';
+import type { BuildingDef } from '../src/content/stores/catalog';
 import type { VisitedCity } from '../src/content/stores/cities';
+import type { Building } from '../src/content/stores/city-model';
 import type { PlayerObservation } from '../src/content/stores/players';
 import { buildingDefId, eraId, guildId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { AttackTimer, Battle, IncomingAttack, Plunder } from '../src/shared/model';
@@ -89,6 +91,50 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+const houseDef = (id: string, name: string): BuildingDef => ({
+  id: buildingDefId(id),
+  name,
+  generic: false,
+  size: { width: 2, length: 2 },
+  flags: { motivatable: false, polishable: false, plunderable: true },
+  boostsByEra: {},
+  productByEra: {},
+});
+
+const house = (id: number, owner: number, def: string, x: number, resources?: Record<string, number>): Building => ({
+  id,
+  owner: playerId(owner),
+  def: buildingDefId(def),
+  type: 'residential',
+  x,
+  y: 0,
+  connected: true,
+  state: resources ? { kind: 'finished', product: { resources } } : { kind: 'idle' },
+});
+
+const withBuildings = (owner: number, buildings: Building[]): VisitedCity => ({
+  ...city(owner),
+  buildings: new Map(buildings.map((b) => [b.id, b])),
+});
+
+/** the sabotage feature with a catalog for two plunderable houses, and the rows of "Jetzt plünderbar" */
+function markSetup() {
+  const env = setup();
+  env.ctx.catalog.add(houseDef('Coins', 'Münzhaus'));
+  env.ctx.catalog.add(houseDef('Points', 'Punktehaus'));
+  const row = (name: string) =>
+    [...env.box.root.querySelectorAll('tr.plunder-row')].find((r) => r.textContent?.includes(name)) as HTMLElement;
+  const marked = () =>
+    [...env.box.root.querySelectorAll('tr.plunder-row.marked')].map((r) => r.querySelector('td')?.textContent);
+  return { ...env, row, marked };
+}
+
+const coinsAndPoints = (owner: number) =>
+  withBuildings(owner, [
+    house(5, owner, 'Coins', 0, { money: 900 }),
+    house(6, owner, 'Points', 4, { strategy_points: 3 }),
+  ]);
+
 describe('sabotage feature', () => {
   it.each([
     ['older lookup resolves last', [2, 1]],
@@ -149,6 +195,89 @@ describe('sabotage feature', () => {
     ctx.cities.setVisited(city(1));
     await tick();
     expect(box.root.querySelector('button.star')).toBeNull();
+  });
+
+  describe('arrows from the plunderable rows', () => {
+    it('sets an arrow on the building of a row, moves it to the next row and takes it away on the same row', async () => {
+      const { ctx, box, marker, row, marked } = markSetup();
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      expect([...box.root.querySelectorAll('tr.plunder-row')].map((r) => r.className)).toEqual([
+        'plunder-row',
+        'plunder-row muted',
+      ]);
+      expect(row('Münzhaus').dataset.tip).toBe('Im Spiel mit einem Pfeil zeigen');
+
+      row('Münzhaus').click();
+      expect(marker.last).toMatchObject({ type: 'show', spots: [{ id: 5, x: 0, y: 0, width: 2, length: 2 }] });
+      expect(ctx.markers.current()?.city).toBe(playerId(1));
+      expect(marked()).toEqual(['Münzhaus']);
+      expect(row('Münzhaus').getAttribute('aria-pressed')).toBe('true');
+      expect(row('Münzhaus').dataset.tip).toBe('Pfeil im Spiel entfernen');
+
+      row('Punktehaus').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      expect(marker.shown).toEqual([6]);
+      expect(marked()).toEqual(['Punktehaus']);
+
+      row('Punktehaus').click();
+      expect(marker.last?.type).toBe('hide');
+      expect(marked()).toEqual([]);
+      expect(row('Punktehaus').getAttribute('aria-pressed')).toBe('false');
+    });
+
+    it('unmarks the row when the arrow is dismissed in the game', async () => {
+      const { ctx, marker, row, marked } = markSetup();
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      row('Münzhaus').click();
+      marker.dismiss([5]);
+      expect(ctx.markers.current()).toBeUndefined();
+      expect(marked()).toEqual([]);
+      // the next click sets it again
+      row('Münzhaus').click();
+      expect(marked()).toEqual(['Münzhaus']);
+    });
+
+    it('drops the arrow when another city is visited and keeps it for the same city', async () => {
+      const { ctx, marker, row, marked } = markSetup();
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      row('Münzhaus').click();
+
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      expect(marked()).toEqual(['Münzhaus']);
+
+      ctx.cities.setVisited(coinsAndPoints(2));
+      await tick();
+      expect(marker.last?.type).toBe('hide');
+      expect(ctx.markers.current()).toBeUndefined();
+      expect(marked()).toEqual([]);
+    });
+
+    it('hides the arrow at home and leaves an arrow set elsewhere alone on a visit', async () => {
+      const { ctx, marker, row } = markSetup();
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      row('Münzhaus').click();
+      ctx.cities.showOwn();
+      expect(marker.last?.type).toBe('hide');
+      expect(ctx.markers.current()?.city).toBe(playerId(1));
+
+      ctx.markers.set('cityMap', 'own', [{ id: 9, x: 0, y: 0, width: 1, length: 1 }]);
+      ctx.cities.setVisited(coinsAndPoints(2));
+      expect(ctx.markers.current()?.by).toBe('cityMap');
+    });
+
+    it('sets no arrow for a building without a place on the grid', async () => {
+      const { ctx, marker, row } = markSetup();
+      const city = coinsAndPoints(1);
+      const ship = { ...house(5, 1, 'Coins', 0, { money: 900 }), type: 'off_grid' };
+      ctx.cities.setVisited({ ...city, buildings: new Map([[5, ship]]) });
+      await tick();
+      row('Münzhaus').click();
+      expect(marker.posted).toEqual([]);
+    });
   });
 
   it('shows the last battle when the city did not change meanwhile', async () => {

@@ -92,6 +92,63 @@ describe('city map feature', () => {
     expect(reached).toBe(false);
   });
 
+  describe('arrows in the game', () => {
+    const search = (box: ReturnType<typeof setup>['box'], text: string) => {
+      const field = input(box);
+      field.value = text;
+      field.dispatchEvent(new Event('input'));
+    };
+
+    it('marks the search hits in the game and removes the arrows with an empty search', () => {
+      const { ctx, box, menu, marker } = setup();
+      loadOwnCity(ctx);
+      menu('cityMap');
+      search(box, 'sakura');
+      const count = Number(box.text.match(/(\d+) Treffer/)?.[1]);
+      expect(count).toBeGreaterThan(0);
+      expect(marker.last).toMatchObject({ type: 'show', settle: false });
+      expect(marker.shown).toHaveLength(count);
+      expect(ctx.markers.current()).toMatchObject({ by: 'cityMap', city: 'own' });
+      const first = marker.last?.type === 'show' ? marker.last.spots[0] : undefined;
+      expect(first && ctx.cities.own()?.buildings.get(first.id)?.x).toBe(first?.x);
+
+      search(box, 'kein Gebäude heißt so');
+      expect(marker.last?.type).toBe('hide');
+      search(box, 'sakura');
+      search(box, '  ');
+      expect(marker.last?.type).toBe('hide');
+      expect(ctx.markers.current()).toBeUndefined();
+      // the hits stay highlighted in the box only while searching
+      expect(box.text).not.toContain('Suchtreffer');
+    });
+
+    it('puts no arrows into a visited city and shows them when the own city returns', () => {
+      const { ctx, box, menu, marker } = setup();
+      loadOwnCity(ctx);
+      ctx.cities.setVisited({
+        ...toCity(worldId('de20'), playerId(5), 'ColonialAge', { entities: [] }, 0),
+        visit: { neighbor: true, friend: false, guildMember: false },
+      });
+      menu('cityMap');
+      search(box, 'sakura');
+      expect(box.text).toMatch(/\d+ Treffer/);
+      expect(marker.posted).toEqual([]);
+
+      ctx.cities.showOwn();
+      expect(marker.last).toMatchObject({ type: 'show', settle: true });
+    });
+
+    it('leaves arrows another feature set alone when the search empties', () => {
+      const { ctx, box, menu, marker } = setup();
+      loadOwnCity(ctx);
+      menu('cityMap');
+      ctx.markers.set('sabotage', 'own', [{ id: 1, x: 0, y: 0, width: 1, length: 1 }]);
+      search(box, '');
+      expect(marker.last?.type).toBe('show');
+      expect(ctx.markers.current()?.by).toBe('sabotage');
+    });
+  });
+
   it('switches the marks on and off', () => {
     const { ctx, box, menu } = setup();
     loadOwnCity(ctx);

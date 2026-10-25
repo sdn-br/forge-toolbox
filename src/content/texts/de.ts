@@ -29,6 +29,8 @@ export const de = {
   'sabotage.defense': 'Verteidigung',
   'sabotage.plunderRepel': 'Plünderabwehr',
   'sabotage.plunderable': 'Jetzt plünderbar',
+  'sabotage.markInGame': 'Im Spiel mit einem Pfeil zeigen',
+  'sabotage.unmarkInGame': 'Pfeil im Spiel entfernen',
   'sabotage.nothingPlunderable': 'Nichts Plünderbares.',
   'sabotage.notLootable': 'Diese Stadt kannst du nicht plündern.',
   'sabotage.incomplete': 'Noch nicht alle Gebäudedaten geladen, Werte können fehlen.',

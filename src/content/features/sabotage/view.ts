@@ -31,11 +31,34 @@ function armyTable(army: NonNullable<SabotageVm['army']>, repel: number, measure
   ${measured ? html`<p class="muted">${t('sabotage.measuredHint')}</p>` : ''}`;
 }
 
-const plunderTable = (items: PlunderItem[]) =>
-  html`<table>${items.map(
-    (p) => html`<tr class=${p.important ? '' : 'muted'}><td>${p.name}</td>
-      <td>${p.items.map((i) => html`${formatNumber(i.amount)} ${i.label}<br />`)}</td></tr>`,
-  )}</table>`;
+/** Points at plunderable buildings in the game. */
+export interface PlunderMarks {
+  /** whether the building carries the arrow set from its row */
+  marked(building: number): boolean;
+  /** sets the arrow on the building, or takes it away again */
+  toggle(building: number): void;
+}
+
+/** Enter and space press a row like a button; the keys are not meant for the game. */
+const pressKeys = (action: () => void) => (e: KeyboardEvent) => {
+  e.stopPropagation();
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  e.preventDefault();
+  action();
+};
+
+const plunderTable = (items: PlunderItem[], marks?: PlunderMarks) =>
+  html`<table>${items.map((p) => {
+    const loot = html`<td>${p.name}</td>
+      <td>${p.items.map((i) => html`${formatNumber(i.amount)} ${i.label}<br />`)}</td>`;
+    const muted = p.important ? '' : ' muted';
+    if (!marks) return html`<tr class=${muted.trim()}>${loot}</tr>`;
+    const marked = marks.marked(p.building);
+    const toggle = () => marks.toggle(p.building);
+    return html`<tr class=${`plunder-row${muted}${marked ? ' marked' : ''}`} role="button" tabindex="0"
+      aria-pressed=${String(marked)} data-tip=${t(marked ? 'sabotage.unmarkInGame' : 'sabotage.markInGame')}
+      @click=${toggle} @keydown=${pressKeys(toggle)}>${loot}</tr>`;
+  })}</table>`;
 
 function plunderedPart({ last, totals }: NonNullable<SabotageVm['plundered']>) {
   if (!last) return html`<p class="muted">${t('sabotage.neverPlundered')}</p>`;
@@ -50,10 +73,11 @@ function plunderedPart({ last, totals }: NonNullable<SabotageVm['plundered']>) {
     <br />${totals}</p>`;
 }
 
-/** `note` is the note card of the visited player */
+/** `note` is the note card of the visited player; `marks` points at plunderable buildings in the game */
 export function sabotageView(
   vm: SabotageVm | undefined,
   note?: TemplateResult,
+  marks?: PlunderMarks,
   /** puts the star on the visited player or takes it away */
   markPlayer?: (marked: boolean) => void,
 ): TemplateResult {
@@ -90,7 +114,7 @@ export function sabotageView(
     ${
       vm.plunderable.length === 0
         ? html`<p class="muted">${t('sabotage.nothingPlunderable')}</p>`
-        : plunderTable(vm.plunderable)
+        : plunderTable(vm.plunderable, marks)
     }
     ${vm.incomplete ? html`<p class="warn">${t('sabotage.incomplete')}</p>` : ''}`;
 }

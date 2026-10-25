@@ -3,7 +3,7 @@ import { createBus } from '../src/content/core/events';
 import { Markers } from '../src/content/core/markers';
 import { CityStore, type VisitedCity } from '../src/content/stores/cities';
 import { eraId, playerId, worldId } from '../src/shared/ids';
-import { MARKER_TAG } from '../src/shared/marker-protocol';
+import { MARKER_TAG, MAX_MARKERS } from '../src/shared/marker-protocol';
 import { fakeMarkerLink } from './helpers/feature-context';
 
 const visited = (owner: number): VisitedCity => ({
@@ -57,6 +57,16 @@ describe('markers', () => {
     markers.set('sabotage', 'own', []);
     expect(markers.current()).toBeUndefined();
     expect(marker.last).toEqual({ tag: MARKER_TAG, from: 'content', type: 'hide' });
+  });
+
+  it('marks no more buildings than the page takes', () => {
+    const { marker, markers } = setup();
+    markers.set(
+      'cityMap',
+      'own',
+      Array.from({ length: MAX_MARKERS + 5 }, (_, i) => spot(i)),
+    );
+    expect(marker.shown).toHaveLength(MAX_MARKERS);
   });
 
   it('tells whether a feature marked a building of a city', () => {

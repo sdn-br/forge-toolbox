@@ -1,5 +1,6 @@
 // Where buildings sit on the city grid: footprints, free tiles, building groups. Pure, so fixtures test it.
 import type { BuildingDefId } from '../../shared/ids';
+import type { MarkerSpot } from '../../shared/marker-protocol';
 import type { BuildingDef } from '../stores/catalog';
 import type { Area, Building } from '../stores/city-model';
 
@@ -14,6 +15,15 @@ export interface Footprint {
   /** false while the definition is missing; the building then takes a single tile */
   known: boolean;
 }
+
+/** Where an arrow in the game points: the building and its footprint. */
+export const spotOf = (f: Footprint): MarkerSpot => ({
+  id: f.building.id,
+  x: f.x,
+  y: f.y,
+  width: f.width,
+  length: f.length,
+});
 
 export interface Tile {
   x: number;

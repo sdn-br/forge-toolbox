@@ -25,7 +25,7 @@ import { type BattleDetailsVm, battleDetails } from '../../ui/battle-details';
 import { type AttackStatus, attackStatus } from './attack-status';
 
 export interface PlunderItem {
-  /** the building in the city, to find it on the map */
+  /** the building in the city, to point at it in the game */
   building: number;
   name: string;
   /** loot beyond coins and supplies; the others show muted */

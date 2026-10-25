@@ -1,5 +1,6 @@
 import type { Feature } from '../../core/feature';
 import { t } from '../../core/texts';
+import { footprints, matchesName, spotOf } from '../../domain/city-grid';
 import { largeDefaultSize } from '../../ui/box';
 import { CityMap, legendView } from '../../ui/city-map';
 import { icons } from '../../ui/icons';
@@ -8,12 +9,13 @@ import { ownCityStats } from './stats';
 import { type CityMapActions, cityMapView } from './view';
 import { type OwnMapUi, ownCityMapViewModel } from './view-model';
 
+const ID = 'cityMap';
 const MODE = 'cityMap.own.mode';
 const STATS = 'cityMap.own.stats';
 
 /** Box "Stadtplan" with the own city. It follows the city store, so it shows what the game reported last. */
 export const cityMapFeature: Feature = {
-  id: 'cityMap',
+  id: ID,
   setup(ctx) {
     const ui: OwnMapUi = {
       search: '',
@@ -53,6 +55,7 @@ export const cityMapFeature: Feature = {
       search: (text) => {
         ui.search = text;
         box.update();
+        markHits();
       },
       toggle: (mark) => {
         ui[mark] = !ui[mark];
@@ -63,6 +66,14 @@ export const cityMapFeature: Feature = {
         ctx.ui.savePref(STATS, ui.stats ? 'open' : 'closed');
         box.update();
       },
+    };
+    // the search hits also get arrows in the game, while it shows the own city; an empty search removes them
+    const markHits = () => {
+      const city = ctx.cities.own();
+      const all = city ? footprints(city.buildings.values(), (id) => ctx.catalog.get(id)) : [];
+      const hits = all.filter((f) => matchesName(f.def?.name ?? f.building.def, ui.search));
+      // no hits, or an empty search, clear the arrows of the search
+      ctx.markers.set(ID, 'own', hits.map(spotOf));
     };
     ctx.bus.on('city.ownChanged', () => box.update());
     ctx.bus.on('catalog.updated', () => box.update());

@@ -2,9 +2,10 @@ import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
 import { assessCity } from '../../domain/assess-city';
+import { footprints, spotOf } from '../../domain/city-grid';
 import { icons } from '../../ui/icons';
 import { PlayerNoteCard } from '../../ui/note-card';
-import { sabotageView } from './view';
+import { type PlunderMarks, sabotageView } from './view';
 import { type SabotageVm, sabotageViewModel } from './view-model';
 import { visitedRecord } from './visited-record';
 
@@ -13,8 +14,10 @@ const ICON = icons.sabotage;
 
 const TICK = 30_000;
 
+const ID = 'sabotage';
+
 export const sabotageFeature: Feature = {
-  id: 'sabotage',
+  id: ID,
   setup(ctx) {
     ctx.settings.registerGroup('sabotage.title', ICON);
     ctx.settings.register({
@@ -50,10 +53,27 @@ export const sabotageFeature: Feature = {
         const owner = ctx.cities.visited()?.owner;
         const note = vm && owner !== undefined ? card.render(owner, ctx.players.get(owner)?.name) : undefined;
         const markPlayer = owner === undefined ? undefined : (marked: boolean) => ctx.players.setMarked(owner, marked);
-        return sabotageView(vm, note, markPlayer);
+        return sabotageView(vm, note, marks, markPlayer);
       },
     });
     const card = new PlayerNoteCard(ctx.notes, () => box.update());
+
+    // a row of "Jetzt plünderbar" sets an arrow on its building in the game, the same row again takes it away
+    const marks: PlunderMarks = {
+      marked: (building) => {
+        const owner = ctx.cities.visited()?.owner;
+        return owner !== undefined && ctx.markers.has(ID, owner, building);
+      },
+      toggle: (building) => {
+        const city = ctx.cities.visited();
+        if (!city) return;
+        if (ctx.markers.has(ID, city.owner, building)) return ctx.markers.clear(ID);
+        const b = city.buildings.get(building);
+        const [spot] = b ? footprints([b], (id) => ctx.catalog.get(id)).map(spotOf) : [];
+        if (spot) ctx.markers.set(ID, city.owner, [spot]);
+      },
+    };
+    ctx.bus.on('markers.changed', () => box.update());
 
     const refresh = () => {
       const city = ctx.cities.visited();
@@ -76,7 +96,10 @@ export const sabotageFeature: Feature = {
     // what is recorded about the visited player; redraws whenever a part of it arrives
     const record = visitedRecord(ctx, refresh);
 
-    ctx.bus.on('city.visited', () => {
+    ctx.bus.on('city.visited', ({ owner }) => {
+      // the arrow belongs to the city it was set in; the rows now show another city
+      const marked = ctx.markers.current();
+      if (marked?.by === ID && marked.city !== owner) ctx.markers.clear(ID);
       refresh();
       if (ctx.settings.get('sabotage.autoOpen')) box.open();
     });
