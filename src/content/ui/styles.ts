@@ -195,6 +195,10 @@ th.sortable .sort-level { color: var(--accent); font-size: .75em; }
 th.sortable.desc .sort-level::before { content: ' ▾'; font-size: 1.333em; }
 th.sortable.asc .sort-level::before { content: ' ▴'; font-size: 1.333em; }
 .snipe-table { table-layout: fixed; }
+/* the fixed columns (438 px) plus at least 100 px for the building name; narrower, the box scrolls sideways instead of
+   squeezing the name to nothing. debt: the sum is kept by hand. ceiling: a changed column width makes it stale.
+   upgrade: compute it from the column widths once they live in one place */
+.snipe-table { min-width: 538px; }
 /* "# ▾2" measured 31 px */
 .snipe-table .c-order { width: 32px; }
 /* sortable heads fit their word, the arrow and a level number (measured: "Stufe ▾2" 56 px, "Einsatz ▾2" 67 px) */
@@ -219,6 +223,10 @@ td.snipe-tier.safe { color: #5a9a4a; }
 td.snipe-tier.possible { color: #f0a050; }
 /* investments: fixed columns so heads show whole; owner and building names give way */
 .inv-table { table-layout: fixed; }
+/* fixed columns plus at least 90 px for the owner (name, star, funnel) and 100 px for the building, as the snipe table:
+   "Meine" 436 + 190 px, "Mögliche" 594 + 190 px. debt: kept by hand like the snipe table's */
+.inv-table { min-width: 626px; }
+.inv-table.inv-possible { min-width: 784px; }
 .inv-table .c-mark { width: 34px; }
 .inv-table .c-level, .inv-table .c-rank { width: 56px; }
 .inv-table .c-deposit { width: 90px; }
