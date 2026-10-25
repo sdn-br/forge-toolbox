@@ -50,7 +50,7 @@ Quelle: alle bekannten fremden LGs der Tabelle `greatBuildings`, ohne eigene Bet
 - Markierungen entfernt nur der Spieler, von Hand (Nutzer, 2026-10-24). Sie verschwinden nicht, wenn ein Spieler die Nachbarschaft, die Freundesliste oder die Gilde verlässt. Nachbarn kommen wieder.
 - Gemerkte Spieler sind ein Zustand im Player-Store, nicht in den Investitionen. Andere Features dürfen ihn mitnutzen (Nutzer, 2026-10-24: Spieler zu merken kann über die Investitionen hinaus nützen).
 - Gemerkte LGs löscht die Aufbewahrung nach „Fremde LGs aufbewahren (Tage)“ nicht.
-- Icon für den Stern: offen, erst als HTML-Vorschau (siehe Konzept, „Offene Icons“).
+- Icon: der vorhandene Stern aus `icons.ts`, Umriss für nicht gemerkt, gefüllt für gemerkt (Nutzer, 2026-10-25). Der Eigenanteil nutzt dafür jetzt einen Pfeil im Uhrzeigersinn, damit der Stern nur eine Bedeutung hat.
 
 ## Erreichbarkeit
 

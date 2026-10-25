@@ -23,10 +23,10 @@ export interface FactorLevelActions {
   adoptFactors(): void;
 }
 
-/** a small icon per status, the words in its tooltip; the filled star of the standard never meets the star button,
- * which only shows when the factors differ from the standard */
+/** a small icon per status, the words in its tooltip; the checked arrow of the standard never meets an active adopt
+ * button, which only works when the factors differ from the standard */
 const STATUS = {
-  standard: { label: 'gbOwn.factorStandard', icon: headerIcons.starFilled, cls: 'factor-status muted' },
+  standard: { label: 'gbOwn.factorStandard', icon: headerIcons.adopted, cls: 'factor-status muted' },
   saved: { label: 'gbOwn.factorSaved', icon: headerIcons.castle, cls: 'factor-status saved' },
   changed: { label: 'gbOwn.factorChanged', icon: headerIcons.pencil, cls: 'factor-status muted' },
 } as const;
@@ -42,7 +42,7 @@ export function factorLevel(s: FactorLevel, actions: FactorLevelActions) {
   return html`<span class=${mark.cls} data-tip=${t(mark.label)} aria-label=${t(mark.label)}>${mark.icon}</span>
     ${button(s.canSave, t('gbOwn.factorSave'), t('gbOwn.factorSaveOff'), headerIcons.save, () => actions.saveFactors())}
     ${button(s.canReset, t('gbOwn.factorReset'), t('gbOwn.factorResetOff'), headerIcons.reset, () => actions.resetFactors())}
-    ${button(s.canAdopt, t('gbOwn.factorAdopt'), t('gbOwn.factorAdoptOff'), headerIcons.star, () => actions.adoptFactors())}`;
+    ${button(s.canAdopt, t('gbOwn.factorAdopt'), t('gbOwn.factorAdoptOff'), headerIcons.adopt, () => actions.adoptFactors())}`;
 }
 
 /** the factor of one place, read as a factor; a place on the Arc bonus is marked, a typed number holds it. `percent`

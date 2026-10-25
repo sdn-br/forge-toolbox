@@ -105,6 +105,7 @@ export const icons = {
     <path class="acc" d="M19 13V2.8M15.2 6.6 19 2.8l3.8 3.8" stroke-width="2"/>`),
 };
 
+const FORWARD = 'M20 12a8 8 0 1 1-2.3-5.6';
 const STAR = 'M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9Z';
 
 /** the icons of the box header */
@@ -125,16 +126,20 @@ export const headerIcons = {
   ),
   /** an arrow turning back counter-clockwise: reset */
   reset: headerIcon(svg`<path d="M4 12a8 8 0 1 0 2.3-5.6"/><path d="M4 4v4.5h4.5"/>`),
-  /** the great building castle: values of this building only, beside the star of the standard */
+  /** the great building castle: values of this building only, beside the checked arrow of the standard */
   castle: headerIcon(castleShape),
   /** a pencil: changed, not saved */
   pencil: headerIcon(
     svg`<path d="M4 20l1-4.5L15.5 5a2 2 0 0 1 2.8 0l.7.7a2 2 0 0 1 0 2.8L8.5 19Z"/><path d="M13.5 7l3.5 3.5"/>`,
   ),
-  /** a five-pointed star: make it the standard */
+  /** a five-pointed star: remember a building or a player */
   star: headerIcon(svg`<path d="${STAR}"/>`),
-  /** the star filled: the standard applies */
+  /** the star filled: remembered */
   starFilled: headerIcon(svg`<path d="${STAR}" fill="currentColor"/>`),
+  /** the reset arrow mirrored, turning clockwise: make it the standard */
+  adopt: headerIcon(svg`<path d="${FORWARD}"/><path d="M20 4v4.5h-4.5"/>`),
+  /** the same arrow with an accent check inside: the standard applies */
+  adopted: headerIcon(svg`<path d="${FORWARD}"/><path class="acc" d="M8.6 12.2l2.4 2.4 4.4-4.6"/>`),
   /** head and shoulders: a player */
   person: headerIcon(svg`<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5c0-4.2 3.3-6.8 7.5-6.8s7.5 2.6 7.5 6.8"/>`),
   /** a clock: a promised payment, not paid yet */
