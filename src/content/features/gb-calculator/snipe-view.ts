@@ -24,7 +24,8 @@ export interface SnipeActions {
 
 /** Columns in table order; heads show the whole word, the widths are in the styles. */
 const columns: SortColumn<SnipeColumn>[] = [
-  { column: 'order', label: 'snipe.col.order', num: true },
+  // left-aligned: a short number would leave the column empty on the left
+  { column: 'order', label: 'snipe.col.order', num: false },
   { column: 'mark', label: 'mark.col', num: false, icon: headerIcons.star },
   { column: 'name', label: 'gb.col.name', num: false },
   { column: 'level', label: 'gb.col.level', num: true },
@@ -36,7 +37,7 @@ const columns: SortColumn<SnipeColumn>[] = [
 ];
 
 const row = (r: SnipeRowVm, actions: SnipeActions) => html`<tr data-tip=${r.notes.join('\n')}>
-  <td class="num">${r.order}</td>
+  <td>${r.order}</td>
   <td class="snipe-mark">${starButton(r.marked, () => actions.mark(r.owner, r.entityId, !r.marked))}</td>
   <td class="snipe-name" data-tip=${[r.name, ...r.notes].join('\n')}>${r.name}</td>
   <td class="num">${r.level}</td>

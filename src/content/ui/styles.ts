@@ -195,7 +195,8 @@ th.sortable .sort-level { color: var(--accent); font-size: .75em; }
 th.sortable.desc .sort-level::before { content: ' ▾'; font-size: 1.333em; }
 th.sortable.asc .sort-level::before { content: ' ▴'; font-size: 1.333em; }
 .snipe-table { table-layout: fixed; }
-.snipe-table .c-order { width: 38px; }
+/* "# ▾2" measured 31 px */
+.snipe-table .c-order { width: 34px; }
 /* sortable heads fit their word, the arrow and a level number (measured: "Stufe ▾2" 56 px, "Einsatz ▾2" 67 px) */
 .snipe-table .c-level, .snipe-table .c-rank { width: 56px; }
 .snipe-table .c-progress { width: 112px; }
