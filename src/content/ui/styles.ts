@@ -195,12 +195,14 @@ th.sortable .sort-level { color: var(--accent); font-size: .75em; }
 th.sortable.desc .sort-level::before { content: ' ▾'; font-size: 1.333em; }
 th.sortable.asc .sort-level::before { content: ' ▴'; font-size: 1.333em; }
 .snipe-table { table-layout: fixed; }
-.snipe-table .c-order { width: 38px; }
+/* "# ▾2" measured 31 px */
+.snipe-table .c-order { width: 34px; }
 /* sortable heads fit their word, the arrow and a level number (measured: "Stufe ▾2" 56 px, "Einsatz ▾2" 67 px) */
 .snipe-table .c-level, .snipe-table .c-rank { width: 56px; }
 .snipe-table .c-progress { width: 112px; }
 .snipe-table .c-cost { width: 68px; }
-.snipe-table .c-profit { width: 112px; }
+/* the best case only, "≈ +12.345" at most; the range is in the tooltip */
+.snipe-table .c-profit { width: 64px; }
 .snipe-table .c-tier, .snipe-table .c-mark { width: 38px; }
 .snipe-table td.snipe-name { overflow: hidden; text-overflow: ellipsis; }
 .snipe-table :is(.snipe-tier, .snipe-mark) { text-align: center; padding: 0; }
@@ -229,7 +231,7 @@ td.inv-status.unknown { color: #b8a27d; }
 .inv-possible .c-progress { width: 92px; }
 .inv-possible .c-share { width: 50px; }
 .inv-possible .c-cost { width: 68px; }
-.inv-possible .c-gain { width: 96px; }
+.inv-possible .c-gain { width: 64px; }
 .inv-possible .c-tier { width: 38px; }
 .inv-possible .c-seen { width: 72px; }
 .inv-possible .c-reach { width: 70px; }

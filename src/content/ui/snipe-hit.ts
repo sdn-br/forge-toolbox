@@ -6,10 +6,14 @@ import { headerIcons } from './icons';
 
 export const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatNumber(Math.abs(n))}`;
 
-/** "+85" when exact, "+40 … +310" as a range */
-export function snipeProfit(h: SnipeHit): string {
-  return h.profitLow === h.profitHigh ? signed(h.profitHigh) : `${signed(h.profitLow)} … ${signed(h.profitHigh)}`;
-}
+/** the best case, "+310"; the tier beside it tells how sure it is, the range goes to the tooltip */
+export const snipeProfit = (h: SnipeHit): string => signed(h.profitHigh);
+
+/** "Gewinn +40 bis +310" for the tooltip of the profit; nothing when exact */
+export const snipeProfitRange = (h: SnipeHit): string | undefined =>
+  h.profitLow === h.profitHigh
+    ? undefined
+    : t('snipe.profitRange', { low: signed(h.profitLow), high: signed(h.profitHigh) });
 
 /** sorts by the best case, the worst case breaking ties */
 export const snipeProfitKey = (h: SnipeHit) => h.profitHigh * 1e9 + h.profitLow;
@@ -41,11 +45,11 @@ export const tierIcon: Record<SnipeTier, TemplateResult> = {
 export const tierCell = (tier: SnipeTier) =>
   html`<td class=${`snipe-tier ${tier}`} data-tip=${t(`snipe.tier.${tier}`)} aria-label=${t(`snipe.tier.${tier}`)}>${tierIcon[tier]}</td>`;
 
-/** the profit, marked when the rewards are estimated */
-export const profitCell = (profit: string, estimate: boolean) =>
-  html`<td class=${estimate ? 'num estimate' : 'num'} data-tip=${estimate ? t('gbCalc.estimate') : ''}>${
-    estimate ? '≈ ' : ''
-  }${profit}</td>`;
+/** the profit, marked when the rewards are estimated; the range of a not exact profit in the tooltip */
+export const profitCell = (profit: string, estimate: boolean, range?: string) =>
+  html`<td class=${estimate ? 'num estimate' : 'num'} data-tip=${[range, estimate ? t('gbCalc.estimate') : undefined]
+    .filter((line) => line !== undefined)
+    .join('\n')}>${estimate ? '≈ ' : ''}${profit}</td>`;
 
 /** the tiers from the best: exact over safe over possible, for sorting */
 export const TIER_ORDER: Record<SnipeTier, number> = { exact: 2, safe: 1, possible: 0 };

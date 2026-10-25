@@ -82,7 +82,7 @@ const row = (
     r.hit
       ? html`<td class="num">${t('gb.rank', { rank: r.hit.rank })}</td>
         <td class="num" data-tip=${t('snipe.costHint')}>${r.hit.cost}</td>
-        ${profitCell(r.hit.profit, r.hit.estimate)}
+        ${profitCell(r.hit.profit, r.hit.estimate, r.hit.range)}
         ${tierCell(r.hit.tier)}`
       : html`<td></td><td></td><td></td><td></td>`
   }

@@ -24,7 +24,9 @@ export interface SnipeActions {
 
 /** Columns in table order; heads show the whole word, the widths are in the styles. */
 const columns: SortColumn<SnipeColumn>[] = [
-  { column: 'order', label: 'snipe.col.order', num: true },
+  // left-aligned: a short number would leave the column empty on the left
+  { column: 'order', label: 'snipe.col.order', num: false },
+  { column: 'mark', label: 'mark.col', num: false, icon: headerIcons.star },
   { column: 'name', label: 'gb.col.name', num: false },
   { column: 'level', label: 'gb.col.level', num: true },
   { column: 'progress', label: 'gb.col.progress', num: true },
@@ -32,11 +34,11 @@ const columns: SortColumn<SnipeColumn>[] = [
   { column: 'cost', label: 'gb.col.cost', num: true },
   { column: 'profit', label: 'gb.col.profit', num: true, icon: headerIcons.profit },
   { column: 'tier', label: 'gb.col.tier', num: false, icon: headerIcons.info },
-  { column: 'mark', label: 'mark.col', num: false, icon: headerIcons.star },
 ];
 
 const row = (r: SnipeRowVm, actions: SnipeActions) => html`<tr data-tip=${r.notes.join('\n')}>
-  <td class="num">${r.order}</td>
+  <td>${r.order}</td>
+  <td class="snipe-mark">${starButton(r.marked, () => actions.mark(r.owner, r.entityId, !r.marked))}</td>
   <td class="snipe-name" data-tip=${[r.name, ...r.notes].join('\n')}>${r.name}</td>
   <td class="num">${r.level}</td>
   ${progressCell(
@@ -51,9 +53,8 @@ const row = (r: SnipeRowVm, actions: SnipeActions) => html`<tr data-tip=${r.note
   )}
   <td class="num">${t('gb.rank', { rank: r.rank })}</td>
   <td class="num" data-tip=${t('snipe.costHint')}>${formatNumber(r.cost)}</td>
-  ${profitCell(r.profit, r.estimate)}
+  ${profitCell(r.profit, r.estimate, r.profitRange)}
   ${tierCell(r.tier)}
-  <td class="snipe-mark">${starButton(r.marked, () => actions.mark(r.owner, r.entityId, !r.marked))}</td>
 </tr>`;
 
 /** one of the two scroll buttons; greyed at its end like the factor status buttons */
@@ -82,8 +83,8 @@ const table = (vm: Extract<SnipeVm, { kind: 'list' }>, actions: SnipeActions) =>
   };
   return html`<div class="snipe-scroll" @wheel=${wheel}>
       <table class="gb-table snipe-table">
-        <colgroup><col class="c-order" /><col class="c-name" /><col class="c-level" /><col class="c-progress" /><col class="c-rank" />
-          <col class="c-cost" /><col class="c-profit" /><col class="c-tier" /><col class="c-mark" /></colgroup>
+        <colgroup><col class="c-order" /><col class="c-mark" /><col class="c-name" /><col class="c-level" /><col class="c-progress" /><col class="c-rank" />
+          <col class="c-cost" /><col class="c-profit" /><col class="c-tier" /></colgroup>
         <thead><tr>${sortHeads(columns, vm.sort, actions.sort)}</tr></thead>
         <tbody>${vm.rows.slice(top, top + VISIBLE_ROWS).map((r) => row(r, actions))}</tbody>
       </table>

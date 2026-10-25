@@ -4,7 +4,7 @@ import { formatAge, formatNumber, t } from '../../core/texts';
 import { type OwnerShare, ownerShare, type SnipeTier } from '../../domain/gb-snipe';
 import type { PossibleInvestment } from '../../domain/investments';
 import { progressPercent } from '../../ui/fp-bar';
-import { snipeNotes, snipeProfit, snipeProfitKey, TIER_ORDER } from '../../ui/snipe-hit';
+import { snipeNotes, snipeProfit, snipeProfitKey, snipeProfitRange, TIER_ORDER } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
 
 export type PossibleColumn =
@@ -107,7 +107,8 @@ export interface PossibleRowVm {
   /** the owner's share of the level: "320", "?" when unknown; `stale` when drawn muted, with its age as the tip */
   share: { text: string; stale: boolean; tip: string };
   /** the best place; missing when none pays */
-  hit?: { rank: number; cost: string; profit: string; estimate: boolean; tier: SnipeTier };
+  /** `profit` is the best case, `range` the range for its tooltip when not exact */
+  hit?: { rank: number; cost: string; profit: string; range?: string; estimate: boolean; tier: SnipeTier };
   /** lines of the row tooltip */
   notes: string[];
   /** "vor 3 Std." since the building or its list was seen */
@@ -198,6 +199,8 @@ const reachTip = (reasons: Reach[]) => {
 const contains = (text: string, part: string) =>
   text.toLocaleLowerCase('de').includes(part.trim().toLocaleLowerCase('de'));
 
+const withRange = (range: string | undefined) => (range === undefined ? {} : { range });
+
 export function possibleViewModel(input: PossibleInput): PossibleVm {
   const { filter, sort } = input;
   const named: Named[] = input.candidates
@@ -242,6 +245,7 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
           rank: hit.place.rank,
           cost: formatNumber(hit.place.cost),
           profit: snipeProfit(hit),
+          ...withRange(snipeProfitRange(hit)),
           estimate: hit.estimate,
           tier: hit.tier,
         },

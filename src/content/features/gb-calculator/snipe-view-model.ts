@@ -2,7 +2,15 @@ import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import { t } from '../../core/texts';
 import type { SnipeHit, SnipeList, SnipeTier } from '../../domain/gb-snipe';
 import type { FoestatsRecord } from '../../stores/foestats';
-import { ownerShareNote, signed, snipeNotes, snipeProfit, snipeProfitKey, TIER_ORDER } from '../../ui/snipe-hit';
+import {
+  ownerShareNote,
+  signed,
+  snipeNotes,
+  snipeProfit,
+  snipeProfitKey,
+  snipeProfitRange,
+  TIER_ORDER,
+} from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
 import { type ActivityVm, activityVm } from './view-model';
 
@@ -52,7 +60,9 @@ export interface SnipeRowVm {
   rank: number;
   cost: number;
   /** "+85" when exact, "+40 … +310" as a range */
+  /** the best case; `profitRange` the range for its tooltip when not exact */
   profit: string;
+  profitRange?: string;
   /** the rewards are estimated */
   estimate: boolean;
   tier: SnipeTier;
@@ -111,6 +121,8 @@ const activityOf = (record: FoestatsRecord | undefined, today: string) => {
   return activity ? { activity } : {};
 };
 
+const withProfitRange = (range: string | undefined) => (range === undefined ? {} : { profitRange: range });
+
 const withOwnerShare = (note: string | undefined) => (note === undefined ? {} : { ownerShare: note });
 
 const sortKey: Record<SnipeColumn, (r: SnipeHit, name: string, order: number, marked: boolean) => number | string> = {
@@ -147,6 +159,7 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     rank: h.place.rank,
     cost: h.place.cost,
     profit: snipeProfit(h),
+    ...withProfitRange(snipeProfitRange(h)),
     estimate: h.estimate,
     tier: h.tier,
     marked: input.isMarked(h.owner, h.entityId),
