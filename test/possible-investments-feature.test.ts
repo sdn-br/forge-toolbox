@@ -272,7 +272,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     const head = box.root.querySelector('thead th[aria-label="Eigenanteil des Eigentümers"]') as HTMLElement | null;
     expect(head?.textContent?.trim()).toBe('EA');
     expect(head?.getAttribute('data-tip')).toBe(
-      'Eigenanteil des Eigentümers\nKlick sortiert nach Eigenanteil des Eigentümers',
+      'Eigenanteil des Eigentümers\nKlick sortiert nach Eigenanteil des Eigentümers\nUmschalt+Klick: weitere Sortierung',
     );
     expect(share().textContent).toBe('?');
     vi.setSystemTime(Date.now() + 10_000);
@@ -303,6 +303,32 @@ describe('Investitionen: Mögliche Investitionen', () => {
     await tick();
     expect(rows().map((r) => cells(r)[3])).toEqual(['Zeusstatue', 'Orakel von Delphi']);
     expect(head('LG').getAttribute('aria-sort')).toBe('descending');
+  });
+
+  it('adds a sort level on a shift click, numbers the heads and resets on a plain click', async () => {
+    const { box, list, showPossible } = setup();
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    await showPossible();
+    const head = (label: string) => box.root.querySelector(`thead th[aria-label="${label}"]`) as HTMLElement;
+    const click = (label: string, shiftKey: boolean) =>
+      head(label).dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey }));
+    // the default order is profit, largest first
+    expect(head('Gewinn').className).toContain('desc');
+    click('LG', true);
+    await tick();
+    expect(head('Gewinn').querySelector('.sort-level')?.textContent).toBe('1');
+    expect(head('LG').querySelector('.sort-level')?.textContent).toBe('2');
+    expect(head('LG').getAttribute('data-tip')).toContain('Sortiert nach Gewinn, dann LG');
+    click('LG', true);
+    await tick();
+    expect(head('LG').className).toContain('desc');
+    expect(head('LG').querySelector('.sort-level')?.textContent).toBe('2');
+    click('LG', false);
+    await tick();
+    expect(head('Gewinn').querySelector('.sort-level')).toBeNull();
+    expect(head('LG').querySelector('.sort-level')).toBeNull();
+    expect(head('LG').className).toContain('asc');
   });
 
   it('fills live when another list comes and tells when nothing is known', async () => {

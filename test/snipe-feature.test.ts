@@ -310,6 +310,18 @@ describe('Snipehilfe: stacked box', () => {
     expect(box.root.querySelector('th.desc')?.getAttribute('aria-label')).toBe('LG');
   });
 
+  it('adds a sort level on a shift click', async () => {
+    const { box, list } = setup();
+    list([withRequired(zeus, 80, 20), withRequired(oracle, 100, 30)]);
+    await tick();
+    (box.root.querySelectorAll('th')[1] as HTMLElement).dispatchEvent(
+      new MouseEvent('click', { bubbles: true, shiftKey: true }),
+    );
+    await tick();
+    expect(box.root.querySelectorAll('th .sort-level')).toHaveLength(2);
+    expect(box.root.querySelector('th.asc .sort-level')?.textContent).toBe('2');
+  });
+
   it('numbers the rows in the order of the game and sorts by that number', async () => {
     const { box, list, rows, cells } = setup();
     list([withRequired(zeus, 80, 20), withRequired(oracle, 100, 30)]);

@@ -24,7 +24,7 @@ export type PossibleColumn =
 export type PossibleSort = Sort<PossibleColumn>;
 
 /** profit first, the best on top, as in the snipe helper */
-export const DEFAULT_POSSIBLE_SORT: PossibleSort = { column: 'profit', desc: true };
+export const DEFAULT_POSSIBLE_SORT: PossibleSort = [{ column: 'profit', desc: true }];
 
 /** names read from the top; numbers, the best tier and the newest entry from the largest */
 export const POSSIBLE_DESC_FIRST: ReadonlySet<PossibleColumn> = new Set([
@@ -198,7 +198,7 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
     .filter((r) => !filter.onlyMarked || r.marked || input.ownerMarked(r.building.owner));
   const hits = named.filter((r) => r.hit).length;
   const shown = filter.onlyHits ? named.filter((r) => r.hit) : named;
-  sortRows(shown, sortKey[sort.column], sort.desc);
+  sortRows(shown, sort, (column) => sortKey[column]);
   return {
     filter,
     sort,

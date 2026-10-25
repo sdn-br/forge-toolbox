@@ -99,16 +99,16 @@ export const investmentsFeature: Feature = {
         box.update();
       },
       mark,
-      sort: (column) => {
-        sort = nextSort(sort, column, INVESTMENT_DESC_FIRST);
+      sort: (column, append) => {
+        sort = nextSort(sort, column, INVESTMENT_DESC_FIRST, append);
         box.update();
       },
     };
     const possibleActions: PossibleActions = {
       tab: actions.tab,
       mark,
-      sort: (column) => {
-        possibleSort = nextSort(possibleSort, column, POSSIBLE_DESC_FIRST);
+      sort: (column, append) => {
+        possibleSort = nextSort(possibleSort, column, POSSIBLE_DESC_FIRST, append);
         box.update();
       },
       filter: (patch) => {

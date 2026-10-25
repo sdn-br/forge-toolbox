@@ -156,8 +156,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       };
 
       const snipeActions: SnipeActions = {
-        sort: (column) => {
-          sort = nextSort(sort, column, SNIPE_DESC_FIRST);
+        sort: (column, append) => {
+          sort = nextSort(sort, column, SNIPE_DESC_FIRST, append);
           refresh();
         },
         scroll: (rows) => {

@@ -186,12 +186,17 @@ p.snipe-hidden { margin: 2px 0; }
 button.star { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 18px; height: 18px; vertical-align: middle; color: var(--ink); opacity: .7; }
 button.star:hover, button.star.on { color: var(--accent); opacity: 1; }
 button.star svg { display: block; width: 14px; height: 14px; }
-th.sortable { cursor: pointer; }
+th.sortable { cursor: pointer; user-select: none; }
 th.sortable:hover { color: var(--accent); }
 th.sortable.desc::after { content: ' ▾'; color: var(--accent); }
 th.sortable.asc::after { content: ' ▴'; color: var(--accent); }
+/* several sort levels: the arrow moves into the level number's span so the number follows it, small */
+th.sortable.multi::after { content: none; }
+th.sortable .sort-level { color: var(--accent); font-size: .75em; }
+th.sortable.desc .sort-level::before { content: ' ▾'; font-size: 1.333em; }
+th.sortable.asc .sort-level::before { content: ' ▴'; font-size: 1.333em; }
 .snipe-table { table-layout: fixed; }
-.snipe-table .c-order { width: 30px; }
+.snipe-table .c-order { width: 38px; }
 .snipe-table .c-level, .snipe-table .c-rank { width: 46px; }
 .snipe-table .c-progress { width: 112px; }
 .snipe-table .c-cost { width: 64px; }
@@ -206,11 +211,11 @@ td.snipe-tier.safe { color: #5a9a4a; }
 td.snipe-tier.possible { color: #f0a050; }
 /* investments: fixed columns so heads show whole; owner and building names give way */
 .inv-table { table-layout: fixed; }
-.inv-table .c-mark { width: 30px; }
+.inv-table .c-mark { width: 38px; }
 .inv-table .c-level, .inv-table .c-rank { width: 46px; }
 .inv-table .c-deposit { width: 80px; }
 .inv-table .c-profit { width: 64px; }
-.inv-table .c-status { width: 30px; }
+.inv-table .c-status { width: 38px; }
 .inv-table .c-progress { width: 104px; }
 .inv-table td.inv-name { overflow: hidden; text-overflow: ellipsis; }
 .inv-table :is(.icon-head, .inv-status, .snipe-tier, .inv-mark) { text-align: center; padding: 0; }
@@ -225,7 +230,7 @@ td.inv-status.unknown { color: #b8a27d; }
 .inv-possible .c-share { width: 50px; }
 .inv-possible .c-cost { width: 60px; }
 .inv-possible .c-gain { width: 96px; }
-.inv-possible .c-tier { width: 26px; }
+.inv-possible .c-tier { width: 38px; }
 .inv-possible .c-seen { width: 72px; }
 .inv-possible .c-reach { width: 70px; }
 .inv-reach svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px; }

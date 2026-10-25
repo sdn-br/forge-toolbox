@@ -5,7 +5,7 @@ import type { InvestmentStatus } from '../../domain/investments';
 import { fpBar } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { externalLink } from '../../ui/links';
-import { type SortColumn, sortHead } from '../../ui/sortable';
+import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { starButton } from '../../ui/star';
 import {
   type InvestmentColumn,
@@ -19,7 +19,7 @@ export interface InvestmentsActions {
   tab(tab: InvestmentsTab): void;
   /** puts the star on a building or takes it away */
   mark(owner: PlayerId, entityId: number, marked: boolean): void;
-  sort(column: InvestmentColumn): void;
+  sort(column: InvestmentColumn, append: boolean): void;
 }
 
 const statusIcon: Record<InvestmentStatus, TemplateResult> = {
@@ -87,7 +87,7 @@ export const tabs = (current: InvestmentsTab, actions: { tab(tab: InvestmentsTab
 const table = (vm: InvestmentsVm, actions: InvestmentsActions) => html`<table class="gb-table inv-table">
     <colgroup><col class="c-mark" /><col class="c-owner" /><col class="c-name" /><col class="c-level" /><col class="c-rank" />
       <col class="c-deposit" /><col class="c-profit" /><col class="c-status" /><col class="c-progress" /></colgroup>
-    <thead><tr>${columns.map((c) => sortHead(c, vm.sort, (column) => actions.sort(column)))}</tr></thead>
+    <thead><tr>${sortHeads(columns, vm.sort, actions.sort)}</tr></thead>
     <tbody>${vm.rows.map((r) => row(r, actions))}</tbody>
   </table>
   <p class="gb-me">${t('investments.circulating', { fp: vm.totals.circulating })}

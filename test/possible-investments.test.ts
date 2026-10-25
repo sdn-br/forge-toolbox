@@ -127,7 +127,7 @@ describe('possibleViewModel', () => {
     expect(v.rows.map((r) => r.entityId)).toEqual([1, 2, 3]);
     expect(v.rows[2]?.hit).toBeUndefined();
     // last also in the other direction
-    const up = vm([none, safe, possible], { onlyHits: false }, { column: 'profit', desc: false });
+    const up = vm([none, safe, possible], { onlyHits: false }, [{ column: 'profit', desc: false }]);
     expect(up.rows.map((r) => r.entityId)).toEqual([2, 1, 3]);
   });
 
@@ -140,15 +140,15 @@ describe('possibleViewModel', () => {
 
   it('sorts by a clicked column, names from the top, numbers from the largest', () => {
     const owner = nextSort(DEFAULT_POSSIBLE_SORT, 'owner', POSSIBLE_DESC_FIRST);
-    expect(owner).toEqual({ column: 'owner', desc: false });
+    expect(owner).toEqual([{ column: 'owner', desc: false }]);
     expect(vm([possible, none, safe], { onlyHits: false }, owner).rows.map((r) => r.ownerName)).toEqual([
       'Anna',
       'Bert',
       'Carla',
     ]);
-    expect(nextSort(owner, 'owner', POSSIBLE_DESC_FIRST)).toEqual({ column: 'owner', desc: true });
-    expect(nextSort(owner, 'seen', POSSIBLE_DESC_FIRST)).toEqual({ column: 'seen', desc: true });
-    const tier = vm([possible, safe], {}, { column: 'tier', desc: true });
+    expect(nextSort(owner, 'owner', POSSIBLE_DESC_FIRST)).toEqual([{ column: 'owner', desc: true }]);
+    expect(nextSort(owner, 'seen', POSSIBLE_DESC_FIRST)).toEqual([{ column: 'seen', desc: true }]);
+    const tier = vm([possible, safe], {}, [{ column: 'tier', desc: true }]);
     expect(tier.rows.map((r) => r.hit?.tier)).toEqual(['safe', 'possible']);
   });
 
@@ -218,7 +218,7 @@ describe('possibleViewModel', () => {
     relations[1001] = NONE;
     delete relations[1002];
     const sort = nextSort(DEFAULT_POSSIBLE_SORT, 'reach', POSSIBLE_DESC_FIRST);
-    expect(sort).toEqual({ column: 'reach', desc: false });
+    expect(sort).toEqual([{ column: 'reach', desc: false }]);
     const v = vm([safe, possible, none], { onlyHits: false, reach: EVERY }, sort);
     expect(v.rows.map((r) => r.reach)).toEqual(['friend', 'unknown', 'none']);
   });
@@ -233,7 +233,7 @@ describe('marks', () => {
       [2, true],
     ]);
     const sort = nextSort(DEFAULT_POSSIBLE_SORT, 'mark', POSSIBLE_DESC_FIRST);
-    expect(sort).toEqual({ column: 'mark', desc: true });
+    expect(sort).toEqual([{ column: 'mark', desc: true }]);
     expect(vm([safe, possible], { onlyHits: false, reach: EVERY }, sort).rows.map((r) => r.entityId)).toEqual([2, 1]);
   });
 
@@ -291,9 +291,9 @@ describe('possibleViewModel, the owner share (EA)', () => {
 
   it('sorts by the share from the largest, and unknown goes last in either direction', () => {
     const sort = nextSort(DEFAULT_POSSIBLE_SORT, 'share', POSSIBLE_DESC_FIRST);
-    expect(sort).toEqual({ column: 'share', desc: true });
+    expect(sort).toEqual([{ column: 'share', desc: true }]);
     expect(vm([unknown, stale, current], all, sort).rows.map((r) => r.entityId)).toEqual([1, 2, 3]);
-    expect(vm([unknown, stale, current], all, { column: 'share', desc: false }).rows.map((r) => r.entityId)).toEqual([
+    expect(vm([unknown, stale, current], all, [{ column: 'share', desc: false }]).rows.map((r) => r.entityId)).toEqual([
       2, 1, 3,
     ]);
   });

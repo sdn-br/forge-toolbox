@@ -177,6 +177,25 @@ describe('Investitionen box', () => {
     expect(cells(rows()[0])[5]).toBe('1');
   });
 
+  it('sorts by several columns: shift appends a level, a plain click starts over', async () => {
+    const { send, heads } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    const head = (word: string) => heads().find((h) => h.getAttribute('aria-label') === word) as HTMLElement;
+    const shift = (word: string) =>
+      head(word).dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
+    head('Einzahlung').click();
+    await tick();
+    shift('Stufe');
+    await tick();
+    expect(head('Einzahlung').querySelector('.sort-level')?.textContent).toBe('1');
+    expect(head('Stufe').querySelector('.sort-level')?.textContent).toBe('2');
+    head('Stufe').click();
+    await tick();
+    expect(head('Einzahlung').querySelector('.sort-level')).toBeNull();
+    expect(head('Stufe').className).toContain('sortable');
+  });
+
   it('opens from the menu and tells when no town hall list was seen', async () => {
     const { box, menuClick } = setup();
     menuClick('investments');

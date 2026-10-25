@@ -3,13 +3,13 @@ import type { PlayerId } from '../../../shared/ids';
 import { formatAge, formatNumber, t } from '../../core/texts';
 import { headerIcons } from '../../ui/icons';
 import { profitCell, tierCell } from '../../ui/snipe-hit';
-import { type SortColumn, sortHead } from '../../ui/sortable';
+import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { starButton } from '../../ui/star';
 import { type SnipeColumn, type SnipeRowVm, type SnipeVm, VISIBLE_ROWS } from './snipe-view-model';
 import { activityLine, owner } from './view';
 
 export interface SnipeActions {
-  sort(column: SnipeColumn): void;
+  sort(column: SnipeColumn, append: boolean): void;
   /** moves the table by rows, down for positive; the owner keeps the offset inside the list */
   scroll(rows: number): void;
   /** folds the section in or out */
@@ -71,7 +71,7 @@ const table = (vm: Extract<SnipeVm, { kind: 'list' }>, actions: SnipeActions) =>
       <table class="gb-table snipe-table">
         <colgroup><col class="c-order" /><col class="c-name" /><col class="c-level" /><col class="c-progress" /><col class="c-rank" />
           <col class="c-cost" /><col class="c-profit" /><col class="c-tier" /><col class="c-mark" /></colgroup>
-        <thead><tr>${columns.map((c) => sortHead(c, vm.sort, (column) => actions.sort(column)))}<th class="snipe-tier"
+        <thead><tr>${sortHeads(columns, vm.sort, actions.sort)}<th class="snipe-tier"
           aria-label=${t('gb.col.tier')} data-tip=${t('gb.col.tier')}>${headerIcons.info}</th><th class="snipe-mark"
           aria-label=${t('mark.col')} data-tip=${t('mark.col')}>${headerIcons.star}</th></tr></thead>
         <tbody>${vm.rows.slice(top, top + VISIBLE_ROWS).map((r) => row(r, actions))}</tbody>

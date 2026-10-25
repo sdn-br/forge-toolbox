@@ -4,7 +4,7 @@ import { headerIcons } from '../../ui/icons';
 import { keepKeys } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
 import { profitCell, tierCell } from '../../ui/snipe-hit';
-import { type SortColumn, sortHead } from '../../ui/sortable';
+import { type SortColumn, sortHeads } from '../../ui/sortable';
 import {
   type PossibleColumn,
   type PossibleFilter,
@@ -18,7 +18,7 @@ import type { InvestmentsTab } from './view-model';
 
 export interface PossibleActions {
   tab(tab: InvestmentsTab): void;
-  sort(column: PossibleColumn): void;
+  sort(column: PossibleColumn, append: boolean): void;
   filter(patch: Partial<PossibleFilter>): void;
   /** put the owner's name into the "Spieler" filter, as if typed */
   pickPlayer(name: string): void;
@@ -115,7 +115,7 @@ const filters = (f: PossibleFilter, actions: PossibleActions) => html`<p class="
 const table = (vm: PossibleVm, actions: PossibleActions) => html`<table class="gb-table inv-table inv-possible">
     <colgroup><col class="c-mark" /><col class="c-owner" /><col class="c-reach" /><col class="c-name" /><col class="c-level" /><col class="c-progress" /><col class="c-share" />
       <col class="c-rank" /><col class="c-cost" /><col class="c-gain" /><col class="c-tier" /><col class="c-seen" /></colgroup>
-    <thead><tr>${columns.map((c) => sortHead(c, vm.sort, (column) => actions.sort(column)))}</tr></thead>
+    <thead><tr>${sortHeads(columns, vm.sort, actions.sort)}</tr></thead>
     <tbody>${vm.rows.map((r) => row(r, actions))}</tbody>
   </table>`;
 

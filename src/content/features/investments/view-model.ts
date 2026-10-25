@@ -96,7 +96,7 @@ export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
   }));
   const { sort } = input;
   // stable: equal keys keep the default order
-  if (sort) sortRows(named, sortKey[sort.column], sort.desc);
+  if (sort) sortRows(named, sort, (column) => sortKey[column]);
   const { totals } = input.investments;
   return {
     ...(input.listedAt !== undefined && { age: formatAge(input.now - input.listedAt) }),

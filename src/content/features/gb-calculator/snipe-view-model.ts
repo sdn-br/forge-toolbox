@@ -11,7 +11,7 @@ export type SnipeColumn = 'order' | 'name' | 'level' | 'progress' | 'rank' | 'co
 export type SnipeSort = Sort<SnipeColumn>;
 
 /** profit first, the best on top */
-export const DEFAULT_SORT: SnipeSort = { column: 'profit', desc: true };
+export const DEFAULT_SORT: SnipeSort = [{ column: 'profit', desc: true }];
 
 /** names and the game's order read from the top, numbers from the largest */
 export const SNIPE_DESC_FIRST: ReadonlySet<SnipeColumn> = new Set(['level', 'progress', 'rank', 'cost', 'profit']);
@@ -119,8 +119,7 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
   const name = (h: SnipeHit) => input.greatBuildingName(h.cityEntityId) ?? h.cityEntityId;
   const places = new Map([...list.entityIds].map((id, i) => [id, i + 1]));
   const order = (h: SnipeHit) => places.get(h.entityId) ?? 0;
-  const key = sortKey[input.sort.column];
-  const hits = sortRows([...result.hits], (h) => key(h, name(h), order(h)), input.sort.desc);
+  const hits = sortRows([...result.hits], input.sort, (column) => (h) => sortKey[column](h, name(h), order(h)));
   const rows = hits.map<SnipeRowVm>((h) => ({
     owner: h.owner,
     entityId: h.entityId,
