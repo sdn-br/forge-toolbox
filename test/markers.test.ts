@@ -37,7 +37,6 @@ describe('markers', () => {
       from: 'content',
       type: 'show',
       seq: 1,
-      settle: false,
       clearLabel: 'Markierungen entfernen',
       spots: [spot(1), spot(2)],
     });
@@ -86,7 +85,7 @@ describe('markers', () => {
       expect(marker.posted).toEqual([]);
 
       cities.showOwn();
-      expect(marker.last).toMatchObject({ type: 'show', spots: [spot(1)], settle: true });
+      expect(marker.last).toMatchObject({ type: 'show', spots: [spot(1)] });
     });
 
     it('hides the arrows while another city shows and brings them back with that city', () => {
@@ -100,7 +99,7 @@ describe('markers', () => {
       expect(marker.posted.filter((c) => c.type === 'hide')).toHaveLength(1);
 
       cities.showOwn();
-      expect(marker.last).toMatchObject({ type: 'show', seq: 2, settle: true, spots: [spot(1)] });
+      expect(marker.last).toMatchObject({ type: 'show', seq: 2, spots: [spot(1)] });
     });
 
     it('keeps the marking of each city, so a plunder arrow on a visit leaves the own search marked', () => {

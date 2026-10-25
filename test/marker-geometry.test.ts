@@ -6,7 +6,6 @@ import {
   arrowScale,
   cssPerStage,
   nearCanvas,
-  sceneStep,
   stageToViewport,
 } from '../src/marker/geometry';
 
@@ -44,25 +43,5 @@ describe('marker geometry', () => {
     expect(nearCanvas({ x: -40, y: 300 }, canvas)).toBe(true);
     expect(nearCanvas({ x: -60, y: 300 }, canvas)).toBe(false);
     expect(nearCanvas({ x: 400, y: 700 }, canvas)).toBe(false);
-  });
-});
-
-describe('scene binding', () => {
-  const a = { name: 'a' };
-  const b = { name: 'b' };
-
-  it('binds to the first city scene and keeps it', () => {
-    expect(sceneStep(undefined, a, false)).toBe('bind');
-    expect(sceneStep(a, a, false)).toBe('keep');
-  });
-
-  it('waits while the game shows no city scene', () => {
-    expect(sceneStep(undefined, undefined, false)).toBe('keep');
-    expect(sceneStep(a, undefined, false)).toBe('keep');
-  });
-
-  it('drops the arrows when another city scene shows, unless they still settle after a city change', () => {
-    expect(sceneStep(a, b, false)).toBe('drop');
-    expect(sceneStep(a, b, true)).toBe('bind');
   });
 });

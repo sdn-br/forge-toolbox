@@ -56,19 +56,3 @@ export function nearCanvas(point: Point, canvas: CanvasBox, margin = 60): boolea
     point.y < canvas.top + canvas.height + margin
   );
 }
-
-/**
- * What to do with arrows bound to `bound` when the game shows `current`:
- * - `bind`: no scene bound yet, or the game switched while the arrows still settle; take `current`.
- * - `keep`: the same scene, or no city scene at all right now (a battle, the map); the arrows wait, hidden.
- * - `drop`: the game shows another city scene; the arrows belonged to the old one.
- */
-export function sceneStep<S>(
-  bound: S | undefined,
-  current: S | undefined,
-  settling: boolean,
-): 'bind' | 'keep' | 'drop' {
-  if (current === undefined || current === bound) return 'keep';
-  if (bound === undefined || settling) return 'bind';
-  return 'drop';
-}

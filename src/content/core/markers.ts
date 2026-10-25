@@ -34,8 +34,8 @@ export class Markers {
     private link: MarkerLink,
   ) {
     link.onRemoved((seq, ids) => this.removed(seq, ids));
-    // the city changed: hide the arrows of the city before, show the marking of this city; the game may still be switching
-    bus.on('city.shown', () => this.sync(true));
+    // the city changed: hide the arrows of the city before, show the marking of this city
+    bus.on('city.shown', () => this.sync());
   }
 
   /** the marking of the city the game shows */
@@ -67,7 +67,7 @@ export class Markers {
       const kept = spots.slice(0, MAX_MARKERS).map(({ id, x, y, width, length }) => ({ id, x, y, width, length }));
       this.markings.set(city, { by, city, spots: kept });
     }
-    this.sync(false);
+    this.sync();
     this.bus.emit('markers.changed', {});
   }
 
@@ -80,11 +80,11 @@ export class Markers {
       removed = true;
     }
     if (!removed) return;
-    this.sync(false);
+    this.sync();
     this.bus.emit('markers.changed', {});
   }
 
-  private sync(settle: boolean) {
+  private sync() {
     const m = this.current();
     if (m) {
       this.seq++;
@@ -93,7 +93,6 @@ export class Markers {
         from: 'content',
         type: 'show',
         seq: this.seq,
-        settle,
         clearLabel: t('marker.clear'),
         spots: m.spots,
       });

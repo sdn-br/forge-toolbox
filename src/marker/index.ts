@@ -24,13 +24,14 @@ import {
   cssPerStage,
   nearCanvas,
   type Point,
-  sceneStep,
   stageToViewport,
 } from './geometry';
 
 /** the parts of the game engine this module reads; everything is optional, since nothing about it is guaranteed */
 interface EngineNode {
   __children?: EngineNode[];
+  /** false while the game shows another view over the city (research, continent map, expedition, battlegrounds) */
+  __visible?: unknown;
   gameContainer?: EngineNode;
   _isoScene?: IsoScene;
 }
@@ -50,8 +51,6 @@ interface CallSite {
 
 /** frames to watch for the game loop before giving up */
 const CAPTURE_FRAMES = 600;
-/** how long arrows shown for a city change follow the game while it switches its view */
-const SETTLE_MS = 5000;
 const CANVAS = '#openfl-content canvas';
 
 const raf = window.requestAnimationFrame.bind(window);
@@ -112,10 +111,17 @@ function captureEngine(): Promise<LimeApp | undefined> {
   return capture;
 }
 
-/** The iso scene of the city view the game shows now, or undefined in other views. Looked up fresh every frame. */
+/**
+ * The iso scene of the city view the game shows now, or undefined in other views. Looked up fresh every frame. Other
+ * views (research, continent map, expedition, battlegrounds) lie beside the city view, which stays but turns invisible
+ * (seen 2026-10-25). The game keeps the one scene for the own and visited cities; which city it shows, the content script
+ * knows from the game traffic.
+ */
 function currentScene(): IsoScene | undefined {
   for (const child of app?.stage.__children ?? []) {
+    if (child?.__visible === false || child?.gameContainer?.__visible === false) continue;
     for (const view of child?.gameContainer?.__children ?? []) {
+      if (view?.__visible === false) continue;
       const scene = view?._isoScene;
       if (scene && typeof scene.isoToScreen === 'function' && scene._camera) return scene;
     }
@@ -165,10 +171,6 @@ let clearButton: HTMLButtonElement | undefined;
 let markers: Marker[] = [];
 /** the marking the arrows belong to, as the content script numbered it */
 let seq = 0;
-/** the scene the markers belong to; another city scene drops them */
-let boundScene: IsoScene | undefined;
-/** until then a scene switch rebinds the arrows instead of dropping them */
-let settleUntil = 0;
 let looping = false;
 let missingSceneLogged = false;
 /** counts commands, so a show that waited for the engine yields to anything that came meanwhile */
@@ -206,7 +208,6 @@ function ensureLayer(): HTMLElement {
 function clear() {
   for (const m of markers) m.el.remove();
   markers = [];
-  boundScene = undefined;
   if (clearButton) clearButton.hidden = true;
 }
 
@@ -236,7 +237,6 @@ async function show(command: Extract<MarkerCommand, { type: 'show' }>) {
     parent.append(el);
     return { spot, el };
   });
-  settleUntil = command.settle ? performance.now() + SETTLE_MS : 0;
   missingSceneLogged = false;
   if (!looping) {
     looping = true;
@@ -266,7 +266,7 @@ function canvasBox(canvas: HTMLCanvasElement): CanvasBox {
   return { left: r.left, top: r.top, width: r.width, height: r.height };
 }
 
-/** a grid point of the bound scene in viewport pixels */
+/** a grid point of the scene in viewport pixels */
 function project(scene: IsoScene, box: CanvasBox, point: Point): Point {
   return stageToViewport(scene.isoToScreen(point.x, point.y), box, cssPerStage(box, app?.stage.stageWidth));
 }
@@ -274,16 +274,8 @@ function project(scene: IsoScene, box: CanvasBox, point: Point): Point {
 function place() {
   const scene = currentScene();
   const canvas = document.querySelector<HTMLCanvasElement>(CANVAS);
-  const step = sceneStep(boundScene, scene, performance.now() < settleUntil);
-  if (step === 'drop') {
-    logInfo('building marker: the city view changed, arrows removed');
-    const ids = markers.map((m) => m.spot.id);
-    clear();
-    report(ids);
-    return;
-  }
-  if (step === 'bind') boundScene = scene;
-  if (!scene || scene !== boundScene || !canvas) {
+  // another view over the city: the arrows wait, hidden, and come back with the city
+  if (!scene || !canvas) {
     if (!scene && !missingSceneLogged) logInfo('building marker: no city scene in the current view');
     missingSceneLogged = true;
     for (const m of markers) m.el.hidden = true;

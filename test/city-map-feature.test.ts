@@ -181,7 +181,7 @@ describe('city map feature', () => {
       expect(input(box).value).toBe('');
       expect(box.text).not.toContain('Treffer');
       expect(legend(box)).not.toContain('Suchtreffer');
-      expect(marker.last).toMatchObject({ type: 'show', settle: false });
+      expect(marker.last).toMatchObject({ type: 'show' });
       expect(marker.shown.sort()).toEqual(idsOf(ctx, shrine).sort());
       const first = marker.last?.type === 'show' ? marker.last.spots[0] : undefined;
       expect(first && ctx.cities.own()?.buildings.get(first.id)?.x).toBe(first?.x);
@@ -236,7 +236,7 @@ describe('city map feature', () => {
       expect(marker.posted).toEqual([]);
 
       ctx.cities.showOwn();
-      expect(marker.last).toMatchObject({ type: 'show', settle: true });
+      expect(marker.last).toMatchObject({ type: 'show' });
     });
 
     it('selects a clicked building alone, also out of several, and a click on the only one empties', () => {

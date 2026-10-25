@@ -7,7 +7,6 @@ const show = (spots: unknown, change: Record<string, unknown> = {}) => ({
   from: 'content',
   type: 'show',
   seq: 1,
-  settle: false,
   clearLabel: 'Markierungen entfernen',
   spots,
   ...change,
@@ -24,7 +23,7 @@ const removed = (ids: unknown, change: Record<string, unknown> = {}) => ({
 describe('parseMarkerCommand (content to page)', () => {
   it('takes show with valid spots and hide', () => {
     expect(parseMarkerCommand(show([spot]))).toEqual(show([spot]));
-    expect(parseMarkerCommand(show([], { settle: true, seq: 0 }))).toEqual(show([], { settle: true, seq: 0 }));
+    expect(parseMarkerCommand(show([], { seq: 0 }))).toEqual(show([], { seq: 0 }));
     expect(parseMarkerCommand({ tag: MARKER_TAG, from: 'content', type: 'hide' })).toEqual({
       tag: MARKER_TAG,
       from: 'content',
@@ -46,7 +45,6 @@ describe('parseMarkerCommand (content to page)', () => {
     expect(parseMarkerCommand(show('nope'))).toBeNull();
     expect(parseMarkerCommand(show([], { seq: -1 }))).toBeNull();
     expect(parseMarkerCommand(show([], { seq: 1.5 }))).toBeNull();
-    expect(parseMarkerCommand(show([], { settle: 'yes' }))).toBeNull();
     expect(parseMarkerCommand(show([], { clearLabel: 3 }))).toBeNull();
     expect(parseMarkerCommand(show([], { clearLabel: 'x'.repeat(101) }))).toBeNull();
     expect(parseMarkerCommand(show([{ ...spot, id: '7' }]))).toBeNull();

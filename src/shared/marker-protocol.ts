@@ -18,8 +18,7 @@ export interface MarkerSpot extends GridRect {
 
 /**
  * `show` replaces all arrows. `seq` names this marking; the page echoes it when the viewer removes arrows, so a late
- * echo of an older marking changes nothing. `settle`: the content script shows the arrows because the city changed;
- * the game may still be switching its view, so the page binds them to the view that settles. `clearLabel` is the
+ * echo of an older marking changes nothing. `clearLabel` is the
  * word of the button that removes all arrows (the texts live in the content script).
  */
 export type MarkerCommand =
@@ -28,7 +27,6 @@ export type MarkerCommand =
       from: 'content';
       type: 'show';
       seq: number;
-      settle: boolean;
       clearLabel: string;
       spots: MarkerSpot[];
     }
@@ -66,7 +64,7 @@ export function parseMarkerCommand(data: unknown): MarkerCommand | null {
   const d = fields(data, 'content');
   if (!d) return null;
   if (d.type === 'hide') return { tag: MARKER_TAG, from: 'content', type: 'hide' };
-  if (d.type !== 'show' || !isId(d.seq) || typeof d.settle !== 'boolean') return null;
+  if (d.type !== 'show' || !isId(d.seq)) return null;
   if (typeof d.clearLabel !== 'string' || d.clearLabel.length > MAX_LABEL) return null;
   if (!Array.isArray(d.spots) || d.spots.length > MAX_MARKERS) return null;
   const spots: MarkerSpot[] = [];
@@ -80,7 +78,6 @@ export function parseMarkerCommand(data: unknown): MarkerCommand | null {
     from: 'content',
     type: 'show',
     seq: d.seq,
-    settle: d.settle,
     clearLabel: d.clearLabel,
     spots,
   };
