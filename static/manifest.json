@@ -16,6 +16,12 @@
     },
     {
       "matches": ["https://*.forgeofempires.com/game/*"],
+      "js": ["marker.js"],
+      "run_at": "document_idle",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://*.forgeofempires.com/game/*"],
       "js": ["content.js"],
       "run_at": "document_start"
     }
