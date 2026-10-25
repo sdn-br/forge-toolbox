@@ -90,6 +90,10 @@ export const icons = {
   cityMap: menuIcon(svg`<g transform="scale(.82)">${foldedMap}</g>
     <circle class="acc" cx="15.2" cy="14.8" r="4.1" fill="var(--btn)"/><path class="acc" d="m18.1 17.7 3.8 3.8" stroke-width="2.2"/>
     <path d="M13.2 13.9a2.2 2.2 0 0 1 1.8-1.8" stroke-width="1.2"/>`),
+  /** a house, a magnifier in the accent bottom right; the own city only */
+  buildingSearch:
+    menuIcon(svg`<path d="M2.5 11 9.5 4.5l7 6.5"/><path d="M4.3 9.5v9.5h10.4V9.5"/><path d="M8 19v-4.6h3V19"/>
+    <circle class="acc" cx="16.2" cy="15.4" r="4.1" fill="var(--btn)"/><path class="acc" d="m19.1 18.3 3.2 3.2" stroke-width="2.2"/>`),
   pvp: menuIcon(svg`${sword(45)}${sword(-45)}`),
   notes: menuIcon(svg`${scroll20}${featherFilled}`),
   /** the calculator signs large, the castle small in the fourth cell of the 2x2 grid */

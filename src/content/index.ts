@@ -14,6 +14,7 @@ import { Recorder } from './core/recorder';
 import { callBackground } from './core/rpc';
 import { Settings } from './core/settings';
 import { t } from './core/texts';
+import { buildingSearchFeature } from './features/building-search';
 import { cityMapFeature } from './features/city-map';
 import { foestatsFeature } from './features/foestats';
 import { gbCalculatorFeature } from './features/gb-calculator';
@@ -35,6 +36,7 @@ const features: Feature[] = [
   pvpFeature,
   notesFeature,
   cityMapFeature,
+  buildingSearchFeature,
   gbCalculatorFeature,
   gbOwnShareFeature,
   gbPowerLevelFeature,
