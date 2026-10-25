@@ -4,10 +4,7 @@ import {
   anchorOf,
   arrowOffset,
   arrowScale,
-  cornersOf,
   cssPerStage,
-  inQuad,
-  isClick,
   nearCanvas,
   sceneStep,
   stageToViewport,
@@ -18,15 +15,6 @@ const canvas = { left: 10, top: 20, width: 800, height: 600 };
 describe('marker geometry', () => {
   it('points at the middle of the footprint, width along x and length along y', () => {
     expect(anchorOf({ x: 4, y: 6, width: 3, length: 2 })).toEqual({ x: 5.5, y: 7 });
-  });
-
-  it('names the four corners of a footprint around it', () => {
-    expect(cornersOf({ x: 4, y: 6, width: 3, length: 2 })).toEqual([
-      { x: 4, y: 6 },
-      { x: 7, y: 6 },
-      { x: 7, y: 8 },
-      { x: 4, y: 8 },
-    ]);
   });
 
   it('maps stage points to viewport pixels, scaled when the stage runs in device pixels', () => {
@@ -56,45 +44,6 @@ describe('marker geometry', () => {
     expect(nearCanvas({ x: -40, y: 300 }, canvas)).toBe(true);
     expect(nearCanvas({ x: -60, y: 300 }, canvas)).toBe(false);
     expect(nearCanvas({ x: 400, y: 700 }, canvas)).toBe(false);
-  });
-});
-
-describe('footprint hit test', () => {
-  // an isometric diamond as the game projects a footprint: top, right, bottom, left
-  const diamond = [
-    { x: 100, y: 0 },
-    { x: 200, y: 50 },
-    { x: 100, y: 100 },
-    { x: 0, y: 50 },
-  ];
-
-  it('finds points inside the projected footprint, in either direction of its corners', () => {
-    expect(inQuad({ x: 100, y: 50 }, diamond)).toBe(true);
-    expect(inQuad({ x: 150, y: 40 }, diamond)).toBe(true);
-    expect(inQuad({ x: 100, y: 50 }, [...diamond].reverse())).toBe(true);
-    expect(inQuad({ x: 100, y: 0 }, diamond)).toBe(true);
-  });
-
-  it('misses points outside, in the corners of the bounding box', () => {
-    expect(inQuad({ x: 20, y: 10 }, diamond)).toBe(false);
-    expect(inQuad({ x: 190, y: 95 }, diamond)).toBe(false);
-    expect(inQuad({ x: 300, y: 50 }, diamond)).toBe(false);
-  });
-
-  it('contains nothing in a quad that is not one', () => {
-    expect(inQuad({ x: 0, y: 0 }, diamond.slice(0, 3))).toBe(false);
-    const flat = [
-      { x: 0, y: 0 },
-      { x: 0, y: 0 },
-      { x: 0, y: 0 },
-      { x: 0, y: 0 },
-    ];
-    expect(inQuad({ x: 0, y: 0 }, flat)).toBe(false);
-  });
-
-  it('takes a pointer that barely moved as a click and a drag of the view as none', () => {
-    expect(isClick({ x: 10, y: 10 }, { x: 14, y: 13 })).toBe(true);
-    expect(isClick({ x: 10, y: 10 }, { x: 30, y: 10 })).toBe(false);
   });
 });
 

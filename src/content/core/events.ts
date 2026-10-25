@@ -29,6 +29,8 @@ export interface ToolboxEvents {
   'research.changed': Record<string, never>;
   'battle.recorded': { opponent: PlayerId };
   'plunder.recorded': { opponent: PlayerId };
+  /** the player plundered or tried to plunder this building, whether it worked or was repelled */
+  'plunder.attempted': { opponent: PlayerId; entityId: number };
   'incoming.recorded': { attacker: PlayerId };
   /** new city shields of these players */
   'shield.recorded': { players: PlayerId[] };

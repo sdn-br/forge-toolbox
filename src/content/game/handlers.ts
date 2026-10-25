@@ -1,6 +1,6 @@
 // Which game response feeds which store, all in one place. A response may have several handlers that each feed their
 // own part, for example `updatePlayer` (players, plunder) and `CityMapService.reset` (plunder, own buildings).
-import { eraId, type PlayerId, type WorldId } from '../../shared/ids';
+import { eraId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import type { Ingestion } from '../core/ingestion';
 import { logInfo } from '../core/log';
@@ -232,6 +232,9 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     }
   });
   ingestion.onBatchEnd(() => {
+    const tried =
+      target ?? (plundered && { opponent: playerId(plundered.player_id as number), entityId: plundered.id as number });
+    if ((loot || repelled) && tried) bus.emit('plunder.attempted', tried);
     if (loot && plundered) {
       plunders.record(toPlunder(world, now(), plundered, loot, doubled.has(plundered.id as number)));
     }

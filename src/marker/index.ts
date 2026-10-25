@@ -21,10 +21,7 @@ import {
   arrowOffset,
   arrowScale,
   type CanvasBox,
-  cornersOf,
   cssPerStage,
-  inQuad,
-  isClick,
   nearCanvas,
   type Point,
   sceneStep,
@@ -176,9 +173,6 @@ let looping = false;
 let missingSceneLogged = false;
 /** counts commands, so a show that waited for the engine yields to anything that came meanwhile */
 let generation = 0;
-/** where the last pointer went down on the game canvas */
-let down: Point | undefined;
-
 function report(ids: number[]) {
   if (ids.length === 0) return;
   const event: MarkerEvent = { tag: MARKER_TAG, from: 'marker', type: 'removed', seq, ids };
@@ -306,50 +300,6 @@ function place() {
   }
   if (clearButton) clearButton.hidden = false;
 }
-
-/** the game canvas, when the pointer event happened on it */
-const onCanvas = (event: PointerEvent) =>
-  event.target instanceof HTMLCanvasElement && event.target.closest('#openfl-content') !== null;
-
-// A click on a marked building removes its arrow. The game gets every event untouched: the listeners are passive and
-// only look; a drag of the game view is no click.
-window.addEventListener(
-  'pointerdown',
-  (event) => {
-    down =
-      event.isPrimary && event.button === 0 && onCanvas(event) ? { x: event.clientX, y: event.clientY } : undefined;
-  },
-  { capture: true, passive: true },
-);
-window.addEventListener(
-  'pointerup',
-  (event) => {
-    const start = down;
-    down = undefined;
-    const up = { x: event.clientX, y: event.clientY };
-    if (!start || !isClick(start, up) || markers.length === 0 || !onCanvas(event)) return;
-    const scene = currentScene();
-    const canvas = document.querySelector<HTMLCanvasElement>(CANVAS);
-    if (!scene || scene !== boundScene || !canvas) return;
-    try {
-      const box = canvasBox(canvas);
-      const hit = markers.filter((m) =>
-        inQuad(
-          up,
-          cornersOf(m.spot).map((c) => project(scene, box, c)),
-        ),
-      );
-      if (hit.length === 0) return;
-      for (const m of hit) m.el.remove();
-      markers = markers.filter((m) => !hit.includes(m));
-      if (markers.length === 0) clear();
-      report(hit.map((m) => m.spot.id));
-    } catch (error) {
-      logError('building marker: checking the click failed', error);
-    }
-  },
-  { capture: true, passive: true },
-);
 
 window.addEventListener('message', (event: MessageEvent) => {
   if (event.source !== window || (event.data as { tag?: unknown } | null)?.tag !== MARKER_TAG) return;

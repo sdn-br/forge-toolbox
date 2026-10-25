@@ -74,6 +74,10 @@ export const sabotageFeature: Feature = {
       },
     };
     ctx.bus.on('markers.changed', () => box.update());
+    // after a plunder, won or repelled, the building has nothing more to give; its arrow goes
+    ctx.bus.on('plunder.attempted', ({ opponent, entityId }) => {
+      if (ctx.markers.has(ID, opponent, entityId)) ctx.markers.clear(ID);
+    });
 
     const refresh = () => {
       const city = ctx.cities.visited();

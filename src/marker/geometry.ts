@@ -11,17 +11,6 @@ export function anchorOf(rect: GridRect): Point {
   return { x: rect.x + rect.width / 2, y: rect.y + rect.length / 2 };
 }
 
-/** The four grid corners of a footprint, around it in order. */
-export function cornersOf(rect: GridRect): Point[] {
-  const { x, y, width, length } = rect;
-  return [
-    { x, y },
-    { x: x + width, y },
-    { x: x + width, y: y + length },
-    { x, y: y + length },
-  ];
-}
-
 export interface CanvasBox {
   left: number;
   top: number;
@@ -67,30 +56,6 @@ export function nearCanvas(point: Point, canvas: CanvasBox, margin = 60): boolea
     point.y < canvas.top + canvas.height + margin
   );
 }
-
-/**
- * Whether `p` lies inside the convex quad `quad` (its corners around it in either direction). On the edge counts as
- * inside. A degenerate quad contains nothing.
- */
-export function inQuad(p: Point, quad: Point[]): boolean {
-  if (quad.length !== 4) return false;
-  let sign = 0;
-  for (let i = 0; i < 4; i++) {
-    const a = quad[i] as Point;
-    const b = quad[(i + 1) % 4] as Point;
-    const cross = (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
-    if (cross === 0) continue;
-    const s = Math.sign(cross);
-    if (sign === 0) sign = s;
-    else if (s !== sign) return false;
-  }
-  return sign !== 0;
-}
-
-/** A pointer that went down and up within this many pixels is a click, not a drag of the game view. */
-export const CLICK_SLOP = 6;
-
-export const isClick = (down: Point, up: Point) => Math.hypot(up.x - down.x, up.y - down.y) <= CLICK_SLOP;
 
 /**
  * What to do with arrows bound to `bound` when the game shows `current`:

@@ -238,6 +238,19 @@ describe('sabotage feature', () => {
       expect(marked()).toEqual(['Münzhaus']);
     });
 
+    it('takes the arrow away after a plunder of its building, won or repelled, and leaves it for another', async () => {
+      const { ctx, row, marked } = markSetup();
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      row('Münzhaus').click();
+      ctx.bus.emit('plunder.attempted', { opponent: playerId(1), entityId: 6 });
+      ctx.bus.emit('plunder.attempted', { opponent: playerId(2), entityId: 5 });
+      expect(marked()).toEqual(['Münzhaus']);
+      ctx.bus.emit('plunder.attempted', { opponent: playerId(1), entityId: 5 });
+      expect(ctx.markers.current()).toBeUndefined();
+      expect(marked()).toEqual([]);
+    });
+
     it('drops the arrow when another city is visited and keeps it for the same city', async () => {
       const { ctx, marker, row, marked } = markSetup();
       ctx.cities.setVisited(coinsAndPoints(1));
