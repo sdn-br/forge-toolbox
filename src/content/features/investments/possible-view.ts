@@ -1,11 +1,12 @@
 import { html, type TemplateResult } from 'lit-html';
-import { type TextKey, t } from '../../core/texts';
+import { t } from '../../core/texts';
 import { headerIcons } from '../../ui/icons';
 import { keepKeys } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
 import { profitCell, tierCell } from '../../ui/snipe-hit';
+import { type SortColumn, sortHead } from '../../ui/sortable';
 import type { PossibleColumn, PossibleFilter, PossibleRowVm, PossibleVm } from './possible-view-model';
-import { progressCell, sortHead, sortMark, tabs } from './view';
+import { progressCell, tabs } from './view';
 import type { InvestmentsTab } from './view-model';
 
 export interface PossibleActions {
@@ -15,15 +16,15 @@ export interface PossibleActions {
 }
 
 /** Columns in table order; heads show the whole word, the tier its icon; the widths are in the styles. */
-const columns: { column: PossibleColumn; label: TextKey; num: boolean; icon?: TemplateResult }[] = [
+const columns: SortColumn<PossibleColumn>[] = [
   { column: 'owner', label: 'investments.col.owner', num: false },
-  { column: 'name', label: 'investments.col.name', num: false },
-  { column: 'level', label: 'investments.col.level', num: true },
-  { column: 'progress', label: 'investments.col.progress', num: true },
-  { column: 'rank', label: 'investments.col.rank', num: true },
-  { column: 'cost', label: 'investments.col.cost', num: true },
-  { column: 'profit', label: 'investments.col.profit', num: true },
-  { column: 'tier', label: 'investments.col.tier', num: false, icon: headerIcons.info },
+  { column: 'name', label: 'gb.col.name', num: false },
+  { column: 'level', label: 'gb.col.level', num: true },
+  { column: 'progress', label: 'gb.col.progress', num: true },
+  { column: 'rank', label: 'gb.col.rank', num: true },
+  { column: 'cost', label: 'gb.col.cost', num: true },
+  { column: 'profit', label: 'gb.col.profit', num: true },
+  { column: 'tier', label: 'gb.col.tier', num: false, icon: headerIcons.info },
   { column: 'seen', label: 'investments.col.seen', num: true },
 ];
 
@@ -34,7 +35,7 @@ const row = (r: PossibleRowVm) => html`<tr data-tip=${r.notes.join('\n')}>
   ${progressCell(r)}
   ${
     r.hit
-      ? html`<td class="num">${t('snipe.rank', { rank: r.hit.rank })}</td>
+      ? html`<td class="num">${t('gb.rank', { rank: r.hit.rank })}</td>
         <td class="num" data-tip=${t('snipe.costHint')}>${r.hit.cost}</td>
         ${profitCell(r.hit.profit, r.hit.estimate)}
         ${tierCell(r.hit.tier)}`
@@ -60,9 +61,7 @@ const filters = (f: PossibleFilter, actions: PossibleActions) => html`<p class="
 const table = (vm: PossibleVm, actions: PossibleActions) => html`<table class="gb-table inv-table inv-possible">
     <colgroup><col class="c-owner" /><col class="c-name" /><col class="c-level" /><col class="c-progress" />
       <col class="c-rank" /><col class="c-cost" /><col class="c-gain" /><col class="c-tier" /><col class="c-seen" /></colgroup>
-    <thead><tr>${columns.map((c) =>
-      sortHead(t(c.label), c.num, sortMark(vm.sort, c.column), () => actions.sort(c.column), c.icon),
-    )}</tr></thead>
+    <thead><tr>${columns.map((c) => sortHead(c, vm.sort, (column) => actions.sort(column)))}</tr></thead>
     <tbody>${vm.rows.map(row)}</tbody>
   </table>`;
 

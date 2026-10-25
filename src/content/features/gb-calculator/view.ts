@@ -2,6 +2,7 @@ import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import type { LevelUpAndFirst } from '../../domain/gb-level-preview';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
+import { fpBar, progressPercent } from '../../ui/fp-bar';
 import { levelBar } from '../../ui/level-bar';
 import { externalLink } from '../../ui/links';
 import type {
@@ -46,10 +47,9 @@ function header(h: GbHeader) {
 
 /** paid in of the running level with a thin bar under it, as the investments show it */
 function progressLine(invested: number, required: number, missing: number) {
-  const percent = required > 0 ? Math.min(100, (invested / required) * 100) : 0;
   return html`<div class="gb-progress">
     ${t('gbCalc.progress', { invested: formatNumber(invested), required: formatNumber(required), fp: formatNumber(missing) })}
-    <div class="fp-bar"><div style=${`width: ${percent}%`}></div></div>
+    ${fpBar(progressPercent(invested, required))}
   </div>`;
 }
 

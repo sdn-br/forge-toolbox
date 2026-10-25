@@ -172,6 +172,13 @@ hr.snipe-sep { border: 0; border-top: 1px solid var(--line); margin: 6px 0; }
 .snipe-nav button.icon.off { cursor: default; opacity: .4; color: var(--ink); }
 .snipe-nav button.icon svg { display: block; width: 14px; height: 14px; }
 p.snipe-hidden { margin: 2px 0; }
+/* a column head that sorts on a click (snipe helper, investments); an icon head marks the direction by its colour */
+th.sortable { cursor: pointer; }
+th.sortable:hover { color: var(--accent); }
+th.sortable.desc::after { content: ' ▾'; color: var(--accent); }
+th.sortable.asc::after { content: ' ▴'; color: var(--accent); }
+th.sortable.icon-head.desc, th.sortable.icon-head.asc { color: var(--accent); }
+th.sortable.icon-head.desc::after, th.sortable.icon-head.asc::after { content: none; }
 .snipe-table { table-layout: fixed; }
 .snipe-table .c-order { width: 30px; }
 .snipe-table .c-level, .snipe-table .c-rank { width: 46px; }
@@ -180,10 +187,6 @@ p.snipe-hidden { margin: 2px 0; }
 .snipe-table .c-profit { width: 112px; }
 .snipe-table .c-tier { width: 26px; }
 .snipe-table td.snipe-name { overflow: hidden; text-overflow: ellipsis; }
-.snipe-table th.sortable { cursor: pointer; }
-.snipe-table th.sortable:hover { color: var(--accent); }
-.snipe-table th.desc::after { content: ' ▾'; color: var(--accent); }
-.snipe-table th.asc::after { content: ' ▴'; color: var(--accent); }
 .snipe-table .snipe-tier { text-align: center; padding: 0; }
 .snipe-table .snipe-tier svg { display: block; width: 14px; height: 14px; margin: auto; }
 td.snipe-tier.exact { color: #8fd08f; }
@@ -197,14 +200,8 @@ td.snipe-tier.possible { color: #f0a050; }
 .inv-table .c-status { width: 30px; }
 .inv-table .c-progress { width: 104px; }
 .inv-table td.inv-name { overflow: hidden; text-overflow: ellipsis; }
-.inv-table th.sortable { cursor: pointer; }
-.inv-table th.sortable:hover { color: var(--accent); }
-.inv-table th.inv-icon.desc::after, .inv-table th.inv-icon.asc::after { content: none; }
-.inv-table th.inv-icon.desc, .inv-table th.inv-icon.asc { color: var(--accent); }
-.inv-table th.desc::after { content: ' ▾'; color: var(--accent); }
-.inv-table th.asc::after { content: ' ▴'; color: var(--accent); }
-.inv-table .inv-icon, .inv-table .inv-status, .inv-table .snipe-tier { text-align: center; padding: 0; }
-.inv-table :is(.inv-icon, .inv-status, .snipe-tier) svg { display: block; width: 14px; height: 14px; margin: auto; }
+.inv-table .icon-head, .inv-table .inv-status, .inv-table .snipe-tier { text-align: center; padding: 0; }
+.inv-table :is(.icon-head, .inv-status, .snipe-tier) svg { display: block; width: 14px; height: 14px; margin: auto; }
 td.inv-status.safe { color: #8fd08f; }
 td.inv-status.unsafe { color: #f0a050; }
 td.inv-status.unknown { color: #b8a27d; }

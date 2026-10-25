@@ -11,9 +11,17 @@ import { FOESTATS_SETTING } from '../../stores/foestats';
 import type { Construction } from '../../stores/great-building-model';
 import { CALCULATOR_FACTOR, calculatorFactor } from '../../ui/factor-bar';
 import { icons } from '../../ui/icons';
+import { nextSort } from '../../ui/sortable';
 import { playTone } from '../../ui/tone';
 import { type SnipeActions, snipeView } from './snipe-view';
-import { clampScroll, DEFAULT_SORT, nextSort, type SnipeSort, type SnipeVm, snipeViewModel } from './snipe-view-model';
+import {
+  clampScroll,
+  DEFAULT_SORT,
+  SNIPE_DESC_FIRST,
+  type SnipeSort,
+  type SnipeVm,
+  snipeViewModel,
+} from './snipe-view-model';
 import { type GbCalculatorActions, gbCalculatorView } from './view';
 import { type GbCalculatorVm, gbCalculatorViewModel } from './view-model';
 
@@ -139,7 +147,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
 
       const snipeActions: SnipeActions = {
         sort: (column) => {
-          sort = nextSort(sort, column);
+          sort = nextSort(sort, column, SNIPE_DESC_FIRST);
           refresh();
         },
         scroll: (rows) => {

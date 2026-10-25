@@ -1,26 +1,28 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
-import { formatDuration, formatNumber, t } from '../../core/texts';
+import { formatAge, formatNumber, t } from '../../core/texts';
 import type { SnipeTier } from '../../domain/gb-snipe';
 import type { PossibleInvestment } from '../../domain/investments';
+import { progressPercent } from '../../ui/fp-bar';
 import { snipeNotes, snipeProfit, snipeProfitKey } from '../../ui/snipe-hit';
+import { type Sort, sortRows } from '../../ui/sortable';
 
 export type PossibleColumn = 'owner' | 'name' | 'level' | 'progress' | 'rank' | 'cost' | 'profit' | 'tier' | 'seen';
 
-export interface PossibleSort {
-  column: PossibleColumn;
-  /** largest first */
-  desc: boolean;
-}
+export type PossibleSort = Sort<PossibleColumn>;
 
 /** profit first, the best on top, as in the snipe helper */
 export const DEFAULT_POSSIBLE_SORT: PossibleSort = { column: 'profit', desc: true };
 
-/** a click on a column head: the same column turns around, another starts with its natural direction */
-export function nextPossibleSort(current: PossibleSort, column: PossibleColumn): PossibleSort {
-  if (current.column === column) return { column, desc: !current.desc };
-  // names read from the top; numbers, the best tier and the newest entry from the largest
-  return { column, desc: column !== 'owner' && column !== 'name' };
-}
+/** names read from the top; numbers, the best tier and the newest entry from the largest */
+export const POSSIBLE_DESC_FIRST: ReadonlySet<PossibleColumn> = new Set([
+  'level',
+  'progress',
+  'rank',
+  'cost',
+  'profit',
+  'tier',
+  'seen',
+]);
 
 /** what the rows are narrowed to; a view choice of the viewer */
 export interface PossibleFilter {
@@ -74,29 +76,23 @@ export interface PossibleInput {
   playerUrl(id: PlayerId): string;
 }
 
-const MINUTE = 60_000;
-const HOUR = 60 * MINUTE;
+const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
 
 /** "3 Std." for three hours and forty minutes: the largest unit only, so the column stays narrow */
 const age = (ms: number) =>
-  formatDuration(
-    ms >= DAY ? Math.floor(ms / DAY) * DAY : ms >= HOUR ? Math.floor(ms / HOUR) * HOUR : Math.max(MINUTE, ms),
-  );
+  formatAge(ms >= DAY ? Math.floor(ms / DAY) * DAY : ms >= HOUR ? Math.floor(ms / HOUR) * HOUR : ms);
 
 const TIER_ORDER: Record<SnipeTier, number> = { exact: 2, safe: 1, possible: 0 };
 
 type Named = PossibleInvestment & { ownerName: string; name: string };
-
-const percentOf = ({ building: b }: PossibleInvestment) =>
-  b.required > 0 ? Math.min(100, (b.invested / b.required) * 100) : 0;
 
 /** undefined for a row without a hit in a column of the hit; such rows go last in either direction */
 const sortKey: Record<PossibleColumn, (r: Named) => number | string | undefined> = {
   owner: (r) => r.ownerName,
   name: (r) => r.name,
   level: (r) => r.building.level,
-  progress: percentOf,
+  progress: ({ building: b }) => progressPercent(b.invested, b.required),
   rank: (r) => r.hit?.place.rank,
   cost: (r) => r.hit?.place.cost,
   profit: (r) => r.hit && snipeProfitKey(r.hit),
@@ -118,14 +114,7 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
     .filter((r) => contains(r.ownerName, filter.player) && contains(r.name, filter.name));
   const hits = named.filter((r) => r.hit).length;
   const shown = filter.onlyHits ? named.filter((r) => r.hit) : named;
-  const key = sortKey[sort.column];
-  const sign = sort.desc ? -1 : 1;
-  shown.sort((a, b) => {
-    const x = key(a);
-    const y = key(b);
-    if (x === undefined || y === undefined) return Number(x === undefined) - Number(y === undefined);
-    return sign * (typeof x === 'string' ? x.localeCompare(String(y), 'de') : x - (y as number));
-  });
+  sortRows(shown, sortKey[sort.column], sort.desc);
   return {
     filter,
     sort,
@@ -140,7 +129,7 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
       invested: formatNumber(b.invested),
       required: formatNumber(b.required),
       rest: formatNumber(Math.max(0, b.required - b.invested)),
-      percent: percentOf({ building: b }),
+      percent: progressPercent(b.invested, b.required),
       ...(hit && {
         hit: {
           rank: hit.place.rank,

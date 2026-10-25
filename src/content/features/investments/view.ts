@@ -1,12 +1,13 @@
 import { html, type TemplateResult } from 'lit-html';
-import { type TextKey, t } from '../../core/texts';
+import { t } from '../../core/texts';
 import type { InvestmentStatus } from '../../domain/investments';
+import { fpBar } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { externalLink } from '../../ui/links';
+import { type SortColumn, sortHead } from '../../ui/sortable';
 import {
   type InvestmentColumn,
   type InvestmentRowVm,
-  type InvestmentSort,
   type InvestmentsTab,
   type InvestmentsVm,
   TABS,
@@ -23,41 +24,17 @@ const statusIcon: Record<InvestmentStatus, TemplateResult> = {
   unknown: headerIcons.questionCircle,
 };
 
-/** Columns in table order; heads show the whole word, the widths are in the styles. */
-const columns: { column: InvestmentColumn; label: TextKey; num: boolean }[] = [
+/** Columns in table order; heads show the whole word, the narrow status its icon; the widths are in the styles. */
+const columns: SortColumn<InvestmentColumn>[] = [
   { column: 'owner', label: 'investments.col.owner', num: false },
-  { column: 'name', label: 'investments.col.name', num: false },
-  { column: 'level', label: 'investments.col.level', num: true },
-  { column: 'rank', label: 'investments.col.rank', num: true },
+  { column: 'name', label: 'gb.col.name', num: false },
+  { column: 'level', label: 'gb.col.level', num: true },
+  { column: 'rank', label: 'gb.col.rank', num: true },
   { column: 'deposit', label: 'investments.col.deposit', num: true },
-  { column: 'profit', label: 'investments.col.profit', num: true },
-  { column: 'status', label: 'investments.col.status', num: false },
-  { column: 'progress', label: 'investments.col.progress', num: true },
+  { column: 'profit', label: 'gb.col.profit', num: true },
+  { column: 'status', label: 'investments.col.status', num: false, icon: headerIcons.info },
+  { column: 'progress', label: 'gb.col.progress', num: true },
 ];
-
-/** which way the sorted column runs; empty for the others */
-export type SortMark = '' | 'asc' | 'desc';
-
-export const sortMark = (sort: { column: string; desc: boolean } | undefined, column: string): SortMark =>
-  sort?.column === column ? (sort.desc ? 'desc' : 'asc') : '';
-
-/** a sortable column head; a narrow column shows `icon` with the word in tooltip and label */
-export const sortHead = (label: string, num: boolean, mark: SortMark, sort: () => void, icon?: TemplateResult) => {
-  const hint = t('investments.sortHint', { column: label });
-  return html`<th class=${`sortable ${num ? 'num' : ''} ${icon ? 'inv-icon' : ''} ${mark}`} aria-label=${label}
-    aria-sort=${mark === '' ? 'none' : mark === 'desc' ? 'descending' : 'ascending'}
-    data-tip=${icon ? `${label}\n${hint}` : hint} @click=${sort}>${icon ?? label}</th>`;
-};
-
-// the status column is narrow: its head is an icon
-const head = (c: (typeof columns)[number], sort: InvestmentSort | undefined, actions: InvestmentsActions) =>
-  sortHead(
-    t(c.label),
-    c.num,
-    sortMark(sort, c.column),
-    () => actions.sort(c.column),
-    c.column === 'status' ? headerIcons.info : undefined,
-  );
 
 /** "x / y" of the level with the thin bar below, the rest to the level up in the tooltip; `extra` goes under the bar */
 export const progressCell = (
@@ -65,7 +42,7 @@ export const progressCell = (
   extra: TemplateResult | '' = '',
 ) => html`<td class="num inv-progress" data-tip=${t('investments.restHint', { rest: p.rest, required: p.required })}>
     ${p.invested} / ${p.required}
-    <div class="fp-bar"><div style=${`width: ${p.percent}%`}></div></div>
+    ${fpBar(p.percent)}
     ${extra}
   </td>`;
 
@@ -75,14 +52,17 @@ const row = (r: InvestmentRowVm) => {
   <td class="inv-name" data-tip=${r.ownerName}>${externalLink(r.ownerName, r.ownerUrl)}</td>
   <td class="inv-name" data-tip=${r.name}>${r.name}</td>
   <td class="num">${r.level}</td>
-  <td class="num">P${r.rank}</td>
+  <td class="num">${t('gb.rank', { rank: r.rank })}</td>
   <td class="num">${r.deposit}</td>
   <td class="num" data-tip=${t('investments.profitHint', { gross: r.gross })}>${r.profit}</td>
   <td class=${`inv-status ${r.status}`} data-tip=${status} aria-label=${status}>${statusIcon[r.status]}</td>
   ${progressCell(
     r,
     r.growth
-      ? html`<div class="inv-growth" data-tip=${t('investments.growthHint', { growth: r.growthFp ?? '' })}>${r.growth}</div>`
+      ? html`<div class="inv-growth" data-tip=${t('investments.growthHint', { growth: r.growth })}>${t(
+          'investments.growth',
+          { growth: r.growth },
+        )}</div>`
       : '',
   )}
 </tr>`;
@@ -97,7 +77,7 @@ export const tabs = (current: InvestmentsTab, actions: { tab(tab: InvestmentsTab
 const table = (vm: InvestmentsVm, actions: InvestmentsActions) => html`<table class="gb-table inv-table">
     <colgroup><col class="c-owner" /><col class="c-name" /><col class="c-level" /><col class="c-rank" />
       <col class="c-deposit" /><col class="c-profit" /><col class="c-status" /><col class="c-progress" /></colgroup>
-    <thead><tr>${columns.map((c) => head(c, vm.sort, actions))}</tr></thead>
+    <thead><tr>${columns.map((c) => sortHead(c, vm.sort, (column) => actions.sort(column)))}</tr></thead>
     <tbody>${vm.rows.map(row)}</tbody>
   </table>
   <p class="gb-me">${t('investments.circulating', { fp: vm.totals.circulating })}
@@ -105,7 +85,7 @@ const table = (vm: InvestmentsVm, actions: InvestmentsActions) => html`<table cl
     <span class="muted">· ${t('investments.profitTotal', { profit: vm.totals.profitTotal })}</span></p>`;
 
 export function investmentsView(vm: InvestmentsVm, actions: InvestmentsActions): TemplateResult {
-  const age = vm.age === undefined ? t('investments.noList') : t('investments.age', { duration: vm.age });
-  return html`${tabs(vm.tab, actions)}<p class="muted">${age}</p>
+  const age = vm.age === undefined ? t('investments.noList') : t('gb.age', { duration: vm.age });
+  return html`${tabs('mine', actions)}<p class="muted">${age}</p>
     ${vm.rows.length === 0 ? html`<p class="muted">${t('investments.none')}</p>` : table(vm, actions)}`;
 }

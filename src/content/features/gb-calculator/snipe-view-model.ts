@@ -3,25 +3,18 @@ import { t } from '../../core/texts';
 import type { SnipeHit, SnipeList, SnipeTier } from '../../domain/gb-snipe';
 import type { FoestatsRecord } from '../../stores/foestats';
 import { signed, snipeNotes, snipeProfit, snipeProfitKey } from '../../ui/snipe-hit';
+import { type Sort, sortRows } from '../../ui/sortable';
 import { type ActivityVm, activityVm } from './view-model';
 
 export type SnipeColumn = 'order' | 'name' | 'level' | 'progress' | 'rank' | 'cost' | 'profit';
 
-export interface SnipeSort {
-  column: SnipeColumn;
-  /** largest first */
-  desc: boolean;
-}
+export type SnipeSort = Sort<SnipeColumn>;
 
 /** profit first, the best on top */
 export const DEFAULT_SORT: SnipeSort = { column: 'profit', desc: true };
 
-/** a click on a column head: the same column turns around, another starts with its natural direction */
-export function nextSort(current: SnipeSort, column: SnipeColumn): SnipeSort {
-  if (current.column === column) return { column, desc: !current.desc };
-  // names and the game's order read from the top, numbers from the largest
-  return { column, desc: column !== 'name' && column !== 'order' };
-}
+/** names and the game's order read from the top, numbers from the largest */
+export const SNIPE_DESC_FIRST: ReadonlySet<SnipeColumn> = new Set(['level', 'progress', 'rank', 'cost', 'profit']);
 
 /** rows of the table in view at once; the rest scrolls */
 export const VISIBLE_ROWS = 6;
@@ -118,12 +111,7 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
   const places = new Map([...list.entityIds].map((id, i) => [id, i + 1]));
   const order = (h: SnipeHit) => places.get(h.entityId) ?? 0;
   const key = sortKey[input.sort.column];
-  const sign = input.sort.desc ? -1 : 1;
-  const hits = [...result.hits].sort((a, b) => {
-    const x = key(a, name(a), order(a));
-    const y = key(b, name(b), order(b));
-    return sign * (typeof x === 'string' ? x.localeCompare(String(y), 'de') : x - (y as number));
-  });
+  const hits = sortRows([...result.hits], (h) => key(h, name(h), order(h)), input.sort.desc);
   const rows = hits.map<SnipeRowVm>((h) => ({
     owner: h.owner,
     entityId: h.entityId,

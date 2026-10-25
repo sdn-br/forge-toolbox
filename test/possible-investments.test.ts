@@ -3,12 +3,13 @@ import { possibleInvestments } from '../src/content/domain/investments';
 import {
   DEFAULT_FILTER,
   DEFAULT_POSSIBLE_SORT,
-  nextPossibleSort,
+  POSSIBLE_DESC_FIRST,
   type PossibleFilter,
   type PossibleSort,
   possibleViewModel,
 } from '../src/content/features/investments/possible-view-model';
 import type { GreatBuildingDef } from '../src/content/stores/catalog';
+import { nextSort } from '../src/content/ui/sortable';
 import { type BuildingDefId, buildingDefId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { KnownGreatBuilding } from '../src/shared/model';
 
@@ -123,15 +124,15 @@ describe('possibleViewModel', () => {
   });
 
   it('sorts by a clicked column, names from the top, numbers from the largest', () => {
-    const owner = nextPossibleSort(DEFAULT_POSSIBLE_SORT, 'owner');
+    const owner = nextSort(DEFAULT_POSSIBLE_SORT, 'owner', POSSIBLE_DESC_FIRST);
     expect(owner).toEqual({ column: 'owner', desc: false });
     expect(vm([possible, none, safe], { onlyHits: false }, owner).rows.map((r) => r.ownerName)).toEqual([
       'Anna',
       'Bert',
       'Carla',
     ]);
-    expect(nextPossibleSort(owner, 'owner')).toEqual({ column: 'owner', desc: true });
-    expect(nextPossibleSort(owner, 'seen')).toEqual({ column: 'seen', desc: true });
+    expect(nextSort(owner, 'owner', POSSIBLE_DESC_FIRST)).toEqual({ column: 'owner', desc: true });
+    expect(nextSort(owner, 'seen', POSSIBLE_DESC_FIRST)).toEqual({ column: 'seen', desc: true });
     const tier = vm([possible, safe], {}, { column: 'tier', desc: true });
     expect(tier.rows.map((r) => r.hit?.tier)).toEqual(['safe', 'possible']);
   });

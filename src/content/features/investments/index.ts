@@ -12,17 +12,18 @@ import {
 } from '../../domain/investments';
 import { calculatorFactor } from '../../ui/factor-bar';
 import { icons } from '../../ui/icons';
+import { nextSort } from '../../ui/sortable';
 import { type PossibleActions, possibleView } from './possible-view';
 import {
   DEFAULT_FILTER,
   DEFAULT_POSSIBLE_SORT,
-  nextPossibleSort,
+  POSSIBLE_DESC_FIRST,
   type PossibleFilter,
   type PossibleSort,
   possibleViewModel,
 } from './possible-view-model';
 import { type InvestmentsActions, investmentsView } from './view';
-import { type InvestmentSort, type InvestmentsTab, investmentsViewModel, nextSort } from './view-model';
+import { INVESTMENT_DESC_FIRST, type InvestmentSort, type InvestmentsTab, investmentsViewModel } from './view-model';
 
 /** the menu entry and the settings group show it */
 const ICON = icons.investments;
@@ -78,14 +79,14 @@ export const investmentsFeature: Feature = {
         box.update();
       },
       sort: (column) => {
-        sort = nextSort(sort, column);
+        sort = nextSort(sort, column, INVESTMENT_DESC_FIRST);
         box.update();
       },
     };
     const possibleActions: PossibleActions = {
       tab: actions.tab,
       sort: (column) => {
-        possibleSort = nextPossibleSort(possibleSort, column);
+        possibleSort = nextSort(possibleSort, column, POSSIBLE_DESC_FIRST);
         box.update();
       },
       filter: (patch) => {
@@ -122,7 +123,6 @@ export const investmentsFeature: Feature = {
             )
           : investmentsView(
               investmentsViewModel({
-                tab,
                 investments,
                 ...(listedAt !== undefined && { listedAt }),
                 now: Date.now(),

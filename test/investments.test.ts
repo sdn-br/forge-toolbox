@@ -169,7 +169,6 @@ describe('the recorded town hall list', () => {
 describe('totals line', () => {
   const vm = (profitSafe: number) =>
     investmentsViewModel({
-      tab: 'mine',
       investments: { rows: [], totals: { circulating: 100, profitSafe, profitTotal: profitSafe - 10 } },
       now: 0,
       greatBuildingName: () => undefined,

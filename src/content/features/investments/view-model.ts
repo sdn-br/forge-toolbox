@@ -1,6 +1,9 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
-import { formatDuration, formatNumber, t } from '../../core/texts';
+import { formatAge, formatNumber } from '../../core/texts';
 import type { Investment, InvestmentStatus, Investments } from '../../domain/investments';
+import { progressPercent } from '../../ui/fp-bar';
+import { signed } from '../../ui/snipe-hit';
+import { type Sort, sortRows } from '../../ui/sortable';
 
 /** the tabs of the box: the own investments and the buildings of others worth a place */
 export type InvestmentsTab = 'mine' | 'possible';
@@ -8,19 +11,11 @@ export const TABS: InvestmentsTab[] = ['mine', 'possible'];
 
 export type InvestmentColumn = 'owner' | 'name' | 'level' | 'rank' | 'deposit' | 'profit' | 'status' | 'progress';
 
-/** a column and its direction; without a sort the rows keep the default order (growth first, then the rest to the level up ascending) */
-export interface InvestmentSort {
-  column: InvestmentColumn;
-  /** largest first */
-  desc: boolean;
-}
+/** without a sort the rows keep the default order (growth first, then the rest to the level up ascending) */
+export type InvestmentSort = Sort<InvestmentColumn>;
 
-/** a click on a column head: the same column turns around, another starts with its natural direction */
-export function nextSort(current: InvestmentSort | undefined, column: InvestmentColumn): InvestmentSort {
-  if (current?.column === column) return { column, desc: !current.desc };
-  // names, places, status and progress (nearest level up) read from the top, deposit and profit from the largest
-  return { column, desc: column === 'deposit' || column === 'profit' || column === 'level' };
-}
+/** names, places, status and progress (nearest level up) read from the top, deposit, profit and level from the largest */
+export const INVESTMENT_DESC_FIRST: ReadonlySet<InvestmentColumn> = new Set(['deposit', 'profit', 'level']);
 
 export interface InvestmentRowVm {
   owner: PlayerId;
@@ -39,13 +34,11 @@ export interface InvestmentRowVm {
   required: string;
   /** paid in of the level, 0 to 100, for the bar */
   percent: number;
-  /** "+44" when others paid in since the building was last open or, never opened, since the first town hall list */
+  /** "44" when others paid in since the building was last open or, never opened, since the first town hall list */
   growth?: string;
-  growthFp?: string;
 }
 
 export type InvestmentsVm = {
-  tab: InvestmentsTab;
   /** "5 Minuten" since the last town hall list; missing when none was seen */
   age?: string;
   sort?: InvestmentSort;
@@ -55,7 +48,6 @@ export type InvestmentsVm = {
 };
 
 export interface InvestmentsInput {
-  tab: InvestmentsTab;
   investments: Investments;
   /** when the last town hall list came */
   listedAt?: number;
@@ -65,10 +57,6 @@ export interface InvestmentsInput {
   playerName(id: PlayerId): string | undefined;
   playerUrl(id: PlayerId): string;
 }
-
-const MINUTE = 60_000;
-
-export const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatNumber(Math.abs(n))}`;
 
 const STATUS_ORDER: Record<InvestmentStatus, number> = { safe: 0, unsafe: 1, unknown: 2 };
 
@@ -93,22 +81,11 @@ export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
     name: input.greatBuildingName(r.cityEntityId) ?? r.cityEntityId,
   }));
   const { sort } = input;
-  if (sort) {
-    const key = sortKey[sort.column];
-    const sign = sort.desc ? -1 : 1;
-    // stable: equal keys keep the default order
-    named.sort((a, b) => {
-      const x = key(a);
-      const y = key(b);
-      return sign * (typeof x === 'string' ? x.localeCompare(String(y), 'de') : x - (y as number));
-    });
-  }
+  // stable: equal keys keep the default order
+  if (sort) sortRows(named, sortKey[sort.column], sort.desc);
   const { totals } = input.investments;
   return {
-    tab: input.tab,
-    ...(input.listedAt !== undefined && {
-      age: formatDuration(Math.max(MINUTE, input.now - input.listedAt)),
-    }),
+    ...(input.listedAt !== undefined && { age: formatAge(input.now - input.listedAt) }),
     ...(sort && { sort }),
     rows: named.map((r) => ({
       owner: r.owner,
@@ -125,11 +102,8 @@ export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
       rest: formatNumber(r.rest),
       invested: formatNumber(r.invested),
       required: formatNumber(r.required),
-      percent: r.required > 0 ? Math.min(100, (r.invested / r.required) * 100) : 0,
-      ...(r.growth !== undefined && {
-        growth: t('investments.growth', { growth: formatNumber(r.growth) }),
-        growthFp: formatNumber(r.growth),
-      }),
+      percent: progressPercent(r.invested, r.required),
+      ...(r.growth !== undefined && { growth: formatNumber(r.growth) }),
     })),
     totals: {
       circulating: formatNumber(totals.circulating),
