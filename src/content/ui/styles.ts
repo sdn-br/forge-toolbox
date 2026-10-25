@@ -254,7 +254,7 @@ td.inv-status.unknown { color: #b8a27d; }
 /* always at the right edge of the column, so the mouse can run straight down it; hidden until the row is hovered */
 button.inv-pick { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 16px; height: 16px; margin-left: auto; opacity: 0; color: var(--ink); }
 tr:is(:hover, :focus-within) button.inv-pick { opacity: .7; }
-tr button.inv-pick:is(:hover, :focus-visible) { opacity: 1; color: var(--accent); }
+tr button.inv-pick:is(:hover, :focus-visible), button.inv-pick.on { opacity: 1; color: var(--accent); }
 .owner-star { flex: none; display: grid; place-items: center; margin-left: 3px; color: var(--accent); }
 .owner-star svg { display: block; width: 11px; height: 11px; }
 button.inv-pick svg { display: block; width: 12px; height: 12px; }

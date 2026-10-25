@@ -54,18 +54,24 @@ const reachCell = (r: PossibleRowVm) =>
     ? t(`investments.reach.${r.reach}`)
     : r.reasons.map((reason) => REACH_ICONS[reason]);
 
-/** shown on row hover or focus (styles) */
-const pickButton = (name: string, actions: PossibleActions) => {
-  const word = t('investments.possible.pickPlayer');
-  return html`<button class="inv-pick" data-tip=${word} aria-label=${word} @click=${() => actions.pickPlayer(name)}>${headerIcons.funnel}</button>`;
+/** the player field names this owner exactly, in any case; the field is the only state, a part of a name marks nothing */
+const picks = (field: string, name: string) => field.trim().toLowerCase() === name.toLowerCase();
+
+/** shown on row hover or focus (styles), always and in the accent while the player field names this owner; then a click
+ * empties the field */
+const pickButton = (name: string, picked: boolean, actions: PossibleActions) => {
+  const word = t(picked ? 'investments.possible.unpickPlayer' : 'investments.possible.pickPlayer');
+  return html`<button class=${picked ? 'inv-pick on' : 'inv-pick'} aria-pressed=${picked ? 'true' : 'false'} data-tip=${word}
+    aria-label=${word} @click=${() => actions.pickPlayer(picked ? '' : name)}>${headerIcons.funnel}</button>`;
 };
 
 const row = (
   r: PossibleRowVm,
+  playerField: string,
   actions: PossibleActions,
 ) => html`<tr class=${r.reach === 'none' ? 'muted' : ''} data-tip=${r.notes.join('\n')}>
   ${markCell(r, actions.mark)}
-  <td class="inv-name" data-tip=${r.ownerName}><span class="inv-owner">${externalLink(r.ownerName, r.ownerUrl)}${ownerStar(r.ownerMarked)}${pickButton(r.ownerName, actions)}</span></td>
+  <td class="inv-name" data-tip=${r.ownerName}><span class="inv-owner">${externalLink(r.ownerName, r.ownerUrl)}${ownerStar(r.ownerMarked)}${pickButton(r.ownerName, picks(playerField, r.ownerName), actions)}</span></td>
   <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r)}</td>
   <td class="inv-name" data-tip=${r.name}>${r.name}</td>
   <td class="num">${r.level}</td>
@@ -139,7 +145,7 @@ const table = (vm: PossibleVm, actions: PossibleActions) => html`<table class="g
     <colgroup><col class="c-mark" /><col class="c-owner" /><col class="c-reach" /><col class="c-name" /><col class="c-level" /><col class="c-progress" /><col class="c-share" />
       <col class="c-rank" /><col class="c-cost" /><col class="c-gain" /><col class="c-tier" /><col class="c-seen" /></colgroup>
     <thead><tr>${sortHeads(columns, vm.sort, actions.sort)}</tr></thead>
-    <tbody>${vm.rows.map((r) => row(r, actions))}</tbody>
+    <tbody>${vm.rows.map((r) => row(r, vm.filter.player, actions))}</tbody>
   </table>`;
 
 const content = (vm: PossibleVm, actions: PossibleActions) =>

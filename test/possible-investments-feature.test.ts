@@ -275,6 +275,34 @@ describe('Investitionen: Mögliche Investitionen', () => {
     expect(box.text).toContain('1 mit Gewinn von 1 LGs');
   });
 
+  it('marks the funnel of the owner the player field names exactly, a click on it empties the field', async () => {
+    const { list, rows, input, showPossible } = setup();
+    list([hitZeus()], 1001);
+    list([{ ...hitOracle(), player: { player_id: 1002, name: 'Bert' } }], 1002);
+    await tick();
+    await showPossible();
+    const pick = () => rows()[0]?.querySelector('td.inv-name .inv-pick') as HTMLButtonElement;
+    const type = async (value: string) => {
+      input('Spieler').value = value;
+      input('Spieler').dispatchEvent(new Event('input'));
+      await tick();
+    };
+    // a part of the name filters, but marks no funnel
+    await type('ber');
+    expect(rows()).toHaveLength(1);
+    expect(pick().classList.contains('on')).toBe(false);
+    // the whole name, typed by hand and in any case, marks it like a click
+    await type(' bert ');
+    expect(pick().classList.contains('on')).toBe(true);
+    expect(pick().getAttribute('aria-pressed')).toBe('true');
+    expect(pick().getAttribute('aria-label')).toBe('Spielerfilter entfernen');
+    pick().click();
+    await tick();
+    expect(input('Spieler').value).toBe('');
+    expect(rows()).toHaveLength(2);
+    expect(rows().some((r) => r.querySelector('.inv-pick.on'))).toBe(false);
+  });
+
   it('uses the stored ranking of an opened building: the row turns exact', async () => {
     const { list, open, rows, cells, showPossible } = setup();
     // the Aachener Dom of owner 1001 (entity 1909, level 75), listed with 2.900 paid in, then opened with 251
