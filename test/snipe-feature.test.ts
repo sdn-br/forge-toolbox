@@ -569,3 +569,86 @@ describe('Snipehilfe: marking with a star', () => {
     expect((await greatBuildings.known()).find((b) => b.entityId === zeus.entity_id)?.marked).toBe(true);
   });
 });
+
+describe('Snipehilfe: marking the owner', () => {
+  const social = (send: (...e: Entry[]) => void, ...ids: number[]) =>
+    send({
+      requestClass: 'OtherPlayerService',
+      requestMethod: 'getSocialList',
+      requestData: null,
+      responseData: {
+        friends: ids.map((id) => ({ player_id: id, name: `Eigentümer ${id}` })),
+        neighbours: [],
+        guildMembers: [],
+      },
+    });
+  const ownerStar = (box: { root: ParentNode }) =>
+    box.root.querySelector('.gb-owner button.star') as HTMLElement | null;
+
+  it('has no star for an owner the player store does not know', async () => {
+    const { box, list } = setup();
+    list([hitZeus()]);
+    await tick();
+    expect(ownerStar(box)).toBeNull();
+  });
+
+  it('marks the owner of the list at its name, in the header of the section', async () => {
+    const { box, players, list, send } = setup();
+    social(send, 1001);
+    list([hitZeus()]);
+    await tick();
+    expect(ownerStar(box)?.closest('p')?.textContent).toContain('Eigentümer 1001');
+    expect(ownerStar(box)?.getAttribute('aria-label')).toBe('Merken');
+    ownerStar(box)?.click();
+    await tick();
+    expect(players.get(playerId(1001))?.marked).toBe(true);
+    expect(ownerStar(box)?.getAttribute('aria-pressed')).toBe('true');
+    ownerStar(box)?.click();
+    await tick();
+    expect(players.get(playerId(1001))?.marked).toBeUndefined();
+    expect(ownerStar(box)?.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('marks the owner in the header of the calculator too, and both stars follow each other', async () => {
+    const { box, players, list, open, send, advance } = setup();
+    social(send, 1001);
+    advance(10_000);
+    open(1909);
+    advance(10_000);
+    list([hitZeus()]);
+    await tick();
+    const stars = () => [...box.root.querySelectorAll('.gb-owner button.star')] as HTMLElement[];
+    expect(stars()).toHaveLength(2);
+    // the second one is the calculator's, below the separator
+    stars()[1]?.click();
+    await tick();
+    expect(players.get(playerId(1001))?.marked).toBe(true);
+    expect(stars().map((s) => s.getAttribute('aria-pressed'))).toEqual(['true', 'true']);
+  });
+
+  it('keeps the mark of the owner when the social list comes again without them', async () => {
+    const { box, players, list, send } = setup();
+    social(send, 1001);
+    list([hitZeus()]);
+    await tick();
+    ownerStar(box)?.click();
+    await tick();
+    social(send);
+    await tick();
+    expect(players.get(playerId(1001))).toMatchObject({ marked: true, relations: { friend: false } });
+    expect(ownerStar(box)?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('marks the owner of a building whose opening was not seen, too', async () => {
+    const { box, players, send } = setup();
+    social(send, 1001);
+    // only the construction arrives, so the box has no building for it
+    const opening = fixture.openings.find((x) => x.entity.requestData[0] === 1909);
+    send(opening?.construction as Entry);
+    await tick();
+    expect(box.text).not.toContain('Aachener Dom');
+    ownerStar(box)?.click();
+    await tick();
+    expect(players.get(playerId(1001))?.marked).toBe(true);
+  });
+});

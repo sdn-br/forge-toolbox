@@ -4,6 +4,7 @@ import type { ArmyValues } from '../../domain/assess-city';
 import { battleDetailsView } from '../../ui/battle-details';
 import { headerIcons } from '../../ui/icons';
 import { externalLink } from '../../ui/links';
+import { starButton } from '../../ui/star';
 import type { PlunderItem, SabotageVm } from './view-model';
 
 const percent = (n: number) => `${formatNumber(n)} %`;
@@ -76,10 +77,16 @@ export function sabotageView(
   vm: SabotageVm | undefined,
   note?: TemplateResult,
   actions?: SabotageActions,
+  /** puts the star on the visited player or takes it away */
+  markPlayer?: (marked: boolean) => void,
 ): TemplateResult {
   if (!vm) return html`<p class="muted">${t('sabotage.noVisit')}</p>`;
   return html`
     <p><b>${externalLink(vm.player.name, vm.player.url)}</b>${
+      vm.player.marked !== undefined && markPlayer
+        ? html` ${starButton(vm.player.marked, () => markPlayer(!vm.player.marked))}`
+        : ''
+    }${
       vm.player.guild
         ? html` <span class="muted">[${externalLink(vm.player.guild.name, vm.player.guild.url)}]</span>`
         : ''

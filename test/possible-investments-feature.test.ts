@@ -394,4 +394,38 @@ describe('Investitionen: Merken', () => {
     ) as HTMLInputElement;
     expect(marked.checked).toBe(true);
   });
+
+  it('lets the buildings of a marked owner pass "nur gemerkte"', async () => {
+    const { box, send, list, rows, cells, showPossible, players } = setup();
+    send({
+      requestClass: 'OtherPlayerService',
+      requestMethod: 'getSocialList',
+      requestData: null,
+      responseData: {
+        friends: [
+          { player_id: 1001, name: 'Eigentümer 1001' },
+          { player_id: 1002, name: 'Eigentümer 1002' },
+        ],
+        neighbours: [],
+        guildMembers: [],
+      },
+    });
+    list([hitZeus()], 1001);
+    list([{ ...hitOracle(), player: { player_id: 1002, name: 'Eigentümer 1002' } }], 1002);
+    await tick();
+    await showPossible();
+    expect(rows()).toHaveLength(2);
+    players.setMarked(playerId(1002), true);
+    const marked = [...box.root.querySelectorAll('input[type=checkbox]')].find(
+      (c) => c.parentElement?.textContent === 'nur gemerkte',
+    ) as HTMLInputElement;
+    marked.checked = true;
+    marked.dispatchEvent(new Event('change'));
+    await tick();
+    expect(rows().map((r) => cells(r)[3])).toEqual(['Orakel von Delphi']);
+    // the mark comes live: marking the other owner shows its building too
+    players.setMarked(playerId(1001), true);
+    await tick();
+    expect(rows()).toHaveLength(2);
+  });
 });

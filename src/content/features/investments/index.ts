@@ -139,9 +139,7 @@ export const investmentsFeature: Feature = {
                 playerName,
                 relations: (id) => ctx.players.get(id)?.relations,
                 isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
-                // debt: players cannot be marked yet. ceiling: the filter never lets a marked owner pass.
-                // upgrade: the player store keeps the mark (package 2 of the marks).
-                ownerMarked: () => false,
+                ownerMarked: (id) => ctx.players.get(id)?.marked === true,
                 playerUrl,
               }),
               possibleActions,

@@ -67,7 +67,14 @@ export function byPlunderPriority(a: Plunderable, b: Plunderable): number {
 
 export interface SabotageVm {
   /** name and guild with their pages at foestats */
-  player: { name: string; url: string; guild?: { name: string; url: string }; era: string };
+  player: {
+    name: string;
+    url: string;
+    guild?: { name: string; url: string };
+    era: string;
+    /** the player put a star on the player; missing when the store does not know them */
+    marked?: boolean;
+  };
   /** whether and when the visited player can be attacked or plundered */
   attack: AttackStatus;
   lootable: boolean;
@@ -148,6 +155,7 @@ export function sabotageViewModel({
         guild: { name: player.guild.name, url: foestatsGuildUrl(city.world, player.guild.id) },
       }),
       era: catalog.eraName(city.era),
+      ...(player && { marked: player.marked === true }),
     },
     attack,
     lootable: attack.kind === 'plunderable' || attack.kind === 'attackable',

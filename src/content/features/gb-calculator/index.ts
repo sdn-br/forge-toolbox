@@ -130,6 +130,9 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
 
       const save = (key: string, value: boolean | number) =>
         ctx.settings.set(key, value).catch((error) => logError('saving settings failed', error));
+      /** whether the player store knows the player and has them marked; undefined for an unknown one, who takes no star */
+      const playerMarked = (id: PlayerId) =>
+        ctx.players.get(id)?.marked === true || (ctx.players.get(id) ? false : undefined);
       const markBuilding = (owner: PlayerId, entityId: number, marked: boolean) =>
         ctx.greatBuildings
           .mark(owner, entityId, marked)
@@ -146,6 +149,9 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         },
         toggleMark: (marked) => {
           if (shown) markBuilding(shown.owner, shown.entityId, marked);
+        },
+        toggleOwnerMark: (marked) => {
+          if (shown) ctx.players.setMarked(shown.owner, marked);
         },
       };
 
@@ -164,6 +170,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           box.update();
         },
         mark: markBuilding,
+        markPlayer: (player, marked) => ctx.players.setMarked(player, marked),
       };
 
       const box = ctx.createBox({
@@ -184,6 +191,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           playerName: (id) => ctx.players.get(id)?.name,
           playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
           isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
+          playerMarked,
           fpBar: ctx.resources.known ? ctx.resources.amount(FP) : undefined,
           fpPackages: ctx.inventory.knowsPackages ? ctx.inventory.forgePointPackages() : undefined,
           arcBonus: arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses()),
@@ -210,6 +218,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           playerName: (id) => ctx.players.get(id)?.name,
           playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
           isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
+          playerMarked,
           foestats: list && ctx.settings.get(FOESTATS_SETTING.key) ? ctx.foestats.get(list.owner) : undefined,
           today: foestatsDay(Date.now()),
           sort,

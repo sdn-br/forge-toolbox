@@ -16,6 +16,8 @@ export interface SnipeActions {
   toggle(): void;
   /** puts the star on a building or takes it away */
   mark(owner: PlayerId, entityId: number, marked: boolean): void;
+  /** puts the star on a player or takes it away */
+  markPlayer(player: PlayerId, marked: boolean): void;
 }
 
 /** Columns in table order; heads show the whole word, the widths are in the styles. */
@@ -110,7 +112,7 @@ export function snipeView(vm: SnipeVm, actions: SnipeActions, expanded: boolean)
   if (vm.kind === 'none') return '';
   if (!expanded) return html`${toggle(false, summary(vm), actions)}<hr class="snipe-sep" />`;
   return html`${toggle(true, html`<span class="gb-title">${t('snipe.heading')}</span>`, actions)}
-    <p>${owner(vm.owner, vm.ownerUrl)}${vm.activity ? activityLine(vm.activity) : ''}
+    <p>${owner(vm.owner, vm.ownerUrl, vm.ownerMarked === undefined ? undefined : { marked: vm.ownerMarked, toggle: (marked) => actions.markPlayer(vm.ownerId, marked) })}${vm.activity ? activityLine(vm.activity) : ''}
     <br /><span class="muted">${t('gb.age', { duration: formatAge(Date.now() - vm.at) })}</span></p>
     ${vm.rows.length === 0 ? html`<p class="muted">${t('snipe.noHit')}</p>` : table(vm, actions)}
     ${vm.counts.length ? html`<p class="muted">${vm.counts.join(' · ')}</p>` : ''}<hr class="snipe-sep" />`;

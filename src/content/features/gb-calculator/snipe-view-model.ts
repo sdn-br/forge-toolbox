@@ -62,7 +62,10 @@ export type SnipeVm =
       kind: 'list';
       /** the player the list belongs to, with the foestats link and activity as on the LG tab */
       owner: string;
+      ownerId: PlayerId;
       ownerUrl: string;
+      /** the player put a star on the owner; missing when the player store does not know them */
+      ownerMarked?: boolean;
       activity?: ActivityVm;
       /** when the list came; the view shows its age as of drawing */
       at: number;
@@ -84,6 +87,7 @@ export interface SnipeInput {
   playerName(id: PlayerId): string | undefined;
   playerUrl(id: PlayerId): string;
   isMarked(owner: PlayerId, entityId: number): boolean;
+  playerMarked(id: PlayerId): boolean | undefined;
   /** what foestats knows about the owner of the list; missing while foestats is off */
   foestats?: FoestatsRecord;
   today: string;
@@ -139,10 +143,13 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
   ].filter((c): c is string => typeof c === 'string');
   const best = [...result.hits].sort((a, b) => snipeProfitKey(b) - snipeProfitKey(a))[0];
   const top = clampScroll(input.scroll ?? 0, rows.length);
+  const ownerMarked = input.playerMarked(list.owner);
   return {
     kind: 'list',
     owner: list.ownerName ?? input.playerName(list.owner) ?? String(list.owner),
+    ownerId: list.owner,
     ownerUrl: input.playerUrl(list.owner),
+    ...(ownerMarked !== undefined && { ownerMarked }),
     ...activityOf(input.foestats, input.today),
     at: list.at,
     sort: input.sort,

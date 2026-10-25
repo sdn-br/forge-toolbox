@@ -22,6 +22,8 @@ export interface GbCalculatorActions extends FactorActions {
   previewLevel(level: number | undefined): void;
   /** puts the star on the shown building or takes it away */
   toggleMark(marked: boolean): void;
+  /** puts the star on the owner of the shown building or takes it away */
+  toggleOwnerMark(marked: boolean): void;
 }
 
 const percent = (n: number) => `${formatNumber(n)} %`;
@@ -32,7 +34,18 @@ export const activityLine = (a: ActivityVm) =>
       a.week ? ` · ${a.week}` : ''
     }</span>${a.loading ? html` <span class="spinner" data-tip=${t('foestats.loading')}></span>` : ''}`;
 
-export const owner = (name: string, url: string) => html`${t('gbCalc.ownerLabel')}: ${externalLink(name, url)}`;
+/** the owner with a star when the player store knows them (`marked` set) */
+export const owner = (name: string, url: string, mark?: { marked: boolean; toggle(marked: boolean): void }) =>
+  html`<span class="gb-owner">${t('gbCalc.ownerLabel')}: ${externalLink(name, url)}${
+    mark ? html` ${starButton(mark.marked, () => mark.toggle(!mark.marked))}` : ''
+  }</span>`;
+
+const ownerOf = (h: { owner: string; ownerUrl: string; ownerMarked?: boolean }, actions: GbCalculatorActions) =>
+  owner(
+    h.owner,
+    h.ownerUrl,
+    h.ownerMarked === undefined ? undefined : { marked: h.ownerMarked, toggle: actions.toggleOwnerMark },
+  );
 
 function header(h: GbHeader, actions: GbCalculatorActions) {
   const fp =
@@ -44,7 +57,7 @@ function header(h: GbHeader, actions: GbCalculatorActions) {
   return html`<p><span class="gb-title">${t('gbCalc.heading', { name: h.name, level: h.level, next: h.next })}</span>
     ${starButton(h.marked, () => actions.toggleMark(!h.marked))}
     <span class="muted">· ${t('gbCalc.unlocked', { max: h.maxLevel })}</span>
-    <br />${owner(h.owner, h.ownerUrl)}${h.activity ? activityLine(h.activity) : ''}
+    <br />${ownerOf(h, actions)}${h.activity ? activityLine(h.activity) : ''}
     <br /><span class="muted"><span class="gb-fp" data-tip=${split}>${fp}</span> ·
       ${t('gbCalc.arc', { arc: formatNumber(h.arcBonus) })}</span></p>`;
 }
@@ -198,7 +211,7 @@ export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorAction
     case 'none':
       return html`<p class="muted">${t('gbCalc.none')}</p>`;
     case 'noEntity':
-      return html`<p>${owner(vm.owner, vm.ownerUrl)}</p><p class="warn">${t('gbCalc.noEntity')}</p>`;
+      return html`<p>${ownerOf(vm, actions)}</p><p class="warn">${t('gbCalc.noEntity')}</p>`;
     case 'past':
       return html`${header(vm.header, actions)}
         ${levelBar(vm.header.levels, (level) => actions.previewLevel(level))}

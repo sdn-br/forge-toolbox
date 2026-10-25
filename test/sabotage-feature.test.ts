@@ -170,6 +170,31 @@ describe('sabotage feature', () => {
     ]);
   });
 
+  it('puts a star on the visited player next to the name and takes it away again', async () => {
+    const { ctx, box } = setup();
+    ctx.players.apply(world, [observed(1, { canPlunder: false })], 'visit');
+    ctx.cities.setVisited(city(1));
+    await tick();
+    const star = () => box.root.querySelector('button.star') as HTMLElement;
+    expect(star().getAttribute('aria-label')).toBe('Merken');
+    expect(star().closest('p')?.textContent).toContain('P1');
+    star().click();
+    await tick();
+    expect(ctx.players.get(playerId(1))?.marked).toBe(true);
+    expect(star().getAttribute('aria-label')).toBe('Nicht mehr merken');
+    expect(star().getAttribute('aria-pressed')).toBe('true');
+    star().click();
+    await tick();
+    expect(ctx.players.get(playerId(1))?.marked).toBeUndefined();
+  });
+
+  it('shows no star for a visited player the store does not know', async () => {
+    const { ctx, box } = setup();
+    ctx.cities.setVisited(city(1));
+    await tick();
+    expect(box.root.querySelector('button.star')).toBeNull();
+  });
+
   it('opens the city map of the visited player in its own box and remembers its view mode', async () => {
     const { ctx, box, mapBox } = mapSetup();
     ctx.players.apply(world, [observed(1, { canPlunder: false })], 'update');

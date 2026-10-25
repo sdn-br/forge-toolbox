@@ -90,7 +90,8 @@ export const sabotageFeature: Feature = {
         keepTicking();
         const owner = ctx.cities.visited()?.owner;
         const note = vm && owner !== undefined ? card.render(owner, ctx.players.get(owner)?.name) : undefined;
-        return sabotageView(vm, note, mapVm && actions);
+        const markPlayer = owner === undefined ? undefined : (marked: boolean) => ctx.players.setMarked(owner, marked);
+        return sabotageView(vm, note, mapVm && actions, markPlayer);
       },
     });
     const card = new PlayerNoteCard(ctx.notes, () => box.update());

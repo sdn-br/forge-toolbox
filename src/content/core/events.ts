@@ -8,7 +8,8 @@ export interface ToolboxEvents {
   'session.started': { session: Session };
   /** a box asks to open the settings at the group of its feature */
   'settings.open': { group: string };
-  'player.updated': { ids: PlayerId[]; source: PlayerSource };
+  /** `source` is where the data came from, or `mark` when the player put a star on a player or took it away */
+  'player.updated': { ids: PlayerId[]; source: PlayerSource | 'mark' };
   'city.ownChanged': { buildingIds?: number[]; reset: boolean };
   'city.visited': { owner: PlayerId };
   'city.visitedChanged': { owner: PlayerId; buildingIds: number[] };

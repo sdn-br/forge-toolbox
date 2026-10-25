@@ -69,6 +69,11 @@ Quelle: alle bekannten fremden LGs der Tabelle `greatBuildings`, ohne eigene Bet
   - Der Store hält die Sterne im Speicher (`isMarked`), gelesen beim Start, und ändert sie nur über `mark`. Das Setzen läuft hinter den offenen Schreibvorgängen, ein eben geöffnetes LG hat dann schon seine Zeile. Ein LG ohne Zeile (ein eigenes) nimmt keinen Stern. Danach meldet der Bus `greatBuilding.marked { owner, entityId, marked }`, und alle offenen Ansichten zeichnen neu.
   - Der Stern steht in der Snipehilfe als letzte Spalte (nach der Sicherheit, die Box ist dafür 546 px breit statt 520 px), im Kopf des LG-Rechners neben dem Titel und als erste Spalte in beiden Reitern. Der Spaltenkopf ist der Stern, „Merken“ steht im Tooltip und im `aria-label`, ein Klick sortiert die gemerkten nach oben. Der Knopf zeigt „Merken“ oder „Nicht mehr merken“ im Tooltip und sagt seinen Zustand mit `aria-pressed`.
   - Filter „nur gemerkte“ in „Mögliche Investitionen“: Standard aus, gemerkt mit den anderen Filtern, die Zählzeile zählt über die LGs, die er übrig lässt. Die Box ist jetzt 740 px breit (vorher 710 px), die Spalte Merken 30 px.
+- **Umsetzung (2026-10-25), gemerkte Spieler:**
+  - Das Feld `marked` am Spieler im Player-Store (`setMarked`), nicht in den Investitionen. Gespeichert wird es mit der Zeile in der Tabelle `players`. Kein Weg über Beziehungen ändert es: `getSocialList`, `acceptInvitation`, `deleteFriend` und die übrigen Quellen behalten es, auch wenn der Spieler in keiner Liste mehr steht. Nur der Spieler nimmt den Stern von Hand weg.
+  - Merken kann man nur einen Spieler, den der Player-Store kennt. Bei einem unbekannten Eigentümer (nur aus einer LG-Liste bekannt, siehe [Erreichbarkeit](#erreichbarkeit)) steht kein Stern, denn für ihn gibt es noch keine Zeile, in der er stehen könnte.
+  - Der Stern steht im Kopf der Snipehilfe und im Kopf des LG-Rechners hinter dem Namen des Eigentümers und in den Stadtinformationen hinter dem Namen des besuchten Spielers. Eine Änderung meldet `player.updated` mit der Quelle `mark`, so zeichnen alle offenen Ansichten neu.
+  - „nur gemerkte“ lässt nun auch die LGs eines gemerkten Eigentümers durch.
 
 ## Erreichbarkeit
 

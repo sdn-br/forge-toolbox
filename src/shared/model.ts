@@ -36,6 +36,8 @@ export interface Player {
   active: boolean;
   guild?: GuildRef;
   relations: Relations;
+  /** the session player put a star on the player; only the player removes it, never a change of relations */
+  marked?: boolean;
   /** missing until a source that carries the timers reported the player */
   attack?: AttackTimer;
   firstSeenAt: number;
