@@ -203,7 +203,9 @@ th.sortable.asc .sort-level::before { content: ' ▴'; font-size: 1.333em; }
 .snipe-table .c-cost { width: 68px; }
 /* the best case only, "≈ +12.345" at most; the range is in the tooltip */
 .snipe-table .c-profit { width: 64px; }
-.snipe-table .c-tier, .snipe-table .c-mark { width: 38px; }
+.snipe-table .c-tier { width: 38px; }
+/* the star head with arrow and level number needs 29 px plus 4 px padding */
+.snipe-table .c-mark { width: 34px; }
 .snipe-table td.snipe-name { overflow: hidden; text-overflow: ellipsis; }
 .snipe-table .snipe-tier, .snipe-table th.icon-head:not(.num) { text-align: center; padding: 0; }
 /* the star left, its icon in line with the number of # before it (the button centres a 14 px icon in 18 px) */
@@ -215,7 +217,7 @@ td.snipe-tier.safe { color: #5a9a4a; }
 td.snipe-tier.possible { color: #f0a050; }
 /* investments: fixed columns so heads show whole; owner and building names give way */
 .inv-table { table-layout: fixed; }
-.inv-table .c-mark { width: 38px; }
+.inv-table .c-mark { width: 34px; }
 .inv-table .c-level, .inv-table .c-rank { width: 56px; }
 .inv-table .c-deposit { width: 90px; }
 .inv-table .c-profit { width: 64px; }
