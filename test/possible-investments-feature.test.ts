@@ -294,9 +294,10 @@ describe('Investitionen: Mögliche Investitionen', () => {
     list([hitZeus(), hitOracle()]);
     await tick();
     await showPossible();
-    expect(rows().map((r) => cells(r)[1])).toEqual(['Freund', 'Freund']);
-    const reach = rows()[0]?.querySelectorAll('td')[1];
-    expect(reach?.getAttribute('data-tip')).toBe('Freund');
+    // a reason is its icon with the word in the tooltip; out of reach stays a word
+    const reach = (r: Element) => r.querySelectorAll('td')[1];
+    expect(rows().map((r) => reach(r)?.getAttribute('data-tip'))).toEqual(['Freund', 'Freund']);
+    expect(reach(rows()[0] as Element)?.querySelector('svg')).not.toBeNull();
     send({ requestClass: 'FriendService', requestMethod: 'deleteFriend', requestData: null, responseData: 1001 });
     await tick();
     expect(rows()).toHaveLength(0);
@@ -315,7 +316,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     expect(JSON.parse(ui.pref('investments.filter') ?? '{}')).toMatchObject({ onlyReachable: false });
     send(friendAccept.accept as Entry);
     await tick();
-    expect(rows().map((r) => [cells(r)[1], r.className])).toEqual([
+    expect(rows().map((r) => [reach(r)?.getAttribute('data-tip'), r.className])).toEqual([
       ['Freund', ''],
       ['Freund', ''],
     ]);

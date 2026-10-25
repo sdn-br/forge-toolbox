@@ -62,6 +62,8 @@ export interface PossibleRowVm {
   ownerUrl: string;
   /** the first reason, `none` drawn muted */
   reach: Reach;
+  /** every reason, each drawn as its icon */
+  reasons: Reach[];
   /** every reason, for the tooltip */
   reachTip: string;
   name: string;
@@ -166,6 +168,7 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
       ownerName,
       ownerUrl: input.playerUrl(b.owner),
       reach: reasons[0] as Reach,
+      reasons,
       reachTip: reachTip(reasons),
       name,
       level: b.level,

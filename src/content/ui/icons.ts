@@ -100,9 +100,9 @@ export const icons = {
   gbOwnShare: menuIcon(svg`${castle(0.82, 2.2, 0)}
     <rect x="3" y="19.2" width="18" height="3.2" rx="1"/>
     <rect class="acc" x="3" y="19.2" width="7.5" height="3.2" rx="1" fill="currentColor"/>`),
-  /** provisional, from existing parts until a preview is chosen: the castle small, an accent arrow up beside it */
+  /** the castle small, beside it in the accent the FP coin of the game: rim and stamp */
   investments: menuIcon(svg`${castle(0.78, 0, 5.2)}
-    <path class="acc" d="M19 13V2.8M15.2 6.6 19 2.8l3.8 3.8" stroke-width="2"/>`),
+    <g class="acc"><circle cx="18" cy="6.5" r="4.6"/><circle cx="18" cy="6.5" r="2" stroke-width="1.4"/></g>`),
 };
 
 const FORWARD = 'M20 12a8 8 0 1 1-2.3-5.6';
@@ -142,6 +142,16 @@ export const headerIcons = {
   adopted: headerIcon(svg`<path d="${FORWARD}"/><path class="acc" d="M8.6 12.2l2.4 2.4 4.4-4.6"/>`),
   /** head and shoulders: a player */
   person: headerIcon(svg`<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5c0-4.2 3.3-6.8 7.5-6.8s7.5 2.6 7.5 6.8"/>`),
+  /** the motifs of the game's social bar: a gabled house with a smaller one behind, a neighbour */
+  neighbor: headerIcon(
+    svg`<path d="M2.5 13 8.5 7.5l6 5.5"/><path d="M4.2 11.8V20.5h8.6v-8.7"/><path d="M7.3 20.5v-4h2.4v4"/><path d="M12.8 9.2 16.6 6l4.6 4"/><path d="M19.8 9v11.5h-7"/>`,
+  ),
+  /** two people, the one behind a bit higher: a friend */
+  friend: headerIcon(
+    svg`<circle cx="8.3" cy="7" r="3"/><path d="M2.5 18.5c0-3.6 2.4-6 5.8-6 1 0 1.9.2 2.7.6"/><circle cx="15.6" cy="10" r="3.2"/><path d="M9.6 21.5c0-3.6 2.6-6 6-6s6 2.4 6 6"/>`,
+  ),
+  /** the whole heraldic shield: a guild member (the sabotage shield is broken in two) */
+  guild: headerIcon(svg`<path d="M5 4h14v7.2c0 4.6-3 7.8-7 9.3-4-1.5-7-4.7-7-9.3Z"/>`),
   /** a clock: a promised payment, not paid yet */
   clock: headerIcon(svg`<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.2 2"/>`),
   /** a warning triangle: danger */

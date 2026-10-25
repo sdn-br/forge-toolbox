@@ -5,7 +5,7 @@ import { keepKeys } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
 import { profitCell, tierCell } from '../../ui/snipe-hit';
 import { type SortColumn, sortHead } from '../../ui/sortable';
-import type { PossibleColumn, PossibleFilter, PossibleRowVm, PossibleVm } from './possible-view-model';
+import type { PossibleColumn, PossibleFilter, PossibleRowVm, PossibleVm, Reach } from './possible-view-model';
 import { progressCell, tabs } from './view';
 import type { InvestmentsTab } from './view-model';
 
@@ -29,9 +29,21 @@ const columns: SortColumn<PossibleColumn>[] = [
   { column: 'seen', label: 'investments.col.seen', num: true },
 ];
 
+const REACH_ICONS: Partial<Record<Reach, TemplateResult>> = {
+  neighbor: headerIcons.neighbor,
+  friend: headerIcons.friend,
+  guildMember: headerIcons.guild,
+};
+
+/** an icon per reason; out of reach and unknown stay words */
+const reachCell = (r: PossibleRowVm) =>
+  r.reach === 'none' || r.reach === 'unknown'
+    ? t(`investments.reach.${r.reach}`)
+    : r.reasons.map((reason) => REACH_ICONS[reason]);
+
 const row = (r: PossibleRowVm) => html`<tr class=${r.reach === 'none' ? 'muted' : ''} data-tip=${r.notes.join('\n')}>
   <td class="inv-name" data-tip=${r.ownerName}>${externalLink(r.ownerName, r.ownerUrl)}</td>
-  <td data-tip=${r.reachTip}>${t(`investments.reach.${r.reach}`)}</td>
+  <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r)}</td>
   <td class="inv-name" data-tip=${r.name}>${r.name}</td>
   <td class="num">${r.level}</td>
   ${progressCell(r)}

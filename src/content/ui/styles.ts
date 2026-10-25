@@ -221,6 +221,7 @@ td.inv-status.unknown { color: #b8a27d; }
 .inv-possible .c-tier { width: 26px; }
 .inv-possible .c-seen { width: 72px; }
 .inv-possible .c-reach { width: 70px; }
+.inv-reach svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px; }
 /* an owner out of reach: the whole row muted, links and tier colours too */
 .inv-possible tr.muted :is(td, a) { color: inherit; }
 .inv-possible td { overflow: hidden; text-overflow: ellipsis; }

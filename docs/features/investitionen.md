@@ -76,7 +76,7 @@ Einzahlen kann man nur in LGs von Nachbarn, Freunden und Gildenmitgliedern. Die 
   - **Offen, keine Aufnahme:** der andere beendet die Freundschaft, der Spieler wird aus der Gilde entfernt, der Spieler verlässt selbst die Gilde. Ob das Spiel das live meldet (eigene Methode, Websocket) oder nur über ein neues `getSocialList`, zeigt erst eine Aufnahme. Bis dahin kann eine Zeile bis zum nächsten `getSocialList` falsch als erreichbar stehen.
 - **Umsetzung (2026-10-25):**
   - Spalte „Erreichbar“ gleich nach dem Eigentümer. Der Spaltenkopf ist das Personen-Icon, das Wort steht im Tooltip und im `aria-label`, denn ausgeschrieben passt es samt Sortierpfeil nicht in die Spalte.
-  - Die Zelle nennt den ersten Grund in fester Reihenfolge Nachbar, Freund, Gilde. Der Tooltip nennt alle Gründe („Nachbar, Gilde“).
+  - Die Zelle zeigt je Grund ein Icon in fester Reihenfolge Nachbar, Freund, Gilde, nebeneinander bei mehreren. Der Tooltip nennt alle Gründe („Nachbar, Gilde“). Die Icons sind die Motive der Reiter in der Sozialleiste des Spiels, als eigene Strich-Icons nachgezeichnet: Haus mit Nebenhaus, zwei Personen versetzt, ganzer Wappenschild (Nutzer, 2026-10-25). Sortiert wird weiter nach dem ersten Grund.
   - Nicht erreichbar: „nein“ in der Zelle, „nicht erreichbar“ im Tooltip, die ganze Zeile gedämpft (Klasse `muted`, auch Link und Farbe der Sicherheit). Ausgeschrieben passt „nicht erreichbar“ nicht in die Spalte.
   - Unbekannt: „unbekannt“ in der Zelle, nicht gedämpft. Unbekannt ist ein Eigentümer, den der Player-Store nicht kennt, etwa wenn er nur aus einer LG-Liste bekannt ist.
   - Filter „nur erreichbare“ neben „nur mit Gewinn“, Standard an, gemerkt mit den anderen Filtern. Unbekannte bleiben drin.
@@ -84,7 +84,6 @@ Einzahlen kann man nur in LGs von Nachbarn, Freunden und Gildenmitgliedern. Die 
   - Sortierung nach der Spalte: erst Nachbarn, dann Freunde, Gilde, unbekannt, zuletzt nicht erreichbar.
   - Breite: Die Box ist 710 px breit (vorher 640 px), die neue Spalte 70 px. So behalten Eigentümer und LG ihren Platz.
   - Live: Jede Änderung im Player-Store (`player.updated`) zeichnet den Reiter neu, also auch `getSocialList`, `acceptInvitation` und `deleteFriend`.
-  - Icons für die Gründe (Nachbar, Freund, Gilde) sind ein Kandidat für später. Bis dahin steht Text in der Zelle.
 
 ## Testfälle
 
