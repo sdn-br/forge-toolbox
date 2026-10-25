@@ -133,11 +133,13 @@ button.marker.dim { opacity: .3; }
 .suggestions li:hover, .suggestions li.active { background: var(--btn-hover); }
 .suggestions .num { color: #b8a27d; }
 /* the selected buildings, one row per name: name, "selected/in the city", ✕ */
-.selection { margin: 4px 0; }
-.selection-list { list-style: none; margin: 0 0 2px; padding: 0; }
-.selection-list li { display: flex; align-items: center; gap: 8px; padding: 1px 0; }
-.selection-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.selection { margin: 4px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.selection-list { display: contents; list-style: none; }
+.selection-list li { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 1px 2px 1px 8px;
+  background: var(--btn); border: 1px solid var(--line); border-radius: 10px; }
+.selection-list .name { min-width: 0; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .selection-list .num { color: #b8a27d; }
+.selection > button.action { margin: 0; }
 .selection-list button.icon { all: unset; cursor: pointer; width: 18px; height: 18px; display: grid;
   place-items: center; color: var(--ink); opacity: .8; }
 .selection-list button.icon:hover { opacity: 1; }

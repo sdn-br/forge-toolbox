@@ -1,5 +1,6 @@
-// The selected buildings of the own city as a list, one entry per name with "selected/in the city", each with a ✕
-// that removes the buildings of that name, and a button that removes all. The building search and the city map show
+// The selected buildings of the own city as labels side by side, one per name with "selected/in the city" and a ✕
+// that removes the buildings of that name (Nutzer, 2026-10-26: like labels, the count and ✕ close to their name), and a
+// button after them that removes all. The building search and the city map show
 // the same list.
 import { html, type TemplateResult } from 'lit-html';
 import type { OwnSelection } from '../core/selection';
