@@ -30,7 +30,7 @@ const statusIcon: Record<InvestmentStatus, TemplateResult> = {
 
 /** Columns in table order; heads show the whole word, the narrow status and star their icon; the widths are in the styles. */
 const columns: SortColumn<InvestmentColumn>[] = [
-  { column: 'mark', label: 'mark.col', num: false, icon: headerIcons.star },
+  { column: 'mark', label: 'mark.col', num: false, icon: headerIcons.star, cls: 'inv-mark' },
   { column: 'owner', label: 'investments.col.owner', num: false },
   { column: 'name', label: 'gb.col.name', num: false },
   { column: 'level', label: 'gb.col.level', num: true },

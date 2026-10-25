@@ -223,6 +223,9 @@ td.snipe-tier.possible { color: #f0a050; }
 .inv-table .c-progress { width: 104px; }
 .inv-table td.inv-name { overflow: hidden; text-overflow: ellipsis; }
 .inv-table :is(.icon-head, .inv-status, .snipe-tier, .inv-mark) { text-align: center; padding: 0; }
+/* the star left, as in the snipe helper (the button centres a 14 px icon in 18 px) */
+.inv-table td.inv-mark { text-align: left; padding: 0 0 0 2px; }
+.inv-table th.icon-head.inv-mark { text-align: left; padding: 0 0 0 4px; }
 .inv-table :is(.inv-status, .snipe-tier) svg { display: block; width: 14px; height: 14px; margin: auto; }
 .inv-table .icon-head svg { display: inline-block; width: 14px; height: 14px; vertical-align: middle; }
 .inv-table .icon-head { white-space: nowrap; }
