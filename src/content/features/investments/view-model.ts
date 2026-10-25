@@ -33,6 +33,8 @@ export interface InvestmentRowVm {
   marked: boolean;
   ownerName: string;
   ownerUrl: string;
+  /** the player put a star on the owner */
+  ownerMarked: boolean;
   name: string;
   level: number;
   rank: number;
@@ -68,6 +70,8 @@ export interface InvestmentsInput {
   playerName(id: PlayerId): string | undefined;
   playerUrl(id: PlayerId): string;
   isMarked(owner: PlayerId, entityId: number): boolean;
+  /** the player put a star on the owner */
+  ownerMarked(owner: PlayerId): boolean;
 }
 
 const STATUS_ORDER: Record<InvestmentStatus, number> = { safe: 0, unsafe: 1, unknown: 2 };
@@ -107,6 +111,7 @@ export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
       marked: r.marked,
       ownerName: r.ownerName,
       ownerUrl: input.playerUrl(r.owner),
+      ownerMarked: input.ownerMarked(r.owner),
       name: r.name,
       level: r.level,
       rank: r.rank,

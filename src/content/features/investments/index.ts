@@ -178,6 +178,7 @@ export const investmentsFeature: Feature = {
                 playerName,
                 playerUrl,
                 isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
+                ownerMarked: (id) => ctx.players.get(id)?.marked === true,
               }),
               actions,
             ),

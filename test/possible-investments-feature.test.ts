@@ -520,13 +520,11 @@ describe('Investitionen: Merken', () => {
     await tick();
     await greatBuildings.mark(playerId(1001), zeus.entity_id, true);
     await showPossible();
-    const marked = [...box.root.querySelectorAll('input[type=checkbox]')].find(
-      (c) => c.parentElement?.textContent === 'nur gemerkte',
-    ) as HTMLInputElement;
-    expect(marked.checked).toBe(false);
+    const marked = box.root.querySelector('.inv-marked-filter button') as HTMLButtonElement;
+    expect(marked.getAttribute('aria-label')).toBe('nur gemerkte');
+    expect(marked.getAttribute('aria-pressed')).toBe('false');
     expect(rows()).toHaveLength(2);
-    marked.checked = true;
-    marked.dispatchEvent(new Event('change'));
+    marked.click();
     await tick();
     expect(rows().map((r) => cells(r)[3])).toEqual(['Zeusstatue']);
     expect(box.text).toContain('1 mit Gewinn von 1 LGs');
@@ -543,10 +541,7 @@ describe('Investitionen: Merken', () => {
     env.menu('investments');
     await tick();
     const root = env.boxes.get('investments')?.root as HTMLElement;
-    const marked = [...root.querySelectorAll('input[type=checkbox]')].find(
-      (c) => c.parentElement?.textContent === 'nur gemerkte',
-    ) as HTMLInputElement;
-    expect(marked.checked).toBe(true);
+    expect(root.querySelector('.inv-marked-filter button')?.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('lets the buildings of a marked owner pass "nur gemerkte"', async () => {
@@ -570,11 +565,13 @@ describe('Investitionen: Merken', () => {
     await showPossible();
     expect(rows()).toHaveLength(2);
     players.setMarked(playerId(1002), true);
-    const marked = [...box.root.querySelectorAll('input[type=checkbox]')].find(
-      (c) => c.parentElement?.textContent === 'nur gemerkte',
-    ) as HTMLInputElement;
-    marked.checked = true;
-    marked.dispatchEvent(new Event('change'));
+    await tick();
+    // a marked owner carries a star beside the name, the other none
+    const ownerStar = (row: Element | undefined) => row?.querySelector('.inv-owner .owner-star');
+    const byName = (name: string) => rows().find((r) => cells(r)[3] === name);
+    expect(ownerStar(byName('Orakel von Delphi'))?.getAttribute('aria-label')).toBe('Spieler gemerkt');
+    expect(ownerStar(byName('Zeusstatue'))).toBeNull();
+    (box.root.querySelector('.inv-marked-filter button') as HTMLButtonElement).click();
     await tick();
     expect(rows().map((r) => cells(r)[3])).toEqual(['Orakel von Delphi']);
     // the mark comes live: marking the other owner shows its building too

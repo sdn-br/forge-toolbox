@@ -166,6 +166,24 @@ describe('the recorded town hall list', () => {
   });
 });
 
+describe('marked owner', () => {
+  it('tells per row whether the owner is marked, for the star beside the name', () => {
+    const rows = investmentsViewModel({
+      investments: myInvestments([building(), building({ owner: playerId(2002), entityId: 2 })], 90),
+      now: 0,
+      greatBuildingName: () => undefined,
+      playerName: () => undefined,
+      playerUrl: () => '',
+      isMarked: () => false,
+      ownerMarked: (id) => id === playerId(2002),
+    }).rows;
+    expect(rows.map((r) => [r.entityId, r.ownerMarked])).toEqual([
+      [1, false],
+      [2, true],
+    ]);
+  });
+});
+
 describe('totals line', () => {
   const vm = (profitSafe: number) =>
     investmentsViewModel({
@@ -175,6 +193,7 @@ describe('totals line', () => {
       playerName: () => undefined,
       playerUrl: () => '',
       isMarked: () => false,
+      ownerMarked: () => false,
     }).totals;
 
   it('shows the safe profit green only above 0', () => {

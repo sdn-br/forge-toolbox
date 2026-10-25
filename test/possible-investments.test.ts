@@ -264,6 +264,15 @@ describe('marks', () => {
     expect(vm(all, { onlyHits: false, onlyMarked: true }).rows.map((r) => r.entityId)).toEqual([3, 4]);
   });
 
+  it('tells per row whether the owner is marked, for the star beside the name', () => {
+    markedOwners.add(1003);
+    const rows = vm([safe, none], { onlyHits: false }).rows;
+    expect(rows.map((r) => [r.entityId, r.ownerMarked])).toEqual([
+      [1, false],
+      [3, true],
+    ]);
+  });
+
   it('passes a building that is marked and has a marked owner once', () => {
     markedBuildings.add('1003:3');
     markedOwners.add(1003);

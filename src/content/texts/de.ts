@@ -207,6 +207,7 @@ export const de = {
   'investments.possible.player': 'Spieler',
   'investments.possible.name': 'LG',
   'investments.possible.onlyHits': 'nur mit Gewinn',
+  'investments.ownerMarked': 'Spieler gemerkt',
   'investments.possible.pickPlayer': 'Nur diesen Spieler zeigen',
   'investments.possible.onlyMarked': 'nur gemerkte',
   'investments.possible.none':

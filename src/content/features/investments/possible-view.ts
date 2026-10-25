@@ -14,7 +14,7 @@ import {
   type Reach,
   TIER_TOGGLES,
 } from './possible-view-model';
-import { type InvestmentsActions, markCell, progressCell, tabs } from './view';
+import { type InvestmentsActions, markCell, ownerStar, progressCell, tabs } from './view';
 import type { InvestmentsTab } from './view-model';
 
 export interface PossibleActions {
@@ -65,7 +65,7 @@ const row = (
   actions: PossibleActions,
 ) => html`<tr class=${r.reach === 'none' ? 'muted' : ''} data-tip=${r.notes.join('\n')}>
   ${markCell(r, actions.mark)}
-  <td class="inv-name" data-tip=${r.ownerName}><span class="inv-owner">${externalLink(r.ownerName, r.ownerUrl)}${pickButton(r.ownerName, actions)}</span></td>
+  <td class="inv-name" data-tip=${r.ownerName}><span class="inv-owner">${externalLink(r.ownerName, r.ownerUrl)}${ownerStar(r.ownerMarked)}${pickButton(r.ownerName, actions)}</span></td>
   <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r)}</td>
   <td class="inv-name" data-tip=${r.name}>${r.name}</td>
   <td class="num">${r.level}</td>
@@ -86,10 +86,6 @@ const text = (value: string, label: string, set: (value: string) => void) =>
   html`<input type="search" placeholder=${label} aria-label=${label} .value=${value}
     @input=${(e: Event) => set((e.target as HTMLInputElement).value)}
     @keydown=${keepKeys} @keypress=${keepKeys} @keyup=${keepKeys} />`;
-
-const check = (checked: boolean, label: string, set: (checked: boolean) => void) =>
-  html`<label><input type="checkbox" .checked=${checked}
-    @change=${(e: Event) => set((e.target as HTMLInputElement).checked)} />${label}</label>`;
 
 const REACH_FILTER_ICONS: Record<(typeof REACH_TOGGLES)[number], TemplateResult> = {
   ...REACH_ICONS,
@@ -112,6 +108,13 @@ const hitsFilter = (f: PossibleFilter, actions: PossibleActions) => {
     data-tip=${word} aria-label=${word} @click=${() => actions.filter({ onlyHits: !f.onlyHits })}>${headerIcons.profit}</button></span>`;
 };
 
+/** a toggle with the star: only marked buildings and buildings of marked owners */
+const markedFilter = (f: PossibleFilter, actions: PossibleActions) => {
+  const word = t('investments.possible.onlyMarked');
+  return html`<span class="inv-marked-filter"><button class=${f.onlyMarked ? 'on' : ''} aria-pressed=${f.onlyMarked ? 'true' : 'false'}
+    data-tip=${word} aria-label=${word} @click=${() => actions.filter({ onlyMarked: !f.onlyMarked })}>${headerIcons.starFilled}</button></span>`;
+};
+
 /** one toggle per tier, with the icons of the column "Sicherheit"; any switched on lets a row with that tier through */
 const tierFilter = (f: PossibleFilter, actions: PossibleActions) =>
   html`<span class="inv-tier-filter">${TIER_TOGGLES.map((key) => {
@@ -128,7 +131,7 @@ const filters = (f: PossibleFilter, count: string, actions: PossibleActions) => 
     ${hitsFilter(f, actions)}
     ${reachFilter(f, actions)}
     ${tierFilter(f, actions)}
-    ${check(f.onlyMarked, t('investments.possible.onlyMarked'), (onlyMarked) => actions.filter({ onlyMarked }))}
+    ${markedFilter(f, actions)}
     <span class="inv-count muted">${count}</span>
   </p>`;
 

@@ -243,18 +243,20 @@ td.inv-status.unknown { color: #b8a27d; }
 .inv-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .inv-filter input[type=search] { width: 10em; }
 .inv-count { margin-left: auto; }
-.inv-reach-filter, .inv-tier-filter, .inv-hits-filter { display: inline-flex; gap: 2px; }
-.inv-reach-filter button, .inv-tier-filter button, .inv-hits-filter button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
-.inv-reach-filter button.on, .inv-tier-filter button.on { color: var(--accent); opacity: 1; }
+.inv-reach-filter, .inv-tier-filter, .inv-hits-filter, .inv-marked-filter { display: inline-flex; gap: 2px; }
+.inv-reach-filter button, .inv-tier-filter button, .inv-hits-filter button, .inv-marked-filter button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
+.inv-reach-filter button.on, .inv-tier-filter button.on, .inv-marked-filter button.on { color: var(--accent); opacity: 1; }
 /* the profit icon keeps its own colours, switched on it only turns opaque */
 .inv-hits-filter button.on { opacity: 1; }
-.inv-reach-filter button svg, .inv-tier-filter button svg, .inv-hits-filter button svg { display: block; width: 14px; height: 14px; }
+.inv-reach-filter button svg, .inv-tier-filter button svg, .inv-hits-filter button svg, .inv-marked-filter button svg { display: block; width: 14px; height: 14px; }
 .inv-owner { display: flex; align-items: center; }
 .inv-owner a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* always at the right edge of the column, so the mouse can run straight down it; hidden until the row is hovered */
 button.inv-pick { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 16px; height: 16px; margin-left: auto; opacity: 0; color: var(--ink); }
 tr:is(:hover, :focus-within) button.inv-pick { opacity: .7; }
 tr button.inv-pick:is(:hover, :focus-visible) { opacity: 1; color: var(--accent); }
+.owner-star { flex: none; display: grid; place-items: center; margin-left: 3px; color: var(--accent); }
+.owner-star svg { display: block; width: 11px; height: 11px; }
 button.inv-pick svg { display: block; width: 12px; height: 12px; }
 .inv-growth { color: var(--accent); font-weight: 600; }
 /* a thin bar under "paid in / costs", filled towards the level up (investments, GB calculator) */

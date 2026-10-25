@@ -81,6 +81,8 @@ Quelle: alle bekannten fremden LGs der Tabelle `greatBuildings`, ohne eigene Bet
   - Merken kann man nur einen Spieler, den der Player-Store kennt. Bei einem unbekannten Eigentümer (nur aus einer LG-Liste bekannt, siehe [Erreichbarkeit](#erreichbarkeit)) steht kein Stern, denn für ihn gibt es noch keine Zeile, in der er stehen könnte.
   - Der Stern steht im Kopf der Snipehilfe und im Kopf des LG-Rechners hinter dem Namen des Eigentümers und in den Stadtinformationen hinter dem Namen des besuchten Spielers. Eine Änderung meldet `player.updated` mit der Quelle `mark`, so zeichnen alle offenen Ansichten neu.
   - „nur gemerkte“ lässt nun auch die LGs eines gemerkten Eigentümers durch.
+  - In beiden Reitern steht hinter dem Namen eines gemerkten Eigentümers ein kleiner gefüllter Stern in Akzent, nur zur Anzeige (Tooltip „Spieler gemerkt“). So sieht man, warum eine Zeile durch „nur gemerkte“ kommt. Umschalten geht dort, wo man den Spieler sieht (Snipehilfe, LG-Rechner, Stadtinformationen). Nutzer, 2026-10-25.
+  - „nur gemerkte“ ist seit 2026-10-25 ein Schalter mit dem gefüllten Stern statt einer Checkbox, wie die übrigen Filter (Nutzer).
 
 ## Erreichbarkeit
 

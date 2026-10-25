@@ -59,7 +59,7 @@ const row = (r: InvestmentRowVm, actions: InvestmentsActions) => {
   const status = t(`investments.status.${r.status}`);
   return html`<tr class=${r.growth ? 'grown' : ''}>
   ${markCell(r, actions.mark)}
-  <td class="inv-name" data-tip=${r.ownerName}>${externalLink(r.ownerName, r.ownerUrl)}</td>
+  <td class="inv-name" data-tip=${r.ownerName}><span class="inv-owner">${externalLink(r.ownerName, r.ownerUrl)}${ownerStar(r.ownerMarked)}</span></td>
   <td class="inv-name" data-tip=${r.name}>${r.name}</td>
   <td class="num">${r.level}</td>
   <td class="num">${t('gb.rank', { rank: r.rank })}</td>
@@ -83,6 +83,13 @@ export const tabs = (current: InvestmentsTab, actions: { tab(tab: InvestmentsTab
     (tab) =>
       html`<button class=${tab === current ? 'active' : ''} ?disabled=${tab === current} @click=${() => actions.tab(tab)}>${t(`investments.tab.${tab}`)}</button>`,
   )}</div>`;
+
+/** a filled star beside the name of a marked owner; only shown, the star to toggle sits where the player is seen */
+export const ownerStar = (marked: boolean) => {
+  if (!marked) return '';
+  const word = t('investments.ownerMarked');
+  return html`<span class="owner-star" role="img" data-tip=${word} aria-label=${word}>${headerIcons.starFilled}</span>`;
+};
 
 const table = (vm: InvestmentsVm, actions: InvestmentsActions) => html`<table class="gb-table inv-table">
     <colgroup><col class="c-mark" /><col class="c-owner" /><col class="c-name" /><col class="c-level" /><col class="c-rank" />
