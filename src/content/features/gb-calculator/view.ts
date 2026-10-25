@@ -2,6 +2,7 @@ import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import type { LevelUpAndFirst } from '../../domain/gb-level-preview';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
+import { foldToggle } from '../../ui/fold-toggle';
 import { fpBar, progressPercent } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { levelBar } from '../../ui/level-bar';
@@ -207,7 +208,7 @@ function previewPart(p: PreviewVm) {
     ${p.estimate ? html`<p class="muted">${t('gbCalc.estimate')}</p>` : ''}`;
 }
 
-export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorActions): TemplateResult {
+function calculatorBody(vm: GbCalculatorVm, actions: GbCalculatorActions): TemplateResult {
   switch (vm.kind) {
     case 'none':
       return html`<p class="muted">${t('gbCalc.none')}</p>`;
@@ -244,4 +245,24 @@ export function gbCalculatorView(vm: GbCalculatorVm, actions: GbCalculatorAction
         </div>`;
     }
   }
+}
+
+export interface CalculatorFold {
+  folded: boolean;
+  toggle(): void;
+}
+
+/** The calculator with its fold line on top. Without a building (none, noEntity) there is no name and level for the
+ * folded line, so the content stays as it is and nothing folds. */
+export function gbCalculatorView(
+  vm: GbCalculatorVm,
+  actions: GbCalculatorActions,
+  fold: CalculatorFold,
+): TemplateResult {
+  if (vm.kind === 'none' || vm.kind === 'noEntity') return calculatorBody(vm, actions);
+  const { name, level, owner } = vm.header;
+  const line = (expanded: boolean, text: TemplateResult | string) =>
+    foldToggle('calc-toggle', expanded, text, t(expanded ? 'gbCalc.collapse' : 'gbCalc.expand'), fold.toggle);
+  if (fold.folded) return line(false, t('gbCalc.summary', { name, level, owner }));
+  return html`${line(true, html`<span class="gb-title">${t('gbCalc.title')}</span>`)}${calculatorBody(vm, actions)}`;
 }

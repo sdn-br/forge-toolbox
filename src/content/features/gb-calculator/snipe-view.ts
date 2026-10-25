@@ -1,6 +1,7 @@
 import { html, type TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
 import { formatAge, formatNumber, t } from '../../core/texts';
+import { foldToggle } from '../../ui/fold-toggle';
 import { progressCell, progressPercent } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { profitCell, tierCell } from '../../ui/snipe-hit';
@@ -97,12 +98,8 @@ const table = (vm: Extract<SnipeVm, { kind: 'list' }>, actions: SnipeActions) =>
     </div>${scrolls ? html`<p class="muted snipe-hidden">${hidden(vm.scroll)}</p>` : ''}`;
 };
 
-/** the one clickable line of the section: a chevron and the text; the whole line folds the section */
 const toggle = (expanded: boolean, text: TemplateResult | string, actions: SnipeActions) =>
-  html`<button class="snipe-toggle" aria-expanded=${expanded ? 'true' : 'false'}
-    aria-label=${t(expanded ? 'snipe.collapse' : 'snipe.expand')} @click=${() => actions.toggle()}>${
-      expanded ? headerIcons.chevronDown : headerIcons.chevronRight
-    }<span>${text}</span></button>`;
+  foldToggle('snipe-fold', expanded, text, t(expanded ? 'snipe.collapse' : 'snipe.expand'), actions.toggle);
 
 const summary = (vm: Extract<SnipeVm, { kind: 'list' }>) => {
   const duration = formatAge(Date.now() - vm.at);

@@ -1,6 +1,8 @@
 # LG-Rechner
 
-Stand 2026-10-24. Erste Stufe des LG-Kostenrechners, nur für LGs anderer Spieler. Datenmodell und Rechnung: [Great Buildings](../datenmodell/great-buildings.md). Über dem Rechner steht in derselben Box der einklappbare Bereich „Mögliche Einzahlungen“ ([Snipehilfe](snipehilfe.md)), Nutzer 2026-10-24.
+Stand 2026-10-25. Erste Stufe des LG-Kostenrechners, nur für LGs anderer Spieler. Datenmodell und Rechnung: [Great Buildings](../datenmodell/great-buildings.md). Über dem Rechner steht in derselben Box der einklappbare Bereich „Mögliche Einzahlungen“ ([Snipehilfe](snipehilfe.md)), Nutzer 2026-10-24.
+
+**Einklappbar** (Nutzer, 2026-10-25): Der Rechner lässt sich wie der obere Bereich zu einer Zeile einklappen: „LG-Rechner: Zeusstatue, Stufe 52 (Manwe-Olaf)“, ein Klick klappt auf. Eine neue LG-Liste klappt ihn zu, das Öffnen eines fremden LGs klappt ihn auf, sonst klappt nur der Spieler. Ohne gezeigtes LG steht weiter der Hinweis ohne Zeile zum Einklappen. Der Zustand liegt nur im Speicher.
 
 **Box „LG-Rechner“ (🏛️):** öffnet sich, sobald der Spieler ein fremdes LG öffnet. Beim eigenen LG bleibt sie zu und zeigt weiter das letzte fremde.
 

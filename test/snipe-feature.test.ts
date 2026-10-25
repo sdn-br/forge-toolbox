@@ -109,8 +109,94 @@ const withRequired = (r: Row, required: number, invested?: number): Row => ({
 
 afterEach(() => vi.useRealTimers());
 
-const toggle = (box: { root: ParentNode }) => box.root.querySelector('button.snipe-toggle') as HTMLElement | null;
+const toggle = (box: { root: ParentNode }) => box.root.querySelector('button.snipe-fold') as HTMLElement | null;
 const expanded = (box: { root: ParentNode }) => toggle(box)?.getAttribute('aria-expanded') === 'true';
+
+const calcToggle = (box: { root: ParentNode }) => box.root.querySelector('button.calc-toggle') as HTMLElement | null;
+const calcOpen = (box: { root: ParentNode }) => calcToggle(box)?.getAttribute('aria-expanded') === 'true';
+/** the calculator body: its header carries the available forge points */
+const calcBody = (box: { text: string }) => box.text.includes('Verfügbare FP');
+
+describe('LG-Rechner: foldable part of the box', () => {
+  it("shows today's hint and no fold line while no building is shown", async () => {
+    const { box } = setup();
+    box.box.open();
+    expect(calcToggle(box)).toBeNull();
+    expect(box.text).toContain('Noch kein fremdes LG geöffnet.');
+  });
+
+  it('folds with a new list and shows one line with building, level and owner', async () => {
+    const { box, list, open, advance } = setup();
+    advance(10_000);
+    open(1909);
+    expect(calcBody(box)).toBe(true);
+    expect(calcOpen(box)).toBe(true);
+    advance(10_000);
+    list([hitZeus()]);
+    await tick();
+    expect(calcOpen(box)).toBe(false);
+    expect(calcBody(box)).toBe(false);
+    expect(calcToggle(box)?.textContent).toMatch(/^LG-Rechner: Aachener Dom, Stufe \d+ \(Eigentümer 1001\)$/);
+    expect(calcToggle(box)?.querySelector('svg')).not.toBeNull();
+  });
+
+  it('unfolds when a building of the list owner is opened', async () => {
+    const { box, list, open, advance } = setup();
+    list([hitZeus()]);
+    await tick();
+    advance(10_000);
+    open(1909);
+    await tick();
+    expect(calcOpen(box)).toBe(true);
+    expect(calcBody(box)).toBe(true);
+  });
+
+  it('unfolds when a building of another player is opened, which folds the snipe section', async () => {
+    const { box, list, open, advance } = setup();
+    advance(10_000);
+    open(1909);
+    advance(10_000);
+    list([hitZeus()]);
+    await tick();
+    expect(calcOpen(box)).toBe(false);
+    advance(10_000);
+    open(650);
+    await tick();
+    expect(calcOpen(box)).toBe(true);
+    expect(expanded(box)).toBe(false);
+  });
+
+  it('folds and unfolds by a click on the line, and keeps what the player chose', async () => {
+    const { box, list, open, advance, send } = setup();
+    advance(10_000);
+    open(1909);
+    advance(10_000);
+    list([hitZeus()]);
+    await tick();
+    calcToggle(box)?.click();
+    await tick();
+    expect(calcBody(box)).toBe(true);
+    expect(calcToggle(box)?.getAttribute('aria-expanded')).toBe('true');
+    calcToggle(box)?.click();
+    await tick();
+    expect(calcBody(box)).toBe(false);
+    box.box.update();
+    send();
+    expect(calcOpen(box)).toBe(false);
+  });
+
+  it('leaves the snipe section alone when the calculator is toggled', async () => {
+    const { box, list, open, advance } = setup();
+    advance(10_000);
+    open(1909);
+    advance(10_000);
+    list([hitZeus()]);
+    await tick();
+    calcToggle(box)?.click();
+    await tick();
+    expect(expanded(box)).toBe(true);
+  });
+});
 
 describe('Snipehilfe: stacked box', () => {
   it('shows the calculator without the section until a list comes, and has no tabs', async () => {
@@ -613,7 +699,8 @@ describe('Snipehilfe: marking with a star', () => {
     advance(10_000);
     open(1909);
     await tick();
-    const header = () => box.root.querySelector('.gb-title')?.closest('p')?.querySelector('button.star') as HTMLElement;
+    const header = () =>
+      box.root.querySelector('p .gb-title')?.closest('p')?.querySelector('button.star') as HTMLElement;
     expect(header().getAttribute('aria-label')).toBe('Merken');
     header().click();
     await tick();
@@ -690,6 +777,9 @@ describe('Snipehilfe: marking the owner', () => {
     open(1909);
     advance(10_000);
     list([hitZeus()]);
+    await tick();
+    // a new list folds the calculator, the header with its star needs it open
+    calcToggle(box)?.click();
     await tick();
     const stars = () => [...box.root.querySelectorAll('.gb-owner button.star')] as HTMLElement[];
     expect(stars()).toHaveLength(2);
