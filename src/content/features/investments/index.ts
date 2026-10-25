@@ -147,7 +147,7 @@ export const investmentsFeature: Feature = {
       settings: 'investments.title',
       title: () => t('investments.title'),
       // twelve columns on the possible investments, their heads whole
-      width: 790,
+      width: 818,
       // the lists grow with every building invested in or seen; the height is the viewer's
       resizable: true,
       // the ages are drawn as of now, so each redraw shows them current

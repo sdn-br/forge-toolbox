@@ -197,9 +197,10 @@ th.sortable.desc .sort-level::before { content: ' ▾'; font-size: 1.333em; }
 th.sortable.asc .sort-level::before { content: ' ▴'; font-size: 1.333em; }
 .snipe-table { table-layout: fixed; }
 .snipe-table .c-order { width: 38px; }
-.snipe-table .c-level, .snipe-table .c-rank { width: 46px; }
+/* sortable heads fit their word, the arrow and a level number (measured: "Stufe ▾2" 56 px, "Einsatz ▾2" 67 px) */
+.snipe-table .c-level, .snipe-table .c-rank { width: 56px; }
 .snipe-table .c-progress { width: 112px; }
-.snipe-table .c-cost { width: 64px; }
+.snipe-table .c-cost { width: 68px; }
 .snipe-table .c-profit { width: 112px; }
 .snipe-table .c-tier, .snipe-table .c-mark { width: 26px; }
 .snipe-table td.snipe-name { overflow: hidden; text-overflow: ellipsis; }
@@ -212,8 +213,8 @@ td.snipe-tier.possible { color: #f0a050; }
 /* investments: fixed columns so heads show whole; owner and building names give way */
 .inv-table { table-layout: fixed; }
 .inv-table .c-mark { width: 38px; }
-.inv-table .c-level, .inv-table .c-rank { width: 46px; }
-.inv-table .c-deposit { width: 80px; }
+.inv-table .c-level, .inv-table .c-rank { width: 56px; }
+.inv-table .c-deposit { width: 90px; }
 .inv-table .c-profit { width: 64px; }
 .inv-table .c-status { width: 38px; }
 .inv-table .c-progress { width: 104px; }
@@ -228,7 +229,7 @@ td.inv-status.unknown { color: #b8a27d; }
 .inv-table tr.grown { background: rgba(220, 190, 60, .32); }
 .inv-possible .c-progress { width: 92px; }
 .inv-possible .c-share { width: 50px; }
-.inv-possible .c-cost { width: 60px; }
+.inv-possible .c-cost { width: 68px; }
 .inv-possible .c-gain { width: 96px; }
 .inv-possible .c-tier { width: 38px; }
 .inv-possible .c-seen { width: 72px; }
