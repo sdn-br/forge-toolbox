@@ -287,7 +287,7 @@ td.inv-status.unknown { color: #b8a27d; }
 .inv-owner a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* always at the right edge of the column, so the mouse can run straight down it; hidden until the row is hovered */
 button.inv-pick { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 16px; height: 16px; margin-left: auto; opacity: 0; color: var(--ink); }
-tr:is(:hover, :focus-within) button.inv-pick { opacity: .7; }
+tr:is(:hover, :has(:focus-visible)) button.inv-pick { opacity: .7; }
 tr button.inv-pick:is(:hover, :focus-visible), button.inv-pick.on { opacity: 1; color: var(--accent); }
 /* the star and the eye in a row: 16 px at the right edge like the funnel (which then follows them), faint on row hover or
    focus while off, always in the accent while on. Name cells keep the name's ellipsis and give them their 16 px */
@@ -295,7 +295,8 @@ tr button.inv-pick:is(:hover, :focus-visible), button.inv-pick.on { opacity: 1; 
 .inv-owner :is(button.star, button.ignore) { flex: none; width: 16px; height: 16px; margin-left: auto; opacity: 0; }
 .inv-owner :is(button.star, button.ignore) svg { width: 12px; height: 12px; }
 .inv-owner :is(button.star, button.ignore) + :is(button.ignore, button.inv-pick) { margin-left: 0; }
-tr:is(:hover, :focus-within) .inv-owner :is(button.star, button.ignore) { opacity: .7; }
+/* keyboard focus shows them too, a mouse click does not keep them (:focus-within would, until the next click) */
+tr:is(:hover, :has(:focus-visible)) .inv-owner :is(button.star, button.ignore) { opacity: .7; }
 tr .inv-owner :is(button.star, button.ignore):is(:hover, :focus-visible), tr .inv-owner :is(button.star, button.ignore).on { opacity: 1; color: var(--accent); }
 .inv-ignored-total svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; }
 button.inv-pick svg { display: block; width: 12px; height: 12px; }
