@@ -9,9 +9,8 @@ export const baseCss = `
   font: 12px/1.4 system-ui, sans-serif; border: 2px solid #8a6a3a; border-radius: 6px;
   box-shadow: 0 4px 16px rgba(0,0,0,.5); }
 .box.popped { position: static; height: 100vh; border: 0; border-radius: 0; }
-/* a box without the resize handle (capped): width and height are capped on the box, the body scrolls beyond them;
-   a box with the handle has the width it is given or resized to */
-.box.capped { max-width: 520px; }
+/* a box without the resize handle (capped): its height is capped (inline), the body scrolls beyond it; its width is the
+   configured one, only the window caps it (box.ts). A box with the handle has the width it is given or resized to */
 .box.tall, .box.popped, .box.capped { display: flex; flex-direction: column; }
 .box.tall .body, .box.popped .body, .box.capped .body { flex: 1 1 auto; min-height: 0; max-height: none; }
 .resize-handle { position: absolute; right: 0; bottom: 0; width: 14px; height: 14px; cursor: nwse-resize;

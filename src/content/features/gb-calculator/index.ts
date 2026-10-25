@@ -177,8 +177,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         id: 'gbCalculator',
         settings: 'gbCalc.title',
         title: () => t('gbCalc.title'),
-        // the star column of the snipe table takes 26 px more
-        width: 594,
+        // the snipe table: fixed columns of 518 px and the building name; until 2026-10-25 a CSS cap held fixed boxes at 520 px
+        width: 602,
         // 6 table rows, the section and the calculator fit without the body scrolling on a normal window
         maxHeight: 0.92,
         render: () => html`${snipeView(snipeVm, snipeActions, expanded)}${gbCalculatorView(vm, actions)}`,
