@@ -36,7 +36,7 @@ const columns: SortColumn<InvestmentColumn>[] = [
   { column: 'level', label: 'gb.col.level', num: true },
   { column: 'rank', label: 'gb.col.rank', num: true },
   { column: 'deposit', label: 'investments.col.deposit', num: true },
-  { column: 'profit', label: 'gb.col.profit', num: true },
+  { column: 'profit', label: 'gb.col.profit', num: true, icon: headerIcons.profit },
   { column: 'status', label: 'investments.col.status', num: false, icon: headerIcons.info },
   { column: 'progress', label: 'gb.col.progress', num: true },
 ];

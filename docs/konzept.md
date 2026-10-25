@@ -112,7 +112,7 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
 - **Offene Icons** (Knöpfe mit Text, für die ein Icon gewünscht ist):
   - Spaltenkopf „Einzahlen“ im Eigenanteil (zurückgestellt 2026-10-24): Entwürfe Pfeil nach unten auf Münzstapel und Pfeil ins LG gefielen am ehesten, Münze mit Plus und Münze mit Pfeil fallen weg (lesen sich als Männlich-Symbol und Schlüssel).
   - Entschieden 2026-10-24 (Nutzer, erst einmal so, später verfeinern): Icons bekommen Seitenwechsel im PvP (‹ ›), das ✕ am Spielerfilter im PvP (Text bleibt), Seite und Gruppe löschen in den Notizen (Mülleimer), Spieler hinzufügen (Person mit +), Seite hinzufügen (Blatt mit +), Schließen der Spielerauswahl (✕ wie im Boxkopf), Aufnahme speichern (Download, Zahl daneben), Powerleveln öffnen (kleines LG » großes LG). Text behalten: Löschen und Abbrechen in Rückfragen (Klartext ist dort sicherer), „Laufend X → X+1“ (die Stufe ist die Information), Reiter und Faktor-Knöpfe.
-  - Offen für die Icon-Vorschau (2026-10-25, Platzhalter im Code mit `debt:`): Trichter für „Nur diesen Spieler zeigen“ in „Mögliche Investitionen“ (Platzhalter `person`), Icon für „nicht erreichbar“ im Filter nach Beziehung (Platzhalter `noReward`).
+  - Gewählt aus der Icon-Vorschau (Nutzer, 2026-10-25): Gewinn als FP-Münze mit drei steigenden Pfeilen in Akzent (Spaltenkopf „Gewinn“ in Snipehilfe und beiden Reitern der Investitionen), „nicht erreichbar“ als durchgestrichene Person, „Nur diesen Spieler zeigen“ als Trichter.
 - Styles so gekapselt, dass Spiel-CSS und Toolbox-CSS sich nicht beeinflussen (zu prüfen: Shadow DOM).
 
 ### Settings

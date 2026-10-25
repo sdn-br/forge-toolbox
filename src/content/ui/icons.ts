@@ -262,4 +262,16 @@ export const headerIcons = {
   fit: headerIcon(svg`<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>`),
   /** a circle with a slash: nothing to get here */
   noReward: headerIcon(svg`<circle cx="12" cy="12" r="8.5"/><path d="m6 6 12 12"/>`),
+  /** the FP coin, three arrows rising in the accent cut into it: profit */
+  profit:
+    headerIcon(svg`<circle cx="8.6" cy="9.6" r="6.4" stroke-width="2"/><circle cx="8.6" cy="9.6" r="2.56" stroke-width="1.4"/>
+    <g class="acc" fill="currentColor" stroke="var(--btn)" stroke-width="1.4" stroke-linejoin="miter" paint-order="stroke">
+      <path d="M11.6 21V16H10.8L12.6 13.2L14.4 16H13.6V21Z"/><path d="M15.6 21V12.4H14.8L16.6 9.6L18.4 12.4H17.6V21Z"/>
+      <path d="M19.6 21V8.4H18.8L20.6 5.6L22.4 8.4H21.6V21Z"/></g>`),
+  /** the person struck through, the stroke cut out of the person: out of reach */
+  notReachable:
+    headerIcon(svg`<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5c0-4.2 3.3-6.8 7.5-6.8s7.5 2.6 7.5 6.8"/>
+    <path d="M4 4 20 20" stroke="var(--btn)" stroke-width="5"/><path d="M4 4 20 20"/>`),
+  /** a funnel: filter by this */
+  funnel: headerIcon(svg`<path d="M3.5 4.5h17l-6.5 8v6l-4 2v-8Z"/>`),
 };

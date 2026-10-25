@@ -28,7 +28,7 @@ const columns: SortColumn<SnipeColumn>[] = [
   { column: 'progress', label: 'gb.col.progress', num: true },
   { column: 'rank', label: 'gb.col.rank', num: true },
   { column: 'cost', label: 'gb.col.cost', num: true },
-  { column: 'profit', label: 'gb.col.profit', num: true },
+  { column: 'profit', label: 'gb.col.profit', num: true, icon: headerIcons.profit },
 ];
 
 const row = (r: SnipeRowVm, actions: SnipeActions) => html`<tr data-tip=${r.notes.join('\n')}>

@@ -36,7 +36,7 @@ const columns: SortColumn<PossibleColumn>[] = [
   { column: 'share', label: 'investments.col.share', full: 'investments.col.shareFull', num: true },
   { column: 'rank', label: 'gb.col.rank', num: true },
   { column: 'cost', label: 'gb.col.cost', num: true },
-  { column: 'profit', label: 'gb.col.profit', num: true },
+  { column: 'profit', label: 'gb.col.profit', num: true, icon: headerIcons.profit },
   { column: 'tier', label: 'gb.col.tier', num: false, icon: headerIcons.info },
   { column: 'seen', label: 'investments.col.seen', num: true },
 ];
@@ -53,10 +53,10 @@ const reachCell = (r: PossibleRowVm) =>
     ? t(`investments.reach.${r.reach}`)
     : r.reasons.map((reason) => REACH_ICONS[reason]);
 
-/** shown on row hover or focus (styles); debt: the funnel icon is still to be chosen, `person` stands in. ceiling: it reads as the reach column's head. upgrade: the user picks the funnel from the icon preview. */
+/** shown on row hover or focus (styles) */
 const pickButton = (name: string, actions: PossibleActions) => {
   const word = t('investments.possible.pickPlayer');
-  return html`<button class="inv-pick" data-tip=${word} aria-label=${word} @click=${() => actions.pickPlayer(name)}>${headerIcons.person}</button>`;
+  return html`<button class="inv-pick" data-tip=${word} aria-label=${word} @click=${() => actions.pickPlayer(name)}>${headerIcons.funnel}</button>`;
 };
 
 const row = (
@@ -90,10 +90,9 @@ const check = (checked: boolean, label: string, set: (checked: boolean) => void)
   html`<label><input type="checkbox" .checked=${checked}
     @change=${(e: Event) => set((e.target as HTMLInputElement).checked)} />${label}</label>`;
 
-/** debt: "not reachable" shows `noReward` (circle with a slash) until the user picks an icon. ceiling: the slash reads as "no reward" elsewhere. upgrade: the user picks it from the icon preview. */
 const REACH_FILTER_ICONS: Record<(typeof REACH_TOGGLES)[number], TemplateResult> = {
   ...REACH_ICONS,
-  none: headerIcons.noReward,
+  none: headerIcons.notReachable,
 } as Record<(typeof REACH_TOGGLES)[number], TemplateResult>;
 
 /** one toggle per reason, any switched on lets a row through */
