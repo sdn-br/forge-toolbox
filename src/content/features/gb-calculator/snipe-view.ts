@@ -37,7 +37,7 @@ const row = (r: SnipeRowVm, actions: SnipeActions) => html`<tr data-tip=${r.note
   <td class="num">${r.order}</td>
   <td class="snipe-name" data-tip=${[r.name, ...r.notes].join('\n')}>${r.name}</td>
   <td class="num">${r.level}</td>
-  <td class="num" data-tip=${t('snipe.progressHint', { percent: r.percent })}>${formatNumber(r.invested)} / ${formatNumber(r.required)}</td>
+  <td class="num" data-tip=${[t('snipe.progressHint', { percent: r.percent }), r.ownerShare].filter(Boolean).join('\n')}>${formatNumber(r.invested)} / ${formatNumber(r.required)}</td>
   <td class="num">${t('gb.rank', { rank: r.rank })}</td>
   <td class="num" data-tip=${t('snipe.costHint')}>${formatNumber(r.cost)}</td>
   ${profitCell(r.profit, r.estimate)}

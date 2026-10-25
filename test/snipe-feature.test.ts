@@ -296,11 +296,13 @@ describe('Snipehilfe: stacked box', () => {
     advance(10_000);
     list([{ ...dom, current_progress: 2_900 }]);
     await tick();
-    expect(rows()[0]?.getAttribute('data-tip')).not.toContain('Eigentümer:');
+    const progressTip = () => rows()[0]?.querySelectorAll('td')[3]?.getAttribute('data-tip') ?? '';
+    expect(progressTip()).not.toContain('Eigenanteil:');
     advance(10_000);
     open(1909);
     await tick();
-    expect(rows()[0]?.getAttribute('data-tip')).toMatch(/^Eigentümer: \d[\d.]* FP$/m);
+    expect(progressTip()).toMatch(/^Eigenanteil: \d[\d.]* FP$/m);
+    expect(rows()[0]?.getAttribute('data-tip')).not.toContain('Eigenanteil:');
   });
 
   it('gives a range as profit when not exact and sorts by a clicked column head', async () => {

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { OwnerShare, SnipeHit } from '../src/content/domain/gb-snipe';
-import { snipeNotes } from '../src/content/ui/snipe-hit';
+import { ownerShareNote, snipeNotes } from '../src/content/ui/snipe-hit';
 import { buildingDefId, playerId } from '../src/shared/ids';
 
 const DAY = 86_400_000;
+
+const share = (s: OwnerShare) => s;
 
 const hit = (ownerShare: OwnerShare, over: Partial<SnipeHit> = {}): SnipeHit => ({
   owner: playerId(1001),
@@ -23,23 +25,22 @@ const hit = (ownerShare: OwnerShare, over: Partial<SnipeHit> = {}): SnipeHit => 
   ...over,
 });
 
-describe('snipeNotes, the owner line', () => {
+describe('ownerShareNote, the share of the owner in the progress tooltip', () => {
   it('names a current share', () => {
-    expect(snipeNotes(hit({ state: 'current', fp: 3_200 }), 0)).toEqual(['Eigentümer: 3.200 FP']);
+    expect(ownerShareNote(share({ state: 'current', fp: 3_200 }), 0)).toBe('Eigenanteil: 3.200 FP');
   });
 
   it('names a stale share with the age of its ranking', () => {
-    expect(snipeNotes(hit({ state: 'stale', fp: 320, at: 0 }), 2 * DAY)).toEqual([
-      'Eigentümer: 320 FP, Stand vor 2 T.',
-    ]);
+    expect(ownerShareNote(share({ state: 'stale', fp: 320, at: 0 }), 2 * DAY)).toBe(
+      'Eigenanteil: 320 FP, Stand vor 2 T.',
+    );
   });
 
   it('leaves the line out for an unknown share', () => {
-    expect(snipeNotes(hit({ state: 'unknown' }), 0)).toEqual([]);
+    expect(ownerShareNote(share({ state: 'unknown' }), 0)).toBeUndefined();
   });
 
-  it('comes after the other notes', () => {
-    const notes = snipeNotes(hit({ state: 'current', fp: 5 }, { maybeLocked: true }), 0);
-    expect(notes).toEqual(['eventuell gesperrt', 'Eigentümer: 5 FP']);
+  it('is no longer a note of the row', () => {
+    expect(snipeNotes(hit({ state: 'current', fp: 5 }, { maybeLocked: true }))).toEqual(['eventuell gesperrt']);
   });
 });

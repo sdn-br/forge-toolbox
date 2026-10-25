@@ -2,7 +2,7 @@ import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import { t } from '../../core/texts';
 import type { SnipeHit, SnipeList, SnipeTier } from '../../domain/gb-snipe';
 import type { FoestatsRecord } from '../../stores/foestats';
-import { signed, snipeNotes, snipeProfit, snipeProfitKey, TIER_ORDER } from '../../ui/snipe-hit';
+import { ownerShareNote, signed, snipeNotes, snipeProfit, snipeProfitKey, TIER_ORDER } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
 import { type ActivityVm, activityVm } from './view-model';
 
@@ -62,6 +62,8 @@ export interface SnipeRowVm {
   marked: boolean;
   /** lines of the row tooltip */
   notes: string[];
+  /** what the owner paid in, for the progress tooltip; missing when unknown */
+  ownerShare?: string;
 }
 
 export type SnipeVm =
@@ -111,6 +113,8 @@ const activityOf = (record: FoestatsRecord | undefined, today: string) => {
   return activity ? { activity } : {};
 };
 
+const withOwnerShare = (note: string | undefined) => (note === undefined ? {} : { ownerShare: note });
+
 const sortKey: Record<SnipeColumn, (r: SnipeHit, name: string, order: number, marked: boolean) => number | string> = {
   order: (_, __, order) => order,
   name: (_, name) => name,
@@ -149,7 +153,8 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     estimate: h.estimate,
     tier: h.tier,
     marked: input.isMarked(h.owner, h.entityId),
-    notes: snipeNotes(h, input.now),
+    notes: snipeNotes(h),
+    ...withOwnerShare(ownerShareNote(h.ownerShare, input.now)),
   }));
   const counts = [
     result.none > 0 && t('snipe.countNone', { count: result.none }),

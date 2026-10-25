@@ -246,7 +246,7 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
           tier: hit.tier,
         },
       }),
-      notes: hit ? snipeNotes(hit, input.now) : [],
+      notes: hit ? snipeNotes(hit) : [],
       age: t('investments.ago', { duration: age(input.now - b.seenAt) }),
     })),
     count: t('investments.possible.count', { hits: formatNumber(hits), count: formatNumber(named.length) }),

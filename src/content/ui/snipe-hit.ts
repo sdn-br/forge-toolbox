@@ -17,17 +17,17 @@ export const snipeProfitKey = (h: SnipeHit) => h.profitHigh * 1e9 + h.profitLow;
 const worstNote = (w: SnipePlace) =>
   t('snipe.worst', { rank: w.rank, cost: formatNumber(w.cost), profit: signed(w.profit) });
 
-/** "Eigentümer: 320 FP", with the age of the ranking when it is stale; nothing when unknown */
-const ownerNote = (share: OwnerShare, now: number) =>
+/** "Eigenanteil: 320 FP" for the progress tooltip, with the age of the ranking when it is stale; nothing when unknown */
+export const ownerShareNote = (share: OwnerShare, now: number) =>
   share.state === 'unknown'
     ? undefined
     : share.state === 'current'
       ? t('snipe.owner', { fp: formatNumber(share.fp) })
       : t('snipe.ownerStale', { fp: formatNumber(share.fp), age: formatAge(now - share.at) });
 
-/** lines of the row tooltip: the place of the worst case, a building that may be locked, what the owner paid in */
-export const snipeNotes = (h: SnipeHit, now: number): string[] =>
-  [h.worst && worstNote(h.worst), h.maybeLocked && t('snipe.maybeLocked'), ownerNote(h.ownerShare, now)].filter(
+/** lines of the row tooltip: the place of the worst case, a building that may be locked */
+export const snipeNotes = (h: SnipeHit): string[] =>
+  [h.worst && worstNote(h.worst), h.maybeLocked && t('snipe.maybeLocked')].filter(
     (n): n is string => typeof n === 'string',
   );
 
