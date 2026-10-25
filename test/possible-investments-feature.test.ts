@@ -151,10 +151,10 @@ describe('Investitionen: Mögliche Investitionen', () => {
     list([hitZeus(), lighthouse, hitOracle()]);
     await tick();
     await showPossible();
-    const only = box.root.querySelector('input[type=checkbox]') as HTMLInputElement;
-    expect(only.checked).toBe(true);
-    only.checked = false;
-    only.dispatchEvent(new Event('change'));
+    const only = box.root.querySelector('.inv-hits-filter button') as HTMLButtonElement;
+    expect(only.getAttribute('aria-pressed')).toBe('true');
+    expect(only.getAttribute('aria-label')).toBe('nur mit Gewinn');
+    only.click();
     await tick();
     expect(rows()).toHaveLength(3);
     expect(cells(rows()[2]).slice(3, 11)).toEqual(['Leuchtturm von Alexandria', '9', '10 / 550', '?', '', '', '', '']);
@@ -187,7 +187,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     const root = env.boxes.get('investments')?.root as HTMLElement;
     expect(root.querySelector('.tabs button.active')?.textContent).toBe('Mögliche Investitionen');
     expect((root.querySelector('input[aria-label="Spieler"]') as HTMLInputElement).value).toBe('Anna');
-    expect((root.querySelector('input[type=checkbox]') as HTMLInputElement).checked).toBe(false);
+    expect(root.querySelector('.inv-hits-filter button')?.getAttribute('aria-pressed')).toBe('false');
   });
 
   it.each([

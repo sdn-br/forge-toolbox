@@ -105,6 +105,13 @@ const reachFilter = (f: PossibleFilter, actions: PossibleActions) =>
     @click=${() => actions.filter({ reach: { ...f.reach, [key]: !on } })}>${REACH_FILTER_ICONS[key]}</button>`;
   })}</span>`;
 
+/** a toggle with the profit icon: only rows with a profitable place */
+const hitsFilter = (f: PossibleFilter, actions: PossibleActions) => {
+  const word = t('investments.possible.onlyHits');
+  return html`<span class="inv-hits-filter"><button class=${f.onlyHits ? 'on' : ''} aria-pressed=${f.onlyHits ? 'true' : 'false'}
+    data-tip=${word} aria-label=${word} @click=${() => actions.filter({ onlyHits: !f.onlyHits })}>${headerIcons.profit}</button></span>`;
+};
+
 /** one toggle per tier, with the icons of the column "Sicherheit"; any switched on lets a row with that tier through */
 const tierFilter = (f: PossibleFilter, actions: PossibleActions) =>
   html`<span class="inv-tier-filter">${TIER_TOGGLES.map((key) => {
@@ -117,7 +124,7 @@ const tierFilter = (f: PossibleFilter, actions: PossibleActions) =>
 const filters = (f: PossibleFilter, actions: PossibleActions) => html`<p class="inv-filter">
     ${text(f.player, t('investments.possible.player'), (player) => actions.filter({ player }))}
     ${text(f.name, t('investments.possible.name'), (name) => actions.filter({ name }))}
-    ${check(f.onlyHits, t('investments.possible.onlyHits'), (onlyHits) => actions.filter({ onlyHits }))}
+    ${hitsFilter(f, actions)}
     ${reachFilter(f, actions)}
     ${tierFilter(f, actions)}
     ${check(f.onlyMarked, t('investments.possible.onlyMarked'), (onlyMarked) => actions.filter({ onlyMarked }))}

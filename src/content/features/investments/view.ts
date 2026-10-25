@@ -91,7 +91,8 @@ const table = (vm: InvestmentsVm, actions: InvestmentsActions) => html`<table cl
     <tbody>${vm.rows.map((r) => row(r, actions))}</tbody>
   </table>
   <p class="gb-me">${t('investments.circulating', { fp: vm.totals.circulating })}
-    · <b class=${vm.totals.gain ? 'gain' : ''}>${t('investments.profitSafe', { profit: vm.totals.profitSafe })}</b>
+    · <span class="profit-icon" role="img" data-tip=${t('gb.col.profit')} aria-label=${t('gb.col.profit')}>${headerIcons.profit}</span>
+    <b class=${vm.totals.gain ? 'gain' : ''}>${t('investments.profitSafe', { profit: vm.totals.profitSafe })}</b>
     <span class="muted">· ${t('investments.profitTotal', { profit: vm.totals.profitTotal })}</span></p>`;
 
 export function investmentsView(vm: InvestmentsVm, actions: InvestmentsActions): TemplateResult {

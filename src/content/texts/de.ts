@@ -201,7 +201,7 @@ export const de = {
   'investments.status.unsafe': 'unsicher: laut Rangliste kann der Platz noch überholt werden',
   'investments.status.unknown': 'unbekannt: ohne passende Rangliste nicht entscheidbar, LG öffnen',
   'investments.circulating': 'Umlauf: {fp} FP',
-  'investments.profitSafe': 'Gewinn sicher: {profit}',
+  'investments.profitSafe': 'sicher: {profit}',
   'investments.profitTotal': 'gesamt: {profit}',
   'investments.ago': 'vor {duration}',
   'investments.possible.player': 'Spieler',

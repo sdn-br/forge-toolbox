@@ -241,10 +241,12 @@ td.inv-status.unknown { color: #b8a27d; }
 .inv-possible thead th { position: sticky; top: 0; z-index: 1; background: var(--bg); }
 .inv-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .inv-filter input[type=search] { width: 10em; }
-.inv-reach-filter, .inv-tier-filter { display: inline-flex; gap: 2px; }
-.inv-reach-filter button, .inv-tier-filter button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
+.inv-reach-filter, .inv-tier-filter, .inv-hits-filter { display: inline-flex; gap: 2px; }
+.inv-reach-filter button, .inv-tier-filter button, .inv-hits-filter button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
 .inv-reach-filter button.on, .inv-tier-filter button.on { color: var(--accent); opacity: 1; }
-.inv-reach-filter button svg, .inv-tier-filter button svg { display: block; width: 14px; height: 14px; }
+/* the profit icon keeps its own colours, switched on it only turns opaque */
+.inv-hits-filter button.on { opacity: 1; }
+.inv-reach-filter button svg, .inv-tier-filter button svg, .inv-hits-filter button svg { display: block; width: 14px; height: 14px; }
 .inv-owner { display: flex; align-items: center; }
 .inv-owner a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* collapsed until the row is hovered or holds focus, so the name keeps its width; still focusable */
@@ -319,6 +321,8 @@ td.below-safe { font-style: italic; opacity: .75; }
 p.gb-me { margin: 6px 0; padding: 4px 6px; border: 1px solid #8a6a3a; border-radius: 4px; background: #3a2814; }
 p.gb-me.safe { border-color: #5a9a4a; }
 p.gb-me.safe, .gb-me .gain { color: #8fd08f; }
+.gb-me .profit-icon { color: var(--ink); }
+.gb-me .profit-icon svg { width: 14px; height: 14px; vertical-align: -2px; }
 .gb-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 8px;
   background: rgba(43, 29, 16, .88); text-align: center; color: var(--accent); }
 `;
