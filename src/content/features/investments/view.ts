@@ -92,8 +92,9 @@ const table = (vm: InvestmentsVm, actions: InvestmentsActions) => html`<table cl
   </table>
   <p class="gb-me">${t('investments.circulating', { fp: vm.totals.circulating })}
     · <span class="profit-icon" role="img" data-tip=${t('gb.col.profit')} aria-label=${t('gb.col.profit')}>${headerIcons.profit}</span>
-    <b class=${vm.totals.gain ? 'gain' : ''}>${t('investments.profitSafe', { profit: vm.totals.profitSafe })}</b>
-    <span class="muted">· ${t('investments.profitTotal', { profit: vm.totals.profitTotal })}</span></p>`;
+    <b class=${vm.totals.gain ? 'gain' : ''}><span class="profit-icon" role="img" data-tip=${t('investments.profitSafe')}
+      aria-label=${t('investments.profitSafe')}>${headerIcons.checkCircle}</span> ${vm.totals.profitSafe}</b>
+    <span class="muted">· <span data-tip=${t('investments.profitTotal')} aria-label=${t('investments.profitTotal')}>Σ</span> ${vm.totals.profitTotal}</span></p>`;
 
 export function investmentsView(vm: InvestmentsVm, actions: InvestmentsActions): TemplateResult {
   const age = vm.age === undefined ? t('investments.noList') : t('gb.age', { duration: vm.age });

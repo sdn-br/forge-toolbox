@@ -142,10 +142,10 @@ describe('Investitionen box', () => {
     expect(box.text).toContain('Umlauf: 4.896 FP');
     const line = box.root.querySelector('p.gb-me') as HTMLElement;
     // the safe profit stands out, green only above 0; the total stays muted
-    expect(line.querySelector('b')?.textContent).toBe('sicher: 0');
+    expect(line.querySelector('b')?.textContent?.trim()).toBe('0');
     expect(line.querySelector('.profit-icon')?.getAttribute('aria-label')).toBe('Gewinn');
     expect(line.querySelector('b')?.classList.contains('gain')).toBe(false);
-    expect(line.querySelector('.muted')?.textContent?.trim()).toBe('· gesamt: −36');
+    expect(line.querySelector('.muted')?.textContent?.trim()).toBe('· Σ −36');
   });
 
   it('marks the status with an icon and its word in the tooltip', async () => {
