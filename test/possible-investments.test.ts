@@ -41,9 +41,14 @@ let relations: Record<number, Relations> = {};
 /** marked buildings as "owner:entity", marked owners by id */
 let markedBuildings = new Set<string>();
 let markedOwners = new Set<number>();
+/** ignored buildings as "owner:entity", ignored owners by id; an owner missing from `knownOwners` is unknown to the store */
+let ignoredBuildings = new Set<string>();
+let ignoredOwners = new Set<number>();
 beforeEach(() => {
   markedBuildings = new Set();
   markedOwners = new Set();
+  ignoredBuildings = new Set();
+  ignoredOwners = new Set();
   relations = { 1001: { ...NONE, neighbor: true }, 1002: { ...NONE, friend: true }, 1003: { ...NONE, friend: true } };
 });
 const defNames: Record<string, string> = { [DEF_ID]: 'Kathedrale von Aachen', [OTHER_DEF]: 'Leuchtturm' };
@@ -63,6 +68,8 @@ const vm = (buildings: KnownGreatBuilding[], filter: Partial<PossibleFilter> = {
     relations: (id: PlayerId) => relations[id],
     isMarked: (owner: PlayerId, entityId: number) => markedBuildings.has(`${owner}:${entityId}`),
     ownerMarked: (id: PlayerId) => markedOwners.has(id),
+    isIgnored: (owner: PlayerId, entityId: number) => ignoredBuildings.has(`${owner}:${entityId}`),
+    ownerIgnored: (id: PlayerId) => (id in relations ? ignoredOwners.has(id) : undefined),
     playerUrl: (id: PlayerId) => `https://foestats.example/${id}`,
   });
 
@@ -320,5 +327,58 @@ describe('possibleViewModel, the owner share (EA)', () => {
     expect(vm([unknown, stale, current], all, [{ column: 'share', desc: false }]).rows.map((r) => r.entityId)).toEqual([
       2, 1, 3,
     ]);
+  });
+});
+
+describe('possibleViewModel: ignored buildings and owners', () => {
+  const other = building({ owner: playerId(1002), entityId: 5, invested: 400 });
+
+  it('hides an ignored building and the buildings of an ignored owner by default', () => {
+    ignoredBuildings.add('1001:1');
+    ignoredOwners.add(1002);
+    expect(vm([safe, possible, other]).rows).toEqual([]);
+  });
+
+  it('shows them with showIgnored, naming why in the row', () => {
+    ignoredBuildings.add('1001:1');
+    ignoredOwners.add(1002);
+    const rows = vm([safe, possible, other], { showIgnored: true }).rows;
+    expect(rows.map((r) => [r.entityId, r.ignoreNote, r.ignored, r.ownerIgnored])).toEqual([
+      [1, 'LG ignoriert', true, false],
+      [5, 'Spieler ignoriert', false, true],
+      [2, 'Spieler ignoriert', false, true],
+    ]);
+  });
+
+  it('names both reasons', () => {
+    ignoredBuildings.add('1002:5');
+    ignoredOwners.add(1002);
+    const [row] = vm([other], { showIgnored: true }).rows;
+    expect(row?.ignoreNote).toBe('LG ignoriert, Spieler ignoriert');
+  });
+
+  it('leaves the note off a row that is not ignored', () => {
+    const [row] = vm([safe], { showIgnored: true }).rows;
+    expect(row).not.toHaveProperty('ignoreNote');
+    expect(row).toMatchObject({ ignored: false, ownerIgnored: false });
+  });
+
+  it('counts without the ignored ones, also while they show', () => {
+    ignoredBuildings.add('1001:1');
+    expect(vm([safe, possible, none]).count).toBe('1 mit Gewinn von 2 LGs');
+    expect(vm([safe, possible, none], { showIgnored: true }).count).toBe('1 mit Gewinn von 2 LGs');
+  });
+
+  it('leaves the owner unknown to the store without an ignore state', () => {
+    const [row] = vm([building({ owner: playerId(1999), entityId: 8, invested: 400 })], {
+      showIgnored: true,
+      reach: { neighbor: true, friend: true, guildMember: true, none: true },
+    }).rows;
+    expect(row?.ownerIgnored).toBeUndefined();
+  });
+
+  it('applies the other filters to the shown ignored rows too', () => {
+    ignoredBuildings.add('1001:1');
+    expect(vm([safe], { showIgnored: true, name: 'zzz' }).rows).toEqual([]);
   });
 });

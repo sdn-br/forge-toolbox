@@ -173,6 +173,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
       reach: { neighbor: true, friend: true, guildMember: true, none: false },
       tier: { exact: true, safe: true, possible: true },
       onlyMarked: false,
+      showIgnored: false,
     });
   });
 
@@ -702,5 +703,115 @@ describe('Investitionen: Merken', () => {
     players.setMarked(playerId(1001), true);
     await tick();
     expect(rows()).toHaveLength(2);
+  });
+});
+
+describe('Investitionen: Ignorieren in Mögliche Investitionen', () => {
+  const buildingEye = (r: Element | undefined) => r?.querySelectorAll('td.inv-name')[1]?.querySelector('button.ignore');
+  const ownerEye = (r: Element | undefined) =>
+    r?.querySelectorAll('td.inv-name')[0]?.querySelector('.inv-owner button.ignore');
+  const showToggle = (box: { root: ParentNode }) =>
+    box.root.querySelector('.inv-ignored-filter button') as HTMLButtonElement;
+  const byName = (rows: Element[], cells: (r: Element) => (string | undefined)[], name: string) =>
+    rows.find((r) => cells(r)[3] === name) as Element;
+  const social = (send: (e: Entry) => void, ids: number[]) =>
+    send({
+      requestClass: 'OtherPlayerService',
+      requestMethod: 'getSocialList',
+      requestData: null,
+      responseData: {
+        friends: ids.map((id) => ({ player_id: id, name: `Eigentümer ${id}` })),
+        neighbours: [],
+        guildMembers: [],
+      },
+    });
+
+  it('shows the eyes faint beside the building name and the known owner, none for an unknown owner', async () => {
+    const { list, rows, send, showPossible } = setup();
+    social(send, [1001]);
+    list([hitZeus()], 1001);
+    list([{ ...hitOracle(), player: { player_id: 1002, name: 'Bert' } }], 1002);
+    await tick();
+    await showPossible();
+    const [known, unknown] = [
+      rows().find((r) => r.textContent?.includes('Zeusstatue')),
+      rows().find((r) => r.textContent?.includes('Orakel')),
+    ];
+    expect(buildingEye(known)?.getAttribute('aria-label')).toBe('LG ignorieren');
+    expect(buildingEye(unknown)?.getAttribute('aria-label')).toBe('LG ignorieren');
+    expect(ownerEye(known)?.getAttribute('aria-label')).toBe('Spieler ignorieren');
+    expect(ownerEye(known)?.nextElementSibling?.classList.contains('inv-pick')).toBe(true);
+    expect(ownerEye(unknown)).toBeNull();
+  });
+
+  it('hides an ignored building, counts without it and shows it muted with "ignorierte zeigen"', async () => {
+    const { box, list, rows, cells, showPossible, ui } = setup();
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    await showPossible();
+    expect(box.text).toContain('2 mit Gewinn von 2 LGs');
+    (buildingEye(byName(rows(), cells, 'Zeusstatue')) as HTMLButtonElement).click();
+    await tick();
+    expect(rows().map((r) => cells(r)[3])).toEqual(['Orakel von Delphi']);
+    expect(box.text).toContain('1 mit Gewinn von 1 LGs');
+    expect(showToggle(box).getAttribute('aria-label')).toBe('ignorierte zeigen');
+    expect(showToggle(box).getAttribute('aria-pressed')).toBe('false');
+    showToggle(box).click();
+    await tick();
+    expect(showToggle(box).getAttribute('aria-pressed')).toBe('true');
+    expect(JSON.parse(ui.pref('investments.filter') ?? '{}')).toMatchObject({ showIgnored: true });
+    expect(
+      rows()
+        .map((r) => cells(r)[3])
+        .sort(),
+    ).toEqual(['Orakel von Delphi', 'Zeusstatue']);
+    expect(box.text).toContain('1 mit Gewinn von 1 LGs');
+    const zeus = byName(rows(), cells, 'Zeusstatue');
+    expect(zeus.classList.contains('muted')).toBe(true);
+    expect(zeus.getAttribute('data-tip')).toContain('LG ignoriert');
+    const eye = buildingEye(zeus) as HTMLButtonElement;
+    expect(eye.classList.contains('on')).toBe(true);
+    expect(eye.getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(byName(rows(), cells, 'Orakel von Delphi').classList.contains('muted')).toBe(false);
+    eye.click();
+    await tick();
+    expect(rows().some((r) => r.classList.contains('muted'))).toBe(false);
+  });
+
+  it('ignores all buildings of a player and says so in the row tooltip', async () => {
+    const { list, rows, cells, showPossible, box, send, players } = setup();
+    social(send, [1001, 1002]);
+    list([hitZeus()], 1001);
+    list([{ ...hitOracle(), player: { player_id: 1002, name: 'Eigentümer 1002' } }], 1002);
+    await tick();
+    await showPossible();
+    (ownerEye(byName(rows(), cells, 'Zeusstatue')) as HTMLButtonElement).click();
+    await tick();
+    expect(players.get(playerId(1001))?.ignored).toBe(true);
+    expect(rows().map((r) => cells(r)[3])).toEqual(['Orakel von Delphi']);
+    showToggle(box).click();
+    await tick();
+    const zeus = byName(rows(), cells, 'Zeusstatue');
+    expect(zeus.getAttribute('data-tip')).toContain('Spieler ignoriert');
+    expect(ownerEye(zeus)?.getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    (ownerEye(zeus) as HTMLButtonElement).click();
+    await tick();
+    expect(players.get(playerId(1001))?.ignored).toBeUndefined();
+  });
+
+  it('reads the saved toggle, a missing or broken one is off', async () => {
+    for (const saved of [{ showIgnored: true }, {}, { showIgnored: 1 }]) {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      const env = featureContext({ now: () => Date.now() });
+      env.ctx.ui.savePref('investments.tab', 'possible');
+      env.ctx.ui.savePref('investments.filter', JSON.stringify(saved));
+      investmentsFeature.setup(env.ctx);
+      drain = () => env.ctx.greatBuildings.known();
+      env.menu('investments');
+      await tick();
+      const root = env.boxes.get('investments')?.root as HTMLElement;
+      const on = root.querySelector('.inv-ignored-filter button')?.getAttribute('aria-pressed');
+      expect(on).toBe(saved.showIgnored === true ? 'true' : 'false');
+    }
   });
 });

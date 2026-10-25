@@ -4,6 +4,7 @@ import { formatAge, formatNumber, t } from '../../core/texts';
 import { type OwnerShare, ownerShare, type SnipeTier } from '../../domain/gb-snipe';
 import type { PossibleInvestment } from '../../domain/investments';
 import { progressPercent } from '../../ui/fp-bar';
+import { ignoreNote } from '../../ui/ignore';
 import { snipeNotes, snipeProfit, snipeProfitKey, snipeProfitRange, TIER_ORDER } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
 import { type RowWindow, rowWindow } from '../../ui/windowed-rows';
@@ -64,6 +65,8 @@ export interface PossibleFilter {
   tier: TierFilter;
   /** only buildings the player marked and buildings of marked owners */
   onlyMarked: boolean;
+  /** also the rows of ignored buildings and owners, drawn muted; they never count in the count line */
+  showIgnored: boolean;
 }
 
 /** a switch per tier of the rating */
@@ -79,6 +82,7 @@ export const DEFAULT_FILTER: PossibleFilter = {
   reach: DEFAULT_REACH,
   tier: { exact: true, safe: true, possible: true },
   onlyMarked: false,
+  showIgnored: false,
 };
 
 export interface PossibleRowVm {
@@ -90,6 +94,12 @@ export interface PossibleRowVm {
   ownerUrl: string;
   /** the player put a star on the owner */
   ownerMarked: boolean;
+  /** the player ignores the building */
+  ignored: boolean;
+  /** the player ignores the owner; missing when the player store does not know the owner, who cannot be ignored */
+  ownerIgnored?: boolean;
+  /** why the row counts as ignored, in words; missing when it does not */
+  ignoreNote?: string;
   /** the first reason, `none` drawn muted */
   reach: Reach;
   /** every reason, each drawn as its icon */
@@ -123,7 +133,7 @@ export interface PossibleVm {
   rows: PossibleRowVm[];
   /** which rows of `rows` are in view */
   scroll: RowWindow;
-  /** "12 Treffer von 85 LGs" among the buildings the name and reach filters leave */
+  /** "12 mit Gewinn von 85 LGs" among the buildings the filters leave, the ignored ones not counted */
   count: string;
 }
 
@@ -142,6 +152,9 @@ export interface PossibleInput {
   isMarked(owner: PlayerId, entityId: number): boolean;
   /** the player put a star on the owner */
   ownerMarked(owner: PlayerId): boolean;
+  isIgnored(owner: PlayerId, entityId: number): boolean;
+  /** undefined for an owner the player store does not know */
+  ownerIgnored(owner: PlayerId): boolean | undefined;
   playerUrl(id: PlayerId): string;
 }
 
@@ -158,6 +171,8 @@ type Named = PossibleInvestment & {
   reasons: Reach[];
   marked: boolean;
   ownerMarked: boolean;
+  ignored: boolean;
+  ownerIgnored: boolean | undefined;
 };
 
 /** undefined for a row without a hit in a column of the hit; such rows go last in either direction */
@@ -200,25 +215,32 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
       reasons: reasonsOf(input.relations(c.building.owner)),
       marked: input.isMarked(c.building.owner, c.building.entityId),
       ownerMarked: input.ownerMarked(c.building.owner),
+      ignored: input.isIgnored(c.building.owner, c.building.entityId),
+      ownerIgnored: input.ownerIgnored(c.building.owner),
     }))
     .filter((r) => contains(r.ownerName, filter.player) && contains(r.name, filter.name))
     .filter((r) => passesReach(r.reasons, filter.reach))
     .filter((r) => !r.hit || filter.tier[r.hit.tier])
     .filter((r) => !filter.onlyMarked || r.marked || r.ownerMarked);
-  const hits = named.filter((r) => r.hit).length;
-  const shown = filter.onlyHits ? named.filter((r) => r.hit) : named;
+  const counted = named.filter((r) => !r.ignored && r.ownerIgnored !== true);
+  const hits = counted.filter((r) => r.hit).length;
+  const visible = filter.showIgnored ? named : counted;
+  const shown = filter.onlyHits ? visible.filter((r) => r.hit) : visible;
   sortRows(shown, sort, (column) => sortKey[column]);
   return {
     filter,
     sort,
     empty: input.candidates.length === 0,
-    rows: shown.map(({ building: b, hit, ownerName, name, reasons, marked, ownerMarked }) => ({
+    rows: shown.map(({ building: b, hit, ownerName, name, reasons, marked, ownerMarked, ignored, ownerIgnored }) => ({
       owner: b.owner,
       entityId: b.entityId,
       marked,
       ownerName,
       ownerUrl: input.playerUrl(b.owner),
       ownerMarked,
+      ignored,
+      ...(ownerIgnored !== undefined && { ownerIgnored }),
+      ...ignoreNote(ignored, ownerIgnored),
       reach: reasons[0] as Reach,
       reasons,
       reachTip: reachTip(reasons),
@@ -243,6 +265,6 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
       age: t('investments.ago', { duration: age(input.now - b.seenAt) }),
     })),
     scroll: rowWindow(input.scroll ?? 0, shown.length, input.visible),
-    count: t('investments.possible.count', { hits: formatNumber(hits), count: formatNumber(named.length) }),
+    count: t('investments.possible.count', { hits: formatNumber(hits), count: formatNumber(counted.length) }),
   };
 }

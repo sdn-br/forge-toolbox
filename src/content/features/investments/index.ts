@@ -62,6 +62,7 @@ function savedFilter(saved: string | undefined): PossibleFilter {
       reach: savedReach(f),
       tier: savedTier(f),
       onlyMarked: typeof f.onlyMarked === 'boolean' ? f.onlyMarked : DEFAULT_FILTER.onlyMarked,
+      showIgnored: typeof f.showIgnored === 'boolean' ? f.showIgnored : DEFAULT_FILTER.showIgnored,
     };
   } catch {
     return DEFAULT_FILTER;
@@ -78,6 +79,7 @@ function savedMineFilter(saved: string | undefined): MineFilter {
       reach: savedReach(f),
       onlyMarked: typeof f.onlyMarked === 'boolean' ? f.onlyMarked : DEFAULT_MINE_FILTER.onlyMarked,
       status: savedToggles<keyof StatusFilter>(STATUS_TOGGLES, f.status, DEFAULT_MINE_FILTER.status),
+      showIgnored: typeof f.showIgnored === 'boolean' ? f.showIgnored : DEFAULT_MINE_FILTER.showIgnored,
     };
   } catch {
     return DEFAULT_MINE_FILTER;
@@ -126,12 +128,21 @@ export const investmentsFeature: Feature = {
       ctx.greatBuildings
         .mark(owner, entityId, marked)
         .catch((error) => logError('marking a great building failed', error));
+    const ignore = (owner: PlayerId, entityId: number, ignored: boolean) =>
+      ctx.greatBuildings
+        .ignore(owner, entityId, ignored)
+        .catch((error) => logError('ignoring a great building failed', error));
+    const ignorePlayer = (owner: PlayerId, ignored: boolean) => {
+      ctx.players.setIgnored(owner, ignored);
+    };
     const actions: InvestmentsActions = {
       tab: (next) => {
         showTab(next);
         box.update();
       },
       mark,
+      ignore,
+      ignorePlayer,
       sort: (column, append) => {
         sort = nextSort(sort, column, INVESTMENT_DESC_FIRST, append);
         box.update();
@@ -148,6 +159,8 @@ export const investmentsFeature: Feature = {
     const possibleActions: PossibleActions = {
       tab: actions.tab,
       mark,
+      ignore,
+      ignorePlayer,
       sort: (column, append) => {
         possibleSort = nextSort(possibleSort, column, POSSIBLE_DESC_FIRST, append);
         box.update();
@@ -163,6 +176,11 @@ export const investmentsFeature: Feature = {
     };
     const playerName = (id: PlayerId) => ctx.players.get(id)?.name ?? ownerNames.get(id);
     const playerUrl = (id: PlayerId) => foestatsPlayerUrl(ctx.world, id);
+    /** whether the player ignores the owner; undefined for an owner the player store does not know */
+    const ownerIgnored = (id: PlayerId) => {
+      const player = ctx.players.get(id);
+      return player && player.ignored === true;
+    };
     const ownArc = () => arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses());
 
     const possible = () => {
@@ -178,10 +196,10 @@ export const investmentsFeature: Feature = {
      * header 29 + body padding 12 + tabs 32 + filter row 46 (22 high, 2 x 12 margin) + the totals of the own tab at
      * their tallest, two lines of 60 (one line 41, the line of the selection 19 more) + head row 22 + two rows
      * 2 x 23 + the line of hidden rows 21 = 272, rounded up. Worked out from the styles, not measured.
-     * debt: kept by hand. ceiling: a filter row that wraps (a narrow box, the long hint without a town hall list), other
+     * debt: kept by hand. ceiling: a filter row or the totals line (with its ignored note) that wraps (a narrow box, the long hint without a town hall list), other
      * fonts or a changed padding need more. upgrade: measure the fixed parts in the box once a second box needs it */
     const MIN_HEIGHT = 275;
-    const WIDTH = 818;
+    const WIDTH = 850;
 
     const render = () => {
       if (tab === 'possible') {
@@ -197,6 +215,8 @@ export const investmentsFeature: Feature = {
           relations: (id) => ctx.players.get(id)?.relations,
           isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
           ownerMarked: (id) => ctx.players.get(id)?.marked === true,
+          isIgnored: (owner, entityId) => ctx.greatBuildings.isIgnored(owner, entityId),
+          ownerIgnored,
           playerUrl,
         });
         tops.possible = vm.scroll.top;
@@ -214,6 +234,8 @@ export const investmentsFeature: Feature = {
         playerUrl,
         isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
         ownerMarked: (id) => ctx.players.get(id)?.marked === true,
+        isIgnored: (owner, entityId) => ctx.greatBuildings.isIgnored(owner, entityId),
+        ownerIgnored,
         filter: mineFilter,
         relations: (id) => ctx.players.get(id)?.relations,
       });
@@ -285,6 +307,7 @@ export const investmentsFeature: Feature = {
     ctx.bus.on('greatBuilding.changed', reload);
     // a star put on or taken from a building shows at once, the data stay as read
     ctx.bus.on('greatBuilding.marked', () => box.update());
+    ctx.bus.on('greatBuilding.ignored', () => box.update());
     // a list of another player brings the state of its buildings
     ctx.bus.on('greatBuildings.listed', ({ owner, ownerName }) => {
       if (ownerName !== undefined) ownerNames.set(owner, ownerName);

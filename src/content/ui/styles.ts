@@ -186,6 +186,10 @@ p.win-hidden { margin: 2px 0; }
 button.star { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 18px; height: 18px; vertical-align: middle; color: var(--ink); opacity: .7; }
 button.star:hover, button.star.on { color: var(--accent); opacity: 1; }
 button.star svg { display: block; width: 14px; height: 14px; }
+/* the closed eye that ignores a great building or a player; in the calculator header it looks like the star */
+button.ignore { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 18px; height: 18px; vertical-align: middle; color: var(--ink); opacity: .7; }
+button.ignore:hover, button.ignore.on { color: var(--accent); opacity: 1; }
+button.ignore svg { display: block; width: 14px; height: 14px; }
 th.sortable { cursor: pointer; user-select: none; }
 th.sortable:hover { color: var(--accent); }
 th.sortable.desc::after { content: ' ▾'; color: var(--accent); }
@@ -220,12 +224,12 @@ td.snipe-tier.safe { color: #5a9a4a; }
 td.snipe-tier.possible { color: #f0a050; }
 /* investments: fixed columns so heads show whole; owner and building names give way */
 .inv-table { table-layout: fixed; }
-/* the box can be resized: the fixed columns plus at least 90 px for the owner (name, star, funnel) and 100 px for the
-   building, "Meine" 506 + 190 px, "Mögliche" 594 + 190 px; narrower, the box scrolls sideways instead of squeezing the
+/* the box can be resized: the fixed columns plus at least 106 px for the owner (name, star, eye, funnel) and 116 px for
+   the building (name, eye), "Meine" 506 + 222 px, "Mögliche" 594 + 222 px; narrower, the box scrolls sideways instead of squeezing the
    names to nothing. debt: the sums are kept by hand. ceiling: a changed column width makes them stale.
    upgrade: compute them from the column widths once those live in one place */
-.inv-table { min-width: 696px; }
-.inv-table.inv-possible { min-width: 784px; }
+.inv-table { min-width: 728px; }
+.inv-table.inv-possible { min-width: 816px; }
 .inv-table .c-mark { width: 34px; }
 .inv-table .c-level, .inv-table .c-rank { width: 56px; }
 .inv-table .c-deposit { width: 90px; }
@@ -267,18 +271,27 @@ td.inv-status.unknown { color: #b8a27d; }
 .inv-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .inv-filter input[type=search] { width: 10em; }
 .inv-count { margin-left: auto; }
-.inv-reach-filter, .inv-tier-filter, .inv-status-filter, .inv-hits-filter, .inv-marked-filter { display: inline-flex; gap: 2px; }
-.inv-reach-filter button, .inv-tier-filter button, .inv-status-filter button, .inv-hits-filter button, .inv-marked-filter button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
-.inv-reach-filter button.on, .inv-tier-filter button.on, .inv-status-filter button.on, .inv-marked-filter button.on { color: var(--accent); opacity: 1; }
+.inv-reach-filter, .inv-tier-filter, .inv-status-filter, .inv-hits-filter, .inv-marked-filter, .inv-ignored-filter { display: inline-flex; gap: 2px; }
+.inv-reach-filter button, .inv-tier-filter button, .inv-status-filter button, .inv-hits-filter button, .inv-marked-filter button, .inv-ignored-filter button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
+.inv-reach-filter button.on, .inv-tier-filter button.on, .inv-status-filter button.on, .inv-marked-filter button.on, .inv-ignored-filter button.on { color: var(--accent); opacity: 1; }
 /* the profit icon keeps its own colours, switched on it only turns opaque */
 .inv-hits-filter button.on { opacity: 1; }
-.inv-reach-filter button svg, .inv-tier-filter button svg, .inv-status-filter button svg, .inv-hits-filter button svg, .inv-marked-filter button svg { display: block; width: 14px; height: 14px; }
+.inv-reach-filter button svg, .inv-tier-filter button svg, .inv-status-filter button svg, .inv-hits-filter button svg, .inv-marked-filter button svg, .inv-ignored-filter button svg { display: block; width: 14px; height: 14px; }
 .inv-owner { display: flex; align-items: center; }
 .inv-owner a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* always at the right edge of the column, so the mouse can run straight down it; hidden until the row is hovered */
 button.inv-pick { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 16px; height: 16px; margin-left: auto; opacity: 0; color: var(--ink); }
 tr:is(:hover, :focus-within) button.inv-pick { opacity: .7; }
 tr button.inv-pick:is(:hover, :focus-visible), button.inv-pick.on { opacity: 1; color: var(--accent); }
+/* the eye in a row: 16 px at the right edge like the funnel (which then follows it), faint on row hover or focus while not
+   ignored, always in the accent while ignored. Name cells keep the name's ellipsis and give the eye its 16 px */
+.inv-owner .inv-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.inv-owner button.ignore { flex: none; width: 16px; height: 16px; margin-left: auto; opacity: 0; }
+.inv-owner button.ignore svg { width: 12px; height: 12px; }
+.inv-owner button.ignore + button.inv-pick { margin-left: 0; }
+tr:is(:hover, :focus-within) .inv-owner button.ignore { opacity: .7; }
+tr .inv-owner button.ignore:is(:hover, :focus-visible), tr .inv-owner button.ignore.on { opacity: 1; color: var(--accent); }
+.inv-ignored-total svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; }
 .owner-star { flex: none; display: grid; place-items: center; margin-left: 3px; color: var(--accent); }
 .owner-star svg { display: block; width: 11px; height: 11px; }
 button.inv-pick svg { display: block; width: 12px; height: 12px; }

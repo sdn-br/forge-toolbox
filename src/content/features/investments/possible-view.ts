@@ -2,12 +2,19 @@ import { html, type TemplateResult } from 'lit-html';
 import { t } from '../../core/texts';
 import { progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
-import { externalLink } from '../../ui/links';
 import { profitCell, tierCell, tierIcon } from '../../ui/snipe-hit';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { rowsIn, windowedRows } from '../../ui/windowed-rows';
-import { picks } from './filter-model';
-import { markedFilter, ownerStar, pickButton, reachCell, reachFilter, text, toggleGroup } from './filter-parts';
+import {
+  buildingCell,
+  ignoredFilter,
+  markedFilter,
+  ownerCell,
+  reachCell,
+  reachFilter,
+  text,
+  toggleGroup,
+} from './filter-parts';
 import {
   type PossibleColumn,
   type PossibleFilter,
@@ -25,6 +32,8 @@ export interface PossibleActions {
   /** put the owner's name into the "Spieler" filter, as if typed */
   pickPlayer(name: string): void;
   mark: InvestmentsActions['mark'];
+  ignore: InvestmentsActions['ignore'];
+  ignorePlayer: InvestmentsActions['ignorePlayer'];
   scroll: InvestmentsActions['scroll'];
   measure: InvestmentsActions['measure'];
 }
@@ -49,11 +58,11 @@ const row = (
   r: PossibleRowVm,
   playerField: string,
   actions: PossibleActions,
-) => html`<tr class=${r.reach === 'none' ? 'muted' : ''} data-tip=${r.notes.join('\n')}>
+) => html`<tr class=${r.reach === 'none' || r.ignoreNote !== undefined ? 'muted' : ''} data-tip=${[r.ignoreNote, ...r.notes].filter(Boolean).join('\n')}>
   ${markCell(r, actions.mark)}
-  <td class="inv-name" data-tip=${r.ownerName}><span class="inv-owner">${externalLink(r.ownerName, r.ownerUrl)}${ownerStar(r.ownerMarked)}${pickButton(r.ownerName, picks(playerField, r.ownerName), actions.pickPlayer)}</span></td>
+  ${ownerCell(r, playerField, actions)}
   <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r.reach, r.reasons)}</td>
-  <td class="inv-name" data-tip=${[r.name, ...r.notes].join('\n')}>${r.name}</td>
+  ${buildingCell(r.name, [r.name, r.ignoreNote, ...r.notes].filter(Boolean).join('\n'), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
   <td class="num">${r.level}</td>
   ${progressCell(r)}
   <td class=${r.share.stale ? 'num muted' : 'num'} data-tip=${r.share.tip}>${r.share.text}</td>
@@ -94,6 +103,7 @@ const filters = (f: PossibleFilter, count: string, actions: PossibleActions) => 
     ${reachFilter(f.reach, (reach) => actions.filter({ reach }))}
     ${tierFilter(f, actions)}
     ${markedFilter(f.onlyMarked, (onlyMarked) => actions.filter({ onlyMarked }))}
+    ${ignoredFilter(f.showIgnored, (showIgnored) => actions.filter({ showIgnored }))}
     <span class="inv-count muted">${count}</span>
   </p>`;
 

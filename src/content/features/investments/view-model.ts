@@ -1,6 +1,6 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import type { Relations } from '../../../shared/model';
-import { formatAge, formatNumber } from '../../core/texts';
+import { formatAge, formatNumber, t } from '../../core/texts';
 import {
   type Investment,
   type InvestmentStatus,
@@ -9,6 +9,7 @@ import {
   sumTotals,
 } from '../../domain/investments';
 import { progressPercent } from '../../ui/fp-bar';
+import { ignoreNote } from '../../ui/ignore';
 import { signed } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
 import { type RowWindow, rowWindow } from '../../ui/windowed-rows';
@@ -56,6 +57,8 @@ export interface MineFilter {
   /** only buildings the player marked and buildings of marked owners */
   onlyMarked: boolean;
   status: StatusFilter;
+  /** also the rows of ignored buildings and owners, drawn muted */
+  showIgnored: boolean;
 }
 
 export const DEFAULT_MINE_FILTER: MineFilter = {
@@ -64,6 +67,7 @@ export const DEFAULT_MINE_FILTER: MineFilter = {
   reach: DEFAULT_REACH,
   onlyMarked: false,
   status: { safe: true, unsafe: true, unknown: true },
+  showIgnored: false,
 };
 
 /** without a sort the rows keep the default order (growth first, then the rest to the level up ascending) */
@@ -81,6 +85,12 @@ export interface InvestmentRowVm {
   ownerUrl: string;
   /** the player put a star on the owner */
   ownerMarked: boolean;
+  /** the player ignores the building */
+  ignored: boolean;
+  /** the player ignores the owner; missing when the player store does not know the owner, who cannot be ignored */
+  ownerIgnored?: boolean;
+  /** why the row counts as ignored, in words; missing when it does not */
+  ignoreNote?: string;
   /** the first reason, `none` drawn muted */
   reach: Reach;
   /** every reason, each drawn as its icon */
@@ -109,6 +119,8 @@ export interface TotalsVm {
   profitSafe: string;
   profitTotal: string;
   gain: boolean;
+  /** "3 ignoriert, 1.200 FP": the ignored rows, which no sum counts; missing without any */
+  ignored?: string;
 }
 
 export type InvestmentsVm = {
@@ -122,7 +134,7 @@ export type InvestmentsVm = {
   rows: InvestmentRowVm[];
   /** which rows of `rows` are in view */
   scroll: RowWindow;
-  /** over all own investments, whatever the filters leave */
+  /** over all own investments but the ignored ones, whatever the filters leave */
   totals: TotalsVm;
   /** over the filtered rows; missing while the filters leave out none */
   selection?: TotalsVm;
@@ -143,6 +155,9 @@ export interface InvestmentsInput {
   isMarked(owner: PlayerId, entityId: number): boolean;
   /** the player put a star on the owner */
   ownerMarked(owner: PlayerId): boolean;
+  isIgnored(owner: PlayerId, entityId: number): boolean;
+  /** undefined for an owner the player store does not know */
+  ownerIgnored(owner: PlayerId): boolean | undefined;
   filter: MineFilter;
   /** undefined for an owner the player store does not know */
   relations(id: PlayerId): Relations | undefined;
@@ -155,6 +170,10 @@ type Named = Investment & {
   name: string;
   marked: boolean;
   ownerMarked: boolean;
+  ignored: boolean;
+  ownerIgnored: boolean | undefined;
+  /** the building or its owner is ignored */
+  counted: boolean;
   reasons: Reach[];
 };
 
@@ -172,28 +191,42 @@ const sortKey: Record<InvestmentColumn, (r: Named) => number | string> = {
   progress: (r) => r.rest,
 };
 
-const totalsVm = (totals: InvestmentTotals): TotalsVm => ({
+const totalsVm = (totals: InvestmentTotals, ignored?: Investment[]): TotalsVm => ({
   circulating: formatNumber(totals.circulating),
   profitSafe: signed(totals.profitSafe),
   profitTotal: signed(totals.profitTotal),
   gain: totals.profitSafe > 0,
+  ...(ignored &&
+    ignored.length > 0 && {
+      ignored: t('investments.ignoredTotals', {
+        count: formatNumber(ignored.length),
+        fp: formatNumber(sumTotals(ignored).circulating),
+      }),
+    }),
 });
 
 export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
   const { sort, filter } = input;
-  const all: Named[] = input.investments.rows.map((r) => ({
-    ...r,
-    ownerName: input.playerName(r.owner) ?? String(r.owner),
-    name: input.greatBuildingName(r.cityEntityId) ?? r.cityEntityId,
-    marked: input.isMarked(r.owner, r.entityId),
-    ownerMarked: input.ownerMarked(r.owner),
-    reasons: reasonsOf(input.relations(r.owner)),
-  }));
+  const all: Named[] = input.investments.rows
+    .map((r) => ({
+      ...r,
+      ownerName: input.playerName(r.owner) ?? String(r.owner),
+      name: input.greatBuildingName(r.cityEntityId) ?? r.cityEntityId,
+      marked: input.isMarked(r.owner, r.entityId),
+      ownerMarked: input.ownerMarked(r.owner),
+      ignored: input.isIgnored(r.owner, r.entityId),
+      ownerIgnored: input.ownerIgnored(r.owner),
+      reasons: reasonsOf(input.relations(r.owner)),
+    }))
+    .map((r) => ({ ...r, counted: !r.ignored && r.ownerIgnored !== true }));
   const named = all
+    .filter((r) => filter.showIgnored || r.counted)
     .filter((r) => contains(r.ownerName, filter.player) && contains(r.name, filter.name))
     .filter((r) => passesReach(r.reasons, filter.reach))
     .filter((r) => filter.status[r.status])
     .filter((r) => !filter.onlyMarked || r.marked || r.ownerMarked);
+  const counted = all.filter((r) => r.counted);
+  const selected = named.filter((r) => r.counted);
   // stable: equal keys keep the default order
   if (sort) sortRows(named, sort, (column) => sortKey[column]);
   return {
@@ -208,6 +241,9 @@ export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
       ownerName: r.ownerName,
       ownerUrl: input.playerUrl(r.owner),
       ownerMarked: r.ownerMarked,
+      ignored: r.ignored,
+      ...(r.ownerIgnored !== undefined && { ownerIgnored: r.ownerIgnored }),
+      ...ignoreNote(r.ignored, r.ownerIgnored),
       reach: r.reasons[0] as Reach,
       reasons: r.reasons,
       reachTip: reachTip(r.reasons),
@@ -225,7 +261,10 @@ export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
       ...(r.growth !== undefined && { growth: formatNumber(r.growth) }),
     })),
     scroll: rowWindow(input.scroll ?? 0, named.length, input.visible),
-    totals: totalsVm(input.investments.totals),
-    ...(named.length < all.length && { selection: totalsVm(sumTotals(named)) }),
+    totals: totalsVm(
+      sumTotals(counted),
+      all.filter((r) => !r.counted),
+    ),
+    ...(selected.length < counted.length && { selection: totalsVm(sumTotals(selected)) }),
   };
 }

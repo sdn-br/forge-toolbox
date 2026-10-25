@@ -1,9 +1,12 @@
 // The filter pieces both investment tabs draw: text fields, icon toggles, the star filter, the funnel beside an owner.
 import { html, type TemplateResult } from 'lit-html';
+import type { PlayerId } from '../../../shared/ids';
 import { t } from '../../core/texts';
 import { headerIcons } from '../../ui/icons';
+import { ignoreButton } from '../../ui/ignore';
 import { keepKeys } from '../../ui/inputs';
-import { REACH_TOGGLES, type Reach, type ReachFilter } from './filter-model';
+import { externalLink } from '../../ui/links';
+import { picks, REACH_TOGGLES, type Reach, type ReachFilter } from './filter-model';
 
 export const REACH_ICONS: Partial<Record<Reach, TemplateResult>> = {
   neighbor: headerIcons.neighbor,
@@ -74,3 +77,41 @@ export const pickButton = (name: string, picked: boolean, pick: (name: string) =
   return html`<button class=${picked ? 'inv-pick on' : 'inv-pick'} aria-pressed=${picked ? 'true' : 'false'} data-tip=${word}
     aria-label=${word} @click=${() => pick(picked ? '' : name)}>${picked ? headerIcons.funnelFilled : headerIcons.funnel}</button>`;
 };
+
+/** a toggle with the open eye: also the rows of ignored buildings and owners, muted */
+export const ignoredFilter = (show: boolean, set: (show: boolean) => void) => {
+  const word = t('ignore.show');
+  return html`<span class="inv-ignored-filter"><button class=${show ? 'on' : ''} aria-pressed=${show ? 'true' : 'false'}
+    data-tip=${word} aria-label=${word} @click=${() => set(!show)}>${headerIcons.eye}</button></span>`;
+};
+
+/** what a row says about its owner */
+export interface OwnerCellRow {
+  owner: PlayerId;
+  ownerName: string;
+  ownerUrl: string;
+  ownerMarked: boolean;
+  /** missing for an owner the player store does not know, who cannot be ignored */
+  ownerIgnored?: boolean;
+}
+
+export interface OwnerCellActions {
+  /** put the owner's name into the "Spieler" filter, as if typed */
+  pickPlayer(name: string): void;
+  ignorePlayer(owner: PlayerId, ignored: boolean): void;
+}
+
+/**
+ * The owner: link, star of a marked owner, then at the right edge the closed eye and the funnel. Both keep their place
+ * in every row, so the mouse can run straight down the column.
+ */
+export const ownerCell = (r: OwnerCellRow, playerField: string, actions: OwnerCellActions) =>
+  html`<td class="inv-name" data-tip=${r.ownerName}><span class="inv-owner">${externalLink(r.ownerName, r.ownerUrl)}${ownerStar(r.ownerMarked)}${
+    r.ownerIgnored === undefined
+      ? ''
+      : ignoreButton('player', r.ownerIgnored, () => actions.ignorePlayer(r.owner, !r.ownerIgnored))
+  }${pickButton(r.ownerName, picks(playerField, r.ownerName), actions.pickPlayer)}</span></td>`;
+
+/** the building name with the closed eye at the right edge; `tip` is the name and, when ignored, why */
+export const buildingCell = (name: string, tip: string, ignored: boolean, toggle: () => void) =>
+  html`<td class="inv-name" data-tip=${tip}><span class="inv-owner"><span class="inv-label">${name}</span>${ignoreButton('building', ignored, toggle)}</span></td>`;

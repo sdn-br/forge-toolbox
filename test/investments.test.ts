@@ -182,6 +182,8 @@ describe('marked owner', () => {
       playerUrl: () => '',
       isMarked: () => false,
       ownerMarked: (id) => id === playerId(2002),
+      isIgnored: () => false,
+      ownerIgnored: () => false,
       filter: DEFAULT_MINE_FILTER,
       relations: () => undefined,
     }).rows;
@@ -196,13 +198,19 @@ describe('totals line', () => {
   const vm = (profitSafe: number) =>
     investmentsViewModel({
       visible: 100,
-      investments: { rows: [], totals: { circulating: 100, profitSafe, profitTotal: profitSafe - 10 } },
+      // a safe row (the own deposit holds the rest and all the others) whose profit is `profitSafe`
+      investments: myInvestments(
+        [building({ contribution: { rank: 1, forgePoints: 120, reward: 120 + profitSafe, at: 1 } })],
+        0,
+      ),
       now: 0,
       greatBuildingName: () => undefined,
       playerName: () => undefined,
       playerUrl: () => '',
       isMarked: () => false,
       ownerMarked: () => false,
+      isIgnored: () => false,
+      ownerIgnored: () => false,
       filter: DEFAULT_MINE_FILTER,
       relations: () => undefined,
     }).totals;
@@ -256,6 +264,8 @@ describe('relation and filters of the own investments', () => {
       playerUrl: () => '',
       isMarked: (_o, entityId) => entityId === 2,
       ownerMarked: (id) => id === playerId(2003),
+      isIgnored: () => false,
+      ownerIgnored: () => false,
       relations: (id) => owners[id],
       filter: { ...DEFAULT_MINE_FILTER, reach: ALL_REACH, ...over },
       ...extra,
@@ -333,5 +343,69 @@ describe('relation and filters of the own investments', () => {
     expect(vm().empty).toBe(false);
     expect(vm({ player: 'x' }).empty).toBe(false);
     expect(vm({}, { investments: myInvestments([], 0) }).empty).toBe(true);
+  });
+});
+
+describe('ignored rows of the own investments', () => {
+  const ALL_REACH = { neighbor: true, friend: true, guildMember: true, none: true };
+  /** three rows with deposits 100, 200 and 300: the second building is ignored, the third owner too */
+  const rows = [
+    building({ owner: playerId(2001), entityId: 1, contribution: { rank: 1, forgePoints: 100, reward: 400, at: 1 } }),
+    building({ owner: playerId(2002), entityId: 2, contribution: { rank: 1, forgePoints: 200, reward: 400, at: 1 } }),
+    building({ owner: playerId(2003), entityId: 3, contribution: { rank: 1, forgePoints: 300, reward: 400, at: 1 } }),
+  ];
+  const vm = (over: Partial<MineFilter> = {}, extra: Partial<InvestmentsInput> = {}) =>
+    investmentsViewModel({
+      visible: 100,
+      investments: myInvestments(rows, 0),
+      now: 0,
+      greatBuildingName: () => undefined,
+      playerName: () => undefined,
+      playerUrl: () => '',
+      isMarked: () => false,
+      ownerMarked: () => false,
+      isIgnored: (_o, entityId) => entityId === 2,
+      ownerIgnored: (id) => (id === playerId(2003) ? true : id === playerId(2999) ? undefined : false),
+      relations: () => undefined,
+      filter: { ...DEFAULT_MINE_FILTER, reach: ALL_REACH, ...over },
+      ...extra,
+    });
+
+  it('hides ignored buildings and the buildings of ignored owners by default', () => {
+    expect(vm().rows.map((r) => r.entityId)).toEqual([1]);
+  });
+
+  it('shows them with showIgnored and names the reason', () => {
+    const shown = vm({ showIgnored: true }).rows;
+    expect(shown.map((r) => [r.entityId, r.ignoreNote, r.ignored, r.ownerIgnored])).toEqual([
+      [1, undefined, false, false],
+      [2, 'LG ignoriert', true, false],
+      [3, 'Spieler ignoriert', false, true],
+    ]);
+  });
+
+  it('does not count ignored rows in the totals and names them apart', () => {
+    for (const showIgnored of [false, true]) {
+      const { totals } = vm({ showIgnored });
+      expect(totals).toMatchObject({ circulating: '100', profitSafe: '0', profitTotal: '+300' });
+      expect(totals.ignored).toBe('2 ignoriert, 500 FP');
+    }
+  });
+
+  it('has no ignored note without ignored rows', () => {
+    const { totals } = vm({}, { isIgnored: () => false, ownerIgnored: () => false });
+    expect(totals).not.toHaveProperty('ignored');
+  });
+
+  it('counts the selection without ignored rows, and only shows it when the filters narrow the counted ones', () => {
+    expect(vm().selection).toBeUndefined();
+    expect(vm({ showIgnored: true }).selection).toBeUndefined();
+    expect(vm({ showIgnored: true, player: 'nobody' }).selection).toMatchObject({ circulating: '0' });
+  });
+
+  it('leaves the owner unknown to the store without an ignore state', () => {
+    const only = [building({ owner: playerId(2999), entityId: 9 })];
+    const { rows: out } = vm({}, { investments: myInvestments(only, 0) });
+    expect(out[0]?.ownerIgnored).toBeUndefined();
   });
 });

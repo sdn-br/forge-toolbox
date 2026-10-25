@@ -4,12 +4,19 @@ import { t } from '../../core/texts';
 import type { InvestmentStatus } from '../../domain/investments';
 import { progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
-import { externalLink } from '../../ui/links';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { starButton } from '../../ui/star';
 import { rowsIn, windowedRows } from '../../ui/windowed-rows';
-import { picks } from './filter-model';
-import { markedFilter, ownerStar, pickButton, reachCell, reachFilter, text, toggleGroup } from './filter-parts';
+import {
+  buildingCell,
+  ignoredFilter,
+  markedFilter,
+  ownerCell,
+  reachCell,
+  reachFilter,
+  text,
+  toggleGroup,
+} from './filter-parts';
 import {
   type InvestmentColumn,
   type InvestmentRowVm,
@@ -25,6 +32,10 @@ export interface InvestmentsActions {
   tab(tab: InvestmentsTab): void;
   /** puts the star on a building or takes it away */
   mark(owner: PlayerId, entityId: number, marked: boolean): void;
+  /** ignores a building or releases it */
+  ignore(owner: PlayerId, entityId: number, ignored: boolean): void;
+  /** ignores a player or releases them */
+  ignorePlayer(owner: PlayerId, ignored: boolean): void;
   sort(column: InvestmentColumn, append: boolean): void;
   filter(patch: Partial<MineFilter>): void;
   /** put the owner's name into the "Spieler" filter, as if typed */
@@ -63,11 +74,12 @@ export const markCell = (r: { owner: PlayerId; entityId: number; marked: boolean
 /** "x / y" of the level with the thin bar below, the rest to the level up in the tooltip; `extra` goes under the bar */
 const row = (r: InvestmentRowVm, playerField: string, actions: InvestmentsActions) => {
   const status = t(`investments.status.${r.status}`);
-  return html`<tr class=${[r.growth ? 'grown' : '', r.reach === 'none' ? 'muted' : ''].join(' ').trim()}>
+  const muted = r.reach === 'none' || r.ignoreNote !== undefined;
+  return html`<tr class=${[r.growth ? 'grown' : '', muted ? 'muted' : ''].join(' ').trim()} data-tip=${r.ignoreNote ?? ''}>
   ${markCell(r, actions.mark)}
-  <td class="inv-name" data-tip=${r.ownerName}><span class="inv-owner">${externalLink(r.ownerName, r.ownerUrl)}${ownerStar(r.ownerMarked)}${pickButton(r.ownerName, picks(playerField, r.ownerName), actions.pickPlayer)}</span></td>
+  ${ownerCell(r, playerField, actions)}
   <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r.reach, r.reasons)}</td>
-  <td class="inv-name" data-tip=${r.name}>${r.name}</td>
+  ${buildingCell(r.name, [r.name, r.ignoreNote].filter(Boolean).join('\n'), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
   <td class="num">${r.level}</td>
   ${progressCell(
     r,
@@ -123,6 +135,7 @@ const filters = (f: MineFilter, age: string, actions: InvestmentsActions) => htm
     ${reachFilter(f.reach, (reach) => actions.filter({ reach }))}
     ${statusFilter(f, actions)}
     ${markedFilter(f.onlyMarked, (onlyMarked) => actions.filter({ onlyMarked }))}
+    ${ignoredFilter(f.showIgnored, (showIgnored) => actions.filter({ showIgnored }))}
     <span class="inv-count muted">${age}</span>
   </p>`;
 
@@ -136,7 +149,11 @@ const totalsLine = (totals: TotalsVm, selection: boolean) =>
     · <span class="profit-icon" role="img" data-tip=${t('gb.col.profit')} aria-label=${t('gb.col.profit')}>${headerIcons.profit}</span>
     <b class=${totals.gain ? 'gain' : ''}><span class="profit-icon" role="img" data-tip=${t('investments.profitSafe')}
       aria-label=${t('investments.profitSafe')}>${headerIcons.checkCircle}</span> ${totals.profitSafe}</b>
-    <span class="muted">· <span data-tip=${t('investments.profitTotal')} aria-label=${t('investments.profitTotal')}>Σ</span> ${totals.profitTotal}</span></span>`;
+    <span class="muted">· <span data-tip=${t('investments.profitTotal')} aria-label=${t('investments.profitTotal')}>Σ</span> ${totals.profitTotal}</span>${
+      totals.ignored
+        ? html` <span class="muted inv-ignored-total" data-tip=${t('investments.ignoredTotalsHint')}>· <span class="profit-icon" role="img" aria-hidden="true">${headerIcons.eyeClosed}</span> ${totals.ignored}</span>`
+        : ''
+    }</span>`;
 
 /** the totals above the table, so they show without scrolling: over all own investments, and under them, with the
  * funnel in front, over the filtered rows while the filters leave some out */

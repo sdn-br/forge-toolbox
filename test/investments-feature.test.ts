@@ -741,3 +741,156 @@ describe('Investitionen: Meine Investitionen scrolled and filtered', () => {
     expect(env.box.root.querySelector('.win-hidden')?.textContent?.trim()).toBe('noch 8 weitere unten');
   });
 });
+
+describe('Investitionen: Ignorieren in Meine Investitionen', () => {
+  const lines = (box: { root: ParentNode }) => [...box.root.querySelectorAll('p.gb-me .gb-me-line')] as HTMLElement[];
+  const text = (el: Element | undefined) => el?.textContent?.replace(/\s+/g, ' ').trim();
+  const buildingEye = (r: Element | undefined) => r?.querySelectorAll('td.inv-name')[1]?.querySelector('button.ignore');
+  const ownerEye = (r: Element | undefined) =>
+    r?.querySelectorAll('td.inv-name')[0]?.querySelector('.inv-owner button.ignore');
+  const showToggle = (box: { root: ParentNode }) =>
+    box.root.querySelector('.inv-ignored-filter button') as HTMLButtonElement;
+  const owners = (rows: Element[], cells: (r: Element) => (string | undefined)[]) => rows.map((r) => cells(r)[1]);
+
+  it('puts a closed eye beside the building name and, for a known player, beside the owner, next to the funnel', async () => {
+    const { send, rows } = setup();
+    send(SOCIAL([2005]));
+    send(contributions.contributions as Entry);
+    await tick();
+    const first = rows()[0];
+    expect(buildingEye(first)?.getAttribute('aria-label')).toBe('LG ignorieren');
+    expect(buildingEye(first)?.getAttribute('data-tip')).toBe('LG ignorieren');
+    expect(buildingEye(first)?.getAttribute('aria-pressed')).toBe('false');
+    expect(buildingEye(first)?.classList.contains('on')).toBe(false);
+    // the owner of the first row is 2005, a friend: the player store knows them
+    expect(ownerEye(first)?.getAttribute('aria-label')).toBe('Spieler ignorieren');
+    // the eye comes before the funnel, which stays the last thing of the cell
+    expect(ownerEye(first)?.nextElementSibling?.classList.contains('inv-pick')).toBe(true);
+    expect(first?.querySelector('td.inv-name .inv-owner > :last-child')?.classList.contains('inv-pick')).toBe(true);
+    // an owner the store does not know cannot be ignored
+    const unknown = rows().find((r) => !text(r)?.includes('Eigentümer 2005'));
+    expect(ownerEye(unknown)).toBeNull();
+    expect(unknown?.querySelector('td.inv-name .inv-owner > :last-child')?.classList.contains('inv-pick')).toBe(true);
+  });
+
+  it('hides an ignored building, keeps it out of every sum and names it apart', async () => {
+    const { send, rows, box } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    expect(text(lines(box)[0])).toContain('Umlauf: 4.896 FP');
+    expect(text(lines(box)[0])).not.toContain('ignoriert');
+    (buildingEye(rows()[0]) as HTMLButtonElement).click();
+    await tick();
+    expect(rows()).toHaveLength(11);
+    expect(text(lines(box)[0])).toContain('Umlauf: 4.654 FP');
+    expect(text(lines(box)[0])).toContain('1 ignoriert, 242 FP');
+    // the selection line only appears when the filters narrow the counted rows
+    expect(lines(box)).toHaveLength(1);
+  });
+
+  it('shows ignored rows muted with "ignorierte zeigen", the eye stays in the accent and a click releases', async () => {
+    const { send, rows, box, ui } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    expect(showToggle(box).getAttribute('aria-label')).toBe('ignorierte zeigen');
+    expect(showToggle(box).getAttribute('aria-pressed')).toBe('false');
+    (buildingEye(rows()[0]) as HTMLButtonElement).click();
+    await tick();
+    showToggle(box).click();
+    await tick();
+    expect(showToggle(box).getAttribute('aria-pressed')).toBe('true');
+    expect(JSON.parse(ui.pref('investments.mineFilter') ?? '{}')).toMatchObject({ showIgnored: true });
+    expect(rows()).toHaveLength(12);
+    const ignored = rows().filter((r) => r.classList.contains('muted'));
+    expect(ignored).toHaveLength(1);
+    expect(ignored[0]?.getAttribute('data-tip')).toBe('LG ignoriert');
+    const eye = buildingEye(ignored[0]) as HTMLButtonElement;
+    expect(eye.classList.contains('on')).toBe(true);
+    expect(eye.getAttribute('aria-pressed')).toBe('true');
+    expect(eye.getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    // still not in the sums
+    expect(text(lines(box)[0])).toContain('Umlauf: 4.654 FP');
+    eye.click();
+    await tick();
+    expect(rows().some((r) => r.classList.contains('muted'))).toBe(false);
+    expect(text(lines(box)[0])).toContain('Umlauf: 4.896 FP');
+    expect(text(lines(box)[0])).not.toContain('ignoriert');
+  });
+
+  it('hides the ignored rows again when "ignorierte zeigen" is switched off', async () => {
+    const { send, rows, box } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    (buildingEye(rows()[0]) as HTMLButtonElement).click();
+    await tick();
+    showToggle(box).click();
+    await tick();
+    expect(rows()).toHaveLength(12);
+    showToggle(box).click();
+    await tick();
+    expect(showToggle(box).getAttribute('aria-pressed')).toBe('false');
+    expect(rows()).toHaveLength(11);
+  });
+
+  it('ignores every building of a player and names the player as the reason', async () => {
+    const { send, rows, box, cells, players } = setup();
+    send(SOCIAL([2005]));
+    send(contributions.contributions as Entry);
+    await tick();
+    const before = rows().length;
+    const own = rows().filter((r) => cells(r)[1] === 'Eigentümer 2005');
+    expect(own.length).toBeGreaterThan(0);
+    (ownerEye(own[0]) as HTMLButtonElement).click();
+    await tick();
+    expect(players.get(playerId(2005))?.ignored).toBe(true);
+    expect(rows()).toHaveLength(before - own.length);
+    expect(owners(rows(), cells)).not.toContain('Eigentümer 2005');
+    showToggle(box).click();
+    await tick();
+    const shown = rows().filter((r) => cells(r)[1] === 'Eigentümer 2005');
+    expect(shown).toHaveLength(own.length);
+    expect(shown[0]?.getAttribute('data-tip')).toBe('Spieler ignoriert');
+    expect(shown[0]?.classList.contains('muted')).toBe(true);
+    const eye = ownerEye(shown[0]) as HTMLButtonElement;
+    expect(eye.getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(eye.classList.contains('on')).toBe(true);
+    eye.click();
+    await tick();
+    expect(players.get(playerId(2005))?.ignored).toBeUndefined();
+  });
+
+  it('names both reasons in the row tooltip', async () => {
+    const { send, rows, box, cells, ui } = setup();
+    send(SOCIAL([2005]));
+    send(contributions.contributions as Entry);
+    await tick();
+    (buildingEye(rows()[0]) as HTMLButtonElement).click();
+    await tick();
+    showToggle(box).click();
+    await tick();
+    const first = rows().find((r) => cells(r)[1] === 'Eigentümer 2005' && r.classList.contains('muted')) as Element;
+    (ownerEye(first) as HTMLButtonElement).click();
+    await tick();
+    expect(
+      rows()
+        .find((r) => r.classList.contains('muted'))
+        ?.getAttribute('data-tip'),
+    ).toBe('LG ignoriert, Spieler ignoriert');
+    expect(ui.pref('investments.mineFilter')).toBeDefined();
+  });
+
+  it('reads the saved toggle, a missing or broken one is off', async () => {
+    for (const saved of [{ showIgnored: true }, {}, { showIgnored: 'yes' }]) {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      const env = featureContext({ now: () => Date.now() });
+      env.ctx.ui.savePref('investments.mineFilter', JSON.stringify(saved));
+      investmentsFeature.setup(env.ctx);
+      drain = () => env.ctx.greatBuildings.known();
+      env.menu('investments');
+      await tick();
+      const root = env.boxes.get('investments')?.root as HTMLElement;
+      const on = root.querySelector('.inv-ignored-filter button')?.getAttribute('aria-pressed');
+      expect(on).toBe(saved.showIgnored === true ? 'true' : 'false');
+    }
+  });
+});
