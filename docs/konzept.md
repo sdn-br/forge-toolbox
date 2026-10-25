@@ -82,7 +82,7 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
 - Typisierte Events mit Payload, etwa `player.updated {id}` oder `city.changed {playerId}`. Jeder Vertrag ist ein TypeScript-Typ.
 - Stores senden Domain-Events. Features senden keine Events an andere Features, sie kennen sich nicht.
 - Bewusste Ausnahme: Der Handler sendet `army.opened` direkt auf den Bus. Das Signal ist flüchtig und hat keinen Zustand, ein Store hätte dafür nichts zu halten.
-- `markers.changed` sendet `ctx.markers` (`core/markers.ts`). Er hält die eine Markierung im Spiel wie ein Store seinen Zustand und spricht mit dem Marker-Modul in der Seite.
+- `markers.changed` sendet `ctx.markers` (`core/markers.ts`). Er hält die Markierungen im Spiel, eine je Stadt, wie ein Store seinen Zustand und spricht mit dem Marker-Modul in der Seite.
 - Zusätzlich Lebenszyklus-Events der Shell (bereit, Spieler bekannt, Welt gewechselt).
 
 ### Features als Plugins

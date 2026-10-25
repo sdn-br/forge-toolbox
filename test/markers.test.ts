@@ -94,13 +94,37 @@ describe('markers', () => {
       markers.set('cityMap', 'own', [spot(1)]);
       cities.setVisited(visited(5));
       expect(marker.last?.type).toBe('hide');
-      expect(markers.current()?.city).toBe('own');
+      expect(markers.of('cityMap')?.city).toBe('own');
 
       cities.setVisited(visited(6));
       expect(marker.posted.filter((c) => c.type === 'hide')).toHaveLength(1);
 
       cities.showOwn();
-      expect(marker.last).toMatchObject({ type: 'show', seq: 1, settle: true, spots: [spot(1)] });
+      expect(marker.last).toMatchObject({ type: 'show', seq: 2, settle: true, spots: [spot(1)] });
+    });
+
+    it('keeps the marking of each city, so a plunder arrow on a visit leaves the own search marked', () => {
+      const { cities, marker, markers } = setup();
+      markers.set('cityMap', 'own', [spot(1)]);
+      cities.setVisited(visited(5));
+      markers.set('sabotage', playerId(5), [spot(7)]);
+      expect(marker.last).toMatchObject({ type: 'show', spots: [spot(7)] });
+      expect(markers.of('cityMap')?.spots).toEqual([spot(1)]);
+
+      markers.clear('sabotage');
+      cities.showOwn();
+      expect(marker.last).toMatchObject({ type: 'show', spots: [spot(1)] });
+      expect(markers.has('cityMap', 'own', 1)).toBe(true);
+    });
+
+    it('takes a dismissal of the shown arrows after a marking of another city was set', () => {
+      const { cities, marker, markers } = setup();
+      markers.set('cityMap', 'own', [spot(1)]);
+      markers.set('sabotage', playerId(5), [spot(7)]);
+      marker.dismiss([1]);
+      expect(markers.of('cityMap')).toBeUndefined();
+      cities.setVisited(visited(5));
+      expect(marker.last).toMatchObject({ type: 'show', spots: [spot(7)] });
     });
 
     it('marks a visited city only while it shows', () => {

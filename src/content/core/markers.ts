@@ -1,6 +1,7 @@
-// Which buildings carry an arrow in the game view. One marking at a time: a new one replaces the old, whoever set it.
-// A marking belongs to a city and shows only while the game shows that city (CityStore.shown). The marker module in
-// the page draws it and reports the arrows the viewer dismissed there.
+// Which buildings carry an arrow in the game view. One marking per city: a new one in a city replaces the old there,
+// whoever set it, and markings of other cities stay (the own search survives a visit with a plunder arrow). Only the
+// marking of the city the game shows (CityStore.shown) is drawn. The marker module in the page draws it and reports the
+// arrows the viewer dismissed there.
 import { MARKER_TAG, MAX_MARKERS, type MarkerCommand, type MarkerSpot } from '../../shared/marker-protocol';
 import type { CityKey } from '../stores/cities';
 import type { ToolboxBus } from './events';
@@ -21,8 +22,8 @@ export interface Marking {
 }
 
 export class Markers {
-  private marking?: Marking;
-  /** numbers the markings; the page echoes it, so a late echo of an older marking changes nothing */
+  private markings = new Map<CityKey, Marking>();
+  /** numbers what the page was told to show; it echoes the number, so a late echo of an older show changes nothing */
   private seq = 0;
   /** whether the page was last told to show arrows */
   private showing = false;
@@ -33,47 +34,60 @@ export class Markers {
     private link: MarkerLink,
   ) {
     link.onRemoved((seq, ids) => this.removed(seq, ids));
-    // the city changed: hide a marking of another city, show one of this city again; the game may still be switching
+    // the city changed: hide the arrows of the city before, show the marking of this city; the game may still be switching
     bus.on('city.shown', () => this.sync(true));
   }
 
+  /** the marking of the city the game shows */
   current(): Readonly<Marking> | undefined {
-    return this.marking;
+    return this.markings.get(this.cities.shown());
+  }
+
+  /** the marking feature `by` set, in whatever city */
+  of(by: string): Readonly<Marking> | undefined {
+    for (const m of this.markings.values()) if (m.by === by) return m;
+    return undefined;
   }
 
   /** whether building `id` of `city` carries an arrow that feature `by` set */
   has(by: string, city: CityKey, id: number): boolean {
-    const m = this.marking;
-    return m?.by === by && m.city === city && m.spots.some((s) => s.id === id);
+    const m = this.markings.get(city);
+    return m?.by === by && m.spots.some((s) => s.id === id);
   }
 
   /**
-   * Arrows on these buildings of `city`, replacing any marking; beyond the first MAX_MARKERS none. None clears what
-   * `by` marked.
+   * Arrows on these buildings of `city`, replacing the marking of that city; beyond the first MAX_MARKERS none. None
+   * clears what `by` marked there.
    */
   set(by: string, city: CityKey, spots: MarkerSpot[]): void {
     if (spots.length === 0) {
-      this.clear(by);
-      return;
+      if (this.markings.get(city)?.by !== by) return;
+      this.markings.delete(city);
+    } else {
+      const kept = spots.slice(0, MAX_MARKERS).map(({ id, x, y, width, length }) => ({ id, x, y, width, length }));
+      this.markings.set(city, { by, city, spots: kept });
     }
-    this.seq++;
-    const kept = spots.slice(0, MAX_MARKERS).map(({ id, x, y, width, length }) => ({ id, x, y, width, length }));
-    this.marking = { by, city, spots: kept };
     this.sync(false);
     this.bus.emit('markers.changed', {});
   }
 
-  /** Removes the marking; with `by` only when that feature set it. */
+  /** Removes the markings feature `by` set, in every city; without `by` all. */
   clear(by?: string): void {
-    if (!this.marking || (by !== undefined && this.marking.by !== by)) return;
-    this.marking = undefined;
+    let removed = false;
+    for (const [city, m] of this.markings) {
+      if (by !== undefined && m.by !== by) continue;
+      this.markings.delete(city);
+      removed = true;
+    }
+    if (!removed) return;
     this.sync(false);
     this.bus.emit('markers.changed', {});
   }
 
   private sync(settle: boolean) {
-    const m = this.marking;
-    if (m && m.city === this.cities.shown()) {
+    const m = this.current();
+    if (m) {
+      this.seq++;
       this.link.post({
         tag: MARKER_TAG,
         from: 'content',
@@ -91,14 +105,14 @@ export class Markers {
   }
 
   private removed(seq: number, ids: number[]) {
-    const m = this.marking;
+    const m = this.current();
     if (!m || seq !== this.seq) return;
     const spots = m.spots.filter((s) => !ids.includes(s.id));
     if (spots.length === m.spots.length) return;
     if (spots.length === 0) {
-      this.marking = undefined;
+      this.markings.delete(m.city);
       this.showing = false;
-    } else this.marking = { ...m, spots };
+    } else this.markings.set(m.city, { ...m, spots });
     this.bus.emit('markers.changed', {});
   }
 }

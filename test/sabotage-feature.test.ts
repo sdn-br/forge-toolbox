@@ -282,7 +282,7 @@ describe('sabotage feature', () => {
 
       ctx.markers.set('cityMap', 'own', [{ id: 9, x: 0, y: 0, width: 1, length: 1 }]);
       ctx.cities.setVisited(coinsAndPoints(2));
-      expect(ctx.markers.current()?.by).toBe('cityMap');
+      expect(ctx.markers.of('cityMap')?.city).toBe('own');
     });
 
     it('sets no arrow for a building without a place on the grid', async () => {
