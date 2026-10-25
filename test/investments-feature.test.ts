@@ -346,10 +346,14 @@ describe('Investitionen: long lists', () => {
     expect(box.root.querySelector('.inv-pane > p.gb-me')).not.toBeNull();
   });
 
-  it('shows all rows, without buttons and line, when they fit and when nothing can be measured', async () => {
+  it('shows all rows, greyed buttons and no line, when they fit and when nothing can be measured', async () => {
     const { box, texts, all } = await listed(12);
     expect(texts()).toEqual(all);
-    expect(box.root.querySelector('.win-nav')).toBeNull();
+    // the buttons keep their room, greyed
+    expect([...box.root.querySelectorAll('.win-nav button')].map((b) => b.getAttribute('aria-disabled'))).toEqual([
+      'true',
+      'true',
+    ]);
     expect(box.root.querySelector('.win-hidden')).toBeNull();
     layout.height(0);
     layout.resize();
@@ -734,7 +738,11 @@ describe('Investitionen: Meine Investitionen scrolled and filtered', () => {
     f.value = 'Zeusstatue';
     f.dispatchEvent(new Event('input', { bubbles: true }));
     expect(texts()).toHaveLength(2);
-    expect(env.box.root.querySelector('.win-nav')).toBeNull();
+    // the buttons keep their room, greyed
+    expect([...env.box.root.querySelectorAll('.win-nav button')].map((b) => b.getAttribute('aria-disabled'))).toEqual([
+      'true',
+      'true',
+    ]);
     f.value = '';
     f.dispatchEvent(new Event('input', { bubbles: true }));
     expect(texts()).toHaveLength(4);

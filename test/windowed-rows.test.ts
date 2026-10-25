@@ -25,9 +25,13 @@ describe('windowedRows template', () => {
     return host;
   };
 
-  it('shows neither buttons nor line when everything fits', () => {
+  it('shows greyed buttons and no line when everything fits', () => {
     const host = draw(rowWindow(0, 3, 6), () => {});
-    expect(host.querySelector('.win-nav')).toBeNull();
+    // the buttons keep their room, greyed
+    expect([...host.querySelectorAll('.win-nav button')].map((b) => b.getAttribute('aria-disabled'))).toEqual([
+      'true',
+      'true',
+    ]);
     expect(host.querySelector('.win-hidden')).toBeNull();
     expect(host.querySelector('.win-scroll.mine .win-area table')).not.toBeNull();
   });

@@ -570,7 +570,11 @@ describe('Investitionen: long lists of possible investments', () => {
     };
     type('Orakel');
     expect(texts()).toHaveLength(2);
-    expect(box.root.querySelector('.win-nav')).toBeNull();
+    // the buttons keep their room, greyed
+    expect([...box.root.querySelectorAll('.win-nav button')].map((b) => b.getAttribute('aria-disabled'))).toEqual([
+      'true',
+      'true',
+    ]);
     // the list grows back, the offset stays where the shorter list clamped it
     type('');
     expect(texts()).toHaveLength(4);

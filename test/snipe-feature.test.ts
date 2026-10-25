@@ -615,12 +615,16 @@ describe('Snipehilfe: stacked box', () => {
       return event;
     };
 
-    it('shows six rows with the head, no buttons and no line when all fit', async () => {
+    it('shows six rows with the head, greyed buttons and no line when all fit', async () => {
       const { box, list, rows } = setup();
       list(many(6));
       await tick();
       expect(rows()).toHaveLength(6);
-      expect(box.root.querySelector('.win-nav')).toBeNull();
+      // the buttons keep their room, greyed
+      expect([...box.root.querySelectorAll('.win-nav button')].map((b) => b.getAttribute('aria-disabled'))).toEqual([
+        'true',
+        'true',
+      ]);
       expect(box.root.querySelector('.win-hidden')).toBeNull();
     });
 
