@@ -249,17 +249,19 @@ function calculatorBody(vm: GbCalculatorVm, actions: GbCalculatorActions): Templ
 
 export interface CalculatorFold {
   folded: boolean;
+  /** false while the calculator is the only part of the box: no fold line then */
+  foldable: boolean;
   toggle(): void;
 }
 
 /** The calculator with its fold line on top. Without a building (none, noEntity) there is no name and level for the
- * folded line, so the content stays as it is and nothing folds. */
+ * folded line, and without a list the calculator is the only part; then the content stays as it is and nothing folds. */
 export function gbCalculatorView(
   vm: GbCalculatorVm,
   actions: GbCalculatorActions,
   fold: CalculatorFold,
 ): TemplateResult {
-  if (vm.kind === 'none' || vm.kind === 'noEntity') return calculatorBody(vm, actions);
+  if (vm.kind === 'none' || vm.kind === 'noEntity' || !fold.foldable) return calculatorBody(vm, actions);
   const { name, level, owner } = vm.header;
   const line = (expanded: boolean, text: TemplateResult | string) =>
     foldToggle('calc-toggle', expanded, text, t(expanded ? 'gbCalc.collapse' : 'gbCalc.expand'), fold.toggle);
