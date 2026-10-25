@@ -24,7 +24,6 @@ export const cityMapFeature: Feature = {
   id: ID,
   setup(ctx) {
     const ui: OwnMapUi = {
-      search: '',
       finished: true,
       unconnected: true,
       free: true,
@@ -35,10 +34,6 @@ export const cityMapFeature: Feature = {
       placeholder: () => t('cityMap.search'),
       names: () => ctx.selection.buildings().map(nameOf),
       update: () => box.update(),
-      // typing highlights the buildings whose name contains the text, a preview apart from the selection
-      onInput: (text) => {
-        ui.search = text;
-      },
       onPick: (name) => ctx.selection.addName(name),
     });
     // a click selects this building alone, or nothing when it was alone; with shift it adds or removes the building

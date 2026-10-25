@@ -45,7 +45,7 @@ const city = (buildings: Building[], areas?: City['areas']): City => ({
   ...(areas && { areas }),
 });
 
-const ui: OwnMapUi = { search: '', finished: true, unconnected: true, free: true, stats: false, expansions: false };
+const ui: OwnMapUi = { finished: true, unconnected: true, free: true, stats: false, expansions: false };
 const town = city(
   [
     building(1, 'House', 'residential', 0, 0),
@@ -86,25 +86,16 @@ describe('own city map view model', () => {
     expect(off.legend.some((l) => l.outline)).toBe(false);
   });
 
-  it('highlights search hits, counts them and mutes the rest', () => {
-    const vm = ownCityMapViewModel(town, lookup, { ...ui, search: 'DACH' });
-    expect(vm.matches).toBe(2);
-    expect(tileOf(vm, 0, 0)).toMatchObject({ outline: MARK.search, strong: true, fill: CATEGORY_COLORS.residential });
-    expect(tileOf(vm, 2, 0)?.fill).toBe(mutedColor('production'));
-    expect(ownCityMapViewModel(town, lookup, ui).matches).toBeUndefined();
-  });
-
-  it('frames the selected buildings in the accent, before any other mark, apart from the search hits', () => {
-    const vm = ownCityMapViewModel(town, lookup, { ...ui, search: 'dach' }, undefined, new Set([1, 2]));
-    expect(tileOf(vm, 0, 0)).toMatchObject({ outline: MARK.selected, strong: true });
-    expect(tileOf(vm, 2, 0)).toMatchObject({ outline: MARK.selected, strong: true });
-    // the other house is a search hit, not selected
-    expect(tileOf(vm, 0, 2)).toMatchObject({ outline: MARK.search, strong: true });
+  it('frames the selected buildings light, before any other mark, and mutes the rest', () => {
+    const vm = ownCityMapViewModel(town, lookup, ui, undefined, new Set([1, 2]));
+    expect(tileOf(vm, 0, 0)).toMatchObject({ outline: MARK.selected, strong: true, fill: CATEGORY_COLORS.residential });
+    expect(tileOf(vm, 2, 0)).toMatchObject({ outline: MARK.selected, strong: true, fill: CATEGORY_COLORS.production });
+    // the other house is not selected: muted, and still framed as without road
+    expect(tileOf(vm, 0, 2)).toMatchObject({ outline: MARK.unconnected, fill: mutedColor('residential') });
     expect(vm.legend).toContainEqual({ color: MARK.selected, label: 'Ausgewählt (Pfeil im Spiel)', outline: true });
-    expect(vm.legend.map((l) => l.label)).toContain('Suchtreffer');
-    expect(ownCityMapViewModel(town, lookup, ui, undefined, new Set([99])).legend.map((l) => l.label)).not.toContain(
-      'Ausgewählt (Pfeil im Spiel)',
-    );
+    const none = ownCityMapViewModel(town, lookup, ui, undefined, new Set([99]));
+    expect(none.legend.map((l) => l.label)).not.toContain('Ausgewählt (Pfeil im Spiel)');
+    expect(tileOf(none, 0, 2)?.fill).toBe(CATEGORY_COLORS.residential);
   });
 
   it('counts and shows the free tiles of the unlocked areas', () => {

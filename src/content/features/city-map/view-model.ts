@@ -1,7 +1,7 @@
 // The own city as a map: colors by building group, switchable marks, name search and free tiles.
 import type { BuildingDefId } from '../../../shared/ids';
 import { t } from '../../core/texts';
-import { buildingCategory, footprints, freeTiles, matchesName, nameOf, needsRoad } from '../../domain/city-grid';
+import { buildingCategory, footprints, freeTiles, nameOf, needsRoad } from '../../domain/city-grid';
 import { expansionBlocks } from '../../domain/expansions';
 import type { BuildingDef, CityGrid } from '../../stores/catalog';
 import type { City } from '../../stores/city-model';
@@ -10,7 +10,6 @@ import type { CityMapData, LegendItem, MapTile } from '../../ui/city-map';
 
 export interface OwnMapUi {
   /** the text of the search field; hits are the names that contain it, a preview while typing */
-  search: string;
   /** mark finished productions */
   finished: boolean;
   /** mark buildings without road connection */
@@ -26,18 +25,18 @@ export interface OwnMapUi {
 export interface OwnMapVm {
   data: CityMapData;
   legend: LegendItem[];
-  /** number of buildings whose name matches; only while searching */
-  matches?: number;
   /** free tiles in the unlocked areas; undefined when the areas are unknown */
   free?: number;
   /** some definitions are missing, so some sizes are guessed */
   incomplete: boolean;
 }
 
-/** `selected` is the accent of the boxes, as on a marked plunder row */
+/**
+ * `selected` is the light ink of the boxes, drawn with a dark seam so it shows on every fill, the orange of the great
+ * buildings too (Nutzer, 2026-10-26)
+ */
 export const MARK = {
-  selected: '#e8861c',
-  search: '#ffe04a',
+  selected: '#fbf4e4',
   unconnected: '#ff4040',
   finished: '#7cff7c',
   free: '#5c7a34',
@@ -60,14 +59,12 @@ export function ownCityMapViewModel(
   selected: ReadonlySet<number> = new Set(),
 ) {
   const fps = footprints(city.buildings.values(), def);
-  const searching = ui.search.trim() !== '';
-  let matches = 0;
+  // while something is selected, the rest steps back
+  const selecting = fps.some((f) => selected.has(f.building.id));
   const tiles: MapTile[] = fps.map((f) => {
     const b = f.building;
     const name = nameOf(f);
     const category = buildingCategory(b.type);
-    const hit = matchesName(name, ui.search);
-    if (hit) matches++;
     const finished = b.state.kind === 'finished';
     const unconnected = needsRoad(b);
     const lines = [name];
@@ -80,11 +77,10 @@ export function ownCityMapViewModel(
       y: f.y,
       width: f.width,
       length: f.length,
-      fill: searching && !hit ? mutedColor(category) : CATEGORY_COLORS[category],
+      fill: selecting && !selected.has(b.id) ? mutedColor(category) : CATEGORY_COLORS[category],
       tooltip: lines.join('\n'),
     };
     if (selected.has(b.id)) Object.assign(tile, { outline: MARK.selected, strong: true });
-    else if (hit) Object.assign(tile, { outline: MARK.search, strong: true });
     else if (ui.unconnected && unconnected) Object.assign(tile, { outline: MARK.unconnected, strong: true });
     else if (ui.finished && finished) Object.assign(tile, { outline: MARK.finished });
     return tile;
@@ -104,12 +100,9 @@ export function ownCityMapViewModel(
   };
   const legend: LegendItem[] = [
     ...(ui.stats ? [] : categoryLegend()),
-    ...(fps.some((f) => selected.has(f.building.id))
-      ? [{ color: MARK.selected, label: t('cityMap.selected'), outline: true }]
-      : []),
+    ...(selecting ? [{ color: MARK.selected, label: t('cityMap.selected'), outline: true }] : []),
     ...(ui.finished ? [{ color: MARK.finished, label: t('cityMap.finished'), outline: true }] : []),
     ...(ui.unconnected ? [{ color: MARK.unconnected, label: t('cityMap.unconnected'), outline: true }] : []),
-    ...(searching ? [{ color: MARK.search, label: t('cityMap.searchHit'), outline: true }] : []),
     ...(free && ui.free ? [{ color: MARK.free, label: t('cityMap.free') }] : []),
     ...(blocks
       ? [
@@ -119,7 +112,6 @@ export function ownCityMapViewModel(
       : []),
   ];
   const vm: OwnMapVm = { data, legend, incomplete: fps.some((f) => !f.known) };
-  if (searching) vm.matches = matches;
   if (free) vm.free = free.length;
   return vm;
 }

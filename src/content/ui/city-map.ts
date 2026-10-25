@@ -238,8 +238,12 @@ export class CityMap {
   /** One building. A later version may draw the game's image of the building into its footprint here. */
   private drawTile(ctx: CanvasRenderingContext2D, p: Projection, tile: MapTile, gaps: boolean) {
     this.shape(ctx, p, tile, tile.fill);
-    if (gaps) this.outline(ctx, p, tile, BACKGROUND, 1);
-    if (tile.outline) this.outline(ctx, p, tile, tile.outline, tile.strong ? 3 : 1.5);
+    // every building keeps a dark border, thinner while the map is small (Nutzer, 2026-10-26)
+    this.outline(ctx, p, tile, BACKGROUND, gaps ? 1 : 0.5);
+    if (!tile.outline) return;
+    // a strong frame gets a dark seam, so a light frame shows on a light fill too
+    if (tile.strong) this.outline(ctx, p, tile, BACKGROUND, 5);
+    this.outline(ctx, p, tile, tile.outline, tile.strong ? 3 : 1.5);
   }
 
   private path(ctx: CanvasRenderingContext2D, p: Projection, r: TileRect, inset = 0) {

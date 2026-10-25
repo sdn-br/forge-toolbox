@@ -76,7 +76,7 @@ describe('city map feature', () => {
     expect(box.text).toContain('Freie Felder unbekannt');
   });
 
-  it('counts search hits while typing, keeps the field and keeps keys from the game', () => {
+  it('marks nothing in the map while typing, keeps the field and keeps keys from the game', () => {
     const { ctx, box, menu } = setup();
     loadOwnCity(ctx);
     menu('cityMap');
@@ -84,8 +84,8 @@ describe('city map feature', () => {
     field.value = 'sakura';
     field.dispatchEvent(new Event('input'));
     expect(input(box)).toBe(field);
-    expect(box.text).toMatch(/\d+ Treffer/);
-    expect(box.text).toContain('Suchtreffer');
+    // typing only suggests; the map stays as it is (Nutzer, 2026-10-26)
+    expect(box.text).not.toContain('Treffer');
     let reached = false;
     document.addEventListener('keydown', () => {
       reached = true;
@@ -163,24 +163,19 @@ describe('city map feature', () => {
       search(box, 'schrein');
       expect(suggestions(box)).toEqual([shrine, `${shrine} - St. 2`]);
       expect(box.root.querySelector('.suggestions')?.textContent).toContain('25');
-      // the substring hits are highlighted and counted as a preview
-      expect(box.text).toContain('31 Treffer');
-      expect(box.text).toContain('Suchtreffer');
       expect(marker.posted).toEqual([]);
       expect(ctx.selection.ids().size).toBe(0);
       search(box, 'Burg der Zwerge');
       expect(suggestions(box)).toEqual([]);
     });
 
-    it('adds the buildings of a picked name, empties the field and ends the preview', () => {
+    it('adds the buildings of a picked name and empties the field', () => {
       const { ctx, box, menu, marker } = setup();
       loadOwnCity(ctx);
       menu('cityMap');
       search(box, 'schrein');
       pick(box, shrine);
       expect(input(box).value).toBe('');
-      expect(box.text).not.toContain('Treffer');
-      expect(legend(box)).not.toContain('Suchtreffer');
       expect(marker.last).toMatchObject({ type: 'show' });
       expect(marker.shown.sort()).toEqual(idsOf(ctx, shrine).sort());
       const first = marker.last?.type === 'show' ? marker.last.spots[0] : undefined;
@@ -188,10 +183,8 @@ describe('city map feature', () => {
       expect(legend(box)).toContain('Ausgewählt (Pfeil im Spiel)');
       expect(entries(box)).toEqual([`${shrine} 25/25`]);
 
-      // typing again is a preview beside the selection
+      // typing again leaves the selection alone
       search(box, 'rathaus');
-      expect(box.text).toContain('1 Treffer');
-      expect(legend(box)).toContain('Suchtreffer');
       expect(legend(box)).toContain('Ausgewählt (Pfeil im Spiel)');
       search(box, '');
       expect(marker.shown).toHaveLength(25);

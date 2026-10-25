@@ -34,8 +34,6 @@ export interface NameSearchOptions {
   names: () => Iterable<string>;
   /** the owner renders again; the field keeps its state between renders */
   update: () => void;
-  /** the text changed: by typing, by the ✕ of the field, or emptied after a pick */
-  onInput?: (text: string) => void;
   /** a suggestion was picked; the field is empty again */
   onPick: (name: string) => void;
   /** the list takes room below the field instead of lying over what follows, for a box that grows with its content */
@@ -85,7 +83,6 @@ export class NameSearch {
     this.text = text;
     this.open = text.trim() !== '';
     this.active = 0;
-    this.options.onInput?.(text);
     this.options.update();
   }
 
@@ -128,7 +125,6 @@ export class NameSearch {
     this.open = false;
     this.active = 0;
     this.options.onPick(name);
-    this.options.onInput?.('');
     this.options.update();
   }
 

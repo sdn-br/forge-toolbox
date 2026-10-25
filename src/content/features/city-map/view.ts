@@ -123,10 +123,7 @@ export function cityMapView(
   // the search field stays in one outer template: swapping templates would replace it and take its focus mid-typing
   return html`<div class="map-stats-layout">
     <div class="map-main">
-      <p>
-        ${field ?? ''}
-        <span class="matches">${vm.matches === undefined ? '' : t('cityMap.matches', { count: formatNumber(vm.matches) })}</span>
-      </p>
+      <p>${field ?? ''}</p>
       ${selection ?? ''}
       <div class="map-marks">${toggle(ui, 'finished', actions)}${toggle(ui, 'unconnected', actions)}${toggle(ui, 'free', actions)}${toggle(
         ui,

@@ -155,9 +155,3 @@ export const buildingCategory = (type: string): BuildingCategory => CATEGORY_OF[
 
 /** A building without road connection. Buildings that need no road never come as unconnected. */
 export const needsRoad = (b: Building) => !b.connected || b.state.kind === 'unconnected';
-
-/** Part of the name, ignoring case and surrounding spaces; an empty query matches nothing. */
-export function matchesName(name: string, query: string): boolean {
-  const q = query.trim().toLowerCase();
-  return q !== '' && name.toLowerCase().includes(q);
-}

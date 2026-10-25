@@ -32,13 +32,11 @@ function mount(names = ['Sakura', 'Sakura', 'Ahorn', 'Sakura-Garten']) {
   const root = document.createElement('div');
   document.body.append(root);
   const onPick = vi.fn();
-  const onInput = vi.fn();
   const search: NameSearch = new NameSearch({
     placeholder: () => 'Gebäude suchen',
     names: () => names,
     update: () => render(search.render(), root),
     onPick,
-    onInput,
   });
   render(search.render(), root);
   const field = () => root.querySelector('input') as HTMLInputElement;
@@ -57,7 +55,7 @@ function mount(names = ['Sakura', 'Sakura', 'Ahorn', 'Sakura-Garten']) {
     );
   const active = () => root.querySelector('li.active')?.querySelector('span')?.textContent;
   const listHidden = () => (root.querySelector('ul') as HTMLElement).hidden;
-  return { root, search, field, type, key, options, active, listHidden, onPick, onInput };
+  return { root, search, field, type, key, options, active, listHidden, onPick };
 }
 
 describe('name search field', () => {
@@ -68,7 +66,6 @@ describe('name search field', () => {
     expect(s.options()).toEqual(['Sakura 2', 'Sakura-Garten 1']);
     expect(s.listHidden()).toBe(false);
     expect(s.field().getAttribute('aria-expanded')).toBe('true');
-    expect(s.onInput).toHaveBeenCalledWith('sak');
     expect(s.onPick).not.toHaveBeenCalled();
   });
 
@@ -98,7 +95,6 @@ describe('name search field', () => {
     expect(s.onPick).toHaveBeenCalledWith('Ahorn');
     expect(s.field().value).toBe('');
     expect(s.search.text).toBe('');
-    expect(s.onInput).toHaveBeenLastCalledWith('');
     expect(s.listHidden()).toBe(true);
   });
 
@@ -120,7 +116,6 @@ describe('name search field', () => {
     const s = mount();
     s.type('sak');
     s.type(' ');
-    expect(s.onInput).toHaveBeenLastCalledWith(' ');
     expect(s.onPick).not.toHaveBeenCalled();
     expect(s.listHidden()).toBe(true);
     s.key('ArrowDown');
