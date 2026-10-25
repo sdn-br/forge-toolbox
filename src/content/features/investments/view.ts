@@ -100,6 +100,7 @@ const totals = (
 
 export function investmentsView(vm: InvestmentsVm, actions: InvestmentsActions): TemplateResult {
   const age = vm.age === undefined ? t('investments.noList') : t('gb.age', { duration: vm.age });
-  return html`${tabs('mine', actions)}<p class="muted">${age}</p>
-    ${vm.rows.length === 0 ? html`<p class="muted">${t('investments.none')}</p>` : html`${totals(vm)}${table(vm, actions)}`}`;
+  // tabs, age and totals stay, only the table scrolls, its head fixed
+  return html`<div class="inv-pane">${tabs('mine', actions)}<p class="muted">${age}</p>
+    ${vm.rows.length === 0 ? html`<p class="muted">${t('investments.none')}</p>` : html`${totals(vm)}<div class="inv-scroll">${table(vm, actions)}</div>`}</div>`;
 }

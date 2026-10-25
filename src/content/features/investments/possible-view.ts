@@ -156,8 +156,9 @@ const content = (vm: PossibleVm, actions: PossibleActions) =>
       ? html`<p class="muted">${t('investments.possible.noRow')}</p>`
       : table(vm, actions);
 
-/** The tab "Mögliche Investitionen": the filters and the count above the table; the head stays while the rows scroll. */
+/** The tab "Mögliche Investitionen": tabs, filters and count stay, only the table scrolls, its head fixed. */
 export function possibleView(vm: PossibleVm, actions: PossibleActions): TemplateResult {
   // the filter fields stay in one outer template: swapping templates would replace them and take their focus mid-typing
-  return html`${tabs('possible', actions)}${filters(vm.filter, vm.empty ? '' : vm.count, actions)}${content(vm, actions)}`;
+  return html`<div class="inv-pane">${tabs('possible', actions)}${filters(vm.filter, vm.empty ? '' : vm.count, actions)}<div
+    class="inv-scroll">${content(vm, actions)}</div></div>`;
 }

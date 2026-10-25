@@ -254,6 +254,17 @@ describe('Investitionen: Mögliche Investitionen', () => {
     expect(buttons.map((b) => b.getAttribute('aria-pressed') === 'true')).toEqual(pressed);
   });
 
+  it('scrolls only the table, the tabs, filters and count stay above it', async () => {
+    const { box, list, showPossible } = setup();
+    list([hitZeus()], 1001);
+    await tick();
+    await showPossible();
+    const scroll = box.root.querySelector('.inv-pane > .inv-scroll') as HTMLElement;
+    expect(scroll.querySelector('table.inv-possible')).not.toBeNull();
+    expect(scroll.querySelector('.inv-filter, .tabs')).toBeNull();
+    expect(box.root.querySelector('.inv-pane > .inv-filter')).not.toBeNull();
+  });
+
   it('writes the owner into the player filter from the row', async () => {
     const { box, list, rows, input, showPossible, ui } = setup();
     list([hitZeus()], 1001);

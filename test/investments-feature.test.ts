@@ -304,6 +304,16 @@ describe('Investitionen: reading the known buildings', () => {
 });
 
 describe('Investitionen: Merken', () => {
+  it('scrolls only the table, the tabs, the age and the totals stay above it', async () => {
+    const { box, send } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    const scroll = box.root.querySelector('.inv-pane > .inv-scroll') as HTMLElement;
+    expect(scroll.querySelector('table.inv-table')).not.toBeNull();
+    expect(scroll.querySelector('p.gb-me')).toBeNull();
+    expect(box.root.querySelector('.inv-pane > p.gb-me')).not.toBeNull();
+  });
+
   it('starts each own row with a star that marks the building', async () => {
     const { box, send, rows, heads } = setup();
     send(contributions.contributions as Entry);
