@@ -24,6 +24,12 @@ export function profileOfDbName(name: string): Profile | null {
 /** `settings` → `settings:de20:12345` */
 export const profileStorageKey = (key: string, profile: Profile): string => `${key}:${profile.world}:${profile.player}`;
 
+/** `settings:de20:12345` → the profile, when the storage key belongs to `key`; null for any other key */
+export function profileOfStorageKey(storageKey: string, key: string): Profile | null {
+  const match = storageKey.startsWith(`${key}:`) ? /^([^:]+):(\d+)$/.exec(storageKey.slice(key.length + 1)) : null;
+  return match ? { world: worldId(match[1] as string), player: playerId(Number(match[2])) } : null;
+}
+
 /** a request may come from a page script posing as the content script, so the service worker checks the shape */
 export function isProfile(value: unknown): value is Profile {
   const p = value as Partial<Profile> | null;

@@ -2,6 +2,7 @@ import { render } from 'lit-html';
 import type { FeatureContext } from '../../src/content/core/feature';
 import { memoryKv } from '../../src/content/core/kv';
 import { type MarkerLink, Markers } from '../../src/content/core/markers';
+import { memoryProfileStorage, profileCopy } from '../../src/content/core/profile-copy';
 import { Recorder } from '../../src/content/core/recorder';
 import { OwnSelection } from '../../src/content/core/selection';
 import { Settings } from '../../src/content/core/settings';
@@ -9,6 +10,7 @@ import { createGbOwnState } from '../../src/content/stores/gb-own-state';
 import type { Box, BoxOptions } from '../../src/content/ui/box';
 import type { Menu, MenuItem } from '../../src/content/ui/menu';
 import { UiState } from '../../src/content/ui/ui-state';
+import { playerId } from '../../src/shared/ids';
 import type { MarkerCommand } from '../../src/shared/marker-protocol';
 import { type TestStoresOptions, testStores } from './stores';
 
@@ -100,13 +102,16 @@ export function fakeMarkerLink() {
 }
 
 /** Real stores, bus and settings; persistence is the real handlers on in-memory Dexie unless a test overrides stores. */
-export function featureContext(options: TestStoresOptions = {}) {
+export function featureContext(options: TestStoresOptions & { storage?: Record<string, unknown> } = {}) {
   const { world, bus, stores } = testStores(options);
   const boxes = new Map<string, ReturnType<typeof recordingBox>>();
   const menuItems = new Map<string, MenuItem>();
   const settings = new Settings(memoryKv());
   const ui = new UiState(memoryKv());
   const marker = fakeMarkerLink();
+  /** chrome.storage.local of all profiles, the own one is de20:1 */
+  const storage = memoryProfileStorage(options.storage);
+  let reloads = 0;
   const markers = new Markers(bus, stores.cities, marker.link);
   const ctx: FeatureContext = {
     world,
@@ -124,12 +129,18 @@ export function featureContext(options: TestStoresOptions = {}) {
       boxes.set(options.id, recording);
       return recording.box;
     },
+    profileCopy: profileCopy(storage, { world, player: playerId(1) }, () => reloads++),
   };
   return {
     ctx,
     boxes,
     /** what went to the marker module in the page, and a way to report back from it */
     marker,
+    storage,
+    /** how often the game page was reloaded */
+    get reloads() {
+      return reloads;
+    },
     /** clicks the menu entry of a feature */
     menu: (id: string) => menuItems.get(id)?.action(),
   };

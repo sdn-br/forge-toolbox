@@ -2,6 +2,7 @@ import { html } from 'lit-html';
 import { OPEN_DATA_PAGE } from '../../shared/messages';
 import type { Feature } from '../core/feature';
 import { logError } from '../core/log';
+import { type OtherProfile, type ProfileCopy, profileLabel } from '../core/profile-copy';
 import {
   formatNumberList,
   isChoice,
@@ -72,6 +73,55 @@ const input = (settings: Settings, d: SettingDef) =>
 const openDataPage = () =>
   chrome.runtime.sendMessage(OPEN_DATA_PAGE).catch((error) => logError('opening the data page failed', error));
 
+const profileKey = ({ profile }: OtherProfile) => `${profile.world}:${profile.player}`;
+
+/**
+ * "Einstellungen übernehmen von": a choice of the other profiles and a button that asks once more before it copies.
+ * The question lasts one drawing of the box: any other change of the box, of the choice included, asks anew.
+ */
+function copyControl(copy: ProfileCopy, update: () => void) {
+  let others: OtherProfile[] | undefined;
+  let chosen: string | undefined;
+  let asking = false;
+  let loading = false;
+  const load = () => {
+    copy
+      .others()
+      .then((list) => {
+        others = list;
+        update();
+      })
+      .catch((error) => logError('reading the profiles failed', error));
+  };
+  return () => {
+    if (!others) {
+      // read once per page load; a new profile comes with a game start, and that is a page load of its own
+      if (!loading) load();
+      loading = true;
+      return '';
+    }
+    if (!others.length) return '';
+    const list = others;
+    const from = list.find((p) => profileKey(p) === chosen) ?? (list[0] as OtherProfile);
+    const confirm = asking;
+    asking = false;
+    const click = () => {
+      if (!confirm) {
+        asking = true;
+        update();
+        return;
+      }
+      copy.copyFrom(from.profile).catch((error) => logError('copying the settings failed', error));
+    };
+    return html`<label>${t('settings.copyFrom')}<select @change=${(e: Event) => {
+      chosen = (e.target as HTMLSelectElement).value;
+      update();
+    }}>${list.map((p) => html`<option value=${profileKey(p)} .selected=${p === from}>${profileLabel(p)}</option>`)}</select></label>
+      <button class="action" @click=${click}>${t(confirm ? 'settings.copyConfirm' : 'settings.copy')}</button>
+      <p class="muted setting-hint">${t('settings.copyHint')}</p>`;
+  };
+}
+
 /** the menu entry and the general settings show it */
 const ICON = icons.settings;
 /** the menu's icon size in pixels, as a choice */
@@ -121,6 +171,7 @@ export const settingsFeature: Feature = {
       ctx.ui.savePref(TAB, group);
       box.update();
     };
+    const copyFrom = copyControl(ctx.profileCopy, () => box.update());
     const box = ctx.createBox({
       id: 'settings',
       title: () => t('settings.title'),
@@ -159,7 +210,8 @@ export const settingsFeature: Feature = {
               group === 'settings.core'
                 ? html`<h3>${t('settings.data')}</h3>
                   <button class="action" @click=${openDataPage}>${t('settings.manageData')}</button>
-                  <p class="muted setting-hint">${t('settings.manageDataHint')}</p>`
+                  <p class="muted setting-hint">${t('settings.manageDataHint')}</p>
+                  ${copyFrom()}`
                 : ''
             }
           </div>

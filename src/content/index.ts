@@ -13,6 +13,7 @@ import { chromeLocal, profileKv } from './core/kv';
 import { logError } from './core/log';
 import { windowMarkerLink } from './core/marker-link';
 import { Markers } from './core/markers';
+import { chromeProfileStorage, profileCopy } from './core/profile-copy';
 import { connectProxy } from './core/proxy-link';
 import { Recorder } from './core/recorder';
 import { backgroundCall } from './core/rpc';
@@ -92,6 +93,7 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
     ui,
     gbOwn: createGbOwnState(bus, ui, settings),
     createBox: boxFactory(ui, (group) => bus.emit('settings.open', { group })),
+    profileCopy: profileCopy(chromeProfileStorage, profile, () => location.reload()),
   };
   for (const feature of features) {
     try {
