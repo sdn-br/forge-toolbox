@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forge Toolbox: Daten</title>
+<style>
+  /* the colours of the toolbox boxes (content ui/styles.ts) */
+  :root { --bg: #2b1d10; --ink: #fbf4e4; --accent: #e8861c; --btn: #4a3620; --btn-hover: #6a5030; --line: #8a6a3a;
+    color-scheme: dark; }
+  body { margin: 0; padding: 24px 16px; background: var(--bg); color: var(--ink);
+    font: 14px/1.5 system-ui, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 20px; color: var(--accent); margin: 0 0 16px; }
+  h2 { font-size: 16px; color: var(--accent); margin: 24px 0 8px; }
+  button { font: inherit; cursor: pointer; color: var(--ink); background: var(--btn); border: 1px solid var(--line);
+    border-radius: 3px; padding: 4px 12px; }
+  button:hover { background: var(--btn-hover); }
+  button:disabled { cursor: default; opacity: .6; }
+  .status { min-height: 1.5em; }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script src="options.js"></script>
+</body>
+</html>
