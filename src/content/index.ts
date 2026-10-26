@@ -1,6 +1,7 @@
 // Content script entry: wires stores, ingestion and features, then connects to the proxy.
 
 import { worldId } from '../shared/ids';
+import { watchArmyTarget, windowArmyLink } from './core/army-target';
 import { createBus } from './core/events';
 import { extensionAlive, onExtensionLost } from './core/extension-context';
 import { boxFactory, type Feature, type FeatureContext } from './core/feature';
@@ -71,6 +72,7 @@ async function main() {
   ]);
 
   const markers = new Markers(bus, stores.cities, windowMarkerLink);
+  watchArmyTarget(bus, windowArmyLink);
   const ctx: FeatureContext = {
     world,
     bus,

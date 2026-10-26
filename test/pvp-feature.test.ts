@@ -355,6 +355,30 @@ describe('pvp feature', () => {
       expect(box.box.isOpen).toBe(false);
     });
 
+    it('picks the opponent the page module read from the army window', async () => {
+      const { ctx, box, lists } = setup(1, false);
+      ctx.bus.emit('army.opened', { battleType: 'pvp' });
+      ctx.bus.emit('army.target', { opponent: playerId(222) });
+      await tick();
+      expect(lists.at(-1)?.query.opponents).toEqual([playerId(222)]);
+      expect(box.box.isOpen).toBe(true);
+    });
+
+    it('stays on all battles without the opponent', async () => {
+      const { ctx, lists } = setup(1, false);
+      ctx.bus.emit('army.opened', { battleType: 'pvp' });
+      await tick();
+      expect(lists.at(-1)?.query.opponents).toBeUndefined();
+    });
+
+    it('neither opens nor picks for an opponent while the box is closed', async () => {
+      const { ctx, box, lists } = setup(1, false);
+      ctx.bus.emit('army.target', { opponent: playerId(222) });
+      await tick();
+      expect(box.box.isOpen).toBe(false);
+      expect(lists).toHaveLength(0);
+    });
+
     it('stays closed when the setting is off', async () => {
       const { ctx, box } = setup(1, false);
       await ctx.settings.set('pvp.openWithArmy', false);

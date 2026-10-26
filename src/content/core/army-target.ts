@@ -1,0 +1,38 @@
+// Names the opponent of the army window before a pvp battle. The game traffic does not (see army.opened), so this asks
+// the page module, which reads it from the game engine. Without an answer nothing more happens: whoever listens to
+// army.opened works as before, and army.target only adds to it.
+import { ARMY_TAG, type ArmyCommand, parseArmyEvent } from '../../shared/army-protocol';
+import { playerId } from '../../shared/ids';
+import type { ToolboxBus } from './events';
+
+/** The way to the page module; tests bring their own. */
+export interface ArmyLink {
+  post(command: ArmyCommand): void;
+  onTarget(listener: (seq: number, playerId: number) => void): void;
+}
+
+export const windowArmyLink: ArmyLink = {
+  post: (command) => window.postMessage(command, location.origin),
+  onTarget: (listener) =>
+    window.addEventListener('message', (event: MessageEvent) => {
+      if (event.source !== window) return;
+      const target = parseArmyEvent(event.data);
+      if (target) listener(target.seq, target.playerId);
+    }),
+};
+
+export function watchArmyTarget(bus: ToolboxBus, link: ArmyLink): void {
+  let seq = 0;
+  /** the ask still open, 0 for none; only the first answer to the latest army window counts */
+  let open = 0;
+  link.onTarget((answered, id) => {
+    if (open === 0 || answered !== open) return;
+    open = 0;
+    bus.emit('army.target', { opponent: playerId(id) });
+  });
+  bus.on('army.opened', ({ battleType }) => {
+    if (battleType !== 'pvp') return;
+    open = ++seq;
+    link.post({ tag: ARMY_TAG, from: 'content', type: 'target', seq });
+  });
+}
