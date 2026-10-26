@@ -77,8 +77,8 @@ const profileKey = ({ profile }: OtherProfile) => `${profile.world}:${profile.pl
 
 /**
  * "Einstellungen von einem anderen Profil übernehmen": a choice of the other profiles and a button that asks once more
- * in a line of its own, naming the profile. The question stays through redraws of the box until it is answered or
- * another profile is chosen; a question that lasted one drawing only was gone again when a click raised the box.
+ * in a line of its own, naming the profile. The question stays through redraws of the box until it is answered, another
+ * profile is chosen or the box closes; a question that lasted one drawing only was gone again when a click raised the box.
  */
 function copyControl(copy: ProfileCopy, update: () => void) {
   let others: OtherProfile[] | undefined;
@@ -98,7 +98,7 @@ function copyControl(copy: ProfileCopy, update: () => void) {
     asking = value;
     update();
   };
-  return () => {
+  const render = () => {
     if (!others) {
       // read once per page load; a new profile comes with a game start, and that is a page load of its own
       if (!loading) load();
@@ -121,6 +121,12 @@ function copyControl(copy: ProfileCopy, update: () => void) {
           : html`<button class="action" @click=${() => ask(true)}>${t('settings.copy')}</button>
               <p class="muted setting-hint">${t('settings.copyHint')}</p>`
       }`;
+  };
+  return {
+    render,
+    reset: () => {
+      asking = false;
+    },
   };
 }
 
@@ -179,6 +185,7 @@ export const settingsFeature: Feature = {
       title: () => t('settings.title'),
       width: 380,
       maxHeight: 0.8,
+      onClose: copyFrom.reset,
       render: () => {
         // the general settings first, then the features in the order they registered
         const groups = [...new Set(['settings.core', ...ctx.settings.defs.map((d) => d.group)])];
@@ -213,7 +220,7 @@ export const settingsFeature: Feature = {
                 ? html`<h3>${t('settings.data')}</h3>
                   <button class="action" @click=${openDataPage}>${t('settings.manageData')}</button>
                   <p class="muted setting-hint">${t('settings.manageDataHint')}</p>
-                  ${copyFrom()}`
+                  ${copyFrom.render()}`
                 : ''
             }
           </div>

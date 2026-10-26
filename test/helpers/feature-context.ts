@@ -29,6 +29,7 @@ export function recordingBox(options: BoxOptions) {
     },
     close() {
       open = false;
+      options.onClose?.();
     },
     toggle() {
       if (open) box.close();

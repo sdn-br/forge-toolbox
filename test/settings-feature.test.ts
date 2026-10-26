@@ -133,12 +133,17 @@ describe('settings box: copy from another profile', () => {
     expect(env.storage.data.get('ui.boxes:de20:1')).toEqual({ pvp: { x: 5 } });
   });
 
-  it('keeps the question through redraws, drops it on cancel or another choice', async () => {
+  it('keeps the question through redraws, drops it on closing, cancel or another choice', async () => {
     const { env, box, copySelect, button } = await open(storage);
     button().click();
     await tick();
     box.box.update();
     expect(question(box)).not.toBeNull();
+    box.box.close();
+    box.box.open();
+    expect(question(box)).toBeNull();
+    button().click();
+    await tick();
     answer(box, 'Abbrechen').click();
     await tick();
     expect(question(box)).toBeNull();
