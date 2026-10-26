@@ -36,7 +36,8 @@ const menuCss = `
   transition-delay: 0s; }
 @media (prefers-reduced-motion: reduce) { .items { transition: none; } }
 .notice { position: fixed; right: calc(var(--menu-icon) + 24px); bottom: 4px; z-index: 2147479999; max-width: 240px;
-  padding: 6px 8px; background: #6a2010; color: var(--ink); border: 1px solid #8a6a3a; border-radius: 6px; }
+  padding: 6px 8px; font: 12px/1.4 system-ui, sans-serif; background: #6a2010; color: var(--ink); border: 1px solid #8a6a3a;
+  border-radius: 6px; }
 .notice p { margin: 0; }
 /* equal columns, so both buttons take the width of the longer label */
 .notice .actions { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; justify-content: end; margin-top: 6px; }
