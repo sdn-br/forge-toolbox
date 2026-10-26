@@ -19,6 +19,13 @@ export const de = {
   'settings.data': 'Daten',
   'settings.manageData': 'Daten verwalten',
   'settings.manageDataHint': 'Öffnet die Seite der Toolbox für Export und Import, auch ohne Spiel erreichbar.',
+  'settings.copyFrom': 'Einstellungen von einem anderen Profil übernehmen',
+  'settings.copyFromOption': '{world} · {name}',
+  'settings.copy': 'Übernehmen',
+  'settings.copyConfirm':
+    'Einstellungen und Fensterlayout durch die von {profile} ersetzen? Das Spiel lädt danach neu.',
+  'settings.copyCancel': 'Abbrechen',
+  'settings.copyHint': 'Ersetzt die Einstellungen und das Fensterlayout dieses Profils, danach lädt das Spiel neu.',
   'data.pageTitle': 'Forge Toolbox: Daten verwalten',
   'data.export': 'Export',
   'data.exportAbout':

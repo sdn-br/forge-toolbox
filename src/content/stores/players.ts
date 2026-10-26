@@ -42,14 +42,21 @@ export class PlayerStore {
     const rows = await this.persistence.load(world);
     for (const row of rows) {
       const live = this.players.get(row.id);
-      if (!live) this.players.set(row.id, row);
+      if (!live) {
+        this.players.set(row.id, row);
+        continue;
+      }
       // the star and the ignore are the player's own and the game never reports them, so what the database holds stays
       // (a flag the player set this session wins over the other one of the database, the two exclude each other)
-      else if ((row.marked && !live.marked && !live.ignored) || (row.ignored && !live.ignored && !live.marked)) {
+      const flag = (row.marked && !live.marked && !live.ignored) || (row.ignored && !live.ignored && !live.marked);
+      // their time goes with them; a change this session is newer than any in the database
+      const time = live.marksAt === undefined && row.marksAt !== undefined;
+      if (flag || time) {
         this.players.set(row.id, {
           ...live,
-          ...(row.marked && { marked: true }),
-          ...(row.ignored && { ignored: true }),
+          ...(flag && row.marked && { marked: true }),
+          ...(flag && row.ignored && { ignored: true }),
+          ...(time && { marksAt: row.marksAt }),
         });
         this.dirty.add(row.id);
         this.scheduleFlush();
@@ -85,7 +92,8 @@ export class PlayerStore {
       const clears = value && p[other] === true;
       // releasing never meets the other flag set, the two exclude each other
       const { [kind]: _, [other]: __, ...rest } = p;
-      this.players.set(id, value ? { ...rest, [kind]: true } : rest);
+      const marksAt = this.now();
+      this.players.set(id, value ? { ...rest, [kind]: true, marksAt } : { ...rest, marksAt });
       if (clears) this.changed(new Set([id]), source === 'mark' ? 'ignore' : 'mark');
       this.changed(new Set([id]), source);
     }
@@ -155,6 +163,7 @@ export class PlayerStore {
       ...(known && { attack: known }),
       ...(old?.marked && { marked: true }),
       ...(old?.ignored && { ignored: true }),
+      ...(old?.marksAt !== undefined && { marksAt: old.marksAt }),
       firstSeenAt: old?.firstSeenAt ?? now,
       seenAt: now,
       source,

@@ -17,9 +17,16 @@ export interface GreatBuildingPersistence {
   contributionsAt(world: WorldId): Promise<number | undefined>;
   /** deletes what was seen before `before`, except buildings with an own contribution, marked and ignored ones */
   prune(world: WorldId, before: number): Promise<void>;
-  /** puts or removes the star or the ignore of a stored building, putting one clears the other in the same write;
-   * false when it is not stored */
-  setFlag(world: WorldId, owner: PlayerId, entityId: number, flag: MarkKind, value: boolean): Promise<boolean>;
+  /** puts or removes the star or the ignore of a stored building, putting one clears the other in the same write, and
+   * sets `marksAt` to `at`; false when it is not stored */
+  setFlag(
+    world: WorldId,
+    owner: PlayerId,
+    entityId: number,
+    flag: MarkKind,
+    value: boolean,
+    at: number,
+  ): Promise<boolean>;
   flagged(world: WorldId, flag: MarkKind): Promise<{ owner: PlayerId; entityId: number }[]>;
   list(world: WorldId, owner?: PlayerId): Promise<KnownGreatBuilding[]>;
 }
@@ -102,7 +109,7 @@ export class GreatBuildingStore {
       this.enqueue(async () => {
         let result = { changed: false, cleared: false };
         try {
-          if (!(await this.persistence.setFlag(this.world, owner, entityId, kind, value))) return;
+          if (!(await this.persistence.setFlag(this.world, owner, entityId, kind, value, this.now()))) return;
           const k = key(owner, entityId);
           const other = this.flags[kind === 'marked' ? 'ignored' : 'marked'];
           const cleared = value && other.delete(k);

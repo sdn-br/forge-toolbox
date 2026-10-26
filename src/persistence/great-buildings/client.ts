@@ -9,8 +9,8 @@ export function greatBuildingPersistence(call: Call): GreatBuildingPersistence {
     putContributions: (world, rows, at) => call('greatBuildings.putContributions', { world, rows, at }),
     contributionsAt: (world) => call('greatBuildings.contributionsAt', { world }),
     prune: (world, before) => call('greatBuildings.prune', { world, before }),
-    setFlag: (world, owner, entityId, flag, value) =>
-      call('greatBuildings.setFlag', { world, owner, entityId, flag, value }),
+    setFlag: (world, owner, entityId, flag, value, at) =>
+      call('greatBuildings.setFlag', { world, owner, entityId, flag, value, at }),
     flagged: (world, flag) => call('greatBuildings.flagged', { world, flag }),
     list: (world, owner) => call('greatBuildings.list', { world, ...(owner !== undefined && { owner }) }),
   };

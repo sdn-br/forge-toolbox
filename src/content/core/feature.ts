@@ -6,6 +6,7 @@ import type { Menu } from '../ui/menu';
 import type { UiState } from '../ui/ui-state';
 import type { ToolboxBus } from './events';
 import type { Markers } from './markers';
+import type { ProfileCopy } from './profile-copy';
 import type { Recorder } from './recorder';
 import type { OwnSelection } from './selection';
 import type { Settings } from './settings';
@@ -26,6 +27,8 @@ export interface FeatureContext extends Stores {
   /** the factors and Ext the two own-share boxes share */
   gbOwn: GbOwnState;
   createBox(options: BoxOptions): Box;
+  /** the other profiles, to take over their settings */
+  profileCopy: ProfileCopy;
 }
 
 export interface Feature {

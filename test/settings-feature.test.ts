@@ -89,3 +89,92 @@ describe('settings box recording', () => {
     expect(clear().getAttribute('aria-disabled')).toBe('true');
   });
 });
+
+describe('settings box: copy from another profile', () => {
+  async function open(storage: Record<string, unknown>) {
+    const env = featureContext({ storage });
+    settingsFeature.setup(env.ctx);
+    env.ctx.bus.emit('settings.open', { group: 'settings.core' });
+    await tick();
+    const box = env.boxes.get('settings') as NonNullable<ReturnType<typeof env.boxes.get>>;
+    const copySelect = () =>
+      [...box.root.querySelectorAll('label')]
+        .find((l) => l.textContent?.trim().startsWith('Einstellungen von einem anderen Profil übernehmen'))
+        ?.querySelector('select') as HTMLSelectElement | undefined;
+    const button = () =>
+      [...box.root.querySelectorAll('button')].find((b) => b.textContent?.includes('bernehmen')) as HTMLButtonElement;
+    return { env, box, copySelect, button };
+  }
+
+  const storage = {
+    'settings:de20:1': { a: false },
+    'settings:de20:2': { a: true },
+    'profile:de20:2': { name: 'Zweit' },
+    'settings:de10:3': { b: true },
+    'ui.boxes:de10:3': { pvp: { x: 5 } },
+  };
+
+  const question = (box: { root: ParentNode }) => box.root.querySelector('p.warn');
+  const answer = (box: { root: ParentNode }, label: string) =>
+    [...(question(box)?.querySelectorAll('button') ?? [])].find((b) => b.textContent === label) as HTMLButtonElement;
+
+  it('asks in a line naming the profile, copies on the answer, then reloads the game', async () => {
+    const { env, box, copySelect, button } = await open(storage);
+    expect([...(copySelect()?.options ?? [])].map((o) => o.textContent)).toEqual(['de10 · 3', 'de20 · Zweit']);
+    expect(question(box)).toBeNull();
+    button().click();
+    await tick();
+    expect(question(box)?.textContent).toContain('durch die von de10 · 3 ersetzen?');
+    expect(env.reloads).toBe(0);
+    answer(box, 'Übernehmen').click();
+    await tick();
+    expect(env.reloads).toBe(1);
+    expect(env.storage.data.get('settings:de20:1')).toEqual({ b: true });
+    expect(env.storage.data.get('ui.boxes:de20:1')).toEqual({ pvp: { x: 5 } });
+  });
+
+  it('keeps the question through redraws, drops it on closing, another group, cancel or another choice', async () => {
+    const { env, box, copySelect, button } = await open(storage);
+    button().click();
+    await tick();
+    box.box.update();
+    expect(question(box)).not.toBeNull();
+    box.box.close();
+    box.box.open();
+    expect(question(box)).toBeNull();
+    button().click();
+    await tick();
+    env.ctx.settings.register({ key: 'other', group: 'sabotage.title', label: 'sabotage.title', default: true });
+    box.box.update();
+    const nav = () => [...box.root.querySelectorAll<HTMLButtonElement>('.settings-nav button')];
+    (nav()[1] as HTMLButtonElement).click();
+    (nav()[0] as HTMLButtonElement).click();
+    await tick();
+    expect(question(box)).toBeNull();
+    button().click();
+    await tick();
+    answer(box, 'Abbrechen').click();
+    await tick();
+    expect(question(box)).toBeNull();
+    button().click();
+    await tick();
+    const select = copySelect() as HTMLSelectElement;
+    select.value = 'de20:2';
+    select.dispatchEvent(new Event('change'));
+    await tick();
+    expect(question(box)).toBeNull();
+    button().click();
+    await tick();
+    expect(question(box)?.textContent).toContain('de20 · Zweit');
+    answer(box, 'Übernehmen').click();
+    await tick();
+    expect(env.reloads).toBe(1);
+    expect(env.storage.data.get('settings:de20:1')).toEqual({ a: true });
+  });
+
+  it('shows nothing of it without another profile', async () => {
+    const { box, copySelect } = await open({ 'settings:de20:1': {} });
+    expect(copySelect()).toBeUndefined();
+    expect(box.text).not.toContain('Übernehmen');
+  });
+});

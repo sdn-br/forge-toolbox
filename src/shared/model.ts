@@ -43,6 +43,11 @@ export interface Player {
   marked?: boolean;
   /** the session player ignores the player: their rows are hidden and do not count; removed only by hand, like `marked` */
   ignored?: boolean;
+  /**
+   * when the session player last set or removed the star or the ignore; the import uses it to pick the newer marks,
+   * a row without it counts as oldest
+   */
+  marksAt?: number;
   /** missing until a source that carries the timers reported the player */
   attack?: AttackTimer;
   firstSeenAt: number;
@@ -203,6 +208,11 @@ export interface KnownGreatBuilding {
   marked?: boolean;
   /** the session player ignores the building; kept and never pruned exactly like `marked` */
   ignored?: boolean;
+  /**
+   * when the session player last set or removed the star or the ignore; the import uses it to pick the newer marks,
+   * a row without it counts as oldest
+   */
+  marksAt?: number;
   /** the progress (`invested`) when the building was last seen open in the game; growth beyond it means others pay in */
   growthBase?: number;
   /** last seen, in the building or in a list */
