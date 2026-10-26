@@ -298,6 +298,11 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   };
   ingestion.on('CityMapService', 'updateEntity', updateBuildings);
   ingestion.on('CityMapService', 'reset', updateBuildings);
+  // A harvest brings the harvested buildings in their new state as `updatedEntities` of a CityProductionResult (seen
+  // 2026-10-23), without a CityMapService entry.
+  ingestion.on('CityProductionService', 'pickupProduction', ({ data }) => {
+    updateBuildings({ data: (data as { updatedEntities?: unknown } | null)?.updatedEntities });
+  });
   ingestion.onMeta('building_entity_', (file) => {
     if (file.name === 'building_entity_lookup') return;
     const def = toBuildingDef(file.json);
