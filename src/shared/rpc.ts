@@ -8,6 +8,7 @@ import type { NotesApi } from '../persistence/notes/contract';
 import type { PlayersApi } from '../persistence/players/contract';
 import type { PlundersApi } from '../persistence/plunders/contract';
 import type { ShieldsApi } from '../persistence/shields/contract';
+import type { Profile } from './profile';
 
 export interface BackgroundApi
   extends PlayersApi,
@@ -28,6 +29,8 @@ export type Handlers<A extends { [M in keyof A]: { arg: unknown; result: unknown
 };
 
 export interface RpcRequest<M extends Method = Method> {
+  /** whose database the call goes to */
+  profile: Profile;
   rpc: M;
   arg: Arg<M>;
 }

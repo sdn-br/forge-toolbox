@@ -19,7 +19,7 @@ type EraId = string & { readonly brand: 'EraId' };          // "ColonialAge"
 type BuildingDefId = string & { readonly brand: 'BuildingDefId' }; // "R_ColonialAge_Residential1"
 ```
 
-Alle Daten gehören zu einer Welt. Persistente Schlüssel sind immer `[world, id]`. Die Marken (`brand`) verhindern, dass eine Spieler-ID versehentlich als Gilden-ID durchgeht.
+Alle Daten gehören zu einer Welt. Persistente Schlüssel sind immer `[world, id]`. Gespeichert wird je **Profil**, also Welt und eigener Spieler-ID, in einer eigenen Datenbank (siehe Konzept, Persistenz). Innerhalb einer Datenbank ist die Welt deshalb immer dieselbe, die Schlüssel bleiben trotzdem `[world, id]`. Die Marken (`brand`) verhindern, dass eine Spieler-ID versehentlich als Gilden-ID durchgeht.
 
 Der eigene Spieler ist die **Session**: Welt, eigene Spieler-ID, Name, Gilde, Zeitalter. Sie kommt aus `StartupService.getData` (`user_data`) und ist die Voraussetzung für alles andere.
 
