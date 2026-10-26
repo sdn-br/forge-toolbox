@@ -1,20 +1,24 @@
-// Content script entry: wires stores, ingestion and features, then connects to the proxy.
+// Content script entry: connects to the proxy at once, and once the startup data names the profile, wires its stores,
+// ingestion and features, lets the held traffic through and shows the menu.
 
 import { worldId } from '../shared/ids';
+import type { Profile } from '../shared/profile';
+import type { Traffic } from '../shared/proxy-protocol';
 import { watchArmyTarget, windowArmyLink } from './core/army-target';
 import { createBus } from './core/events';
 import { extensionAlive, onExtensionLost } from './core/extension-context';
 import { boxFactory, type Feature, type FeatureContext } from './core/feature';
 import { Ingestion } from './core/ingestion';
-import { chromeLocal } from './core/kv';
+import { chromeLocal, profileKv } from './core/kv';
 import { logError } from './core/log';
 import { windowMarkerLink } from './core/marker-link';
 import { Markers } from './core/markers';
 import { connectProxy } from './core/proxy-link';
 import { Recorder } from './core/recorder';
-import { callBackground } from './core/rpc';
+import { backgroundCall } from './core/rpc';
 import { OwnSelection } from './core/selection';
 import { Settings } from './core/settings';
+import { startupGate } from './core/startup-gate';
 import { t } from './core/texts';
 import { buildingSearchFeature } from './features/building-search';
 import { cityMapFeature } from './features/city-map';
@@ -47,22 +51,25 @@ const features: Feature[] = [
   settingsFeature,
 ];
 
-async function main() {
-  const world = worldId(location.hostname.split('.')[0] ?? 'unknown');
+/** Loads everything of the profile, starts the features and returns the receiver of the game traffic. */
+async function start(profile: Profile, name: string, menu: Menu): Promise<(traffic: Traffic) => void> {
+  const { world } = profile;
   const now = Date.now;
   const bus = createBus();
   const ingestion = new Ingestion();
-  const settings = new Settings(chromeLocal);
-  const ui = new UiState(chromeLocal);
-  const stores = createStores(world, bus, callBackground, now);
+  const kv = profileKv(chromeLocal, profile);
+  // the list of profiles on the data page shows the own name, also without the game open
+  kv.set('profile', { name, seenAt: now() }).catch((e) => logError('saving the profile name failed', e));
+  const settings = new Settings(kv);
+  const ui = new UiState(kv);
+  const stores = createStores(world, bus, backgroundCall(profile), now);
   const recorder = new Recorder(
     () => settings.get('core.record'),
     () => settings.get('core.recordRequests'),
   );
-  const menu = new Menu();
 
   registerGameHandlers(ingestion, { world, bus, now, ...stores });
-  // the proxy buffers game traffic until we connect, so loading first loses nothing
+  // the startup gate holds the game traffic until this returns, so loading first loses nothing
   await Promise.all([
     settings.load(),
     ui.load(),
@@ -94,19 +101,42 @@ async function main() {
     }
   }
 
+  return (traffic) => {
+    recorder.add(traffic);
+    ingestion.accept(traffic);
+  };
+}
+
+function main() {
+  const world = worldId(location.hostname.split('.')[0] ?? 'unknown');
+  const menu = new Menu();
+
   // a sideways two-finger swipe on a Mac trackpad that runs past a box would otherwise navigate back and leave the game
   document.documentElement.style.overscrollBehaviorX = 'none';
 
-  onExtensionLost(() => menu.showNotice(t('core.extensionLost')));
+  onExtensionLost(() => {
+    menu.showNotice(t('core.extensionLost'));
+    // lost before the startup data came, the profile never loads; the notice still has to show
+    mountMenu();
+  });
+  const gate = startupGate(world, (profile, name) => start(profile, name, menu));
+  // like the old toolbox, the menu shows once the features have seen the held traffic
+  gate.started.then(mountMenu);
+  // the proxy buffers game traffic until we connect; connecting at once lets the startup data name the profile
   connectProxy((traffic) => {
     // without the extension nothing can be saved; the notice asks for a reload instead of failing on every message
     if (!extensionAlive()) return;
-    recorder.add(traffic);
-    ingestion.accept(traffic);
+    gate.receive(traffic);
   });
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => menu.mount());
-  else menu.mount();
+  function mountMenu() {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => menu.mount());
+    else menu.mount();
+  }
 }
 
-main().catch((error) => logError('start failed', error));
+try {
+  main();
+} catch (error) {
+  logError('start failed', error);
+}

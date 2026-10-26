@@ -1,9 +1,22 @@
+import { logError } from '../content/core/log';
 import { OPEN_DATA_PAGE } from '../shared/messages';
-import type { Method, RpcRequest, RpcResponse } from '../shared/rpc';
+import type { RpcResponse } from '../shared/rpc';
 import { openDb } from './db';
-import { createHandlers } from './handlers';
+import { adoptLegacy, type LocalStorage } from './legacy';
+import { isRpcRequest, profileDispatch } from './profiles';
 
-const handlers = createHandlers(openDb(), { now: Date.now });
+const storage: LocalStorage = {
+  get: (keys) => chrome.storage.local.get(keys),
+  set: (items) => chrome.storage.local.set(items),
+  remove: (keys) => chrome.storage.local.remove(keys),
+};
+
+const dispatch = profileDispatch({
+  open: openDb,
+  prepare: (profile, db) => adoptLegacy(profile, db, storage),
+  deps: { now: Date.now },
+  logError,
+});
 
 // the content script cannot open extension pages itself
 chrome.runtime.onMessage.addListener((message: unknown) => {
@@ -11,12 +24,8 @@ chrome.runtime.onMessage.addListener((message: unknown) => {
   return false;
 });
 
-chrome.runtime.onMessage.addListener((req: RpcRequest, _sender, sendResponse: (res: RpcResponse) => void) => {
-  const handler = handlers[req?.rpc] as ((arg: unknown) => Promise<unknown>) | undefined;
-  if (!handler) return false;
-  handler(req.arg).then(
-    (result) => sendResponse({ ok: true, result } as RpcResponse<Method>),
-    (error) => sendResponse({ ok: false, error: String(error) }),
-  );
+chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse: (res: RpcResponse) => void) => {
+  if (!isRpcRequest(message)) return false;
+  dispatch(message).then(sendResponse);
   return true;
 });
