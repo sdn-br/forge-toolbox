@@ -21,6 +21,7 @@ const contexts = await Promise.all([
       proxy: 'src/proxy/index.ts',
       content: 'src/content/index.ts',
       background: 'src/background/index.ts',
+      options: 'src/options/index.ts',
     },
   }),
   // The marker reads `this` of the game's frames from V8 call sites, and V8 hides it below a strict mode frame.

@@ -119,7 +119,8 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
   - Entschieden 2026-10-24 (Nutzer, erst einmal so, später verfeinern): Icons bekommen Seitenwechsel im PvP (‹ ›), das ✕ am Spielerfilter im PvP (Text bleibt), Seite und Gruppe löschen in den Notizen (Mülleimer), Spieler hinzufügen (Person mit +), Seite hinzufügen (Blatt mit +), Schließen der Spielerauswahl (✕ wie im Boxkopf), Aufnahme speichern (Download, Zahl daneben), Powerleveln öffnen (kleines LG » großes LG). Text behalten: Löschen und Abbrechen in Rückfragen (Klartext ist dort sicherer), „Laufend X → X+1“ (die Stufe ist die Information), Reiter und Faktor-Knöpfe.
   - Gewählt aus der Icon-Vorschau (Nutzer, 2026-10-25): Gewinn als FP-Münze mit drei steigenden Pfeilen in Akzent (Spaltenkopf „Gewinn“ in Snipehilfe und beiden Reitern der Investitionen), „nicht erreichbar“ als durchgestrichene Person, „Nur diesen Spieler zeigen“ als Trichter.
   - Gewählt aus der Icon-Vorschau (Nutzer, 2026-10-25): Menü-Icon der Gebäudesuche als Haus mit Lupe in Akzent rechts unten (nur die eigene Stadt).
-  - Menü-Icon des Stadtplans (gefaltete Karte mit Lupe) überarbeiten (Nutzer, 2026-10-25): Es liegt zu nah am neuen Icon der Gebäudesuche.
+  - Menü-Icon des Stadtplans (gefaltete Karte mit Lupe) überarbeiten (Nutzer, 2026-10-25): Es liegt zu nah am neuen Icon der Gebäudesuche. Zurückgestellt (Nutzer, 2026-10-26), bis der Stadtplan zum Feature Stadtinformation ausgebaut wird, die Karte ist dann nur ein Teil davon.
+  - Knopf „Daten verwalten“ in den Einstellungen (Allgemein, Abschnitt „Daten“), eventuell ein Icon (Nutzer, 2026-10-26).
 - Styles so gekapselt, dass Spiel-CSS und Toolbox-CSS sich nicht beeinflussen (zu prüfen: Shadow DOM).
 
 ### Settings
@@ -162,7 +163,7 @@ Festgelegt nach Phase 0. Jede Wahl mit der Alternative, die verworfen wurde.
 | Datum und Zahlen | `Intl` des Browsers | moment, date-fns | Formatierung von Datum und Zahlen auf Deutsch kann der Browser selbst. Eine Bibliothek erst, wenn echte Datumsrechnung nötig wird. |
 | Texte | eigene Schlüssel-Tabelle mit typisierten Schlüsseln | i18next | Nur Deutsch, keine Pluralregeln außer einfachen. Typisierte Schlüssel finden Tippfehler beim Bauen. |
 | Paketmanager | npm | pnpm | Schon installiert, ein Paket, keine Workspaces nötig. |
-| Browser | Chrome | Chrome und Firefox | Zielbrowser ist Chrome. Firefox kennt `world: MAIN` seit Version 128, eine spätere Unterstützung bleibt möglich. Bis dahin wird sie nicht getestet. |
+| Browser | Chromium-Browser (Edge und Chrome) | dazu Firefox | Zielbrowser sind Edge und Chrome (Nutzer, 2026-10-26). Abnahme und Browser-Tests laufen in Edge, Chrome kommt dort dazu, wo sich die Browser unterscheiden können. Firefox kennt `world: MAIN` seit Version 128, eine Unterstützung ist für eine spätere Phase denkbar. Bis dahin wird sie nicht getestet. |
 
 ## Persistenz
 
@@ -172,7 +173,7 @@ Entscheidung: Hauptspeicher ist IndexedDB im Origin der Extension, mit Sicherung
 - Berechtigung `unlimitedStorage`, damit der Browser bei Platzmangel nichts räumt.
 - Daten pro Welt und Spieler getrennt, ein gemeinsamer Speicher für alle Welten.
 - **Sicherungskopie:** Unwiederbringliche Daten (Notizen, PvP-Verlauf, Statistiken, GbG- und GEX-Historie, keine Caches) gehen gesammelt in die IndexedDB der Spielseite, etwa eine Minute nach der letzten Änderung und beim Schließen. Nach einer Neuinstallation bietet die Toolbox die Wiederherstellung an. Die Sicherung lässt sich abschalten, weil Spiel und andere Extensions sie lesen könnten.
-- **Export als Datei** ab der ersten Version, für Rechnerwechsel und echte Backups.
+- **Export als Datei** ab der ersten Version, für Rechnerwechsel und echte Backups. Einzelheiten im Abschnitt „Sicherung, Export und Import“.
 - **Eine Form je gespeicherter Domäne** (Architektur-Review 2026-10-20): Was eine Domäne zum Speichern braucht, liegt zusammen in `src/persistence/<domäne>/`. `contract.ts` enthält die RPC-Typen, `worker.ts` Tabellendefinition und Handler im Service Worker, `client.ts` den Adapter auf der Content-Seite. `rpc.ts` und die Handler im Service Worker setzen sich daraus zusammen. Die Versionsgeschichte von Dexie bleibt zentral in `db.ts`, die Domänen liefern nur ihre Tabellen. Im Test läuft dieselbe Domäne gegen Dexie im Speicher. Umgesetzt mit PvP Teil B für Players, Battles, Plunders und Incoming, seitdem auch Notes, Shields, Great Buildings und foestats. Der Service Worker bekommt Abhängigkeiten nach außen (fetch, Uhr) beim Erzeugen der Handler, Tests geben eigene mit.
 - **Primärschlüssel ändern:** Dexie kann den Primärschlüssel einer bestehenden Tabelle nicht ändern. Eine Version löscht die Tabelle, die nächste legt sie mit neuem Schlüssel an (so bei `plunders`, Versionen 4 und 5).
 
@@ -182,11 +183,26 @@ Kosten: etwa 1 ms je kleiner Abfrage, einige 10 ms bei großen Abfragen, rund 50
 
 Verworfen: Spielseite als Hauptspeicher und Extension als Sicherung. Gleicher Schutz vor Verlust, schneller und leichter zu debuggen, aber die Wahrheit läge im ungeschützten Bereich und wäre pro Welt abgeschottet.
 
+## Sicherung, Export und Import
+
+Besprochen mit dem Nutzer am 2026-10-26. Umsetzung in getrennten PRs: Export, Import einer Datei, Sicherungskopie auf der Spielseite, Altdaten-Import, Sicherung in einen lokalen Ordner.
+
+- **Ein Format für alles:** Export, Sicherungskopie und Import der eigenen Daten nutzen dieselbe Datei (`src/backup/format.ts`): gepacktes JSON (`.json.gz`, `CompressionStream` des Browsers), alle Welten in einer Datei, mit Formatkennung und Version. Die Mapper für Altdaten übersetzen in dieses Format. Der Import nimmt auch ungepacktes `.json` an.
+- **Inhalt:** Nur was das Spiel oder foestats nicht wieder liefern: Kämpfe, Plünderungen, Angriffe auf die eigene Stadt, Notizen, laufende Schilde, Großbauten, die die Aufbewahrung nie löscht (eigene Einzahlung, Stern, Ignorieren), und die Einstellungen. Dazu alles, worauf diese Daten verweisen, also die Spieler dazu, außerdem Spieler mit Stern oder Ignorieren. Caches (übrige Spieler, übrige Großbauten, foestats, Zeitpunkte der Rathausliste) bleiben draußen. Spieler ohne Verweis werden nur weggelassen, nicht gelöscht. Die Datenbank selbst wird erst aufgeräumt, wenn das Vorteile bringt.
+- **Bedienung:** Eine eigene Seite der Extension, „Daten verwalten“ (`options_ui`, öffnet als Tab). Sie liegt im Origin der Extension, liest die Datenbank direkt und geht auch ohne offenes Spiel. Ein Popup am Extension-Symbol taugt nicht, Chrome schließt es beim Dateidialog. In den Einstellungen im Spiel (Allgemein, Abschnitt „Daten“) öffnet ein Knopf diese Seite über den Service Worker.
+- **Import:** Standard ist Zusammenführen. Fehlendes kommt dazu, Vorhandenes bleibt, bei Notizen gewinnt die neuere. Ersetzen eines Bereichs ist eine Option mit Rückfrage. Auswahl nach Welt und Bereich.
+- **Sicherungskopie auf der Spielseite:** standardmäßig an, mit Hinweis, dass Spiel und andere Extensions sie lesen können.
+- **Sicherung in einen lokalen Ordner** (File System Access, z. B. ein OneDrive-Ordner, damit sie nicht am Rechner hängt): eine laufend überschriebene Datei und eine Kopie je Tag, die letzten 7 bleiben. Vorher ein Prototyp in Edge und Chrome, ob die Ordnerfreigabe einen Neustart des Browsers übersteht und wer schreiben darf (Service Worker oder ein Offscreen-Dokument). Verworfen oder später: Google Drive (in Edge ohne `getAuthToken`), OneDrive per OAuth (App-Registrierung), `chrome.storage.sync` (rund 100 KB, höchstens für Einstellungen), eigener Server.
+- **Wann gefragt wird:** beim Spielstart, je Spieler und Welt. Die eigene Sicherungskopie bietet die Toolbox von sich aus nur an, wenn die Extension für diesen Spieler und diese Welt keine Daten hat. Altdaten fragt sie einmal, solange die Frage nicht beantwortet ist, auch wenn schon Daten da sind. Mehrere Quellen zeigt ein Dialog mit Datum und Inhalt, alle vorausgewählt. Eingespielt wird erst die Sicherungskopie, dann ergänzen die Altdaten. Offen: was „Später“ genau heißt (Vorschlag: beim nächsten Start erneut, höchstens einmal am Tag).
+- **Manuell:** In den Einstellungen im Spiel „Gefundene Daten übernehmen“, derselbe Dialog wie beim Start. Sicherungskopie und Altdaten liegen im Origin der Spielseite, nur die Toolbox im Spiel kann sie lesen. Datei-Export und -Import liegen auf der Seite „Daten verwalten“.
+
 ## Altdaten-Import
 
-- Beim Spielstart sucht die Toolbox nach Daten der aktuellen Spieler-ID in `FoEToolbox2DB_*`, `FoEToolboxDB_*` und den Helfer-DBs (`FoeHelperDB_*` und Modul-DBs wie `FoeHelper_GexStat_*`), außerdem nach der eigenen Sicherungskopie.
+- Beim Spielstart sucht die Toolbox nach Daten der aktuellen Spieler-ID in `FoEToolbox2DB_*` (Toolbox 2.x) und `FoEToolboxDB_*` (letzte 1.x, 1.9.4.0), außerdem nach der eigenen Sicherungskopie. Helfer-DBs nicht: 2.x hat die Daten aus 1.x und dem Helfer beim ersten Start in ihre eigenen DBs kopiert. Der Mapper für 1.x ist nur für Nutzer, die nie 2.x hatten, die Tabellen sind fast gleich.
+- **Übernommen wird nur, wofür das neue Modell schon ein Ziel hat** (Nutzer, 2026-10-26). Jetzt: Notizen (`…_Notice`), PvP-Verlauf aus `neighborhoodAttacks` (Typ 1 geplündert, 2 bis 4 Kampf mit beiden Armeen je Einheit samt Angriffs- und Verteidigungsbonus, 6 abgewehrt; ohne Typ 5 Schilde und ohne Arena-Kämpfe bis Phase 6), Angriffe auf die eigene Stadt aus `…_Events`, die Spieler dazu. `pvpActions` ist in 2.x leer. Später mit dem jeweiligen Feature: GbG, GEX, Gildenmitglieder-Statistik, Qi, FP-Sammler, Statistiken, `investhistory`. Weggelassen: Caches, Alerts, Einstellungen aus dem localStorage.
+- **Doppelte:** Alte und neue Toolbox haben im Parallelbetrieb dieselben Kämpfe und Plünderungen aufgezeichnet. Alte Einträge haben keine Kampf-ID, der Mapper erkennt sie über Gegner, Zeitpunkt (etwa ±2 Minuten) und Ergebnis. So ist auch ein zweiter Import ungefährlich.
 - Findet sie welche, fragt sie einmal: „Alte Daten gefunden, übernehmen?“ mit Ja, Nein und Später. Die Antwort wird gemerkt.
-- Bereiche sind einzeln wählbar: Notizen, PvP-Verlauf, LG-Daten, Statistiken, GbG, GEX usw. Settings aus dem localStorage optional.
+- Bereiche sind einzeln wählbar.
 - Die Quellen werden nur gelesen, nie verändert oder gelöscht.
 - Ein Mapper je Quelle und Schema-Version übersetzt in das neue Datenmodell und meldet, was er nicht zuordnen konnte.
 - Der Import ist auch später in den Settings erreichbar.

@@ -16,6 +16,18 @@ export const de = {
   'settings.menuSize45': 'Groß (45 px)',
   'settings.recordTraffic': 'Spielverkehr aufzeichnen (für Testdaten)',
   'settings.recordRequests': 'Requests mitschreiben',
+  'settings.data': 'Daten',
+  'settings.manageData': 'Daten verwalten',
+  'settings.manageDataHint': 'Öffnet die Seite der Toolbox für Export und Import, auch ohne Spiel erreichbar.',
+  'data.pageTitle': 'Forge Toolbox: Daten verwalten',
+  'data.export': 'Export',
+  'data.exportAbout':
+    'Speichert alle Welten in einer Datei (.json.gz): Kämpfe, Plünderungen, Angriffe auf dich, Notizen, laufende Schilde, Großbauten mit eigener Einzahlung, Stern oder Ignorieren, die Spieler dazu und die Einstellungen. Was das Spiel oder foestats wieder liefern, bleibt draußen.',
+  'data.exportButton': 'Exportieren',
+  'data.exporting': 'Exportiere …',
+  'data.exported':
+    '{name} gespeichert: {battles} Kämpfe, {plunders} Plünderungen, {notes} Notizseiten, {players} Spieler.',
+  'data.exportFailed': 'Der Export ist fehlgeschlagen. Details stehen in der Konsole.',
   'settings.saveRecording': 'Aufnahme speichern ({count} Nachrichten)',
   'settings.clearRecording': 'Aufnahmedaten löschen',
   'sabotage.title': 'Stadtinformationen',

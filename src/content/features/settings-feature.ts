@@ -1,4 +1,5 @@
 import { html } from 'lit-html';
+import { OPEN_DATA_PAGE } from '../../shared/messages';
 import type { Feature } from '../core/feature';
 import { logError } from '../core/log';
 import {
@@ -67,6 +68,9 @@ const input = (settings: Settings, d: SettingDef) =>
       </select></label>`
           : html`<label><input type="checkbox" .checked=${settings.get(d.key)}
         @change=${(e: Event) => save(settings, d.key, (e.target as HTMLInputElement).checked)} />${t(d.label)}</label>`;
+
+const openDataPage = () =>
+  chrome.runtime.sendMessage(OPEN_DATA_PAGE).catch((error) => logError('opening the data page failed', error));
 
 /** the menu entry and the general settings show it */
 const ICON = icons.settings;
@@ -149,6 +153,13 @@ export const settingsFeature: Feature = {
                     aria-disabled=${ctx.recorder.count ? 'false' : 'true'} data-tip=${t('settings.clearRecording')}
                     aria-label=${t('settings.clearRecording')}
                     @click=${() => ctx.recorder.clear()}>${headerIcons.trash}</button>`
+                : ''
+            }
+            ${
+              group === 'settings.core'
+                ? html`<h3>${t('settings.data')}</h3>
+                  <button class="action" @click=${openDataPage}>${t('settings.manageData')}</button>
+                  <p class="muted setting-hint">${t('settings.manageDataHint')}</p>`
                 : ''
             }
           </div>
