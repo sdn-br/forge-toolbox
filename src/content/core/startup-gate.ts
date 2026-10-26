@@ -16,12 +16,12 @@ export interface StartupGate {
 }
 
 /**
- * `start` loads the profile and resolves to the receiver of the live traffic, which then gets the held traffic first, in
+ * `start` loads the profile (the own player name comes along) and resolves to the receiver of the live traffic, which then gets the held traffic first, in
  * order, and everything after it.
  */
 export function startupGate(
   world: WorldId,
-  start: (profile: Profile) => Promise<(traffic: Traffic) => void>,
+  start: (profile: Profile, name: string) => Promise<(traffic: Traffic) => void>,
 ): StartupGate {
   const held: Traffic[] = [];
   let live: ((traffic: Traffic) => void) | null = null;
@@ -35,7 +35,7 @@ export function startupGate(
     const session = toSession(world, (data as GameStartup).user_data);
     if (!session || found) return;
     found = true;
-    start({ world, player: session.playerId }).then(
+    start({ world, player: session.playerId }, session.name).then(
       (receive) => {
         // traffic that came while loading waits here too; the loop and the switch run in one go, so nothing overtakes
         for (const traffic of held.splice(0)) receive(traffic);

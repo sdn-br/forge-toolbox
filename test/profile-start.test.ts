@@ -23,7 +23,11 @@ const json = (tag: string, entries: unknown[] = []): Traffic => ({
 const startup = (player: number) =>
   json('startup', [
     { requestClass: 'TimeService', requestMethod: 'updateTime', responseData: {} },
-    { requestClass: 'StartupService', requestMethod: 'getData', responseData: { user_data: { player_id: player } } },
+    {
+      requestClass: 'StartupService',
+      requestMethod: 'getData',
+      responseData: { user_data: { player_id: player, user_name: 'Me' } },
+    },
   ]);
 const tagOf = (t: Traffic) => (t.kind === 'json' ? t.url.split('?')[1] : '');
 
@@ -39,12 +43,12 @@ describe('startup gate', () => {
   it('holds the traffic until the profile has loaded, then lets it through in order and continues live', async () => {
     const seen: string[] = [];
     const loaded = deferred<(t: Traffic) => void>();
-    const start = vi.fn((_: Profile) => loaded.promise);
+    const start = vi.fn((_: Profile, _name: string) => loaded.promise);
     const gate = startupGate(de20, start);
 
     gate.receive(json('meta'));
     gate.receive(startup(12345));
-    expect(start).toHaveBeenCalledWith(profile);
+    expect(start).toHaveBeenCalledWith(profile, 'Me');
     gate.receive(json('while-loading'));
     expect(seen).toEqual([]);
 

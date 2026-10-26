@@ -52,12 +52,14 @@ const features: Feature[] = [
 ];
 
 /** Loads everything of the profile, starts the features and returns the receiver of the game traffic. */
-async function start(profile: Profile, menu: Menu): Promise<(traffic: Traffic) => void> {
+async function start(profile: Profile, name: string, menu: Menu): Promise<(traffic: Traffic) => void> {
   const { world } = profile;
   const now = Date.now;
   const bus = createBus();
   const ingestion = new Ingestion();
   const kv = profileKv(chromeLocal, profile);
+  // the list of profiles on the data page shows the own name, also without the game open
+  kv.set('profile', { name, seenAt: now() }).catch((e) => logError('saving the profile name failed', e));
   const settings = new Settings(kv);
   const ui = new UiState(kv);
   const stores = createStores(world, bus, backgroundCall(profile), now);
@@ -117,7 +119,7 @@ function main() {
     // lost before the startup data came, the profile never loads; the notice still has to show
     mountMenu();
   });
-  const gate = startupGate(world, (profile) => start(profile, menu));
+  const gate = startupGate(world, (profile, name) => start(profile, name, menu));
   // like the old toolbox, the menu shows once the features have seen the held traffic
   gate.started.then(mountMenu);
   // the proxy buffers game traffic until we connect; connecting at once lets the startup data name the profile
