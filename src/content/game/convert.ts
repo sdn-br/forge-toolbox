@@ -477,9 +477,9 @@ export function toPlunder(
 const DEFENSE: Record<string, IncomingAttack['defense']> = { lost: 'broken', won: 'held' };
 
 /**
- * An attack on the session player's city from an event; any other event is null. Assumption, not yet seen: a plunder
- * comes like a polish of an own building (seen 2026-10-20), as a social_interaction with interaction_type "plunder"
- * and the building definition as entity_id.
+ * An attack on the session player's city from an event; any other event is null. A plunder comes as a
+ * social_interaction with interaction_type "plunder" and the building definition as entity_id, next to the lost
+ * battle before it (seen 2026-10-26).
  */
 export function toIncoming(world: WorldId, e: GameEvent, me: PlayerId, at: number): IncomingAttack | null {
   const attacker = e.other_player?.player_id;
