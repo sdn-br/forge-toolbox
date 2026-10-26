@@ -4,7 +4,7 @@ import { t } from '../../core/texts';
 import { buildingCategory, footprints, freeTiles, nameOf, needsRoad } from '../../domain/city-grid';
 import { expansionBlocks } from '../../domain/expansions';
 import type { BuildingDef, CityGrid } from '../../stores/catalog';
-import type { City } from '../../stores/city-model';
+import type { Building, City } from '../../stores/city-model';
 import { CATEGORY_COLORS, categoryLegend, mutedColor } from '../../ui/city-colors';
 import type { CityMapData, LegendItem, MapBadge, MapTile } from '../../ui/city-map';
 
@@ -57,6 +57,7 @@ export function ownCityMapViewModel(
   ui: OwnMapUi,
   grid?: CityGrid,
   selected: ReadonlySet<number> = new Set(),
+  now = Date.now(),
 ) {
   const fps = footprints(city.buildings.values(), def);
   // while something is selected, the rest steps back
@@ -65,7 +66,7 @@ export function ownCityMapViewModel(
     const b = f.building;
     const name = nameOf(f);
     const category = buildingCategory(b.type);
-    const finished = b.state.kind === 'finished';
+    const finished = isFinished(b, now);
     const unconnected = needsRoad(b);
     const lines = [name];
     if (finished) lines.push(t('cityMap.finished'));
@@ -117,4 +118,23 @@ export function ownCityMapViewModel(
   const vm: OwnMapVm = { data, legend, incomplete: fps.some((f) => !f.known) };
   if (free) vm.free = free.length;
   return vm;
+}
+
+/**
+ * The game turns a production into finished by its own clock, without a message, so a production whose time is up
+ * counts as finished.
+ */
+function isFinished(b: Building, now: number): boolean {
+  const s = b.state;
+  return s.kind === 'finished' || (s.kind === 'producing' && s.readyAt !== undefined && s.readyAt <= now);
+}
+
+/** when the next production of the city finishes after `now`, for redrawing the map then */
+export function nextFinish(city: City, now: number): number | undefined {
+  let next: number | undefined;
+  for (const b of city.buildings.values()) {
+    const at = b.state.kind === 'producing' ? b.state.readyAt : undefined;
+    if (at !== undefined && at > now && (next === undefined || at < next)) next = at;
+  }
+  return next;
 }

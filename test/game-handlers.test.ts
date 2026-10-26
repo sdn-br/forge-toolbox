@@ -71,7 +71,7 @@ describe('game handlers', () => {
     expect(events).toEqual(['ownReset']);
   });
 
-  it('takes the harvested buildings in their new state from a harvest', () => {
+  it('takes the buildings in their new state from a harvest and a production start', () => {
     const { cities, send } = setup();
     send('StartupService', 'getData', {
       user_data: { player_id: 7 },
@@ -84,6 +84,16 @@ describe('game handlers', () => {
       [[1]],
     );
     expect(cities.own()?.buildings.get(1)?.state).toEqual({ kind: 'idle' });
+    send(
+      'CityProductionService',
+      'startProduction',
+      {
+        updatedEntities: [house(1, 7, { __class__: 'ProducingState', next_state_transition_at: 2000 })],
+        __class__: 'CityProductionResult',
+      },
+      [[1, 1]],
+    );
+    expect(cities.own()?.buildings.get(1)?.state).toMatchObject({ kind: 'producing', readyAt: 2_000_000 });
   });
 
   it('keeps the unlocked areas of the city, with coordinates the game leaves out as 0', () => {

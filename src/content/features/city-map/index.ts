@@ -9,7 +9,7 @@ import { NameSearch } from '../../ui/name-search';
 import { selectionList } from '../../ui/selection-list';
 import { ownCityStats } from './stats';
 import { type CityMapActions, cityMapView } from './view';
-import { type OwnMapUi, ownCityMapViewModel } from './view-model';
+import { nextFinish, type OwnMapUi, ownCityMapViewModel } from './view-model';
 
 const ID = 'cityMap';
 const MODE = 'cityMap.own.mode';
@@ -47,6 +47,12 @@ export const cityMapFeature: Feature = {
       onMode: (mode) => ctx.ui.savePref(MODE, mode),
       onTileClick: clicked,
     });
+    // the game finishes productions by its clock, without a message: redraw when the next one is due, while open
+    let finishTimer: ReturnType<typeof setTimeout> | undefined;
+    const redrawAt = (at: number | undefined, now: number) => {
+      clearTimeout(finishTimer);
+      finishTimer = at === undefined ? undefined : setTimeout(() => box.isOpen && box.update(), at - now + 500);
+    };
     const box = ctx.createBox({
       id: 'cityMap',
       title: () => t('cityMap.title'),
@@ -59,7 +65,9 @@ export const cityMapFeature: Feature = {
         if (!city) return cityMapView(undefined, ui, actions);
         const def = (id: Parameters<typeof ctx.catalog.get>[0]) => ctx.catalog.get(id);
         const grid = ctx.catalog.cityGrid();
-        const vm = ownCityMapViewModel(city, def, ui, grid, ctx.selection.ids());
+        const now = Date.now();
+        redrawAt(nextFinish(city, now), now);
+        const vm = ownCityMapViewModel(city, def, ui, grid, ctx.selection.ids(), now);
         const stats =
           ui.stats &&
           ownCityStats(city, def, {

@@ -298,9 +298,10 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   };
   ingestion.on('CityMapService', 'updateEntity', updateBuildings);
   ingestion.on('CityMapService', 'reset', updateBuildings);
-  // A harvest brings the harvested buildings in their new state as `updatedEntities` of a CityProductionResult (seen
-  // 2026-10-23), without a CityMapService entry.
-  ingestion.on('CityProductionService', 'pickupProduction', ({ data }) => {
+  // A harvest (pickupProduction, seen 2026-10-23) brings the buildings in their new state as `updatedEntities` of a
+  // CityProductionResult, without a CityMapService entry. Assumed: starting a production answers the same way, so every
+  // method of the service is read.
+  ingestion.onService('CityProductionService', ({ data }) => {
     updateBuildings({ data: (data as { updatedEntities?: unknown } | null)?.updatedEntities });
   });
   ingestion.onMeta('building_entity_', (file) => {

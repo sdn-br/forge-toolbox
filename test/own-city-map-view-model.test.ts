@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MARK, type OwnMapUi, ownCityMapViewModel } from '../src/content/features/city-map/view-model';
+import { MARK, nextFinish, type OwnMapUi, ownCityMapViewModel } from '../src/content/features/city-map/view-model';
 import type { BuildingDef } from '../src/content/stores/catalog';
 import type { Building, City } from '../src/content/stores/city-model';
 import { CATEGORY_COLORS, mutedColor } from '../src/content/ui/city-colors';
@@ -68,6 +68,19 @@ describe('own city map view model', () => {
     });
     expect(tileOf(vm, 2, 1)?.fill).toBe(CATEGORY_COLORS.street);
     expect(vm.legend.map((l) => l.label)).toContain('Legendäres Bauwerk');
+  });
+
+  it('counts a production whose time is up as finished, since the game tells nothing then', () => {
+    const forge = (readyAt: number) =>
+      city([building(5, 'Farm', 'production', 0, 0, { state: { kind: 'producing', readyAt } })]);
+    expect(
+      tileOf(ownCityMapViewModel(forge(1000), lookup, ui, undefined, new Set(), 999), 0, 0)?.badges,
+    ).toBeUndefined();
+    expect(tileOf(ownCityMapViewModel(forge(1000), lookup, ui, undefined, new Set(), 1000), 0, 0)?.badges).toEqual([
+      { color: MARK.finished, symbol: 'check' },
+    ]);
+    expect(nextFinish(forge(1000), 999)).toBe(1000);
+    expect(nextFinish(forge(1000), 1000)).toBeUndefined();
   });
 
   it('marks finished productions and buildings without road with badges, each switchable', () => {
