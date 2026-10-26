@@ -22,11 +22,11 @@ export const de = {
   'data.pageTitle': 'Forge Toolbox: Daten verwalten',
   'data.export': 'Export',
   'data.exportAbout':
-    'Speichert alle Welten in einer Datei (.json.gz): Kämpfe, Plünderungen, Angriffe auf dich, Notizen, laufende Schilde, Großbauten mit eigener Einzahlung, Stern oder Ignorieren, die Spieler dazu und die Einstellungen. Was das Spiel oder foestats wieder liefern, bleibt draußen.',
+    'Speichert alle Profile (Welt und eigener Spieler) in einer Datei (.json.gz): Kämpfe, Plünderungen, Angriffe auf dich, Notizen, laufende Schilde, Großbauten mit eigener Einzahlung, Stern oder Ignorieren, die Spieler dazu und die Einstellungen. Was das Spiel oder foestats wieder liefern, bleibt draußen.',
   'data.exportButton': 'Exportieren',
   'data.exporting': 'Exportiere …',
   'data.exported':
-    '{name} gespeichert: {battles} Kämpfe, {plunders} Plünderungen, {notes} Notizseiten, {players} Spieler.',
+    '{name} gespeichert: {profiles} Profile, {battles} Kämpfe, {plunders} Plünderungen, {notes} Notizseiten, {players} Spieler.',
   'data.exportFailed': 'Der Export ist fehlgeschlagen. Details stehen in der Konsole.',
   'settings.saveRecording': 'Aufnahme speichern ({count} Nachrichten)',
   'settings.clearRecording': 'Aufnahmedaten löschen',

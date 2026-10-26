@@ -1,13 +1,10 @@
-// The extension's own page "Daten verwalten": export (later import) of the stored data as a file, every world, also
-// without the game open. It lives in the extension origin and opens the database itself, like the service worker.
-import { openDb } from '../background/db';
-import { collectBackup } from '../backup/collect';
+// The extension's own page "Daten verwalten": export (later import) of the stored data as a file, every profile, also
+// without the game open. It lives in the extension origin and opens the databases itself, like the service worker.
+import { closeBackupSources, collectBackup, openBackupSources } from '../backup/collect';
 import { backupFileName } from '../backup/format';
 import { gzipJson } from '../backup/gzip';
 import { logError } from '../content/core/log';
 import { formatNumber, t } from '../content/core/texts';
-
-const db = openDb();
 
 function download(blob: Blob, name: string) {
   const a = document.createElement('a');
@@ -20,18 +17,20 @@ function download(blob: Blob, name: string) {
 }
 
 async function exportData(): Promise<string> {
-  const settings = (await chrome.storage.local.get('settings')).settings as Record<string, unknown> | undefined;
+  const sources = await openBackupSources((keys) => chrome.storage.local.get(keys));
   const now = Date.now();
-  const backup = await collectBackup(db, settings, now);
+  const backup = await collectBackup(sources, now).finally(() => closeBackupSources(sources));
   const name = backupFileName(now);
   download(await gzipJson(backup), name);
-  const { battles, plunders, notePages, players } = backup.tables;
+  const count = (table: 'battles' | 'plunders' | 'notePages' | 'players') =>
+    formatNumber(backup.profiles.reduce((sum, p) => sum + p.tables[table].length, 0));
   return t('data.exported', {
     name,
-    battles: formatNumber(battles.length),
-    plunders: formatNumber(plunders.length),
-    notes: formatNumber(notePages.length),
-    players: formatNumber(players.length),
+    profiles: formatNumber(backup.profiles.length),
+    battles: count('battles'),
+    plunders: count('plunders'),
+    notes: count('notePages'),
+    players: count('players'),
   });
 }
 
