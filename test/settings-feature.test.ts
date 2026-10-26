@@ -133,7 +133,7 @@ describe('settings box: copy from another profile', () => {
     expect(env.storage.data.get('ui.boxes:de20:1')).toEqual({ pvp: { x: 5 } });
   });
 
-  it('keeps the question through redraws, drops it on closing, cancel or another choice', async () => {
+  it('keeps the question through redraws, drops it on closing, another group, cancel or another choice', async () => {
     const { env, box, copySelect, button } = await open(storage);
     button().click();
     await tick();
@@ -141,6 +141,15 @@ describe('settings box: copy from another profile', () => {
     expect(question(box)).not.toBeNull();
     box.box.close();
     box.box.open();
+    expect(question(box)).toBeNull();
+    button().click();
+    await tick();
+    env.ctx.settings.register({ key: 'other', group: 'sabotage.title', label: 'sabotage.title', default: true });
+    box.box.update();
+    const nav = () => [...box.root.querySelectorAll<HTMLButtonElement>('.settings-nav button')];
+    (nav()[1] as HTMLButtonElement).click();
+    (nav()[0] as HTMLButtonElement).click();
+    await tick();
     expect(question(box)).toBeNull();
     button().click();
     await tick();

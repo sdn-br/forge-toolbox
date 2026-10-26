@@ -78,7 +78,7 @@ const profileKey = ({ profile }: OtherProfile) => `${profile.world}:${profile.pl
 /**
  * "Einstellungen von einem anderen Profil übernehmen": a choice of the other profiles and a button that asks once more
  * in a line of its own, naming the profile. The question stays through redraws of the box until it is answered, another
- * profile is chosen or the box closes; a question that lasted one drawing only was gone again when a click raised the box.
+ * profile is chosen, the box shows another group or closes; a question that lasted one drawing only was gone again when a click raised the box.
  */
 function copyControl(copy: ProfileCopy, update: () => void) {
   let others: OtherProfile[] | undefined;
@@ -176,6 +176,7 @@ export const settingsFeature: Feature = {
       return chosen && groups.includes(chosen) ? chosen : groups[0];
     };
     const select = (group: string) => {
+      copyFrom.reset();
       ctx.ui.savePref(TAB, group);
       box.update();
     };
@@ -231,6 +232,7 @@ export const settingsFeature: Feature = {
     // the counter on the save button; update does nothing while the box is closed
     ctx.recorder.onChange(() => box.update());
     ctx.bus.on('settings.open', ({ group }) => {
+      copyFrom.reset();
       ctx.ui.savePref(TAB, group);
       box.open();
     });
