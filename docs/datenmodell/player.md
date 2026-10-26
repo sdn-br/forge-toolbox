@@ -15,6 +15,7 @@ interface Player {
   relations: Relations;
   marked?: boolean;             // vom Spieler gemerkt (Investitionen), nur von Hand entfernt
   ignored?: boolean;            // vom Spieler ignoriert (Investitionen, Snipehilfe, LG-Rechner), nur von Hand entfernt
+  marksAt?: number;             // letztes Setzen oder Wegnehmen von Stern oder Ignorieren; der Import nimmt die neueren Marken, ohne Feld gilt die Zeile als älteste
   attack?: AttackTimer;         // fehlt, bis eine Quelle mit Zeitgebern den Spieler gemeldet hat
   firstSeenAt: number;
   seenAt: number;

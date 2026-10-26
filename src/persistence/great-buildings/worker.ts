@@ -34,6 +34,7 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables): Handlers<Great
           ...(known[i]?.ownContribution && { ownContribution: true }),
           ...(known[i]?.marked && { marked: true }),
           ...(known[i]?.ignored && { ignored: true }),
+          ...(known[i]?.marksAt !== undefined && { marksAt: known[i]?.marksAt }),
         })),
       );
     },
@@ -59,7 +60,7 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables): Handlers<Great
         .map((b): [WorldId, PlayerId, number] => [b.world, b.owner, b.entityId]);
       await db.greatBuildings.bulkDelete(stale);
     },
-    'greatBuildings.setFlag': async ({ world, owner, entityId, flag, value }) => {
+    'greatBuildings.setFlag': async ({ world, owner, entityId, flag, value, at }) => {
       const row = await db.greatBuildings.get([world, owner, entityId]);
       if (!row) return false;
       // the star and the ignore exclude each other: putting one drops the other in the same write
@@ -69,6 +70,7 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables): Handlers<Great
         ...rest,
         ...(!value && row[other] && { [other]: true }),
         ...(value && { [flag]: true }),
+        marksAt: at,
       });
       return true;
     },

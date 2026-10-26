@@ -357,3 +357,88 @@ describe('PlayerStore: ignores', () => {
     expect(put.mock.calls.at(-1)?.[0][0]).toMatchObject({ id: 1, ignored: true });
   });
 });
+
+describe('PlayerStore: time of the marks', () => {
+  function clocked(persisted: Player[] = []) {
+    let clock = 1000;
+    const put = vi.fn(async (_rows: Player[]) => {});
+    const store = new PlayerStore(createBus(), { load: async () => persisted, put }, () => clock);
+    return {
+      store,
+      put,
+      at: (t: number) => {
+        clock = t;
+      },
+      marksAt: () => store.get(playerId(1))?.marksAt,
+    };
+  }
+
+  it('is set on every change of the star and the ignore, also when one clears the other', async () => {
+    const { store, put, at, marksAt } = clocked();
+    store.apply(world, [obs(1)], 'visit');
+    expect(marksAt()).toBeUndefined();
+    const steps: [number, () => boolean][] = [
+      [2000, () => store.setMarked(playerId(1), true)],
+      [3000, () => store.setMarked(playerId(1), false)],
+      [4000, () => store.setIgnored(playerId(1), true)],
+      [5000, () => store.setIgnored(playerId(1), false)],
+      [6000, () => store.setIgnored(playerId(1), true)],
+      // marking clears the ignore
+      [7000, () => store.setMarked(playerId(1), true)],
+    ];
+    for (const [time, step] of steps) {
+      at(time);
+      step();
+      expect(marksAt()).toBe(time);
+    }
+    expect(store.get(playerId(1))).not.toHaveProperty('ignored');
+    await Promise.resolve();
+    expect(put.mock.calls.at(-1)?.[0][0]).toMatchObject({ marked: true, marksAt: 7000 });
+    // nothing changes, so the time stays
+    at(8000);
+    store.setMarked(playerId(1), true);
+    expect(marksAt()).toBe(7000);
+  });
+
+  it('stays through every other source and every change of relations', () => {
+    const { store, at, marksAt } = clocked();
+    store.applySocialList(world, { neighbor: [obs(1)], guildMember: [], friend: [] });
+    store.setMarked(playerId(1), true);
+    at(2000);
+    store.apply(world, [obs(1, 'Visited')], 'visit');
+    store.applySocialList(world, { neighbor: [], guildMember: [], friend: [obs(1)] });
+    store.addFriend(world, obs(1));
+    store.removeFriend(world, playerId(1));
+    expect(store.get(playerId(1))).toMatchObject({ seenAt: 2000, marked: true });
+    expect(marksAt()).toBe(1000);
+  });
+
+  it('comes from the database with its flag, and a change this session wins over it', async () => {
+    const row = (over: Partial<Player>): Player => ({
+      ...obs(1),
+      score: 1,
+      rank: 1,
+      world,
+      guild: undefined,
+      relations: { neighbor: false, guildMember: false, friend: false },
+      firstSeenAt: 1,
+      seenAt: 1,
+      source: 'visit',
+      ...over,
+    });
+    const loaded = clocked([row({ marked: true, marksAt: 500 })]);
+    loaded.store.apply(world, [obs(1)], 'visit');
+    await loaded.store.load(world);
+    expect(loaded.store.get(playerId(1))).toMatchObject({ marked: true, marksAt: 500 });
+    // a star removed earlier leaves only the time, which still counts
+    const released = clocked([row({ marksAt: 500 })]);
+    released.store.apply(world, [obs(1)], 'visit');
+    await released.store.load(world);
+    expect(released.marksAt()).toBe(500);
+    const changed = clocked([row({ ignored: true, marksAt: 500 })]);
+    changed.store.apply(world, [obs(1)], 'visit');
+    changed.store.setMarked(playerId(1), true);
+    await changed.store.load(world);
+    expect(changed.store.get(playerId(1))).toMatchObject({ marked: true, marksAt: 1000 });
+  });
+});

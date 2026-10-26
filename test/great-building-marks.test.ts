@@ -201,3 +201,48 @@ describe('retention of marked buildings', () => {
     expect(await row(1)).toBeUndefined();
   });
 });
+
+describe('the time of the marks', () => {
+  it('is set on every change of the star and the ignore, also when one clears the other', async () => {
+    const { greatBuildings, at, row } = setup();
+    greatBuildings.noteList([listRow(1)]);
+    expect((await row(1))?.marksAt).toBeUndefined();
+    const steps: [number, () => Promise<void>][] = [
+      [2_000, () => greatBuildings.mark(owner, 1, true)],
+      [3_000, () => greatBuildings.mark(owner, 1, false)],
+      [4_000, () => greatBuildings.ignore(owner, 1, true)],
+      [5_000, () => greatBuildings.ignore(owner, 1, false)],
+      [6_000, () => greatBuildings.mark(owner, 1, true)],
+      // ignoring clears the star
+      [7_000, () => greatBuildings.ignore(owner, 1, true)],
+    ];
+    for (const [time, step] of steps) {
+      at(time);
+      await step();
+      expect((await row(1))?.marksAt).toBe(time);
+    }
+    expect(await row(1)).toMatchObject({ ignored: true });
+    expect((await row(1))?.marked).toBeUndefined();
+  });
+
+  it('stays through lists, an opened building and the town hall list', async () => {
+    const { greatBuildings, db, at, row } = setup();
+    greatBuildings.noteList([listRow(1)]);
+    at(1_500);
+    await greatBuildings.mark(owner, 1, true);
+    at(2_000);
+    greatBuildings.noteList([listRow(1, { invested: 300 })]);
+    expect(await row(1)).toMatchObject({ invested: 300, marksAt: 1_500 });
+    at(3_000);
+    greatBuildings.noteList([listRow(1, { level: 6, invested: 0 })]);
+    expect(await row(1)).toMatchObject({ level: 6, marksAt: 1_500 });
+    await db.greatBuildings.put([opened(1, { seenAt: 4_000, level: 6 })]);
+    expect(await row(1)).toMatchObject({ rankingsLevel: 5, marksAt: 1_500 });
+    at(5_000);
+    greatBuildings.noteContributions([listRow(1, { level: 6, rank: 3, forgePoints: 40, reward: 20 })]);
+    expect(await row(1)).toMatchObject({ ownContribution: true, marksAt: 1_500 });
+    at(6_000);
+    greatBuildings.noteContributions([]);
+    expect(await row(1)).toMatchObject({ marked: true, marksAt: 1_500 });
+  });
+});
