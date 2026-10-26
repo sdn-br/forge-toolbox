@@ -38,6 +38,8 @@ export interface ToolboxEvents {
   'shield.recorded': { players: PlayerId[] };
   /** the game opened the army window before a battle; the opponent is not known yet */
   'army.opened': { battleType: string };
+  /** the page module read the opponent of the open pvp army window from the game engine; may never come */
+  'army.target': { opponent: PlayerId };
   /** any change of the notes; `player` when it was the note of that player */
   'note.changed': { player?: PlayerId };
   /** new days of a player at foestats were read, or foestats did not answer */

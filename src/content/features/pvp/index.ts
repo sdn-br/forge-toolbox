@@ -148,11 +148,16 @@ export const pvpFeature: Feature = {
       if (key === KEEP_SETTING.key) prune();
     });
 
-    // The game names no opponent before the battle starts, so the box opens on the battles to search them there.
+    // The game traffic names no opponent before the battle starts, so the box opens on the battles to search them
+    // there. When the page module reads the opponent from the game engine, the box picks it.
     ctx.bus.on('army.opened', ({ battleType }) => {
       if (battleType !== 'pvp' || !ctx.settings.get('pvp.openWithArmy')) return;
       box.open();
       actions.tab('battles');
+    });
+    ctx.bus.on('army.target', ({ opponent }) => {
+      if (!box.isOpen || !ctx.settings.get('pvp.openWithArmy')) return;
+      actions.pick(opponent);
     });
     ctx.bus.on('battle.recorded', show);
     ctx.bus.on('plunder.recorded', show);

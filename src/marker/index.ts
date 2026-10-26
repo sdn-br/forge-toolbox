@@ -1,6 +1,7 @@
 // Runs in the page (MAIN world). Draws golden arrows over the game canvas above given city buildings and moves them
 // with the game camera every frame. The content script says which buildings to mark, or to hide them; the page tells
-// it which arrows went away (dismissed by the viewer, another city view, or no engine).
+// it which arrows went away (dismissed by the viewer, another city view, or no engine). It also tells the content script
+// the opponent of the open army window (./army.ts), since this is the one module in the page that holds the engine.
 //
 // debt: the engine capture and the scene lookup rely on undocumented internals of the game engine (Lime/OpenFL app
 // found through V8 call sites of requestAnimationFrame, stage children, `gameContainer`, `_isoScene.isoToScreen`,
@@ -8,6 +9,7 @@
 // Upgrade: when that happens, fix the scene lookup against the new engine, or fall back to marking in the city map
 // box, which needs no engine access.
 import { logError, logInfo } from '../content/core/log';
+import { ARMY_TAG, type ArmyEvent, parseArmyCommand } from '../shared/army-protocol';
 import {
   MARKER_TAG,
   type MarkerCommand,
@@ -15,6 +17,7 @@ import {
   type MarkerSpot,
   parseMarkerCommand,
 } from '../shared/marker-protocol';
+import { armyTarget } from './army';
 import {
   ARROW,
   anchorOf,
@@ -305,4 +308,33 @@ window.addEventListener('message', (event: MessageEvent) => {
     generation++;
     clear();
   } else show(command).catch((error) => logError('building marker: showing failed', error));
+});
+
+/** frames to wait for the army window: the game asks for the army first and draws the window after the answer */
+const ARMY_FRAMES = 60;
+let armyFailureLogged = false;
+
+async function answerArmyTarget(seq: number) {
+  const engine = await captureEngine();
+  if (!engine) return; // the content script keeps the box on all battles
+  let frames = 0;
+  const look = () => {
+    const playerId = armyTarget(engine.stage);
+    if (playerId !== undefined) {
+      const event: ArmyEvent = { tag: ARMY_TAG, from: 'page', type: 'target', seq, playerId };
+      window.postMessage(event, location.origin);
+    } else if (++frames < ARMY_FRAMES) raf(look);
+    else if (!armyFailureLogged) {
+      armyFailureLogged = true;
+      logInfo('army window: no opponent found in the game engine');
+    }
+  };
+  look();
+}
+
+window.addEventListener('message', (event: MessageEvent) => {
+  if (event.source !== window) return;
+  const command = parseArmyCommand(event.data);
+  if (command)
+    answerArmyTarget(command.seq).catch((error) => logError('army window: reading the opponent failed', error));
 });
