@@ -23,6 +23,8 @@ function setup(me: number | null = fixture.me) {
   const plunderDb = db.plunders;
   const recorded: PlayerId[] = [];
   bus.on('plunder.recorded', (e) => recorded.push(e.opponent));
+  const attempted: { opponent: PlayerId; entityId: number }[] = [];
+  bus.on('plunder.attempted', (e) => attempted.push(e));
   const send = (entries: unknown[], request: unknown[] | null = null) =>
     ingestion.accept({
       kind: 'json',
@@ -35,7 +37,7 @@ function setup(me: number | null = fixture.me) {
     send([
       { requestClass: 'StartupService', requestMethod: 'getData', responseData: { user_data: { player_id: me } } },
     ]);
-  return { db: db.db, plunderDb, plunders, recorded, send, cities, setNow: (at: number) => (now = at) };
+  return { db: db.db, plunderDb, plunders, recorded, attempted, send, cities, setNow: (at: number) => (now = at) };
 }
 
 /** the fixture batch with the plunderById response changed */
@@ -202,6 +204,21 @@ describe('recording plunders', () => {
     const noSession = setup(null);
     noSession.send(repelled.batch);
     expect((await noSession.plunders.totals()).repelled).toBe(0);
+  });
+
+  it('announces every plunder attempt with its building, won or repelled, and no unknown result', async () => {
+    const won = setup();
+    won.send(fixture.batch);
+    expect(won.attempted).toEqual([{ opponent, entityId: 350 }]);
+
+    const result = repelled.batch.filter((e) => e.requestMethod === 'plunderById');
+    const lost = setup(repelled.me);
+    lost.send(result, plunderRequest(4711, 904));
+    expect(lost.attempted).toEqual([{ opponent: playerId(4711), entityId: 904 }]);
+
+    const other = setup();
+    other.send(batchWith({ result: 'failed' }));
+    expect(other.attempted).toEqual([]);
   });
 
   it('stores a repelled plunder seen twice once', async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MARK, type OwnMapUi, ownCityMapViewModel } from '../src/content/features/city-map/view-model';
+import { MARK, nextFinish, type OwnMapUi, ownCityMapViewModel } from '../src/content/features/city-map/view-model';
 import type { BuildingDef } from '../src/content/stores/catalog';
 import type { Building, City } from '../src/content/stores/city-model';
 import { CATEGORY_COLORS, mutedColor } from '../src/content/ui/city-colors';
@@ -45,7 +45,7 @@ const city = (buildings: Building[], areas?: City['areas']): City => ({
   ...(areas && { areas }),
 });
 
-const ui: OwnMapUi = { search: '', finished: true, unconnected: true, free: true, stats: false, expansions: false };
+const ui: OwnMapUi = { finished: true, unconnected: true, free: true, stats: false, expansions: false };
 const town = city(
   [
     building(1, 'House', 'residential', 0, 0),
@@ -61,28 +61,61 @@ const tileOf = (vm: ReturnType<typeof ownCityMapViewModel>, x: number, y: number
 describe('own city map view model', () => {
   it('colors buildings by group', () => {
     const vm = ownCityMapViewModel(town, lookup, ui);
-    expect(tileOf(vm, 0, 0)).toMatchObject({ fill: CATEGORY_COLORS.residential, tooltip: 'Strohdachhaus' });
+    expect(tileOf(vm, 0, 0)).toMatchObject({
+      id: 1,
+      fill: CATEGORY_COLORS.residential,
+      tooltip: 'Strohdachhaus\nKlick: nur dieses auswählen, Umschalt+Klick: hinzufügen/entfernen',
+    });
     expect(tileOf(vm, 2, 1)?.fill).toBe(CATEGORY_COLORS.street);
     expect(vm.legend.map((l) => l.label)).toContain('Legendäres Bauwerk');
   });
 
-  it('marks finished productions and buildings without road, each switchable', () => {
-    const vm = ownCityMapViewModel(town, lookup, ui);
-    expect(tileOf(vm, 2, 0)).toMatchObject({ outline: MARK.finished, tooltip: 'Bauernhof\nProduktion fertig' });
-    expect(tileOf(vm, 0, 2)).toMatchObject({ outline: MARK.unconnected, strong: true });
-    expect(tileOf(vm, 0, 2)?.tooltip).toBe('Strohdachhaus\nOhne Straßenanbindung');
-    const off = ownCityMapViewModel(town, lookup, { ...ui, finished: false, unconnected: false });
-    expect(tileOf(off, 2, 0)?.outline).toBeUndefined();
-    expect(tileOf(off, 0, 2)?.outline).toBeUndefined();
-    expect(off.legend.some((l) => l.outline)).toBe(false);
+  it('counts a production whose time is up as finished, since the game tells nothing then', () => {
+    const forge = (readyAt: number) =>
+      city([building(5, 'Farm', 'production', 0, 0, { state: { kind: 'producing', readyAt } })]);
+    expect(
+      tileOf(ownCityMapViewModel(forge(1000), lookup, ui, undefined, new Set(), 999), 0, 0)?.badges,
+    ).toBeUndefined();
+    expect(tileOf(ownCityMapViewModel(forge(1000), lookup, ui, undefined, new Set(), 1000), 0, 0)?.badges).toEqual([
+      { color: MARK.finished, symbol: 'check' },
+    ]);
+    expect(nextFinish(forge(1000), 999)).toBe(1000);
+    expect(nextFinish(forge(1000), 1000)).toBeUndefined();
   });
 
-  it('highlights search hits, counts them and mutes the rest', () => {
-    const vm = ownCityMapViewModel(town, lookup, { ...ui, search: 'DACH' });
-    expect(vm.matches).toBe(2);
-    expect(tileOf(vm, 0, 0)).toMatchObject({ outline: MARK.search, strong: true, fill: CATEGORY_COLORS.residential });
-    expect(tileOf(vm, 2, 0)?.fill).toBe(mutedColor('production'));
-    expect(ownCityMapViewModel(town, lookup, ui).matches).toBeUndefined();
+  it('marks finished productions and buildings without road with badges, each switchable', () => {
+    const vm = ownCityMapViewModel(town, lookup, ui);
+    expect(tileOf(vm, 2, 0)).toMatchObject({
+      badges: [{ color: MARK.finished, symbol: 'check' }],
+      tooltip: 'Bauernhof\nProduktion fertig\nKlick: nur dieses auswählen, Umschalt+Klick: hinzufügen/entfernen',
+    });
+    expect(tileOf(vm, 0, 2)).toMatchObject({ badges: [{ color: MARK.unconnected, symbol: 'cross' }] });
+    expect(tileOf(vm, 0, 2)?.outline).toBeUndefined();
+    expect(tileOf(vm, 0, 2)?.tooltip).toBe(
+      'Strohdachhaus\nOhne Straßenanbindung\nKlick: nur dieses auswählen, Umschalt+Klick: hinzufügen/entfernen',
+    );
+    const off = ownCityMapViewModel(town, lookup, { ...ui, finished: false, unconnected: false });
+    expect(tileOf(off, 2, 0)?.badges).toBeUndefined();
+    expect(tileOf(off, 0, 2)?.badges).toBeUndefined();
+    expect(off.legend.some((l) => l.symbol)).toBe(false);
+    expect(vm.legend).toContainEqual({ color: MARK.finished, label: 'Produktion fertig', symbol: 'check' });
+  });
+
+  it('frames the selected buildings light, before any other mark, and mutes the rest', () => {
+    const vm = ownCityMapViewModel(town, lookup, ui, undefined, new Set([1, 2]));
+    expect(tileOf(vm, 0, 0)).toMatchObject({ outline: MARK.selected, strong: true, fill: CATEGORY_COLORS.residential });
+    expect(tileOf(vm, 2, 0)).toMatchObject({ outline: MARK.selected, strong: true, fill: CATEGORY_COLORS.production });
+    // the other house is not selected: muted, its badge stays
+    expect(tileOf(vm, 0, 2)).toMatchObject({
+      badges: [{ color: MARK.unconnected, symbol: 'cross' }],
+      fill: mutedColor('residential'),
+    });
+    // a selected building keeps its badge under the frame
+    expect(tileOf(vm, 2, 0)?.badges).toEqual([{ color: MARK.finished, symbol: 'check' }]);
+    expect(vm.legend).toContainEqual({ color: MARK.selected, label: 'Ausgewählt (Pfeil im Spiel)', outline: true });
+    const none = ownCityMapViewModel(town, lookup, ui, undefined, new Set([99]));
+    expect(none.legend.map((l) => l.label)).not.toContain('Ausgewählt (Pfeil im Spiel)');
+    expect(tileOf(none, 0, 2)?.fill).toBe(CATEGORY_COLORS.residential);
   });
 
   it('counts and shows the free tiles of the unlocked areas', () => {
@@ -100,7 +133,7 @@ describe('own city map view model', () => {
     expect(vm.free).toBeUndefined();
     expect(vm.data.marked).toBeUndefined();
     expect(vm.incomplete).toBe(true);
-    expect(tileOf(vm, 0, 0)?.tooltip).toBe('Castle');
+    expect(tileOf(vm, 0, 0)?.tooltip).toBe('Castle\nKlick: nur dieses auswählen, Umschalt+Klick: hinzufügen/entfernen');
   });
 
   it('leaves the groups out of the legend while the statistics show them', () => {

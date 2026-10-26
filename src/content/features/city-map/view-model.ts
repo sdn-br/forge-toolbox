@@ -1,15 +1,15 @@
 // The own city as a map: colors by building group, switchable marks, name search and free tiles.
 import type { BuildingDefId } from '../../../shared/ids';
 import { t } from '../../core/texts';
-import { buildingCategory, footprints, freeTiles, matchesName, needsRoad } from '../../domain/city-grid';
+import { buildingCategory, footprints, freeTiles, nameOf, needsRoad } from '../../domain/city-grid';
 import { expansionBlocks } from '../../domain/expansions';
 import type { BuildingDef, CityGrid } from '../../stores/catalog';
-import type { City } from '../../stores/city-model';
+import type { Building, City } from '../../stores/city-model';
 import { CATEGORY_COLORS, categoryLegend, mutedColor } from '../../ui/city-colors';
-import type { CityMapData, LegendItem, MapTile } from '../../ui/city-map';
+import type { CityMapData, LegendItem, MapBadge, MapTile } from '../../ui/city-map';
 
 export interface OwnMapUi {
-  search: string;
+  /** the text of the search field; hits are the names that contain it, a preview while typing */
   /** mark finished productions */
   finished: boolean;
   /** mark buildings without road connection */
@@ -25,53 +25,68 @@ export interface OwnMapUi {
 export interface OwnMapVm {
   data: CityMapData;
   legend: LegendItem[];
-  /** number of buildings whose name matches; only while searching */
-  matches?: number;
   /** free tiles in the unlocked areas; undefined when the areas are unknown */
   free?: number;
   /** some definitions are missing, so some sizes are guessed */
   incomplete: boolean;
 }
 
-export const MARK = { search: '#ffe04a', unconnected: '#ff4040', finished: '#7cff7c', free: '#5c7a34' };
+/**
+ * `selected` is the light ink of the boxes, drawn with a dark seam so it shows on every fill, the orange of the great
+ * buildings too (Nutzer, 2026-10-26)
+ */
+export const MARK = {
+  selected: '#fbf4e4',
+  unconnected: '#ff4040',
+  finished: '#7cff7c',
+  free: '#5c7a34',
+};
 /** free expansion blocks: adjacent ones strong, the others faint */
 export const ZONE = {
   now: { fill: '#2f6f8f', outline: '#8fd8ff' },
   later: { fill: '#26343c' },
 };
 
-/** `grid` is the city grid; without it, or without areas, no expansion blocks are drawn */
+/**
+ * `grid` is the city grid; without it, or without areas, no expansion blocks are drawn. `selected` are the selected
+ * buildings of the own city, which carry the arrows in the game.
+ */
 export function ownCityMapViewModel(
   city: City,
   def: (id: BuildingDefId) => BuildingDef | undefined,
   ui: OwnMapUi,
   grid?: CityGrid,
+  selected: ReadonlySet<number> = new Set(),
+  now = Date.now(),
 ) {
   const fps = footprints(city.buildings.values(), def);
-  const searching = ui.search.trim() !== '';
-  let matches = 0;
+  // while something is selected, the rest steps back
+  const selecting = fps.some((f) => selected.has(f.building.id));
   const tiles: MapTile[] = fps.map((f) => {
     const b = f.building;
-    const name = f.def?.name ?? b.def;
+    const name = nameOf(f);
     const category = buildingCategory(b.type);
-    const hit = matchesName(name, ui.search);
-    if (hit) matches++;
-    const finished = b.state.kind === 'finished';
+    const finished = isFinished(b, now);
     const unconnected = needsRoad(b);
     const lines = [name];
     if (finished) lines.push(t('cityMap.finished'));
     if (unconnected) lines.push(t('cityMap.unconnected'));
+    lines.push(t('cityMap.clickSelect'));
     const tile: MapTile = {
+      id: b.id,
       x: f.x,
       y: f.y,
       width: f.width,
       length: f.length,
-      fill: searching && !hit ? mutedColor(category) : CATEGORY_COLORS[category],
+      fill: selecting && !selected.has(b.id) ? mutedColor(category) : CATEGORY_COLORS[category],
       tooltip: lines.join('\n'),
     };
-    if (hit) Object.assign(tile, { outline: MARK.search, strong: true });
-    else if (ui.unconnected && unconnected) Object.assign(tile, { outline: MARK.unconnected, strong: true });
-    else if (ui.finished && finished) Object.assign(tile, { outline: MARK.finished });
+    if (selected.has(b.id)) Object.assign(tile, { outline: MARK.selected, strong: true });
+    // states as badges on the building, so frames stay for the selection (Nutzer, 2026-10-26)
+    const badges: MapBadge[] = [];
+    if (ui.finished && finished) badges.push({ color: MARK.finished, symbol: 'check' });
+    if (ui.unconnected && unconnected) badges.push({ color: MARK.unconnected, symbol: 'cross' });
+    if (badges.length > 0) tile.badges = badges;
     return tile;
   });
   const free = city.areas && freeTiles(city.areas, fps);
@@ -89,9 +104,9 @@ export function ownCityMapViewModel(
   };
   const legend: LegendItem[] = [
     ...(ui.stats ? [] : categoryLegend()),
-    ...(ui.finished ? [{ color: MARK.finished, label: t('cityMap.finished'), outline: true }] : []),
-    ...(ui.unconnected ? [{ color: MARK.unconnected, label: t('cityMap.unconnected'), outline: true }] : []),
-    ...(searching ? [{ color: MARK.search, label: t('cityMap.searchHit'), outline: true }] : []),
+    ...(selecting ? [{ color: MARK.selected, label: t('cityMap.selected'), outline: true }] : []),
+    ...(ui.finished ? [{ color: MARK.finished, label: t('cityMap.finished'), symbol: 'check' as const }] : []),
+    ...(ui.unconnected ? [{ color: MARK.unconnected, label: t('cityMap.unconnected'), symbol: 'cross' as const }] : []),
     ...(free && ui.free ? [{ color: MARK.free, label: t('cityMap.free') }] : []),
     ...(blocks
       ? [
@@ -101,7 +116,25 @@ export function ownCityMapViewModel(
       : []),
   ];
   const vm: OwnMapVm = { data, legend, incomplete: fps.some((f) => !f.known) };
-  if (searching) vm.matches = matches;
   if (free) vm.free = free.length;
   return vm;
+}
+
+/**
+ * The game turns a production into finished by its own clock, without a message, so a production whose time is up
+ * counts as finished.
+ */
+function isFinished(b: Building, now: number): boolean {
+  const s = b.state;
+  return s.kind === 'finished' || (s.kind === 'producing' && s.readyAt !== undefined && s.readyAt <= now);
+}
+
+/** when the next production of the city finishes after `now`, for redrawing the map then */
+export function nextFinish(city: City, now: number): number | undefined {
+  let next: number | undefined;
+  for (const b of city.buildings.values()) {
+    const at = b.state.kind === 'producing' ? b.state.readyAt : undefined;
+    if (at !== undefined && at > now && (next === undefined || at < next)) next = at;
+  }
+  return next;
 }

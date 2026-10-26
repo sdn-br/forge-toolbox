@@ -109,16 +109,41 @@ header button svg { display: block; width: 16px; height: 16px; }
 textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
 input.title { width: 100%; font-weight: 600; }
 button.marker { all: unset; cursor: pointer; }
-button.marker svg, button.map-button svg { display: block; width: 14px; height: 14px; }
+button.marker svg { display: block; width: 14px; height: 14px; }
 tr.battle-row { cursor: pointer; }
 tr.plunder-row { cursor: pointer; }
 tr.plunder-row:hover, tr.plunder-row:focus-visible { background: #3a2a16; outline: none; }
-button.map-button { all: unset; cursor: pointer; }
+/* the row whose building carries the arrow in the game */
+tr.plunder-row.marked { background: #3a2a16; box-shadow: inset 3px 0 var(--accent); }
 tr.battle-row.expanded, tr.details { background: #3a2a16; }
 .battle p { margin: 2px 0 4px; }
 details { margin: 6px 0; }
 summary { cursor: pointer; color: var(--accent); }
 button.marker.dim { opacity: .3; }
+.name-search { position: relative; display: inline-block; vertical-align: middle; }
+/* the suggestions lie over what follows (the map); inline they push it down, for a box that grows with its content */
+.name-search .suggestions { position: absolute; left: 0; top: 100%; z-index: 5; min-width: 100%; max-height: 16em;
+  overflow: auto; margin: 2px 0 0; padding: 2px 0; list-style: none; background: var(--field);
+  border: 1px solid var(--line); border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,.5); }
+.name-search.inline { display: block; }
+.name-search.inline input { width: 100%; }
+.name-search.inline .suggestions { position: static; box-shadow: none; }
+.suggestions li { display: flex; justify-content: space-between; gap: 12px; padding: 1px 6px; cursor: pointer;
+  white-space: nowrap; }
+.suggestions li:hover, .suggestions li.active { background: var(--btn-hover); }
+.suggestions .num { color: #b8a27d; }
+/* the selected buildings, one row per name: name, "selected/in the city", ✕ */
+.selection { margin: 4px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.selection-list { display: contents; list-style: none; }
+.selection-list li { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 1px 2px 1px 8px;
+  background: var(--btn); border: 1px solid var(--line); border-radius: 10px; }
+.selection-list .name { min-width: 0; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.selection-list .num { color: #b8a27d; }
+.selection > button.action { margin: 0; }
+.selection-list button.icon { all: unset; cursor: pointer; width: 18px; height: 18px; display: grid;
+  place-items: center; color: var(--ink); opacity: .8; }
+.selection-list button.icon:hover { opacity: 1; }
+.selection-list button.icon svg { display: block; width: 14px; height: 14px; }
 .city-map { margin: 4px 0; }
 .map-marks { display: flex; flex-wrap: wrap; gap: 0 12px; }
 .map-frame { position: relative; height: 55vh; min-height: 180px; overflow: hidden; border: 1px solid #8a6a3a; }
@@ -136,6 +161,7 @@ button.marker.dim { opacity: .3; }
 .map-legend .swatch { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: -1px;
   border: 2px solid transparent; }
 .map-legend .swatch.outline { background: none; }
+.map-legend .swatch.badge { border: none; background: none; }
 .map-stats-layout { display: flex; align-items: flex-start; gap: 6px; }
 .map-main { flex: 1; min-width: 0; }
 /* docked: the statistics hang out of the side of the box and leave the map whole; the body's overflow does not clip

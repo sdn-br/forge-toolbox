@@ -90,6 +90,10 @@ export const icons = {
   cityMap: menuIcon(svg`<g transform="scale(.82)">${foldedMap}</g>
     <circle class="acc" cx="15.2" cy="14.8" r="4.1" fill="var(--btn)"/><path class="acc" d="m18.1 17.7 3.8 3.8" stroke-width="2.2"/>
     <path d="M13.2 13.9a2.2 2.2 0 0 1 1.8-1.8" stroke-width="1.2"/>`),
+  /** a house, a magnifier in the accent bottom right; the own city only */
+  buildingSearch:
+    menuIcon(svg`<path d="M2.5 11 9.5 4.5l7 6.5"/><path d="M4.3 9.5v9.5h10.4V9.5"/><path d="M8 19v-4.6h3V19"/>
+    <circle class="acc" cx="16.2" cy="15.4" r="4.1" fill="var(--btn)"/><path class="acc" d="m19.1 18.3 3.2 3.2" stroke-width="2.2"/>`),
   pvp: menuIcon(svg`${sword(45)}${sword(-45)}`),
   notes: menuIcon(svg`${scroll20}${featherFilled}`),
   /** the calculator signs large, the castle small in the fourth cell of the 2x2 grid */
@@ -225,8 +229,6 @@ export const headerIcons = {
   questionCircle: headerIcon(
     svg`<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.7a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.8M12 16.6v.2"/>`,
   ),
-  /** the folded map: open the map */
-  map: headerIcon(foldedMap),
   /** a sheet with a folded corner and two lines: a note */
   note: headerIcon(
     svg`<path d="M6 3.5h8.5L19 8v11.5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z"/><path d="M14.5 3.5V8H19"/><path d="M8.5 13h7M8.5 16.5h5"/>`,

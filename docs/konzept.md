@@ -42,16 +42,17 @@ Spielseite (MAIN world)          Content Script (isolated world)               S
 │ Proxy        │ ─────────────► │ Ingestion ─► Handler ─► Stores ─► Bus    │   │ Storage      │
 │ (XHR, WS)    │                │                         │        │       │◄─►│ (IndexedDB)  │
 └──────────────┘                │                         ▼        ▼       │   │ Alarme       │
-                                │                      Features (Plugins)  │   │ Notifications│
-                                │                         │                │   └──────────────┘
-                                │                     UI-Kit ─► DOM der Spielseite
-                                └─────────────────────────────────────────┘
+┌──────────────┐  Markierungen  │                      Features (Plugins)  │   │ Notifications│
+│ Marker       │ ◄────────────► │                         │                │   └──────────────┘
+│ (Pfeile)     │                │                     UI-Kit ─► DOM der Spielseite
+└──────────────┘                └─────────────────────────────────────────┘
 ```
 
 ### Shell
 
 - Manifest V3, TypeScript mit Build.
-- Nur der Proxy läuft im Seitenkontext, weil er XHR und WebSocket vor dem Spielcode patchen muss. Er reicht Nachrichten an das Content Script weiter. Beim WebSocket meldet er beide Richtungen, ausgehende mit `direction: 'out'`. Die Ingestion wertet sie noch nicht aus, Aufnahmen behalten sie nur mit „Requests mitschreiben“.
+- Im Seitenkontext läuft der Proxy, weil er XHR und WebSocket vor dem Spielcode patchen muss. Er reicht Nachrichten an das Content Script weiter. Beim WebSocket meldet er beide Richtungen, ausgehende mit `direction: 'out'`. Die Ingestion wertet sie noch nicht aus, Aufnahmen behalten sie nur mit „Requests mitschreiben“.
+- **Bewusste Ausnahme: das Marker-Modul** (`src/marker/`, `marker.js`, 2026-10-25). Es zeichnet die Markierungspfeile über Gebäude im Spiel (siehe [Stadtplan](features/stadtplan.md)). Pfeile, die der Kamera des Spiels folgen, brauchen die Kamera und die Projektion der Spiel-Engine, und die kann nur der Seitenkontext lesen. Verworfen: ein kleiner Leser im Seitenkontext, der nur Kamerawerte an das Content Script meldet, und das Content Script zeichnet selbst. Er wäre nicht robuster, denn er hängt an denselben Interna der Engine. Die Pfeile liefen dazu einen Frame hinterher, und die eigene Nachbildung der Projektion wäre eine weitere Fehlerquelle. Das Modul bekommt nur Gebäude-IDs und Grundflächen (`shared/marker-protocol.ts`, auf beiden Seiten geprüft) und meldet zurück, welche Pfeile weg sind. Es hängt an nicht dokumentierten Interna der Engine (Lime-App über V8-Aufrufstellen von `requestAnimationFrame`, `_isoScene.isoToScreen`, `_camera`, `_zoomFactor`). Ein Update des Spiels kann es brechen. Dann gibt es keine Pfeile, alles andere läuft weiter. Gebaut wird es ohne `"use strict"`, weil V8 `this` unter einem Strict-Mode-Frame verbirgt.
 - Alles andere läuft im Content Script. Es teilt das DOM mit der Spielseite, aber keine JS-Globals. Kollisionen mit Spiel oder Helfer entfallen.
 - Der Service Worker hält Speicher, Alarme und Notifications.
 - Fester `key` im Manifest, damit die Extension-ID stabil bleibt. Eigene ID, damit Forge Toolbox parallel zur FoE Toolbox laufen kann.
@@ -81,6 +82,7 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
 - Typisierte Events mit Payload, etwa `player.updated {id}` oder `city.changed {playerId}`. Jeder Vertrag ist ein TypeScript-Typ.
 - Stores senden Domain-Events. Features senden keine Events an andere Features, sie kennen sich nicht.
 - Bewusste Ausnahme: Der Handler sendet `army.opened` direkt auf den Bus. Das Signal ist flüchtig und hat keinen Zustand, ein Store hätte dafür nichts zu halten.
+- `markers.changed` sendet `ctx.markers` (`core/markers.ts`). Er hält die Markierungen im Spiel, eine je Stadt, wie ein Store seinen Zustand und spricht mit dem Marker-Modul in der Seite.
 - Zusätzlich Lebenszyklus-Events der Shell (bereit, Spieler bekannt, Welt gewechselt).
 
 ### Features als Plugins
@@ -93,7 +95,7 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
 
 - **Box:** Fenster mit Titel, Ziehen, Größe, Minimieren, Fixieren, Pop-out, gemerkter Position.
   - Größe: angedockt über einen Griff an der unteren rechten Ecke, eigenes Element mit Pointer-Events (kein CSS-`resize`, das an der fest positionierten Box im Shadow DOM nicht greift). Mindestens 260 × 150 Pixel, höchstens bis zum Rand des Fensters. Breite und Höhe merkt sich die Box mit der Position, ein Doppelklick auf den Griff stellt die Standardgröße wieder her. Ohne gemerkte Größe hat die Box ihre Standardbreite und die Höhe ihres Inhalts (höchstens 70 % der Fensterhöhe), mit gemerkter Höhe füllt der Inhalt die Box und scrollt. Minimiert und im Pop-out gibt es keinen Griff, dort ändert das Fenster die Größe.
-  - **Verstellbar nur, wo es hilft** (Nutzer, 2026-10-24): Jede Box legt fest, ob sie einen Griff hat. Ohne Griff hat sie eine feste Breite und die Höhe ihres Inhalts, sie wächst und schrumpft mit ihm, höchstens bis zu einer Maximalhöhe (Standard 70 % des Fensters, Einstellungen 80 %), darüber scrollt der Inhalt. Eine früher gemerkte Größe gilt für sie nicht mehr. Ohne Griff: LG-Rechner, Eigenanteil, Powerleveln, Sabotage, Einstellungen. Mit Griff: Notizen, PvP-Angriffe, Stadtplan (eigene und besuchte Stadt), Investitionen. Eine Box ohne Angabe hat keinen Griff. Im Pop-out ändert wie bisher das Fenster die Größe.
+  - **Verstellbar nur, wo es hilft** (Nutzer, 2026-10-24): Jede Box legt fest, ob sie einen Griff hat. Ohne Griff hat sie eine feste Breite und die Höhe ihres Inhalts, sie wächst und schrumpft mit ihm, höchstens bis zu einer Maximalhöhe (Standard 70 % des Fensters, Einstellungen 80 %), darüber scrollt der Inhalt. Eine früher gemerkte Größe gilt für sie nicht mehr. Ohne Griff: LG-Rechner, Eigenanteil, Powerleveln, Sabotage, Gebäudesuche, Einstellungen. Mit Griff: Notizen, PvP-Angriffe, Stadtplan, Investitionen. Eine Box ohne Angabe hat keinen Griff. Im Pop-out ändert wie bisher das Fenster die Größe.
   - **Standardgröße einer verstellbaren Box:** je Box festgelegt. Der Stadtplan öffnet ohne gemerkte Größe groß, 70 % von Fensterbreite und -höhe, höchstens 1.100 × 850 Pixel (Nutzer, 2026-10-24).
   - Einstellungen: Nennt ein Feature seine Einstellungsgruppe (`settings` in den Box-Optionen), zeigt der Kopf einen Knopf mit Zahnrad (eigenes SVG wie die Stecknadel, das Zeichen ⚙ war zu klein). Er öffnet das Einstellungsfenster beim Modul der Box. Die Box meldet das über den Bus (`settings.open { group }`), das Einstellungs-Feature reagiert. Im Pop-out fehlt der Knopf wie die Stecknadel. Heute bei LG-Rechner, Eigenanteil, PvP und Sabotage (Nutzer, 2026-10-23).
   - Pop-out: Die Box zieht als Ganzes ins Bild-im-Bild-Fenster und füllt es. Schließt das Fenster, dockt sie wieder an. Wird sie im Pop-out geschlossen, bleibt sie zu.
@@ -105,6 +107,8 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
 - **Fixieren:** Der Knopf zeigt eine Stecknadel als SVG: als Umriss schräg, solange die Box lose ist, gefüllt senkrecht in Gold, wenn sie fixiert ist.
 - **Chart:** kapselt ECharts mit Lazy-Load, Theme, Resize, Export als PNG und CSV. Bekommt ein eigenes Datenformat für Serien, nicht ECharts-Optionen. Lässt sich in jede View einbetten, so muss kein Feature Chart-Code wiederholen.
 - **Stadtplan:** zeichnet ein Stadtgitter mit Gebäuden aus einfachen Daten (siehe [Stadtplan](features/stadtplan.md)).
+- **Namenssuche** (`src/content/ui/name-search.ts`, 2026-10-25): Suchfeld mit Vorschlagsliste, je Name mit Anzahl, nur zum Finden. Die Box gibt die Namen, die Komponente meldet das Tippen und die Wahl eines Vorschlags. Nach der Wahl ist das Feld leer (Nutzer, 2026-10-25). Gebäudesuche und Suche im Stadtplan nutzen sie (siehe [Gebäudesuche](features/gebaeudesuche.md)).
+- **Liste der Auswahl** (`src/content/ui/selection-list.ts`, Nutzer, 2026-10-25): die Auswahl der eigenen Stadt (`ctx.selection`) als umrahmte Labels nebeneinander (2026-10-26), ein Label je Gebäudename mit „ausgewählt/in der Stadt“ und ✕, darunter ein Mülleimer für „Alle entfernen“, leer ein gedämpfter Hinweis. Gebäudesuche und Stadtplan zeigen sie gleich unter ihrem Suchfeld.
 - **Menü:** Leiste mit den Knöpfen der angemeldeten Features, sortierbar, einzeln ausblendbar.
 - **Icons statt Wörter** (Nutzer, 2026-10-24): Knöpfe tragen, wo es sinnvoll möglich ist, ein Icon statt eines Worts, mit dem Wort im Tooltip und als `aria-label`. Alle Icons kommen aus `src/content/ui/icons.ts` in derselben Designsprache (eigene SVGs auf dem 24er-Raster, Strichstärke je Ort, Farben aus den Variablen), keine Emoji und keine Schriftzeichen als Icon. Während der Entwicklung darf ein neuer Knopf zuerst Text tragen. Dann wird besprochen, ob er später ein Icon bekommt, und das kommt in die Liste „Offene Icons“ unten. Knöpfe, die Text behalten müssen (Faktoren, Seitenwechsel mit Zahl), sind im Farbschema der Boxen gestylt, wie die Eingabefelder (dunkler Grund, heller Text, brauner Rand, Akzent bei aktiv und Fokus). Reiter sehen wie Reiter aus, nicht wie Knöpfe (Nutzer, 2026-10-25, Entwurf A): eine Leiste mit Linie unten, jeder Reiter mit eigener Fläche und oben gerundet, der aktive hat den Grund der Box, eine Akzentlinie oben und öffnet sich nach unten in die Box. Gleich in Investitionen, PvP und Notizen (`.tabs` in `ui/styles.ts`).
 - **Motive aus dem Spiel** (Nutzer, 2026-10-25): Wo das Spiel ein bekanntes Symbol hat, wird dessen Motiv als eigenes Strich-Icon nachgezeichnet, so wie die alte Toolbox Spielbilder zu eigenen Icons kombinierte. Beispiele: FP-Münze im Menü-Icon der Investitionen (Burg mit Münze in Akzent), Nachbar, Freund und Gilde nach den Reitern der Sozialleiste. Spielbilder direkt vom CDN sind ein eigenes, späteres Thema.
@@ -114,6 +118,8 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
   - Spaltenkopf „Einzahlen“ im Eigenanteil (zurückgestellt 2026-10-24): Entwürfe Pfeil nach unten auf Münzstapel und Pfeil ins LG gefielen am ehesten, Münze mit Plus und Münze mit Pfeil fallen weg (lesen sich als Männlich-Symbol und Schlüssel).
   - Entschieden 2026-10-24 (Nutzer, erst einmal so, später verfeinern): Icons bekommen Seitenwechsel im PvP (‹ ›), das ✕ am Spielerfilter im PvP (Text bleibt), Seite und Gruppe löschen in den Notizen (Mülleimer), Spieler hinzufügen (Person mit +), Seite hinzufügen (Blatt mit +), Schließen der Spielerauswahl (✕ wie im Boxkopf), Aufnahme speichern (Download, Zahl daneben), Powerleveln öffnen (kleines LG » großes LG). Text behalten: Löschen und Abbrechen in Rückfragen (Klartext ist dort sicherer), „Laufend X → X+1“ (die Stufe ist die Information), Reiter und Faktor-Knöpfe.
   - Gewählt aus der Icon-Vorschau (Nutzer, 2026-10-25): Gewinn als FP-Münze mit drei steigenden Pfeilen in Akzent (Spaltenkopf „Gewinn“ in Snipehilfe und beiden Reitern der Investitionen), „nicht erreichbar“ als durchgestrichene Person, „Nur diesen Spieler zeigen“ als Trichter.
+  - Gewählt aus der Icon-Vorschau (Nutzer, 2026-10-25): Menü-Icon der Gebäudesuche als Haus mit Lupe in Akzent rechts unten (nur die eigene Stadt).
+  - Menü-Icon des Stadtplans (gefaltete Karte mit Lupe) überarbeiten (Nutzer, 2026-10-25): Es liegt zu nah am neuen Icon der Gebäudesuche.
 - Styles so gekapselt, dass Spiel-CSS und Toolbox-CSS sich nicht beeinflussen (zu prüfen: Shadow DOM).
 
 ### Settings
@@ -232,7 +238,8 @@ Kämpfe in der PvP-Arena kommen mit dem Arena-Protokoll in Phase 6. Die Notizkar
 Je Feature eine Datei mit Umfang, Entscheidungen und Annahmen. Neue Features bekommen hier ihre eigene Datei.
 
 - [Notizen](features/notizen.md): Notizen zu Spielern und Gilden
-- [Stadtplan](features/stadtplan.md): Stadtplan der eigenen und besuchten Stadt
+- [Stadtplan](features/stadtplan.md): Stadtplan der eigenen Stadt, Markierungspfeile im Spiel
+- [Gebäudesuche](features/gebaeudesuche.md): Gebäude der eigenen Stadt nach Namen auswählen, die Auswahl trägt Pfeile im Spiel
 - [LG-Rechner](features/lg-rechner.md): Kostenrechner für fremde LGs
 - [Eigenanteil](features/eigenanteil.md): Eigenanteilsrechner für eigene LGs
 - [Powerleveln](features/powerleveln.md): Eigenanteil über mehrere Stufen eines eigenen LGs
@@ -267,7 +274,7 @@ Stand der FoE Toolbox. Module, die im Fundament aufgehen, stehen getrennt.
 | Stadt | Inventar | inventory | 3 |
 | Stadt | Erhabene Gebäude | ascended | 3 |
 | Stadt | Gebäudesuche | citysearch | 3 |
-| Stadt | Markierungspfeile | building-marker | 3 |
+| Stadt | Markierungspfeile | building-marker | 3 (umgesetzt) |
 | Stadt | Stadtplaner | city-builder | 3 |
 | Stadt | Umbau-Modus | reconstruction | 3 |
 | Stadt | Blaue Galaxie | bluegalaxy | 3 |
@@ -340,7 +347,7 @@ Prototyp `prototypes/phase-0`, getestet am 2026-10-19 in Chrome auf de20, parall
 
 Folgerungen:
 
-- Die Architektur trägt, kein Helfer im Seitenkontext nötig außer dem Proxy.
+- Die Architektur trägt, kein Helfer im Seitenkontext nötig außer dem Proxy. Später kam als bewusste Ausnahme das Marker-Modul für die Markierungspfeile dazu (siehe Shell).
 - Styles werden per Shadow DOM gekapselt.
 - Gebaut wird mit esbuild (ein Bundle je Einstiegspunkt, kein Dev-Server nötig). TypeScript prüft getrennt mit `tsc --noEmit`.
 - Rendern darf nicht am `requestAnimationFrame` des Spielfensters hängen. Ist der Spiel-Tab im Hintergrund, drosselt Chrome ihn, und ein offenes Pop-out würde nicht mehr aktualisiert. Das Fundament plant Renders über das Fenster, in dem die Box gerade steckt (noch nicht getestet).

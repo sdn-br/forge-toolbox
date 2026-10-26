@@ -7,11 +7,15 @@ import { boxFactory, type Feature, type FeatureContext } from './core/feature';
 import { Ingestion } from './core/ingestion';
 import { chromeLocal } from './core/kv';
 import { logError } from './core/log';
+import { windowMarkerLink } from './core/marker-link';
+import { Markers } from './core/markers';
 import { connectProxy } from './core/proxy-link';
 import { Recorder } from './core/recorder';
 import { callBackground } from './core/rpc';
+import { OwnSelection } from './core/selection';
 import { Settings } from './core/settings';
 import { t } from './core/texts';
+import { buildingSearchFeature } from './features/building-search';
 import { cityMapFeature } from './features/city-map';
 import { foestatsFeature } from './features/foestats';
 import { gbCalculatorFeature } from './features/gb-calculator';
@@ -33,6 +37,7 @@ const features: Feature[] = [
   pvpFeature,
   notesFeature,
   cityMapFeature,
+  buildingSearchFeature,
   gbCalculatorFeature,
   gbOwnShareFeature,
   gbPowerLevelFeature,
@@ -65,6 +70,7 @@ async function main() {
     stores.greatBuildings.load().catch((e) => logError('loading the time of the town hall list failed', e)),
   ]);
 
+  const markers = new Markers(bus, stores.cities, windowMarkerLink);
   const ctx: FeatureContext = {
     world,
     bus,
@@ -72,6 +78,8 @@ async function main() {
     menu,
     ...stores,
     recorder,
+    markers,
+    selection: new OwnSelection(bus, stores.cities, stores.catalog, markers),
     ui,
     gbOwn: createGbOwnState(bus, ui, settings),
     createBox: boxFactory(ui, (group) => bus.emit('settings.open', { group })),

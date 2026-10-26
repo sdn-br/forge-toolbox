@@ -1,6 +1,7 @@
 // Contracts of all domain events. A listener gets exactly this payload and reads the rest from the stores.
 import type { BuildingDefId, PlayerId } from '../../shared/ids';
 import type { PlayerSource } from '../../shared/model';
+import type { CityKey } from '../stores/cities';
 import type { Session } from '../stores/session';
 import { EventBus } from './bus';
 
@@ -13,6 +14,12 @@ export interface ToolboxEvents {
   'city.ownChanged': { buildingIds?: number[]; reset: boolean };
   'city.visited': { owner: PlayerId };
   'city.visitedChanged': { owner: PlayerId; buildingIds: number[] };
+  /** the game shows another city, as far as its traffic tells */
+  'city.shown': { city: CityKey };
+  /** the buildings marked with arrows in the game changed: set, cleared, or dismissed in the game */
+  'markers.changed': Record<string, never>;
+  /** the selection of buildings in the own city changed */
+  'selection.changed': Record<string, never>;
   'catalog.updated': { defs: BuildingDefId[] };
   /** the main city grid arrived */
   'catalog.grid': Record<string, never>;
@@ -24,6 +31,8 @@ export interface ToolboxEvents {
   'research.changed': Record<string, never>;
   'battle.recorded': { opponent: PlayerId };
   'plunder.recorded': { opponent: PlayerId };
+  /** the player plundered or tried to plunder this building, whether it worked or was repelled */
+  'plunder.attempted': { opponent: PlayerId; entityId: number };
   'incoming.recorded': { attacker: PlayerId };
   /** new city shields of these players */
   'shield.recorded': { players: PlayerId[] };

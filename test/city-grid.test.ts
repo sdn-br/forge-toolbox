@@ -5,7 +5,6 @@ import {
   footprints,
   freeTiles,
   gridBounds,
-  matchesName,
   needsRoad,
 } from '../src/content/domain/city-grid';
 import { toBuildingDef } from '../src/content/game/building-defs';
@@ -145,14 +144,5 @@ describe('road connection', () => {
     expect(needsRoad(building('House', 'residential', 0, 0, { connected: false }))).toBe(true);
     expect(needsRoad(building('House', 'residential', 0, 0, { state: state('unconnected') }))).toBe(true);
     expect(needsRoad(building('House', 'residential', 0, 0))).toBe(false);
-  });
-});
-
-describe('name search', () => {
-  it('matches a part of the name, ignoring case', () => {
-    expect(matchesName('Sakura-Fels - St. 2', 'fels')).toBe(true);
-    expect(matchesName('Sakura-Fels - St. 2', '  SAKURA ')).toBe(true);
-    expect(matchesName('Haus', 'burg')).toBe(false);
-    expect(matchesName('Haus', '')).toBe(false);
   });
 });

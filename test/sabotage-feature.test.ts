@@ -1,13 +1,11 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { FOCUS_OUTLINE } from '../src/content/features/sabotage/city-map';
 import { sabotageFeature } from '../src/content/features/sabotage/index';
 import { type BattlePersistence, BattleStore } from '../src/content/stores/battles';
 import type { BuildingDef } from '../src/content/stores/catalog';
 import type { VisitedCity } from '../src/content/stores/cities';
 import type { Building } from '../src/content/stores/city-model';
 import type { PlayerObservation } from '../src/content/stores/players';
-import { CityMap, type CityMapData } from '../src/content/ui/city-map';
 import { buildingDefId, eraId, guildId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { AttackTimer, Battle, IncomingAttack, Plunder } from '../src/shared/model';
 import { featureContext } from './helpers/feature-context';
@@ -119,19 +117,23 @@ const withBuildings = (owner: number, buildings: Building[]): VisitedCity => ({
   buildings: new Map(buildings.map((b) => [b.id, b])),
 });
 
-/** the sabotage feature with a catalog for two plunderable houses, and the map data it draws */
-function mapSetup() {
+/** the sabotage feature with a catalog for two plunderable houses, and the rows of "Jetzt plünderbar" */
+function markSetup() {
   const env = setup();
   env.ctx.catalog.add(houseDef('Coins', 'Münzhaus'));
   env.ctx.catalog.add(houseDef('Points', 'Punktehaus'));
-  const render = vi.spyOn(CityMap.prototype, 'render');
-  const focus = vi.spyOn(CityMap.prototype, 'focus');
-  const mapBox = env.boxes.get('visitedCityMap') as NonNullable<ReturnType<typeof env.boxes.get>>;
-  const drawn = () => render.mock.lastCall?.[0] as CityMapData;
   const row = (name: string) =>
     [...env.box.root.querySelectorAll('tr.plunder-row')].find((r) => r.textContent?.includes(name)) as HTMLElement;
-  return { ...env, mapBox, drawn, focus, row };
+  const marked = () =>
+    [...env.box.root.querySelectorAll('tr.plunder-row.marked')].map((r) => r.querySelector('td')?.textContent);
+  return { ...env, row, marked };
 }
+
+const coinsAndPoints = (owner: number) =>
+  withBuildings(owner, [
+    house(5, owner, 'Coins', 0, { money: 900 }),
+    house(6, owner, 'Points', 4, { strategy_points: 3 }),
+  ]);
 
 describe('sabotage feature', () => {
   it.each([
@@ -195,85 +197,118 @@ describe('sabotage feature', () => {
     expect(box.root.querySelector('button.star')).toBeNull();
   });
 
-  it('opens the city map of the visited player in its own box and remembers its view mode', async () => {
-    const { ctx, box, mapBox } = mapSetup();
-    ctx.players.apply(world, [observed(1, { canPlunder: false })], 'update');
-    ctx.cities.setVisited(withBuildings(1, [house(5, 1, 'R_Test_House', 0)]));
-    await tick();
-    expect(box.root.querySelector('canvas')).toBeNull();
-    expect(mapBox.box.isOpen).toBe(false);
+  describe('arrows from the plunderable rows', () => {
+    it('sets an arrow on the building of a row, moves it to the next row and takes it away on the same row', async () => {
+      const { ctx, box, marker, row, marked } = markSetup();
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      expect([...box.root.querySelectorAll('tr.plunder-row')].map((r) => r.className)).toEqual([
+        'plunder-row',
+        'plunder-row muted',
+      ]);
+      expect(row('Münzhaus').dataset.tip).toBe('Im Spiel mit einem Pfeil zeigen');
 
-    (box.root.querySelector('button.map-button') as HTMLButtonElement).click();
-    expect(mapBox.box.isOpen).toBe(true);
-    expect(mapBox.title).toBe('Stadtplan P1');
-    expect(mapBox.root.querySelector('canvas')).not.toBeNull();
-    mapBox.click('Isometrisch');
-    expect(ctx.ui.pref('cityMap.visited.mode')).toBe('iso');
-  });
+      row('Münzhaus').click();
+      expect(marker.last).toMatchObject({ type: 'show', spots: [{ id: 5, x: 0, y: 0, width: 2, length: 2 }] });
+      expect(ctx.markers.current()?.city).toBe(playerId(1));
+      expect(marked()).toEqual(['Münzhaus']);
+      expect(row('Münzhaus').getAttribute('aria-pressed')).toBe('true');
+      expect(row('Münzhaus').dataset.tip).toBe('Pfeil im Spiel entfernen');
 
-  it('offers no city map for a city without buildings', async () => {
-    const { ctx, box } = setup();
-    ctx.cities.setVisited(city(1));
-    await tick();
-    expect(box.root.querySelector('button.map-button')).toBeNull();
-  });
+      row('Punktehaus').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      expect(marker.shown).toEqual([6]);
+      expect(marked()).toEqual(['Punktehaus']);
 
-  it('opens the map from a plunderable row, frames and centers that building, and moves to the next one', async () => {
-    const { ctx, box, mapBox, drawn, focus, row } = mapSetup();
-    ctx.cities.setVisited(
-      withBuildings(1, [house(5, 1, 'Coins', 0, { money: 900 }), house(6, 1, 'Points', 4, { strategy_points: 3 })]),
-    );
-    await tick();
-    expect([...box.root.querySelectorAll('tr.plunder-row')].map((r) => r.className)).toEqual([
-      'plunder-row',
-      'plunder-row muted',
-    ]);
+      row('Punktehaus').click();
+      expect(marker.last?.type).toBe('hide');
+      expect(marked()).toEqual([]);
+      expect(row('Punktehaus').getAttribute('aria-pressed')).toBe('false');
+    });
 
-    row('Münzhaus').click();
-    expect(mapBox.box.isOpen).toBe(true);
-    const coins = { x: 0, y: 0, width: 2, length: 2 };
-    expect(focus).toHaveBeenLastCalledWith(coins);
-    await tick();
-    expect(drawn().focus).toEqual({ rect: coins, color: FOCUS_OUTLINE });
+    it('unmarks the row when the arrow is dismissed in the game', async () => {
+      const { ctx, marker, row, marked } = markSetup();
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      row('Münzhaus').click();
+      marker.dismiss([5]);
+      expect(ctx.markers.current()).toBeUndefined();
+      expect(marked()).toEqual([]);
+      // the next click sets it again
+      row('Münzhaus').click();
+      expect(marked()).toEqual(['Münzhaus']);
+    });
 
-    row('Punktehaus').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-    const points = { x: 4, y: 0, width: 2, length: 2 };
-    expect(focus).toHaveBeenLastCalledWith(points);
-    await tick();
-    expect(drawn().focus?.rect).toEqual(points);
-  });
+    it('takes the arrow away after a plunder of its building, won or repelled, and leaves it for another', async () => {
+      const { ctx, row, marked } = markSetup();
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      row('Münzhaus').click();
+      ctx.bus.emit('plunder.attempted', { opponent: playerId(1), entityId: 6 });
+      ctx.bus.emit('plunder.attempted', { opponent: playerId(2), entityId: 5 });
+      expect(marked()).toEqual(['Münzhaus']);
+      ctx.bus.emit('plunder.attempted', { opponent: playerId(1), entityId: 5 });
+      expect(ctx.markers.current()).toBeUndefined();
+      expect(marked()).toEqual([]);
+    });
 
-  it('shows the whole city without the framed building when opened from the map button', async () => {
-    const { ctx, box, drawn, row } = mapSetup();
-    const whole = vi.spyOn(CityMap.prototype, 'showCity');
-    ctx.cities.setVisited(withBuildings(1, [house(5, 1, 'Coins', 0, { money: 900 })]));
-    await tick();
-    row('Münzhaus').click();
-    await tick();
-    expect(drawn().focus).toBeDefined();
+    it('drops the arrow when another city is visited and keeps it for the same city', async () => {
+      const { ctx, marker, row, marked } = markSetup();
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      row('Münzhaus').click();
 
-    (box.root.querySelector('button.map-button') as HTMLButtonElement).click();
-    await tick();
-    expect(drawn().focus).toBeUndefined();
-    expect(whole).toHaveBeenCalled();
-  });
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      expect(marked()).toEqual(['Münzhaus']);
 
-  it('follows the visited city in the map box and drops the framed building', async () => {
-    const { ctx, box, mapBox, drawn, row } = mapSetup();
-    ctx.players.apply(world, [observed(2, { canPlunder: false })], 'update');
-    ctx.cities.setVisited(withBuildings(1, [house(5, 1, 'Coins', 0, { money: 900 })]));
-    await tick();
-    row('Münzhaus').click();
-    await tick();
-    expect(drawn().focus).toBeDefined();
+      ctx.cities.setVisited(coinsAndPoints(2));
+      await tick();
+      expect(marker.last?.type).toBe('hide');
+      expect(ctx.markers.current()).toBeUndefined();
+      expect(marked()).toEqual([]);
+    });
 
-    ctx.cities.setVisited(withBuildings(2, [house(7, 2, 'Points', 8)]));
-    await tick();
-    expect(mapBox.box.isOpen).toBe(true);
-    expect(mapBox.title).toBe('Stadtplan P2');
-    expect(drawn().focus).toBeUndefined();
-    expect(drawn().tiles.map((t) => t.x)).toEqual([8]);
-    expect(box.root.querySelector('tr.plunder-row')).toBeNull();
+    it('drops the arrow back home, so a later visit of the same city shows none, and leaves an arrow set elsewhere alone', async () => {
+      const { ctx, marker, row, marked } = markSetup();
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      row('Münzhaus').click();
+      ctx.cities.showOwn();
+      expect(marker.last?.type).toBe('hide');
+      expect(ctx.markers.current()).toBeUndefined();
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      expect(marked()).toEqual([]);
+
+      ctx.markers.set('cityMap', 'own', [{ id: 9, x: 0, y: 0, width: 1, length: 1 }]);
+      ctx.cities.setVisited(coinsAndPoints(2));
+      expect(ctx.markers.of('cityMap')?.city).toBe('own');
+    });
+
+    it('offers no arrows from the rows while the game shows another city, and again once it shows this one', async () => {
+      const { ctx, marker, row, box } = markSetup();
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      ctx.cities.showOwn();
+      await tick();
+      expect(row('Münzhaus')).toBeUndefined();
+      expect(box.root.textContent).toContain('Münzhaus');
+      expect(marker.posted).toEqual([]);
+
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      expect(row('Münzhaus')).toBeDefined();
+    });
+
+    it('sets no arrow for a building without a place on the grid', async () => {
+      const { ctx, marker, row } = markSetup();
+      const city = coinsAndPoints(1);
+      const ship = { ...house(5, 1, 'Coins', 0, { money: 900 }), type: 'off_grid' };
+      ctx.cities.setVisited({ ...city, buildings: new Map([[5, ship]]) });
+      await tick();
+      row('Münzhaus').click();
+      expect(marker.posted).toEqual([]);
+    });
   });
 
   it('shows the last battle when the city did not change meanwhile', async () => {

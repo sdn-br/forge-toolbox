@@ -68,6 +68,8 @@ interface GreatBuildingState {
 - `CityMapService.updateEntity` und `CityMapService.reset` tragen die Spieler-ID der Gebäude. Danach entscheidet der Store, ob die eigene oder die besuchte Stadt betroffen ist. Die alte Toolbox hatte hier einen Fehler: Nach einer FP-Einzahlung in ein fremdes LG kam `reset`, und die Daten des LGs blieben alt.
 - Unbekannte Zustände des Spiels werden `unknown` mit dem Klassennamen. Ein neuer Zustand im Spiel bricht dann nichts, er wird nur nicht ausgewertet.
 
-**Abfragen:** `own()`, `visited()`, `building(owner, id)`.
+**Gezeigte Stadt:** `shown()` ist `'own'` oder die Spieler-ID der besuchten Stadt, so weit der Spielverkehr es verrät. Ein Besuch zeigt die besuchte Stadt. Die eigene Stadt kehrt zurück mit `CityMapService.getEntities` der Karte `main` oder `AnnouncementsService.fetchAllAnnouncements`, ausgewertet am Ende der Antwort und nur, wenn dieselbe Antwort keinen Besuch bringt (nach einem Kampf aus einer besuchten Stadt schickt das Spiel beides). Der Knopf „Nach Hause“ schickt nichts, diese Rückkehr bleibt unbemerkt. Nutzer: die Markierungspfeile (siehe [Stadtplan](../features/stadtplan.md)).
 
-**Events:** `city.ownChanged { buildingIds?: number[]; reset: boolean }`, `city.visited { owner: PlayerId }`.
+**Abfragen:** `own()`, `visited()`, `shown()`, `building(owner, id)`.
+
+**Events:** `city.ownChanged { buildingIds?: number[]; reset: boolean }`, `city.visited { owner: PlayerId }`, `city.shown { city: 'own' | PlayerId }` (nur bei einem Wechsel).

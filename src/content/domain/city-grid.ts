@@ -1,5 +1,6 @@
 // Where buildings sit on the city grid: footprints, free tiles, building groups. Pure, so fixtures test it.
 import type { BuildingDefId } from '../../shared/ids';
+import type { MarkerSpot } from '../../shared/marker-protocol';
 import type { BuildingDef } from '../stores/catalog';
 import type { Area, Building } from '../stores/city-model';
 
@@ -14,6 +15,18 @@ export interface Footprint {
   /** false while the definition is missing; the building then takes a single tile */
   known: boolean;
 }
+
+/** Where an arrow in the game points: the building and its footprint. */
+export const spotOf = (f: Footprint): MarkerSpot => ({
+  id: f.building.id,
+  x: f.x,
+  y: f.y,
+  width: f.width,
+  length: f.length,
+});
+
+/** The name a building shows: that of its definition, or its definition id while the definition is missing. */
+export const nameOf = (f: Footprint): string => f.def?.name ?? f.building.def;
 
 export interface Tile {
   x: number;
@@ -142,9 +155,3 @@ export const buildingCategory = (type: string): BuildingCategory => CATEGORY_OF[
 
 /** A building without road connection. Buildings that need no road never come as unconnected. */
 export const needsRoad = (b: Building) => !b.connected || b.state.kind === 'unconnected';
-
-/** Part of the name, ignoring case and surrounding spaces; an empty query matches nothing. */
-export function matchesName(name: string, query: string): boolean {
-  const q = query.trim().toLowerCase();
-  return q !== '' && name.toLowerCase().includes(q);
-}

@@ -2,7 +2,6 @@ import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { battleDetailsView } from '../../ui/battle-details';
-import { headerIcons } from '../../ui/icons';
 import { externalLink } from '../../ui/links';
 import { starButton } from '../../ui/star';
 import type { PlunderItem, SabotageVm } from './view-model';
@@ -32,11 +31,12 @@ function armyTable(army: NonNullable<SabotageVm['army']>, repel: number, measure
   ${measured ? html`<p class="muted">${t('sabotage.measuredHint')}</p>` : ''}`;
 }
 
-export interface SabotageActions {
-  /** opens the box with the map of the visited city */
-  openMap(): void;
-  /** opens that box and points at a building there */
-  showOnMap(building: number): void;
+/** Points at plunderable buildings in the game. */
+export interface PlunderMarks {
+  /** whether the building carries the arrow set from its row */
+  marked(building: number): boolean;
+  /** sets the arrow on the building, or takes it away again */
+  toggle(building: number): void;
 }
 
 /** Enter and space press a row like a button; the keys are not meant for the game. */
@@ -47,16 +47,17 @@ const pressKeys = (action: () => void) => (e: KeyboardEvent) => {
   action();
 };
 
-/** without actions there is no map, so the rows are plain */
-const plunderTable = (items: PlunderItem[], actions?: SabotageActions) =>
+const plunderTable = (items: PlunderItem[], marks?: PlunderMarks) =>
   html`<table>${items.map((p) => {
     const loot = html`<td>${p.name}</td>
       <td>${p.items.map((i) => html`${formatNumber(i.amount)} ${i.label}<br />`)}</td>`;
     const muted = p.important ? '' : ' muted';
-    if (!actions) return html`<tr class=${muted.trim()}>${loot}</tr>`;
-    const show = () => actions.showOnMap(p.building);
-    return html`<tr class=${`plunder-row${muted}`} role="button" tabindex="0" data-tip=${t('sabotage.showOnMap')}
-      @click=${show} @keydown=${pressKeys(show)}>${loot}</tr>`;
+    if (!marks) return html`<tr class=${muted.trim()}>${loot}</tr>`;
+    const marked = marks.marked(p.building);
+    const toggle = () => marks.toggle(p.building);
+    return html`<tr class=${`plunder-row${muted}${marked ? ' marked' : ''}`} role="button" tabindex="0"
+      aria-pressed=${String(marked)} data-tip=${t(marked ? 'sabotage.unmarkInGame' : 'sabotage.markInGame')}
+      @click=${toggle} @keydown=${pressKeys(toggle)}>${loot}</tr>`;
   })}</table>`;
 
 function plunderedPart({ last, totals }: NonNullable<SabotageVm['plundered']>) {
@@ -72,11 +73,11 @@ function plunderedPart({ last, totals }: NonNullable<SabotageVm['plundered']>) {
     <br />${totals}</p>`;
 }
 
-/** `note` is the note card of the visited player; `actions` only when the visited city has a map */
+/** `note` is the note card of the visited player; `marks` points at plunderable buildings in the game */
 export function sabotageView(
   vm: SabotageVm | undefined,
   note?: TemplateResult,
-  actions?: SabotageActions,
+  marks?: PlunderMarks,
   /** puts the star on the visited player or takes it away */
   markPlayer?: (marked: boolean) => void,
 ): TemplateResult {
@@ -89,10 +90,6 @@ export function sabotageView(
     }${
       vm.player.guild
         ? html` <span class="muted">[${externalLink(vm.player.guild.name, vm.player.guild.url)}]</span>`
-        : ''
-    }${
-      actions
-        ? html` <button class="map-button" data-tip=${t('sabotage.openMap')} aria-label=${t('sabotage.openMap')} @click=${() => actions.openMap()}>${headerIcons.map}</button>`
         : ''
     }
       <br /><span class="muted">${t('sabotage.era')}: ${vm.player.era}</span>
@@ -117,7 +114,7 @@ export function sabotageView(
     ${
       vm.plunderable.length === 0
         ? html`<p class="muted">${t('sabotage.nothingPlunderable')}</p>`
-        : plunderTable(vm.plunderable, actions)
+        : plunderTable(vm.plunderable, marks)
     }
     ${vm.incomplete ? html`<p class="warn">${t('sabotage.incomplete')}</p>` : ''}`;
 }

@@ -1,13 +1,12 @@
 // City map: draws a grid with its buildings from plain data. Colors, marks and tooltips come from the caller;
 // the map knows nothing about building types or plundering.
-import { html, type TemplateResult } from 'lit-html';
+import { html, svg, type TemplateResult } from 'lit-html';
 import { ref } from 'lit-html/directives/ref.js';
 import { t } from '../core/texts';
 import { type Bounds, gridBounds, type Tile, type TileRect } from '../domain/city-grid';
 import { headerIcons } from './icons';
 import {
   backToFront,
-  centerOn,
   corners,
   type MapMode,
   type MapView,
@@ -16,18 +15,27 @@ import {
   switchMode,
   tileAt,
   toScreen,
-  WHOLE_MAP,
   zoomAt,
 } from './map-projection';
 
 export interface MapTile extends TileRect {
+  /** the caller's key of the building, handed back on a click */
+  id?: number;
   fill: string;
   /** a frame around the building, for marks and search hits */
   outline?: string;
   /** a thick frame */
   strong?: boolean;
+  /** small symbols in the middle of the building, side by side; they keep the frames free for the selection */
+  badges?: MapBadge[];
   /** shown on hover; lines separated by `\n` */
   tooltip: string;
+}
+
+/** a round symbol: `check` a tick, `cross` a struck circle */
+export interface MapBadge {
+  color: string;
+  symbol: 'check' | 'cross';
 }
 
 export interface CityMapData {
@@ -39,8 +47,6 @@ export interface CityMapData {
   marked?: { tiles: Tile[]; color: string };
   /** ground beside or under the city, e.g. free expansion blocks; the map widens to show them */
   zones?: MapZone[];
-  /** one building to point at, framed above everything else; `focus()` brings it into view */
-  focus?: { rect: TileRect; color: string };
 }
 
 export interface MapZone {
@@ -56,12 +62,16 @@ export interface LegendItem {
   label: string;
   /** shown as a frame instead of a filled square */
   outline?: boolean;
+  /** shown as this badge instead of a filled square */
+  symbol?: MapBadge['symbol'];
 }
 
 export interface CityMapOptions {
   mode?: MapMode;
   /** the viewer switched the mode, to remember it */
   onMode?: (mode: MapMode) => void;
+  /** the viewer clicked a building, `shift` with the shift key held; dragging the map is no click */
+  onTileClick?: (tile: MapTile, how: { shift: boolean }) => void;
 }
 
 const BACKGROUND = '#1d140a';
@@ -70,14 +80,26 @@ const HOVER = '#ffffff';
 const ZOOM_STEP = 1.25;
 /** a city opens, and the reset button returns, five zoom steps in from the whole map, centered */
 export const START_VIEW: MapView = { zoom: ZOOM_STEP ** 5, panX: 0, panY: 0 };
-/** a focused building shows at least this many pixels wide; the isometric diamond is squashed and needs more */
-const FOCUS_SIZE: Record<MapMode, number> = { top: 56, iso: 112 };
+
+/** the badge of the map as a legend swatch, drawn on the same 10 px as the others */
+const badgeSwatch = (color: string, symbol: MapBadge['symbol']) =>
+  html`<svg class="swatch badge" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4.2" fill=${BACKGROUND}
+    stroke=${color} stroke-width="1.2"/>${
+      symbol === 'check'
+        ? svg`<path d="M3 5.1l1.4 1.5L7 3.8" fill="none" stroke=${color} stroke-width="1.3" stroke-linecap="round"
+            stroke-linejoin="round"/>`
+        : svg`<path d="M3.2 6.8 6.8 3.2" stroke=${color} stroke-width="1.3" stroke-linecap="round"/>`
+    }</svg>`;
 
 export const legendView = (items: LegendItem[]) =>
   html`<ul class="map-legend">${items.map(
     (i) =>
-      html`<li><span class=${i.outline ? 'swatch outline' : 'swatch'}
-        style=${i.outline ? `border-color:${i.color}` : `background:${i.color}`}></span>${i.label}</li>`,
+      html`<li>${
+        i.symbol
+          ? badgeSwatch(i.color, i.symbol)
+          : html`<span class=${i.outline ? 'swatch outline' : 'swatch'}
+              style=${i.outline ? `border-color:${i.color}` : `background:${i.color}`}></span>`
+      }${i.label}</li>`,
   )}</ul>`;
 
 /**
@@ -98,10 +120,6 @@ export class CityMap {
   private drag?: { x: number; y: number; view: MapView; moved: boolean };
   private observer?: ResizeObserver;
   private observedIn?: Window;
-  /** asked to focus before the canvas had a size */
-  private pendingFocus?: TileRect;
-  /** focused since the data last changed, possibly still on the old data */
-  private focusedSinceData?: TileRect;
   mode: MapMode;
 
   constructor(private options: CityMapOptions = {}) {
@@ -120,6 +138,7 @@ export class CityMap {
           @pointermove=${(e: PointerEvent) => this.pointerMove(e)}
           @pointerdown=${(e: PointerEvent) => this.pointerDown(e)}
           @pointerup=${(e: PointerEvent) => this.pointerUp(e)}
+          @pointercancel=${(e: PointerEvent) => this.pointerUp(e, false)}
           @pointerleave=${() => this.hover(-1)}
           @wheel=${{ handleEvent: (e: WheelEvent) => this.wheel(e), passive: false }}></canvas>
         <div class="map-tools">
@@ -136,42 +155,17 @@ export class CityMap {
   private setData(data: CityMapData) {
     this.data = data;
     const bounds = gridBounds([...data.areas, ...data.tiles, ...(data.zones ?? []).flatMap((z) => z.rects)]);
-    // a city that grew or shrank shows in the start view again; a focus asked for this data but applied to the old one comes back
-    if (!sameBounds(bounds, this.bounds)) {
-      this.view = START_VIEW;
-      this.pendingFocus ??= this.focusedSinceData;
-    }
-    this.focusedSinceData = undefined;
+    // a city that grew or shrank shows in the start view again
+    if (!sameBounds(bounds, this.bounds)) this.view = START_VIEW;
     this.bounds = bounds;
     this.hovered = -1;
   }
 
-  /**
-   * Centers `rect` and zooms in if it would be tiny. A map that has no size yet (its box just opened) does it as soon
-   * as it is laid out.
-   */
-  focus(rect: TileRect): void {
-    this.pendingFocus = rect;
-    this.draw();
-  }
-
-  private applyFocus() {
-    const size = this.size();
-    const rect = this.pendingFocus;
-    if (!rect || !size || !this.bounds) return;
-    this.view = centerOn(this.mode, this.bounds, size.width, size.height, this.view, rect, FOCUS_SIZE[this.mode]);
-    this.pendingFocus = undefined;
-    this.focusedSinceData = rect;
-  }
-
-  /** a framed building is focused again as from the list, else the zoom and the middle of the view stay */
+  /** the zoom and the middle of the view stay */
   private setMode(mode: MapMode) {
     if (mode === this.mode) return;
     const size = this.size();
-    const focus = this.data?.focus?.rect;
     if (!size || !this.bounds) this.view = START_VIEW;
-    else if (focus)
-      this.view = centerOn(mode, this.bounds, size.width, size.height, WHOLE_MAP, focus, FOCUS_SIZE[mode]);
     else this.view = switchMode(this.mode, mode, this.bounds, size.width, size.height, this.view);
     this.mode = mode;
     this.options.onMode?.(mode);
@@ -237,7 +231,6 @@ export class CityMap {
 
   draw(): void {
     this.observe();
-    this.applyFocus();
     const c = this.canvas;
     const size = this.size();
     const p = this.projection();
@@ -262,11 +255,6 @@ export class CityMap {
     if (marked) for (const tile of marked.tiles) this.shape(ctx, p, { ...tile, width: 1, length: 1 }, marked.color);
     const gaps = p.scale >= (this.mode === 'iso' ? 8 : 5);
     for (const tile of backToFront(this.mode, this.data.tiles)) this.drawTile(ctx, p, tile, gaps);
-    const focus = this.data.focus;
-    if (focus) {
-      this.outline(ctx, p, focus.rect, BACKGROUND, 6);
-      this.outline(ctx, p, focus.rect, focus.color, 3.5);
-    }
     const hovered = this.data.tiles[this.hovered];
     if (hovered) this.outline(ctx, p, hovered, HOVER, 2);
   }
@@ -274,8 +262,44 @@ export class CityMap {
   /** One building. A later version may draw the game's image of the building into its footprint here. */
   private drawTile(ctx: CanvasRenderingContext2D, p: Projection, tile: MapTile, gaps: boolean) {
     this.shape(ctx, p, tile, tile.fill);
-    if (gaps) this.outline(ctx, p, tile, BACKGROUND, 1);
-    if (tile.outline) this.outline(ctx, p, tile, tile.outline, tile.strong ? 3 : 1.5);
+    // every building keeps a dark border, thinner while the map is small (Nutzer, 2026-10-26)
+    this.outline(ctx, p, tile, BACKGROUND, gaps ? 1 : 0.5);
+    if (tile.badges) this.badges(ctx, p, tile, tile.badges);
+    if (!tile.outline) return;
+    // a strong frame gets a dark seam, so a light frame shows on a light fill too
+    if (tile.strong) this.outline(ctx, p, tile, BACKGROUND, 5);
+    this.outline(ctx, p, tile, tile.outline, tile.strong ? 3 : 1.5);
+  }
+
+  /** the badges side by side in the middle of the building, sized to it within limits */
+  private badges(ctx: CanvasRenderingContext2D, p: Projection, r: TileRect, badges: MapBadge[]) {
+    const mid = toScreen(p, r.x + r.width / 2, r.y + r.length / 2);
+    const side = Math.min(r.width, r.length) * p.scale * (this.mode === 'iso' ? 0.7 : 1);
+    const radius = Math.max(2.5, Math.min(9, side * 0.16));
+    const line = Math.max(1, radius * 0.28);
+    badges.forEach((b, i) => {
+      const x = mid.x + (i - (badges.length - 1) / 2) * radius * 2.6;
+      const y = mid.y;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = BACKGROUND;
+      ctx.fill();
+      ctx.strokeStyle = b.color;
+      ctx.lineWidth = line;
+      ctx.stroke();
+      ctx.beginPath();
+      if (b.symbol === 'check') {
+        ctx.moveTo(x - radius * 0.45, y);
+        ctx.lineTo(x - radius * 0.13, y + radius * 0.35);
+        ctx.lineTo(x + radius * 0.47, y - radius * 0.35);
+      } else {
+        ctx.moveTo(x - radius * 0.5, y + radius * 0.5);
+        ctx.lineTo(x + radius * 0.5, y - radius * 0.5);
+      }
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+    });
   }
 
   private path(ctx: CanvasRenderingContext2D, p: Projection, r: TileRect, inset = 0) {
@@ -338,7 +362,8 @@ export class CityMap {
       const dx = at.x - this.drag.x;
       const dy = at.y - this.drag.y;
       if (Math.abs(dx) + Math.abs(dy) > 3) this.drag.moved = true;
-      if (this.drag.moved) {
+      // the whole city shows at zoom 1, there is nothing to pan
+      if (this.drag.moved && this.drag.view.zoom > 1) {
         this.view = { ...this.drag.view, panX: this.drag.view.panX + dx, panY: this.drag.view.panY + dy };
         this.hover(-1);
         this.draw();
@@ -348,16 +373,22 @@ export class CityMap {
     this.hover(this.tileIndexAt(at.x, at.y), at);
   }
 
+  /** a press starts a drag that pans the map once it moves; one that does not move is a click */
   private pointerDown(e: PointerEvent) {
-    if (this.view.zoom <= 1) return;
+    if (e.button !== 0) return;
     const at = this.local(e);
     this.drag = { ...at, view: this.view, moved: false };
     this.canvas?.setPointerCapture?.(e.pointerId);
   }
 
-  private pointerUp(e: PointerEvent) {
+  private pointerUp(e: PointerEvent, click = true) {
+    const drag = this.drag;
     this.drag = undefined;
     if (this.canvas?.hasPointerCapture?.(e.pointerId)) this.canvas.releasePointerCapture(e.pointerId);
+    if (!click || !drag || drag.moved) return;
+    const at = this.local(e);
+    const tile = this.data.tiles[this.tileIndexAt(at.x, at.y)];
+    if (tile) this.options.onTileClick?.(tile, { shift: e.shiftKey });
   }
 
   private hover(index: number, at?: { x: number; y: number }) {
@@ -386,19 +417,8 @@ export class CityMap {
     this.draw();
   }
 
-  /** the reset button: a framed building is focused again as from the list, else the start view */
+  /** the reset button: the start view */
   private reset() {
-    const size = this.size();
-    const focus = this.data.focus?.rect;
-    if (!focus || !size || !this.bounds) return this.showCity();
-    this.view = centerOn(this.mode, this.bounds, size.width, size.height, WHOLE_MAP, focus, FOCUS_SIZE[this.mode]);
-    this.draw();
-  }
-
-  /** the start view again, dropping a focus still waiting for its data */
-  showCity(): void {
-    this.pendingFocus = undefined;
-    this.focusedSinceData = undefined;
     this.view = START_VIEW;
     this.draw();
   }

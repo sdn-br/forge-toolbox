@@ -13,9 +13,13 @@ export interface VisitedCity extends City {
   visit: VisitInfo;
 }
 
+/** A city the game can show: the own one, or the city of this visited player. */
+export type CityKey = 'own' | PlayerId;
+
 export class CityStore {
   private ownCity?: City;
   private visitedCity?: VisitedCity;
+  private shownCity: CityKey = 'own';
 
   constructor(private bus: ToolboxBus) {}
 
@@ -32,9 +36,29 @@ export class CityStore {
     this.bus.emit('city.ownChanged', { reset: true });
   }
 
+  /**
+   * The city the game shows, as far as its traffic tells: a visit shows that city, the own city returns with
+   * `showOwn`. Going home without a request to the game server stays unseen (docs/features/stadtplan.md).
+   */
+  shown(): CityKey {
+    return this.shownCity;
+  }
+
   setVisited(city: VisitedCity): void {
     this.visitedCity = city;
     this.bus.emit('city.visited', { owner: city.owner });
+    this.show(city.owner);
+  }
+
+  /** the game shows the own city again */
+  showOwn(): void {
+    this.show('own');
+  }
+
+  private show(city: CityKey) {
+    if (city === this.shownCity) return;
+    this.shownCity = city;
+    this.bus.emit('city.shown', { city });
   }
 
   /**

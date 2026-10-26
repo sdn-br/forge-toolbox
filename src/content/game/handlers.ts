@@ -1,6 +1,6 @@
 // Which game response feeds which store, all in one place. A response may have several handlers that each feed their
 // own part, for example `updatePlayer` (players, plunder) and `CityMapService.reset` (plunder, own buildings).
-import { eraId, type PlayerId, type WorldId } from '../../shared/ids';
+import { eraId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import type { Ingestion } from '../core/ingestion';
 import { logInfo } from '../core/log';
@@ -135,7 +135,28 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     if (id !== null) players.removeFriend(world, id);
   });
 
+  // Back in the own city. The game reloads the own city (`CityMapService.getEntities` with `main`) after a battle and
+  // asks for the announcements when it returns from the battle, the battleground or the guild screens (recordings of
+  // 2026-10-19 to 2026-10-20). After a battle from a visited city the same response also brings the visit again, then
+  // the visited city shows. Going home from a visit with the home button sends nothing and stays unseen.
+  let home = false;
+  let visit = false;
+  ingestion.on('CityMapService', 'getEntities', ({ request }) => {
+    // another map (a settlement, a colony) is not the own city
+    if (Array.isArray(request) && request.length > 0 && request[0] !== 'main') return;
+    home = true;
+  });
+  ingestion.on('AnnouncementsService', 'fetchAllAnnouncements', () => {
+    home = true;
+  });
+  ingestion.onBatchEnd(() => {
+    if (home && !visit) cities.showOwn();
+    home = false;
+    visit = false;
+  });
+
   ingestion.on('OtherPlayerService', 'visitPlayer', ({ data }) => {
+    visit = true;
     const d = data as GameVisit;
     const o = d.other_player ? toObservation(d.other_player) : null;
     if (!o || !d.other_player) return;
@@ -211,6 +232,9 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     }
   });
   ingestion.onBatchEnd(() => {
+    const tried =
+      target ?? (plundered && { opponent: playerId(plundered.player_id as number), entityId: plundered.id as number });
+    if ((loot || repelled) && tried) bus.emit('plunder.attempted', tried);
     if (loot && plundered) {
       plunders.record(toPlunder(world, now(), plundered, loot, doubled.has(plundered.id as number)));
     }
@@ -274,6 +298,12 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   };
   ingestion.on('CityMapService', 'updateEntity', updateBuildings);
   ingestion.on('CityMapService', 'reset', updateBuildings);
+  // A harvest (pickupProduction) and a start (startProduction) bring the buildings in their new state as
+  // `updatedEntities` of a CityProductionResult, without a CityMapService entry (seen 2026-10-23 and 2026-10-26). An
+  // item that finishes a production answers with CityMapService.updateEntity, read above.
+  ingestion.onService('CityProductionService', ({ data }) => {
+    updateBuildings({ data: (data as { updatedEntities?: unknown } | null)?.updatedEntities });
+  });
   ingestion.onMeta('building_entity_', (file) => {
     if (file.name === 'building_entity_lookup') return;
     const def = toBuildingDef(file.json);

@@ -32,7 +32,20 @@ function setup() {
       response: JSON.stringify(json),
       at: 0,
     });
-  return { session, players, cities, catalog, resources, research, events, send, meta };
+  /** one response with several entries, as the game bundles them */
+  const sendAll = (...entries: [string, string, unknown, unknown?][]) =>
+    ingestion.accept({
+      kind: 'json',
+      url: '/game/json?h=1',
+      request: JSON.stringify(
+        entries.map(([requestClass, requestMethod, , requestData]) => ({ requestClass, requestMethod, requestData })),
+      ),
+      response: JSON.stringify(
+        entries.map(([requestClass, requestMethod, responseData]) => ({ requestClass, requestMethod, responseData })),
+      ),
+      at: 0,
+    });
+  return { session, players, cities, catalog, resources, research, events, send, sendAll, meta };
 }
 
 const house = (id: number, owner: number, state: object) => ({
@@ -56,6 +69,31 @@ describe('game handlers', () => {
     expect(session.current).toMatchObject({ playerId: 7, name: 'Me', guild: { id: 3, name: 'G' } });
     expect(cities.own()?.buildings.get(1)?.state).toEqual({ kind: 'idle' });
     expect(events).toEqual(['ownReset']);
+  });
+
+  it('takes the buildings in their new state from a harvest and a production start', () => {
+    const { cities, send } = setup();
+    send('StartupService', 'getData', {
+      user_data: { player_id: 7 },
+      city_map: { entities: [house(1, 7, { __class__: 'ProductionFinishedState' })] },
+    });
+    send(
+      'CityProductionService',
+      'pickupProduction',
+      { updatedEntities: [house(1, 7, { __class__: 'IdleState' })], __class__: 'CityProductionResult' },
+      [[1]],
+    );
+    expect(cities.own()?.buildings.get(1)?.state).toEqual({ kind: 'idle' });
+    send(
+      'CityProductionService',
+      'startProduction',
+      {
+        updatedEntities: [house(1, 7, { __class__: 'ProducingState', next_state_transition_at: 2000 })],
+        __class__: 'CityProductionResult',
+      },
+      [[1, 1]],
+    );
+    expect(cities.own()?.buildings.get(1)?.state).toMatchObject({ kind: 'producing', readyAt: 2_000_000 });
   });
 
   it('keeps the unlocked areas of the city, with coordinates the game leaves out as 0', () => {
@@ -295,5 +333,44 @@ describe('game handlers', () => {
     send('ArmyUnitManagementService', 'getArmyInfo', {});
     send('ArmyUnitManagementService', 'getArmyInfo', {}, [{ __class__: 'Other' }]);
     expect(events).toEqual(['army:pvp', 'army:gvg']);
+  });
+
+  describe('the city the game shows', () => {
+    const visit = (owner: number): [string, string, unknown] => [
+      'OtherPlayerService',
+      'visitPlayer',
+      { other_player: { player_id: owner }, city_map: { entities: [] } },
+    ];
+
+    it('follows a visit and the own city reloaded after a battle', () => {
+      const { cities, send, sendAll } = setup();
+      expect(cities.shown()).toBe('own');
+      sendAll(visit(42));
+      expect(cities.shown()).toBe(42);
+      send('CityMapService', 'getEntities', [], ['main']);
+      expect(cities.shown()).toBe('own');
+    });
+
+    it('takes the announcements as the return to the own city', () => {
+      const { cities, send, sendAll } = setup();
+      sendAll(visit(42));
+      send('AnnouncementsService', 'fetchAllAnnouncements', []);
+      expect(cities.shown()).toBe('own');
+    });
+
+    it('stays in the visited city when the own city comes in the same response as the visit', () => {
+      // after a battle from a visited city the game reloads the own city and visits again (recorded 2026-10-20)
+      const { cities, sendAll } = setup();
+      sendAll(visit(42));
+      sendAll(['CityMapService', 'getEntities', [], ['main']], visit(42));
+      expect(cities.shown()).toBe(42);
+    });
+
+    it('does not take the map of a settlement for the own city', () => {
+      const { cities, send, sendAll } = setup();
+      sendAll(visit(42));
+      send('CityMapService', 'getEntities', [], ['cultural_outpost']);
+      expect(cities.shown()).toBe(42);
+    });
   });
 });
