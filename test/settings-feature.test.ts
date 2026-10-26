@@ -114,37 +114,45 @@ describe('settings box: copy from another profile', () => {
     'ui.boxes:de10:3': { pvp: { x: 5 } },
   };
 
-  it('copies only on the second click, then reloads the game', async () => {
-    const { env, copySelect, button } = await open(storage);
+  const question = (box: { root: ParentNode }) => box.root.querySelector('p.warn');
+  const answer = (box: { root: ParentNode }, label: string) =>
+    [...(question(box)?.querySelectorAll('button') ?? [])].find((b) => b.textContent === label) as HTMLButtonElement;
+
+  it('asks in a line naming the profile, copies on the answer, then reloads the game', async () => {
+    const { env, box, copySelect, button } = await open(storage);
     expect([...(copySelect()?.options ?? [])].map((o) => o.textContent)).toEqual(['de10 · 3', 'de20 · Zweit']);
-    expect(button().textContent).toBe('Übernehmen');
+    expect(question(box)).toBeNull();
     button().click();
     await tick();
-    expect(button().textContent).toBe('Wirklich übernehmen?');
+    expect(question(box)?.textContent).toContain('durch die von de10 · 3 ersetzen?');
     expect(env.reloads).toBe(0);
-    button().click();
+    answer(box, 'Übernehmen').click();
     await tick();
     expect(env.reloads).toBe(1);
     expect(env.storage.data.get('settings:de20:1')).toEqual({ b: true });
     expect(env.storage.data.get('ui.boxes:de20:1')).toEqual({ pvp: { x: 5 } });
   });
 
-  it('asks anew after a change of the choice or of the box, and copies the profile chosen', async () => {
+  it('keeps the question through redraws, drops it on cancel or another choice', async () => {
     const { env, box, copySelect, button } = await open(storage);
+    button().click();
+    await tick();
+    box.box.update();
+    expect(question(box)).not.toBeNull();
+    answer(box, 'Abbrechen').click();
+    await tick();
+    expect(question(box)).toBeNull();
     button().click();
     await tick();
     const select = copySelect() as HTMLSelectElement;
     select.value = 'de20:2';
     select.dispatchEvent(new Event('change'));
     await tick();
-    expect(button().textContent).toBe('Übernehmen');
+    expect(question(box)).toBeNull();
     button().click();
     await tick();
-    box.box.update();
-    expect(button().textContent).toBe('Übernehmen');
-    button().click();
-    await tick();
-    button().click();
+    expect(question(box)?.textContent).toContain('de20 · Zweit');
+    answer(box, 'Übernehmen').click();
     await tick();
     expect(env.reloads).toBe(1);
     expect(env.storage.data.get('settings:de20:1')).toEqual({ a: true });

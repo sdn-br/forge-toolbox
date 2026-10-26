@@ -76,8 +76,9 @@ const openDataPage = () =>
 const profileKey = ({ profile }: OtherProfile) => `${profile.world}:${profile.player}`;
 
 /**
- * "Einstellungen von einem anderen Profil übernehmen": a choice of the other profiles and a button that asks once more before it copies.
- * The question lasts one drawing of the box: any other change of the box, of the choice included, asks anew.
+ * "Einstellungen von einem anderen Profil übernehmen": a choice of the other profiles and a button that asks once more
+ * in a line of its own, naming the profile. The question stays through redraws of the box until it is answered or
+ * another profile is chosen; a question that lasted one drawing only was gone again when a click raised the box.
  */
 function copyControl(copy: ProfileCopy, update: () => void) {
   let others: OtherProfile[] | undefined;
@@ -93,6 +94,10 @@ function copyControl(copy: ProfileCopy, update: () => void) {
       })
       .catch((error) => logError('reading the profiles failed', error));
   };
+  const ask = (value: boolean) => {
+    asking = value;
+    update();
+  };
   return () => {
     if (!others) {
       // read once per page load; a new profile comes with a game start, and that is a page load of its own
@@ -103,22 +108,19 @@ function copyControl(copy: ProfileCopy, update: () => void) {
     if (!others.length) return '';
     const list = others;
     const from = list.find((p) => profileKey(p) === chosen) ?? (list[0] as OtherProfile);
-    const confirm = asking;
-    asking = false;
-    const click = () => {
-      if (!confirm) {
-        asking = true;
-        update();
-        return;
-      }
-      copy.copyFrom(from.profile).catch((error) => logError('copying the settings failed', error));
-    };
+    const copyNow = () => copy.copyFrom(from.profile).catch((error) => logError('copying the settings failed', error));
     return html`<label>${t('settings.copyFrom')}<select @change=${(e: Event) => {
       chosen = (e.target as HTMLSelectElement).value;
-      update();
+      ask(false);
     }}>${list.map((p) => html`<option value=${profileKey(p)} .selected=${p === from}>${profileLabel(p)}</option>`)}</select></label>
-      <button class="action" @click=${click}>${t(confirm ? 'settings.copyConfirm' : 'settings.copy')}</button>
-      <p class="muted setting-hint">${t('settings.copyHint')}</p>`;
+      ${
+        asking
+          ? html`<p class="warn">${t('settings.copyConfirm', { profile: profileLabel(from) })}
+              <button class="action" @click=${copyNow}>${t('settings.copy')}</button>
+              <button class="action" @click=${() => ask(false)}>${t('settings.copyCancel')}</button></p>`
+          : html`<button class="action" @click=${() => ask(true)}>${t('settings.copy')}</button>
+              <p class="muted setting-hint">${t('settings.copyHint')}</p>`
+      }`;
   };
 }
 
