@@ -119,7 +119,8 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
   - Entschieden 2026-10-24 (Nutzer, erst einmal so, später verfeinern): Icons bekommen Seitenwechsel im PvP (‹ ›), das ✕ am Spielerfilter im PvP (Text bleibt), Seite und Gruppe löschen in den Notizen (Mülleimer), Spieler hinzufügen (Person mit +), Seite hinzufügen (Blatt mit +), Schließen der Spielerauswahl (✕ wie im Boxkopf), Aufnahme speichern (Download, Zahl daneben), Powerleveln öffnen (kleines LG » großes LG). Text behalten: Löschen und Abbrechen in Rückfragen (Klartext ist dort sicherer), „Laufend X → X+1“ (die Stufe ist die Information), Reiter und Faktor-Knöpfe.
   - Gewählt aus der Icon-Vorschau (Nutzer, 2026-10-25): Gewinn als FP-Münze mit drei steigenden Pfeilen in Akzent (Spaltenkopf „Gewinn“ in Snipehilfe und beiden Reitern der Investitionen), „nicht erreichbar“ als durchgestrichene Person, „Nur diesen Spieler zeigen“ als Trichter.
   - Gewählt aus der Icon-Vorschau (Nutzer, 2026-10-25): Menü-Icon der Gebäudesuche als Haus mit Lupe in Akzent rechts unten (nur die eigene Stadt).
-  - Menü-Icon des Stadtplans (gefaltete Karte mit Lupe) überarbeiten (Nutzer, 2026-10-25): Es liegt zu nah am neuen Icon der Gebäudesuche.
+  - Menü-Icon des Stadtplans (gefaltete Karte mit Lupe) überarbeiten (Nutzer, 2026-10-25): Es liegt zu nah am neuen Icon der Gebäudesuche. Zurückgestellt (Nutzer, 2026-10-26), bis der Stadtplan zum Feature Stadtinformation ausgebaut wird, die Karte ist dann nur ein Teil davon.
+  - Knopf „Daten verwalten“ in den Einstellungen (Allgemein, Abschnitt „Daten“), eventuell ein Icon (Nutzer, 2026-10-26).
 - Styles so gekapselt, dass Spiel-CSS und Toolbox-CSS sich nicht beeinflussen (zu prüfen: Shadow DOM).
 
 ### Settings
