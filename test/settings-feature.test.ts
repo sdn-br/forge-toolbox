@@ -99,7 +99,7 @@ describe('settings box: copy from another profile', () => {
     const box = env.boxes.get('settings') as NonNullable<ReturnType<typeof env.boxes.get>>;
     const copySelect = () =>
       [...box.root.querySelectorAll('label')]
-        .find((l) => l.textContent?.trim().startsWith('Einstellungen übernehmen von'))
+        .find((l) => l.textContent?.trim().startsWith('Einstellungen von einem anderen Profil übernehmen'))
         ?.querySelector('select') as HTMLSelectElement | undefined;
     const button = () =>
       [...box.root.querySelectorAll('button')].find((b) => b.textContent?.includes('bernehmen')) as HTMLButtonElement;

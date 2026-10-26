@@ -76,7 +76,7 @@ const openDataPage = () =>
 const profileKey = ({ profile }: OtherProfile) => `${profile.world}:${profile.player}`;
 
 /**
- * "Einstellungen übernehmen von": a choice of the other profiles and a button that asks once more before it copies.
+ * "Einstellungen von einem anderen Profil übernehmen": a choice of the other profiles and a button that asks once more before it copies.
  * The question lasts one drawing of the box: any other change of the box, of the choice included, asks anew.
  */
 function copyControl(copy: ProfileCopy, update: () => void) {
