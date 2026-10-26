@@ -117,7 +117,10 @@ function main() {
   document.documentElement.style.overscrollBehaviorX = 'none';
 
   onExtensionLost(() => {
-    menu.showNotice(t('core.extensionLost'));
+    menu.showNotice(t('core.extensionLost'), [
+      { label: t('core.reload'), action: () => location.reload() },
+      { label: t('core.later'), action: () => menu.hideNotice() },
+    ]);
     // lost before the startup data came, the profile never loads; the notice still has to show
     mountMenu();
   });

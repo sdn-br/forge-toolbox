@@ -10,6 +10,11 @@ export interface MenuItem {
   action: () => void;
 }
 
+export interface NoticeAction {
+  label: string;
+  action: () => void;
+}
+
 const menuCss = `
 /* bottom right corner: the game's own buttons fill the right edge from the top down */
 :host { --menu-icon: 35px; }
@@ -31,7 +36,11 @@ const menuCss = `
   transition-delay: 0s; }
 @media (prefers-reduced-motion: reduce) { .items { transition: none; } }
 .notice { position: fixed; right: calc(var(--menu-icon) + 24px); bottom: 4px; z-index: 2147479999; max-width: 240px;
-  padding: 6px 8px; background: #6a2010; color: var(--ink); border: 1px solid #8a6a3a; border-radius: 6px; }
+  padding: 6px 8px; font: 12px/1.4 system-ui, sans-serif; background: #6a2010; color: var(--ink); border: 1px solid #8a6a3a;
+  border-radius: 6px; }
+.notice p { margin: 0; }
+/* equal columns, so both buttons take the width of the longer label */
+.notice .actions { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; justify-content: end; margin-top: 6px; }
 `;
 
 /**
@@ -40,7 +49,7 @@ const menuCss = `
  */
 export class Menu {
   private items: MenuItem[] = [];
-  private notice = '';
+  private notice: { text: string; actions: NoticeAction[] } | null = null;
   private host = document.createElement('div');
   private shadow = this.host.attachShadow({ mode: 'open' });
 
@@ -53,9 +62,14 @@ export class Menu {
     this.render();
   }
 
-  /** a message next to the menu that stays until the page reloads */
-  showNotice(text: string): void {
-    this.notice = text;
+  /** a message next to the menu that stays until the page reloads or an action hides it */
+  showNotice(text: string, actions: NoticeAction[] = []): void {
+    this.notice = { text, actions };
+    this.render();
+  }
+
+  hideNotice(): void {
+    this.notice = null;
     this.render();
   }
 
@@ -79,7 +93,20 @@ export class Menu {
           </div>
           <button class="handle" aria-label="Forge Toolbox">${toolboxIcon}</button>
         </nav>
-        ${this.notice ? html`<p class="notice">${this.notice}</p>` : ''}`,
+        ${
+          this.notice
+            ? html`<div class="notice" role="alert">
+                <p>${this.notice.text}</p>
+                ${
+                  this.notice.actions.length
+                    ? html`<div class="actions">
+                        ${this.notice.actions.map((a) => html`<button class="action" @click=${a.action}>${a.label}</button>`)}
+                      </div>`
+                    : ''
+                }
+              </div>`
+            : ''
+        }`,
       this.shadow,
     );
   }
