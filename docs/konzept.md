@@ -122,6 +122,7 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
   - Menü-Icon des Stadtplans (gefaltete Karte mit Lupe) überarbeiten (Nutzer, 2026-10-25): Es liegt zu nah am neuen Icon der Gebäudesuche. Zurückgestellt (Nutzer, 2026-10-26), bis der Stadtplan zum Feature Stadtinformation ausgebaut wird, die Karte ist dann nur ein Teil davon.
   - Knopf „Daten verwalten“ in den Einstellungen (Allgemein, Abschnitt „Daten“), eventuell ein Icon (Nutzer, 2026-10-26).
   - Knopf „Übernehmen“ bei „Einstellungen von einem anderen Profil übernehmen“ (Allgemein, Abschnitt „Daten“), vielleicht ein Icon (Nutzer, 2026-10-26). Die Knöpfe der Rückfrage behalten Text.
+  - Knopf „Importieren“ und die Dateiauswahl auf der Seite „Daten verwalten“, vielleicht ein Icon (Nutzer, 2026-10-27).
 - Styles so gekapselt, dass Spiel-CSS und Toolbox-CSS sich nicht beeinflussen (zu prüfen: Shadow DOM).
 
 ### Settings
