@@ -142,6 +142,7 @@ export const de = {
   'plunder.countOne': '1 Plünderung',
   'plunder.repelledCount': '{count} abgewehrt',
   'plunder.fp': '{fp} FP',
+  'incoming.battle': 'Kampf',
   'incoming.broken': 'Kampf: durchbrochen',
   'incoming.held': 'Kampf: gehalten',
   'incoming.plunder': 'Plünderung: {building}',
