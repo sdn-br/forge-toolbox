@@ -21,4 +21,24 @@ describe('extension context', () => {
     expect(() => assertAlive()).toThrow(ExtensionLostError);
     expect(notified).toBe(1);
   });
+
+  it('watches for the loss without any call, so the notice shows in every scene', async () => {
+    vi.useFakeTimers();
+    vi.resetModules();
+    const context = await import('../src/content/core/extension-context');
+    const runtime: { id?: string } = { id: 'abc' };
+    vi.stubGlobal('chrome', { runtime });
+    let notified = 0;
+    context.onExtensionLost(() => notified++);
+    context.watchExtension(2_000);
+
+    delete runtime.id;
+    vi.advanceTimersByTime(1_999);
+    expect(notified).toBe(0);
+    vi.advanceTimersByTime(1);
+    expect(notified).toBe(1);
+    // stops once lost
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
 });

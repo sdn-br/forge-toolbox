@@ -6,7 +6,8 @@ export const de = {
   'box.unpin': 'Lösen',
   'box.popout': 'In eigenem Fenster öffnen',
   'box.resize': 'Größe ändern (Doppelklick: Standardgröße)',
-  'core.extensionLost': 'Die Toolbox wurde aktualisiert. Bis das Spiel neu geladen ist, wird nichts gespeichert.',
+  'core.extensionLost':
+    'Die Toolbox wurde neu geladen oder abgeschaltet. Bis das Spiel neu geladen ist, wird nichts gespeichert.',
   'core.reload': 'Neu laden',
   'core.later': 'Später',
   'menu.settings': 'Einstellungen',

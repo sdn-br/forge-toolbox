@@ -6,7 +6,7 @@ import type { Profile } from '../shared/profile';
 import type { Traffic } from '../shared/proxy-protocol';
 import { watchArmyTarget, windowArmyLink } from './core/army-target';
 import { createBus } from './core/events';
-import { extensionAlive, onExtensionLost } from './core/extension-context';
+import { extensionAlive, onExtensionLost, watchExtension } from './core/extension-context';
 import { boxFactory, type Feature, type FeatureContext } from './core/feature';
 import { Ingestion } from './core/ingestion';
 import { chromeLocal, profileKv } from './core/kv';
@@ -124,6 +124,7 @@ function main() {
     // lost before the startup data came, the profile never loads; the notice still has to show
     mountMenu();
   });
+  watchExtension(2_000);
   const gate = startupGate(world, (profile, name) => start(profile, name, menu));
   // like the old toolbox, the menu shows once the features have seen the held traffic
   gate.started.then(mountMenu);
