@@ -25,3 +25,13 @@ export function assertAlive(): void {
 export function onExtensionLost(listener: () => void): void {
   listeners.add(listener);
 }
+
+/**
+ * Checks every `everyMs` until the extension is gone. The other checks only run on game traffic or a save, and a scene
+ * like the GbG map can stay quiet for minutes. Background tabs get their timers throttled, the notice then comes late.
+ */
+export function watchExtension(everyMs: number): void {
+  const timer = setInterval(() => {
+    if (!extensionAlive()) clearInterval(timer);
+  }, everyMs);
+}
