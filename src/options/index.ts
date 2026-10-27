@@ -12,13 +12,21 @@ import {
 } from '../backup/collect';
 import { type BackupFile, backupFileName } from '../backup/format';
 import { gzipJson } from '../backup/gzip';
-import { type ImportChoice, type ImportCounts, importBackup, importChoices, readBackupFile } from '../backup/import';
-import type { Area } from '../backup/merge';
+import {
+  type ImportChoice,
+  type ImportCounts,
+  type ImportMode,
+  importBackup,
+  importChoices,
+  readBackupFile,
+  replaceSummary,
+} from '../backup/import';
+import { type Area, DATA_AREAS } from '../backup/merge';
 import { logError } from '../content/core/log';
 import { formatNumber, t } from '../content/core/texts';
 import type { WorldId } from '../shared/ids';
 import { dataImported } from '../shared/messages';
-import { profileStorageKey } from '../shared/profile';
+import { type Profile, profileStorageKey } from '../shared/profile';
 
 const getStorage = (keys: string[] | null) => chrome.storage.local.get(keys);
 
@@ -47,6 +55,10 @@ interface PageState {
   exportStatus: string;
   /** the file read for the import and the choice per profile, same order */
   file: { backup: BackupFile; choices: ImportChoice[] } | null;
+  /** "Zusammenführen" or "Ersetzen"; every file read starts with merging */
+  importMode: ImportMode;
+  /** the confirmation before replacing is shown */
+  importAsking: boolean;
   importBusy: boolean;
   importStatus: string;
 }
@@ -57,6 +69,8 @@ const state: PageState = {
   exportBusy: false,
   exportStatus: '',
   file: null,
+  importMode: 'merge',
+  importAsking: false,
   importBusy: false,
   importStatus: '',
 };
@@ -105,7 +119,7 @@ function startExport() {
 }
 
 async function readFile(file: File) {
-  update({ file: null, importStatus: t('data.reading') });
+  update({ file: null, importMode: 'merge', importAsking: false, importStatus: t('data.reading') });
   const read = await readBackupFile(file);
   if (!read.ok) {
     update({ importStatus: t(`data.error.${read.error}`) });
@@ -133,8 +147,9 @@ function startImport() {
     profile: c.profile,
     areas: new Set((Object.keys(c.checked) as Area[]).filter((a) => c.checked[a])),
   }));
-  update({ importBusy: true, importStatus: t('data.importing') });
-  importBackup(items, file.backup.createdAt, { open: openDb, get: getStorage, set: (i) => chrome.storage.local.set(i) })
+  update({ importBusy: true, importAsking: false, importStatus: t('data.importing') });
+  const env = { open: openDb, get: getStorage, set: (i: Record<string, unknown>) => chrome.storage.local.set(i) };
+  importBackup(items, file.backup.createdAt, env, state.importMode)
     .then((counts) => {
       update({ importStatus: importedText(counts) });
       // the open game tabs hold the old rows in memory; the service worker asks them to reload
@@ -192,10 +207,15 @@ const AREAS: { area: Area; label: () => string }[] = [
   { area: 'settings', label: () => t('data.area.settings') },
 ];
 
+/** a data area without rows in the file can be chosen only for replacing, it then ends up empty */
+const choosable = (choice: ImportChoice, area: Area) =>
+  choice.importable &&
+  (choice.counts[area] > 0 || (state.importMode === 'replace' && (DATA_AREAS as readonly Area[]).includes(area)));
+
 function choiceRow(choice: ImportChoice): TemplateResult {
   const toggle = (area: Area) => (e: Event) => {
     choice.checked[area] = (e.target as HTMLInputElement).checked;
-    update();
+    update({ importAsking: false });
   };
   return html`<tr>
     <th scope="row">
@@ -209,7 +229,7 @@ function choiceRow(choice: ImportChoice): TemplateResult {
             type="checkbox"
             aria-label=${label()}
             .checked=${choice.checked[area]}
-            ?disabled=${!choice.importable || choice.counts[area] === 0}
+            ?disabled=${!choosable(choice, area)}
             @change=${toggle(area)}
           />
           ${formatNumber(choice.counts[area])}</label
@@ -219,8 +239,73 @@ function choiceRow(choice: ImportChoice): TemplateResult {
   </tr>`;
 }
 
+/** switching to merging unchecks the areas it cannot take, the ones without rows */
+function setMode(mode: ImportMode) {
+  if (mode === 'merge') {
+    for (const choice of state.file?.choices ?? []) {
+      for (const area of DATA_AREAS) if (choice.counts[area] === 0) choice.checked[area] = false;
+    }
+  }
+  update({ importMode: mode, importAsking: false });
+}
+
+function modeSwitch(): TemplateResult {
+  const option = (mode: ImportMode, label: string) =>
+    html`<label
+      ><input
+        type="radio"
+        name="import-mode"
+        .checked=${state.importMode === mode}
+        @change=${() => setMode(mode)}
+      />
+      ${label}</label
+    >`;
+  return html`<p class="mode">
+      ${t('data.mode')}: ${option('merge', t('data.modeMerge'))} ${option('replace', t('data.modeReplace'))}
+    </p>
+    ${state.importMode === 'replace' ? html`<p class="hint">${t('data.modeReplaceHint')}</p>` : ''}`;
+}
+
+/** the profiles that exist here; while they load, every profile counts as existing */
+const existsHere = (profile: Profile) => state.sources?.some((s) => s.key === sourceKey(profile)) ?? true;
+
+const areaLabel = (area: Area) => AREAS.find((a) => a.area === area)?.label() ?? area;
+
+/** the button, or in the mode "Ersetzen" the question naming per profile what gets emptied */
+function importAction(chosen: boolean): TemplateResult {
+  const { file, importBusy, importMode, importAsking } = state;
+  const summary = file && importMode === 'replace' ? replaceSummary(file.choices, existsHere) : [];
+  if (importAsking && summary.length) {
+    return html`<div class="warn">
+      <p>${t('data.replaceConfirm')}</p>
+      <ul>
+        ${summary.map(
+          ({ profile, areas }) =>
+            html`<li>
+              ${t('data.replaceProfile', {
+                profile: profileLabel(profile),
+                areas: areas
+                  .map(({ area, empty }) =>
+                    empty ? t('data.replaceAreaEmpty', { area: areaLabel(area) }) : areaLabel(area),
+                  )
+                  .join(', '),
+              })}
+            </li>`,
+        )}
+      </ul>
+      <p>
+        <button ?disabled=${importBusy} @click=${startImport}>${t('data.replaceButton')}</button>
+        <button @click=${() => update({ importAsking: false })}>${t('data.replaceCancel')}</button>
+      </p>
+    </div>`;
+  }
+  // nothing to empty (only profiles new here or only settings): no question needed
+  const run = summary.length ? () => update({ importAsking: true }) : startImport;
+  return html`<button ?disabled=${importBusy || !chosen} @click=${run}>${t('data.importButton')}</button>`;
+}
+
 function importSection(): TemplateResult {
-  const { file, importBusy } = state;
+  const { file } = state;
   const chosen = file?.choices.some((c) => Object.values(c.checked).some(Boolean)) ?? false;
   const pick = (e: Event) => {
     const input = e.target as HTMLInputElement;
@@ -237,7 +322,7 @@ function importSection(): TemplateResult {
     <p><input type="file" accept=".gz,.json,application/gzip,application/json" @change=${pick} /></p>
     ${
       file
-        ? html`<table class="choices">
+        ? html`${modeSwitch()}<table class="choices">
             <thead>
               <tr>
                 <th scope="col">${t('data.profile')}</th>
@@ -248,7 +333,7 @@ function importSection(): TemplateResult {
               ${file.choices.map(choiceRow)}
             </tbody>
           </table>
-          <button ?disabled=${importBusy || !chosen} @click=${startImport}>${t('data.importButton')}</button>`
+          ${importAction(chosen)}`
         : ''
     }
     <p class="status" role="status">${state.importStatus}</p>
