@@ -190,7 +190,7 @@ describe('openBackupSources', () => {
     for (const { name } of await indexedDB.databases()) if (name?.startsWith('forge-toolbox')) await Dexie.delete(name);
   });
 
-  it('gives one entry per profile database, with the settings of the profile', async () => {
+  it('gives one entry per profile database, with the settings and the name of the profile', async () => {
     const a = openDb('forge-toolbox:de20:1');
     const b = openDb('forge-toolbox:de20:2');
     await a.battles.put(battle(de20, 1, 11));
@@ -198,14 +198,20 @@ describe('openBackupSources', () => {
     a.close();
     b.close();
 
-    opened = await openBackupSources(storage({ 'settings:de20:1': { x: true }, settings: { old: true } }));
+    opened = await openBackupSources(
+      storage({
+        'settings:de20:1': { x: true },
+        'profile:de20:1': { name: 'Ich', seenAt: 1 },
+        settings: { old: true },
+      }),
+    );
     const backup = await collectBackup(opened, 1000);
 
     expect(
-      backup.profiles.map((p) => [p.world, p.player, p.settings, p.tables.battles.map((x) => x.battleId)]),
+      backup.profiles.map((p) => [p.world, p.player, p.name, p.settings, p.tables.battles.map((x) => x.battleId)]),
     ).toEqual([
-      [de20, 1, { x: true }, [1]],
-      [de20, 2, undefined, [2]],
+      [de20, 1, 'Ich', { x: true }, [1]],
+      [de20, 2, undefined, undefined, [2]],
     ]);
   });
 

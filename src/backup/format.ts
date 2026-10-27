@@ -40,6 +40,8 @@ export interface BackupProfile {
    * profile has taken over yet
    */
   player?: PlayerId;
+  /** the own player name the profile last started with (`profile:<world>:<player>`), when it is known */
+  name?: string;
   /**
    * the stored settings of the profile (`chrome.storage.local` key `settings:<world>:<player>`), when there are any;
    * without a player the global settings of the time before profiles
@@ -54,6 +56,24 @@ export interface BackupFile {
   createdAt: number;
   profiles: BackupProfile[];
 }
+
+const playerKey = (world: string, id: number) => `${world}|${id}`;
+
+/** The players the rows refer to, as `world|id`; a table left out refers to none. */
+export function referencedPlayers(tables: Partial<Omit<BackupTables, 'players' | 'noteGroups'>>): Set<string> {
+  const keys = new Set<string>();
+  for (const b of tables.battles ?? []) keys.add(playerKey(b.world, b.opponent));
+  for (const p of tables.plunders ?? []) keys.add(playerKey(p.world, p.opponent));
+  for (const a of tables.incoming ?? []) keys.add(playerKey(a.world, a.attacker));
+  for (const p of tables.notePages ?? []) if (p.player !== undefined) keys.add(playerKey(p.world, p.player));
+  for (const s of tables.cityShields ?? []) keys.add(playerKey(s.world, s.player));
+  for (const b of tables.greatBuildings ?? []) keys.add(playerKey(b.world, b.owner));
+  return keys;
+}
+
+/** Of `players`, the ones `referenced` names and the ones the session player marked or ignored. */
+export const playersToKeep = (players: Player[], referenced: Set<string>): Player[] =>
+  players.filter((p) => p.marked || p.ignored || referenced.has(playerKey(p.world, p.id)));
 
 /** `forge-toolbox-backup-2026-10-26.json.gz`, by the local day */
 export function backupFileName(at: number): string {

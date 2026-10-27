@@ -3,17 +3,25 @@ import { hasOwnContribution, isFlagged } from '../persistence/great-buildings/me
 import type { PlayerId, WorldId } from '../shared/ids';
 import { LEGACY_DB, profileOfDbName, profileStorageKey } from '../shared/profile';
 import type { BackupFile, BackupProfile, BackupTables } from './format';
-import { BACKUP_FORMAT, BACKUP_VERSION } from './format';
+import { BACKUP_FORMAT, BACKUP_VERSION, playersToKeep, referencedPlayers } from './format';
 
 /** Where the rows of one entry come from: a profile's database, or one world of the old database. */
 export interface BackupSource {
   world: WorldId;
   player?: PlayerId;
+  /** the own player name of the profile, when it is stored */
+  name?: string;
   db: ToolboxDb;
   settings?: Record<string, unknown>;
 }
 
-const playerKey = (world: string, id: number) => `${world}|${id}`;
+/** `de20:12345`, `de20:` for a world of the old database; tells the sources apart in a selection */
+export const sourceKey = ({ world, player }: { world: WorldId; player?: PlayerId }): string =>
+  `${world}:${player ?? ''}`;
+
+/** the sources whose key is in `keys`, for an export of the chosen profiles only */
+export const selectSources = (sources: BackupSource[], keys: ReadonlySet<string>): BackupSource[] =>
+  sources.filter((s) => keys.has(sourceKey(s)));
 
 /** Reads what the backup holds from the databases, one entry per source. */
 export async function collectBackup(sources: BackupSource[], now: number): Promise<BackupFile> {
@@ -25,10 +33,14 @@ export async function collectBackup(sources: BackupSource[], now: number): Promi
   };
 }
 
-async function collectProfile({ world, player, db, settings }: BackupSource, now: number): Promise<BackupProfile> {
+async function collectProfile(
+  { world, player, name, db, settings }: BackupSource,
+  now: number,
+): Promise<BackupProfile> {
   return {
     world,
     ...(player !== undefined && { player }),
+    ...(name && { name }),
     ...(settings && { settings }),
     tables: await collectTables(db, world, now),
   };
@@ -52,14 +64,8 @@ async function collectTables(db: ToolboxDb, world: WorldId, now: number): Promis
   const cityShields = shields.filter((s) => s.expiresAt > now);
   const greatBuildings = buildings.filter((b) => isFlagged(b) || hasOwnContribution(b));
 
-  const referenced = new Set<string>();
-  for (const b of battles) referenced.add(playerKey(b.world, b.opponent));
-  for (const p of plunders) referenced.add(playerKey(p.world, p.opponent));
-  for (const a of incoming) referenced.add(playerKey(a.world, a.attacker));
-  for (const p of notePages) if (p.player !== undefined) referenced.add(playerKey(p.world, p.player));
-  for (const s of cityShields) referenced.add(playerKey(s.world, s.player));
-  for (const b of greatBuildings) referenced.add(playerKey(b.world, b.owner));
-  const players = allPlayers.filter((p) => p.marked || p.ignored || referenced.has(playerKey(p.world, p.id)));
+  const referenced = referencedPlayers({ battles, plunders, incoming, notePages, cityShields, greatBuildings });
+  const players = playersToKeep(allPlayers, referenced);
 
   return { battles, plunders, incoming, noteGroups, notePages, cityShields, greatBuildings, players };
 }
@@ -77,8 +83,16 @@ export async function openBackupSources(
     const profile = profileOfDbName(name);
     if (!profile) continue;
     const key = profileStorageKey('settings', profile);
-    const settings = (await getStorage([key]))[key] as Record<string, unknown> | undefined;
-    sources.push({ ...profile, db: openDb(name), ...(settings && { settings }) });
+    const nameKey = profileStorageKey('profile', profile);
+    const stored = await getStorage([key, nameKey]);
+    const settings = stored[key] as Record<string, unknown> | undefined;
+    const own = (stored[nameKey] as { name?: unknown } | undefined)?.name;
+    sources.push({
+      ...profile,
+      ...(typeof own === 'string' && own && { name: own }),
+      db: openDb(name),
+      ...(settings && { settings }),
+    });
   }
   // checked by name: opening the old database would create it again after the takeover deleted it
   if (names.includes(LEGACY_DB)) {
