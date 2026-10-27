@@ -9,4 +9,8 @@ export interface BackupApi {
   'backup.tables': { arg: { world: WorldId }; result: BackupTables };
   /** merges the chosen data areas of a profile entry; settings are left to the caller */
   'backup.merge': { arg: { entry: BackupProfile; areas: Area[] }; result: ImportedRows };
+  /** rows per area of old toolbox data the profile does not hold yet */
+  'backup.legacyCounts': { arg: { entry: BackupProfile }; result: Record<Area, number> };
+  /** merges the chosen areas of old toolbox data, leaving out what the profile holds already */
+  'backup.mergeLegacy': { arg: { entry: BackupProfile; areas: Area[] }; result: ImportedRows };
 }

@@ -35,7 +35,7 @@ interface Relations {
   friend: boolean;
 }
 
-type PlayerSource = 'socialList' | 'visit' | 'update' | 'ranking' | 'gbg' | 'event' | 'friend';
+type PlayerSource = 'socialList' | 'visit' | 'update' | 'ranking' | 'gbg' | 'event' | 'friend' | 'legacy'; // legacy: aus der alten Toolbox übernommen
 ```
 
 **Regeln**

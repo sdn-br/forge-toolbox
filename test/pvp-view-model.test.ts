@@ -225,9 +225,11 @@ describe('pvp view model', () => {
         attack(2, { defense: 'held', attacker: playerId(1002), at: at - 3 * DAY }),
         attack(3, { kind: 'plunder', cityEntityId: buildingDefId('R_IronAge_Residential2') }),
         attack(4, { kind: 'plunder', cityEntityId: buildingDefId('R_Unknown') }),
+        // from the old toolbox, without the outcome
+        attack(5, {}),
       ],
       incomingTotals: { battles: 3, held: 1, plunders: 2 },
-      total: 4,
+      total: 5,
       page: 0,
       filter: { text: '' },
       now,
@@ -251,6 +253,7 @@ describe('pvp view model', () => {
       },
       expect.objectContaining({ what: 'Plünderung: Strohdachhaus' }),
       expect.objectContaining({ what: 'Plünderung: R_Unknown' }),
+      expect.objectContaining({ what: 'Kampf' }),
     ]);
     expect(vm).toMatchObject({
       tab: 'incoming',

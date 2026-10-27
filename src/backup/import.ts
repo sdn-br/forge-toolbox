@@ -3,9 +3,11 @@
 // of the file is read.
 import type { ToolboxDb } from '../background/db';
 import { playerId, type WorldId } from '../shared/ids';
+import type { Player } from '../shared/model';
 import { type Profile, profileDbName, profileStorageKey } from '../shared/profile';
 import { BACKUP_FORMAT, BACKUP_VERSION, type BackupFile, type BackupProfile, type BackupTables } from './format';
 import { unpackText } from './gzip';
+import { type LocalRows, withoutKnown } from './legacy/known';
 import {
   type Area,
   addMissing,
@@ -202,6 +204,42 @@ export function importTables(
 ): Promise<ImportedRows> {
   const empty = mode === 'replace' ? DATA_AREAS.filter((area) => areas.has(area)) : [];
   return mergeTables(db, ofWorld(selectTables(entry.tables, areas), entry.world), entry.world, empty);
+}
+
+/**
+ * The rows of the chosen areas of old toolbox data (see src/backup/legacy) that the profile does not hold yet: the
+ * old rows have no ids of the game, so known ones are found by player, outcome and time.
+ */
+export async function newLegacyTables(
+  db: ToolboxDb,
+  entry: BackupProfile,
+  areas: ReadonlySet<Area>,
+): Promise<BackupTables> {
+  const picked = ofWorld(selectTables(entry.tables, areas), entry.world);
+  return withoutKnown(picked, await localRows(db, entry.world, picked));
+}
+
+/** Merges the chosen areas of old toolbox data, leaving out what the profile holds already; in one transaction. */
+export function importLegacy(db: ToolboxDb, entry: BackupProfile, areas: ReadonlySet<Area>): Promise<ImportedRows> {
+  return db.transaction('rw', TABLES, async () =>
+    mergeTables(db, await newLegacyTables(db, entry, areas), entry.world, []),
+  );
+}
+
+/** what the profile holds of `world` that old rows may repeat, and its rows of the players they name */
+async function localRows(db: ToolboxDb, world: WorldId, source: BackupTables): Promise<LocalRows> {
+  const ofWorld = <T extends { world: string }>(table: {
+    filter(fn: (row: T) => boolean): { toArray(): Promise<T[]> };
+  }) => table.filter((row) => row.world === world).toArray();
+  const [battles, plunders, incoming, noteGroups, notePages, players] = await Promise.all([
+    source.battles.length ? ofWorld(db.battles) : [],
+    source.plunders.length ? ofWorld(db.plunders) : [],
+    source.incoming.length ? ofWorld(db.incoming) : [],
+    source.noteGroups.length ? ofWorld(db.noteGroups) : [],
+    source.notePages.length ? ofWorld(db.notePages) : [],
+    db.table<Player>('players').bulkGet(source.players.map((p) => [world, p.id])),
+  ]);
+  return { battles, plunders, incoming, noteGroups, notePages, players: players.filter((p) => p !== undefined) };
 }
 
 /** a profile's database holds only its own world, rows of another world in the file stay out */

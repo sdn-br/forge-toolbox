@@ -1,8 +1,9 @@
-// The backup copy on the game page: it starts writing and checks at the start whether a copy waits for this profile.
-// The dialog "Gefundene Daten" offers it back, at the start or from the settings ("Gefundene Daten übernehmen").
+// The backup copy on the game page: it starts writing and checks at the start whether a copy or old toolbox data wait
+// for this profile. The dialog "Gefundene Daten" offers them, at the start or from the settings ("Gefundene Daten
+// übernehmen"), one row per source.
 import { html, type TemplateResult } from 'lit-html';
 import type { Area } from '../../../backup/merge';
-import type { FoundOffer } from '../../core/backup-copy';
+import type { FoundOffer, FoundSource } from '../../core/backup-copy';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { formatFullDateTime, formatNumber, type TextKey, t } from '../../core/texts';
@@ -17,8 +18,11 @@ const AREAS: { area: Area; label: TextKey }[] = [
   { area: 'settings', label: 'data.area.settings' },
 ];
 
-/** the name of a source in its row; the data of the old toolbox will bring their own */
-const sourceLabel = (offer: FoundOffer) => t('found.backupCopy', { date: formatFullDateTime(offer.createdAt) });
+/** the name of a source in its row */
+const sourceLabel = (offer: FoundOffer) =>
+  offer.source === 'legacy'
+    ? t('found.legacy', { version: offer.version ?? '' })
+    : t('found.backupCopy', { date: formatFullDateTime(offer.createdAt ?? 0) });
 
 interface DialogState {
   mode: Mode;
@@ -49,9 +53,11 @@ export const backupCopyFeature: Feature = {
       box.open();
     };
 
-    const answer = (fn: () => Promise<void>) => () => {
+    /** "Nein" and "Später" answer for every source shown */
+    const answer = (fn: (sources: FoundSource[]) => Promise<void>) => () => {
+      const sources = (state.offers ?? []).map((o) => o.source);
       box.close();
-      fn().catch((error) => logError('saving the answer failed', error));
+      fn(sources).catch((error) => logError('saving the answer failed', error));
     };
 
     const take = () => {
@@ -106,12 +112,16 @@ export const backupCopyFeature: Feature = {
           <button class="action" ?disabled=${busy || !any} @click=${take}>${t('found.take')}</button>
           ${
             mode === 'start'
-              ? html`<button class="action" ?disabled=${busy} @click=${answer(() => copy.decline())}>${t('found.no')}</button>
-                <button class="action" ?disabled=${busy} @click=${answer(() => copy.later())}>${t('core.later')}</button>`
+              ? html`<button class="action" ?disabled=${busy} @click=${answer((s) => copy.decline(s))}>${t('found.no')}</button>
+                <button class="action" ?disabled=${busy} @click=${answer((s) => copy.later(s))}>${t('core.later')}</button>`
               : html`<button class="action" ?disabled=${busy} @click=${() => box.close()}>${t('found.cancel')}</button>`
           }
         </p>
-        ${mode === 'start' ? html`<p class="muted">${t('found.answerHint')}</p>` : ''}
+        ${
+          mode === 'start'
+            ? html`<p class="muted">${t(offers.some((o) => o.source === 'backupCopy') ? 'found.answerHintCopy' : 'found.answerHint')}</p>`
+            : ''
+        }
         ${state.status ? html`<p class="status" role="status">${state.status}</p>` : ''}`;
     };
 
