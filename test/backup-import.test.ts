@@ -4,7 +4,7 @@ import { openDb } from '../src/background/db';
 import { collectBackup, selectSources, sourceKey } from '../src/backup/collect';
 import { BACKUP_FORMAT, type BackupFile, type BackupProfile, type BackupTables } from '../src/backup/format';
 import { gzipJson } from '../src/backup/gzip';
-import { type ImportEnv, importBackup, importChoices, readBackupFile } from '../src/backup/import';
+import { type ImportEnv, importBackup, importChoices, readBackupFile, replaceSummary } from '../src/backup/import';
 import {
   type Area,
   addMissing,
@@ -293,6 +293,124 @@ describe('importBackup', () => {
     );
     expect(counts.profiles).toBe(0);
     expect(await Dexie.exists('forge-toolbox:de20:1')).toBe(false);
+  });
+});
+
+describe('replaceSummary', () => {
+  const entry = (player: number, change: Partial<BackupTables> = {}): BackupProfile => ({
+    world: de20,
+    player: playerId(player),
+    settings: { x: true },
+    tables: tables(change),
+  });
+
+  it('names per stored profile the chosen data areas and which of them the file leaves empty', () => {
+    const choices = importChoices(
+      backupOf(entry(1, { battles: [battle(1, 11)] }), entry(2, { notePages: [page('a')] })),
+      () => false,
+    );
+    const [mine, other] = choices;
+    if (!mine || !other) throw new Error('two choices expected');
+    mine.checked.notes = true;
+
+    expect(replaceSummary(choices, () => true)).toEqual([
+      {
+        profile: mine.profile,
+        areas: [
+          { area: 'pvp', empty: false },
+          { area: 'notes', empty: true },
+        ],
+      },
+      { profile: other.profile, areas: [{ area: 'notes', empty: false }] },
+    ]);
+  });
+
+  it('leaves out a profile new here, one without chosen data areas and a world without player', () => {
+    const choices = importChoices(
+      backupOf(entry(1, { battles: [battle(1, 11)] }), entry(2), { world: de20, tables: tables() }),
+      () => false,
+    );
+    expect(replaceSummary(choices, (p) => p.player === 2)).toEqual([]);
+  });
+});
+
+describe('importBackup replacing', () => {
+  afterEach(async () => {
+    for (const { name } of await indexedDB.databases()) if (name?.startsWith('forge-toolbox')) await Dexie.delete(name);
+  });
+  const env = (values: Record<string, unknown> = {}): ImportEnv & { values: Record<string, unknown> } => ({
+    values,
+    open: openDb,
+    get: async (keys) => Object.fromEntries(keys.filter((k) => k in values).map((k) => [k, values[k]])),
+    set: async (items) => {
+      Object.assign(values, items);
+    },
+  });
+  const stored = async () => {
+    const db = openDb('forge-toolbox:de20:1');
+    await db.battles.bulkPut([battle(1, 11, { rounds: 7 }), battle(9, 11)]);
+    await db.cityShields.put({ world: de20, player: playerId(11), expiresAt: 99 });
+    await db.noteGroups.put({ world: de20, id: 'local', name: 'local', sort: 0 });
+    await db.notePages.put(page('local', { group: 'local' }));
+    await db.greatBuildings.put(building(13, 1, { level: 50 }));
+    await db.players.bulkPut([player(11, { seenAt: 50, name: 'local' }), player(14, { marked: true, marksAt: 1 })]);
+    db.close();
+  };
+  const entry = (change: Partial<BackupTables>): BackupProfile => ({
+    world: de20,
+    player: me,
+    settings: { new: true },
+    tables: tables(change),
+  });
+
+  it('empties the chosen areas and fills them from the file, merging the players', async () => {
+    await stored();
+    const file = entry({
+      battles: [battle(1, 11), battle(2, 11)],
+      greatBuildings: [building(13, 1, { level: 3 })],
+      players: [player(11, { seenAt: 10, name: 'file' })],
+    });
+
+    const counts = await importBackup([{ profile: file, areas: areas('pvp', 'notes') }], 500, env(), 'replace');
+
+    expect(counts).toEqual({ profiles: 1, pvp: 2, notes: 0, greatBuildings: 0, players: 0, settings: 0 });
+    const db = openDb('forge-toolbox:de20:1');
+    expect(await db.battles.toArray()).toEqual([battle(1, 11), battle(2, 11)]);
+    expect(await db.cityShields.count()).toBe(0);
+    // the notes were chosen but the file has none: they end up empty
+    expect(await db.noteGroups.count()).toBe(0);
+    expect(await db.notePages.count()).toBe(0);
+    // not chosen, untouched
+    expect((await db.greatBuildings.get([de20, playerId(13), 1]))?.level).toBe(50);
+    // players are merged, never replaced
+    expect((await db.players.get([de20, playerId(11)]))?.name).toBe('local');
+    expect(await db.players.get([de20, playerId(14)])).toMatchObject({ marked: true });
+    db.close();
+  });
+
+  it('replaces the chosen settings as merging does', async () => {
+    const values = env({ 'settings:de20:1': { old: true } });
+    await importBackup([{ profile: entry({}), areas: areas('settings') }], 500, values, 'replace');
+    expect(values.values['settings:de20:1']).toEqual({ new: true });
+  });
+
+  it('fills a profile new here like merging', async () => {
+    const file = entry({ battles: [battle(1, 11)], players: [player(11)] });
+    const counts = await importBackup([{ profile: file, areas: areas('pvp') }], 500, env(), 'replace');
+    expect(counts).toMatchObject({ profiles: 1, pvp: 1, players: 1 });
+  });
+
+  it('keeps the old rows when filling fails', async () => {
+    await stored();
+    const broken = { ...battle(2, 11), battleId: undefined } as unknown as Battle;
+    const file = entry({ battles: [broken] });
+
+    await expect(importBackup([{ profile: file, areas: areas('pvp') }], 500, env(), 'replace')).rejects.toThrow();
+
+    const db = openDb('forge-toolbox:de20:1');
+    expect(await db.battles.count()).toBe(2);
+    expect(await db.cityShields.count()).toBe(1);
+    db.close();
   });
 });
 

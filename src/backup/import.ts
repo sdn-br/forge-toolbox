@@ -1,5 +1,6 @@
 // The import of a backup file on the page "Daten verwalten": reading the file, the choice per profile and area, and
-// merging the chosen rows into the profile databases. Only the current version of the file is read.
+// merging the chosen rows into the profile databases or replacing the chosen areas with them. Only the current version
+// of the file is read.
 import type { ToolboxDb } from '../background/db';
 import { playerId, type WorldId } from '../shared/ids';
 import { type Profile, profileDbName, profileStorageKey } from '../shared/profile';
@@ -101,6 +102,28 @@ export function importChoices(backup: BackupFile, hasSettings: (profile: Profile
   });
 }
 
+/** One profile of the confirmation before replacing: the chosen data areas it holds, empty when the file has no rows. */
+export interface ReplacedProfile {
+  profile: BackupProfile;
+  areas: { area: Area; empty: boolean }[];
+}
+
+/**
+ * What replacing would empty, for the confirmation: per profile that exists here (`exists`), the chosen data areas. A
+ * profile new here has nothing to empty, the settings are replaced in both modes and the players never.
+ */
+export function replaceSummary(choices: ImportChoice[], exists: (profile: Profile) => boolean): ReplacedProfile[] {
+  return choices.flatMap(({ profile, importable, counts, checked }) => {
+    if (!importable || profile.player === undefined) return [];
+    if (!exists({ world: profile.world, player: playerId(profile.player) })) return [];
+    const areas = DATA_AREAS.filter((area) => checked[area]).map((area) => ({ area, empty: counts[area] === 0 }));
+    return areas.length ? [{ profile, areas }] : [];
+  });
+}
+
+/** "Zusammenführen" adds to what is stored, "Ersetzen" empties each chosen data area of a profile first. */
+export type ImportMode = 'merge' | 'replace';
+
 /** What the import wrote, rows new or changed. */
 export interface ImportCounts {
   profiles: number;
@@ -128,9 +151,16 @@ export interface ImportItem {
 
 /**
  * Merges the chosen areas of each profile into its database, created under the usual name when the profile is new
- * here (another computer). Chosen settings replace the stored ones; the profile name is stored when it is missing.
+ * here (another computer). In the mode "replace" the chosen data areas are emptied first, in the same transaction, so
+ * a failure leaves the old rows; the players are merged in both modes. Chosen settings replace the stored ones; the
+ * profile name is stored when it is missing.
  */
-export async function importBackup(items: ImportItem[], createdAt: number, env: ImportEnv): Promise<ImportCounts> {
+export async function importBackup(
+  items: ImportItem[],
+  createdAt: number,
+  env: ImportEnv,
+  mode: ImportMode = 'merge',
+): Promise<ImportCounts> {
   const total = { ...NO_IMPORT };
   for (const { profile: entry, areas } of items) {
     if (entry.player === undefined || areas.size === 0) continue;
@@ -139,7 +169,13 @@ export async function importBackup(items: ImportItem[], createdAt: number, env: 
     if (DATA_AREAS.some((area) => areas.has(area))) {
       const db = env.open(profileDbName(profile));
       try {
-        const counts = await mergeTables(db, ofWorld(selectTables(entry.tables, areas), entry.world));
+        const empty = mode === 'replace' ? DATA_AREAS.filter((area) => areas.has(area)) : [];
+        const counts = await mergeTables(
+          db,
+          ofWorld(selectTables(entry.tables, areas), entry.world),
+          entry.world,
+          empty,
+        );
         for (const key of ['pvp', 'notes', 'greatBuildings', 'players'] as const) total[key] += counts[key];
       } finally {
         db.close();
@@ -176,7 +212,20 @@ function ofWorld(tables: BackupTables, world: WorldId): BackupTables {
 
 type Counted = Pick<ImportCounts, 'pvp' | 'notes' | 'greatBuildings' | 'players'>;
 
-async function mergeTables(db: ToolboxDb, t: BackupTables): Promise<Counted> {
+/** the tables of a data area, emptied before replacing it */
+const AREA_TABLES = {
+  pvp: ['battles', 'plunders', 'incoming', 'cityShields'],
+  notes: ['noteGroups', 'notePages'],
+  greatBuildings: ['greatBuildings'],
+} as const satisfies Record<(typeof DATA_AREAS)[number], (keyof BackupTables)[]>;
+
+/** Empties the tables of the areas in `empty` for `world`, then merges `t`; all in one transaction. */
+async function mergeTables(
+  db: ToolboxDb,
+  t: BackupTables,
+  world: WorldId,
+  empty: readonly (typeof DATA_AREAS)[number][],
+): Promise<Counted> {
   /** reads the local rows with the keys of `rows`, applies the rule and writes what changed; returns how many */
   const merge = async <T>(
     table: { bulkGet(keys: unknown[]): Promise<(T | undefined)[]>; bulkPut(rows: T[]): Promise<unknown> },
@@ -190,6 +239,14 @@ async function mergeTables(db: ToolboxDb, t: BackupTables): Promise<Counted> {
     return changed.length;
   };
   return db.transaction('rw', TABLES, async () => {
+    for (const area of empty) {
+      for (const name of AREA_TABLES[area]) {
+        await db
+          .table<{ world: string }>(name)
+          .filter((row) => row.world === world)
+          .delete();
+      }
+    }
     const pvp = await Promise.all([
       merge(db.battles, t.battles, (r) => [r.world, r.battleId], addMissing),
       merge(db.plunders, t.plunders, (r) => [r.world, r.opponent, r.at], addMissing),
