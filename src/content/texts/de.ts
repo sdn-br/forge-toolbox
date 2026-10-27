@@ -23,6 +23,9 @@ export const de = {
   'settings.data': 'Daten',
   'settings.manageData': 'Daten verwalten',
   'settings.manageDataHint': 'Öffnet die Seite der Toolbox für Export und Import, auch ohne Spiel erreichbar.',
+  'settings.backupCopy': 'Sicherungskopie auf der Spielseite',
+  'settings.backupCopyHint':
+    'Speichert die Daten dieses Profils zusätzlich auf der Spielseite, damit sie nach einer Neuinstallation zurückkommen. Das Spiel und andere Extensions können sie dort lesen.',
   'settings.copyFrom': 'Einstellungen von einem anderen Profil übernehmen',
   'settings.copyFromOption': '{world} · {name}',
   'settings.copy': 'Übernehmen',
