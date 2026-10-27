@@ -67,6 +67,8 @@ export interface ToolboxEvents {
   'gbOwn.factorsChanged': { def?: string };
   /** the Ext of a building's level changed */
   'gbOwn.extChanged': { def: string; level: number };
+  /** the settings ask for the dialog of the data found for the profile ("Gefundene Daten übernehmen") */
+  'foundData.open': Record<string, never>;
   /** the Eigenanteil box asks for the Powerleveln box */
   'gbPowerLevel.open': Record<string, never>;
 }

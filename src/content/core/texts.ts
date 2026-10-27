@@ -27,6 +27,17 @@ const dateTimeFormat = new Intl.DateTimeFormat('de-DE', {
 
 export const formatTime = (epochMs: number) => timeFormat.format(epochMs);
 
+const fullDateTimeFormat = new Intl.DateTimeFormat('de-DE', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+/** "21.10.2026, 18:00" */
+export const formatFullDateTime = (epochMs: number) => fullDateTimeFormat.format(epochMs);
+
 /** "21.10., 18:00" */
 export const formatDateTime = (epochMs: number) => dateTimeFormat.format(epochMs);
 

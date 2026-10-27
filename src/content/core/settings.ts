@@ -10,6 +10,8 @@ interface BaseSettingDef {
   hint?: TextKey;
   /** a part of the group with its own heading, e.g. the copy text of the own share */
   section?: TextKey;
+  /** drawn by the settings box at a place of its own instead of in the list of the group */
+  ownControl?: boolean;
 }
 
 export interface ToggleSettingDef extends BaseSettingDef {

@@ -1,5 +1,6 @@
 import { html } from 'lit-html';
 import { OPEN_DATA_PAGE } from '../../shared/messages';
+import { BACKUP_SETTING } from '../core/backup-copy';
 import type { Feature } from '../core/feature';
 import { logError } from '../core/log';
 import { type OtherProfile, type ProfileCopy, profileLabel } from '../core/profile-copy';
@@ -130,6 +131,47 @@ function copyControl(copy: ProfileCopy, update: () => void) {
   };
 }
 
+/**
+ * "Sicherungskopie auf der Spielseite": switching on saves at once, switching off asks in a line of its own first, since
+ * it deletes the copy. The question lives like the one of the profile copy.
+ */
+function backupControl(settings: Settings, update: () => void) {
+  let asking = false;
+  const ask = (value: boolean) => {
+    asking = value;
+    update();
+  };
+  const change = (e: Event) => {
+    const input = e.target as HTMLInputElement;
+    if (input.checked) {
+      asking = false;
+      save(settings, BACKUP_SETTING, true);
+      return;
+    }
+    // stays on until the answer
+    input.checked = true;
+    ask(true);
+  };
+  const switchOff = () => {
+    asking = false;
+    save(settings, BACKUP_SETTING, false);
+  };
+  return {
+    render: () =>
+      html`<label><input type="checkbox" .checked=${settings.get(BACKUP_SETTING)} @change=${change} />${t('settings.backupCopy')}</label>
+        ${
+          asking
+            ? html`<p class="warn">${t('settings.backupCopyOffConfirm')}
+                <button class="action" @click=${switchOff}>${t('settings.backupCopyOff')}</button>
+                <button class="action" @click=${() => ask(false)}>${t('settings.backupCopyCancel')}</button></p>`
+            : html`<p class="muted setting-hint">${t('settings.backupCopyHint')}</p>`
+        }`,
+    reset: () => {
+      asking = false;
+    },
+  };
+}
+
 /** the menu entry and the general settings show it */
 const ICON = icons.settings;
 /** the menu's icon size in pixels, as a choice */
@@ -177,21 +219,27 @@ export const settingsFeature: Feature = {
     };
     const select = (group: string) => {
       copyFrom.reset();
+      backup.reset();
       ctx.ui.savePref(TAB, group);
       box.update();
     };
     const copyFrom = copyControl(ctx.profileCopy, () => box.update());
+    const backup = backupControl(ctx.settings, () => box.update());
+    const reset = () => {
+      copyFrom.reset();
+      backup.reset();
+    };
     const box = ctx.createBox({
       id: 'settings',
       title: () => t('settings.title'),
       width: 380,
       maxHeight: 0.8,
-      onClose: copyFrom.reset,
+      onClose: reset,
       render: () => {
         // the general settings first, then the features in the order they registered
         const groups = [...new Set(['settings.core', ...ctx.settings.defs.map((d) => d.group)])];
         const group = shownGroup(groups);
-        const defs = ctx.settings.defs.filter((d) => d.group === group);
+        const defs = ctx.settings.defs.filter((d) => d.group === group && !d.ownControl);
         const sections = [...new Set(defs.map((d) => d.section).filter((s) => s !== undefined))];
         return html`<div class="settings-layout">
           <nav class="settings-nav">${groups.map(
@@ -221,6 +269,9 @@ export const settingsFeature: Feature = {
                 ? html`<h3>${t('settings.data')}</h3>
                   <button class="action" @click=${openDataPage}>${t('settings.manageData')}</button>
                   <p class="muted setting-hint">${t('settings.manageDataHint')}</p>
+                  ${backup.render()}
+                  <button class="action" @click=${() => ctx.bus.emit('foundData.open', {})}>${t('settings.findData')}</button>
+                  <p class="muted setting-hint">${t('settings.findDataHint')}</p>
                   ${copyFrom.render()}`
                 : ''
             }
@@ -232,7 +283,7 @@ export const settingsFeature: Feature = {
     // the counter on the save button; update does nothing while the box is closed
     ctx.recorder.onChange(() => box.update());
     ctx.bus.on('settings.open', ({ group }) => {
-      copyFrom.reset();
+      reset();
       ctx.ui.savePref(TAB, group);
       box.open();
     });

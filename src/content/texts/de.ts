@@ -23,6 +23,32 @@ export const de = {
   'settings.data': 'Daten',
   'settings.manageData': 'Daten verwalten',
   'settings.manageDataHint': 'Öffnet die Seite der Toolbox für Export und Import, auch ohne Spiel erreichbar.',
+  'settings.backupCopy': 'Sicherungskopie auf der Spielseite',
+  'settings.backupCopyHint':
+    'Speichert die Daten dieses Profils zusätzlich auf der Spielseite, damit sie nach einer Neuinstallation zurückkommen. Das Spiel und andere Extensions können sie dort lesen.',
+  'settings.backupCopyOffConfirm':
+    'Sicherungskopie dieses Profils auf der Spielseite löschen und keine mehr schreiben?',
+  'settings.backupCopyOff': 'Abschalten',
+  'settings.backupCopyCancel': 'Abbrechen',
+  'settings.findData': 'Gefundene Daten übernehmen',
+  'settings.findDataHint':
+    'Zeigt die Sicherungskopie dieses Profils auf der Spielseite und führt die gewählten Bereiche mit den gespeicherten Daten zusammen.',
+  'found.title': 'Gefundene Daten',
+  'found.introStart': 'Für dieses Profil hat die Toolbox noch keine Daten. Gefunden wurden:',
+  'found.introManual': 'Für dieses Profil gefunden:',
+  'found.source': 'Quelle',
+  'found.backupCopy': 'Sicherungskopie auf der Spielseite vom {date}',
+  'found.takeHint':
+    'Übernehmen führt die gewählten Bereiche mit den gespeicherten Daten zusammen: Fehlendes kommt dazu, Vorhandenes bleibt. Gewählte Einstellungen ersetzen die des Profils. Danach lädt das Spiel neu.',
+  'found.answerHint':
+    'Nein: nicht mehr fragen, die Sicherungskopie wird danach überschrieben. Später: beim nächsten Spielstart wieder fragen, höchstens einmal am Tag. Bis dahin bleibt die Sicherungskopie unverändert.',
+  'found.take': 'Übernehmen',
+  'found.no': 'Nein',
+  'found.cancel': 'Abbrechen',
+  'found.searching': 'Suche Daten …',
+  'found.none': 'Für dieses Profil wurden keine Daten gefunden.',
+  'found.taking': 'Übernehme …',
+  'found.failed': 'Die Übernahme ist fehlgeschlagen. Details stehen in der Konsole.',
   'settings.copyFrom': 'Einstellungen von einem anderen Profil übernehmen',
   'settings.copyFromOption': '{world} · {name}',
   'settings.copy': 'Übernehmen',
