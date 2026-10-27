@@ -3,6 +3,8 @@ import { BackupCopy } from '../../src/content/core/backup-copy';
 import { memoryCopyStore } from '../../src/content/core/backup-store';
 import type { FeatureContext } from '../../src/content/core/feature';
 import { memoryKv } from '../../src/content/core/kv';
+import { LegacyData } from '../../src/content/core/legacy-data';
+import { memoryLegacyStore } from '../../src/content/core/legacy-store';
 import { type MarkerLink, Markers } from '../../src/content/core/markers';
 import { memoryProfileStorage, profileCopy } from '../../src/content/core/profile-copy';
 import { Recorder } from '../../src/content/core/recorder';
@@ -120,6 +122,8 @@ export function featureContext(options: TestStoresOptions & { storage?: Record<s
   let reloads = 0;
   /** the backup copies on the game page */
   const copyStore = memoryCopyStore();
+  /** the databases of the old toolbox on the game page */
+  const legacyStore = memoryLegacyStore();
   const markers = new Markers(bus, stores.cities, marker.link);
   const ctx: FeatureContext = {
     world,
@@ -148,6 +152,13 @@ export function featureContext(options: TestStoresOptions & { storage?: Record<s
       store: copyStore,
       now,
       reload: () => reloads++,
+      legacy: new LegacyData({
+        profile: { world, player: playerId(1) },
+        kv,
+        persistence: backupPersistence(db.call),
+        store: legacyStore,
+        now,
+      }),
     }),
   };
   return {
@@ -159,6 +170,7 @@ export function featureContext(options: TestStoresOptions & { storage?: Record<s
     kv,
     db,
     copyStore,
+    legacyStore,
     /** how often the game page was reloaded */
     get reloads() {
       return reloads;

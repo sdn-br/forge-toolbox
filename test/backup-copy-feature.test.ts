@@ -1,9 +1,11 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
+import type { LegacyFound } from '../src/backup/legacy/types';
 import { BACKUP_SETTING } from '../src/content/core/backup-copy';
 import type { CopyEntry } from '../src/content/core/backup-store';
 import { backupCopyFeature } from '../src/content/features/backup-copy';
 import { settingsFeature } from '../src/content/features/settings-feature';
+import v2 from './fixtures/legacy-toolbox2.json';
 import { battle, copyOf, me, tables } from './helpers/backup';
 import { featureContext } from './helpers/feature-context';
 
@@ -33,9 +35,10 @@ const found = () =>
     AT,
   );
 
-async function setup(options: { copy?: CopyEntry; data?: boolean; settings?: boolean } = {}) {
+async function setup(options: { copy?: CopyEntry; data?: boolean; settings?: boolean; legacy?: LegacyFound } = {}) {
   const env = featureContext();
   if (options.copy) await env.copyStore.put(options.copy);
+  env.legacyStore.found = options.legacy;
   if (options.data) await env.db.db.battles.put(battle(9));
   settingsFeature.setup(env.ctx);
   backupCopyFeature.setup(env.ctx);
@@ -104,6 +107,53 @@ describe('found data at the start', () => {
   it('stays closed without a copy or when the profile has data', async () => {
     expect((await setup()).dialog()?.box.isOpen).toBe(false);
     expect((await setup({ copy: await found(), data: true })).dialog()?.box.isOpen).toBe(false);
+  });
+});
+
+const legacy: LegacyFound = {
+  version: '2.x',
+  dump: { attacks: v2.neighborhoodAttacks, players: v2.players, events: v2.Events, groups: v2.groups, items: v2.items },
+};
+
+describe('old toolbox data in the dialog', () => {
+  /** per row of the dialog: the source and each area as count, checked, disabled */
+  const rows = (root: HTMLElement | undefined) =>
+    [...(root?.querySelectorAll('tbody tr') ?? [])].map((tr) => [
+      tr.querySelector('th')?.textContent?.trim(),
+      ...[...tr.querySelectorAll('input')].map(
+        (i) => `${i.parentElement?.textContent?.trim()} ${i.checked} ${i.disabled}`,
+      ),
+    ]);
+
+  it('adds a row "Alte Toolbox" behind the copy, also when the profile has data', async () => {
+    const { dialog } = await setup({ copy: await found(), legacy, data: true });
+    // the profile has data, so only the old data are offered
+    expect(rows(dialog()?.root)).toEqual([
+      ['Alte Toolbox (2.x)', '8 true false', '7 true false', '0 false true', '0 false true'],
+    ]);
+    expect(dialog()?.text).toContain('Eine Zeile ohne Haken gilt beim Übernehmen als Nein.');
+    expect(dialog()?.text).not.toContain('Sicherungskopie wird danach überschrieben');
+  });
+
+  it('lists both sources for an empty profile and answers "Nein" for both', async () => {
+    const { env, dialog } = await setup({ copy: await found(), legacy });
+    expect(rows(dialog()?.root).map((r) => r[0])).toEqual([
+      'Sicherungskopie auf der Spielseite vom 26.10.2026, 18:05',
+      'Alte Toolbox (2.x)',
+    ]);
+    dialog()?.click('Nein');
+    await settle();
+    expect(await env.kv.get('backup.answer')).toEqual({ answer: 'no' });
+    expect(await env.kv.get('legacy.answer')).toEqual({ answer: 'no' });
+  });
+
+  it('takes the old data and reloads', async () => {
+    const { env, dialog } = await setup({ legacy, data: true });
+    dialog()?.click('Übernehmen');
+    await settle();
+    expect(await env.db.db.battles.count()).toBe(4);
+    expect(await env.db.db.notePages.count()).toBe(5);
+    expect(env.reloads).toBe(1);
   });
 });
 

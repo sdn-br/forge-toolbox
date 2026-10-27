@@ -14,6 +14,8 @@ import { extensionAlive, onExtensionLost, watchExtension } from './core/extensio
 import { boxFactory, type Feature, type FeatureContext } from './core/feature';
 import { Ingestion } from './core/ingestion';
 import { chromeLocal, profileKv } from './core/kv';
+import { LegacyData } from './core/legacy-data';
+import { pageLegacyStore } from './core/legacy-store';
 import { logError } from './core/log';
 import { windowMarkerLink } from './core/marker-link';
 import { Markers } from './core/markers';
@@ -81,6 +83,7 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
     store: pageCopyStore(),
     now,
     reload: () => location.reload(),
+    legacy: new LegacyData({ profile, kv, persistence: backupPersistence(call), store: pageLegacyStore(), now }),
   });
   const recorder = new Recorder(
     () => settings.get('core.record'),

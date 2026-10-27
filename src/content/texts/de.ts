@@ -32,16 +32,19 @@ export const de = {
   'settings.backupCopyCancel': 'Abbrechen',
   'settings.findData': 'Gefundene Daten übernehmen',
   'settings.findDataHint':
-    'Zeigt die Sicherungskopie dieses Profils auf der Spielseite und führt die gewählten Bereiche mit den gespeicherten Daten zusammen.',
+    'Zeigt die Sicherungskopie dieses Profils auf der Spielseite und die Daten der alten Toolbox und führt die gewählten Bereiche mit den gespeicherten Daten zusammen.',
   'found.title': 'Gefundene Daten',
-  'found.introStart': 'Für dieses Profil hat die Toolbox noch keine Daten. Gefunden wurden:',
+  'found.introStart': 'Für dieses Profil wurden Daten gefunden, die die Toolbox übernehmen kann:',
   'found.introManual': 'Für dieses Profil gefunden:',
   'found.source': 'Quelle',
   'found.backupCopy': 'Sicherungskopie auf der Spielseite vom {date}',
+  'found.legacy': 'Alte Toolbox ({version})',
   'found.takeHint':
-    'Übernehmen führt die gewählten Bereiche mit den gespeicherten Daten zusammen: Fehlendes kommt dazu, Vorhandenes bleibt. Gewählte Einstellungen ersetzen die des Profils. Danach lädt das Spiel neu.',
+    'Übernehmen führt die gewählten Bereiche mit den gespeicherten Daten zusammen: Fehlendes kommt dazu, Vorhandenes bleibt. Die alte Toolbox zählt nur, was hier noch fehlt; ihre Notizen kommen bei vorhandenen Seiten unten dazu. Gewählte Einstellungen ersetzen die des Profils. Danach lädt das Spiel neu.',
   'found.answerHint':
-    'Nein: nicht mehr fragen, die Sicherungskopie wird danach überschrieben. Später: beim nächsten Spielstart wieder fragen, höchstens einmal am Tag. Bis dahin bleibt die Sicherungskopie unverändert.',
+    'Nein: nicht mehr fragen. Später: beim nächsten Spielstart wieder fragen, höchstens einmal am Tag. Eine Zeile ohne Haken gilt beim Übernehmen als Nein.',
+  'found.answerHintCopy':
+    'Nein: nicht mehr fragen, die Sicherungskopie wird danach überschrieben. Später: beim nächsten Spielstart wieder fragen, höchstens einmal am Tag. Bis dahin bleibt die Sicherungskopie unverändert. Eine Zeile ohne Haken gilt beim Übernehmen als Nein.',
   'found.take': 'Übernehmen',
   'found.no': 'Nein',
   'found.cancel': 'Abbrechen',
