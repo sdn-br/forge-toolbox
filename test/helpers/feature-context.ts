@@ -1,4 +1,6 @@
 import { render } from 'lit-html';
+import { BackupCopy } from '../../src/content/core/backup-copy';
+import { memoryCopyStore } from '../../src/content/core/backup-store';
 import type { FeatureContext } from '../../src/content/core/feature';
 import { memoryKv } from '../../src/content/core/kv';
 import { type MarkerLink, Markers } from '../../src/content/core/markers';
@@ -10,6 +12,7 @@ import { createGbOwnState } from '../../src/content/stores/gb-own-state';
 import type { Box, BoxOptions } from '../../src/content/ui/box';
 import type { Menu, MenuItem } from '../../src/content/ui/menu';
 import { UiState } from '../../src/content/ui/ui-state';
+import { backupPersistence } from '../../src/persistence/backup/client';
 import { playerId } from '../../src/shared/ids';
 import type { MarkerCommand } from '../../src/shared/marker-protocol';
 import { type TestStoresOptions, testStores } from './stores';
@@ -104,15 +107,19 @@ export function fakeMarkerLink() {
 
 /** Real stores, bus and settings; persistence is the real handlers on in-memory Dexie unless a test overrides stores. */
 export function featureContext(options: TestStoresOptions & { storage?: Record<string, unknown> } = {}) {
-  const { world, bus, stores } = testStores(options);
+  const { world, bus, stores, db, now } = testStores(options);
   const boxes = new Map<string, ReturnType<typeof recordingBox>>();
   const menuItems = new Map<string, MenuItem>();
-  const settings = new Settings(memoryKv());
+  /** the own profile's keys in chrome.storage.local */
+  const kv = memoryKv();
+  const settings = new Settings(kv);
   const ui = new UiState(memoryKv());
   const marker = fakeMarkerLink();
   /** chrome.storage.local of all profiles, the own one is de20:1 */
   const storage = memoryProfileStorage(options.storage);
   let reloads = 0;
+  /** the backup copies on the game page */
+  const copyStore = memoryCopyStore();
   const markers = new Markers(bus, stores.cities, marker.link);
   const ctx: FeatureContext = {
     world,
@@ -131,6 +138,17 @@ export function featureContext(options: TestStoresOptions & { storage?: Record<s
       return recording.box;
     },
     profileCopy: profileCopy(storage, { world, player: playerId(1) }, () => reloads++),
+    backupCopy: new BackupCopy({
+      profile: { world, player: playerId(1) },
+      name: 'Ich',
+      bus,
+      settings,
+      kv,
+      persistence: backupPersistence(db.call),
+      store: copyStore,
+      now,
+      reload: () => reloads++,
+    }),
   };
   return {
     ctx,
@@ -138,6 +156,9 @@ export function featureContext(options: TestStoresOptions & { storage?: Record<s
     /** what went to the marker module in the page, and a way to report back from it */
     marker,
     storage,
+    kv,
+    db,
+    copyStore,
     /** how often the game page was reloaded */
     get reloads() {
       return reloads;

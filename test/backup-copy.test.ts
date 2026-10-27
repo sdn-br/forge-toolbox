@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { BACKUP_FORMAT, type BackupProfile, type BackupTables } from '../src/backup/format';
-import { gzipJson } from '../src/backup/gzip';
 import { readBackupFile } from '../src/backup/import';
 import { BACKUP_DELAY, BACKUP_SETTING, BackupCopy } from '../src/content/core/backup-copy';
 import { type CopyEntry, memoryCopyStore } from '../src/content/core/backup-store';
@@ -8,50 +6,13 @@ import { createBus } from '../src/content/core/events';
 import { memoryKv } from '../src/content/core/kv';
 import { Settings } from '../src/content/core/settings';
 import { backupPersistence } from '../src/persistence/backup/client';
-import { eraId, playerId, worldId } from '../src/shared/ids';
-import type { Battle } from '../src/shared/model';
+import { playerId } from '../src/shared/ids';
+import { battle, copyOf, de20, me, tables } from './helpers/backup';
 import { testDb } from './helpers/battle-db';
 
-const de20 = worldId('de20');
-const me = { world: de20, player: playerId(1) };
 const DAY = 24 * 60 * 60 * 1000;
 /** noon, so a few hours later is the same local day */
 const T0 = new Date(2026, 9, 27, 12).getTime();
-
-const battle = (battleId: number, opponent = 2): Battle => ({
-  world: de20,
-  battleId,
-  at: 1,
-  opponent: playerId(opponent),
-  result: 'won',
-  auto: true,
-  rounds: 1,
-  era: eraId('ColonialAge'),
-  attacker: { bonuses: {}, units: [] },
-  defender: { bonuses: {}, units: [] },
-});
-const tables = (change: Partial<BackupTables> = {}): BackupTables => ({
-  battles: [],
-  plunders: [],
-  incoming: [],
-  noteGroups: [],
-  notePages: [],
-  cityShields: [],
-  greatBuildings: [],
-  players: [],
-  ...change,
-});
-
-/** a copy as an earlier install wrote it */
-async function copyOf(entry: Omit<BackupProfile, 'world' | 'player'>, createdAt: number): Promise<CopyEntry> {
-  const file = await gzipJson({ format: BACKUP_FORMAT, version: 2, createdAt, profiles: [{ ...me, ...entry }] });
-  return {
-    ...me,
-    createdAt,
-    counts: { pvp: entry.tables.battles.length, notes: 0, greatBuildings: 0, settings: entry.settings ? 1 : 0 },
-    file: await file.arrayBuffer(),
-  };
-}
 
 async function setup(options: { stored?: Record<string, unknown>; copy?: CopyEntry } = {}) {
   let time = T0;

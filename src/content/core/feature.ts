@@ -4,6 +4,7 @@ import type { GbOwnState } from '../stores/gb-own-state';
 import { Box, type BoxOptions } from '../ui/box';
 import type { Menu } from '../ui/menu';
 import type { UiState } from '../ui/ui-state';
+import type { BackupCopy } from './backup-copy';
 import type { ToolboxBus } from './events';
 import type { Markers } from './markers';
 import type { ProfileCopy } from './profile-copy';
@@ -29,6 +30,8 @@ export interface FeatureContext extends Stores {
   createBox(options: BoxOptions): Box;
   /** the other profiles, to take over their settings */
   profileCopy: ProfileCopy;
+  /** the backup copy on the game page and the data found there */
+  backupCopy: BackupCopy;
 }
 
 export interface Feature {

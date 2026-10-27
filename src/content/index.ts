@@ -1,11 +1,14 @@
 // Content script entry: connects to the proxy at once, and once the startup data names the profile, wires its stores,
 // ingestion and features, lets the held traffic through and shows the menu.
 
+import { backupPersistence } from '../persistence/backup/client';
 import { worldId } from '../shared/ids';
 import { importConcerns, isDataImported } from '../shared/messages';
 import type { Profile } from '../shared/profile';
 import type { Traffic } from '../shared/proxy-protocol';
 import { watchArmyTarget, windowArmyLink } from './core/army-target';
+import { BackupCopy } from './core/backup-copy';
+import { pageCopyStore } from './core/backup-store';
 import { createBus } from './core/events';
 import { extensionAlive, onExtensionLost, watchExtension } from './core/extension-context';
 import { boxFactory, type Feature, type FeatureContext } from './core/feature';
@@ -22,6 +25,7 @@ import { OwnSelection } from './core/selection';
 import { Settings } from './core/settings';
 import { startupGate } from './core/startup-gate';
 import { t } from './core/texts';
+import { backupCopyFeature } from './features/backup-copy';
 import { buildingSearchFeature } from './features/building-search';
 import { cityMapFeature } from './features/city-map';
 import { foestatsFeature } from './features/foestats';
@@ -51,6 +55,7 @@ const features: Feature[] = [
   investmentsFeature,
   foestatsFeature,
   settingsFeature,
+  backupCopyFeature,
 ];
 
 /** Loads everything of the profile, starts the features and returns the receiver of the game traffic. */
@@ -64,7 +69,19 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
   kv.set('profile', { name, seenAt: now() }).catch((e) => logError('saving the profile name failed', e));
   const settings = new Settings(kv);
   const ui = new UiState(kv);
-  const stores = createStores(world, bus, backgroundCall(profile), now);
+  const call = backgroundCall(profile);
+  const stores = createStores(world, bus, call, now);
+  const backupCopy = new BackupCopy({
+    profile,
+    name,
+    bus,
+    settings,
+    kv,
+    persistence: backupPersistence(call),
+    store: pageCopyStore(),
+    now,
+    reload: () => location.reload(),
+  });
   const recorder = new Recorder(
     () => settings.get('core.record'),
     () => settings.get('core.recordRequests'),
@@ -95,6 +112,7 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
     gbOwn: createGbOwnState(bus, ui, settings),
     createBox: boxFactory(ui, (group) => bus.emit('settings.open', { group })),
     profileCopy: profileCopy(chromeProfileStorage, profile, () => location.reload()),
+    backupCopy,
   };
   for (const feature of features) {
     try {
