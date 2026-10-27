@@ -17,7 +17,7 @@ import type { Area } from '../backup/merge';
 import { logError } from '../content/core/log';
 import { formatNumber, t } from '../content/core/texts';
 import type { WorldId } from '../shared/ids';
-import { DATA_IMPORTED } from '../shared/messages';
+import { dataImported } from '../shared/messages';
 import { profileStorageKey } from '../shared/profile';
 
 const getStorage = (keys: string[] | null) => chrome.storage.local.get(keys);
@@ -138,7 +138,12 @@ function startImport() {
     .then((counts) => {
       update({ importStatus: importedText(counts) });
       // the open game tabs hold the old rows in memory; the service worker asks them to reload
-      chrome.runtime.sendMessage(DATA_IMPORTED).catch((error) => logError('announcing the import failed', error));
+      const profiles = items.flatMap(({ profile: { world, player }, areas }) =>
+        areas.size > 0 && player !== undefined ? [{ world, player }] : [],
+      );
+      chrome.runtime
+        .sendMessage(dataImported(profiles))
+        .catch((error) => logError('announcing the import failed', error));
       return loadSources();
     })
     .catch((error) => {

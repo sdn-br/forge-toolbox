@@ -1,5 +1,5 @@
 import { logError } from '../content/core/log';
-import { DATA_IMPORTED, OPEN_DATA_PAGE } from '../shared/messages';
+import { type DataImported, isDataImported, OPEN_DATA_PAGE } from '../shared/messages';
 import type { RpcResponse } from '../shared/rpc';
 import { openDb } from './db';
 import { adoptLegacy, type LocalStorage } from './legacy';
@@ -19,19 +19,21 @@ const dispatch = profileDispatch({
 });
 
 /**
- * Tells every tab of the game that an import changed the data, so it offers a reload. Without the "tabs" permission
- * the tabs come without their URL, so the message goes to all of them; a tab without the content script refuses it.
+ * Tells every tab of the game which profiles an import changed; a tab of one of them offers a reload. Without the
+ * "tabs" permission the tabs come without their URL, so the message goes to all of them; a tab without the content
+ * script refuses it.
  */
-async function notifyGameTabs() {
+async function notifyGameTabs(message: DataImported) {
   for (const tab of await chrome.tabs.query({})) {
-    if (tab.id !== undefined) chrome.tabs.sendMessage(tab.id, DATA_IMPORTED).catch(() => {});
+    if (tab.id !== undefined) chrome.tabs.sendMessage(tab.id, message).catch(() => {});
   }
 }
 
 // the content script cannot open extension pages itself
 chrome.runtime.onMessage.addListener((message: unknown) => {
   if (message === OPEN_DATA_PAGE) chrome.runtime.openOptionsPage().catch(() => {});
-  if (message === DATA_IMPORTED) notifyGameTabs().catch((error) => logError('notifying the game tabs failed', error));
+  if (isDataImported(message))
+    notifyGameTabs(message).catch((error) => logError('notifying the game tabs failed', error));
   return false;
 });
 

@@ -2,7 +2,7 @@
 // ingestion and features, lets the held traffic through and shows the menu.
 
 import { worldId } from '../shared/ids';
-import { DATA_IMPORTED } from '../shared/messages';
+import { importConcerns, isDataImported } from '../shared/messages';
 import type { Profile } from '../shared/profile';
 import type { Traffic } from '../shared/proxy-protocol';
 import { watchArmyTarget, windowArmyLink } from './core/army-target';
@@ -126,16 +126,20 @@ function main() {
     mountMenu();
   });
   watchExtension(2_000);
+  let profile: Profile | undefined;
   // an import on the page "Daten verwalten" wrote past the stores this page holds in memory
   chrome.runtime.onMessage.addListener((message: unknown) => {
-    if (message !== DATA_IMPORTED) return false;
+    if (!isDataImported(message) || !importConcerns(message.profiles, world, profile)) return false;
     menu.showNotice(t('core.imported'), [
       { label: t('core.reload'), action: () => location.reload() },
       { label: t('core.later'), action: () => menu.hideNotice() },
     ]);
     return false;
   });
-  const gate = startupGate(world, (profile, name) => start(profile, name, menu));
+  const gate = startupGate(world, (started, name) => {
+    profile = started;
+    return start(started, name, menu);
+  });
   // like the old toolbox, the menu shows once the features have seen the held traffic
   gate.started.then(mountMenu);
   // the proxy buffers game traffic until we connect; connecting at once lets the startup data name the profile
