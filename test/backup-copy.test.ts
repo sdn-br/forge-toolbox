@@ -158,6 +158,36 @@ describe('writing the backup copy', () => {
   });
 });
 
+describe('the first copy at the start', () => {
+  it('is written at once when the profile has none yet', async () => {
+    const env = await setup({ stored: { settings: { a: 1 } } });
+    await env.db.db.battles.put(battle(7));
+    expect(await env.copy.start()).toEqual([]);
+    await env.copy.idle();
+    const copy = await env.written();
+    expect(copy?.entry.createdAt).toBe(T0);
+    expect(copy?.file.profiles[0]?.tables.battles).toEqual([battle(7)]);
+  });
+
+  it('is not written when a copy exists, the setting is off or a found copy waits for an answer', async () => {
+    const existing = await setup({ copy: await copyOf({ tables: tables({ battles: [battle(1)] }) }, T0 - DAY) });
+    await existing.db.db.battles.put(battle(7));
+    await existing.copy.start();
+    await existing.copy.idle();
+    expect((await existing.store.get(me))?.createdAt).toBe(T0 - DAY);
+
+    const off = await setup({ stored: { settings: { [BACKUP_SETTING]: false } } });
+    await off.copy.start();
+    await off.copy.idle();
+    expect(await off.store.get(me)).toBeUndefined();
+
+    const pending = await setup({ copy: await copyOf({ tables: tables({ battles: [battle(1)] }) }, T0 - DAY) });
+    expect(await pending.copy.start()).toHaveLength(1);
+    await pending.copy.idle();
+    expect((await pending.store.get(me))?.createdAt).toBe(T0 - DAY);
+  });
+});
+
 describe('a found copy at the start', () => {
   const found = () => copyOf({ name: 'Ich', settings: { a: 1 }, tables: tables({ battles: [battle(1)] }) }, T0 - DAY);
 

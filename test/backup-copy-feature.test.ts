@@ -170,6 +170,8 @@ describe('settings: data', () => {
 
   it('says so when nothing was found, and "Abbrechen" closes it without an answer', async () => {
     const { env, box, dialog } = await openSettings();
+    // the start wrote the first copy of the empty profile; without it there is nothing to find
+    await env.copyStore.delete(me);
     box.click('Gefundene Daten übernehmen');
     await settle();
     expect(dialog()?.text).toContain('Für dieses Profil wurden keine Daten gefunden.');

@@ -117,12 +117,16 @@ export class BackupCopy {
   /**
    * At the start of the game: the copy to offer, if any. A copy is offered when the profile has no rows the export
    * would hold, or when an earlier offer was not answered with "Nein"; after "Später" not again on the same day. While
-   * an offer waits for its answer, nothing is written.
+   * an offer waits for its answer, nothing is written. Without any copy of the profile the first one is written at
+   * once, so a profile with data has a copy before its first change.
    */
   start(): Promise<FoundOffer[]> {
     const run = this.offerAtStart();
     this.checked = run.catch(() => undefined);
-    return run;
+    return run.then(async (offers) => {
+      if (!this.held && this.enabled() && !(await this.env.store.get(this.env.profile))) this.writeNow();
+      return offers;
+    });
   }
 
   /** "Gefundene Daten übernehmen": the copy of the profile, also when the profile has data */
@@ -192,11 +196,14 @@ export class BackupCopy {
   private changed() {
     if (!this.enabled()) return;
     clearTimeout(this.timer);
-    this.timer = setTimeout(() => {
-      this.writing = this.writing
-        .then(() => this.write())
-        .catch((error) => logError('writing the backup copy failed', error));
-    }, BACKUP_DELAY);
+    this.timer = setTimeout(() => this.writeNow(), BACKUP_DELAY);
+  }
+
+  /** queues a write behind the one running */
+  private writeNow() {
+    this.writing = this.writing
+      .then(() => this.write())
+      .catch((error) => logError('writing the backup copy failed', error));
   }
 
   private async write() {
