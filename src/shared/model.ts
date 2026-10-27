@@ -14,7 +14,8 @@ export interface Relations {
   friend: boolean;
 }
 
-export type PlayerSource = 'socialList' | 'visit' | 'update' | 'ranking' | 'gbg' | 'event' | 'friend';
+/** `legacy`: taken over from the old toolbox */
+export type PlayerSource = 'socialList' | 'visit' | 'update' | 'ranking' | 'gbg' | 'event' | 'friend' | 'legacy';
 
 /** what the session player may put on a player or a great building: a star, or an ignore */
 export type MarkKind = 'marked' | 'ignored';

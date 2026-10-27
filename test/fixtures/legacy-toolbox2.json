@@ -1,0 +1,277 @@
+{
+  "_comment": "Shapes of the old toolbox 2.x databases of player 1001 (FoEToolbox2DB_1001, _Events_1001, _Notice_1001), as read on de20 on 2026-10-27. Names, ids and values invented.",
+  "neighborhoodAttacks": [
+    {
+      "playerId": 2001,
+      "date": "2026-10-18T08:20:10.000Z",
+      "type": 2,
+      "pvpArena": false,
+      "battle": {
+        "myArmy": [
+          { "startHP": 10, "endHp": 10, "attBoost": 368, "defBoost": 269, "unitTypeId": "grenadier", "ownerId": 1001 },
+          { "startHP": 10, "endHp": 4, "attBoost": 368, "defBoost": 269, "unitTypeId": "grenadier", "ownerId": 1001 }
+        ],
+        "otherArmy": [
+          { "startHP": 10, "endHp": 0, "attBoost": 4, "defBoost": 12, "unitTypeId": "javeliner", "ownerId": 2001 }
+        ],
+        "round": 1,
+        "auto": true,
+        "era": "ColonialAge"
+      },
+      "id": 1
+    },
+    {
+      "resources": { "glass": 10 },
+      "sp": 0,
+      "type": 1,
+      "playerId": 2001,
+      "date": "2026-10-18T08:31:54.508Z",
+      "important": true,
+      "entityId": 962,
+      "buildId": "G_HighMiddleAge_GlassblowingWorkshop",
+      "id": 2
+    },
+    {
+      "resources": { "strategy_points": 8, "money": 400 },
+      "sp": 8,
+      "type": 1,
+      "playerId": 2002,
+      "date": "2026-10-19T10:00:00.000Z",
+      "important": true,
+      "doubleLoot": true,
+      "doubleLootApplied": true,
+      "entityId": 17,
+      "buildId": "R_MultiAge_SummerBonus18",
+      "id": 3
+    },
+    {
+      "playerId": 2002,
+      "date": "2026-10-19T09:58:00.000Z",
+      "type": 3,
+      "pvpArena": false,
+      "battle": {
+        "myArmy": [
+          { "startHP": 10, "endHp": 0, "attBoost": 368, "defBoost": 269, "unitTypeId": "grenadier", "ownerId": 1001 }
+        ],
+        "otherArmy": [
+          { "startHP": 10, "endHp": 6, "attBoost": 90, "defBoost": 140, "unitTypeId": "musketeer", "ownerId": 2002 }
+        ],
+        "round": 3,
+        "auto": false,
+        "era": "ColonialAge"
+      },
+      "id": 4
+    },
+    {
+      "playerId": 2003,
+      "date": "2026-10-20T12:00:00.000Z",
+      "type": 4,
+      "battle": {
+        "myArmy": [
+          { "startHP": 10, "endHp": 10, "attBoost": 368, "defBoost": 269, "unitTypeId": "grenadier", "ownerId": 1001 }
+        ],
+        "otherArmy": [
+          { "startHP": 10, "endHp": 10, "attBoost": 0, "defBoost": 0, "unitTypeId": "musketeer", "ownerId": 2003 }
+        ],
+        "round": 2,
+        "auto": false,
+        "era": "ColonialAge"
+      },
+      "id": 5
+    },
+    { "type": 5, "playerId": 2004, "date": "2026-10-20T13:00:00.000Z", "expireTime": 1792500000, "id": 6 },
+    {
+      "type": 6,
+      "playerId": 2003,
+      "entityId": 401,
+      "buildId": "R_MultiAge_HeroBonus22pass",
+      "date": "2026-10-21T07:15:00.000Z",
+      "id": 7
+    },
+    {
+      "playerId": 2005,
+      "date": "2026-10-21T08:00:00.000Z",
+      "type": 2,
+      "pvpArena": true,
+      "battle": { "myArmy": [], "otherArmy": [], "round": 1, "auto": true, "era": "ColonialAge" },
+      "id": 8
+    },
+    { "type": 9, "playerId": 2001, "date": "2026-10-22T08:00:00.000Z", "id": 9 },
+    { "type": 2, "date": "2026-10-22T09:00:00.000Z", "battle": { "myArmy": [], "otherArmy": [] }, "id": 10 }
+  ],
+  "players": [
+    {
+      "id": 2001,
+      "name": "Alpha",
+      "clanId": 77,
+      "clanName": "Erfundene Gilde",
+      "avatar": "portrait_101",
+      "era": "ColonialAge",
+      "date": "2026-10-25T10:00:00.000Z",
+      "score": 120000,
+      "lastScoreChangeDate": "2026-10-24T10:00:00.000Z"
+    },
+    {
+      "id": 2002,
+      "name": "Bravo",
+      "clanId": 0,
+      "avatar": "portrait_102",
+      "era": "IndustrialAge",
+      "date": "2026-10-19T10:00:00.000Z",
+      "score": 90000
+    },
+    {
+      "id": 2003,
+      "name": "Charlie",
+      "clanId": 0,
+      "avatar": "portrait_103",
+      "era": "unknown",
+      "date": "2026-10-21T07:15:00.000Z"
+    },
+    {
+      "id": 2004,
+      "name": "Delta",
+      "clanId": 0,
+      "avatar": "portrait_104",
+      "era": "ColonialAge",
+      "date": "2026-10-20T13:00:00.000Z"
+    },
+    {
+      "id": 2005,
+      "name": "Echo",
+      "clanId": 0,
+      "avatar": "portrait_105",
+      "era": "ColonialAge",
+      "date": "2026-10-21T08:00:00.000Z"
+    },
+    {
+      "id": 2099,
+      "name": "Nobody",
+      "clanId": 0,
+      "avatar": "portrait_199",
+      "era": "ColonialAge",
+      "date": "2026-10-21T08:00:00.000Z"
+    }
+  ],
+  "pvpActions": [],
+  "Events": [
+    {
+      "eventid": 1430000001,
+      "date": "2026-10-23T06:00:00.000Z",
+      "eventtype": "social_interaction",
+      "interactiontype": "motivate",
+      "playerid": 2001,
+      "playername": "Alpha",
+      "entityid": "D_ColonialAge_EagleHedge",
+      "isneighbor": 1,
+      "isguildmember": 0,
+      "isfriend": 0
+    },
+    {
+      "eventid": 1430000002,
+      "date": "2026-10-23T07:00:00.000Z",
+      "eventtype": "battle",
+      "playerid": 2006,
+      "playername": "Foxtrot",
+      "isneighbor": 1,
+      "isguildmember": 0,
+      "isfriend": 0
+    },
+    {
+      "eventid": 1430000003,
+      "date": "2026-10-23T07:01:00.000Z",
+      "eventtype": "social_interaction",
+      "interactiontype": "plunder",
+      "playerid": 2006,
+      "playername": "Foxtrot",
+      "entityid": "R_MultiAge_SummerBonus18",
+      "isneighbor": 1,
+      "isguildmember": 0,
+      "isfriend": 0
+    },
+    {
+      "eventid": 1430000004,
+      "date": "2026-10-23T08:00:00.000Z",
+      "eventtype": "great_building_contribution",
+      "playerid": 2001,
+      "playername": "Alpha",
+      "entityid": "X_ProgressiveEra_Landmark1",
+      "isneighbor": 0,
+      "isguildmember": 1,
+      "isfriend": 0
+    },
+    {
+      "eventid": 1430000005,
+      "date": "2026-10-23T09:00:00.000Z",
+      "eventtype": "battle",
+      "playerid": null,
+      "playername": null,
+      "isneighbor": 0,
+      "isguildmember": 0,
+      "isfriend": 0
+    }
+  ],
+  "groups": [
+    { "group_name": "Allgemein", "player_group": null, "sort": 1, "id": 1 },
+    { "group_name": "Nachbarn", "player_group": "neighbor", "sort": 2, "id": 2 },
+    { "group_name": "Plan", "player_group": null, "sort": 0, "id": 3 }
+  ],
+  "items": [
+    {
+      "groupId": 1,
+      "tab": "Merkzettel",
+      "title": "",
+      "content": "Erst die <b>Werkstatt</b> leveln<div><ul><li>Glas</li><li>Seide</li></ul></div>",
+      "player_data": null,
+      "sort": 1,
+      "id": 1
+    },
+    { "groupId": 1, "tab": "Alt", "title": "Alter Titel", "content": "Text", "player_data": null, "sort": 2, "id": 2 },
+    {
+      "groupId": 2,
+      "tab": "Alpha",
+      "title": "",
+      "content": "baut gern <i>nachts</i>",
+      "player_data": "{\"PlayerID\":2001,\"PlayerName\":\"Alpha\",\"ClanName\":\"Erfundene Gilde\",\"Avatar\":\"portrait_101\"}",
+      "sort": 1,
+      "id": 3
+    },
+    {
+      "groupId": 2,
+      "tab": "Golf",
+      "title": "",
+      "content": "nur in den Notizen",
+      "player_data": "{\"PlayerID\":2007,\"PlayerName\":\"Golf\",\"ClanName\":null,\"Avatar\":\"portrait_107\"}",
+      "sort": 2,
+      "id": 4
+    },
+    {
+      "groupId": 2,
+      "tab": "Hotel",
+      "title": "",
+      "content": "",
+      "player_data": "{\"PlayerID\":2008,\"PlayerName\":\"Hotel\"}",
+      "sort": 3,
+      "id": 5
+    },
+    {
+      "groupId": 2,
+      "tab": "Kaputt",
+      "title": "",
+      "content": "ohne Spieler",
+      "player_data": "kein json",
+      "sort": 4,
+      "id": 6
+    },
+    { "groupId": 9, "tab": "Waise", "title": "", "content": "Gruppe fehlt", "player_data": null, "sort": 1, "id": 7 },
+    {
+      "groupId": 3,
+      "tab": "Ziele",
+      "title": "",
+      "content": "<h2>Woche</h2>Plan",
+      "player_data": null,
+      "sort": 0,
+      "id": 8
+    }
+  ]
+}

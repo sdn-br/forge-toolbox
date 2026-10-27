@@ -1,0 +1,65 @@
+{
+  "_comment": "Shapes of the old toolbox 1.x databases of player 1001 (FoEToolboxDB_1001, FoeToolboxDB_Events_1001), taken from the code of 1.9.4.0: no arena flag, no repelled plunders, notes lived on a server. Names, ids and values invented.",
+  "neighborhoodAttacks": [
+    {
+      "playerId": 3001,
+      "date": "2025-05-02T18:00:00.000Z",
+      "type": 2,
+      "battle": {
+        "myArmy": [
+          { "startHP": 10, "endHp": 8, "attBoost": 200, "defBoost": 150, "unitTypeId": "rifleman", "ownerId": 1001 }
+        ],
+        "otherArmy": [
+          { "startHP": 10, "endHp": 0, "attBoost": 30, "defBoost": 60, "unitTypeId": "jaeger", "ownerId": 3001 }
+        ],
+        "round": 2,
+        "auto": true,
+        "era": "IndustrialAge"
+      },
+      "id": 1
+    },
+    {
+      "resources": { "steel": 25 },
+      "sp": 0,
+      "type": 1,
+      "playerId": 3001,
+      "date": "2025-05-02T18:03:00.000Z",
+      "important": true,
+      "entityId": 55,
+      "buildId": "G_IndustrialAge_SteelMill",
+      "id": 2
+    },
+    { "type": 5, "playerId": 3002, "date": "2025-05-03T10:00:00.000Z", "expireTime": 1746300000, "id": 3 }
+  ],
+  "players": [
+    {
+      "id": 3001,
+      "name": "India",
+      "clanId": 0,
+      "avatar": "portrait_301",
+      "era": "IndustrialAge",
+      "date": "2025-05-02T18:03:00.000Z",
+      "score": 50000
+    },
+    {
+      "id": 3002,
+      "name": "Juliett",
+      "clanId": 0,
+      "avatar": "portrait_302",
+      "era": "IndustrialAge",
+      "date": "2025-05-03T10:00:00.000Z"
+    }
+  ],
+  "Events": [
+    {
+      "eventid": 1300000001,
+      "date": "2025-05-04T07:00:00.000Z",
+      "eventtype": "battle",
+      "playerid": 3003,
+      "playername": "Kilo",
+      "isneighbor": 1,
+      "isguildmember": 0,
+      "isfriend": 0
+    }
+  ]
+}
