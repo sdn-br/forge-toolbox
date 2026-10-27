@@ -47,7 +47,7 @@ async function collectProfile(
 }
 
 /** the rows of `world`; a profile's database holds no other, the old one holds all */
-async function collectTables(db: ToolboxDb, world: WorldId, now: number): Promise<BackupTables> {
+export async function collectTables(db: ToolboxDb, world: WorldId, now: number): Promise<BackupTables> {
   const ofWorld = <T extends { world: string }>(table: {
     filter(fn: (row: T) => boolean): { toArray(): Promise<T[]> };
   }) => table.filter((row) => row.world === world).toArray();

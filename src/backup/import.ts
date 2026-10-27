@@ -72,7 +72,8 @@ export interface ImportChoice {
   checked: Record<Area, boolean>;
 }
 
-const countsOf = ({ tables, settings }: BackupProfile): Record<Area, number> => ({
+/** rows per area of a profile entry; settings count 1 when it has them */
+export const areaCounts = ({ tables, settings }: BackupProfile): Record<Area, number> => ({
   pvp: tables.battles.length + tables.plunders.length + tables.incoming.length + tables.cityShields.length,
   notes: tables.noteGroups.length + tables.notePages.length,
   greatBuildings: tables.greatBuildings.length,
@@ -85,7 +86,7 @@ const countsOf = ({ tables, settings }: BackupProfile): Record<Area, number> => 
  */
 export function importChoices(backup: BackupFile, hasSettings: (profile: Profile) => boolean): ImportChoice[] {
   return backup.profiles.map((profile) => {
-    const counts = countsOf(profile);
+    const counts = areaCounts(profile);
     const importable = profile.player !== undefined;
     const local = profile.player !== undefined && hasSettings({ world: profile.world, player: profile.player });
     return {
@@ -169,13 +170,7 @@ export async function importBackup(
     if (DATA_AREAS.some((area) => areas.has(area))) {
       const db = env.open(profileDbName(profile));
       try {
-        const empty = mode === 'replace' ? DATA_AREAS.filter((area) => areas.has(area)) : [];
-        const counts = await mergeTables(
-          db,
-          ofWorld(selectTables(entry.tables, areas), entry.world),
-          entry.world,
-          empty,
-        );
+        const counts = await importTables(db, entry, areas, mode);
         for (const key of ['pvp', 'notes', 'greatBuildings', 'players'] as const) total[key] += counts[key];
       } finally {
         db.close();
@@ -195,6 +190,20 @@ export async function importBackup(
   return total;
 }
 
+/**
+ * Merges the chosen data areas of one profile entry into the profile's database `db`, or in the mode "replace" empties
+ * them first, in one transaction. Settings are not rows: the caller stores them. Returns how many rows it wrote.
+ */
+export function importTables(
+  db: ToolboxDb,
+  entry: BackupProfile,
+  areas: ReadonlySet<Area>,
+  mode: ImportMode,
+): Promise<ImportedRows> {
+  const empty = mode === 'replace' ? DATA_AREAS.filter((area) => areas.has(area)) : [];
+  return mergeTables(db, ofWorld(selectTables(entry.tables, areas), entry.world), entry.world, empty);
+}
+
 /** a profile's database holds only its own world, rows of another world in the file stay out */
 function ofWorld(tables: BackupTables, world: WorldId): BackupTables {
   const own = <T extends { world: string }>(rows: T[]) => rows.filter((r) => r.world === world);
@@ -210,7 +219,8 @@ function ofWorld(tables: BackupTables, world: WorldId): BackupTables {
   };
 }
 
-type Counted = Pick<ImportCounts, 'pvp' | 'notes' | 'greatBuildings' | 'players'>;
+/** the rows one profile's import wrote */
+export type ImportedRows = Pick<ImportCounts, 'pvp' | 'notes' | 'greatBuildings' | 'players'>;
 
 /** the tables of a data area, emptied before replacing it */
 const AREA_TABLES = {
@@ -225,7 +235,7 @@ async function mergeTables(
   t: BackupTables,
   world: WorldId,
   empty: readonly (typeof DATA_AREAS)[number][],
-): Promise<Counted> {
+): Promise<ImportedRows> {
   /** reads the local rows with the keys of `rows`, applies the rule and writes what changed; returns how many */
   const merge = async <T>(
     table: { bulkGet(keys: unknown[]): Promise<(T | undefined)[]>; bulkPut(rows: T[]): Promise<unknown> },

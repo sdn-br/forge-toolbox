@@ -1,3 +1,4 @@
+import { backupHandlers } from '../persistence/backup/worker';
 import { battlesHandlers } from '../persistence/battles/worker';
 import { type FoestatsDeps, foestatsHandlers } from '../persistence/foestats/worker';
 import { greatBuildingsHandlers } from '../persistence/great-buildings/worker';
@@ -20,5 +21,6 @@ export function createHandlers(db: ToolboxDb, deps: FoestatsDeps): Handlers<Back
     ...shieldsHandlers(db),
     ...greatBuildingsHandlers(db),
     ...foestatsHandlers(db, deps),
+    ...backupHandlers(db, deps),
   };
 }
