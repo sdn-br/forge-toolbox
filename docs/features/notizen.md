@@ -19,7 +19,7 @@ Stand 2026-10-21. Notizen gelten je Welt.
 
 - Box „Notizen“ (📝): Reiter der Gruppen, links die Seiten, rechts die Seite. Volltextsuche über Titel und Text aller Notizen der Welt. In der Spielergruppe ein Filter nach Beziehung und eine Spielerauswahl über den PlayerStore.
 - Eine Notiz zeigt gerendertes Markdown, ein Klick öffnet den Quelltext in einem Textfeld. Gespeichert wird 800 ms nach dem letzten Tastendruck und beim Verlassen. Solange das Textfeld offen ist, überschreiben Updates aus dem Store die Eingabe nicht.
-- Notizkarte eines Spielers (eine Komponente): in den Stadtinformationen für den besuchten Spieler, in der PvP-Box bei Filter auf einen Spieler. Dort trägt jede Zeile der Kämpfe, Plünderungen und Angriffe auf mich ein 📝 mit der Notiz als Tooltip.
+- Notizkarte eines Spielers (eine Komponente): in der Box „Besuchte Stadt“ für den besuchten Spieler, in der PvP-Box bei Filter auf einen Spieler. Dort trägt jede Zeile der Kämpfe, Plünderungen und Angriffe auf mich ein 📝 mit der Notiz als Tooltip.
 
 **Noch nicht enthalten:** Übernahme alter Notizen (kommt mit dem Altdaten-Import, siehe dort), Notizen in der PvP-Arena (Phase 6), Export (eigenes Feature).
 
