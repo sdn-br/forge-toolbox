@@ -71,6 +71,24 @@ describe('tooltip', () => {
     expect(tip.hidden).toBe(true);
   });
 
+  it('measures its size only when the text changes while it follows the pointer', () => {
+    const { root, tip, move } = mount();
+    const canvas = document.createElement('canvas');
+    canvas.setAttribute('data-tip-instant', '');
+    canvas.dataset.tip = 'Rathaus';
+    root.append(canvas);
+    const measure = vi.spyOn(tip, 'getBoundingClientRect');
+    move(canvas, 5, 5);
+    move(canvas, 20, 5);
+    move(canvas, 30, 5);
+    expect(measure).toHaveBeenCalledTimes(1);
+    expect(tip.style.left).toBe('44px');
+    canvas.dataset.tip = 'Straße';
+    move(canvas, 40, 5);
+    expect(measure).toHaveBeenCalledTimes(2);
+    expect(tip.textContent).toBe('Straße');
+  });
+
   it('hides on a click, so a changed label does not linger', () => {
     const { tip, el, move } = mount();
     move(el('button'));

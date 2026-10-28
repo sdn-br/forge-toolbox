@@ -10,6 +10,9 @@ import { UiState } from '../src/content/ui/ui-state';
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 /** a second window standing in for the picture-in-picture window; closing it fires pagehide as a browser does */
+
+/** the buttons held during a pointer event: the primary button while dragging, none once released */
+const held = (type: string) => (type === 'pointerup' ? 0 : 1);
 function popupWindow() {
   const win = new Window() as unknown as globalThis.Window;
   win.close = () => queueMicrotask(() => win.dispatchEvent(new Event('pagehide')));
@@ -91,7 +94,9 @@ async function shownBox(
   frame().getBoundingClientRect = () => ({ ...at, right: at.left + at.width, bottom: at.top + at.height }) as DOMRect;
   const handle = () => host.shadowRoot?.querySelector('.resize-handle') as HTMLElement | null;
   const pointer = (type: string, x: number, y: number) =>
-    handle()?.dispatchEvent(new PointerEvent(type, { clientX: x, clientY: y, pointerId: 1, bubbles: true }));
+    handle()?.dispatchEvent(
+      new PointerEvent(type, { clientX: x, clientY: y, pointerId: 1, buttons: held(type), bubbles: true }),
+    );
   /** drags the handle from the bottom right corner by dx, dy */
   const resize = async (dx: number, dy: number) => {
     const x = at.left + at.width;
@@ -101,7 +106,7 @@ async function shownBox(
     pointer('pointerup', x + dx, y + dy);
     await tick();
   };
-  return { box, host, frame, handle, resize, ui };
+  return { box, host, frame, handle, pointer, resize, ui };
 }
 
 describe('box resize', () => {
@@ -133,6 +138,49 @@ describe('box resize', () => {
     expect(again.frame().style.width).toBe('500px');
     expect(again.frame().style.height).toBe('300px');
     expect(again.frame().classList.contains('sized')).toBe(true);
+  });
+
+  it('ends a resize the browser cancels with the size shown last and follows the pointer no further', async () => {
+    const { pointer, frame, ui } = await shownBox();
+    pointer('pointerdown', 420, 250);
+    pointer('pointermove', 520, 300);
+    pointer('pointercancel', 0, 0);
+    await tick();
+    expect(ui.box('sized')).toMatchObject({ width: 420, height: 250 });
+    pointer('pointermove', 700, 500);
+    expect(frame().style.width).toBe('420px');
+  });
+
+  it('ends a move when the header loses the pointer and follows the pointer no further', async () => {
+    const { host, frame, ui } = await shownBox();
+    const header = host.shadowRoot?.querySelector('header') as HTMLElement;
+    header.setPointerCapture = () => {};
+    const at = (type: string, x: number, y: number) =>
+      header.dispatchEvent(
+        new PointerEvent(type, { clientX: x, clientY: y, pointerId: 1, buttons: held(type), bubbles: true }),
+      );
+    at('pointerdown', 150, 60);
+    at('pointermove', 200, 80);
+    at('lostpointercapture', 0, 0);
+    const left = frame().style.left;
+    at('pointermove', 400, 300);
+    expect(frame().style.left).toBe(left);
+    expect(ui.box('sized').x).toBeDefined();
+  });
+
+  it('ends a move released in another window at the next move without a pressed button', async () => {
+    const { host, frame, ui } = await shownBox();
+    const header = host.shadowRoot?.querySelector('header') as HTMLElement;
+    header.setPointerCapture = () => {};
+    const at = (type: string, x: number, y: number, buttons: number) =>
+      header.dispatchEvent(new PointerEvent(type, { clientX: x, clientY: y, pointerId: 1, buttons, bubbles: true }));
+    at('pointerdown', 150, 60, 1);
+    at('pointermove', 200, 80, 1);
+    const left = frame().style.left;
+    at('pointermove', 400, 300, 0);
+    at('pointermove', 500, 400, 1);
+    expect(frame().style.left).toBe(left);
+    expect(ui.box('sized').x).toBeDefined();
   });
 
   it('keeps a minimum size', async () => {

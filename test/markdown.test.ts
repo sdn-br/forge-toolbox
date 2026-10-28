@@ -13,6 +13,12 @@ function draw(source: string): HTMLElement {
 const markup = (source: string) => draw(source).innerHTML.replace(/<!--[^>]*-->/g, '');
 
 describe('renderMarkdown', () => {
+  it('parses a note once while its text stays', () => {
+    const first = renderMarkdown('# Titel\n\n**fett**');
+    expect(renderMarkdown('# Titel\n\n**fett**')).toBe(first);
+    expect(renderMarkdown('# Anders')).not.toBe(first);
+  });
+
   it('draws headings of three levels', () => {
     expect(markup('# One\n## Two\n### Three\n#### Four')).toBe(
       '<h3>One</h3><h4>Two</h4><h5>Three</h5><p>#### Four</p>',

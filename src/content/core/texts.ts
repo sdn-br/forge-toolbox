@@ -14,6 +14,9 @@ const timeFormat = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '
 
 export const formatNumber = (n: number) => numberFormat.format(n);
 
+/** compares two texts in German order, as `a.localeCompare(b, 'de')` without setting up the order on each call */
+export const compareText = new Intl.Collator('de').compare;
+
 /** a gain or loss with its sign, „+310“, „−40“; zero without one */
 export const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatNumber(Math.abs(n))}`;
 const millionFormat = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });

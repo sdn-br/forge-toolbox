@@ -11,6 +11,7 @@ import {
   corners,
   type MapMode,
   type MapView,
+  type Point,
   type Projection,
   project,
   switchMode,
@@ -127,6 +128,13 @@ export class CityMap {
   private drag?: { x: number; y: number; view: MapView; moved: boolean };
   private observer?: ResizeObserver;
   private observedIn?: Window;
+  private observed?: HTMLCanvasElement;
+  /** the data, canvas and size of the last paint; a render with the same draws nothing */
+  private painted?: { data: CityMapData; canvas: HTMLCanvasElement; size: { width: number; height: number } };
+  /** a paint requested for the next frame */
+  private frame?: { win: Window; id: number };
+  /** the tiles in drawing order, kept while data and mode stay */
+  private sorted?: { tiles: MapTile[]; mode: MapMode; order: MapTile[] };
   mode: MapMode;
 
   constructor(private options: CityMapOptions = {}) {
@@ -134,9 +142,15 @@ export class CityMap {
   }
 
   render(data: CityMapData, legend?: TemplateResult): TemplateResult {
-    if (data !== this.data) this.setData(data);
-    // lit-html commits the template after this returns; draw once the canvas is in place
-    queueMicrotask(() => this.draw());
+    // the owner builds the data anew on each render, mostly the same as before: only a change is worth a paint
+    if (!samePlain(data, this.data)) this.setData(data);
+    // lit-html commits the template after this returns; draw once the canvas is in place, unless it shows this data
+    queueMicrotask(() => {
+      this.observe();
+      const size = this.size();
+      const last = this.painted;
+      if (last?.data !== this.data || last.canvas !== this.canvas || !sameSize(last.size, size)) this.draw();
+    });
     const modeButton = (mode: MapMode, label: string) =>
       html`<button class=${this.mode === mode ? 'action active' : 'action'} @click=${() => this.setMode(mode)}>${label}</button>`;
     return html`<div class="city-map">
@@ -177,7 +191,7 @@ export class CityMap {
     this.mode = mode;
     this.options.onMode?.(mode);
     this.refreshButtons();
-    this.draw();
+    this.requestDraw();
   }
 
   /** the buttons change outside a render of the owner, so they are marked here */
@@ -213,64 +227,102 @@ export class CityMap {
     return { width: c.clientWidth, height: c.clientHeight };
   }
 
-  private projection(): Projection | undefined {
-    const size = this.size();
+  private projection(size = this.size()): Projection | undefined {
     if (!size || !this.bounds) return undefined;
     return project(this.mode, this.bounds, size.width, size.height, this.view);
   }
 
-  /** Watches the size with the observer of the window the map is in; after a pop-out that is another window. */
+  /**
+   * Watches the size of the current canvas with the observer of the window the map is in; after a pop-out that is
+   * another window. A render may bring a new canvas, which then takes the place of the old one.
+   */
   private observe() {
     const c = this.canvas;
     const win = c?.ownerDocument.defaultView;
-    if (!c || !win || win === this.observedIn) return;
-    this.observer?.disconnect();
-    this.observedIn = win;
-    const Observer = (win as Window & { ResizeObserver?: typeof ResizeObserver }).ResizeObserver;
-    this.observer = Observer ? new Observer(() => this.draw()) : undefined;
+    if (!c || !win || c === this.observed) return;
+    if (win !== this.observedIn) {
+      this.observer?.disconnect();
+      this.observedIn = win;
+      const Observer = (win as Window & { ResizeObserver?: typeof ResizeObserver }).ResizeObserver;
+      this.observer = Observer ? new Observer(() => this.draw()) : undefined;
+    } else if (this.observed) this.observer?.unobserve(this.observed);
+    this.observed = c;
     this.observer?.observe(c);
   }
 
+  /** Paints in the next frame of the map's window; pointer moves and wheel steps within one frame paint once. */
+  private requestDraw() {
+    const win = this.canvas?.ownerDocument.defaultView;
+    if (this.frame || !win) return;
+    const id = win.requestAnimationFrame(() => {
+      this.frame = undefined;
+      this.draw();
+    });
+    this.frame = { win, id };
+  }
+
   draw(): void {
+    if (this.frame) this.frame.win.cancelAnimationFrame(this.frame.id);
+    this.frame = undefined;
     this.observe();
     const c = this.canvas;
     const size = this.size();
-    const p = this.projection();
     if (!c || !size) return;
+    this.painted = { data: this.data, canvas: c, size };
+    const p = this.projection(size);
     const ratio = c.ownerDocument.defaultView?.devicePixelRatio ?? 1;
-    c.width = Math.round(size.width * ratio);
-    c.height = Math.round(size.height * ratio);
+    // setting the size clears and reallocates the canvas, so only when it changed; the background covers it anyway
+    const width = Math.round(size.width * ratio);
+    const height = Math.round(size.height * ratio);
+    if (c.width !== width) c.width = width;
+    if (c.height !== height) c.height = height;
     const ctx = c.getContext('2d');
     if (!ctx) return;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    // the badges round the line ends; a kept canvas would carry that into the frames of the next paint
+    ctx.lineCap = 'butt';
+    ctx.lineJoin = 'miter';
     ctx.fillStyle = BACKGROUND;
     ctx.fillRect(0, 0, size.width, size.height);
     if (!p) return;
-    for (const area of this.data.areas) this.shape(ctx, p, area, GROUND);
+    for (const area of this.data.areas) this.shape(ctx, onScreen(p, area), GROUND);
     for (const zone of this.data.zones ?? []) {
       for (const r of zone.rects) {
-        this.shape(ctx, p, r, zone.fill);
-        if (zone.outline) this.outline(ctx, p, r, zone.outline, 1);
+        const points = onScreen(p, r);
+        this.shape(ctx, points, zone.fill);
+        if (zone.outline) this.outline(ctx, points, zone.outline, 1);
       }
     }
     const marked = this.data.marked;
-    if (marked) for (const tile of marked.tiles) this.shape(ctx, p, { ...tile, width: 1, length: 1 }, marked.color);
+    if (marked)
+      for (const tile of marked.tiles) this.shape(ctx, onScreen(p, { ...tile, width: 1, length: 1 }), marked.color);
     const gaps = p.scale >= (this.mode === 'iso' ? 8 : 5);
-    for (const tile of backToFront(this.mode, this.data.tiles)) this.drawTile(ctx, p, tile, gaps);
+    for (const tile of this.order()) this.drawTile(ctx, p, tile, gaps);
     const hovered = this.data.tiles[this.hovered];
-    if (hovered) this.outline(ctx, p, hovered, HOVER, 2);
+    if (hovered) this.outline(ctx, onScreen(p, hovered), HOVER, 2);
+  }
+
+  /** the tiles back to front; sorting them again on each pan step would cost more than drawing them */
+  private order(): MapTile[] {
+    const s = this.sorted;
+    if (s?.tiles === this.data.tiles && s.mode === this.mode) return s.order;
+    const order = backToFront(this.mode, this.data.tiles);
+    this.sorted = { tiles: this.data.tiles, mode: this.mode, order };
+    return order;
   }
 
   /** One building. A later version may draw the game's image of the building into its footprint here. */
   private drawTile(ctx: CanvasRenderingContext2D, p: Projection, tile: MapTile, gaps: boolean) {
-    this.shape(ctx, p, tile, tile.fill);
+    // its corners once for the fill and all frames
+    const points = onScreen(p, tile);
+    this.shape(ctx, points, tile.fill);
     // every building keeps a dark border, thinner while the map is small (Nutzer, 2026-10-26)
-    this.outline(ctx, p, tile, BACKGROUND, gaps ? 1 : 0.5);
+    this.outline(ctx, points, BACKGROUND, gaps ? 1 : 0.5);
     if (tile.badges) this.badges(ctx, p, tile, tile.badges);
     if (!tile.outline) return;
     // a strong frame gets a dark seam, so a light frame shows on a light fill too
-    if (tile.strong) this.outline(ctx, p, tile, BACKGROUND, 5);
-    this.outline(ctx, p, tile, tile.outline, tile.strong ? 3 : 1.5);
+    if (tile.strong) this.outline(ctx, points, BACKGROUND, 5);
+    this.outline(ctx, points, tile.outline, tile.strong ? 3 : 1.5);
   }
 
   /** the badges side by side in the middle of the building, sized to it within limits */
@@ -304,9 +356,8 @@ export class CityMap {
     });
   }
 
-  private path(ctx: CanvasRenderingContext2D, p: Projection, r: TileRect, inset = 0) {
+  private path(ctx: CanvasRenderingContext2D, points: Point[], inset = 0) {
     ctx.beginPath();
-    const points = corners(r).map((c) => toScreen(p, c.x, c.y));
     // pull the corners towards the center so a frame stays inside its own building
     const cx = points.reduce((n, q) => n + q.x, 0) / 4;
     const cy = points.reduce((n, q) => n + q.y, 0) / 4;
@@ -320,14 +371,14 @@ export class CityMap {
     ctx.closePath();
   }
 
-  private shape(ctx: CanvasRenderingContext2D, p: Projection, r: TileRect, color: string) {
-    this.path(ctx, p, r);
+  private shape(ctx: CanvasRenderingContext2D, points: Point[], color: string) {
+    this.path(ctx, points);
     ctx.fillStyle = color;
     ctx.fill();
   }
 
-  private outline(ctx: CanvasRenderingContext2D, p: Projection, r: TileRect, color: string, width: number) {
-    this.path(ctx, p, r, width / 2);
+  private outline(ctx: CanvasRenderingContext2D, points: Point[], color: string, width: number) {
+    this.path(ctx, points, width / 2);
     ctx.strokeStyle = color;
     ctx.lineWidth = width;
     ctx.stroke();
@@ -368,7 +419,7 @@ export class CityMap {
       if (this.drag.moved && this.drag.view.zoom > 1) {
         this.view = { ...this.drag.view, panX: this.drag.view.panX + dx, panY: this.drag.view.panY + dy };
         this.hover(-1);
-        this.draw();
+        this.requestDraw();
         return;
       }
     }
@@ -400,7 +451,7 @@ export class CityMap {
     if (this.canvas) this.canvas.dataset.tip = text ?? '';
     if (index === this.hovered) return;
     this.hovered = index;
-    this.draw();
+    this.requestDraw();
   }
 
   private wheel(e: WheelEvent) {
@@ -416,15 +467,32 @@ export class CityMap {
     if (!size || !this.bounds) return;
     const point = at ?? { x: size.width / 2, y: size.height / 2 };
     this.view = zoomAt(this.mode, this.bounds, size.width, size.height, this.view, factor, point.x, point.y);
-    this.draw();
+    this.requestDraw();
   }
 
   /** the reset button: the start view */
   private reset() {
     this.view = START_VIEW;
-    this.draw();
+    this.requestDraw();
   }
 }
+
+/** the corners of a rectangle of tiles on the screen */
+const onScreen = (p: Projection, r: TileRect): Point[] => corners(r).map((c) => toScreen(p, c.x, c.y));
+
+/** plain data alike in every value: arrays, objects, strings and numbers */
+function samePlain(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const x = a as Record<string, unknown>;
+  const y = b as Record<string, unknown>;
+  const keys = Object.keys(x);
+  return keys.length === Object.keys(y).length && keys.every((k) => k in y && samePlain(x[k], y[k]));
+}
+
+const sameSize = (a: { width: number; height: number }, b: { width: number; height: number } | undefined) =>
+  a.width === b?.width && a.height === b?.height;
 
 const sameBounds = (a: Bounds | undefined, b: Bounds | undefined) =>
   a?.x1 === b?.x1 && a?.y1 === b?.y1 && a?.x2 === b?.x2 && a?.y2 === b?.y2;

@@ -126,9 +126,15 @@ function blockTemplate(b: Block): TemplateResult {
   return html`<p>${b.lines.map((l, i) => html`${i > 0 ? html`<br />` : ''}${inlineTemplate(l)}`)}</p>`;
 }
 
-/** The note as templates; anything outside the subset shows as the text it is. */
+let rendered: { source: string; template: TemplateResult } | undefined;
+
+/**
+ * The note as templates; anything outside the subset shows as the text it is. The last note is kept, since its box
+ * renders it again on every update while the text stays.
+ */
 export function renderMarkdown(source: string): TemplateResult {
-  return html`${parseBlocks(source).map(blockTemplate)}`;
+  if (rendered?.source !== source) rendered = { source, template: html`${parseBlocks(source).map(blockTemplate)}` };
+  return rendered.template;
 }
 
 const inlineText = (parts: Inline[]): string =>

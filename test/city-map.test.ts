@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { render } from 'lit-html';
 import { describe, expect, it, vi } from 'vitest';
-import { CityMap, type CityMapData, legendView, START_VIEW } from '../src/content/ui/city-map';
+import { CityMap, type CityMapData, legendView, type MapTile, START_VIEW } from '../src/content/ui/city-map';
 import { project, toScreen } from '../src/content/ui/map-projection';
 import { installTooltip } from '../src/content/ui/tooltip';
 
@@ -115,6 +115,51 @@ describe('city map', () => {
   });
 });
 
+describe('city map paints', () => {
+  const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
+  it('paints again only when a render brings other data, not when the owner built the same data anew', async () => {
+    const { map, root } = mount();
+    await tick();
+    const draw = vi.spyOn(map, 'draw');
+    render(map.render(structuredClone(data)), root);
+    await tick();
+    expect(draw).not.toHaveBeenCalled();
+    const selected = structuredClone(data);
+    Object.assign(selected.tiles[0] ?? {}, { outline: '#fff', strong: true });
+    render(map.render(selected), root);
+    await tick();
+    expect(draw).toHaveBeenCalledTimes(1);
+  });
+
+  it('paints a drag once per frame, also when no pointer event follows', async () => {
+    const { map, canvas } = mount();
+    await tick();
+    const draw = vi.spyOn(map, 'draw');
+    canvas.dispatchEvent(new PointerEvent('pointerdown', { clientX: 100, clientY: 50, button: 0, bubbles: true }));
+    for (const x of [110, 120, 130]) {
+      canvas.dispatchEvent(new PointerEvent('pointermove', { clientX: x, clientY: 50, bubbles: true }));
+    }
+    expect(draw).not.toHaveBeenCalled();
+    await frame();
+    expect(draw).toHaveBeenCalledTimes(1);
+  });
+
+  it('paints new data at once and drops the frame a pointer move asked for', async () => {
+    const { map, root, move } = mount();
+    await tick();
+    const draw = vi.spyOn(map, 'draw');
+    const p = project('top', { x1: 0, y1: 0, x2: 9, y2: 9 }, 200, 100, START_VIEW);
+    const inHall = toScreen(p, 1.5, 1);
+    move(inHall.x, inHall.y);
+    render(map.render({ ...data, tiles: [{ ...(data.tiles[0] as MapTile), fill: '#0f0' }] }), root);
+    await tick();
+    expect(draw).toHaveBeenCalledTimes(1);
+    await frame();
+    expect(draw).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('city map in another window', () => {
   it('watches its size with the observer of the window it was moved to and redraws on a resize there', async () => {
     const { Window } = await import('happy-dom');
@@ -134,6 +179,34 @@ describe('city map in another window', () => {
     const draw = vi.spyOn(map, 'draw');
     observed[0]?.redraw();
     expect(draw).toHaveBeenCalled();
+  });
+
+  it('watches the new canvas when a render brings one', async () => {
+    const observed: Element[] = [];
+    const original = window.ResizeObserver;
+    window.ResizeObserver = class {
+      observe(target: Element) {
+        observed.push(target);
+      }
+      unobserve(target: Element) {
+        observed.splice(observed.indexOf(target), 1);
+      }
+      disconnect() {
+        observed.length = 0;
+      }
+    } as unknown as typeof ResizeObserver;
+    try {
+      const { map, canvas } = mount();
+      map.draw();
+      expect(observed).toEqual([canvas]);
+      const other = document.createElement('div');
+      document.body.append(other);
+      render(map.render(data), other);
+      await tick();
+      expect(observed).toEqual([other.querySelector('canvas')]);
+    } finally {
+      window.ResizeObserver = original;
+    }
   });
 });
 

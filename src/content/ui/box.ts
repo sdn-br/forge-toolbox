@@ -38,6 +38,27 @@ export const largeDefaultSize: NonNullable<BoxOptions['defaultSize']> = (win) =>
 
 let topZ = 2147480000;
 
+/**
+ * Calls `end` once when a drag on `el` ends: released, cancelled by the browser, the capture lost, or a move without
+ * a pressed button. Aborting the returned controller removes all listeners of the drag, so none is left behind to
+ * move the box later. Register it before the move listener, so a move that ends the drag moves nothing.
+ */
+function untilEnd(el: HTMLElement, end: (e: PointerEvent) => void): AbortController {
+  const gesture = new AbortController();
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'] as const) {
+    el.addEventListener(type, end, { signal: gesture.signal });
+  }
+  // released in another window (Alt+Tab while dragging): the game gets no up, the next move comes without buttons
+  const released = (e: PointerEvent) => {
+    if (e.buttons !== 0) return;
+    // the move listener comes after this one and must not move the box with this event
+    e.stopImmediatePropagation();
+    end(e);
+  };
+  el.addEventListener('pointermove', released, { signal: gesture.signal });
+  return gesture;
+}
+
 /** the smallest size a box can be dragged to; a box can ask for more height with `minHeight` */
 const MIN_WIDTH = 260;
 const MIN_HEIGHT = 150;
@@ -195,13 +216,12 @@ export class Box {
       box.style.left = `${clamp(e.clientX - dx, 0, window.innerWidth - 60)}px`;
       box.style.top = `${clamp(e.clientY - dy, 0, window.innerHeight - 30)}px`;
     };
-    const up = () => {
-      frame.removeEventListener('pointermove', move);
-      frame.removeEventListener('pointerup', up);
+    const end = () => {
+      gesture.abort();
       this.ui.saveBox(this.options.id, { x: box.offsetLeft, y: box.offsetTop });
     };
-    frame.addEventListener('pointermove', move);
-    frame.addEventListener('pointerup', up);
+    const gesture = untilEnd(frame, end);
+    frame.addEventListener('pointermove', move, { signal: gesture.signal });
   }
 
   /** Drags the bottom right corner. Independent of moving: the header moves, the handle sizes. */
@@ -217,19 +237,21 @@ export class Box {
       ),
     });
     handle.setPointerCapture?.(event.pointerId);
+    let last: ReturnType<typeof size> | undefined;
     const move = (e: PointerEvent) => {
-      const { width, height } = size(e);
-      box.style.width = `${width}px`;
-      box.style.height = `${height}px`;
+      last = size(e);
+      box.style.width = `${last.width}px`;
+      box.style.height = `${last.height}px`;
       box.classList.add('sized', 'tall');
     };
-    const up = (e: PointerEvent) => {
-      handle.removeEventListener('pointermove', move);
-      handle.removeEventListener('pointerup', up);
-      this.set(size(e));
+    // a cancelled drag keeps the size it showed last; its event may carry no position
+    const end = (e: PointerEvent) => {
+      gesture.abort();
+      const final = e.type === 'pointerup' ? size(e) : last;
+      if (final) this.set(final);
     };
-    handle.addEventListener('pointermove', move);
-    handle.addEventListener('pointerup', up);
+    const gesture = untilEnd(handle, end);
+    handle.addEventListener('pointermove', move, { signal: gesture.signal });
   }
 
   private async popOut() {

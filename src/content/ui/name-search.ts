@@ -3,6 +3,7 @@
 // after which the field is empty again.
 import { html, type TemplateResult } from 'lit-html';
 import { clamp } from '../../shared/math';
+import { compareText } from '../core/texts';
 import { keepKeys } from './inputs';
 
 export interface Suggestion {
@@ -22,11 +23,12 @@ export function suggestNames(names: Iterable<string>, query: string, limit = MAX
   if (q === '') return [];
   const counts = new Map<string, number>();
   for (const name of names) if (name.toLowerCase().includes(q)) counts.set(name, (counts.get(name) ?? 0) + 1);
-  const later = (s: Suggestion) => (s.name.toLowerCase().startsWith(q) ? 0 : 1);
+  // names that start with the query rank 0, the others 1
   return [...counts]
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => later(a) - later(b) || a.name.localeCompare(b.name, 'de'))
-    .slice(0, limit);
+    .map(([name, count]) => ({ name, count, rank: name.toLowerCase().startsWith(q) ? 0 : 1 }))
+    .sort((a, b) => a.rank - b.rank || compareText(a.name, b.name))
+    .slice(0, limit)
+    .map(({ name, count }) => ({ name, count }));
 }
 
 export interface NameSearchOptions {
@@ -51,16 +53,15 @@ export class NameSearch {
   text = '';
   private open = false;
   private active = 0;
+  /** the suggestions of the last render, the ones the keys move through and pick from */
+  private shown: Suggestion[] = [];
   private id = `name-search-${++instances}`;
 
   constructor(private options: NameSearchOptions) {}
 
-  private list(): Suggestion[] {
-    return this.open ? suggestNames(this.options.names(), this.text) : [];
-  }
-
   render(): TemplateResult {
-    const list = this.list();
+    const list = this.open ? suggestNames(this.options.names(), this.text) : [];
+    this.shown = list;
     const active = Math.min(this.active, list.length - 1);
     const expanded = list.length > 0;
     const option = (s: Suggestion, i: number) =>
@@ -89,7 +90,7 @@ export class NameSearch {
 
   private key(e: KeyboardEvent) {
     keepKeys(e);
-    const list = this.list();
+    const list = this.shown;
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();

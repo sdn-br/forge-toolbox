@@ -17,11 +17,14 @@ export function installTooltip(root: ShadowRoot | HTMLElement): void {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let target: Element | undefined;
   let at = { x: 0, y: 0 };
+  /** the text on show and its measured size; the map's tip follows each pointer move, mostly with the same text */
+  let shown: { text: string; width: number; height: number } | undefined;
 
   const hide = () => {
     clearTimeout(timer);
     timer = undefined;
     target = undefined;
+    shown = undefined;
     tip.hidden = true;
   };
 
@@ -29,17 +32,20 @@ export function installTooltip(root: ShadowRoot | HTMLElement): void {
     timer = undefined;
     const text = target?.getAttribute('data-tip');
     if (!text) return hide();
-    tip.textContent = text;
-    tip.hidden = false;
-    place();
+    if (shown?.text !== text) {
+      tip.textContent = text;
+      tip.hidden = false;
+      const { width, height } = tip.getBoundingClientRect();
+      shown = { text, width, height };
+    }
+    place(shown);
   };
 
   // inside the window the pointer is in: the game's or the pop-out's
-  const place = () => {
+  const place = ({ width: w, height: h }: { width: number; height: number }) => {
     const view = tip.ownerDocument.defaultView;
     const width = view?.innerWidth ?? Number.POSITIVE_INFINITY;
     const height = view?.innerHeight ?? Number.POSITIVE_INFINITY;
-    const { width: w, height: h } = tip.getBoundingClientRect();
     const left = at.x + OFFSET + w > width ? at.x - OFFSET - w : at.x + OFFSET;
     const top = at.y + OFFSET + h > height ? at.y - OFFSET - h : at.y + OFFSET;
     tip.style.left = `${Math.max(0, left)}px`;
