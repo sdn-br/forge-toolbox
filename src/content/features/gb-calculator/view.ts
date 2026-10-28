@@ -90,9 +90,15 @@ function header(h: GbHeader, actions: GbCalculatorActions) {
 }
 
 /** paid in of the running level with a thin bar under it, as the investments show it */
-function progressLine(invested: number, required: number, missing: number) {
+function progressLine(invested: number, required: number, missing: number, ownerFp?: number) {
+  const values = { invested: formatNumber(invested), required: formatNumber(required), fp: formatNumber(missing) };
+  const text = ownerFp
+    ? html`<span data-tip=${t('gbCalc.progressSplit', { owner: formatNumber(ownerFp), patrons: formatNumber(invested - ownerFp) })}
+        >${t('gbCalc.progressOwner', { ...values, owner: formatNumber(ownerFp) })}</span
+      >`
+    : html`<span>${t('gbCalc.progress', values)}</span>`;
   return html`<div class="gb-progress">
-    ${t('gbCalc.progress', { invested: formatNumber(invested), required: formatNumber(required), fp: formatNumber(missing) })}
+    ${text}
     ${fpBar(progressPercent(invested, required))}
   </div>`;
 }
@@ -260,7 +266,7 @@ function calculatorBody(vm: GbCalculatorVm, actions: GbCalculatorActions): Templ
     case 'current': {
       const overlay = overlayText(vm);
       return html`${header(vm.header, actions)}
-        ${progressLine(vm.invested, vm.required, vm.missing)}
+        ${progressLine(vm.invested, vm.required, vm.missing, vm.ownerFp)}
         ${levelBar(vm.header.levels, (level) => actions.previewLevel(level))}
         ${factorBar(vm.factorButtons, vm.effectiveFactor, actions)}
         ${vm.me ? meLine(vm.me) : ''}
