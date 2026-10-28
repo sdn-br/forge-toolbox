@@ -4,6 +4,7 @@
 // file anew and deletes the copies. That carries the data between computers sharing the folder (OneDrive).
 import type { ToolboxDb } from '../background/db';
 import { playerId } from '../shared/ids';
+import { FOLDER_STATUS, type FolderStatus } from '../shared/messages';
 import { type Profile, profileDbName, profileStorageKey } from '../shared/profile';
 import { collectBackup, storedOfProfile } from './collect';
 import type { RootFolder } from './folder';
@@ -19,19 +20,8 @@ import { gzipJson } from './gzip';
 import { importBackup, readBackupFile } from './import';
 import { type Area, DATA_AREAS } from './merge';
 
-/** the state of the folder backup in chrome.storage.local; the data page and the game tabs watch it */
-export const FOLDER_STATUS = 'folder.status';
 /** the profiles merged with the folder in this browser session, in chrome.storage.session */
 const SYNCED = 'folder.synced';
-
-export interface FolderStatus {
-  /** when a file was written last */
-  lastWrite?: number;
-  /** a write found no permission: the user has to grant the folder again on the data page */
-  paused: boolean;
-  /** the profiles that wait for a write since the backup paused */
-  pending: Profile[];
-}
 
 /** what became of a request to write: no folder chosen, no permission, written, or nothing changed */
 export type FolderResult = 'none' | 'paused' | 'written' | 'unchanged';
@@ -135,8 +125,13 @@ export class FolderBackup {
         const results: FolderResult[] = [];
         for (const profile of profiles.length ? profiles : [undefined]) results.push(await fn(folder, profile));
         // a profile that waited and was not written here stays waiting for its next write
-        const pending = (await this.status()).pending.filter((p) => !profiles.some(sameProfile(p)));
-        await this.setStatus({ lastWrite: this.env.now(), paused: false, pending });
+        const before = await this.status();
+        const pending = before.pending.filter((p) => !profiles.some(sameProfile(p)));
+        const written = results.includes('written');
+        if (written || before.paused || pending.length !== before.pending.length) {
+          const lastWrite = written ? this.env.now() : before.lastWrite;
+          await this.setStatus({ ...(lastWrite !== undefined && { lastWrite }), paused: false, pending });
+        }
         return results;
       } catch (error) {
         if (!(error instanceof Paused) && !isRefused(error)) throw error;

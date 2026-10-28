@@ -49,7 +49,7 @@ const menuCss = `
  */
 export class Menu {
   private items: MenuItem[] = [];
-  private notice: { text: string; actions: NoticeAction[] } | null = null;
+  private notice: { text: string; actions: NoticeAction[]; id?: string } | null = null;
   private host = document.createElement('div');
   private shadow = this.host.attachShadow({ mode: 'open' });
 
@@ -62,13 +62,18 @@ export class Menu {
     this.render();
   }
 
-  /** a message next to the menu that stays until the page reloads or an action hides it */
-  showNotice(text: string, actions: NoticeAction[] = []): void {
-    this.notice = { text, actions };
+  /**
+   * a message next to the menu that stays until the page reloads or an action hides it; `id` names it, so the one who
+   * showed it can hide it without hiding another
+   */
+  showNotice(text: string, actions: NoticeAction[] = [], id?: string): void {
+    this.notice = { text, actions, ...(id && { id }) };
     this.render();
   }
 
-  hideNotice(): void {
+  /** hides the notice; with `id` only when it is the one shown */
+  hideNotice(id?: string): void {
+    if (id !== undefined && this.notice?.id !== id) return;
     this.notice = null;
     this.render();
   }

@@ -3,7 +3,7 @@
 
 import { backupPersistence } from '../persistence/backup/client';
 import { worldId } from '../shared/ids';
-import { importConcerns, isDataImported } from '../shared/messages';
+import { FOLDER_STATUS, type FolderStatus, importConcerns, isDataImported, OPEN_DATA_PAGE } from '../shared/messages';
 import type { Profile } from '../shared/profile';
 import type { Traffic } from '../shared/proxy-protocol';
 import { watchArmyTarget, windowArmyLink } from './core/army-target';
@@ -12,6 +12,7 @@ import { pageCopyStore } from './core/backup-store';
 import { createBus } from './core/events';
 import { extensionAlive, onExtensionLost, watchExtension } from './core/extension-context';
 import { boxFactory, type Feature, type FeatureContext } from './core/feature';
+import { folderLink, watchFolderPause } from './core/folder-link';
 import { Ingestion } from './core/ingestion';
 import { chromeLocal, profileKv } from './core/kv';
 import { LegacyData } from './core/legacy-data';
@@ -60,6 +61,12 @@ const features: Feature[] = [
   backupCopyFeature,
 ];
 
+/** the line next to the menu while the backup in a folder waits for the folder to be granted again */
+const FOLDER_NOTICE = 'folder';
+
+const openDataPage = () =>
+  chrome.runtime.sendMessage(OPEN_DATA_PAGE).catch((error) => logError('opening the data page failed', error));
+
 /** Loads everything of the profile, starts the features and returns the receiver of the game traffic. */
 async function start(profile: Profile, name: string, menu: Menu): Promise<(traffic: Traffic) => void> {
   const { world } = profile;
@@ -68,7 +75,25 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
   const ingestion = new Ingestion();
   const kv = profileKv(chromeLocal, profile);
   // the list of profiles on the data page shows the own name, also without the game open
-  kv.set('profile', { name, seenAt: now() }).catch((e) => logError('saving the profile name failed', e));
+  const named = kv.set('profile', { name, seenAt: now() }).catch((e) => logError('saving the profile name failed', e));
+  const folder = folderLink(profile, (message) => chrome.runtime.sendMessage(message));
+  watchFolderPause({
+    read: async () => (await chrome.storage.local.get(FOLDER_STATUS))[FOLDER_STATUS] as FolderStatus | undefined,
+    onChange: (fn) =>
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local' && FOLDER_STATUS in changes) fn(changes[FOLDER_STATUS]?.newValue as FolderStatus);
+      }),
+    show: () =>
+      menu.showNotice(
+        t('core.folderPaused'),
+        [{ label: t('core.folderGrant'), action: () => openDataPage() }],
+        FOLDER_NOTICE,
+      ),
+    hide: () => menu.hideNotice(FOLDER_NOTICE),
+  }).catch((e) => logError('reading the state of the backup folder failed', e));
+  // the merge with the folder comes before the stores load, so they show its rows; the file holds the name
+  await named;
+  await folder.start();
   const settings = new Settings(kv);
   const ui = new UiState(kv);
   const call = backgroundCall(profile);
@@ -84,6 +109,7 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
     now,
     reload: () => location.reload(),
     legacy: new LegacyData({ profile, kv, persistence: backupPersistence(call), store: pageLegacyStore(), now }),
+    folder: folder.changed,
   });
   const recorder = new Recorder(
     () => settings.get('core.record'),

@@ -1,0 +1,45 @@
+// The game's side of the backup in a local folder: the service worker reads and writes the folder, the game tells it
+// when, and shows a line next to the menu while the backup waits for the folder to be granted again.
+import { type FolderStatus, folderRequest } from '../../shared/messages';
+import type { Profile } from '../../shared/profile';
+import { logError } from './log';
+
+/** how long the start of the game waits for the merge with the folder; the startup gate holds the game meanwhile */
+export const FOLDER_START_WAIT = 5_000;
+
+export interface FolderLink {
+  /** merges the folder into the profile before the stores load; gives up waiting after `FOLDER_START_WAIT` */
+  start(): Promise<void>;
+  /** backed up data changed: write the folder, if one is chosen */
+  changed(): void;
+}
+
+export function folderLink(profile: Profile, send: (message: unknown) => Promise<unknown>): FolderLink {
+  return {
+    start: () => {
+      const merged = send(folderRequest('start', profile)).catch((error) =>
+        logError('merging the backup folder failed', error),
+      );
+      const waited = new Promise<void>((resolve) => setTimeout(resolve, FOLDER_START_WAIT));
+      return Promise.race([merged, waited]).then(() => undefined);
+    },
+    changed: () => {
+      send(folderRequest('changed', profile)).catch((error) => logError('writing the backup folder failed', error));
+    },
+  };
+}
+
+/** what the line about the paused backup needs: the stored status, its changes and the line */
+export interface PauseEnv {
+  read(): Promise<FolderStatus | undefined>;
+  onChange(fn: (status: FolderStatus | undefined) => void): void;
+  show(): void;
+  hide(): void;
+}
+
+/** Shows the line while the backup is paused and hides it once a write went through again. */
+export function watchFolderPause(env: PauseEnv): Promise<void> {
+  const apply = (status: FolderStatus | undefined) => (status?.paused ? env.show() : env.hide());
+  env.onChange(apply);
+  return env.read().then(apply);
+}

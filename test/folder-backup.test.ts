@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { openDb } from '../src/background/db';
 import { type MemoryFolder, memoryFolder } from '../src/backup/folder';
-import { FOLDER_STATUS, FolderBackup, type FolderStatus } from '../src/backup/folder-backup';
+import { FolderBackup } from '../src/backup/folder-backup';
 import { DAILY_FOLDER, dailyFileName, folderFileName } from '../src/backup/folder-files';
 import { BACKUP_FORMAT, type BackupFile, type BackupProfile } from '../src/backup/format';
 import { gzipJson } from '../src/backup/gzip';
 import { readBackupFile } from '../src/backup/import';
 import { playerId, worldId } from '../src/shared/ids';
+import { FOLDER_STATUS, type FolderStatus } from '../src/shared/messages';
 import { type Profile, profileDbName } from '../src/shared/profile';
 import { battle, me, tables } from './helpers/backup';
 
@@ -101,6 +102,7 @@ describe('writing the backup folder', () => {
     await env.backup.changed(me);
     env.setTime(T0 + 1000);
     expect(await env.backup.changed(me)).toBe('unchanged');
+    expect(env.status()?.lastWrite).toBe(T0);
 
     const db = env.db();
     await db.battles.put(battle(8));
