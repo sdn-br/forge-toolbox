@@ -1,4 +1,5 @@
 // Contracts of all domain events. A listener gets exactly this payload and reads the rest from the stores.
+import type { GbWindowState } from '../../shared/gb-window-protocol';
 import type { BuildingDefId, PlayerId } from '../../shared/ids';
 import type { PlayerSource } from '../../shared/model';
 import type { CityKey } from '../stores/cities';
@@ -40,6 +41,8 @@ export interface ToolboxEvents {
   'army.opened': { battleType: string };
   /** the page module read the opponent of the open pvp army window from the game engine; may never come */
   'army.target': { opponent: PlayerId };
+  /** the page module saw another great building window in the game engine (see core/gb-window.ts); may never come */
+  'gbWindow.changed': { state: GbWindowState };
   /** any change of the notes; `player` when it was the note of that player */
   'note.changed': { player?: PlayerId };
   /** new days of a player at foestats were read, or foestats did not answer */

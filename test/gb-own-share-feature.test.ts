@@ -4,6 +4,7 @@ import { Ingestion } from '../src/content/core/ingestion';
 import { createGbCalculatorFeature } from '../src/content/features/gb-calculator';
 import { createGbOwnShareFeature } from '../src/content/features/gb-own-share';
 import { registerGameHandlers } from '../src/content/game/handlers';
+import type { GbWindowState } from '../src/shared/gb-window-protocol';
 import definitions from './fixtures/gb-definitions.json';
 import levelUp from './fixtures/gb-own-level-up.json';
 import fixture from './fixtures/great-buildings.json';
@@ -503,6 +504,49 @@ describe('Eigenanteil', () => {
       send(updateEntity);
       await tick();
       expect(box.text).toContain('Das LG ist auf Stufe 13 gelevelt. Bitte neu öffnen.');
+    });
+  });
+
+  describe('follows the windows of the game', () => {
+    const shows = (env: ReturnType<typeof setup>, state: GbWindowState) =>
+      env.ctx.bus.emit('gbWindow.changed', { state });
+
+    it.each<GbWindowState>(['none', 'list', 'foreign'])(
+      'closes when the own great building gives way to %s',
+      async (state) => {
+        const env = setup();
+        env.openOwn();
+        await tick();
+        shows(env, 'own');
+        expect(env.box.box.isOpen).toBe(true);
+        shows(env, state);
+        expect(env.box.box.isOpen).toBe(false);
+      },
+    );
+
+    it('stays open when its setting is off', async () => {
+      const env = setup();
+      expect(env.ctx.settings.get('gbOwn.closeWithoutWindow')).toBe(true);
+      await env.ctx.settings.set('gbOwn.closeWithoutWindow', false);
+      env.openOwn();
+      shows(env, 'own');
+      shows(env, 'none');
+      expect(env.box.box.isOpen).toBe(true);
+    });
+
+    it('closes only after an own great building, so a box opened by hand stays', () => {
+      const env = setup();
+      env.box.box.open();
+      shows(env, 'list');
+      shows(env, 'foreign');
+      shows(env, 'none');
+      expect(env.box.box.isOpen).toBe(true);
+    });
+
+    it('never opens the box', () => {
+      const env = setup();
+      shows(env, 'own');
+      expect(env.box.box.isOpen).toBe(false);
     });
   });
 

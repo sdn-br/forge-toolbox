@@ -1,5 +1,6 @@
 import { html } from 'lit-html';
 import { foestatsDay, foestatsPlayerUrl } from '../../../shared/foestats';
+import type { GbWindowState } from '../../../shared/gb-window-protocol';
 import type { PlayerId } from '../../../shared/ids';
 import type { KnownGreatBuilding } from '../../../shared/model';
 import type { Feature } from '../../core/feature';
@@ -31,6 +32,7 @@ const ICON = icons.gbCalculator;
 const CALCULATOR_FACTOR = { value: 'gbCalc.factor', arc: 'gbCalc.factorArc', arcButton: 'gbCalc.arcButton' };
 const FACTOR_BUTTONS = 'gbCalc.factorButtons';
 const SOUND = 'gbCalc.sound';
+const CLOSE_WITHOUT_WINDOW = 'gbCalc.closeWithoutWindow';
 const RETENTION = 'snipe.retentionDays';
 /** a list this soon after the owner's building was opened or paid into is the game's own question, not the player's */
 const ASKED_BY_GAME = 3000;
@@ -81,6 +83,12 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       });
       ctx.settings.register({ key: SOUND, group: 'gbCalc.title', label: 'gbCalc.soundSetting', default: true });
       ctx.settings.register({
+        key: CLOSE_WITHOUT_WINDOW,
+        group: 'gbCalc.title',
+        label: 'gbCalc.closeWithoutWindowSetting',
+        default: true,
+      });
+      ctx.settings.register({
         key: RETENTION,
         group: 'gbCalc.title',
         section: 'snipe.section',
@@ -117,7 +125,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       let preview: number | undefined;
 
       /** the section "Mögliche Einzahlungen" is unfolded; a new list unfolds it, a building of another player than the
-       * list's owner folds it, else the player */
+       * list's owner folds it, the window the game shows (gbWindow.changed) too, else the player */
       let expanded = false;
       /** the last list of another player, with the stored state of its buildings */
       let list: { owner: PlayerId; ownerName?: string; at: number; entityIds: Set<number> } | undefined;
@@ -130,10 +138,15 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       let scroll = 0;
       /** what the last list tone was for: the same hits stay quiet */
       let snipeToned: string | undefined;
-      /** the calculator is folded to one line; a new list folds it, opening a building unfolds it, else the player */
+      /** the calculator is folded to one line; a new list folds it, opening a building unfolds it, the window the game
+       * shows too, else the player */
       let calcFolded = false;
+      /** the GB window the game shows by the last gbWindow.changed; stays 'none' when the engine is not found */
+      let shownWindow: GbWindowState = 'none';
       /** one part stays open: folding the last open part unfolds the other; without a list the calculator is alone */
       const hasSection = () => snipeVm.kind !== 'none';
+      /** the calculator shows a building, so the snipe section can fold */
+      const hasBuilding = () => vm.kind !== 'none' && vm.kind !== 'noEntity';
       const calcFold = {
         get folded() {
           return calcFolded;
@@ -230,7 +243,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         // 6 table rows, the section and the calculator fit without the body scrolling on a normal window
         maxHeight: 0.92,
         render: () =>
-          html`${snipeView(snipeVm, snipeActions, expanded, vm.kind !== 'none' && vm.kind !== 'noEntity')}${gbCalculatorView(vm, actions, calcFold)}`,
+          html`${snipeView(snipeVm, snipeActions, expanded, hasBuilding())}${gbCalculatorView(vm, actions, calcFold)}`,
       });
 
       const refresh = () => {
@@ -347,8 +360,9 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       ctx.bus.on('greatBuilding.opened', ({ owner, entityId, own }) => {
         if (!own) listChanged(owner, entityId);
         if (own || !follow()) return;
-        // a building of the list's owner keeps the list open, it is what the player is going through
-        if (list?.owner !== owner) expanded = false;
+        // a building of the list's owner keeps the list open, it is what the player is going through, unless the game
+        // shows the building's window: it comes before the building, so the window signal could not fold yet
+        if (list?.owner !== owner || shownWindow === 'foreign') expanded = false;
         calcFolded = false;
         toned = undefined;
         preview = undefined;
@@ -363,6 +377,19 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         if (!follow()) return;
         refresh();
         maybeTone(reason === 'leveled');
+      });
+      // the window the game shows wins over the traffic: the list unfolds its section, a foreign building the calculator;
+      // without either the box closes. It never opens the box, so ignored buildings and players keep it closed.
+      ctx.bus.on('gbWindow.changed', ({ state }) => {
+        shownWindow = state;
+        if (state === 'list') {
+          expanded = true;
+          if (hasSection()) calcFolded = true;
+        } else if (state === 'foreign') {
+          calcFolded = false;
+          if (hasBuilding()) expanded = false;
+        } else if (box.isOpen && ctx.settings.get(CLOSE_WITHOUT_WINDOW)) box.close();
+        box.update();
       });
       ctx.bus.on('greatBuilding.marked', refresh);
       ctx.bus.on('greatBuilding.ignored', refresh);

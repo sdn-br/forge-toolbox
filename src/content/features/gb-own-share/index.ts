@@ -34,6 +34,7 @@ const ICON = icons.gbOwnShare;
 
 const FACTOR_BUTTONS = 'gbOwn.factorButtons';
 const AUTO_OPEN = 'gbOwn.autoOpen';
+const CLOSE_WITHOUT_WINDOW = 'gbOwn.closeWithoutWindow';
 /** how long a copy button says it copied */
 const COPIED_MS = 1500;
 
@@ -76,6 +77,12 @@ export function createGbOwnShareFeature(
         default: true,
       });
       ctx.settings.register({ key: AUTO_OPEN, group: 'gbOwn.title', label: 'gbOwn.autoOpenSetting', default: true });
+      ctx.settings.register({
+        key: CLOSE_WITHOUT_WINDOW,
+        group: 'gbOwn.title',
+        label: 'gbOwn.closeWithoutWindowSetting',
+        default: true,
+      });
 
       ctx.settings.register({
         key: COPY_PLAYER,
@@ -246,6 +253,15 @@ export function createGbOwnShareFeature(
           preview = undefined;
         }
         update();
+      });
+      /** the game shows an own great building, as the page module last reported */
+      let ownWindow = false;
+      // the own great building closed in the game; the box goes with it, also when the player opened it by hand then,
+      // but not for a change that had no own great building before. The Powerleveln box stays.
+      ctx.bus.on('gbWindow.changed', ({ state }) => {
+        const closed = ownWindow && state !== 'own';
+        ownWindow = state === 'own';
+        if (closed && box.isOpen && ctx.settings.get(CLOSE_WITHOUT_WINDOW)) box.close();
       });
       ctx.bus.on('catalog.updated', () => update());
       ctx.bus.on('city.ownChanged', () => update());
