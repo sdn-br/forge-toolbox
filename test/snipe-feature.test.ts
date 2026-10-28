@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Ingestion } from '../src/content/core/ingestion';
 import { createGbCalculatorFeature } from '../src/content/features/gb-calculator';
 import { registerGameHandlers } from '../src/content/game/handlers';
+import type { GbWindowState } from '../src/shared/gb-window-protocol';
 import { playerId } from '../src/shared/ids';
 import definitions from './fixtures/gb-definitions.json';
 import levelUp from './fixtures/gb-level-up.json';
@@ -248,6 +249,105 @@ describe('LG-Rechner: foldable part of the box', () => {
     calcToggle(box)?.click();
     await tick();
     expect(expanded(box)).toBe(true);
+  });
+});
+
+describe('LG-Rechner: follows the windows of the game', () => {
+  const shows = (
+    bus: { emit(name: 'gbWindow.changed', payload: { state: GbWindowState }): void },
+    state: GbWindowState,
+  ) => bus.emit('gbWindow.changed', { state });
+
+  /** a list of the owner of 1909 with a hit, then 1909 opened from it: both sections open by the traffic */
+  async function overList() {
+    const env = setup();
+    env.list([hitZeus()]);
+    await tick();
+    env.advance(10_000);
+    env.open(1909);
+    await tick();
+    return env;
+  }
+
+  it('unfolds the calculator and folds the snipe section for a foreign great building over the list', async () => {
+    const { box, bus } = await overList();
+    expect(expanded(box)).toBe(true);
+    shows(bus, 'foreign');
+    await tick();
+    expect(calcOpen(box)).toBe(true);
+    expect(expanded(box)).toBe(false);
+  });
+
+  it('unfolds the snipe section and folds the calculator when only the list is left', async () => {
+    const { box, bus } = await overList();
+    shows(bus, 'foreign');
+    shows(bus, 'list');
+    await tick();
+    expect(expanded(box)).toBe(true);
+    expect(calcOpen(box)).toBe(false);
+    expect(box.box.isOpen).toBe(true);
+  });
+
+  it.each<GbWindowState>(['none', 'own'])('closes the box for %s', async (state) => {
+    const { box, bus } = await overList();
+    shows(bus, 'foreign');
+    shows(bus, state);
+    expect(box.box.isOpen).toBe(false);
+  });
+
+  it.each<GbWindowState>(['none', 'own'])(
+    'stays open for %s when its setting is off, and still folds',
+    async (state) => {
+      const { box, bus, settings } = await overList();
+      expect(settings.get('gbCalc.closeWithoutWindow')).toBe(true);
+      await settings.set('gbCalc.closeWithoutWindow', false);
+      shows(bus, 'foreign');
+      shows(bus, state);
+      expect(box.box.isOpen).toBe(true);
+      shows(bus, 'list');
+      await tick();
+      expect(calcOpen(box)).toBe(false);
+    },
+  );
+
+  it('never opens the box', async () => {
+    const { box, bus } = await overList();
+    box.box.close();
+    shows(bus, 'list');
+    shows(bus, 'foreign');
+    expect(box.box.isOpen).toBe(false);
+  });
+
+  it('keeps a box opened by hand while no window is open, until the next change', async () => {
+    const { box, bus } = await overList();
+    shows(bus, 'none');
+    box.box.open();
+    await tick();
+    expect(box.box.isOpen).toBe(true);
+    shows(bus, 'list');
+    shows(bus, 'none');
+    expect(box.box.isOpen).toBe(false);
+  });
+
+  it('folds no part that would be the only one', async () => {
+    const { box, bus, open, advance } = setup();
+    // only a building, no list: the calculator is alone and keeps its body
+    advance(10_000);
+    open(1909);
+    await tick();
+    shows(bus, 'list');
+    await tick();
+    expect(calcToggle(box)).toBeNull();
+    expect(calcBody(box)).toBe(true);
+    // a list while the calculator shows no building: the section keeps its heading
+    const other = setup();
+    other.list([hitZeus()]);
+    await tick();
+    other.box.box.open();
+    shows(other.bus, 'foreign');
+    await tick();
+    expect(expanded(other.box)).toBe(true);
+    expect(other.box.root.querySelectorAll('.snipe-table tbody tr')).toHaveLength(1);
   });
 });
 
