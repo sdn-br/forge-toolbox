@@ -1,6 +1,6 @@
 import { html, type TemplateResult } from 'lit-html';
 import { t } from '../../core/texts';
-import { progressCell } from '../../ui/fp-bar';
+import { growthTag, progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { buildingCell, ignoredFilter } from '../../ui/ignore';
 import { profitCell, tierCell, tierIcon } from '../../ui/snipe-hit';
@@ -14,7 +14,7 @@ import {
   type PossibleVm,
   TIER_TOGGLES,
 } from './possible-view-model';
-import { growthTag, type InvestmentsActions, markCell, tabs } from './view';
+import { type InvestmentsActions, markCell, tabs } from './view';
 import type { InvestmentsTab } from './view-model';
 
 export interface PossibleActions {

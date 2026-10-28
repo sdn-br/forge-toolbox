@@ -1,8 +1,8 @@
 import { html, type TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
-import { type TextKey, t } from '../../core/texts';
+import { t } from '../../core/texts';
 import type { InvestmentStatus } from '../../domain/investments';
-import { progressCell } from '../../ui/fp-bar';
+import { growthTag, progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { buildingCell, ignoredFilter } from '../../ui/ignore';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
@@ -64,12 +64,6 @@ const columns: SortColumn<InvestmentColumn>[] = [
 /** the first cell of a row: the star of the building */
 export const markCell = (r: { owner: PlayerId; entityId: number; marked: boolean }, mark: InvestmentsActions['mark']) =>
   html`<td class="inv-mark">${starButton(r.marked, () => mark(r.owner, r.entityId, !r.marked))}</td>`;
-
-/** "+X" small beside the bar, what others paid in; the tooltip says since when */
-export const growthTag = (growth: string | undefined, hint: TextKey) =>
-  growth
-    ? html`<span class="inv-growth" data-tip=${t(hint, { growth })}>${t('investments.growth', { growth })}</span>`
-    : '';
 
 /** "x / y" of the level with the thin bar below, the rest to the level up in the tooltip; `extra` goes under the bar */
 const row = (r: InvestmentRowVm, playerField: string, actions: InvestmentsActions) => {

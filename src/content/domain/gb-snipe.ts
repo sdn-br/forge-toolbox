@@ -39,6 +39,8 @@ export interface SnipeHit {
   /** when the list or the opened building told the state */
   seenAt: number;
   ownerShare: OwnerShare;
+  /** what the building gained since its previous sighting on this level */
+  growth?: number;
 }
 
 /**
@@ -182,6 +184,7 @@ export function snipeBuilding(
     maybeLocked: b.invested === 0,
     seenAt: b.seenAt,
     ownerShare: ownerShare(b),
+    ...(b.growth !== undefined && { growth: b.growth }),
   };
 }
 

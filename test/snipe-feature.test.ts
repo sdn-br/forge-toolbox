@@ -366,6 +366,19 @@ describe('LG-Rechner: follows the windows of the game', () => {
 });
 
 describe('Snipehilfe: stacked box', () => {
+  it('shows what a building gained since its previous sighting beside the bar', async () => {
+    const { box, list, rows, advance } = setup();
+    list([withRequired(zeus, 80, 10)]);
+    await tick();
+    expect(box.root.querySelector('.inv-growth')).toBeNull();
+    advance(10_000);
+    list([withRequired(zeus, 80, 15)]);
+    await tick();
+    const growth = rows()[0]?.querySelector('.fp-line .inv-growth');
+    expect(growth?.textContent).toBe('+5');
+    expect(growth?.getAttribute('data-tip')).toBe('Seit dem vorigen Stand 5 FP eingezahlt');
+  });
+
   it('shows the calculator without the section until a list comes, and has no tabs', async () => {
     const { box, tones } = setup();
     box.box.open();
