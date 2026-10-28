@@ -3,7 +3,7 @@ import type { PlayerId, WorldId } from '../../shared/ids';
 import type { KnownGreatBuilding } from '../../shared/model';
 import type { Handlers } from '../../shared/rpc';
 import type { GreatBuildingListRow, GreatBuildingsApi } from './contract';
-import { applyListRow, hasOwnContribution, isFlagged, withoutOwnContribution } from './merge';
+import { applyListRow, growthSince, hasOwnContribution, isFlagged, withoutOwnContribution } from './merge';
 
 /** when the town hall list of the own contributions last came in a world */
 export interface GreatBuildingListTimes {
@@ -28,15 +28,23 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables): Handlers<Great
   return {
     'greatBuildings.put': async ({ rows }) => {
       const known = await db.greatBuildings.bulkGet(rows.map((r) => [r.world, r.owner, r.entityId]));
-      await db.greatBuildings.bulkPut(
-        rows.map((row, i) => ({
+      // a batch may hold several writes of one building: each one is measured against the one before it
+      const latest = new Map<string, KnownGreatBuilding>();
+      const written = rows.map(({ again, ...row }, i) => {
+        const k = `${row.world}:${row.owner}:${row.entityId}`;
+        const before = latest.get(k) ?? known[i];
+        const next: KnownGreatBuilding = {
           ...row,
-          ...(known[i]?.ownContribution && { ownContribution: true }),
-          ...(known[i]?.marked && { marked: true }),
-          ...(known[i]?.ignored && { ignored: true }),
-          ...(known[i]?.marksAt !== undefined && { marksAt: known[i]?.marksAt }),
-        })),
-      );
+          ...growthSince(before, row, again),
+          ...(before?.ownContribution && { ownContribution: true }),
+          ...(before?.marked && { marked: true }),
+          ...(before?.ignored && { ignored: true }),
+          ...(before?.marksAt !== undefined && { marksAt: before.marksAt }),
+        };
+        latest.set(k, next);
+        return next;
+      });
+      await db.greatBuildings.bulkPut(written);
     },
     'greatBuildings.putList': async ({ world, rows, at }) => {
       await writeList(world, rows, at, false);

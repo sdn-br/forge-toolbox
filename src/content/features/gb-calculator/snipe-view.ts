@@ -2,7 +2,7 @@ import { html, type TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
 import { formatAge, formatNumber, t } from '../../core/texts';
 import { foldToggle } from '../../ui/fold-toggle';
-import { progressCell, progressPercent } from '../../ui/fp-bar';
+import { growthTag, progressCell, progressPercent } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { buildingCell, ignoredFilter } from '../../ui/ignore';
 import { profitCell, tierCell } from '../../ui/snipe-hit';
@@ -57,7 +57,7 @@ const row = (r: SnipeRowVm, actions: SnipeActions) =>
       rest: formatNumber(Math.max(0, r.required - r.invested)),
       percent: progressPercent(r.invested, r.required),
     },
-    '',
+    growthTag(r.growth, 'investments.possible.growthHint'),
     r.ownerShare === undefined ? [] : [r.ownerShare],
   )}
   <td class="num">${t('gb.rank', { rank: r.rank })}</td>

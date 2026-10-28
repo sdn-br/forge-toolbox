@@ -1,6 +1,6 @@
 // The thin bar under "paid in / costs", filled towards the level up (investments, GB calculator, snipe helper).
 import { html, type TemplateResult } from 'lit-html';
-import { t } from '../core/texts';
+import { type TextKey, t } from '../core/texts';
 
 /** paid in of a level in percent, 0 to 100 */
 export const progressPercent = (invested: number, required: number) =>
@@ -18,3 +18,9 @@ export const progressCell = (
     ${p.invested} / ${p.required}
     <div class="fp-line">${fpBar(p.percent)}${extra}</div>
   </td>`;
+
+/** "+X" small beside the bar, what others paid in; the tooltip says since when */
+export const growthTag = (growth: string | undefined, hint: TextKey) =>
+  growth
+    ? html`<span class="inv-growth" data-tip=${t(hint, { growth })}>${t('investments.growth', { growth })}</span>`
+    : '';

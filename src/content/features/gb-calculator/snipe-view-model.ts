@@ -1,5 +1,5 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
-import { t } from '../../core/texts';
+import { formatNumber, t } from '../../core/texts';
 import type { SnipeHit, SnipeList, SnipeTier } from '../../domain/gb-snipe';
 import { ignoreReason } from '../../domain/ignore';
 import type { FoestatsRecord } from '../../stores/foestats';
@@ -52,6 +52,8 @@ export interface SnipeRowVm {
   level: number;
   invested: number;
   required: number;
+  /** "300" when the building gained Forge points since its previous sighting on this level */
+  growth?: string;
   rank: number;
   cost: number;
   /** "+85" when exact, "+40 … +310" as a range */
@@ -175,6 +177,7 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     level: h.level,
     invested: h.invested,
     required: h.required,
+    ...(h.growth !== undefined && { growth: formatNumber(h.growth) }),
     rank: h.place.rank,
     cost: h.place.cost,
     profit: snipeProfit(h),

@@ -7,7 +7,7 @@ import type { GreatBuildingListRow } from './contract';
  * the entry. A changed level drops the rankings (they belong to another level), the own place and the progress of the
  * growth base; the entry stays so its last state serves the estimate and the retention. A row of the town hall list
  * brings the own place, which replaces an older one, and starts the growth base when there is none: growth then counts
- * from the first town hall list until the building is opened.
+ * from the first town hall list until the building is opened. A newer row is a sighting: it replaces the growth.
  */
 export function applyListRow(
   world: WorldId,
@@ -42,6 +42,8 @@ export function applyListRow(
     ...own,
     seenAt: at,
   };
+  delete next.growth;
+  Object.assign(next, growthSince(existing, state));
   if (state.level !== existing.level) {
     delete next.rankings;
     delete next.rankingsLevel;
@@ -53,6 +55,21 @@ export function applyListRow(
   }
   if (ownContribution && next.growthBase === undefined) next.growthBase = state.invested;
   return { ...next, ...place };
+}
+
+/**
+ * The growth of a sighting: what it shows paid in beyond the state seen before on the same level. A further write of
+ * the same opening with the same progress keeps the growth it had. Nothing grown, or a new level, means no growth.
+ */
+export function growthSince(
+  previous: KnownGreatBuilding | undefined,
+  next: Pick<KnownGreatBuilding, 'level' | 'invested'>,
+  again = false,
+): Pick<KnownGreatBuilding, 'growth'> {
+  if (!previous || previous.level !== next.level) return {};
+  const grown = next.invested - previous.invested;
+  if (grown > 0) return { growth: grown };
+  return grown === 0 && again && previous.growth !== undefined ? { growth: previous.growth } : {};
 }
 
 /** The player's own marks, the star and the ignore: they stay with the building and only the player removes them. */

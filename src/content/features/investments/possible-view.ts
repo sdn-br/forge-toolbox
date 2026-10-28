@@ -1,6 +1,6 @@
 import { html, type TemplateResult } from 'lit-html';
 import { t } from '../../core/texts';
-import { progressCell } from '../../ui/fp-bar';
+import { growthTag, progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { buildingCell, ignoredFilter } from '../../ui/ignore';
 import { profitCell, tierCell, tierIcon } from '../../ui/snipe-hit';
@@ -57,7 +57,7 @@ const row = (
   <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r.reach, r.reasons)}</td>
   ${buildingCell(r.name, [r.name, r.ignoreNote, ...r.notes].filter(Boolean).join('\n'), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
   <td class="num">${r.level}</td>
-  ${progressCell(r)}
+  ${progressCell(r, growthTag(r.growth, 'investments.possible.growthHint'))}
   <td class=${r.share.stale ? 'num muted' : 'num'} data-tip=${r.share.tip}>${r.share.text}</td>
   ${
     r.hit

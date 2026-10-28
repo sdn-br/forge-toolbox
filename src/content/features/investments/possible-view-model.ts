@@ -113,6 +113,8 @@ export interface PossibleRowVm {
   rest: string;
   /** paid in of the level, 0 to 100, for the bar */
   percent: number;
+  /** "300" when the building gained Forge points between its last two sightings on this level */
+  growth?: string;
   /** the owner's share of the level: "320", "?" when unknown; `stale` when drawn muted, with its age as the tip */
   share: { text: string; stale: boolean; tip: string };
   /** the best place; missing when none pays */
@@ -250,6 +252,7 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
       required: formatNumber(b.required),
       rest: formatNumber(Math.max(0, b.required - b.invested)),
       percent: progressPercent(b.invested, b.required),
+      ...(b.growth !== undefined && { growth: formatNumber(b.growth) }),
       share: shareCell(ownerShare(b), input.now),
       ...(hit && {
         hit: {

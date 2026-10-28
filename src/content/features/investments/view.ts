@@ -2,7 +2,7 @@ import { html, type TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
 import { t } from '../../core/texts';
 import type { InvestmentStatus } from '../../domain/investments';
-import { progressCell } from '../../ui/fp-bar';
+import { growthTag, progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { buildingCell, ignoredFilter } from '../../ui/ignore';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
@@ -75,15 +75,7 @@ const row = (r: InvestmentRowVm, playerField: string, actions: InvestmentsAction
   <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r.reach, r.reasons)}</td>
   ${buildingCell(r.name, [r.name, r.ignoreNote].filter(Boolean).join('\n'), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
   <td class="num">${r.level}</td>
-  ${progressCell(
-    r,
-    r.growth
-      ? html`<span class="inv-growth" data-tip=${t('investments.growthHint', { growth: r.growth })}>${t(
-          'investments.growth',
-          { growth: r.growth },
-        )}</span>`
-      : '',
-  )}
+  ${progressCell(r, growthTag(r.growth, 'investments.growthHint'))}
   <td class="num">${t('gb.rank', { rank: r.rank })}</td>
   <td class="num">${r.deposit}</td>
   <td class="num" data-tip=${t('investments.profitHint', { gross: r.gross })}>${r.profit}</td>
