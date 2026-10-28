@@ -39,7 +39,7 @@ interface BattleSide {
 - Geprüft am 2026-10-19 an der Aufnahme des manuellen Kampfes: genau ein `submitMove`, mit `winnerBit` 1 und `round` 1. Die Boni aller Einheiten sind dort dieselben wie im Start. Toten Einheiten fehlt `currentHitpoints` auch im Endzustand.
 - Ein Kampf, der wartet, geht bei einem Neuladen verloren.
 - Derselbe Kampf zweimal gesehen wird einmal gespeichert (Schlüssel `[world+battleId]`).
-- Kämpfe aus der alten Toolbox haben keine Kampf-ID und bekommen die negative Zeit (siehe [Altdaten-Import](../konzept.md#altdaten-import)).
+- Kämpfe aus der alten Toolbox haben keine Kampf-ID und bekommen die negative Zeit (siehe [Altdaten-Import](../features/sicherung.md#altdaten-import)).
 
 **Gemessene Werte** rechnet eine reine Funktion `measuredArmy(battle)` aus den Rohwerten:
 
