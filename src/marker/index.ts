@@ -1,7 +1,8 @@
 // Runs in the page (MAIN world). Draws golden arrows over the game canvas above given city buildings and moves them
 // with the game camera every frame. The content script says which buildings to mark, or to hide them; the page tells
 // it which arrows went away (dismissed by the viewer, another city view, or no engine). It also tells the content script
-// the opponent of the open army window (./army.ts), since this is the one module in the page that holds the engine.
+// the opponent of the open army window (./army.ts) and which great building window shows (./gb-window.ts), since this is
+// the one module in the page that holds the engine.
 //
 // debt: the engine capture and the scene lookup rely on undocumented internals of the game engine (Lime/OpenFL app
 // found through V8 call sites of requestAnimationFrame, stage children, `gameContainer`, `_isoScene.isoToScreen`,
@@ -11,6 +12,12 @@
 import { logError, logInfo } from '../content/core/log';
 import { ARMY_TAG, type ArmyEvent, parseArmyCommand } from '../shared/army-protocol';
 import {
+  GB_WINDOW_TAG,
+  type GbWindowEvent,
+  type GbWindowState,
+  parseGbWindowCommand,
+} from '../shared/gb-window-protocol';
+import {
   MARKER_TAG,
   type MarkerCommand,
   type MarkerEvent,
@@ -18,6 +25,7 @@ import {
   parseMarkerCommand,
 } from '../shared/marker-protocol';
 import { armyTarget } from './army';
+import { gbWindow } from './gb-window';
 import {
   ARROW,
   anchorOf,
@@ -337,4 +345,44 @@ window.addEventListener('message', (event: MessageEvent) => {
   const command = parseArmyCommand(event.data);
   if (command)
     answerArmyTarget(command.seq).catch((error) => logError('army window: reading the opponent failed', error));
+});
+
+let gbWatching = false;
+let gbFailureLogged = false;
+
+/** Looks at the great building windows every frame from now on and reports each change, starting from none. */
+async function watchGbWindow() {
+  if (gbWatching) return;
+  gbWatching = true;
+  const engine = await captureEngine();
+  if (!engine) {
+    // the content script asks again with the next list or great building
+    gbWatching = false;
+    if (!gbFailureLogged) logInfo('great building window: the game engine could not be captured');
+    gbFailureLogged = true;
+    return;
+  }
+  let last: GbWindowState = 'none';
+  const look = () => {
+    let state: GbWindowState;
+    try {
+      state = gbWindow(engine.stage);
+    } catch (error) {
+      // a broken lookup must not throw every frame; the boxes stay as they are
+      logError('great building window: reading the windows failed', error);
+      return;
+    }
+    if (state !== last) {
+      last = state;
+      const event: GbWindowEvent = { tag: GB_WINDOW_TAG, from: 'page', type: 'state', state };
+      window.postMessage(event, location.origin);
+    }
+    raf(look);
+  };
+  look();
+}
+
+window.addEventListener('message', (event: MessageEvent) => {
+  if (event.source !== window || !parseGbWindowCommand(event.data)) return;
+  watchGbWindow().catch((error) => logError('great building window: watching failed', error));
 });
