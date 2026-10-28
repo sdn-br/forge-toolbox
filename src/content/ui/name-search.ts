@@ -51,16 +51,15 @@ export class NameSearch {
   text = '';
   private open = false;
   private active = 0;
+  /** the suggestions of the last render, the ones the keys move through and pick from */
+  private shown: Suggestion[] = [];
   private id = `name-search-${++instances}`;
 
   constructor(private options: NameSearchOptions) {}
 
-  private list(): Suggestion[] {
-    return this.open ? suggestNames(this.options.names(), this.text) : [];
-  }
-
   render(): TemplateResult {
-    const list = this.list();
+    const list = this.open ? suggestNames(this.options.names(), this.text) : [];
+    this.shown = list;
     const active = Math.min(this.active, list.length - 1);
     const expanded = list.length > 0;
     const option = (s: Suggestion, i: number) =>
@@ -89,7 +88,7 @@ export class NameSearch {
 
   private key(e: KeyboardEvent) {
     keepKeys(e);
-    const list = this.list();
+    const list = this.shown;
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();

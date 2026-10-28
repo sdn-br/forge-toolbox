@@ -59,6 +59,25 @@ function mount(names = ['Sakura', 'Sakura', 'Ahorn', 'Sakura-Garten']) {
 }
 
 describe('name search field', () => {
+  it('works out the suggestions once per key, on the render that follows it', () => {
+    const names = vi.fn(() => ['Sakura', 'Ahorn']);
+    const root = document.createElement('div');
+    const search: NameSearch = new NameSearch({
+      placeholder: () => '',
+      names,
+      update: () => render(search.render(), root),
+      onPick: () => {},
+    });
+    render(search.render(), root);
+    const field = root.querySelector('input') as HTMLInputElement;
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', bubbles: true }));
+    field.value = 'sak';
+    field.dispatchEvent(new Event('input'));
+    expect(names).toHaveBeenCalledTimes(1);
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+    expect(names).toHaveBeenCalledTimes(2);
+  });
+
   it('lists the suggestions with their count while typing, without picking', () => {
     const s = mount();
     expect(s.listHidden()).toBe(true);
