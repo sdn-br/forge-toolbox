@@ -177,7 +177,7 @@ Features, die an Spielereignisse gebunden sind (GbG, Minispiele der Events), wer
 |---|---|
 | 0 | Prototypen: Pop-out per Bild-im-Bild aus dem Content Script, Proxy im Seitenkontext übergibt aufgezeichnete Antworten an das Content Script |
 | 1 | Fundament (Shell, Proxy, Ingestion, Bus, Storage, Box, Menü, Settings) zusammen mit Sabotage als erstem echtem Feature |
-| 2 | Toolbox-Kern: PvP-Angriffe (speichern nach jedem Kampf die echten Boni des Gegners aus `BattlefieldService.startByBattleType`, Stadtinformationen zeigen sie neben dem berechneten Wert mit Datum), Notizen, LG-Rechner mit Snipehilfe, Investitionen, Eigenanteilsrechner, Altdaten-Import, Sicherung und Export |
+| 2 | Toolbox-Kern: PvP-Angriffe (speichern nach jedem Kampf die echten Boni des Gegners aus `BattlefieldService.startByBattleType`, die Box „Besuchte Stadt“ zeigt sie neben dem berechneten Wert mit Datum), Notizen, LG-Rechner mit Snipehilfe, Investitionen, Eigenanteilsrechner, Altdaten-Import, Sicherung und Export |
 | 2a | Design-Durchgang für das UI-Kit: Farben, Schrift, Abstände, Icons, Tabellen- und Kartenstil, Varianten live im Spiel. Bis dahin enthalten Features keine eigenen Styles. |
 | 3 | Stadt und Produktion |
 | 4 | Gilde: GbG, GEX, QI, Mitgliederstatistik, Alarme |
@@ -186,18 +186,18 @@ Features, die an Spielereignisse gebunden sind (GbG, Minispiele der Events), wer
 
 PvP-Angriffe in Phase 2 kommt in drei Teilen:
 
-- **A:** Kämpfe speichern, gemessene Boni, Box „PvP-Angriffe“, gemessene Werte in den Stadtinformationen.
+- **A:** Kämpfe speichern, gemessene Boni, Box „PvP-Angriffe“, gemessene Werte in der Box „Besuchte Stadt“.
 - **B (umgesetzt):**
   - **Plünderungen:** eigene Tabelle, nicht am Kampf, denn das Spiel schickt keine `battleId` mit. Jede Plünderung ist geplündert oder abgewehrt. Bei einer Abwehr kommen Gegner und Gebäude aus dem Request.
   - **Double Loot:** nur ein Kennzeichen. Das Spiel liefert die Beute schon verdoppelt.
-  - **Anzeige der Plünderungen:** Reiter „Plünderungen“ in der PvP-Box mit Summenzeile (Anzahl, abgewehrt, FP), Abschnitt „Deine Plünderungen“ in den Stadtinformationen.
+  - **Anzeige der Plünderungen:** Reiter „Plünderungen“ in der PvP-Box mit Summenzeile (Anzahl, abgewehrt, FP), Abschnitt „Deine Plünderungen“ in der Box „Besuchte Stadt“.
   - **Angriffe auf die eigene Stadt (Abwehr):** eigene Tabelle `incoming` mit Kämpfen (`battle_id`, `status` aus eigener Sicht, `lost` heißt durchbrochen) und Plünderungen (Ereignis-`id`). Sie kommen live über `OtherPlayerService.newEvent` (Websocket) und nachträglich über die Ereignisliste (`getEventsPaginated`). Das Datum steht dort nur als Text („heute/gestern/Wochentag um HH:MM“).
-  - **Anzeige der Angriffe:** Reiter „Angriffe auf mich“ in der PvP-Box und eine Zeile in den Stadtinformationen beim Angreifer.
+  - **Anzeige der Angriffe:** Reiter „Angriffe auf mich“ in der PvP-Box und eine Zeile in der Box „Besuchte Stadt“ beim Angreifer.
   - **Angenommen, noch ohne Aufnahme:** Eine Plünderung an der eigenen Stadt sieht aus wie das Polieren-Ereignis (`interaction_type: plunder`, `entity_id`), und `won` heißt gehalten. Außerdem könnten Live-Ereignisse und Ereignisliste verschiedene IDs tragen, dann zählt eine Plünderung doppelt. Ausweich-Schlüssel wäre Angreifer + Gebäude + Minute.
 - **Kampfdetails (umgesetzt):**
   - **Öffnen mit dem Kampffenster:** Öffnet das Spiel das Armeefenster für einen PvP-Kampf (`ArmyUnitManagementService.getArmyInfo`, im Request `ArmyContext` mit `battleType: pvp`), geht die PvP-Box auf dem Reiter „Kämpfe“ auf. Ist sie schon offen, wechselt sie nur auf den Reiter. Andere Kampfarten (GvG, GG, Kampagne …) öffnen sie nicht. Einstellung „PvP-Box beim Kampffenster öffnen“, Standard an. Den Gegner nennt der Spielverkehr erst mit `startByBattleType`. Das Fenster der Engine kennt ihn aber schon (`settings.battleType.defenderPlayerId`, im Spiel geprüft 2026-10-26). Deshalb fragt das Content Script nach `army.opened` das Marker-Modul, das es bis zu 60 Bilder lang im `windowContainer` sucht und als `army.target` zurückmeldet. Dann wählt die Box diesen Gegner aus (seine Kämpfe und Notizkarte). Kommt keine Antwort, etwa nach einem Spiel-Update, bleibt die Box auf allen Kämpfen und der Spieler sucht den Gegner selbst über das Suchfeld (Nutzer, 2026-10-26).
-  - **Details:** Ein Klick auf eine Kampfzeile klappt sie auf: eigene und gegnerische Einheiten mit Lebenspunkten nach dem Kampf, gemessene Boni beider Seiten, Ergebnis mit Auto/manuell und Runden. Dieselbe Komponente zeigt in den Stadtinformationen den letzten Kampf gegen den besuchten Spieler, eingeklappt. Einheiten stehen mit der Typ-ID des Spiels da, einen Katalog der Einheitennamen gibt es noch nicht.
-- **C (umgesetzt, Schild-Format unbestätigt):** Angriffszeile in den Stadtinformationen. Eine Zeile unter dem Spieler sagt, ob er angreifbar ist: „Plünderbar noch {Dauer} (bis {Zeit})“, „Stadt geschützt bis {Datum Uhrzeit} (noch {Dauer})“, „Wieder angreifbar in {Dauer} (ab {Zeit})“ oder „angreifbar“. Bei Freunden, Gildenmitgliedern und Nicht-Nachbarn steht der Grund („Freund, nicht angreifbar“). Plünderbar geht vor einem Schild, ein Schild vor dem Zeitgeber. Die Zeitgeber (`canSabotage`, `next_interaction_in`) kommen mit `updatePlayer` und der Nachbarliste, die Schilde aus `OtherPlayerService.getCityProtections` (Format laut alter Toolbox, nicht selbst gesehen, wird bis zur Bestätigung roh in die Konsole geschrieben). Die Box rechnet die Countdowns alle 30 Sekunden neu, solange sie offen ist.
+  - **Details:** Ein Klick auf eine Kampfzeile klappt sie auf: eigene und gegnerische Einheiten mit Lebenspunkten nach dem Kampf, gemessene Boni beider Seiten, Ergebnis mit Auto/manuell und Runden. Dieselbe Komponente zeigt in der Box „Besuchte Stadt“ den letzten Kampf gegen den besuchten Spieler, eingeklappt. Einheiten stehen mit der Typ-ID des Spiels da, einen Katalog der Einheitennamen gibt es noch nicht.
+- **C (umgesetzt, Schild-Format unbestätigt):** Angriffszeile in der Box „Besuchte Stadt“. Eine Zeile unter dem Spieler sagt, ob er angreifbar ist: „Plünderbar noch {Dauer} (bis {Zeit})“, „Stadt geschützt bis {Datum Uhrzeit} (noch {Dauer})“, „Wieder angreifbar in {Dauer} (ab {Zeit})“ oder „angreifbar“. Bei Freunden, Gildenmitgliedern und Nicht-Nachbarn steht der Grund („Freund, nicht angreifbar“). Plünderbar geht vor einem Schild, ein Schild vor dem Zeitgeber. Die Zeitgeber (`canSabotage`, `next_interaction_in`) kommen mit `updatePlayer` und der Nachbarliste, die Schilde aus `OtherPlayerService.getCityProtections` (Format laut alter Toolbox, nicht selbst gesehen, wird bis zur Bestätigung roh in die Konsole geschrieben). Die Box rechnet die Countdowns alle 30 Sekunden neu, solange sie offen ist.
 
 Kämpfe in der PvP-Arena kommen mit dem Arena-Protokoll in Phase 6. Die Notizkarte in der PvP-Box ist mit dem Feature Notizen umgesetzt.
 
@@ -224,7 +224,7 @@ Stand der FoE Toolbox. Module, die im Fundament aufgehen, stehen getrennt.
 
 | Bereich | Feature | Altes Modul | Phase |
 |---|---|---|---|
-| Toolbox | Plünderhilfe / Stadtinformationen | sabotage | 1 |
+| Toolbox | Plünderhilfe / Besuchte Stadt (bis 2026-10-28 „Stadtinformationen“) | sabotage | 1 |
 | Toolbox | PvP-Angriffe | looting | 2 |
 | Toolbox | Notizen, Spieler-Notizen | toolbox-notes, notes-store, player-note | 2 |
 | Toolbox | Snipehilfe: Mögliche Investitionen | calculator-overview | 2 |

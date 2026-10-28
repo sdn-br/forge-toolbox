@@ -71,7 +71,7 @@ Quelle: alle bekannten fremden LGs der Tabelle `greatBuildings`, ohne eigene Bet
 
 ## Merken
 
-- Gemerkt werden LGs und Spieler (Nutzer, 2026-10-24). Ein Stern je LG in der Snipehilfe, im LG-Rechner und in beiden Reitern, ein Stern je Spieler im Kopf der Snipehilfe, im LG-Rechner beim Eigentümer und in den Stadtinformationen.
+- Gemerkt werden LGs und Spieler (Nutzer, 2026-10-24). Ein Stern je LG in der Snipehilfe, im LG-Rechner und in beiden Reitern, ein Stern je Spieler im Kopf der Snipehilfe, im LG-Rechner beim Eigentümer und in der Box „Besuchte Stadt“.
 - Keine Notiz zur Markierung (Nutzer, 2026-10-24: optional denkbar, aber YAGNI). Für Text gibt es die [Notizen](notizen.md).
 - Markierungen entfernt nur der Spieler, von Hand (Nutzer, 2026-10-24). Sie verschwinden nicht, wenn ein Spieler die Nachbarschaft, die Freundesliste oder die Gilde verlässt. Nachbarn kommen wieder.
 - Gemerkte Spieler sind ein Zustand im Player-Store, nicht in den Investitionen. Andere Features dürfen ihn mitnutzen (Nutzer, 2026-10-24: Spieler zu merken kann über die Investitionen hinaus nützen).
@@ -92,7 +92,7 @@ Quelle: alle bekannten fremden LGs der Tabelle `greatBuildings`, ohne eigene Bet
 - **Umsetzung (2026-10-25), gemerkte Spieler:**
   - Das Feld `marked` am Spieler im Player-Store (`setMarked`), nicht in den Investitionen. Gespeichert wird es mit der Zeile in der Tabelle `players`. Kein Weg über Beziehungen ändert es: `getSocialList`, `acceptInvitation`, `deleteFriend` und die übrigen Quellen behalten es, auch wenn der Spieler in keiner Liste mehr steht. Nur der Spieler nimmt den Stern von Hand weg.
   - Merken kann man nur einen Spieler, den der Player-Store kennt. Bei einem unbekannten Eigentümer (nur aus einer LG-Liste bekannt, siehe [Erreichbarkeit](#erreichbarkeit)) steht kein Stern, denn für ihn gibt es noch keine Zeile, in der er stehen könnte.
-  - Der Stern steht im Kopf der Snipehilfe und im Kopf des LG-Rechners hinter dem Namen des Eigentümers und in den Stadtinformationen hinter dem Namen des besuchten Spielers. Eine Änderung meldet `player.updated` mit der Quelle `mark`, so zeichnen alle offenen Ansichten neu.
+  - Der Stern steht im Kopf der Snipehilfe und im Kopf des LG-Rechners hinter dem Namen des Eigentümers und in der Box „Besuchte Stadt“ hinter dem Namen des besuchten Spielers. Eine Änderung meldet `player.updated` mit der Quelle `mark`, so zeichnen alle offenen Ansichten neu.
   - „nur gemerkte“ lässt nun auch die LGs eines gemerkten Eigentümers durch.
   - **Spielerstern in den Zeilen** (Nutzer, 2026-10-25, ersetzt die reine Anzeige „Spieler gemerkt“): In beiden Reitern steht in der Zelle des Eigentümers ein Stern zum Umschalten, direkt vor dem Auge (Reihenfolge Name, Stern, Auge, Trichter, alle drei am rechten Rand mit festem Platz). Nicht gemerkt zeigt sich der Umriss blass nur bei Maus über der Zeile oder Fokus in der Zeile, gemerkt bleibt der gefüllte Stern sichtbar in Akzent. Tooltip und `aria-label` „Merken“ und „Nicht mehr merken“, ein Klick schaltet um, `aria-pressed` sagt den Zustand. Wie das Auge nur für einen Spieler, den der Player-Store kennt. Der Knopf ist der `starButton` aus `ui/star.ts`, die Sichtbarkeitsregeln teilt er sich in den Styles mit dem Auge.
   - „nur gemerkte“ ist seit 2026-10-25 ein Schalter mit dem gefüllten Stern statt einer Checkbox, wie die übrigen Filter (Nutzer).
