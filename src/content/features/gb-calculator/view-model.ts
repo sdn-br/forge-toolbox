@@ -174,6 +174,8 @@ export type GbCalculatorVm =
       /** paid in of the level and its costs, for the progress line in the head */
       invested: number;
       required: number;
+      /** what the owner paid into the level; missing when nothing */
+      ownerFp?: number;
       /** at least one place pays more than it costs */
       profitable: boolean;
     };
@@ -416,6 +418,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     factor: effectiveFactor,
   });
   const places = calc.places.map((p) => placeRow(p, calc.rest, availableFp));
+  const ownerFp = c.rankings.find((r) => r.rank === undefined && r.player === c.owner)?.fp;
   return {
     kind: 'current',
     header,
@@ -428,6 +431,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     missing: Math.max(0, calc.missing),
     invested: entity.invested,
     required: entity.required,
+    ...(ownerFp && { ownerFp }),
     profitable: !calc.blocked && !c.leveled && places.some((p) => p.status === 'profit' && (p.profit ?? 0) > 0),
   };
 }

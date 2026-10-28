@@ -83,7 +83,9 @@ describe('LG-Rechner', () => {
     expect(box.text).toContain('noch 2.811 FP bis zum Level-up');
     // the progress stands in the head, above the places, with its bar
     const progress = box.root.querySelector('.gb-progress') as HTMLElement;
-    expect(progress.textContent).toMatch(/^\s*Fortschritt: [\d.]+ \/ [\d.]+ · noch 2\.811 FP bis zum Level-up/);
+    expect(progress.textContent).toMatch(
+      /^\s*Fortschritt: 251 \/ [\d.]+ · davon Eigentümer 251 · noch 2\.811 FP bis zum Level-up/,
+    );
     expect(progress.compareDocumentPosition(box.root.querySelector('.gb-places') as Node)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
@@ -106,6 +108,34 @@ describe('LG-Rechner', () => {
     // place 2 costs the same 1406 as place 1, which is better: no safe cost, profit or rate, reward and demand stay
     expect(cells(rows()[1])).toEqual(['2', '–', '–', '714', '–', '694', '–']);
     expect(tones()).toBe(1);
+  });
+
+  it("names the owner's share in the progress line and splits it from the patrons in the tooltip", async () => {
+    const { box, open } = setup();
+    // 650 St. 49: 917 in, the owner's 220 of it
+    open(650);
+    await tick();
+    const progress = box.root.querySelector('.gb-progress > span') as HTMLElement;
+    expect(progress.textContent?.trim()).toMatch(/^Fortschritt: 917 \/ [\d.]+ · davon Eigentümer 220 · noch [\d.]+ FP/);
+    expect(progress.dataset.tip).toBe('Eigentümer 220 + Mäzene 697');
+  });
+
+  it('leaves the owner out of the progress line when the owner paid nothing', async () => {
+    const { box, send, opening } = setup();
+    const { entity, construction } = opening(650);
+    const data = construction.responseData as { rankings: { rank?: number; forge_points?: number }[] };
+    send(entity);
+    send({
+      ...construction,
+      responseData: {
+        ...data,
+        rankings: data.rankings.map((r) => (r.rank === undefined ? { ...r, forge_points: undefined } : r)),
+      },
+    });
+    await tick();
+    const progress = box.root.querySelector('.gb-progress > span') as HTMLElement;
+    expect(progress.textContent?.trim()).toMatch(/^Fortschritt: 917 \/ [\d.]+ · noch [\d.]+ FP/);
+    expect(progress.dataset.tip).toBeUndefined();
   });
 
   it('marks a demand below the safe cost and names the profit at it', async () => {
