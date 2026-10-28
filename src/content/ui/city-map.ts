@@ -128,8 +128,9 @@ export class CityMap {
   private drag?: { x: number; y: number; view: MapView; moved: boolean };
   private observer?: ResizeObserver;
   private observedIn?: Window;
-  /** the data and canvas of the last paint; a render with the same draws nothing */
-  private painted?: { data: CityMapData; canvas: HTMLCanvasElement };
+  private observed?: HTMLCanvasElement;
+  /** the data, canvas and size of the last paint; a render with the same draws nothing */
+  private painted?: { data: CityMapData; canvas: HTMLCanvasElement; size: { width: number; height: number } };
   /** a paint requested for the next frame */
   private frame?: { win: Window; id: number };
   /** the tiles in drawing order, kept while data and mode stay */
@@ -146,7 +147,9 @@ export class CityMap {
     // lit-html commits the template after this returns; draw once the canvas is in place, unless it shows this data
     queueMicrotask(() => {
       this.observe();
-      if (this.painted?.data !== this.data || this.painted.canvas !== this.canvas) this.draw();
+      const size = this.size();
+      const last = this.painted;
+      if (last?.data !== this.data || last.canvas !== this.canvas || !sameSize(last.size, size)) this.draw();
     });
     const modeButton = (mode: MapMode, label: string) =>
       html`<button class=${this.mode === mode ? 'action active' : 'action'} @click=${() => this.setMode(mode)}>${label}</button>`;
@@ -229,15 +232,21 @@ export class CityMap {
     return project(this.mode, this.bounds, size.width, size.height, this.view);
   }
 
-  /** Watches the size with the observer of the window the map is in; after a pop-out that is another window. */
+  /**
+   * Watches the size of the current canvas with the observer of the window the map is in; after a pop-out that is
+   * another window. A render may bring a new canvas, which then takes the place of the old one.
+   */
   private observe() {
     const c = this.canvas;
     const win = c?.ownerDocument.defaultView;
-    if (!c || !win || win === this.observedIn) return;
-    this.observer?.disconnect();
-    this.observedIn = win;
-    const Observer = (win as Window & { ResizeObserver?: typeof ResizeObserver }).ResizeObserver;
-    this.observer = Observer ? new Observer(() => this.draw()) : undefined;
+    if (!c || !win || c === this.observed) return;
+    if (win !== this.observedIn) {
+      this.observer?.disconnect();
+      this.observedIn = win;
+      const Observer = (win as Window & { ResizeObserver?: typeof ResizeObserver }).ResizeObserver;
+      this.observer = Observer ? new Observer(() => this.draw()) : undefined;
+    } else if (this.observed) this.observer?.unobserve(this.observed);
+    this.observed = c;
     this.observer?.observe(c);
   }
 
@@ -259,7 +268,7 @@ export class CityMap {
     const c = this.canvas;
     const size = this.size();
     if (!c || !size) return;
-    this.painted = { data: this.data, canvas: c };
+    this.painted = { data: this.data, canvas: c, size };
     const p = this.projection(size);
     const ratio = c.ownerDocument.defaultView?.devicePixelRatio ?? 1;
     // setting the size clears and reallocates the canvas, so only when it changed; the background covers it anyway
@@ -481,6 +490,9 @@ function samePlain(a: unknown, b: unknown): boolean {
   const keys = Object.keys(x);
   return keys.length === Object.keys(y).length && keys.every((k) => k in y && samePlain(x[k], y[k]));
 }
+
+const sameSize = (a: { width: number; height: number }, b: { width: number; height: number } | undefined) =>
+  a.width === b?.width && a.height === b?.height;
 
 const sameBounds = (a: Bounds | undefined, b: Bounds | undefined) =>
   a?.x1 === b?.x1 && a?.y1 === b?.y1 && a?.x2 === b?.x2 && a?.y2 === b?.y2;

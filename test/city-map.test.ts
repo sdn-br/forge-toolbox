@@ -180,6 +180,34 @@ describe('city map in another window', () => {
     observed[0]?.redraw();
     expect(draw).toHaveBeenCalled();
   });
+
+  it('watches the new canvas when a render brings one', async () => {
+    const observed: Element[] = [];
+    const original = window.ResizeObserver;
+    window.ResizeObserver = class {
+      observe(target: Element) {
+        observed.push(target);
+      }
+      unobserve(target: Element) {
+        observed.splice(observed.indexOf(target), 1);
+      }
+      disconnect() {
+        observed.length = 0;
+      }
+    } as unknown as typeof ResizeObserver;
+    try {
+      const { map, canvas } = mount();
+      map.draw();
+      expect(observed).toEqual([canvas]);
+      const other = document.createElement('div');
+      document.body.append(other);
+      render(map.render(data), other);
+      await tick();
+      expect(observed).toEqual([other.querySelector('canvas')]);
+    } finally {
+      window.ResizeObserver = original;
+    }
+  });
 });
 
 describe('clicks on the city map', () => {
