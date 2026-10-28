@@ -278,6 +278,20 @@ describe('LG-Rechner: follows the windows of the game', () => {
     expect(expanded(box)).toBe(false);
   });
 
+  it('folds the snipe section when the window shows before the building of the list owner comes', async () => {
+    // the game shows the window first, the traffic brings the building after it (seen on de20, 2026-10-28)
+    const { box, bus, list, open, advance } = setup();
+    list([hitZeus()]);
+    await tick();
+    advance(10_000);
+    shows(bus, 'list');
+    shows(bus, 'foreign');
+    open(1909);
+    await tick();
+    expect(calcOpen(box)).toBe(true);
+    expect(expanded(box)).toBe(false);
+  });
+
   it('unfolds the snipe section and folds the calculator when only the list is left', async () => {
     const { box, bus } = await overList();
     shows(bus, 'foreign');

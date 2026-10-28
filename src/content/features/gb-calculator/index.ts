@@ -1,5 +1,6 @@
 import { html } from 'lit-html';
 import { foestatsDay, foestatsPlayerUrl } from '../../../shared/foestats';
+import type { GbWindowState } from '../../../shared/gb-window-protocol';
 import type { PlayerId } from '../../../shared/ids';
 import type { KnownGreatBuilding } from '../../../shared/model';
 import type { Feature } from '../../core/feature';
@@ -140,6 +141,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       /** the calculator is folded to one line; a new list folds it, opening a building unfolds it, the window the game
        * shows too, else the player */
       let calcFolded = false;
+      /** the GB window the game shows by the last gbWindow.changed; stays 'none' when the engine is not found */
+      let shownWindow: GbWindowState = 'none';
       /** one part stays open: folding the last open part unfolds the other; without a list the calculator is alone */
       const hasSection = () => snipeVm.kind !== 'none';
       /** the calculator shows a building, so the snipe section can fold */
@@ -357,8 +360,9 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       ctx.bus.on('greatBuilding.opened', ({ owner, entityId, own }) => {
         if (!own) listChanged(owner, entityId);
         if (own || !follow()) return;
-        // a building of the list's owner keeps the list open, it is what the player is going through
-        if (list?.owner !== owner) expanded = false;
+        // a building of the list's owner keeps the list open, it is what the player is going through, unless the game
+        // shows the building's window: it comes before the building, so the window signal could not fold yet
+        if (list?.owner !== owner || shownWindow === 'foreign') expanded = false;
         calcFolded = false;
         toned = undefined;
         preview = undefined;
@@ -377,6 +381,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       // the window the game shows wins over the traffic: the list unfolds its section, a foreign building the calculator;
       // without either the box closes. It never opens the box, so ignored buildings and players keep it closed.
       ctx.bus.on('gbWindow.changed', ({ state }) => {
+        shownWindow = state;
         if (state === 'list') {
           expanded = true;
           if (hasSection()) calcFolded = true;
