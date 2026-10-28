@@ -12,7 +12,7 @@ const calc = {
   open: 0,
 } as unknown as OwnShareCalc;
 
-const about = { player: 'Ich', building: 'Arche', level: 135, factor: 90 };
+const about = { player: 'Ich', building: 'Arche', level: 135, factor: [90, 90, 90, 90, 90] };
 const text = (o: Partial<CopyOptions>) => copyText(calc, { ...DEFAULT_COPY, mode: 'all', ...o }, about);
 
 describe('warning signs in the copy text', () => {
@@ -35,11 +35,10 @@ describe('warning signs in the copy text', () => {
 });
 
 describe('the factor in the copy text', () => {
-  const withFactor = (factor: number | number[]) =>
+  const withFactor = (factor: number[]) =>
     copyText(calc, { ...DEFAULT_COPY, mode: 'all', fp: false, factor: true }, { ...about, factor });
 
   it('shows one factor when all places share it', () => {
-    expect(withFactor(90)).toBe('Ich Arche 1,9 P3 P2 P1');
     expect(withFactor([90, 90, 90, 90, 90])).toBe('Ich Arche 1,9 P3 P2 P1');
   });
 

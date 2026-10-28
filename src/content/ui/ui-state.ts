@@ -30,14 +30,14 @@ export class UiState {
 
   savePref(key: string, value: string): void {
     this.prefs = { ...this.prefs, [key]: value };
-    this.kv.set('ui.prefs', this.prefs).catch((error) => logError('saving a view choice failed', error));
+    this.persist('ui.prefs', this.prefs, 'saving a view choice failed');
   }
 
   removePref(key: string): void {
     if (!(key in this.prefs)) return;
     const { [key]: _, ...rest } = this.prefs;
     this.prefs = rest;
-    this.kv.set('ui.prefs', this.prefs).catch((error) => logError('saving a view choice failed', error));
+    this.persist('ui.prefs', this.prefs, 'saving a view choice failed');
   }
 
   box(id: string): BoxState {
@@ -46,6 +46,11 @@ export class UiState {
 
   saveBox(id: string, patch: BoxState): void {
     this.boxes = { ...this.boxes, [id]: { ...this.box(id), ...patch } };
-    this.kv.set('ui.boxes', this.boxes).catch((error) => logError('saving box state failed', error));
+    this.persist('ui.boxes', this.boxes, 'saving box state failed');
+  }
+
+  /** writes in the background; a failure is only logged, the state in memory stays */
+  private persist(key: 'ui.prefs' | 'ui.boxes', value: unknown, failure: string) {
+    this.kv.set(key, value).catch((error) => logError(failure, error));
   }
 }

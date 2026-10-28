@@ -39,8 +39,8 @@ export const largeDefaultSize: NonNullable<BoxOptions['defaultSize']> = (win) =>
 let topZ = 2147480000;
 
 /** the smallest size a box can be dragged to; a box can ask for more height with `minHeight` */
-export const MIN_WIDTH = 260;
-export const MIN_HEIGHT = 150;
+const MIN_WIDTH = 260;
+const MIN_HEIGHT = 150;
 
 export class Box {
   private host = document.createElement('div');

@@ -92,6 +92,13 @@ const badgeSwatch = (color: string, symbol: MapBadge['symbol']) =>
         : svg`<path d="M3.2 6.8 6.8 3.2" stroke=${color} stroke-width="1.3" stroke-linecap="round"/>`
     }</svg>`;
 
+/** the key of each tile a rectangle covers, "x,y" */
+function forEachTile(r: TileRect, visit: (key: string) => void) {
+  for (let dx = 0; dx < r.width; dx++) {
+    for (let dy = 0; dy < r.length; dy++) visit(`${r.x + dx},${r.y + dy}`);
+  }
+}
+
 /** a colour square before a word; `outline` shows only its frame in the colour */
 export const swatch = (color: string, outline = false) =>
   html`<span class=${outline ? 'swatch outline' : 'swatch'}
@@ -191,16 +198,11 @@ export class CityMap {
     this.zoneIndex.clear();
     for (const zone of this.data.zones ?? []) {
       if (zone.tooltip === undefined) continue;
-      for (const r of zone.rects) {
-        for (let dx = 0; dx < r.width; dx++) {
-          for (let dy = 0; dy < r.length; dy++) this.zoneIndex.set(`${r.x + dx},${r.y + dy}`, zone.tooltip);
-        }
-      }
+      const tooltip = zone.tooltip;
+      for (const r of zone.rects) forEachTile(r, (key) => this.zoneIndex.set(key, tooltip));
     }
     this.data.tiles.forEach((tile, i) => {
-      for (let dx = 0; dx < tile.width; dx++) {
-        for (let dy = 0; dy < tile.length; dy++) this.index.set(`${tile.x + dx},${tile.y + dy}`, i);
-      }
+      forEachTile(tile, (key) => this.index.set(key, i));
     });
     this.indexed = this.data;
   }

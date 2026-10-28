@@ -32,14 +32,9 @@ export class NoteEditor {
 
   constructor(private update: () => void) {}
 
-  get active(): boolean {
-    return this.editing;
-  }
-
   /** opens the textarea for this note and focuses it */
   edit(key: string): void {
-    if (this.key !== key) this.stop();
-    this.key = key;
+    this.show(key);
     if (!this.editing) this.draft = undefined;
     this.editing = true;
     this.wantFocus = true;
@@ -47,10 +42,7 @@ export class NoteEditor {
   }
 
   render(target: NoteTarget): TemplateResult {
-    if (target.key !== this.key) {
-      this.stop();
-      this.key = target.key;
-    }
+    this.show(target.key);
     if (!this.editing) {
       const empty = !target.text.trim();
       return html`<div class="note" tabindex="0" data-tip=${t('notes.edit')}
@@ -103,6 +95,12 @@ export class NoteEditor {
     if (this.draft === undefined || this.draft === this.saved) return;
     this.saved = this.draft;
     this.save?.(this.draft);
+  }
+
+  /** another note ends the editing of the previous one */
+  private show(key: string) {
+    if (key !== this.key) this.stop();
+    this.key = key;
   }
 
   private stop() {

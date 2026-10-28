@@ -11,7 +11,7 @@ export interface Suggestion {
 }
 
 /** the longest list of suggestions; a longer one would only scroll */
-export const MAX_SUGGESTIONS = 30;
+const MAX_SUGGESTIONS = 30;
 
 /**
  * The names that contain the query, ignoring case, each once with how often it occurs. Names that start with the query

@@ -1,7 +1,7 @@
-import { html } from 'lit-html';
+import { html, type TemplateResult } from 'lit-html';
 
 /** a name that opens its page in a new tab; nothing is sent until the viewer clicks */
-export const externalLink = (text: string, url: string) =>
+export const externalLink = (text: string | (TemplateResult | string)[], url: string) =>
   html`<a href=${url} target="_blank" rel="noopener noreferrer">${text}</a>`;
 
 /** a small link beside a name whose own click does something else, like filtering; `label` says where it goes */

@@ -1,6 +1,7 @@
 // A small Markdown subset for notes. It builds lit-html templates, never HTML strings: every piece of the source ends
 // up as text or as an attribute value, so nothing in a note can become markup or script.
 import { html, type TemplateResult } from 'lit-html';
+import { externalLink } from './links';
 
 type Inline =
   | { kind: 'text'; text: string }
@@ -104,8 +105,7 @@ function parseBlocks(source: string): Block[] {
 function inlineTemplate(parts: Inline[]): (TemplateResult | string)[] {
   return parts.map((p) => {
     if (p.kind === 'text') return p.text;
-    if (p.kind === 'link')
-      return html`<a href=${p.href} target="_blank" rel="noopener noreferrer">${inlineTemplate(p.children)}</a>`;
+    if (p.kind === 'link') return externalLink(inlineTemplate(p.children), p.href);
     return p.kind === 'bold'
       ? html`<strong>${inlineTemplate(p.children)}</strong>`
       : html`<em>${inlineTemplate(p.children)}</em>`;

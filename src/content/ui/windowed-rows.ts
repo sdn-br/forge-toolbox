@@ -8,10 +8,9 @@ import { offButton } from './buttons';
 import { headerIcons } from './icons';
 
 export interface RowWindow {
-  /** index of the first row in view */
+  /** index of the first row in view, so also the number of rows hidden above */
   top: number;
-  /** rows hidden above and below */
-  above: number;
+  /** rows hidden below */
   below: number;
 }
 
@@ -20,13 +19,13 @@ export const clampTop = (top: number, rows: number, visible: number): number => 
 
 export function rowWindow(top: number, rows: number, visible: number): RowWindow {
   const clamped = clampTop(top, rows, visible);
-  return { top: clamped, above: clamped, below: Math.max(0, rows - clamped - visible) };
+  return { top: clamped, below: Math.max(0, rows - clamped - visible) };
 }
 
 /** the rows of the window */
 export const rowsIn = <T>(rows: T[], { top, below }: RowWindow): T[] => rows.slice(top, rows.length - below);
 
-const hidden = ({ above, below }: RowWindow) =>
+const hidden = ({ top: above, below }: RowWindow) =>
   above > 0 && below > 0
     ? t('table.hiddenBoth', { above, below })
     : above > 0
@@ -51,7 +50,7 @@ export interface WindowedRows {
  * hidden after it. The buttons always keep their room, greyed when nothing is hidden, so the table width never jumps.
  * The wheel over the frame steps a row and passes at the ends. */
 export function windowedRows({ cls, table, window, scroll, measure }: WindowedRows): TemplateResult {
-  const { above, below } = window;
+  const { top: above, below } = window;
   const scrolls = above > 0 || below > 0;
   const wheel = (e: WheelEvent) => {
     const step = Math.sign(e.deltaY);
