@@ -72,7 +72,7 @@ function setup(prefs: Record<string, string> = {}) {
   const rows = () => [...box.root.querySelectorAll('tr')].slice(1);
   // the star cell comes first and has no text; the indices count from the place in the game's list
   const cells = (row: Element | undefined) =>
-    [...(row?.querySelectorAll('td:not(.snipe-mark)') ?? [])].map((td) => td.textContent?.trim());
+    [...(row?.querySelectorAll('td:not(.mark-cell)') ?? [])].map((td) => td.textContent?.trim());
   return {
     ...env,
     ...ctx,
@@ -370,11 +370,11 @@ describe('Snipehilfe: stacked box', () => {
     const { box, list, rows, advance } = setup();
     list([withRequired(zeus, 80, 10)]);
     await tick();
-    expect(box.root.querySelector('.inv-growth')).toBeNull();
+    expect(box.root.querySelector('.growth-tag')).toBeNull();
     advance(10_000);
     list([withRequired(zeus, 80, 15)]);
     await tick();
-    const growth = rows()[0]?.querySelector('.fp-line .inv-growth');
+    const growth = rows()[0]?.querySelector('.fp-line .growth-tag');
     expect(growth?.textContent).toBe('+5');
     expect(growth?.getAttribute('data-tip')).toBe('Seit dem vorigen Stand 5 FP eingezahlt');
   });
@@ -397,7 +397,7 @@ describe('Snipehilfe: stacked box', () => {
     list([hitZeus()]);
     await tick();
     const html = box.root.innerHTML;
-    expect(html.indexOf('snipe-toggle')).toBeLessThan(html.indexOf('snipe-sep'));
+    expect(html.indexOf('fold-toggle')).toBeLessThan(html.indexOf('snipe-sep'));
     expect(html.indexOf('snipe-sep')).toBeLessThan(html.indexOf('Aachener Dom'));
   });
 
@@ -543,7 +543,7 @@ describe('Snipehilfe: stacked box', () => {
     const { list, rows } = setup();
     list([withRequired(zeus, 80, 20)]);
     await tick();
-    const progress = rows()[0]?.querySelectorAll('td:not(.snipe-mark)')[3] as HTMLElement;
+    const progress = rows()[0]?.querySelectorAll('td:not(.mark-cell)')[3] as HTMLElement;
     expect(progress.querySelector('.fp-bar')).not.toBeNull();
     expect(progress.dataset.tip).toMatch(/^Fehlt bis zum Level-up: [\d.]+ von [\d.]+ FP$/m);
     expect(progress.dataset.tip).not.toContain('der Stufe sind eingezahlt');
@@ -554,10 +554,10 @@ describe('Snipehilfe: stacked box', () => {
     list([hitZeus()]);
     await tick();
     const row = rows()[0] as HTMLElement;
-    const tip = (row.querySelector('td.snipe-name') as HTMLElement).dataset.tip ?? '';
+    const tip = (row.querySelector('td.name-cell') as HTMLElement).dataset.tip ?? '';
     expect(tip.split('\n')[0]).toBe('Zeusstatue');
     expect(tip).toContain(row.dataset.tip ?? '');
-    expect(box.root.querySelectorAll('td.snipe-name[data-tip]')).toHaveLength(1);
+    expect(box.root.querySelectorAll('td.name-cell[data-tip]')).toHaveLength(1);
   });
 
   it('marks a building without a deposit as maybe locked and shows the tier with a tooltip', async () => {
@@ -584,7 +584,7 @@ describe('Snipehilfe: stacked box', () => {
     advance(10_000);
     list([{ ...dom, current_progress: 2_900 }]);
     await tick();
-    const progressTip = () => rows()[0]?.querySelectorAll('td:not(.snipe-mark)')[3]?.getAttribute('data-tip') ?? '';
+    const progressTip = () => rows()[0]?.querySelectorAll('td:not(.mark-cell)')[3]?.getAttribute('data-tip') ?? '';
     expect(progressTip()).not.toContain('Eigenanteil:');
     advance(10_000);
     open(1909);
@@ -599,7 +599,7 @@ describe('Snipehilfe: stacked box', () => {
     await tick();
     const profits = rows().map((r) => cells(r)[6] ?? '');
     expect(profits.every((p) => /^[+−]?\d[\d.]*$/.test(p))).toBe(true);
-    const tips = rows().map((r) => r.querySelectorAll('td:not(.snipe-mark)')[6]?.getAttribute('data-tip') ?? '');
+    const tips = rows().map((r) => r.querySelectorAll('td:not(.mark-cell)')[6]?.getAttribute('data-tip') ?? '');
     expect(tips.some((tip) => /^Gewinn [+−]?\d[\d.]* bis [+−]?\d[\d.]*$/m.test(tip))).toBe(true);
     const names = () => rows().map((r) => cells(r)[1]);
     const before = names();
@@ -838,7 +838,7 @@ describe('Snipehilfe: stacked box', () => {
 });
 
 describe('Snipehilfe: marking with a star', () => {
-  const stars = (box: { root: ParentNode }) => [...box.root.querySelectorAll('.snipe-table td.snipe-mark button')];
+  const stars = (box: { root: ParentNode }) => [...box.root.querySelectorAll('.snipe-table td.mark-cell button')];
 
   it('has a star column between # and the name, as in the investments, the word in tooltip and label', async () => {
     const { box, list } = setup();
@@ -1019,7 +1019,7 @@ describe('Snipehilfe: marking the owner', () => {
 describe('Snipehilfe: ignorierte LGs und Spieler', () => {
   const owner = playerId(1001);
   const showToggle = (box: { root: ParentNode }) =>
-    box.root.querySelector('.inv-ignored-filter button') as HTMLButtonElement;
+    box.root.querySelector('.ignored-filter button') as HTMLButtonElement;
   const social = (send: (...e: Entry[]) => void) =>
     send({
       requestClass: 'OtherPlayerService',
@@ -1163,20 +1163,20 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     expect(showToggle(box).getAttribute('aria-pressed')).toBe('true');
     showToggle(box).click();
     await tick();
-    expect(box.root.querySelector('.inv-ignored-filter')).toBeNull();
+    expect(box.root.querySelector('.ignored-filter')).toBeNull();
   });
 
   it('has no toggle while nothing is ignored and the toggle is off', async () => {
     const { box, list } = setup();
     list([hitZeus(), hitOracle()]);
     await tick();
-    expect(box.root.querySelector('.inv-ignored-filter')).toBeNull();
+    expect(box.root.querySelector('.ignored-filter')).toBeNull();
   });
 
   const headerEye = (box: { root: ParentNode }) =>
     box.root.querySelector('.gb-owner button.ignore') as HTMLButtonElement;
   const rowEye = (r: Element | undefined) =>
-    r?.querySelector('td.snipe-name .inv-owner button.ignore') as HTMLButtonElement;
+    r?.querySelector('td.name-cell .row-name button.ignore') as HTMLButtonElement;
 
   it('puts the eye after the owner star in the section header, for a known player only', async () => {
     const { box, players, send, list, rows } = setup();

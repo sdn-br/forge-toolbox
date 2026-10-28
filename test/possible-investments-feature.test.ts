@@ -142,7 +142,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     expect(tier?.querySelector('svg')).not.toBeNull();
     // the Zeusstatue has nothing paid in
     expect(rows()[1]?.getAttribute('data-tip')).toContain('eventuell gesperrt');
-    expect(rows()[0]?.querySelector('td.inv-progress .fp-bar')).not.toBeNull();
+    expect(rows()[0]?.querySelector('td.progress-cell .fp-bar')).not.toBeNull();
     // the lighthouse has no loaded definition: no place
     expect(box.text).toContain('2 mit Gewinn von 3 LGs');
   });
@@ -274,7 +274,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     await tick();
     await showPossible();
     expect(rows()).toHaveLength(2);
-    const pick = rows()[0]?.querySelector('td.inv-name .inv-pick') as HTMLButtonElement;
+    const pick = rows()[0]?.querySelector('td.name-cell .inv-pick') as HTMLButtonElement;
     expect(pick.getAttribute('aria-label')).toBe('Nur diesen Spieler zeigen');
     expect(pick.getAttribute('data-tip')).toBe('Nur diesen Spieler zeigen');
     // the filter sits after the name, the name stays the link
@@ -294,7 +294,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     list([{ ...hitOracle(), player: { player_id: 1002, name: 'Bert' } }], 1002);
     await tick();
     await showPossible();
-    const pick = () => rows()[0]?.querySelector('td.inv-name .inv-pick') as HTMLButtonElement;
+    const pick = () => rows()[0]?.querySelector('td.name-cell .inv-pick') as HTMLButtonElement;
     const type = async (value: string) => {
       input('Spieler').value = value;
       input('Spieler').dispatchEvent(new Event('input'));
@@ -454,20 +454,20 @@ describe('Investitionen: Mögliche Investitionen', () => {
     list([hitZeus(), hitOracle()]);
     await tick();
     await showPossible();
-    expect(rows().some((r) => r.querySelector('.inv-growth'))).toBe(false);
+    expect(rows().some((r) => r.querySelector('.growth-tag'))).toBe(false);
     vi.setSystemTime(Date.now() + MINUTE);
     list([hitZeus(), { ...hitOracle(), current_progress: 35 }]);
     await tick();
-    const growth = rows()[0]?.querySelector('td.inv-progress .fp-line .inv-growth');
+    const growth = rows()[0]?.querySelector('td.progress-cell .fp-line .growth-tag');
     expect(growth?.textContent).toBe('+5');
     expect(growth?.getAttribute('data-tip')).toBe('Seit dem vorigen Stand 5 FP eingezahlt');
-    expect(rows()[1]?.querySelector('.inv-growth')).toBeNull();
+    expect(rows()[1]?.querySelector('.growth-tag')).toBeNull();
     expect(rows().map((r) => r.classList.contains('grown'))).toEqual([false, false]);
     // the next sighting without a change shows nothing
     vi.setSystemTime(Date.now() + MINUTE);
     list([hitZeus(), { ...hitOracle(), current_progress: 35 }]);
     await tick();
-    expect(rows().some((r) => r.querySelector('.inv-growth'))).toBe(false);
+    expect(rows().some((r) => r.querySelector('.growth-tag'))).toBe(false);
   });
 
   it('shows the age of an entry by its largest unit', async () => {
@@ -655,7 +655,7 @@ describe('Investitionen: Merken', () => {
     expect(greatBuildings.isMarked(playerId(1001), zeus.entity_id)).toBe(true);
     expect(rows().map((r) => star(r)?.getAttribute('aria-pressed'))).toEqual(['false', 'true']);
     // the snipe helper shows the same mark
-    const marked = [...snipe.root.querySelectorAll('.snipe-table td.snipe-mark button')].map((b) =>
+    const marked = [...snipe.root.querySelectorAll('.snipe-table td.mark-cell button')].map((b) =>
       b.getAttribute('aria-pressed'),
     );
     expect(marked.sort()).toEqual(['false', 'true']);
@@ -670,7 +670,7 @@ describe('Investitionen: Merken', () => {
     await tick();
     await greatBuildings.mark(playerId(1001), zeus.entity_id, true);
     await showPossible();
-    const marked = box.root.querySelector('.inv-marked-filter button') as HTMLButtonElement;
+    const marked = box.root.querySelector('.mark-celled-filter button') as HTMLButtonElement;
     expect(marked.getAttribute('aria-label')).toBe('nur gemerkte');
     expect(marked.getAttribute('aria-pressed')).toBe('false');
     expect(rows()).toHaveLength(2);
@@ -691,7 +691,7 @@ describe('Investitionen: Merken', () => {
     env.menu('investments');
     await tick();
     const root = env.boxes.get('investments')?.root as HTMLElement;
-    expect(root.querySelector('.inv-marked-filter button')?.getAttribute('aria-pressed')).toBe('true');
+    expect(root.querySelector('.mark-celled-filter button')?.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('lets the buildings of a marked owner pass "nur gemerkte"', async () => {
@@ -717,11 +717,11 @@ describe('Investitionen: Merken', () => {
     players.setMarked(playerId(1002), true);
     await tick();
     // a marked owner shows its star on, the other a star off
-    const ownerStar = (row: Element | undefined) => row?.querySelector('.inv-owner button.star');
+    const ownerStar = (row: Element | undefined) => row?.querySelector('.row-name button.star');
     const byName = (name: string) => rows().find((r) => cells(r)[3] === name);
     expect(ownerStar(byName('Orakel von Delphi'))?.getAttribute('aria-label')).toBe('Nicht mehr merken');
     expect(ownerStar(byName('Zeusstatue'))?.getAttribute('aria-label')).toBe('Merken');
-    (box.root.querySelector('.inv-marked-filter button') as HTMLButtonElement).click();
+    (box.root.querySelector('.mark-celled-filter button') as HTMLButtonElement).click();
     await tick();
     expect(rows().map((r) => cells(r)[3])).toEqual(['Orakel von Delphi']);
     // the mark comes live: marking the other owner shows its building too
@@ -745,7 +745,7 @@ describe('Investitionen: Spielerstern in Mögliche Investitionen', () => {
     await tick();
     await showPossible();
     const row = (name: string) => rows().find((r) => r.textContent?.includes(name)) as Element;
-    const star = () => row('Zeusstatue').querySelector('.inv-owner button.star') as HTMLButtonElement;
+    const star = () => row('Zeusstatue').querySelector('.row-name button.star') as HTMLButtonElement;
     expect(star().getAttribute('aria-label')).toBe('Merken');
     expect(star().getAttribute('aria-pressed')).toBe('false');
     expect(star().nextElementSibling?.classList.contains('ignore')).toBe(true);
@@ -755,11 +755,11 @@ describe('Investitionen: Spielerstern in Mögliche Investitionen', () => {
     expect(star().getAttribute('aria-label')).toBe('Nicht mehr merken');
     expect(star().classList.contains('on')).toBe(true);
     // ignoring the marked owner removes the star
-    (row('Zeusstatue').querySelector('.inv-owner button.ignore') as HTMLButtonElement).click();
+    (row('Zeusstatue').querySelector('.row-name button.ignore') as HTMLButtonElement).click();
     await tick();
     expect(players.get(playerId(1001))).toMatchObject({ ignored: true });
     expect(players.get(playerId(1001))).not.toHaveProperty('marked');
-    (box.root.querySelector('.inv-ignored-filter button') as HTMLButtonElement).click();
+    (box.root.querySelector('.ignored-filter button') as HTMLButtonElement).click();
     await tick();
     star().click();
     await tick();
@@ -769,16 +769,17 @@ describe('Investitionen: Spielerstern in Mögliche Investitionen', () => {
     await tick();
     expect(players.get(playerId(1001))).not.toHaveProperty('marked');
     // an owner the store does not know has no star
-    expect(row('Orakel').querySelector('.inv-owner button.star')).toBeNull();
+    expect(row('Orakel').querySelector('.row-name button.star')).toBeNull();
   });
 });
 
 describe('Investitionen: Ignorieren in Mögliche Investitionen', () => {
-  const buildingEye = (r: Element | undefined) => r?.querySelectorAll('td.inv-name')[1]?.querySelector('button.ignore');
+  const buildingEye = (r: Element | undefined) =>
+    r?.querySelectorAll('td.name-cell')[1]?.querySelector('button.ignore');
   const ownerEye = (r: Element | undefined) =>
-    r?.querySelectorAll('td.inv-name')[0]?.querySelector('.inv-owner button.ignore');
+    r?.querySelectorAll('td.name-cell')[0]?.querySelector('.row-name button.ignore');
   const showToggle = (box: { root: ParentNode }) =>
-    box.root.querySelector('.inv-ignored-filter button') as HTMLButtonElement;
+    box.root.querySelector('.ignored-filter button') as HTMLButtonElement;
   const byName = (rows: Element[], cells: (r: Element) => (string | undefined)[], name: string) =>
     rows.find((r) => cells(r)[3] === name) as Element;
   const social = (send: (e: Entry) => void, ids: number[]) =>
@@ -877,7 +878,7 @@ describe('Investitionen: Ignorieren in Mögliche Investitionen', () => {
       env.menu('investments');
       await tick();
       const root = env.boxes.get('investments')?.root as HTMLElement;
-      const on = root.querySelector('.inv-ignored-filter button')?.getAttribute('aria-pressed');
+      const on = root.querySelector('.ignored-filter button')?.getAttribute('aria-pressed');
       expect(on).toBe(saved.showIgnored === true ? 'true' : 'false');
     }
   });

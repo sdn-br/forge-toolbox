@@ -191,10 +191,10 @@ button.stats-tab { margin: 0; writing-mode: vertical-rl; padding: 8px 2px; borde
 .gb-places { position: relative; min-height: 60px; }
 .gb-table td, .gb-table th { white-space: nowrap; }
 /* snipe list: fixed columns so heads show whole; only the building name gives way */
-button.snipe-toggle { all: unset; cursor: pointer; display: flex; align-items: center; gap: 4px; width: 100%; }
-button.snipe-toggle:hover { color: var(--accent); }
-button.snipe-toggle:focus-visible { outline: 1px solid var(--accent); }
-button.snipe-toggle svg { display: block; flex: none; width: 14px; height: 14px; }
+button.fold-toggle { all: unset; cursor: pointer; display: flex; align-items: center; gap: 4px; width: 100%; }
+button.fold-toggle:hover { color: var(--accent); }
+button.fold-toggle:focus-visible { outline: 1px solid var(--accent); }
+button.fold-toggle svg { display: block; flex: none; width: 14px; height: 14px; }
 hr.snipe-sep { border: 0; border-top: 1px solid var(--line); margin: 6px 0; }
 /* windowed rows (ui/windowed-rows.ts): the table area, the two buttons beside it, the line of what is hidden */
 .win-scroll { display: flex; align-items: stretch; gap: 4px; }
@@ -236,15 +236,17 @@ th.sortable.asc .sort-level::before { content: ' ▴'; font-size: 1.333em; }
 .snipe-table .c-tier { width: 32px; }
 /* the star head with arrow and level number needs 29 px plus 4 px padding */
 .snipe-table .c-mark { width: 34px; }
-.snipe-table td.snipe-name { overflow: hidden; text-overflow: ellipsis; }
 .snipe-table .snipe-tier, .snipe-table th.icon-head:not(.num) { text-align: center; padding: 0; }
-/* the star left, its icon in line with the number of # before it (the button centres a 14 px icon in 18 px) */
-.snipe-table td.snipe-mark { text-align: left; padding: 0 0 0 2px; }
-.snipe-table th.icon-head.snipe-mark { text-align: left; padding: 0 0 0 4px; }
-.snipe-table .snipe-tier svg { display: block; width: 14px; height: 14px; margin: auto; }
-/* an ignored hit shown on request: the whole row muted, links and tier colours too */
-.snipe-table tr.muted :is(td, a) { color: inherit; }
-.snipe-counts .inv-ignored-filter { margin-left: 6px; vertical-align: middle; }
+/* the parts the snipe list and the investment tables share */
+:is(.snipe-table, .inv-table) td.name-cell { overflow: hidden; text-overflow: ellipsis; }
+/* the star left; in the snipe list its icon in line with the number of # before it (the button centres a 14 px icon in
+   18 px) */
+:is(.snipe-table, .inv-table) td.mark-cell { text-align: left; padding: 0 0 0 2px; }
+:is(.snipe-table, .inv-table) th.icon-head.mark-cell { text-align: left; padding: 0 0 0 4px; }
+:is(.snipe-table, .inv-table) .snipe-tier svg { display: block; width: 14px; height: 14px; margin: auto; }
+/* an ignored hit shown on request or an owner out of reach: the whole row muted, links and tier colours too */
+:is(.snipe-table, .inv-table) tr.muted :is(td, a) { color: inherit; }
+.snipe-counts .ignored-filter { margin-left: 6px; vertical-align: middle; }
 td.snipe-tier.exact { color: var(--good); }
 td.snipe-tier.safe { color: #5a9a4a; }
 td.snipe-tier.possible { color: var(--warn); }
@@ -263,12 +265,8 @@ td.snipe-tier.possible { color: var(--warn); }
 .inv-table .c-status { width: 32px; }
 .inv-table .c-progress { width: 104px; }
 .inv-table .c-reach { width: 70px; }
-.inv-table td.inv-name { overflow: hidden; text-overflow: ellipsis; }
-.inv-table :is(.icon-head, .inv-status, .snipe-tier, .inv-mark) { text-align: center; padding: 0; }
-/* the star left, as in the snipe helper (the button centres a 14 px icon in 18 px) */
-.inv-table td.inv-mark { text-align: left; padding: 0 0 0 2px; }
-.inv-table th.icon-head.inv-mark { text-align: left; padding: 0 0 0 4px; }
-.inv-table :is(.inv-status, .snipe-tier) svg { display: block; width: 14px; height: 14px; margin: auto; }
+.inv-table :is(.icon-head, .inv-status, .snipe-tier, .mark-cell) { text-align: center; padding: 0; }
+.inv-table .inv-status svg { display: block; width: 14px; height: 14px; margin: auto; }
 .inv-table .icon-head svg { display: inline-block; width: 14px; height: 14px; vertical-align: middle; }
 .inv-table .icon-head { white-space: nowrap; }
 td.inv-status.safe { color: var(--good); }
@@ -284,8 +282,6 @@ td.inv-status.unknown { color: var(--muted); }
 /* the head left, over the icons of the cells */
 .inv-table th.icon-head.inv-reach { text-align: left; padding: 0 0 0 4px; }
 .inv-reach svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px; }
-/* an owner out of reach: the whole row muted, links and tier colours too */
-.inv-table tr.muted :is(td, a) { color: inherit; }
 .inv-possible td { overflow: hidden; text-overflow: ellipsis; }
 /* investments: the body does not scroll, the pane fills it. The table area holds as many rows as fit (ui/fit-rows.ts),
    the two buttons beside it scroll them, and the area itself scrolls only sideways when the box is narrower than the table */
@@ -304,26 +300,26 @@ td.inv-status.unknown { color: var(--muted); }
 /* the profit icon keeps its own colours, switched on it only turns opaque */
 .inv-hits-filter button.on { color: var(--ink); }
 .icon-toggles button svg { display: block; width: 14px; height: 14px; }
-.inv-owner { display: flex; align-items: center; }
-.inv-owner a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.row-name { display: flex; align-items: center; }
+.row-name a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* always at the right edge of the column, so the mouse can run straight down it; hidden until the row is hovered */
 button.inv-pick { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 16px; height: 16px; margin-left: auto; opacity: 0; color: var(--ink); }
 tr:is(:hover, :has(:focus-visible)) button.inv-pick { opacity: .7; }
 tr button.inv-pick:is(:hover, :focus-visible), button.inv-pick.on { opacity: 1; color: var(--accent); }
 /* the star and the eye in a row: 16 px at the right edge like the funnel (which then follows them), faint on row hover or
    focus while off, always in the accent while on. Name cells keep the name's ellipsis and give them their 16 px */
-.inv-owner .inv-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.inv-owner :is(button.star, button.ignore) { flex: none; width: 16px; height: 16px; margin-left: auto; opacity: 0; }
-.inv-owner :is(button.star, button.ignore) svg { width: 12px; height: 12px; }
-.inv-owner :is(button.star, button.ignore) + :is(button.ignore, button.inv-pick) { margin-left: 0; }
+.row-name .row-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.row-name :is(button.star, button.ignore) { flex: none; width: 16px; height: 16px; margin-left: auto; opacity: 0; }
+.row-name :is(button.star, button.ignore) svg { width: 12px; height: 12px; }
+.row-name :is(button.star, button.ignore) + :is(button.ignore, button.inv-pick) { margin-left: 0; }
 /* keyboard focus shows them too, a mouse click does not keep them (:focus-within would, until the next click) */
-tr:is(:hover, :has(:focus-visible)) .inv-owner :is(button.star, button.ignore) { opacity: .7; }
-tr .inv-owner :is(button.star, button.ignore):is(:hover, :focus-visible), tr .inv-owner :is(button.star, button.ignore).on { opacity: 1; color: var(--accent); }
+tr:is(:hover, :has(:focus-visible)) .row-name :is(button.star, button.ignore) { opacity: .7; }
+tr .row-name :is(button.star, button.ignore):is(:hover, :focus-visible), tr .row-name :is(button.star, button.ignore).on { opacity: 1; color: var(--accent); }
 .inv-ignored-total svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; }
 button.inv-pick svg { display: block; width: 12px; height: 12px; }
 /* the growth beside the bar; in "Meine" the bar line has one height in every row, so all rows are equally tall and the
    row window counts them right */
-.inv-growth { flex: none; color: var(--accent); font-weight: 600; font-size: 10px; line-height: 1; }
+.growth-tag { flex: none; color: var(--accent); font-weight: 600; font-size: 10px; line-height: 1; }
 .fp-line { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
 .fp-line .fp-bar { flex: 1 1 auto; margin-top: 0; }
 .inv-mine .fp-line { height: 11px; }

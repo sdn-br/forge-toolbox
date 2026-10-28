@@ -93,7 +93,7 @@ describe('Investitionen box', () => {
       '−12',
       '',
     ]);
-    const progress = rows()[0]?.querySelector('td.inv-progress') as HTMLElement;
+    const progress = rows()[0]?.querySelector('td.progress-cell') as HTMLElement;
     expect(progress.dataset.tip).toBe('Fehlt bis zum Level-up: 17 von 924 FP');
     expect((progress.querySelector('.fp-bar > div') as HTMLElement).style.width).toMatch(/^98\.1/);
   });
@@ -112,7 +112,7 @@ describe('Investitionen box', () => {
     await tick();
     expect(rows()[0]?.classList.contains('grown')).toBe(true);
     // the growth sits beside the bar, in the line every row has, so all rows keep one height
-    expect(rows()[0]?.querySelector('td.inv-progress .fp-line .inv-growth')?.textContent).toBe('+400');
+    expect(rows()[0]?.querySelector('td.progress-cell .fp-line .growth-tag')?.textContent).toBe('+400');
     expect(rows()[0]?.closest('table')?.classList.contains('inv-mine')).toBe(true);
   });
 
@@ -595,7 +595,7 @@ describe('Investitionen: Filter in Meine Investitionen', () => {
     const { box, send, rows, cells, ui } = setup();
     send(contributions.contributions as Entry);
     await tick();
-    const marked = box.root.querySelector('.inv-marked-filter button') as HTMLButtonElement;
+    const marked = box.root.querySelector('.mark-celled-filter button') as HTMLButtonElement;
     expect(marked.getAttribute('aria-label')).toBe('nur gemerkte');
     expect(marked.getAttribute('aria-pressed')).toBe('false');
     const last = rows()[rows().length - 1] as Element;
@@ -627,7 +627,7 @@ describe('Investitionen: Filter in Meine Investitionen', () => {
       [...root.querySelectorAll(`${sel} button`)].map((b) => b.getAttribute('aria-pressed'));
     expect(pressed('.inv-status-filter')).toEqual(['false', 'true', 'true']);
     expect(pressed('.inv-reach-filter')).toEqual(['true', 'true', 'true', 'true']);
-    expect(pressed('.inv-marked-filter')).toEqual(['true']);
+    expect(pressed('.mark-celled-filter')).toEqual(['true']);
     const broken = open('{nope');
     await tick();
     expect(
@@ -642,7 +642,7 @@ describe('Investitionen: Filter in Meine Investitionen', () => {
     const { box, send, rows, cells } = setup();
     send(contributions.contributions as Entry);
     await tick();
-    const pick = () => rows()[0]?.querySelector('td.inv-name .inv-pick') as HTMLButtonElement;
+    const pick = () => rows()[0]?.querySelector('td.name-cell .inv-pick') as HTMLButtonElement;
     expect(pick().getAttribute('aria-label')).toBe('Nur diesen Spieler zeigen');
     expect(pick().previousElementSibling?.tagName).toBe('A');
     const name = cells(rows()[0])[1] as string;
@@ -664,7 +664,7 @@ describe('Investitionen: Filter in Meine Investitionen', () => {
     send(contributions.contributions as Entry);
     await tick();
     const first = () => rows().find((r) => cells(r)[1] === 'Eigentümer 2005') as Element;
-    const star = () => first().querySelector('.inv-owner button.star') as HTMLButtonElement;
+    const star = () => first().querySelector('.row-name button.star') as HTMLButtonElement;
     expect(star().getAttribute('aria-label')).toBe('Merken');
     expect(star().getAttribute('data-tip')).toBe('Merken');
     expect(star().getAttribute('aria-pressed')).toBe('false');
@@ -675,12 +675,12 @@ describe('Investitionen: Filter in Meine Investitionen', () => {
     expect(star().getAttribute('aria-label')).toBe('Nicht mehr merken');
     expect(star().classList.contains('on')).toBe(true);
     // marking and ignoring exclude each other
-    (first().querySelector('.inv-owner button.ignore') as HTMLButtonElement).click();
+    (first().querySelector('.row-name button.ignore') as HTMLButtonElement).click();
     await tick();
     expect(players.get(playerId(2005))).toMatchObject({ ignored: true });
     expect(players.get(playerId(2005))).not.toHaveProperty('marked');
     // the ignored owner's rows are hidden; show them again and mark: the ignore goes
-    (box.root.querySelector('.inv-ignored-filter button') as HTMLButtonElement).click();
+    (box.root.querySelector('.ignored-filter button') as HTMLButtonElement).click();
     await tick();
     star().click();
     await tick();
@@ -691,7 +691,7 @@ describe('Investitionen: Filter in Meine Investitionen', () => {
     expect(players.get(playerId(2005))).not.toHaveProperty('marked');
     // an owner the store does not know has no star
     const unknown = rows().find((r) => cells(r)[1] !== 'Eigentümer 2005') as Element;
-    expect(unknown.querySelector('.inv-owner button.star')).toBeNull();
+    expect(unknown.querySelector('.row-name button.star')).toBeNull();
   });
 });
 
@@ -778,11 +778,12 @@ describe('Investitionen: Meine Investitionen scrolled and filtered', () => {
 describe('Investitionen: Ignorieren in Meine Investitionen', () => {
   const lines = (box: { root: ParentNode }) => [...box.root.querySelectorAll('p.gb-me .gb-me-line')] as HTMLElement[];
   const text = (el: Element | undefined) => el?.textContent?.replace(/\s+/g, ' ').trim();
-  const buildingEye = (r: Element | undefined) => r?.querySelectorAll('td.inv-name')[1]?.querySelector('button.ignore');
+  const buildingEye = (r: Element | undefined) =>
+    r?.querySelectorAll('td.name-cell')[1]?.querySelector('button.ignore');
   const ownerEye = (r: Element | undefined) =>
-    r?.querySelectorAll('td.inv-name')[0]?.querySelector('.inv-owner button.ignore');
+    r?.querySelectorAll('td.name-cell')[0]?.querySelector('.row-name button.ignore');
   const showToggle = (box: { root: ParentNode }) =>
-    box.root.querySelector('.inv-ignored-filter button') as HTMLButtonElement;
+    box.root.querySelector('.ignored-filter button') as HTMLButtonElement;
   const owners = (rows: Element[], cells: (r: Element) => (string | undefined)[]) => rows.map((r) => cells(r)[1]);
 
   it('puts a closed eye beside the building name and, for a known player, beside the owner, next to the funnel', async () => {
@@ -799,11 +800,11 @@ describe('Investitionen: Ignorieren in Meine Investitionen', () => {
     expect(ownerEye(first)?.getAttribute('aria-label')).toBe('Spieler ignorieren');
     // the eye comes before the funnel, which stays the last thing of the cell
     expect(ownerEye(first)?.nextElementSibling?.classList.contains('inv-pick')).toBe(true);
-    expect(first?.querySelector('td.inv-name .inv-owner > :last-child')?.classList.contains('inv-pick')).toBe(true);
+    expect(first?.querySelector('td.name-cell .row-name > :last-child')?.classList.contains('inv-pick')).toBe(true);
     // an owner the store does not know cannot be ignored
     const unknown = rows().find((r) => !text(r)?.includes('Eigentümer 2005'));
     expect(ownerEye(unknown)).toBeNull();
-    expect(unknown?.querySelector('td.inv-name .inv-owner > :last-child')?.classList.contains('inv-pick')).toBe(true);
+    expect(unknown?.querySelector('td.name-cell .row-name > :last-child')?.classList.contains('inv-pick')).toBe(true);
   });
 
   it('hides an ignored building, keeps it out of every sum and names it apart', async () => {
@@ -922,7 +923,7 @@ describe('Investitionen: Ignorieren in Meine Investitionen', () => {
       env.menu('investments');
       await tick();
       const root = env.boxes.get('investments')?.root as HTMLElement;
-      const on = root.querySelector('.inv-ignored-filter button')?.getAttribute('aria-pressed');
+      const on = root.querySelector('.ignored-filter button')?.getAttribute('aria-pressed');
       expect(on).toBe(saved.showIgnored === true ? 'true' : 'false');
     }
   });

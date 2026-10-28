@@ -28,9 +28,8 @@ export const ignoreButton = (kind: 'building' | 'player', ignored: boolean, togg
 
 /** a toggle with the open eye: also the rows of ignored buildings and owners, muted */
 export const ignoredFilter = (show: boolean, set: (show: boolean) => void) =>
-  filterToggle('inv-ignored-filter', show, t('ignore.show'), headerIcons.eye, set);
+  filterToggle('ignored-filter', show, t('ignore.show'), headerIcons.eye, set);
 
-/** the building name with the closed eye at the right edge; `tip` is the name and, when ignored, why; `cls` is the cell's
- * class, the snipe helper has its own */
-export const buildingCell = (name: string, tip: string, ignored: boolean, toggle: () => void, cls = 'inv-name') =>
-  html`<td class=${cls} data-tip=${tip}><span class="inv-owner"><span class="inv-label">${name}</span>${ignoreButton('building', ignored, toggle)}</span></td>`;
+/** the building name with the closed eye at the right edge; `tip` is the name and, when ignored, why */
+export const buildingCell = (name: string, tip: string, ignored: boolean, toggle: () => void) =>
+  html`<td class="name-cell" data-tip=${tip}><span class="row-name"><span class="row-label">${name}</span>${ignoreButton('building', ignored, toggle)}</span></td>`;

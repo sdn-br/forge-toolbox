@@ -45,7 +45,7 @@ export const reachFilter = (reach: ReachFilter, set: (reach: ReachFilter) => voi
 
 /** a toggle with the star: only marked buildings and buildings of marked owners */
 export const markedFilter = (onlyMarked: boolean, set: (onlyMarked: boolean) => void) =>
-  filterToggle('inv-marked-filter', onlyMarked, t('investments.possible.onlyMarked'), headerIcons.starFilled, set);
+  filterToggle('mark-celled-filter', onlyMarked, t('investments.possible.onlyMarked'), headerIcons.starFilled, set);
 
 /** shown on row hover or focus (styles), always and in the accent while the player field names this owner; then a click
  * empties the field */
@@ -78,7 +78,7 @@ export interface OwnerCellActions {
  * store knows. All keep their place in every row, so the mouse can run straight down the column.
  */
 export const ownerCell = (r: OwnerCellRow, playerField: string, actions: OwnerCellActions) =>
-  html`<td class="inv-name" data-tip=${r.ownerName}><span class="inv-owner">${externalLink(r.ownerName, r.ownerUrl)}${
+  html`<td class="name-cell" data-tip=${r.ownerName}><span class="row-name">${externalLink(r.ownerName, r.ownerUrl)}${
     r.ownerIgnored === undefined
       ? ''
       : html`${starButton(r.ownerMarked, () => actions.markPlayer(r.owner, !r.ownerMarked))}${ignoreButton('player', r.ownerIgnored, () => actions.ignorePlayer(r.owner, !r.ownerIgnored))}`

@@ -28,11 +28,11 @@ export const rowsIn = <T>(rows: T[], { top, below }: RowWindow): T[] => rows.sli
 
 const hidden = ({ above, below }: RowWindow) =>
   above > 0 && below > 0
-    ? t('snipe.hiddenBoth', { above, below })
+    ? t('table.hiddenBoth', { above, below })
     : above > 0
-      ? t('snipe.hiddenAbove', { count: above })
+      ? t('table.hiddenAbove', { count: above })
       : below > 0
-        ? t('snipe.hiddenBelow', { count: below })
+        ? t('table.hiddenBelow', { count: below })
         : '';
 
 export interface WindowedRows {
@@ -62,8 +62,8 @@ export function windowedRows({ cls, table, window, scroll, measure }: WindowedRo
   return html`<div class="win-scroll ${cls}" @wheel=${wheel}>
       <div class="win-area" ${ref(measure)}>${table}</div>
       <div class="win-nav">
-        ${offButton(above > 0, t('snipe.scrollUp'), headerIcons.chevronUp, () => scroll(-1))}
-        ${offButton(below > 0, t('snipe.scrollDown'), headerIcons.chevronDown, () => scroll(1))}
+        ${offButton(above > 0, t('table.scrollUp'), headerIcons.chevronUp, () => scroll(-1))}
+        ${offButton(below > 0, t('table.scrollDown'), headerIcons.chevronDown, () => scroll(1))}
       </div>
     </div>${scrolls ? html`<p class="muted win-hidden">${hidden(window)}</p>` : ''}`;
 }

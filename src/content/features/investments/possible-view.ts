@@ -34,7 +34,7 @@ export interface PossibleActions {
 
 /** Columns in table order; heads show the whole word, reach and tier their icon; the widths are in the styles. */
 const columns: SortColumn<PossibleColumn>[] = [
-  { column: 'mark', label: 'mark.col', num: false, icon: headerIcons.star, cls: 'inv-mark' },
+  { column: 'mark', label: 'mark.col', num: false, icon: headerIcons.star, cls: 'mark-cell' },
   { column: 'owner', label: 'investments.col.owner', num: false },
   { column: 'reach', label: 'investments.col.reach', num: false, icon: headerIcons.person, cls: 'inv-reach' },
   { column: 'name', label: 'gb.col.name', num: false },
