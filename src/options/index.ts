@@ -10,6 +10,7 @@ import {
   selectSources,
   sourceKey,
 } from '../backup/collect';
+import { clearFolderHandle, type FolderHandle, loadFolderHandle, saveFolderHandle } from '../backup/folder';
 import { type BackupFile, backupFileName } from '../backup/format';
 import { gzipJson } from '../backup/gzip';
 import {
@@ -23,12 +24,15 @@ import {
 } from '../backup/import';
 import { type Area, DATA_AREAS } from '../backup/merge';
 import { logError } from '../content/core/log';
-import { formatNumber, t } from '../content/core/texts';
+import { formatFullDateTime, formatNumber, t } from '../content/core/texts';
 import type { WorldId } from '../shared/ids';
-import { dataImported } from '../shared/messages';
+import { dataImported, FOLDER_CHOSEN, FOLDER_GRANTED, FOLDER_STATUS, type FolderStatus } from '../shared/messages';
 import { type Profile, profileStorageKey } from '../shared/profile';
 
 const getStorage = (keys: string[] | null) => chrome.storage.local.get(keys);
+
+/** TypeScript's DOM lib lacks the folder picker of the File System Access API */
+declare function showDirectoryPicker(options: { mode: 'readwrite'; id?: string }): Promise<FileSystemDirectoryHandle>;
 
 /** `de20 · Name`, the player id when the name is not known; a world of the old database says so */
 function profileLabel({ world, player, name }: { world: WorldId; player?: number; name?: string }): string {
@@ -61,6 +65,12 @@ interface PageState {
   importAsking: boolean;
   importBusy: boolean;
   importStatus: string;
+  /** the chosen folder and whether this page may write it; null without a folder, undefined while it loads */
+  folder: { handle: FolderHandle; permission: PermissionState } | null | undefined;
+  /** the state the service worker stores after each write */
+  folderState: FolderStatus | undefined;
+  folderBusy: boolean;
+  folderStatus: string;
 }
 
 const state: PageState = {
@@ -73,6 +83,10 @@ const state: PageState = {
   importAsking: false,
   importBusy: false,
   importStatus: '',
+  folder: undefined,
+  folderState: undefined,
+  folderBusy: false,
+  folderStatus: '',
 };
 
 let root: HTMLElement;
@@ -340,8 +354,106 @@ function importSection(): TemplateResult {
   `;
 }
 
+/** reads the chosen folder, its permission for this page and the state of the last write */
+async function loadFolder() {
+  const handle = await loadFolderHandle();
+  const folder = handle ? { handle, permission: await handle.queryPermission({ mode: 'readwrite' }) } : null;
+  const folderState = (await getStorage([FOLDER_STATUS]))[FOLDER_STATUS] as FolderStatus | undefined;
+  update({ folder, folderState });
+}
+
+/** "Ordner wählen": the service worker merges what the folder holds and writes every profile into it */
+function chooseFolder() {
+  if (typeof showDirectoryPicker !== 'function') {
+    update({ folderStatus: t('data.folderUnsupported') });
+    return;
+  }
+  showDirectoryPicker({ mode: 'readwrite', id: 'forge-toolbox-backup' })
+    .then(async (handle) => {
+      update({ folderBusy: true, folderStatus: t('data.folderMerging') });
+      await saveFolderHandle(handle);
+      await loadFolder();
+      const res = (await chrome.runtime.sendMessage(FOLDER_CHOSEN)) as { ok: boolean; profiles: number } | undefined;
+      if (!res?.ok) throw new Error('the service worker could not use the folder');
+      update({ folderStatus: t('data.folderChosen', { profiles: formatNumber(res.profiles) }) });
+      return loadSources();
+    })
+    .catch((error) => {
+      // closing the picker is no failure
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      logError('choosing the backup folder failed', error);
+      update({ folderStatus: t('data.folderFailed') });
+    })
+    .finally(() => update({ folderBusy: false }));
+}
+
+/** "Ordner entfernen": forgets the folder, its files stay */
+function removeFolder() {
+  clearFolderHandle()
+    .then(() => chrome.storage.local.remove(FOLDER_STATUS))
+    .then(() => update({ folder: null, folderState: undefined, folderStatus: t('data.folderRemoved') }))
+    .catch((error) => {
+      logError('removing the backup folder failed', error);
+      update({ folderStatus: t('data.folderFailed') });
+    });
+}
+
+/** "Ordner freigeben": only a click may ask for the permission; then the service worker writes what waited */
+function grantFolder() {
+  const handle = state.folder?.handle;
+  if (!handle) return;
+  handle
+    .requestPermission({ mode: 'readwrite' })
+    .then(async (permission) => {
+      update({ folder: { handle, permission } });
+      if (permission !== 'granted') return;
+      update({ folderBusy: true, folderStatus: t('data.folderMerging') });
+      const res = (await chrome.runtime.sendMessage(FOLDER_GRANTED)) as { ok: boolean } | undefined;
+      if (!res?.ok) throw new Error('the service worker could not use the folder');
+      update({ folderStatus: t('data.folderGranted') });
+    })
+    .catch((error) => {
+      logError('granting the backup folder failed', error);
+      update({ folderStatus: t('data.folderFailed') });
+    })
+    .finally(() => update({ folderBusy: false }));
+}
+
+function folderSection(): TemplateResult {
+  const { folder, folderState, folderBusy } = state;
+  const last = folderState?.lastWrite;
+  return html`
+    <h2>${t('data.folder')}</h2>
+    <p>${t('data.folderAbout')}</p>
+    ${
+      folder === undefined
+        ? ''
+        : folder === null
+          ? html`<p>${t('data.folderNone')}</p>`
+          : html`<p>
+              ${t('data.folderName', { name: folder.handle.name })}<br />
+              ${last === undefined ? t('data.folderNever') : t('data.folderLast', { date: formatFullDateTime(last) })}
+            </p>`
+    }
+    ${
+      folder && folder.permission !== 'granted'
+        ? html`<div class="warn">
+            <p>${t('data.folderPaused')}</p>
+            <p><button ?disabled=${folderBusy} @click=${grantFolder}>${t('data.folderGrant')}</button></p>
+            <p class="hint">${t('data.folderGrantHint')}</p>
+          </div>`
+        : ''
+    }
+    <p>
+      <button ?disabled=${folderBusy} @click=${chooseFolder}>${t('data.folderChoose')}</button>
+      ${folder ? html`<button ?disabled=${folderBusy} @click=${removeFolder}>${t('data.folderRemove')}</button>` : ''}
+    </p>
+    <p class="status" role="status">${state.folderStatus}</p>
+  `;
+}
+
 const page = () => html`<h1>${t('data.pageTitle')}</h1>
-  ${exportSection()} ${importSection()}`;
+  ${exportSection()} ${importSection()} ${folderSection()}`;
 
 const app = document.getElementById('app');
 if (app) {
@@ -351,5 +463,14 @@ if (app) {
   loadSources().catch((error) => {
     logError('listing the profiles failed', error);
     update({ sources: [] });
+  });
+  loadFolder().catch((error) => {
+    logError('reading the backup folder failed', error);
+    update({ folder: null });
+  });
+  // the service worker notes each write, and a paused backup
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && FOLDER_STATUS in changes)
+      update({ folderState: changes[FOLDER_STATUS]?.newValue as FolderStatus | undefined });
   });
 }
