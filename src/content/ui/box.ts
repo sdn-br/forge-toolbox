@@ -39,14 +39,23 @@ export const largeDefaultSize: NonNullable<BoxOptions['defaultSize']> = (win) =>
 let topZ = 2147480000;
 
 /**
- * Calls `end` once when a drag on `el` ends: released, cancelled by the browser, or the capture lost. Aborting the
- * returned controller removes all listeners of the drag, so none is left behind to move the box later.
+ * Calls `end` once when a drag on `el` ends: released, cancelled by the browser, the capture lost, or a move without
+ * a pressed button. Aborting the returned controller removes all listeners of the drag, so none is left behind to
+ * move the box later. Register it before the move listener, so a move that ends the drag moves nothing.
  */
 function untilEnd(el: HTMLElement, end: (e: PointerEvent) => void): AbortController {
   const gesture = new AbortController();
   for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'] as const) {
     el.addEventListener(type, end, { signal: gesture.signal });
   }
+  // released in another window (Alt+Tab while dragging): the game gets no up, the next move comes without buttons
+  const released = (e: PointerEvent) => {
+    if (e.buttons !== 0) return;
+    // the move listener comes after this one and must not move the box with this event
+    e.stopImmediatePropagation();
+    end(e);
+  };
+  el.addEventListener('pointermove', released, { signal: gesture.signal });
   return gesture;
 }
 
