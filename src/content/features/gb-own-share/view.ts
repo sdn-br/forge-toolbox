@@ -74,7 +74,7 @@ export function ownShareView(vm: OwnShareVm, actions: OwnShareActions, copied?: 
         @change=${(e: Event) => actions.setTrust((e.target as HTMLInputElement).checked)} />
         <span data-tip=${t('gbOwn.trustHint')}>${t('gbOwn.trust')}</span></label>
     </div>
-    <div class="power-open"><button data-tip=${t('gbPower.openHint')} aria-label=${t('gbPower.title')}
+    <div class="power-open"><button class="action" data-tip=${t('gbPower.openHint')} aria-label=${t('gbPower.title')}
       @click=${() => actions.openPowerLevel()}>${headerIcons.powerLevel}</button></div>
     <p class="gb-me">${t('gbOwn.total', { fp: formatNumber(vm.ownShare) })}
       <span class="muted">· ${t('gbOwn.paid', { fp: formatNumber(vm.myDeposit) })}</span>

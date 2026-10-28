@@ -64,7 +64,7 @@ export function factorBar(buttons: FactorButton[], factor: number, actions: Fact
   return html`<div class="gb-factor">
     <span>${t('gbCalc.factor')}</span>
     ${buttons.map(
-      (b) => html`<button class=${b.active ? 'active' : ''} data-tip=${b.arc ? t('gbCalc.arcButton') : ''}
+      (b) => html`<button class=${b.active ? 'action active' : 'action'} data-tip=${b.arc ? t('gbCalc.arcButton') : ''}
         @click=${() => (b.arc ? actions.useArc() : actions.setFactor(b.value))}>${factorText(b.value)}</button>`,
     )}
     <input type="number" min="0" max="3" step=${FACTOR_STEP} data-tip=${t('gbCalc.factorInput')}

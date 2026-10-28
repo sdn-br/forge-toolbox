@@ -91,15 +91,14 @@ const badgeSwatch = (color: string, symbol: MapBadge['symbol']) =>
         : svg`<path d="M3.2 6.8 6.8 3.2" stroke=${color} stroke-width="1.3" stroke-linecap="round"/>`
     }</svg>`;
 
+/** a colour square before a word; `outline` shows only its frame in the colour */
+export const swatch = (color: string, outline = false) =>
+  html`<span class=${outline ? 'swatch outline' : 'swatch'}
+    style=${outline ? `border-color:${color}` : `background:${color}`}></span>`;
+
 export const legendView = (items: LegendItem[]) =>
   html`<ul class="map-legend">${items.map(
-    (i) =>
-      html`<li>${
-        i.symbol
-          ? badgeSwatch(i.color, i.symbol)
-          : html`<span class=${i.outline ? 'swatch outline' : 'swatch'}
-              style=${i.outline ? `border-color:${i.color}` : `background:${i.color}`}></span>`
-      }${i.label}</li>`,
+    (i) => html`<li>${i.symbol ? badgeSwatch(i.color, i.symbol) : swatch(i.color, i.outline)}${i.label}</li>`,
   )}</ul>`;
 
 /**
@@ -131,7 +130,7 @@ export class CityMap {
     // lit-html commits the template after this returns; draw once the canvas is in place
     queueMicrotask(() => this.draw());
     const modeButton = (mode: MapMode, label: string) =>
-      html`<button class=${this.mode === mode ? 'active' : ''} @click=${() => this.setMode(mode)}>${label}</button>`;
+      html`<button class=${this.mode === mode ? 'action active' : 'action'} @click=${() => this.setMode(mode)}>${label}</button>`;
     return html`<div class="city-map">
       <div class="map-frame">
         <canvas data-tip-instant ${ref((el) => this.attach(el))}
@@ -143,9 +142,9 @@ export class CityMap {
           @wheel=${{ handleEvent: (e: WheelEvent) => this.wheel(e), passive: false }}></canvas>
         <div class="map-tools">
           ${modeButton('top', t('cityMap.top'))}${modeButton('iso', t('cityMap.iso'))}
-          <button data-tip=${t('cityMap.zoomIn')} aria-label=${t('cityMap.zoomIn')} @click=${() => this.zoomBy(ZOOM_STEP)}>${headerIcons.plus}</button>
-          <button data-tip=${t('cityMap.zoomOut')} aria-label=${t('cityMap.zoomOut')} @click=${() => this.zoomBy(1 / ZOOM_STEP)}>${headerIcons.minus}</button>
-          <button data-tip=${t('cityMap.zoomReset')} aria-label=${t('cityMap.zoomReset')} @click=${() => this.reset()}>${headerIcons.fit}</button>
+          <button class="action" data-tip=${t('cityMap.zoomIn')} aria-label=${t('cityMap.zoomIn')} @click=${() => this.zoomBy(ZOOM_STEP)}>${headerIcons.plus}</button>
+          <button class="action" data-tip=${t('cityMap.zoomOut')} aria-label=${t('cityMap.zoomOut')} @click=${() => this.zoomBy(1 / ZOOM_STEP)}>${headerIcons.minus}</button>
+          <button class="action" data-tip=${t('cityMap.zoomReset')} aria-label=${t('cityMap.zoomReset')} @click=${() => this.reset()}>${headerIcons.fit}</button>
         </div>
       </div>
       ${legend ?? ''}

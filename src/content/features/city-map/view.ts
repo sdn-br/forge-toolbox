@@ -1,6 +1,7 @@
 import { html, type TemplateResult } from 'lit-html';
 import { ref } from 'lit-html/directives/ref.js';
 import { formatNumber, formatPrice, t } from '../../core/texts';
+import { swatch } from '../../ui/city-map';
 import type { Offer, OwnStatsVm } from './stats';
 import type { OwnMapUi, OwnMapVm } from './view-model';
 
@@ -82,7 +83,7 @@ function statsPanel(s: OwnStatsVm) {
       <tr><th>${t('cityMap.type')}</th><th class="num">${t('cityMap.count')}</th>
         <th class="num">${t('cityMap.share')}</th><th class="num">${t('cityMap.tiles')}</th></tr>
       ${s.types.map(
-        (r) => html`<tr><td><span class="swatch" style=${`background:${r.color}`}></span>${r.label}</td>
+        (r) => html`<tr><td>${swatch(r.color)}${r.label}</td>
           <td class="num">${formatNumber(r.count)}</td><td class="num">${percent(r.share)} %</td>
           <td class="num">${formatNumber(r.tiles)}</td></tr>`,
       )}
@@ -138,7 +139,7 @@ export function cityMapView(
       ${map ?? ''}
     </div>
     <aside class=${ui.stats ? 'stats-drawer open' : 'stats-drawer'} ${ref((el) => placeDrawer(el))}>
-      <button class="stats-tab" data-tip=${t(ui.stats ? 'cityMap.statsClose' : 'cityMap.statsOpen')}
+      <button class="action stats-tab" data-tip=${t(ui.stats ? 'cityMap.statsClose' : 'cityMap.statsOpen')}
         @click=${() => actions.toggleStats()}>${t('cityMap.stats')}</button>
       ${ui.stats && stats ? statsPanel(stats) : ''}
     </aside>
