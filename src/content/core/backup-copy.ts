@@ -63,6 +63,11 @@ export interface BackupCopyEnv {
   reload: () => void;
   /** the data of the old toolbox, offered after the copy */
   legacy?: LegacyData;
+  /**
+   * asks the service worker to write the backup in a local folder; called on the same delay as the copy, also when
+   * the copy is switched off or held
+   */
+  folder?: () => void;
 }
 
 const isEmpty = (tables: BackupTables) => Object.values(tables).every((rows) => rows.length === 0);
@@ -106,9 +111,10 @@ export class BackupCopy {
     bus.on('greatBuilding.changed', ({ reason }) => reason === 'contributed' && changed());
     bus.on('greatBuildings.contributions', changed);
     this.env.settings.onChange((key) => {
-      if (key !== BACKUP_SETTING) changed();
-      else if (this.enabled()) changed();
-      else this.switchedOff().catch((error) => logError('deleting the backup copy failed', error));
+      if (key === BACKUP_SETTING && !this.enabled())
+        this.switchedOff().catch((error) => logError('deleting the backup copy failed', error));
+      // the setting itself is a setting the folder backs up
+      changed();
     });
   }
 
@@ -230,9 +236,12 @@ export class BackupCopy {
   }
 
   private changed() {
-    if (!this.enabled()) return;
+    if (!this.enabled() && !this.env.folder) return;
     clearTimeout(this.timer);
-    this.timer = setTimeout(() => this.writeNow(), BACKUP_DELAY);
+    this.timer = setTimeout(() => {
+      this.env.folder?.();
+      if (this.enabled()) this.writeNow();
+    }, BACKUP_DELAY);
   }
 
   /** queues a write behind the one running */

@@ -30,4 +30,17 @@ describe('menu notice', () => {
     noticeButton('Später').click();
     expect(notice()).toBeNull();
   });
+
+  it('hides a named notice only while it is the one shown', () => {
+    const menu = new Menu();
+    menu.mount();
+    menu.showNotice('Pausiert', [], 'folder');
+    menu.showNotice('Importiert');
+    menu.hideNotice('folder');
+    expect(notice()?.textContent).toContain('Importiert');
+
+    menu.showNotice('Pausiert', [], 'folder');
+    menu.hideNotice('folder');
+    expect(notice()).toBeNull();
+  });
 });

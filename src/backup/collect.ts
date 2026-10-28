@@ -1,7 +1,7 @@
 import { openDb, type ToolboxDb } from '../background/db';
 import { hasOwnContribution, isFlagged } from '../persistence/great-buildings/merge';
 import type { PlayerId, WorldId } from '../shared/ids';
-import { LEGACY_DB, profileOfDbName, profileStorageKey } from '../shared/profile';
+import { LEGACY_DB, type Profile, profileOfDbName, profileStorageKey } from '../shared/profile';
 import type { BackupFile, BackupProfile, BackupTables } from './format';
 import { BACKUP_FORMAT, BACKUP_VERSION, playersToKeep, referencedPlayers } from './format';
 
@@ -70,6 +70,19 @@ export async function collectTables(db: ToolboxDb, world: WorldId, now: number):
   return { battles, plunders, incoming, noteGroups, notePages, cityShields, greatBuildings, players };
 }
 
+/** the own player name and the settings of a profile in chrome.storage.local, the ones that are stored */
+export async function storedOfProfile(
+  profile: Profile,
+  getStorage: (keys: string[]) => Promise<Record<string, unknown>>,
+): Promise<Pick<BackupSource, 'name' | 'settings'>> {
+  const key = profileStorageKey('settings', profile);
+  const nameKey = profileStorageKey('profile', profile);
+  const stored = await getStorage([key, nameKey]);
+  const settings = stored[key] as Record<string, unknown> | undefined;
+  const own = (stored[nameKey] as { name?: unknown } | undefined)?.name;
+  return { ...(typeof own === 'string' && own && { name: own }), ...(settings && { settings }) };
+}
+
 /**
  * Opens every profile's database, and the old one while it still exists, one source per world in it. `getStorage` reads
  * chrome.storage.local. The caller closes the databases when done.
@@ -82,17 +95,7 @@ export async function openBackupSources(
   for (const name of names) {
     const profile = profileOfDbName(name);
     if (!profile) continue;
-    const key = profileStorageKey('settings', profile);
-    const nameKey = profileStorageKey('profile', profile);
-    const stored = await getStorage([key, nameKey]);
-    const settings = stored[key] as Record<string, unknown> | undefined;
-    const own = (stored[nameKey] as { name?: unknown } | undefined)?.name;
-    sources.push({
-      ...profile,
-      ...(typeof own === 'string' && own && { name: own }),
-      db: openDb(name),
-      ...(settings && { settings }),
-    });
+    sources.push({ ...profile, ...(await storedOfProfile(profile, getStorage)), db: openDb(name) });
   }
   // checked by name: opening the old database would create it again after the takeover deleted it
   if (names.includes(LEGACY_DB)) {

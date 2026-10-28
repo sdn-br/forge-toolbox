@@ -21,3 +21,38 @@ export function isDataImported(message: unknown): message is DataImported {
 export function importConcerns(profiles: Profile[], world: WorldId, own: Profile | undefined): boolean {
   return profiles.some((p) => p.world === world && (own === undefined || p.player === own.player));
 }
+
+/** the state of the backup in a local folder in chrome.storage.local; the data page and the game tabs watch it */
+export const FOLDER_STATUS = 'folder.status';
+
+export interface FolderStatus {
+  /** when a file was written last */
+  lastWrite?: number;
+  /** a write found no permission: the user has to grant the folder again on the data page */
+  paused: boolean;
+  /** the profiles that wait for a write since the backup paused */
+  pending: Profile[];
+}
+
+/** content script to service worker: merge and write the folder at the start of the game, or write after a change */
+export interface FolderRequest {
+  type: 'forge-toolbox.folder';
+  action: 'start' | 'changed';
+  profile: Profile;
+}
+
+export const folderRequest = (action: FolderRequest['action'], profile: Profile): FolderRequest => ({
+  type: 'forge-toolbox.folder',
+  action,
+  profile,
+});
+
+export function isFolderRequest(message: unknown): message is FolderRequest {
+  const m = message as Partial<FolderRequest> | null;
+  return m?.type === 'forge-toolbox.folder' && (m.action === 'start' || m.action === 'changed') && isProfile(m.profile);
+}
+
+/** data page to service worker: a folder was chosen, merge what it holds and write every profile */
+export const FOLDER_CHOSEN = 'forge-toolbox.folderChosen';
+/** data page to service worker: the folder may be written again, write the profiles that waited */
+export const FOLDER_GRANTED = 'forge-toolbox.folderGranted';
