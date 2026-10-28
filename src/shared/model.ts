@@ -216,6 +216,11 @@ export interface KnownGreatBuilding {
   marksAt?: number;
   /** the progress (`invested`) when the building was last seen open in the game; growth beyond it means others pay in */
   growthBase?: number;
+  /**
+   * Forge points paid in between the last two sightings of the same level (a list or the open building); missing when
+   * nothing grew or the level is new
+   */
+  growth?: number;
   /** last seen, in the building or in a list */
   seenAt: number;
 }

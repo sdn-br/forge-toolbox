@@ -16,9 +16,18 @@ export interface GreatBuildingListRow {
   reward?: number;
 }
 
+/**
+ * A row of an opened building. `again` marks a further write of the same opening: when its progress did not change,
+ * nothing new was seen and the growth stays. The flag is not stored.
+ */
+export type OpenedGreatBuilding = KnownGreatBuilding & { again?: boolean };
+
 export interface GreatBuildingsApi {
-  /** a row of an opened building replaces what was known, except the own contribution mark, the star and the ignore with their time, which stay */
-  'greatBuildings.put': { arg: { rows: KnownGreatBuilding[] }; result: undefined };
+  /**
+   * a row of an opened building replaces what was known, except the own contribution mark, the star and the ignore with
+   * their time, which stay; the growth is measured against what was known, row by row
+   */
+  'greatBuildings.put': { arg: { rows: OpenedGreatBuilding[] }; result: undefined };
   /** rows of the great building list of a player, seen at `at`; a row older than what is known changes nothing */
   'greatBuildings.putList': { arg: { world: WorldId; rows: GreatBuildingListRow[]; at: number }; result: undefined };
   /**

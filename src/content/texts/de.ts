@@ -308,6 +308,7 @@ export const de = {
   'investments.profitHint': 'Belohnung {gross} FP mit Arche-Bonus minus Einzahlung',
   'investments.growth': '+{growth}',
   'investments.growthHint': 'Seit dem letzten Öffnen (oder der ersten Rathausliste) {growth} FP eingezahlt',
+  'investments.possible.growthHint': 'Seit dem vorigen Stand {growth} FP eingezahlt',
   'investments.status.safe': 'sicher: niemand kann den Platz mehr überholen',
   'investments.status.unsafe': 'unsicher: laut Rangliste kann der Platz noch überholt werden',
   'investments.status.unknown': 'unbekannt: ohne passende Rangliste nicht entscheidbar, LG öffnen',

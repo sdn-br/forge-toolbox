@@ -449,6 +449,27 @@ describe('Investitionen: Mögliche Investitionen', () => {
     expect(box.text).toContain('Noch keine fremden LGs bekannt.');
   });
 
+  it('shows what a building gained since it was last seen beside the bar, without lighting up the row', async () => {
+    const { list, rows, showPossible } = setup();
+    list([hitZeus(), hitOracle()]);
+    await tick();
+    await showPossible();
+    expect(rows().some((r) => r.querySelector('.inv-growth'))).toBe(false);
+    vi.setSystemTime(Date.now() + MINUTE);
+    list([hitZeus(), { ...hitOracle(), current_progress: 35 }]);
+    await tick();
+    const growth = rows()[0]?.querySelector('td.inv-progress .fp-line .inv-growth');
+    expect(growth?.textContent).toBe('+5');
+    expect(growth?.getAttribute('data-tip')).toBe('Seit dem vorigen Stand 5 FP eingezahlt');
+    expect(rows()[1]?.querySelector('.inv-growth')).toBeNull();
+    expect(rows().map((r) => r.classList.contains('grown'))).toEqual([false, false]);
+    // the next sighting without a change shows nothing
+    vi.setSystemTime(Date.now() + MINUTE);
+    list([hitZeus(), { ...hitOracle(), current_progress: 35 }]);
+    await tick();
+    expect(rows().some((r) => r.querySelector('.inv-growth'))).toBe(false);
+  });
+
   it('shows the age of an entry by its largest unit', async () => {
     const { box, list, rows, cells, showPossible } = setup();
     list([hitZeus()]);

@@ -14,7 +14,7 @@ import {
   type PossibleVm,
   TIER_TOGGLES,
 } from './possible-view-model';
-import { type InvestmentsActions, markCell, tabs } from './view';
+import { growthTag, type InvestmentsActions, markCell, tabs } from './view';
 import type { InvestmentsTab } from './view-model';
 
 export interface PossibleActions {
@@ -57,7 +57,7 @@ const row = (
   <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r.reach, r.reasons)}</td>
   ${buildingCell(r.name, [r.name, r.ignoreNote, ...r.notes].filter(Boolean).join('\n'), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
   <td class="num">${r.level}</td>
-  ${progressCell(r)}
+  ${progressCell(r, growthTag(r.growth, 'investments.possible.growthHint'))}
   <td class=${r.share.stale ? 'num muted' : 'num'} data-tip=${r.share.tip}>${r.share.text}</td>
   ${
     r.hit

@@ -353,6 +353,105 @@ describe('own contribution and progress at the last opening', () => {
   });
 });
 
+describe('growth between the last two sightings', () => {
+  const opening = fixture.openings.find((x) => x.entity.requestData[0] === 1909) as (typeof fixture.openings)[number];
+  /** the opened building as the game reports it again while it is open, with other Forge points paid in */
+  const entityWith = (invested: number) =>
+    ({
+      ...opening.entity,
+      responseData: {
+        ...opening.entity.responseData,
+        state: { ...opening.entity.responseData.state, invested_forge_points: invested },
+      },
+    }) as Entry;
+  const repeatedRanking = () =>
+    ({
+      requestClass: 'GreatBuildingsService',
+      requestMethod: 'getConstructionRanking',
+      requestData: [1909, 1001, 76],
+      responseData: opening.construction.responseData.rankings,
+    }) as Entry;
+
+  it('keeps what a newer list of the same level adds and replaces it with the next one', async () => {
+    const { greatBuildings, list, row, at } = setup();
+    list([row(1909, 75, 400, 2000)]);
+    expect((await greatBuildings.known())[0]?.growth).toBeUndefined();
+    at(6_000);
+    list([row(1909, 75, 700, 2000)]);
+    expect((await greatBuildings.known())[0]?.growth).toBe(300);
+    at(7_000);
+    list([row(1909, 75, 750, 2000)]);
+    expect((await greatBuildings.known())[0]?.growth).toBe(50);
+    at(8_000);
+    list([row(1909, 75, 750, 2000)]);
+    expect((await greatBuildings.known())[0]?.growth).toBeUndefined();
+  });
+
+  it('leaves the growth to an older list and drops it with a new level', async () => {
+    const { greatBuildings, list, row, at } = setup();
+    list([row(1909, 75, 400, 2000)]);
+    at(6_000);
+    list([row(1909, 75, 700, 2000)]);
+    at(5_500);
+    list([row(1909, 75, 500, 2000)]);
+    expect((await greatBuildings.known())[0]).toMatchObject({ invested: 700, growth: 300 });
+    at(7_000);
+    list([row(1909, 76, 900, 3100)]);
+    expect((await greatBuildings.known())[0]?.growth).toBeUndefined();
+  });
+
+  it('counts an opening and each change while it is open as a sighting', async () => {
+    const { greatBuildings, list, row, open, send, at } = setup();
+    at(4_000);
+    list([row(1909, 75, 100, 3062)]);
+    at(5_000);
+    open(1909);
+    expect((await greatBuildings.known())[0]?.growth).toBe(151);
+    // the game repeats the rankings of the open level: nothing new was seen
+    send(repeatedRanking());
+    expect((await greatBuildings.known())[0]?.growth).toBe(151);
+    send(entityWith(300));
+    expect((await greatBuildings.known())[0]).toMatchObject({ invested: 300, growth: 49 });
+  });
+
+  it('shows nothing when an opening finds the progress unchanged', async () => {
+    const { greatBuildings, list, row, open, at } = setup();
+    at(4_000);
+    list([row(1909, 75, 100, 3062)]);
+    open(1909);
+    expect((await greatBuildings.known())[0]?.growth).toBe(151);
+    at(9_000);
+    open(1909);
+    expect((await greatBuildings.known())[0]?.growth).toBeUndefined();
+  });
+
+  it('drops the growth when an opening shows a new level', async () => {
+    const { greatBuildings, list, row, open, at } = setup();
+    at(3_000);
+    list([row(1909, 74, 0, 2900)]);
+    at(4_000);
+    list([row(1909, 74, 100, 2900)]);
+    expect((await greatBuildings.known())[0]?.growth).toBe(100);
+    open(1909);
+    expect((await greatBuildings.known())[0]).toMatchObject({ level: 75 });
+    expect((await greatBuildings.known())[0]?.growth).toBeUndefined();
+  });
+
+  it('measures two writes of the same building in one batch one after the other', async () => {
+    const { greatBuildings, db, world } = setup();
+    const b = known({ world, entityId: 9, invested: 100 });
+    await db.greatBuildings.put([b]);
+    await db.greatBuildings.put([
+      { ...b, invested: 160 },
+      { ...b, invested: 160, again: true },
+      { ...b, invested: 200, again: true },
+    ]);
+    const [stored] = await greatBuildings.known();
+    expect(stored).toMatchObject({ invested: 200, growth: 40 });
+    expect(stored).not.toHaveProperty('again');
+  });
+});
+
 describe('retention', () => {
   it('prunes what was not seen for the given days, except own contributions', async () => {
     const { greatBuildings, send, open, list, row, at } = setup();

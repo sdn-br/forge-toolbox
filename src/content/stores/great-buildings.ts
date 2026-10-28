@@ -1,4 +1,4 @@
-import type { GreatBuildingListRow } from '../../persistence/great-buildings/contract';
+import type { GreatBuildingListRow, OpenedGreatBuilding } from '../../persistence/great-buildings/contract';
 import type { BuildingDefId, PlayerId, WorldId } from '../../shared/ids';
 import type { KnownGreatBuilding, MarkKind } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
@@ -8,7 +8,7 @@ import type { Construction, GreatBuildingEntity, RankingRow } from './great-buil
 
 export interface GreatBuildingPersistence {
   /** a row of an opened building replaces what was known about that building */
-  put(rows: KnownGreatBuilding[]): Promise<void>;
+  put(rows: OpenedGreatBuilding[]): Promise<void>;
   /** rows of a great building list, seen at `at` */
   putList(world: WorldId, rows: GreatBuildingListRow[], at: number): Promise<void>;
   /** the town hall list of the own contributions */
@@ -45,7 +45,7 @@ export class GreatBuildingStore {
   private entities = new Map<string, GreatBuildingEntity>();
   private limited: LimitedBonus[] = [];
   private listedAt?: number;
-  private pending: KnownGreatBuilding[] = [];
+  private pending: OpenedGreatBuilding[] = [];
   private writes: Promise<unknown> = Promise.resolve();
   private flushQueued = false;
   /** the stars and the ignores; they change only through `mark` and `ignore`, so memory and database agree */
@@ -146,7 +146,7 @@ export class GreatBuildingStore {
     const open = this.open;
     if (open && open.owner === entity.owner && open.entityId === entity.entityId) {
       this.open = { ...open, entity };
-      this.remember();
+      this.remember(true);
       this.changed('entity');
     }
   }
@@ -174,7 +174,7 @@ export class GreatBuildingStore {
       ...(entity && nextProduction && { nextProduction: { level: entity.level, ...nextProduction } }),
       seenAt: this.now(),
     };
-    this.remember();
+    this.remember(false);
     this.bus.emit('greatBuilding.opened', { owner, entityId, own });
   }
 
@@ -189,7 +189,7 @@ export class GreatBuildingStore {
       this.open = { ...open, past: { level, rankings } };
     } else {
       this.open = { ...open, rankings, rankingsLevel: level - 1, past: undefined, seenAt: this.now() };
-      this.remember();
+      this.remember(true);
     }
     this.changed('ranking');
   }
@@ -216,7 +216,7 @@ export class GreatBuildingStore {
     const leveled =
       open.leveled && rankingsLevel !== undefined && rankingsLevel >= open.leveled.level ? undefined : open.leveled;
     this.open = { ...open, entity, rankings, rankingsLevel, past: undefined, leveled, seenAt: this.now() };
-    this.remember();
+    this.remember(true);
     this.changed('contributed');
   }
 
@@ -282,8 +282,11 @@ export class GreatBuildingStore {
     if (open) this.bus.emit('greatBuilding.changed', { owner: open.owner, entityId: open.entityId, reason });
   }
 
-  /** keeps the state of a foreign building with the rankings of its current level */
-  private remember() {
+  /**
+   * keeps the state of a foreign building with the rankings of its current level; `again` for a further write of the
+   * same opening, whose unchanged progress is no new sighting
+   */
+  private remember(again: boolean) {
     const open = this.open;
     const entity = open?.entity;
     if (!open || open.own || !entity) return;
@@ -313,6 +316,7 @@ export class GreatBuildingStore {
       // the building is open in the game now: what is paid in from here on is growth
       growthBase: entity.invested,
       seenAt: at,
+      ...(again && { again: true }),
     });
     if (this.flushQueued) return;
     this.flushQueued = true;
