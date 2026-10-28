@@ -12,9 +12,9 @@ describe('row window', () => {
   });
 
   it('counts the rows hidden above and below', () => {
-    expect(rowWindow(2, 10, 6)).toEqual({ top: 2, above: 2, below: 2 });
-    expect(rowWindow(9, 10, 6)).toEqual({ top: 4, above: 4, below: 0 });
-    expect(rowWindow(0, 3, 6)).toEqual({ top: 0, above: 0, below: 0 });
+    expect(rowWindow(2, 10, 6)).toEqual({ top: 2, below: 2 });
+    expect(rowWindow(9, 10, 6)).toEqual({ top: 4, below: 0 });
+    expect(rowWindow(0, 3, 6)).toEqual({ top: 0, below: 0 });
   });
 });
 

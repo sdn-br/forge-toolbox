@@ -34,8 +34,11 @@ export interface CopyOptions {
   manual: number[];
 }
 
+/** the options that are switches, the others are texts and the choice of places */
+type CopyToggle = Exclude<keyof CopyOptions, 'mode' | 'manual' | 'warnPrefix' | 'warnSuffix'>;
+
 /** the switches of the copy text with their labels, in the order the settings show them */
-export const COPY_TOGGLES: [Exclude<keyof CopyOptions, 'mode' | 'manual' | 'warnPrefix' | 'warnSuffix'>, TextKey][] = [
+export const COPY_TOGGLES: [CopyToggle, TextKey][] = [
   ['player', 'gbOwn.copyPlayer'],
   ['building', 'gbOwn.copyBuilding'],
   ['level', 'gbOwn.copyLevel'],
@@ -88,10 +91,9 @@ function copiedPlaces(calc: OwnShareCalc, o: CopyOptions): OwnPlace[] {
 }
 
 /** the factor as helpers read it: 1,9 when all places share it, else the lowest and the highest, 1,8/1,9 */
-function factorsText(factor: number | number[]): string {
-  const list = typeof factor === 'number' ? [factor] : factor;
-  const low = Math.min(...list);
-  const high = Math.max(...list);
+function factorsText(factors: number[]): string {
+  const low = Math.min(...factors);
+  const high = Math.max(...factors);
   return low === high ? factorText(low) : `${factorText(low)}/${factorText(high)}`;
 }
 
@@ -99,8 +101,8 @@ function factorsText(factor: number | number[]): string {
 export function copyText(
   calc: OwnShareCalc,
   o: CopyOptions,
-  /** `factor` in percent, one for all places or one per place */
-  about: { player: string; building: string; level: number; factor: number | number[] },
+  /** `factor` in percent, one per place */
+  about: { player: string; building: string; level: number; factor: number[] },
 ): string {
   const parts: string[] = [];
   if (o.player && about.player) parts.push(about.player);
@@ -136,9 +138,9 @@ export const copyBuildingKey = (def: string) => `gbOwn.copy.building.${def}`;
 /** the copy options as the settings hold them */
 export function readCopyOptions(settings: Settings): CopyOptions {
   return {
-    ...(Object.fromEntries(COPY_TOGGLES.map(([o]) => [o, settings.get(copyToggleKey(o))])) as Omit<
+    ...(Object.fromEntries(COPY_TOGGLES.map(([o]) => [o, settings.get(copyToggleKey(o))])) as Pick<
       CopyOptions,
-      'mode' | 'manual' | 'warnPrefix' | 'warnSuffix'
+      CopyToggle
     >),
     warnPrefix: settings.text(COPY_WARN_PREFIX),
     warnSuffix: settings.text(COPY_WARN_SUFFIX),

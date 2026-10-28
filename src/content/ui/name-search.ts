@@ -2,6 +2,7 @@
 // typing narrows the list, and what the owner acts on is the pick (click, or Enter on the highlighted suggestion),
 // after which the field is empty again.
 import { html, type TemplateResult } from 'lit-html';
+import { clamp } from '../../shared/math';
 import { keepKeys } from './inputs';
 
 export interface Suggestion {
@@ -10,7 +11,7 @@ export interface Suggestion {
 }
 
 /** the longest list of suggestions; a longer one would only scroll */
-export const MAX_SUGGESTIONS = 30;
+const MAX_SUGGESTIONS = 30;
 
 /**
  * The names that contain the query, ignoring case, each once with how often it occurs. Names that start with the query
@@ -95,7 +96,7 @@ export class NameSearch {
         if (!this.open) {
           this.open = true;
           this.active = 0;
-        } else this.active = Math.max(0, Math.min(this.active + 1, list.length - 1));
+        } else this.active = clamp(this.active + 1, 0, list.length - 1);
         break;
       case 'ArrowUp':
         e.preventDefault();

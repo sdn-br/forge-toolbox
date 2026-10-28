@@ -2,13 +2,14 @@ import { html, type TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
 import { t } from '../../core/texts';
 import type { InvestmentStatus } from '../../domain/investments';
+import { toggleGroup } from '../../ui/buttons';
 import { growthTag, progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { buildingCell, ignoredFilter } from '../../ui/ignore';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { starButton } from '../../ui/star';
 import { rowsIn, windowedRows } from '../../ui/windowed-rows';
-import { markedFilter, ownerCell, reachCell, reachFilter, text, toggleGroup } from './filter-parts';
+import { markedFilter, ownerCell, reachCell, reachFilter, text } from './filter-parts';
 import {
   type InvestmentColumn,
   type InvestmentRowVm,
@@ -49,7 +50,7 @@ const statusIcon: Record<InvestmentStatus, TemplateResult> = {
 /** Columns in table order, the same as the possible tab where both have one; heads show the whole word, the narrow
  * status, relation and star their icon; the widths are in the styles. */
 const columns: SortColumn<InvestmentColumn>[] = [
-  { column: 'mark', label: 'mark.col', num: false, icon: headerIcons.star, cls: 'inv-mark' },
+  { column: 'mark', label: 'mark.col', num: false, icon: headerIcons.star, cls: 'mark-cell' },
   { column: 'owner', label: 'investments.col.owner', num: false },
   { column: 'reach', label: 'investments.col.reach', num: false, icon: headerIcons.person, cls: 'inv-reach' },
   { column: 'name', label: 'gb.col.name', num: false },
@@ -63,7 +64,7 @@ const columns: SortColumn<InvestmentColumn>[] = [
 
 /** the first cell of a row: the star of the building */
 export const markCell = (r: { owner: PlayerId; entityId: number; marked: boolean }, mark: InvestmentsActions['mark']) =>
-  html`<td class="inv-mark">${starButton(r.marked, () => mark(r.owner, r.entityId, !r.marked))}</td>`;
+  html`<td class="mark-cell">${starButton(r.marked, () => mark(r.owner, r.entityId, !r.marked))}</td>`;
 
 /** "x / y" of the level with the thin bar below, the rest to the level up in the tooltip; `extra` goes under the bar */
 const row = (r: InvestmentRowVm, playerField: string, actions: InvestmentsActions) => {

@@ -1,6 +1,6 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import type { Relations } from '../../../shared/model';
-import { formatAge, formatNumber, t } from '../../core/texts';
+import { formatAge, formatNumber, signed, t } from '../../core/texts';
 import {
   type Investment,
   type InvestmentStatus,
@@ -10,7 +10,6 @@ import {
 } from '../../domain/investments';
 import { progressPercent } from '../../ui/fp-bar';
 import { ignoreNote } from '../../ui/ignore';
-import { signed } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
 import { type RowWindow, rowWindow } from '../../ui/windowed-rows';
 import {

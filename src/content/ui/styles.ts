@@ -1,23 +1,24 @@
 // Shared look of all toolbox UI. Lives inside each shadow root, so game CSS and toolbox CSS never meet.
 export const baseCss = `
 :host { all: initial; --bg: #2b1d10; --ink: #fbf4e4; --accent: #e8861c; --btn: #4a3620; --btn-hover: #6a5030;
-  --field: #1c130a; --line: #8a6a3a; color-scheme: dark; }
+  --field: #1c130a; --line: #8a6a3a; --muted: #b8a27d; --good: #8fd08f; --warn: #f0a050; color-scheme: dark; }
 /* the accent parts of an icon */
 .acc { color: var(--accent); }
 * { box-sizing: border-box; }
-.box { position: fixed; min-width: 260px; background: var(--bg); color: var(--ink);
-  font: 12px/1.4 system-ui, sans-serif; border: 2px solid #8a6a3a; border-radius: 6px;
+/* the frame of a box, also of the statistics panel that hangs out of the city map box */
+.box, .stats-panel { background: var(--bg); border: 2px solid var(--line); border-radius: 6px;
   box-shadow: 0 4px 16px rgba(0,0,0,.5); }
+.box { position: fixed; min-width: 260px; color: var(--ink); font: 12px/1.4 system-ui, sans-serif; }
 .box.popped { position: static; height: 100vh; border: 0; border-radius: 0; }
 /* a box without the resize handle (capped): its height is capped (inline), the body scrolls beyond it; its width is the
    configured one, only the window caps it (box.ts). A box with the handle has the width it is given or resized to */
 .box.tall, .box.popped, .box.capped { display: flex; flex-direction: column; }
 .box.tall .body, .box.popped .body, .box.capped .body { flex: 1 1 auto; min-height: 0; max-height: none; }
 .resize-handle { position: absolute; right: 0; bottom: 0; width: 14px; height: 14px; cursor: nwse-resize;
-  touch-action: none; z-index: 1; background: linear-gradient(135deg, transparent 55%, #8a6a3a 55%, #8a6a3a 65%,
-  transparent 65%, transparent 75%, #8a6a3a 75%, #8a6a3a 85%, transparent 85%); }
+  touch-action: none; z-index: 1; background: linear-gradient(135deg, transparent 55%, var(--line) 55%, var(--line) 65%,
+  transparent 65%, transparent 75%, var(--line) 75%, var(--line) 85%, transparent 85%); }
 header { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; padding: 4px 6px; background: var(--btn);
-  border-bottom: 1px solid #8a6a3a; cursor: move; user-select: none; touch-action: none; }
+  border-bottom: 1px solid var(--line); cursor: move; user-select: none; touch-action: none; }
 .box.pinned header, .box.popped header { cursor: default; }
 header h1 { flex: 1; margin: 0; font-size: 13px; font-weight: 600; }
 header button { all: unset; cursor: pointer; width: 20px; height: 20px; display: grid; place-items: center;
@@ -27,15 +28,15 @@ header button.active { color: var(--accent); }
 .body { padding: 6px 8px; max-height: 70vh; overflow: auto; }
 .box.minimized .body { display: none; }
 table { border-collapse: collapse; width: 100%; }
-th, td { padding: 2px 4px; border-bottom: 1px solid #4a3620; text-align: left; }
+th, td { padding: 2px 4px; border-bottom: 1px solid var(--btn); text-align: left; }
 td.num, th.num { text-align: right; }
-.muted { color: #b8a27d; }
-.warn { color: #f0a050; }
-.error { color: #f07060; }
+.muted { color: var(--muted); }
+.warn { color: var(--warn); }
 button.action { margin: 2px 4px 2px 0; }
+/* in a bar with its own gaps a text button takes no margin */
+:is(.selection, .gb-factor, .gb-levels, .map-tools, .power-open) > button.action { margin: 0; }
 /* text buttons in the box colours, like the fields; icon, header, menu and settings buttons have their own looks */
-.gb-factor button:not(.icon), .gb-levels button:not(.icon), button.action, .map-tools button,
-.stats-tab, .power-open button {
+button.action {
   font: inherit; cursor: pointer; color: var(--ink); background: var(--btn); border: 1px solid var(--line);
   border-radius: 3px; padding: 1px 6px;
   &:hover { background: var(--btn-hover); }
@@ -47,6 +48,11 @@ button.action { margin: 2px 4px 2px 0; }
 /* a text button that carries an icon, alone or beside a word: the svg sits centred at 14px */
 button.action.icon-only { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
 button.action.icon-only svg { display: block; width: 14px; height: 14px; }
+/* an icon alone without the face of a text button (ui/buttons.ts); where it is greyed (off) differs per place */
+button.icon { all: unset; cursor: pointer; width: 18px; height: 18px; display: grid; place-items: center;
+  color: var(--ink); opacity: .8; }
+button.icon:hover { opacity: 1; }
+button.icon svg { display: block; width: 14px; height: 14px; }
 label { display: flex; gap: 6px; align-items: center; padding: 2px 0; }
 p.setting-hint { margin: 0 0 4px 22px; }
 h2 { font-size: 12px; margin: 8px 0 4px; color: var(--accent); }
@@ -60,14 +66,14 @@ h2 { font-size: 12px; margin: 8px 0 4px; color: var(--accent); }
 .settings-nav svg { display: block; width: 20px; height: 20px; }
 .settings-main { flex: 1; min-width: 0; }
 .settings-main h2:first-child { margin-top: 2px; }
-.settings-main h3 { font-size: 12px; margin: 10px 0 4px; color: #b8a27d; }
+.settings-main h3 { font-size: 12px; margin: 10px 0 4px; color: var(--muted); }
 input, select, textarea { font: inherit; }
 /* fields in the box colours: dark ground, light text, the frame brown, the accent on focus */
 input:not([type=checkbox]):not([type=radio]), select, textarea { color: var(--ink); background: var(--field);
-  border: 1px solid #8a6a3a; border-radius: 3px; padding: 1px 4px; }
+  border: 1px solid var(--line); border-radius: 3px; padding: 1px 4px; }
 input:not([type=checkbox]):not([type=radio]):focus, select:focus, textarea:focus { outline: none;
   border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-input::placeholder, textarea::placeholder { color: #b8a27d; opacity: .7; }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: .7; }
 input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
 /* no spinner arrows: they take half of a narrow field, arrow keys still step */
 input[type=number] { appearance: textfield; -moz-appearance: textfield; }
@@ -87,10 +93,9 @@ input.num, input[type=number] { text-align: right; }
 .split > .side { flex: 0 0 150px; min-width: 0; }
 .split > .main { flex: 1; min-width: 0; }
 ul.rows { list-style: none; margin: 4px 0; padding: 0; }
-ul.rows li { padding: 2px 4px; cursor: pointer; border-bottom: 1px solid #4a3620; }
+ul.rows li { padding: 2px 4px; cursor: pointer; border-bottom: 1px solid var(--btn); }
 ul.rows li.active { background: var(--btn); }
-ul.rows li.dragging { opacity: .4; }
-.card { border: 1px solid #8a6a3a; border-radius: 4px; padding: 0 6px 4px; margin: 6px 0; }
+.card { border: 1px solid var(--line); border-radius: 4px; padding: 0 6px 4px; margin: 6px 0; }
 .note { cursor: text; min-height: 2em; overflow-wrap: anywhere; }
 .note h3, .note h4, .note h5 { margin: 6px 0 2px; color: var(--accent); }
 .note h3 { font-size: 14px; } .note h4 { font-size: 13px; } .note h5 { font-size: 12px; }
@@ -99,9 +104,9 @@ ul.rows li.dragging { opacity: .4; }
 .note a, a { color: var(--accent); }
 a.ext-link { text-decoration: none; opacity: .6; }
 a.ext-link:hover { opacity: 1; }
-.spinner { display: inline-block; width: .8em; height: .8em; vertical-align: -.1em; border: 2px solid #8a6a3a; border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+.spinner { display: inline-block; width: .8em; height: .8em; vertical-align: -.1em; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
 .tip { position: fixed; z-index: 2147483647; max-width: 260px; padding: 3px 6px; background: #000d; color: var(--ink);
-  font: 12px/1.4 system-ui, sans-serif; border: 1px solid #8a6a3a; border-radius: 4px; pointer-events: none;
+  font: 12px/1.4 system-ui, sans-serif; border: 1px solid var(--line); border-radius: 4px; pointer-events: none;
   white-space: pre-line; }
 .tip[hidden] { display: none; }
 header button svg { display: block; width: 16px; height: 16px; }
@@ -131,22 +136,17 @@ button.marker.dim { opacity: .3; }
 .suggestions li { display: flex; justify-content: space-between; gap: 12px; padding: 1px 6px; cursor: pointer;
   white-space: nowrap; }
 .suggestions li:hover, .suggestions li.active { background: var(--btn-hover); }
-.suggestions .num { color: #b8a27d; }
+.suggestions .num { color: var(--muted); }
 /* the selected buildings, one row per name: name, "selected/in the city", ✕ */
 .selection { margin: 4px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .selection-list { display: contents; list-style: none; }
 .selection-list li { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 1px 2px 1px 8px;
   background: var(--btn); border: 1px solid var(--line); border-radius: 10px; }
 .selection-list .name { min-width: 0; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.selection-list .num { color: #b8a27d; }
-.selection > button.action { margin: 0; }
-.selection-list button.icon { all: unset; cursor: pointer; width: 18px; height: 18px; display: grid;
-  place-items: center; color: var(--ink); opacity: .8; }
-.selection-list button.icon:hover { opacity: 1; }
-.selection-list button.icon svg { display: block; width: 14px; height: 14px; }
+.selection-list .num { color: var(--muted); }
 .city-map { margin: 4px 0; }
 .map-marks { display: flex; flex-wrap: wrap; gap: 0 12px; }
-.map-frame { position: relative; height: 55vh; min-height: 180px; overflow: hidden; border: 1px solid #8a6a3a; }
+.map-frame { position: relative; height: 55vh; min-height: 180px; overflow: hidden; border: 1px solid var(--line); }
 /* a box with a height, or popped out: the map takes the height the controls above and the legend below leave */
 .box.tall .body.fill, .box.popped .body.fill { display: flex; flex-direction: column; }
 :is(.box.tall, .box.popped) .body.fill :is(.map-stats-layout, .city-map) { flex: 1 1 auto; min-height: 0; }
@@ -158,10 +158,11 @@ button.marker.dim { opacity: .3; }
 .map-tools button { display: inline-flex; align-items: center; }
 .map-tools button svg, .tabs button svg { display: block; width: 14px; height: 14px; }
 .map-legend { display: flex; flex-wrap: wrap; gap: 2px 10px; list-style: none; margin: 4px 0; padding: 0; }
-.map-legend .swatch { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: -1px;
+/* a colour square before a word, in the map legend and the statistics; the outline variant shows only its frame */
+.swatch { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: -1px;
   border: 2px solid transparent; }
-.map-legend .swatch.outline { background: none; }
-.map-legend .swatch.badge { border: none; background: none; }
+.swatch.outline { background: none; }
+.swatch.badge { border: none; background: none; }
 .map-stats-layout { display: flex; align-items: flex-start; gap: 6px; }
 .map-main { flex: 1; min-width: 0; }
 /* docked: the statistics hang out of the side of the box and leave the map whole; the body's overflow does not clip
@@ -169,14 +170,12 @@ button.marker.dim { opacity: .3; }
 .stats-drawer { position: absolute; top: 34px; right: 100%; display: flex; flex-direction: row-reverse;
   align-items: flex-start; }
 .stats-drawer[data-side=right] { right: auto; left: 100%; flex-direction: row; }
-.stats-tab { writing-mode: vertical-rl; padding: 8px 2px; border-width: 2px; border-right: 0; border-radius: 6px 0 0 6px; }
+button.stats-tab { margin: 0; writing-mode: vertical-rl; padding: 8px 2px; border-width: 2px; border-right: 0; border-radius: 6px 0 0 6px; }
 .stats-drawer[data-side=right] .stats-tab { border-width: 2px; border-left: 0; border-radius: 0 6px 6px 0; }
 .stats-drawer.open .stats-tab { color: var(--accent); }
-.stats-panel { width: 250px; max-height: 70vh; overflow: auto; padding: 4px 8px; background: #2b1d10;
-  border: 2px solid #8a6a3a; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.5); }
+.stats-panel { width: 250px; max-height: 70vh; overflow: auto; padding: 4px 8px; }
 .stats-panel h2:first-child { margin-top: 2px; }
 .stats-panel p { margin: 2px 0; }
-.stats-panel .swatch { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: -1px; }
 .stats-list { list-style: none; margin: 2px 0; padding: 0; }
 /* popped out: no room beside the window, so the panel takes a column beside the map */
 .box.popped .stats-drawer { position: static; flex: 0 0 auto; flex-direction: row; }
@@ -187,35 +186,30 @@ button.marker.dim { opacity: .3; }
 .gb-factor input.active, .gb-levels input.active { font-weight: 600; border-color: var(--accent); }
 .gb-factor input[type=number], .gb-levels input[type=number] { width: 5em; }
 /* factor buttons all one width, whatever the number of digits */
-.gb-factor button:not(.icon) { min-width: 3.6em; text-align: center; }
+.gb-factor button.action { min-width: 3.6em; text-align: center; }
 .gb-factor label { gap: 3px; }
 .gb-places { position: relative; min-height: 60px; }
 .gb-table td, .gb-table th { white-space: nowrap; }
 /* snipe list: fixed columns so heads show whole; only the building name gives way */
-button.snipe-toggle { all: unset; cursor: pointer; display: flex; align-items: center; gap: 4px; width: 100%; }
-button.snipe-toggle:hover { color: var(--accent); }
-button.snipe-toggle:focus-visible { outline: 1px solid var(--accent); }
-button.snipe-toggle svg { display: block; flex: none; width: 14px; height: 14px; }
+button.fold-toggle { all: unset; cursor: pointer; display: flex; align-items: center; gap: 4px; width: 100%; }
+button.fold-toggle:hover { color: var(--accent); }
+button.fold-toggle:focus-visible { outline: 1px solid var(--accent); }
+button.fold-toggle svg { display: block; flex: none; width: 14px; height: 14px; }
 hr.snipe-sep { border: 0; border-top: 1px solid var(--line); margin: 6px 0; }
 /* windowed rows (ui/windowed-rows.ts): the table area, the two buttons beside it, the line of what is hidden */
 .win-scroll { display: flex; align-items: stretch; gap: 4px; }
 .win-area { flex: 1 1 auto; min-width: 0; }
 .win-nav { flex: none; display: flex; flex-direction: column; justify-content: space-between; }
-.win-nav button.icon { all: unset; cursor: pointer; display: grid; place-items: center; width: 18px; height: 18px;
-  color: var(--ink); }
+/* full strength, the accent on hover; greyed a little less than the factor buttons */
+.win-nav button.icon { opacity: 1; }
 .win-nav button.icon:hover { color: var(--accent); }
 .win-nav button.icon.off { cursor: default; opacity: .4; color: var(--ink); }
-.win-nav button.icon svg { display: block; width: 14px; height: 14px; }
 p.win-hidden { margin: 2px 0; }
 /* a column head that sorts on a click (snipe helper, investments); an icon head marks the direction by its colour */
-/* the star that marks a great building or a player */
-button.star { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 18px; height: 18px; vertical-align: middle; color: var(--ink); opacity: .7; }
-button.star:hover, button.star.on { color: var(--accent); opacity: 1; }
-button.star svg { display: block; width: 14px; height: 14px; }
-/* the closed eye that ignores a great building or a player; in the calculator header it looks like the star */
-button.ignore { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 18px; height: 18px; vertical-align: middle; color: var(--ink); opacity: .7; }
-button.ignore:hover, button.ignore.on { color: var(--accent); opacity: 1; }
-button.ignore svg { display: block; width: 14px; height: 14px; }
+/* the star that marks a great building or a player, and the closed eye that ignores one; both look the same */
+:is(button.star, button.ignore) { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 18px; height: 18px; vertical-align: middle; color: var(--ink); opacity: .7; }
+:is(button.star, button.ignore):is(:hover, .on) { color: var(--accent); opacity: 1; }
+:is(button.star, button.ignore) svg { display: block; width: 14px; height: 14px; }
 /* the calculator warns above its header while the building or its owner is ignored; the button lifts it */
 p.ignore-warning { display: flex; align-items: center; gap: 6px; }
 .ignore-warning .warn-icon svg { display: block; width: 14px; height: 14px; }
@@ -242,18 +236,20 @@ th.sortable.asc .sort-level::before { content: ' ▴'; font-size: 1.333em; }
 .snipe-table .c-tier { width: 32px; }
 /* the star head with arrow and level number needs 29 px plus 4 px padding */
 .snipe-table .c-mark { width: 34px; }
-.snipe-table td.snipe-name { overflow: hidden; text-overflow: ellipsis; }
 .snipe-table .snipe-tier, .snipe-table th.icon-head:not(.num) { text-align: center; padding: 0; }
-/* the star left, its icon in line with the number of # before it (the button centres a 14 px icon in 18 px) */
-.snipe-table td.snipe-mark { text-align: left; padding: 0 0 0 2px; }
-.snipe-table th.icon-head.snipe-mark { text-align: left; padding: 0 0 0 4px; }
-.snipe-table .snipe-tier svg { display: block; width: 14px; height: 14px; margin: auto; }
-/* an ignored hit shown on request: the whole row muted, links and tier colours too */
-.snipe-table tr.muted :is(td, a) { color: inherit; }
-.snipe-counts .inv-ignored-filter { margin-left: 6px; vertical-align: middle; }
-td.snipe-tier.exact { color: #8fd08f; }
+/* the parts the snipe list and the investment tables share */
+:is(.snipe-table, .inv-table) td.name-cell { overflow: hidden; text-overflow: ellipsis; }
+/* the star left; in the snipe list its icon in line with the number of # before it (the button centres a 14 px icon in
+   18 px) */
+:is(.snipe-table, .inv-table) td.mark-cell { text-align: left; padding: 0 0 0 2px; }
+:is(.snipe-table, .inv-table) th.icon-head.mark-cell { text-align: left; padding: 0 0 0 4px; }
+:is(.snipe-table, .inv-table) .snipe-tier svg { display: block; width: 14px; height: 14px; margin: auto; }
+/* an ignored hit shown on request or an owner out of reach: the whole row muted, links and tier colours too */
+:is(.snipe-table, .inv-table) tr.muted :is(td, a) { color: inherit; }
+.snipe-counts .ignored-filter { margin-left: 6px; vertical-align: middle; }
+td.snipe-tier.exact { color: var(--good); }
 td.snipe-tier.safe { color: #5a9a4a; }
-td.snipe-tier.possible { color: #f0a050; }
+td.snipe-tier.possible { color: var(--warn); }
 /* investments: fixed columns so heads show whole; owner and building names give way */
 .inv-table { table-layout: fixed; }
 /* the box can be resized: the fixed columns plus at least 122 px for the owner (name, star, eye, funnel) and 116 px for
@@ -269,17 +265,13 @@ td.snipe-tier.possible { color: #f0a050; }
 .inv-table .c-status { width: 32px; }
 .inv-table .c-progress { width: 104px; }
 .inv-table .c-reach { width: 70px; }
-.inv-table td.inv-name { overflow: hidden; text-overflow: ellipsis; }
-.inv-table :is(.icon-head, .inv-status, .snipe-tier, .inv-mark) { text-align: center; padding: 0; }
-/* the star left, as in the snipe helper (the button centres a 14 px icon in 18 px) */
-.inv-table td.inv-mark { text-align: left; padding: 0 0 0 2px; }
-.inv-table th.icon-head.inv-mark { text-align: left; padding: 0 0 0 4px; }
-.inv-table :is(.inv-status, .snipe-tier) svg { display: block; width: 14px; height: 14px; margin: auto; }
+.inv-table :is(.icon-head, .inv-status, .snipe-tier, .mark-cell) { text-align: center; padding: 0; }
+.inv-table .inv-status svg { display: block; width: 14px; height: 14px; margin: auto; }
 .inv-table .icon-head svg { display: inline-block; width: 14px; height: 14px; vertical-align: middle; }
 .inv-table .icon-head { white-space: nowrap; }
-td.inv-status.safe { color: #8fd08f; }
-td.inv-status.unsafe { color: #f0a050; }
-td.inv-status.unknown { color: #b8a27d; }
+td.inv-status.safe { color: var(--good); }
+td.inv-status.unsafe { color: var(--warn); }
+td.inv-status.unknown { color: var(--muted); }
 .inv-table tr.grown { background: rgba(220, 190, 60, .24); }
 .inv-possible .c-progress { width: 92px; }
 .inv-possible .c-share { width: 50px; }
@@ -290,8 +282,6 @@ td.inv-status.unknown { color: #b8a27d; }
 /* the head left, over the icons of the cells */
 .inv-table th.icon-head.inv-reach { text-align: left; padding: 0 0 0 4px; }
 .inv-reach svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px; }
-/* an owner out of reach: the whole row muted, links and tier colours too */
-.inv-table tr.muted :is(td, a) { color: inherit; }
 .inv-possible td { overflow: hidden; text-overflow: ellipsis; }
 /* investments: the body does not scroll, the pane fills it. The table area holds as many rows as fit (ui/fit-rows.ts),
    the two buttons beside it scroll them, and the area itself scrolls only sideways when the box is narrower than the table */
@@ -303,32 +293,33 @@ td.inv-status.unknown { color: #b8a27d; }
 .inv-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .inv-filter input[type=search] { width: 10em; }
 .inv-count { margin-left: auto; }
-.inv-reach-filter, .inv-tier-filter, .inv-status-filter, .inv-hits-filter, .inv-marked-filter, .inv-ignored-filter { display: inline-flex; gap: 2px; }
-.inv-reach-filter button, .inv-tier-filter button, .inv-status-filter button, .inv-hits-filter button, .inv-marked-filter button, .inv-ignored-filter button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
-.inv-reach-filter button.on, .inv-tier-filter button.on, .inv-status-filter button.on, .inv-marked-filter button.on, .inv-ignored-filter button.on { color: var(--accent); opacity: 1; }
+/* icon toggles (ui/buttons.ts): faint while off, in the accent while on */
+.icon-toggles { display: inline-flex; gap: 2px; }
+.icon-toggles button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
+.icon-toggles button.on { color: var(--accent); opacity: 1; }
 /* the profit icon keeps its own colours, switched on it only turns opaque */
-.inv-hits-filter button.on { opacity: 1; }
-.inv-reach-filter button svg, .inv-tier-filter button svg, .inv-status-filter button svg, .inv-hits-filter button svg, .inv-marked-filter button svg, .inv-ignored-filter button svg { display: block; width: 14px; height: 14px; }
-.inv-owner { display: flex; align-items: center; }
-.inv-owner a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.inv-hits-filter button.on { color: var(--ink); }
+.icon-toggles button svg { display: block; width: 14px; height: 14px; }
+.row-name { display: flex; align-items: center; }
+.row-name a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* always at the right edge of the column, so the mouse can run straight down it; hidden until the row is hovered */
 button.inv-pick { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 16px; height: 16px; margin-left: auto; opacity: 0; color: var(--ink); }
 tr:is(:hover, :has(:focus-visible)) button.inv-pick { opacity: .7; }
 tr button.inv-pick:is(:hover, :focus-visible), button.inv-pick.on { opacity: 1; color: var(--accent); }
 /* the star and the eye in a row: 16 px at the right edge like the funnel (which then follows them), faint on row hover or
    focus while off, always in the accent while on. Name cells keep the name's ellipsis and give them their 16 px */
-.inv-owner .inv-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.inv-owner :is(button.star, button.ignore) { flex: none; width: 16px; height: 16px; margin-left: auto; opacity: 0; }
-.inv-owner :is(button.star, button.ignore) svg { width: 12px; height: 12px; }
-.inv-owner :is(button.star, button.ignore) + :is(button.ignore, button.inv-pick) { margin-left: 0; }
+.row-name .row-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.row-name :is(button.star, button.ignore) { flex: none; width: 16px; height: 16px; margin-left: auto; opacity: 0; }
+.row-name :is(button.star, button.ignore) svg { width: 12px; height: 12px; }
+.row-name :is(button.star, button.ignore) + :is(button.ignore, button.inv-pick) { margin-left: 0; }
 /* keyboard focus shows them too, a mouse click does not keep them (:focus-within would, until the next click) */
-tr:is(:hover, :has(:focus-visible)) .inv-owner :is(button.star, button.ignore) { opacity: .7; }
-tr .inv-owner :is(button.star, button.ignore):is(:hover, :focus-visible), tr .inv-owner :is(button.star, button.ignore).on { opacity: 1; color: var(--accent); }
+tr:is(:hover, :has(:focus-visible)) .row-name :is(button.star, button.ignore) { opacity: .7; }
+tr .row-name :is(button.star, button.ignore):is(:hover, :focus-visible), tr .row-name :is(button.star, button.ignore).on { opacity: 1; color: var(--accent); }
 .inv-ignored-total svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; }
 button.inv-pick svg { display: block; width: 12px; height: 12px; }
 /* the growth beside the bar; in "Meine" the bar line has one height in every row, so all rows are equally tall and the
    row window counts them right */
-.inv-growth { flex: none; color: var(--accent); font-weight: 600; font-size: 10px; line-height: 1; }
+.growth-tag { flex: none; color: var(--accent); font-weight: 600; font-size: 10px; line-height: 1; }
 .fp-line { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
 .fp-line .fp-bar { flex: 1 1 auto; margin-top: 0; }
 .inv-mine .fp-line { height: 11px; }
@@ -341,7 +332,7 @@ tr.gb-loss { background: rgba(200, 80, 60, .28); }
 tr.gb-levelWarning { background: rgba(220, 190, 60, .24); }
 tr.gb-mine { background: rgba(80, 140, 220, .32); }
 tr.own-row td { background: #3a2814; }
-td.own-fp, td.gain { color: #8fd08f; }
+td.own-fp, td.gain { color: var(--good); }
 button.copy-fp { all: unset; cursor: pointer; }
 button.copy-fp:hover { text-decoration: underline; }
 input.ext, input.place-factor { width: 100%; min-width: 0; }
@@ -362,10 +353,6 @@ table.power-level th, table.power-level td { overflow: hidden; text-overflow: el
 table.power-level tr.current td { background: rgba(80, 140, 220, .22); }
 table.power-level tr.locked { color: #8a7a60; }
 table.power-level tr.total td { font-weight: 600; }
-table.power-level button.icon { all: unset; cursor: pointer; display: grid; place-items: center; width: 18px; height: 18px;
-  color: var(--ink); opacity: .8; }
-table.power-level button.icon:hover { opacity: 1; }
-table.power-level button.icon svg { display: block; width: 14px; height: 14px; }
 .power-open { margin: 4px 0; }
 .power-open button { display: inline-grid; place-items: center; padding: 3px 6px; }
 .power-open button svg { display: block; width: auto; height: 22px; }
@@ -374,16 +361,8 @@ input.place-factor.arc { color: var(--accent); }
 .gb-factor .factor-status { display: inline-grid; place-items: center; margin-left: 4px; }
 .gb-factor .factor-status svg { width: 14px; height: 14px; }
 .gb-factor .factor-status.saved { color: var(--accent); }
-.gb-factor button.icon { all: unset; cursor: pointer; width: 18px; height: 18px; display: grid; place-items: center;
-  color: var(--ink); opacity: .8; }
-.gb-factor button.icon:hover { opacity: 1; }
 .gb-factor button.icon.off, .gb-factor button.icon.off:hover { opacity: .3; cursor: default; }
-.gb-factor button.icon svg { display: block; width: 14px; height: 14px; }
 .copy-line { display: flex; gap: 4px; align-items: center; margin: 4px 0; }
-.copy-line button.icon { all: unset; cursor: pointer; width: 18px; height: 18px; display: grid; place-items: center;
-  color: var(--ink); opacity: .8; }
-.copy-line button.icon:hover { opacity: 1; }
-.copy-line button.icon svg { display: block; width: 14px; height: 14px; }
 .page-mark { display: inline-block; vertical-align: -2px; }
 .page-mark svg { display: block; width: 14px; height: 14px; }
 .copy-line .copy-text { flex: 1; min-width: 0; }
@@ -395,9 +374,9 @@ td.over-rest { color: #e08070; }
 td.below-safe { font-style: italic; opacity: .75; }
 /* the name of the great building on top of its boxes */
 .gb-title { font-size: 15px; font-weight: 600; }
-p.gb-me { margin: 6px 0; padding: 4px 6px; border: 1px solid #8a6a3a; border-radius: 4px; background: #3a2814; }
+p.gb-me { margin: 6px 0; padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; background: #3a2814; }
 p.gb-me.safe { border-color: #5a9a4a; }
-p.gb-me.safe, .gb-me .gain { color: #8fd08f; }
+p.gb-me.safe, .gb-me .gain { color: var(--good); }
 .gb-me-line { display: block; }
 .gb-me .profit-icon { color: var(--ink); }
 .gb-me .profit-icon svg { width: 14px; height: 14px; vertical-align: -2px; }

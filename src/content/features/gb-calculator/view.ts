@@ -1,6 +1,7 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import type { LevelUpAndFirst } from '../../domain/gb-level-preview';
+import { estimateCell } from '../../ui/estimate-cell';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
 import { foldToggle } from '../../ui/fold-toggle';
 import { fpBar, progressPercent } from '../../ui/fp-bar';
@@ -199,9 +200,7 @@ const placeRow = (p: PlaceRow) =>
     <td>${p.rank}</td>
     ${maybe(p.holder?.fp)}
     ${safeCell(p)}
-    <td class=${p.estimate ? 'num estimate' : 'num'} data-tip=${p.estimate ? t('gbCalc.estimate') : ''}>${
-      p.estimate ? '≈ ' : ''
-    }${formatNumber(p.gross)}</td>
+    ${estimateCell(formatNumber(p.gross), p.estimate)}
     ${p.profit === undefined ? NONE : html`<td class="num">${formatNumber(p.profit)}</td>`}
     ${demandCell(p.demand)}
     ${rateCell(p)}

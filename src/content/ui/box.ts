@@ -1,6 +1,8 @@
 // Window frame for every feature: drag, pin, minimize, pop-out, close. Content comes from a lit-html render function.
 import { html, render, type TemplateResult } from 'lit-html';
+import { clamp } from '../../shared/math';
 import { t } from '../core/texts';
+import { iconButton } from './buttons';
 import { headerIcons } from './icons';
 import { baseCss } from './styles';
 import { installTooltip } from './tooltip';
@@ -37,8 +39,8 @@ export const largeDefaultSize: NonNullable<BoxOptions['defaultSize']> = (win) =>
 let topZ = 2147480000;
 
 /** the smallest size a box can be dragged to; a box can ask for more height with `minHeight` */
-export const MIN_WIDTH = 260;
-export const MIN_HEIGHT = 150;
+const MIN_WIDTH = 260;
+const MIN_HEIGHT = 150;
 
 export class Box {
   private host = document.createElement('div');
@@ -119,7 +121,7 @@ export class Box {
     const { settings } = this.options;
     const open = this.openSettings;
     const settingsButton =
-      settings && open ? headerButton(t('box.settings'), () => open(settings), headerIcons.gear) : '';
+      settings && open ? iconButton(t('box.settings'), () => open(settings), headerIcons.gear) : '';
     return html`<style>${baseCss}</style>
       <div class=${classes} style=${style} @pointerdown=${() => this.raise()}>
         <header @pointerdown=${(e: PointerEvent) => this.startDrag(e)}>
@@ -129,16 +131,16 @@ export class Box {
               ? ''
               : html`
             ${settingsButton}
-            ${headerButton(
+            ${iconButton(
               t(state.pinned ? 'box.unpin' : 'box.pin'),
               () => this.set({ pinned: !state.pinned }),
               headerIcons.pin(state.pinned === true),
               state.pinned ? 'active' : '',
             )}
-            ${headerButton(t('box.popout'), () => this.popOut(), headerIcons.popout)}
-            ${headerButton(t('box.minimize'), () => this.set({ minimized: !state.minimized }), headerIcons.minimize)}`
+            ${iconButton(t('box.popout'), () => this.popOut(), headerIcons.popout)}
+            ${iconButton(t('box.minimize'), () => this.set({ minimized: !state.minimized }), headerIcons.minimize)}`
           }
-          ${headerButton(t('box.close'), () => this.close(), headerIcons.close)}
+          ${iconButton(t('box.close'), () => this.close(), headerIcons.close)}
         </header>
         <div class=${this.options.fill ? 'body fill' : 'body'}>${this.options.render()}</div>
         ${
@@ -190,8 +192,8 @@ export class Box {
     const dy = event.clientY - box.offsetTop;
     frame.setPointerCapture(event.pointerId);
     const move = (e: PointerEvent) => {
-      box.style.left = `${Math.max(0, Math.min(window.innerWidth - 60, e.clientX - dx))}px`;
-      box.style.top = `${Math.max(0, Math.min(window.innerHeight - 30, e.clientY - dy))}px`;
+      box.style.left = `${clamp(e.clientX - dx, 0, window.innerWidth - 60)}px`;
+      box.style.top = `${clamp(e.clientY - dy, 0, window.innerHeight - 30)}px`;
     };
     const up = () => {
       frame.removeEventListener('pointermove', move);
@@ -258,10 +260,3 @@ export class Box {
     this.update();
   }
 }
-
-/** icon-only, so the label is also its accessible name */
-const headerButton = (label: string, action: () => void, icon: TemplateResult, cls = '') =>
-  html`<button class=${cls} data-tip=${label} aria-label=${label} @click=${action}>${icon}</button>`;
-
-/** `value` within `min` and `max`; a max below the min gives the min */
-const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));

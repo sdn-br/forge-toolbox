@@ -2,41 +2,36 @@
 // Shared by the snipe helper (a fixed count of rows) and the investments box (as many as fit).
 import { html, type TemplateResult } from 'lit-html';
 import { ref } from 'lit-html/directives/ref.js';
+import { clamp } from '../../shared/math';
 import { t } from '../core/texts';
+import { offButton } from './buttons';
 import { headerIcons } from './icons';
 
 export interface RowWindow {
-  /** index of the first row in view */
+  /** index of the first row in view, so also the number of rows hidden above */
   top: number;
-  /** rows hidden above and below */
-  above: number;
+  /** rows hidden below */
   below: number;
 }
 
 /** the offset kept inside the list, so a shorter list or a stale offset never leaves the table empty */
-export const clampTop = (top: number, rows: number, visible: number): number =>
-  Math.max(0, Math.min(top, rows - visible));
+export const clampTop = (top: number, rows: number, visible: number): number => clamp(top, 0, rows - visible);
 
 export function rowWindow(top: number, rows: number, visible: number): RowWindow {
   const clamped = clampTop(top, rows, visible);
-  return { top: clamped, above: clamped, below: Math.max(0, rows - clamped - visible) };
+  return { top: clamped, below: Math.max(0, rows - clamped - visible) };
 }
 
 /** the rows of the window */
 export const rowsIn = <T>(rows: T[], { top, below }: RowWindow): T[] => rows.slice(top, rows.length - below);
 
-/** one of the two scroll buttons; greyed at its end like the factor status buttons */
-const navButton = (on: boolean, word: string, icon: TemplateResult, action: () => void) =>
-  html`<button class=${on ? 'icon' : 'icon off'} aria-disabled=${on ? 'false' : 'true'} data-tip=${word}
-    aria-label=${word} @click=${() => on && action()}>${icon}</button>`;
-
-const hidden = ({ above, below }: RowWindow) =>
+const hidden = ({ top: above, below }: RowWindow) =>
   above > 0 && below > 0
-    ? t('snipe.hiddenBoth', { above, below })
+    ? t('table.hiddenBoth', { above, below })
     : above > 0
-      ? t('snipe.hiddenAbove', { count: above })
+      ? t('table.hiddenAbove', { count: above })
       : below > 0
-        ? t('snipe.hiddenBelow', { count: below })
+        ? t('table.hiddenBelow', { count: below })
         : '';
 
 export interface WindowedRows {
@@ -55,7 +50,7 @@ export interface WindowedRows {
  * hidden after it. The buttons always keep their room, greyed when nothing is hidden, so the table width never jumps.
  * The wheel over the frame steps a row and passes at the ends. */
 export function windowedRows({ cls, table, window, scroll, measure }: WindowedRows): TemplateResult {
-  const { above, below } = window;
+  const { top: above, below } = window;
   const scrolls = above > 0 || below > 0;
   const wheel = (e: WheelEvent) => {
     const step = Math.sign(e.deltaY);
@@ -66,8 +61,8 @@ export function windowedRows({ cls, table, window, scroll, measure }: WindowedRo
   return html`<div class="win-scroll ${cls}" @wheel=${wheel}>
       <div class="win-area" ${ref(measure)}>${table}</div>
       <div class="win-nav">
-        ${navButton(above > 0, t('snipe.scrollUp'), headerIcons.chevronUp, () => scroll(-1))}
-        ${navButton(below > 0, t('snipe.scrollDown'), headerIcons.chevronDown, () => scroll(1))}
+        ${offButton(above > 0, t('table.scrollUp'), headerIcons.chevronUp, () => scroll(-1))}
+        ${offButton(below > 0, t('table.scrollDown'), headerIcons.chevronDown, () => scroll(1))}
       </div>
     </div>${scrolls ? html`<p class="muted win-hidden">${hidden(window)}</p>` : ''}`;
 }

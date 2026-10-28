@@ -1,6 +1,8 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import type { OwnPlace } from '../../domain/gb-own-share';
+import { iconButton } from '../../ui/buttons';
+import { estimateCell } from '../../ui/estimate-cell';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
 import { type FactorLevelActions, factorLevel, placeFactorField } from '../../ui/factor-state';
 import { headerIcons } from '../../ui/icons';
@@ -74,7 +76,7 @@ export function ownShareView(vm: OwnShareVm, actions: OwnShareActions, copied?: 
         @change=${(e: Event) => actions.setTrust((e.target as HTMLInputElement).checked)} />
         <span data-tip=${t('gbOwn.trustHint')}>${t('gbOwn.trust')}</span></label>
     </div>
-    <div class="power-open"><button data-tip=${t('gbPower.openHint')} aria-label=${t('gbPower.title')}
+    <div class="power-open"><button class="action" data-tip=${t('gbPower.openHint')} aria-label=${t('gbPower.title')}
       @click=${() => actions.openPowerLevel()}>${headerIcons.powerLevel}</button></div>
     <p class="gb-me">${t('gbOwn.total', { fp: formatNumber(vm.ownShare) })}
       <span class="muted">· ${t('gbOwn.paid', { fp: formatNumber(vm.myDeposit) })}</span>
@@ -153,12 +155,7 @@ function placeRow(r: Extract<OwnRow, { kind: 'place' }>, cell: Cell, actions: Ow
       ? marker(headerIcons.person, p.holder.name)
       : '';
   // a payment from a computed reward stands italic with „≈“, as the reward in the LG-Rechner
-  const pay =
-    p.holder || p.full || p.unoffered
-      ? NONE
-      : r.estimate
-        ? html`<td class="num estimate" data-tip=${t('gbCalc.estimate')}>≈ ${cell(p.amount, `place${p.rank}`)}</td>`
-        : html`<td class="num">${cell(p.amount, `place${p.rank}`)}</td>`;
+  const pay = p.holder || p.full || p.unoffered ? NONE : estimateCell(cell(p.amount, `place${p.rank}`), r.estimate);
   const done = p.holder ? fp(p.holder.fp, p.holder.ext ? 'num muted' : 'num') : NONE;
   const typed = (e: Event) => {
     const value = (e.target as HTMLInputElement).valueAsNumber;
@@ -216,7 +213,6 @@ function copyPanel(c: CopyVm, actions: OwnShareActions, copied?: string) {
       .value=${c.building} @keydown=${keepKeys}
       @change=${(e: Event) => actions.setCopyBuilding((e.target as HTMLInputElement).value)} />
     <input class="copy-text" type="text" aria-label=${t('gbOwn.copyPreview')} .value=${c.text} @keydown=${keepKeys} />
-    <button class="icon" data-tip=${t('gbOwn.copy')} aria-label=${t('gbOwn.copy')}
-      @click=${copyTyped}>${copied === 'text' ? headerIcons.check : headerIcons.copy}</button>
+    ${iconButton(t('gbOwn.copy'), copyTyped, copied === 'text' ? headerIcons.check : headerIcons.copy, 'icon')}
   </div>`;
 }

@@ -1,4 +1,5 @@
 import type { BuildingDefId } from '../../../shared/ids';
+import { clamp } from '../../../shared/math';
 import { type DoubleHarvest, doubleHarvest, hasDoubleHarvest } from '../../domain/gb-double-harvest';
 import { emptyLevel } from '../../domain/gb-level-preview';
 import { calculateOwnShare, type OwnShareCalc } from '../../domain/gb-own-share';
@@ -101,7 +102,7 @@ export type PowerLevelVm =
 /** a whole number from a field, within bounds; anything else takes the fallback */
 function level(value: number | undefined, fallback: number, min: number, max: number): number {
   const n = value !== undefined && Number.isFinite(value) ? Math.round(value) : fallback;
-  return Math.min(max, Math.max(min, n));
+  return clamp(n, min, max);
 }
 
 export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {

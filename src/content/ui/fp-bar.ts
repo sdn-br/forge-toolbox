@@ -14,13 +14,11 @@ export const progressCell = (
   p: { invested: string; required: string; rest: string; percent: number },
   extra: TemplateResult | '' = '',
   notes: string[] = [],
-) => html`<td class="num inv-progress" data-tip=${[t('investments.restHint', { rest: p.rest, required: p.required }), ...notes].join('\n')}>
+) => html`<td class="num progress-cell" data-tip=${[t('table.restHint', { rest: p.rest, required: p.required }), ...notes].join('\n')}>
     ${p.invested} / ${p.required}
     <div class="fp-line">${fpBar(p.percent)}${extra}</div>
   </td>`;
 
 /** "+X" small beside the bar, what others paid in; the tooltip says since when */
 export const growthTag = (growth: string | undefined, hint: TextKey) =>
-  growth
-    ? html`<span class="inv-growth" data-tip=${t(hint, { growth })}>${t('investments.growth', { growth })}</span>`
-    : '';
+  growth ? html`<span class="growth-tag" data-tip=${t(hint, { growth })}>${t('table.growth', { growth })}</span>` : '';

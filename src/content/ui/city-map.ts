@@ -4,6 +4,7 @@ import { html, svg, type TemplateResult } from 'lit-html';
 import { ref } from 'lit-html/directives/ref.js';
 import { t } from '../core/texts';
 import { type Bounds, gridBounds, type Tile, type TileRect } from '../domain/city-grid';
+import { iconButton } from './buttons';
 import { headerIcons } from './icons';
 import {
   backToFront,
@@ -91,15 +92,21 @@ const badgeSwatch = (color: string, symbol: MapBadge['symbol']) =>
         : svg`<path d="M3.2 6.8 6.8 3.2" stroke=${color} stroke-width="1.3" stroke-linecap="round"/>`
     }</svg>`;
 
+/** the key of each tile a rectangle covers, "x,y" */
+function forEachTile(r: TileRect, visit: (key: string) => void) {
+  for (let dx = 0; dx < r.width; dx++) {
+    for (let dy = 0; dy < r.length; dy++) visit(`${r.x + dx},${r.y + dy}`);
+  }
+}
+
+/** a colour square before a word; `outline` shows only its frame in the colour */
+export const swatch = (color: string, outline = false) =>
+  html`<span class=${outline ? 'swatch outline' : 'swatch'}
+    style=${outline ? `border-color:${color}` : `background:${color}`}></span>`;
+
 export const legendView = (items: LegendItem[]) =>
   html`<ul class="map-legend">${items.map(
-    (i) =>
-      html`<li>${
-        i.symbol
-          ? badgeSwatch(i.color, i.symbol)
-          : html`<span class=${i.outline ? 'swatch outline' : 'swatch'}
-              style=${i.outline ? `border-color:${i.color}` : `background:${i.color}`}></span>`
-      }${i.label}</li>`,
+    (i) => html`<li>${i.symbol ? badgeSwatch(i.color, i.symbol) : swatch(i.color, i.outline)}${i.label}</li>`,
   )}</ul>`;
 
 /**
@@ -131,7 +138,7 @@ export class CityMap {
     // lit-html commits the template after this returns; draw once the canvas is in place
     queueMicrotask(() => this.draw());
     const modeButton = (mode: MapMode, label: string) =>
-      html`<button class=${this.mode === mode ? 'active' : ''} @click=${() => this.setMode(mode)}>${label}</button>`;
+      html`<button class=${this.mode === mode ? 'action active' : 'action'} @click=${() => this.setMode(mode)}>${label}</button>`;
     return html`<div class="city-map">
       <div class="map-frame">
         <canvas data-tip-instant ${ref((el) => this.attach(el))}
@@ -143,9 +150,9 @@ export class CityMap {
           @wheel=${{ handleEvent: (e: WheelEvent) => this.wheel(e), passive: false }}></canvas>
         <div class="map-tools">
           ${modeButton('top', t('cityMap.top'))}${modeButton('iso', t('cityMap.iso'))}
-          <button data-tip=${t('cityMap.zoomIn')} aria-label=${t('cityMap.zoomIn')} @click=${() => this.zoomBy(ZOOM_STEP)}>${headerIcons.plus}</button>
-          <button data-tip=${t('cityMap.zoomOut')} aria-label=${t('cityMap.zoomOut')} @click=${() => this.zoomBy(1 / ZOOM_STEP)}>${headerIcons.minus}</button>
-          <button data-tip=${t('cityMap.zoomReset')} aria-label=${t('cityMap.zoomReset')} @click=${() => this.reset()}>${headerIcons.fit}</button>
+          ${iconButton(t('cityMap.zoomIn'), () => this.zoomBy(ZOOM_STEP), headerIcons.plus, 'action')}
+          ${iconButton(t('cityMap.zoomOut'), () => this.zoomBy(1 / ZOOM_STEP), headerIcons.minus, 'action')}
+          ${iconButton(t('cityMap.zoomReset'), () => this.reset(), headerIcons.fit, 'action')}
         </div>
       </div>
       ${legend ?? ''}
@@ -191,16 +198,11 @@ export class CityMap {
     this.zoneIndex.clear();
     for (const zone of this.data.zones ?? []) {
       if (zone.tooltip === undefined) continue;
-      for (const r of zone.rects) {
-        for (let dx = 0; dx < r.width; dx++) {
-          for (let dy = 0; dy < r.length; dy++) this.zoneIndex.set(`${r.x + dx},${r.y + dy}`, zone.tooltip);
-        }
-      }
+      const tooltip = zone.tooltip;
+      for (const r of zone.rects) forEachTile(r, (key) => this.zoneIndex.set(key, tooltip));
     }
     this.data.tiles.forEach((tile, i) => {
-      for (let dx = 0; dx < tile.width; dx++) {
-        for (let dy = 0; dy < tile.length; dy++) this.index.set(`${tile.x + dx},${tile.y + dy}`, i);
-      }
+      forEachTile(tile, (key) => this.index.set(key, i));
     });
     this.indexed = this.data;
   }

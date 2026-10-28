@@ -20,7 +20,7 @@ const menuCss = `
 :host { --menu-icon: 35px; }
 .menu { position: fixed; right: 4px; bottom: 4px; z-index: 2147479999;
   display: flex; flex-direction: column; padding: 4px; background: #2b1d10cc;
-  border: 1px solid #8a6a3a; border-radius: 6px; }
+  border: 1px solid var(--line); border-radius: 6px; }
 .menu button { all: unset; cursor: pointer; width: calc(var(--menu-icon) + 10px); height: calc(var(--menu-icon) + 10px);
   display: grid; place-items: center; border-radius: 4px; color: var(--ink); background: var(--btn); }
 /* cut-outs in the icons fill with --btn, so the hover colour goes through it */
@@ -36,7 +36,7 @@ const menuCss = `
   transition-delay: 0s; }
 @media (prefers-reduced-motion: reduce) { .items { transition: none; } }
 .notice { position: fixed; right: calc(var(--menu-icon) + 24px); bottom: 4px; z-index: 2147479999; max-width: 240px;
-  padding: 6px 8px; font: 12px/1.4 system-ui, sans-serif; background: #6a2010; color: var(--ink); border: 1px solid #8a6a3a;
+  padding: 6px 8px; font: 12px/1.4 system-ui, sans-serif; background: #6a2010; color: var(--ink); border: 1px solid var(--line);
   border-radius: 6px; }
 .notice p { margin: 0; }
 /* equal columns, so both buttons take the width of the longer label */

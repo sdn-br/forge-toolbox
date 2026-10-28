@@ -35,7 +35,7 @@ export function levelBar(l: LevelChoice, pick: (level: number | undefined) => vo
       .value=${String(l.chosen)} @keydown=${keepKeys} @change=${typed} />
     ${
       l.preview
-        ? html`<button @click=${() => pick(undefined)}>
+        ? html`<button class="action" @click=${() => pick(undefined)}>
             ${t('gbCalc.live', { level: l.current, next: l.current + 1 })}</button>`
         : ''
     }

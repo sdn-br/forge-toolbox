@@ -34,7 +34,7 @@ export interface SnipeActions {
 const columns: SortColumn<SnipeColumn>[] = [
   // left-aligned: a short number would leave the column empty on the left
   { column: 'order', label: 'snipe.col.order', num: false },
-  { column: 'mark', label: 'mark.col', num: false, icon: headerIcons.star, cls: 'snipe-mark' },
+  { column: 'mark', label: 'mark.col', num: false, icon: headerIcons.star, cls: 'mark-cell' },
   { column: 'name', label: 'gb.col.name', num: false },
   { column: 'level', label: 'gb.col.level', num: true },
   { column: 'progress', label: 'gb.col.progress', num: true },
@@ -47,8 +47,8 @@ const columns: SortColumn<SnipeColumn>[] = [
 const row = (r: SnipeRowVm, actions: SnipeActions) =>
   html`<tr class=${r.ignoreNote === undefined ? '' : 'muted'} data-tip=${[r.ignoreNote, ...r.notes].filter(Boolean).join('\n')}>
   <td>${r.order}</td>
-  <td class="snipe-mark">${starButton(r.marked, () => actions.mark(r.owner, r.entityId, !r.marked))}</td>
-  ${buildingCell(r.name, [r.name, r.ignoreNote, ...r.notes].filter(Boolean).join('\n'), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored), 'snipe-name')}
+  <td class="mark-cell">${starButton(r.marked, () => actions.mark(r.owner, r.entityId, !r.marked))}</td>
+  ${buildingCell(r.name, [r.name, r.ignoreNote, ...r.notes].filter(Boolean).join('\n'), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
   <td class="num">${r.level}</td>
   ${progressCell(
     {

@@ -27,7 +27,7 @@ const opponentLink = (r: { opponent: PlayerId; name: string; url: string }, acti
   html`<td><a href="#" @click=${(e: Event) => {
     e.preventDefault();
     actions.pick(r.opponent);
-  }}>${r.name}</a> ${externalIcon(r.url)}</td>`;
+  }}>${r.name}</a> ${externalIcon(r.url, t('foestats.open'))}</td>`;
 
 /** a note sheet per row: dim without a note, the note as tooltip */
 const noteMarker = (opponent: PlayerId, note: string, actions: PvpActions) =>
