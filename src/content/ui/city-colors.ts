@@ -24,8 +24,13 @@ function mix(color: string, toward: string, amount: number): string {
   return `#${parts.map((n) => n.toString(16).padStart(2, '0')).join('')}`;
 }
 
+const MUTED = Object.fromEntries(CATEGORIES.map((c) => [c, mix(CATEGORY_COLORS[c], BACKGROUND, 0.6)])) as Record<
+  BuildingCategory,
+  string
+>;
+
 /** the group color faded into the background, for buildings that are not the point of a map */
-export const mutedColor = (category: BuildingCategory) => mix(CATEGORY_COLORS[category], BACKGROUND, 0.6);
+export const mutedColor = (category: BuildingCategory) => MUTED[category];
 
 export const categoryLegend = (): LegendItem[] =>
   CATEGORIES.map((c) => ({ color: CATEGORY_COLORS[c], label: t(`category.${c}`) }));

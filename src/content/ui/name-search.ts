@@ -3,6 +3,7 @@
 // after which the field is empty again.
 import { html, type TemplateResult } from 'lit-html';
 import { clamp } from '../../shared/math';
+import { compareText } from '../core/texts';
 import { keepKeys } from './inputs';
 
 export interface Suggestion {
@@ -22,11 +23,12 @@ export function suggestNames(names: Iterable<string>, query: string, limit = MAX
   if (q === '') return [];
   const counts = new Map<string, number>();
   for (const name of names) if (name.toLowerCase().includes(q)) counts.set(name, (counts.get(name) ?? 0) + 1);
-  const later = (s: Suggestion) => (s.name.toLowerCase().startsWith(q) ? 0 : 1);
+  // names that start with the query rank 0, the others 1
   return [...counts]
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => later(a) - later(b) || a.name.localeCompare(b.name, 'de'))
-    .slice(0, limit);
+    .map(([name, count]) => ({ name, count, rank: name.toLowerCase().startsWith(q) ? 0 : 1 }))
+    .sort((a, b) => a.rank - b.rank || compareText(a.name, b.name))
+    .slice(0, limit)
+    .map(({ name, count }) => ({ name, count }));
 }
 
 export interface NameSearchOptions {

@@ -1,6 +1,6 @@
 // Tables sorted by a click on a column head: the snipe helper and both tabs of the investments.
 import { html, type TemplateResult } from 'lit-html';
-import { type TextKey, t } from '../core/texts';
+import { compareText, type TextKey, t } from '../core/texts';
 
 /** a column and its direction */
 export interface SortLevel<C extends string> {
@@ -52,7 +52,7 @@ export function sortRows<T, C extends string>(
         if (unknown !== 0) return unknown;
         continue;
       }
-      const diff = typeof x === 'string' ? x.localeCompare(String(y), 'de') : x - (y as number);
+      const diff = typeof x === 'string' ? compareText(x, String(y)) : x - (y as number);
       if (diff !== 0) return sign * diff;
     }
     return 0;
