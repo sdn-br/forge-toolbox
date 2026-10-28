@@ -3,9 +3,8 @@
 import { html } from 'lit-html';
 import { t } from '../core/texts';
 import { offButton } from './buttons';
-import { FACTOR_STEP, percentOf } from './factor-bar';
+import { factorInput } from './factor-bar';
 import { headerIcons } from './icons';
-import { keepKeys } from './inputs';
 
 /** where the five factors come from, and what each of the three buttons may do now */
 export interface FactorLevel {
@@ -44,13 +43,11 @@ export function factorLevel(s: FactorLevel, actions: FactorLevelActions) {
 
 /** the factor of one place, read as a factor; a place on the Arc bonus is marked, a typed number holds it. `percent`
  * is the factor in effect, `set` gets what was typed in percent. */
-export function placeFactorField(percent: number, arc: boolean, set: (percent: number) => void) {
-  const typed = (e: Event) => {
-    const value = (e.target as HTMLInputElement).valueAsNumber;
-    if (Number.isFinite(value)) set(percentOf(value));
-  };
-  const tip = arc ? t('gbCalc.arcButton') : t('gbOwn.placeFactorHint');
-  return html`<input class=${arc ? 'place-factor arc' : 'place-factor'} type="number" min="0" max="3"
-    step=${FACTOR_STEP} data-tip=${tip} aria-label=${t('gbOwn.placeFactorHint')}
-    .value=${String((100 + percent) / 100)} @keydown=${keepKeys} @change=${typed} />`;
-}
+export const placeFactorField = (percent: number, arc: boolean, set: (percent: number) => void) =>
+  factorInput({
+    percent,
+    cls: arc ? 'place-factor arc' : 'place-factor',
+    tip: arc ? t('gbCalc.arcButton') : t('gbOwn.placeFactorHint'),
+    label: t('gbOwn.placeFactorHint'),
+    set,
+  });

@@ -2,6 +2,7 @@
 // Shared by the snipe helper (a fixed count of rows) and the investments box (as many as fit).
 import { html, type TemplateResult } from 'lit-html';
 import { ref } from 'lit-html/directives/ref.js';
+import { clamp } from '../../shared/math';
 import { t } from '../core/texts';
 import { offButton } from './buttons';
 import { headerIcons } from './icons';
@@ -15,8 +16,7 @@ export interface RowWindow {
 }
 
 /** the offset kept inside the list, so a shorter list or a stale offset never leaves the table empty */
-export const clampTop = (top: number, rows: number, visible: number): number =>
-  Math.max(0, Math.min(top, rows - visible));
+export const clampTop = (top: number, rows: number, visible: number): number => clamp(top, 0, rows - visible);
 
 export function rowWindow(top: number, rows: number, visible: number): RowWindow {
   const clamped = clampTop(top, rows, visible);

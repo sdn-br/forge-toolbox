@@ -1,12 +1,11 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
-import { formatNumber, t } from '../../core/texts';
+import { formatNumber, signed, t } from '../../core/texts';
 import type { SnipeHit, SnipeList, SnipeTier } from '../../domain/gb-snipe';
 import { ignoreReason } from '../../domain/ignore';
 import type { FoestatsRecord } from '../../stores/foestats';
 import { ignoreWords } from '../../ui/ignore';
 import {
   ownerShareNote,
-  signed,
   snipeNotes,
   snipeProfit,
   snipeProfitKey,

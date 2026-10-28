@@ -13,6 +13,9 @@ const numberFormat = new Intl.NumberFormat('de-DE');
 const timeFormat = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' });
 
 export const formatNumber = (n: number) => numberFormat.format(n);
+
+/** a gain or loss with its sign, „+310“, „−40“; zero without one */
+export const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatNumber(Math.abs(n))}`;
 const millionFormat = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });
 
 /** "45 Mio.", "0,6 Mio." from 100.000 on, below that the whole number */

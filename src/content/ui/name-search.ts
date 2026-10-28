@@ -2,6 +2,7 @@
 // typing narrows the list, and what the owner acts on is the pick (click, or Enter on the highlighted suggestion),
 // after which the field is empty again.
 import { html, type TemplateResult } from 'lit-html';
+import { clamp } from '../../shared/math';
 import { keepKeys } from './inputs';
 
 export interface Suggestion {
@@ -95,7 +96,7 @@ export class NameSearch {
         if (!this.open) {
           this.open = true;
           this.active = 0;
-        } else this.active = Math.max(0, Math.min(this.active + 1, list.length - 1));
+        } else this.active = clamp(this.active + 1, 0, list.length - 1);
         break;
       case 'ArrowUp':
         e.preventDefault();

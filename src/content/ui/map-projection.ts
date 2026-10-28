@@ -1,4 +1,5 @@
 // Grid ↔ screen for the city map. Pure, so the hover hit test can be checked without a canvas.
+import { clamp } from '../../shared/math';
 import type { Bounds, TileRect } from '../domain/city-grid';
 
 /**
@@ -96,7 +97,7 @@ export function zoomAt(
   sx: number,
   sy: number,
 ): MapView {
-  const zoom = Math.min(MAX_ZOOM, Math.max(1, view.zoom * factor));
+  const zoom = clamp(view.zoom * factor, 1, MAX_ZOOM);
   if (zoom === 1) return WHOLE_MAP;
   const before = project(mode, bounds, width, height, view);
   const plane = { x: (sx - before.originX) / before.scale, y: (sy - before.originY) / before.scale };

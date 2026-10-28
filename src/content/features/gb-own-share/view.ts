@@ -2,6 +2,7 @@ import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import type { OwnPlace } from '../../domain/gb-own-share';
 import { iconButton } from '../../ui/buttons';
+import { estimateCell } from '../../ui/estimate-cell';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
 import { type FactorLevelActions, factorLevel, placeFactorField } from '../../ui/factor-state';
 import { headerIcons } from '../../ui/icons';
@@ -154,12 +155,7 @@ function placeRow(r: Extract<OwnRow, { kind: 'place' }>, cell: Cell, actions: Ow
       ? marker(headerIcons.person, p.holder.name)
       : '';
   // a payment from a computed reward stands italic with „≈“, as the reward in the LG-Rechner
-  const pay =
-    p.holder || p.full || p.unoffered
-      ? NONE
-      : r.estimate
-        ? html`<td class="num estimate" data-tip=${t('gbCalc.estimate')}>≈ ${cell(p.amount, `place${p.rank}`)}</td>`
-        : html`<td class="num">${cell(p.amount, `place${p.rank}`)}</td>`;
+  const pay = p.holder || p.full || p.unoffered ? NONE : estimateCell(cell(p.amount, `place${p.rank}`), r.estimate);
   const done = p.holder ? fp(p.holder.fp, p.holder.ext ? 'num muted' : 'num') : NONE;
   const typed = (e: Event) => {
     const value = (e.target as HTMLInputElement).valueAsNumber;

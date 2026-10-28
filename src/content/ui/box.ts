@@ -1,5 +1,6 @@
 // Window frame for every feature: drag, pin, minimize, pop-out, close. Content comes from a lit-html render function.
 import { html, render, type TemplateResult } from 'lit-html';
+import { clamp } from '../../shared/math';
 import { t } from '../core/texts';
 import { iconButton } from './buttons';
 import { headerIcons } from './icons';
@@ -191,8 +192,8 @@ export class Box {
     const dy = event.clientY - box.offsetTop;
     frame.setPointerCapture(event.pointerId);
     const move = (e: PointerEvent) => {
-      box.style.left = `${Math.max(0, Math.min(window.innerWidth - 60, e.clientX - dx))}px`;
-      box.style.top = `${Math.max(0, Math.min(window.innerHeight - 30, e.clientY - dy))}px`;
+      box.style.left = `${clamp(e.clientX - dx, 0, window.innerWidth - 60)}px`;
+      box.style.top = `${clamp(e.clientY - dy, 0, window.innerHeight - 30)}px`;
     };
     const up = () => {
       frame.removeEventListener('pointermove', move);
@@ -259,6 +260,3 @@ export class Box {
     this.update();
   }
 }
-
-/** `value` within `min` and `max`; a max below the min gives the min */
-const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));

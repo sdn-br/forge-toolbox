@@ -1,4 +1,5 @@
 import type { TemplateResult } from 'lit-html';
+import { clamp } from '../../shared/math';
 import type { KeyValue } from './kv';
 import type { TextKey } from './texts';
 
@@ -116,7 +117,7 @@ export class Settings {
     if (!def || !isNumber(def)) return 0;
     const value = this.values[key];
     if (typeof value !== 'number' || !Number.isFinite(value)) return def.default;
-    return Math.min(def.max, Math.max(def.min, toStep(value, def.step)));
+    return clamp(toStep(value, def.step), def.min, def.max);
   }
 
   /**

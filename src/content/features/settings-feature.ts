@@ -17,7 +17,7 @@ import {
   type Settings,
 } from '../core/settings';
 import { type TextKey, t } from '../core/texts';
-import { FACTOR_STEP, percentOf } from '../ui/factor-bar';
+import { FACTOR_STEP, factorOf, percentOf } from '../ui/factor-bar';
 import { headerIcons, icons } from '../ui/icons';
 import { keepKeys } from '../ui/inputs';
 
@@ -27,7 +27,7 @@ const save = (settings: Settings, key: string, value: boolean | string | number 
 type NumberDef = NumberSettingDef | ListSettingDef;
 
 /** a value as the settings box shows it: a factor setting reads 90 as 1,9 */
-const shown = (d: NumberDef, n: number) => (d.asFactor ? (100 + n) / 100 : n);
+const shown = (d: NumberDef, n: number) => (d.asFactor ? factorOf(n) : n);
 const stored = (d: NumberDef, n: number) => (d.asFactor ? percentOf(n) : n);
 
 /** an empty or broken number keeps the stored value */

@@ -1,10 +1,9 @@
 // How a snipe hit reads, in the snipe helper and in the possible investments: profit, row notes, tier icon.
 import { html, type TemplateResult } from 'lit-html';
-import { formatAge, formatNumber, t } from '../core/texts';
+import { formatAge, formatNumber, signed, t } from '../core/texts';
 import type { OwnerShare, SnipeHit, SnipePlace, SnipeTier } from '../domain/gb-snipe';
+import { estimateCell } from './estimate-cell';
 import { headerIcons } from './icons';
-
-export const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatNumber(Math.abs(n))}`;
 
 /** the best case, "+310"; the tier beside it tells how sure it is, the range goes to the tooltip */
 export const snipeProfit = (h: SnipeHit): string => signed(h.profitHigh);
@@ -47,9 +46,7 @@ export const tierCell = (tier: SnipeTier) =>
 
 /** the profit, marked when the rewards are estimated; the range of a not exact profit in the tooltip */
 export const profitCell = (profit: string, estimate: boolean, range?: string) =>
-  html`<td class=${estimate ? 'num estimate' : 'num'} data-tip=${[range, estimate ? t('gbCalc.estimate') : undefined]
-    .filter((line) => line !== undefined)
-    .join('\n')}>${estimate ? '≈ ' : ''}${profit}</td>`;
+  estimateCell(profit, estimate, [range]);
 
 /** the tiers from the best: exact over safe over possible, for sorting */
 export const TIER_ORDER: Record<SnipeTier, number> = { exact: 2, safe: 1, possible: 0 };

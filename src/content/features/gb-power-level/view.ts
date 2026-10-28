@@ -1,6 +1,7 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import { iconButton } from '../../ui/buttons';
+import { estimateCell } from '../../ui/estimate-cell';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
 import { type FactorLevelActions, factorLevel, placeFactorField } from '../../ui/factor-state';
 import { headerIcons } from '../../ui/icons';
@@ -99,16 +100,12 @@ function table(vm: TableVm, actions: PowerLevelActions, copied?: string) {
 /** a payment from a computed reward stands italic with „≈“, as in the Eigenanteil box */
 function payCell(p: PayCell | undefined) {
   if (!p) return html`<td class="num">–</td>`;
-  return p.estimate
-    ? html`<td class="num estimate" data-tip=${t('gbCalc.estimate')}>≈ ${number(p.fp)}</td>`
-    : html`<td class="num">${number(p.fp)}</td>`;
+  return estimateCell(number(p.fp), p.estimate);
 }
 
 function harvestCell(r: PowerRow): TemplateResult {
   if (!r.harvest) return html`<td class="num">–</td>`;
-  return r.harvest.estimate
-    ? html`<td class="num estimate" data-tip=${t('gbPower.harvestEstimate')}>≈ ${number(r.harvest.fp)}</td>`
-    : html`<td class="num">${number(r.harvest.fp)}</td>`;
+  return estimateCell(number(r.harvest.fp), r.harvest.estimate, [], t('gbPower.harvestEstimate'));
 }
 
 function row(r: PowerRow, harvest: boolean, actions: PowerLevelActions, copied?: string) {
