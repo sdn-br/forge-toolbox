@@ -101,7 +101,7 @@ async function shownBox(
     pointer('pointerup', x + dx, y + dy);
     await tick();
   };
-  return { box, host, frame, handle, resize, ui };
+  return { box, host, frame, handle, pointer, resize, ui };
 }
 
 describe('box resize', () => {
@@ -133,6 +133,32 @@ describe('box resize', () => {
     expect(again.frame().style.width).toBe('500px');
     expect(again.frame().style.height).toBe('300px');
     expect(again.frame().classList.contains('sized')).toBe(true);
+  });
+
+  it('ends a resize the browser cancels with the size shown last and follows the pointer no further', async () => {
+    const { pointer, frame, ui } = await shownBox();
+    pointer('pointerdown', 420, 250);
+    pointer('pointermove', 520, 300);
+    pointer('pointercancel', 0, 0);
+    await tick();
+    expect(ui.box('sized')).toMatchObject({ width: 420, height: 250 });
+    pointer('pointermove', 700, 500);
+    expect(frame().style.width).toBe('420px');
+  });
+
+  it('ends a move when the header loses the pointer and follows the pointer no further', async () => {
+    const { host, frame, ui } = await shownBox();
+    const header = host.shadowRoot?.querySelector('header') as HTMLElement;
+    header.setPointerCapture = () => {};
+    const at = (type: string, x: number, y: number) =>
+      header.dispatchEvent(new PointerEvent(type, { clientX: x, clientY: y, pointerId: 1, bubbles: true }));
+    at('pointerdown', 150, 60);
+    at('pointermove', 200, 80);
+    at('lostpointercapture', 0, 0);
+    const left = frame().style.left;
+    at('pointermove', 400, 300);
+    expect(frame().style.left).toBe(left);
+    expect(ui.box('sized').x).toBeDefined();
   });
 
   it('keeps a minimum size', async () => {
