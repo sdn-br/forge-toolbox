@@ -15,7 +15,7 @@ Gebäudesuche, Suche im Stadtplan und Klicks im [Stadtplan](stadtplan.md) sind A
 
 ## Box
 
-- **Box „Gebäudesuche“**, geöffnet über einen eigenen Menüeintrag (Icon: Haus mit Lupe in Akzent, nur die eigene Stadt). Nicht von Hand verstellbar, feste Breite, Höhe nach Inhalt (siehe Konzept, UI-Kit „Verstellbar nur, wo es hilft“).
+- **Box „Gebäudesuche“**, geöffnet über einen eigenen Menüeintrag (Icon: Haus mit Lupe in Akzent, nur die eigene Stadt). Nicht von Hand verstellbar, feste Breite, Höhe nach Inhalt (siehe [UI-Kit](../ui-kit.md) „Verstellbar nur, wo es hilft“).
 - **Suchfeld nur zum Finden:** Beim Tippen zeigt eine Liste unter dem Feld die Namen der Gebäude, die es in der eigenen Stadt gibt und deren Name den Text enthält, ohne Rücksicht auf Groß- und Kleinschreibung, je mit Anzahl. Namen, die mit dem Text beginnen, stehen vorn, danach die übrigen, beide Teile alphabetisch. Die Liste zeigt höchstens 30 Namen. Gebäude neben dem Gitter (`off_grid`, `outpost_ship`, `friends_tavern`) haben keinen Platz, auf den ein Pfeil zeigen kann, und fehlen, wie im Stadtplan. Tippen allein ändert die Auswahl nicht.
 - **Bedienung:** Pfeiltasten bewegen den hervorgehobenen Vorschlag, Enter wählt ihn, Escape schließt die Liste, ein Klick wählt einen Vorschlag. Tasten im Feld erreichen das Spiel nicht.
 - **Wählen fügt hinzu** (Nutzer, 2026-10-25): Ein gewählter Vorschlag nimmt alle Gebäude dieses Namens in die Auswahl auf. Waren schon einige davon ausgewählt, sind es jetzt alle. Danach ist das Feld leer. Wählen nimmt nie etwas aus der Auswahl.

@@ -1,6 +1,6 @@
 # Forge Toolbox
 
-Browser extension for Forge of Empires on its own codebase. Concept: `docs/konzept.md` (architecture, decisions, links to one file per feature in `docs/features/`). Data model: `docs/datenmodell.md` (principles, game response → store, links to one file per domain in `docs/datenmodell/`). Read only the feature and domain files a task touches.
+Browser extension for Forge of Empires on its own codebase. Concept: `docs/konzept.md` (architecture, decisions, links to one file per feature in `docs/features/`, UI kit rules in `docs/ui-kit.md`). Data model: `docs/datenmodell.md` (principles, game response → store, links to one file per domain in `docs/datenmodell/`). Read only the feature and domain files a task touches.
 
 ## Language
 
@@ -14,5 +14,5 @@ Code, comments, tests, README, commit and PR text in English. Concept and archit
 - No `Co-Authored-By: Claude` trailer in commits.
 - Never commit directly to `main`. Feature branch plus PR. Push and PR only with explicit approval.
 - No own requests to the Inno game servers. The extension only listens to game traffic. Exception: metadata and assets from the Inno CDN, as the game loads them.
-- UI buttons: icon instead of a word where sensible (own SVGs from `src/content/ui/icons.ts`, no emoji or glyphs), the word in the tooltip and `aria-label`. A new button may start with text; then ask the user whether it should get an icon later and, if so, add it to "Offene Icons" in `docs/konzept.md` (UI-Kit).
+- UI buttons: icon instead of a word where sensible (own SVGs from `src/content/ui/icons.ts`, no emoji or glyphs), the word in the tooltip and `aria-label`. A new button may start with text; then ask the user whether it should get an icon later and, if so, add it to "Offene Icons" in `docs/ui-kit.md`.
 - No code from the FoE Helfer, FoE Toolbox or Forge Hammer. Their features are reimplemented from the concept only.
