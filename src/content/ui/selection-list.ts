@@ -5,6 +5,7 @@
 import { html, type TemplateResult } from 'lit-html';
 import type { OwnSelection } from '../core/selection';
 import { formatNumber, t } from '../core/texts';
+import { iconButton } from './buttons';
 import { headerIcons } from './icons';
 
 export function selectionList(selection: Pick<OwnSelection, 'entries' | 'removeName' | 'clear'>): TemplateResult {
@@ -14,10 +15,14 @@ export function selectionList(selection: Pick<OwnSelection, 'entries' | 'removeN
     <ul class="selection-list">${entries.map(
       (e) => html`<li><span class="name">${e.name}</span>
         <span class="num">${formatNumber(e.selected)}/${formatNumber(e.total)}</span>
-        <button class="icon" data-tip=${t('selection.remove')} aria-label=${t('selection.removeName', { name: e.name })}
-          @click=${() => selection.removeName(e.name)}>${headerIcons.close}</button></li>`,
+        ${iconButton(
+          t('selection.removeName', { name: e.name }),
+          () => selection.removeName(e.name),
+          headerIcons.close,
+          'icon',
+          t('selection.remove'),
+        )}</li>`,
     )}</ul>
-    <button class="action icon-only" data-tip=${t('selection.clear')} aria-label=${t('selection.clear')}
-      @click=${() => selection.clear()}>${headerIcons.trash}</button>
+    ${iconButton(t('selection.clear'), () => selection.clear(), headerIcons.trash, 'action icon-only')}
   </div>`;
 }

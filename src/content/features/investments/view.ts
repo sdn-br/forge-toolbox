@@ -2,13 +2,14 @@ import { html, type TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
 import { t } from '../../core/texts';
 import type { InvestmentStatus } from '../../domain/investments';
+import { toggleGroup } from '../../ui/buttons';
 import { growthTag, progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { buildingCell, ignoredFilter } from '../../ui/ignore';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { starButton } from '../../ui/star';
 import { rowsIn, windowedRows } from '../../ui/windowed-rows';
-import { markedFilter, ownerCell, reachCell, reachFilter, text, toggleGroup } from './filter-parts';
+import { markedFilter, ownerCell, reachCell, reachFilter, text } from './filter-parts';
 import {
   type InvestmentColumn,
   type InvestmentRowVm,

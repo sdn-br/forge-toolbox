@@ -4,6 +4,7 @@ import { html, svg, type TemplateResult } from 'lit-html';
 import { ref } from 'lit-html/directives/ref.js';
 import { t } from '../core/texts';
 import { type Bounds, gridBounds, type Tile, type TileRect } from '../domain/city-grid';
+import { iconButton } from './buttons';
 import { headerIcons } from './icons';
 import {
   backToFront,
@@ -142,9 +143,9 @@ export class CityMap {
           @wheel=${{ handleEvent: (e: WheelEvent) => this.wheel(e), passive: false }}></canvas>
         <div class="map-tools">
           ${modeButton('top', t('cityMap.top'))}${modeButton('iso', t('cityMap.iso'))}
-          <button class="action" data-tip=${t('cityMap.zoomIn')} aria-label=${t('cityMap.zoomIn')} @click=${() => this.zoomBy(ZOOM_STEP)}>${headerIcons.plus}</button>
-          <button class="action" data-tip=${t('cityMap.zoomOut')} aria-label=${t('cityMap.zoomOut')} @click=${() => this.zoomBy(1 / ZOOM_STEP)}>${headerIcons.minus}</button>
-          <button class="action" data-tip=${t('cityMap.zoomReset')} aria-label=${t('cityMap.zoomReset')} @click=${() => this.reset()}>${headerIcons.fit}</button>
+          ${iconButton(t('cityMap.zoomIn'), () => this.zoomBy(ZOOM_STEP), headerIcons.plus, 'action')}
+          ${iconButton(t('cityMap.zoomOut'), () => this.zoomBy(1 / ZOOM_STEP), headerIcons.minus, 'action')}
+          ${iconButton(t('cityMap.zoomReset'), () => this.reset(), headerIcons.fit, 'action')}
         </div>
       </div>
       ${legend ?? ''}

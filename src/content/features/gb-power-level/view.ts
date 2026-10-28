@@ -1,5 +1,6 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
+import { iconButton } from '../../ui/buttons';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
 import { type FactorLevelActions, factorLevel, placeFactorField } from '../../ui/factor-state';
 import { headerIcons } from '../../ui/icons';
@@ -126,7 +127,12 @@ function row(r: PowerRow, harvest: boolean, actions: PowerLevelActions, copied?:
     ${harvest ? harvestCell(r) : ''}
     <td class="num">${number(r.net)}</td>
     <td class="num">${number(r.sum)}</td>
-    <td><button class="icon" data-tip=${t('gbPower.copyHint')} aria-label=${t('gbOwn.copy')}
-      @click=${() => actions.copy(r.copy, id)}>${copied === id ? headerIcons.check : headerIcons.copy}</button></td>
+    <td>${iconButton(
+      t('gbOwn.copy'),
+      () => actions.copy(r.copy, id),
+      copied === id ? headerIcons.check : headerIcons.copy,
+      'icon',
+      t('gbPower.copyHint'),
+    )}</td>
   </tr>`;
 }

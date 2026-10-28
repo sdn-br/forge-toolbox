@@ -1,12 +1,13 @@
 import { html, type TemplateResult } from 'lit-html';
 import { t } from '../../core/texts';
+import { filterToggle, toggleGroup } from '../../ui/buttons';
 import { growthTag, progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { buildingCell, ignoredFilter } from '../../ui/ignore';
 import { profitCell, tierCell, tierIcon } from '../../ui/snipe-hit';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { rowsIn, windowedRows } from '../../ui/windowed-rows';
-import { markedFilter, ownerCell, reachCell, reachFilter, text, toggleGroup } from './filter-parts';
+import { markedFilter, ownerCell, reachCell, reachFilter, text } from './filter-parts';
 import {
   type PossibleColumn,
   type PossibleFilter,
@@ -71,11 +72,10 @@ const row = (
 </tr>`;
 
 /** a toggle with the profit icon: only rows with a profitable place */
-const hitsFilter = (f: PossibleFilter, actions: PossibleActions) => {
-  const word = t('investments.possible.onlyHits');
-  return html`<span class="inv-hits-filter"><button class=${f.onlyHits ? 'on' : ''} aria-pressed=${f.onlyHits ? 'true' : 'false'}
-    data-tip=${word} aria-label=${word} @click=${() => actions.filter({ onlyHits: !f.onlyHits })}>${headerIcons.profit}</button></span>`;
-};
+const hitsFilter = (f: PossibleFilter, actions: PossibleActions) =>
+  filterToggle('inv-hits-filter', f.onlyHits, t('investments.possible.onlyHits'), headerIcons.profit, (onlyHits) =>
+    actions.filter({ onlyHits }),
+  );
 
 /** one toggle per tier, with the icons of the column "Sicherheit"; any switched on lets a row with that tier through */
 const tierFilter = (f: PossibleFilter, actions: PossibleActions) =>

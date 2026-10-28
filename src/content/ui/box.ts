@@ -1,6 +1,7 @@
 // Window frame for every feature: drag, pin, minimize, pop-out, close. Content comes from a lit-html render function.
 import { html, render, type TemplateResult } from 'lit-html';
 import { t } from '../core/texts';
+import { iconButton } from './buttons';
 import { headerIcons } from './icons';
 import { baseCss } from './styles';
 import { installTooltip } from './tooltip';
@@ -119,7 +120,7 @@ export class Box {
     const { settings } = this.options;
     const open = this.openSettings;
     const settingsButton =
-      settings && open ? headerButton(t('box.settings'), () => open(settings), headerIcons.gear) : '';
+      settings && open ? iconButton(t('box.settings'), () => open(settings), headerIcons.gear) : '';
     return html`<style>${baseCss}</style>
       <div class=${classes} style=${style} @pointerdown=${() => this.raise()}>
         <header @pointerdown=${(e: PointerEvent) => this.startDrag(e)}>
@@ -129,16 +130,16 @@ export class Box {
               ? ''
               : html`
             ${settingsButton}
-            ${headerButton(
+            ${iconButton(
               t(state.pinned ? 'box.unpin' : 'box.pin'),
               () => this.set({ pinned: !state.pinned }),
               headerIcons.pin(state.pinned === true),
               state.pinned ? 'active' : '',
             )}
-            ${headerButton(t('box.popout'), () => this.popOut(), headerIcons.popout)}
-            ${headerButton(t('box.minimize'), () => this.set({ minimized: !state.minimized }), headerIcons.minimize)}`
+            ${iconButton(t('box.popout'), () => this.popOut(), headerIcons.popout)}
+            ${iconButton(t('box.minimize'), () => this.set({ minimized: !state.minimized }), headerIcons.minimize)}`
           }
-          ${headerButton(t('box.close'), () => this.close(), headerIcons.close)}
+          ${iconButton(t('box.close'), () => this.close(), headerIcons.close)}
         </header>
         <div class=${this.options.fill ? 'body fill' : 'body'}>${this.options.render()}</div>
         ${
@@ -258,10 +259,6 @@ export class Box {
     this.update();
   }
 }
-
-/** icon-only, so the label is also its accessible name */
-const headerButton = (label: string, action: () => void, icon: TemplateResult, cls = '') =>
-  html`<button class=${cls} data-tip=${label} aria-label=${label} @click=${action}>${icon}</button>`;
 
 /** `value` within `min` and `max`; a max below the min gives the min */
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));

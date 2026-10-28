@@ -3,6 +3,7 @@
 import { html, type TemplateResult } from 'lit-html';
 import { ref } from 'lit-html/directives/ref.js';
 import { t } from '../core/texts';
+import { offButton } from './buttons';
 import { headerIcons } from './icons';
 
 export interface RowWindow {
@@ -24,11 +25,6 @@ export function rowWindow(top: number, rows: number, visible: number): RowWindow
 
 /** the rows of the window */
 export const rowsIn = <T>(rows: T[], { top, below }: RowWindow): T[] => rows.slice(top, rows.length - below);
-
-/** one of the two scroll buttons; greyed at its end like the factor status buttons */
-const navButton = (on: boolean, word: string, icon: TemplateResult, action: () => void) =>
-  html`<button class=${on ? 'icon' : 'icon off'} aria-disabled=${on ? 'false' : 'true'} data-tip=${word}
-    aria-label=${word} @click=${() => on && action()}>${icon}</button>`;
 
 const hidden = ({ above, below }: RowWindow) =>
   above > 0 && below > 0
@@ -66,8 +62,8 @@ export function windowedRows({ cls, table, window, scroll, measure }: WindowedRo
   return html`<div class="win-scroll ${cls}" @wheel=${wheel}>
       <div class="win-area" ${ref(measure)}>${table}</div>
       <div class="win-nav">
-        ${navButton(above > 0, t('snipe.scrollUp'), headerIcons.chevronUp, () => scroll(-1))}
-        ${navButton(below > 0, t('snipe.scrollDown'), headerIcons.chevronDown, () => scroll(1))}
+        ${offButton(above > 0, t('snipe.scrollUp'), headerIcons.chevronUp, () => scroll(-1))}
+        ${offButton(below > 0, t('snipe.scrollDown'), headerIcons.chevronDown, () => scroll(1))}
       </div>
     </div>${scrolls ? html`<p class="muted win-hidden">${hidden(window)}</p>` : ''}`;
 }

@@ -2,6 +2,7 @@
 import { html } from 'lit-html';
 import { t } from '../core/texts';
 import { type IgnoreReason, ignoreReason } from '../domain/ignore';
+import { filterToggle, toggleButton } from './buttons';
 import { headerIcons } from './icons';
 
 /** the reasons in words, building first: "LG ignoriert", "Spieler ignoriert" */
@@ -22,16 +23,12 @@ export const ignoreNote = (building: boolean, owner: boolean | undefined) => {
  */
 export const ignoreButton = (kind: 'building' | 'player', ignored: boolean, toggle: () => void) => {
   const word = t(ignored ? 'ignore.remove' : `ignore.add.${kind}`);
-  return html`<button class=${ignored ? 'ignore on' : 'ignore'} aria-pressed=${ignored ? 'true' : 'false'} data-tip=${word}
-    aria-label=${word} @click=${toggle}>${headerIcons.eyeClosed}</button>`;
+  return toggleButton('ignore', ignored, word, headerIcons.eyeClosed, toggle);
 };
 
 /** a toggle with the open eye: also the rows of ignored buildings and owners, muted */
-export const ignoredFilter = (show: boolean, set: (show: boolean) => void) => {
-  const word = t('ignore.show');
-  return html`<span class="inv-ignored-filter"><button class=${show ? 'on' : ''} aria-pressed=${show ? 'true' : 'false'}
-    data-tip=${word} aria-label=${word} @click=${() => set(!show)}>${headerIcons.eye}</button></span>`;
-};
+export const ignoredFilter = (show: boolean, set: (show: boolean) => void) =>
+  filterToggle('inv-ignored-filter', show, t('ignore.show'), headerIcons.eye, set);
 
 /** the building name with the closed eye at the right edge; `tip` is the name and, when ignored, why; `cls` is the cell's
  * class, the snipe helper has its own */

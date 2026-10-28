@@ -1,6 +1,7 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import type { OwnPlace } from '../../domain/gb-own-share';
+import { iconButton } from '../../ui/buttons';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
 import { type FactorLevelActions, factorLevel, placeFactorField } from '../../ui/factor-state';
 import { headerIcons } from '../../ui/icons';
@@ -216,7 +217,6 @@ function copyPanel(c: CopyVm, actions: OwnShareActions, copied?: string) {
       .value=${c.building} @keydown=${keepKeys}
       @change=${(e: Event) => actions.setCopyBuilding((e.target as HTMLInputElement).value)} />
     <input class="copy-text" type="text" aria-label=${t('gbOwn.copyPreview')} .value=${c.text} @keydown=${keepKeys} />
-    <button class="icon" data-tip=${t('gbOwn.copy')} aria-label=${t('gbOwn.copy')}
-      @click=${copyTyped}>${copied === 'text' ? headerIcons.check : headerIcons.copy}</button>
+    ${iconButton(t('gbOwn.copy'), copyTyped, copied === 'text' ? headerIcons.check : headerIcons.copy, 'icon')}
   </div>`;
 }

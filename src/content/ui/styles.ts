@@ -297,12 +297,13 @@ td.inv-status.unknown { color: var(--muted); }
 .inv-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .inv-filter input[type=search] { width: 10em; }
 .inv-count { margin-left: auto; }
-.inv-reach-filter, .inv-tier-filter, .inv-status-filter, .inv-hits-filter, .inv-marked-filter, .inv-ignored-filter { display: inline-flex; gap: 2px; }
-.inv-reach-filter button, .inv-tier-filter button, .inv-status-filter button, .inv-hits-filter button, .inv-marked-filter button, .inv-ignored-filter button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
-.inv-reach-filter button.on, .inv-tier-filter button.on, .inv-status-filter button.on, .inv-marked-filter button.on, .inv-ignored-filter button.on { color: var(--accent); opacity: 1; }
+/* icon toggles (ui/buttons.ts): faint while off, in the accent while on */
+.icon-toggles { display: inline-flex; gap: 2px; }
+.icon-toggles button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
+.icon-toggles button.on { color: var(--accent); opacity: 1; }
 /* the profit icon keeps its own colours, switched on it only turns opaque */
-.inv-hits-filter button.on { opacity: 1; }
-.inv-reach-filter button svg, .inv-tier-filter button svg, .inv-status-filter button svg, .inv-hits-filter button svg, .inv-marked-filter button svg, .inv-ignored-filter button svg { display: block; width: 14px; height: 14px; }
+.inv-hits-filter button.on { color: var(--ink); }
+.icon-toggles button svg { display: block; width: 14px; height: 14px; }
 .inv-owner { display: flex; align-items: center; }
 .inv-owner a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* always at the right edge of the column, so the mouse can run straight down it; hidden until the row is hovered */
