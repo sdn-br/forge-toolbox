@@ -291,7 +291,7 @@ function setup(ctx: FeatureContext, profileCopy: ProfileCopy) {
                 <button class="action" @click=${openDataPage}>${t('settings.manageData')}</button>
                 <p class="muted setting-hint">${t('settings.manageDataHint')}</p>
                 ${backup.render()}
-                <button class="action" @click=${() => ctx.bus.emit('foundData.open', {})}>${t('settings.findData')}</button>
+                <button class="action" @click=${() => ctx.open('backupCopy')}>${t('settings.findData')}</button>
                 <p class="muted setting-hint">${t('settings.findDataHint')}</p>
                 ${copyFrom.render()}`
               : ''

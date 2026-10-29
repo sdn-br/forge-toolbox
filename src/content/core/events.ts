@@ -68,8 +68,6 @@ export interface ToolboxEvents {
   'gbOwn.factorsChanged': { def?: string };
   /** the Ext of a building's level changed */
   'gbOwn.extChanged': { def: string; level: number };
-  /** the settings ask for the dialog of the data found for the profile ("Gefundene Daten übernehmen") */
-  'foundData.open': Record<string, never>;
 }
 
 export type ToolboxBus = EventBus<ToolboxEvents>;
