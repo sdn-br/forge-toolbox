@@ -1,5 +1,8 @@
 import { createBus, type ToolboxBus } from '../../src/content/core/events';
+import { memoryKv } from '../../src/content/core/kv';
+import { Settings } from '../../src/content/core/settings';
 import { createStores, type Stores } from '../../src/content/stores';
+import { UiState } from '../../src/content/ui/ui-state';
 import type { FetchLike } from '../../src/shared/foestats-api';
 import { type WorldId, worldId } from '../../src/shared/ids';
 import { testDb } from './battle-db';
@@ -10,6 +13,9 @@ export interface TestStoresOptions {
   /** the requests to foestats; without it foestats is unreachable */
   fetch?: FetchLike;
   /** stores a test builds itself, for example on persistence it controls; they need the bus, so they come from here */
+  /** what the own-share state reads; without them empty ones */
+  settings?: Settings;
+  ui?: UiState;
   overrides?: (env: { bus: ToolboxBus; world: WorldId; now: () => number }) => Partial<Stores>;
 }
 
@@ -17,10 +23,19 @@ export interface TestStoresOptions {
 /** foestats as unreachable, so no test goes out to the network unless it brings its own fetch */
 const offline: FetchLike = async () => ({ ok: false, status: 503, text: async () => '' });
 
-export function testStores({ now = Date.now, fetch = offline, overrides }: TestStoresOptions = {}) {
+export function testStores({
+  now = Date.now,
+  fetch = offline,
+  settings = new Settings(memoryKv()),
+  ui = new UiState(memoryKv()),
+  overrides,
+}: TestStoresOptions = {}) {
   const db = testDb({ now });
   const world = worldId('de20');
   const bus = createBus();
-  const stores: Stores = { ...createStores(world, bus, db.call, now, fetch), ...overrides?.({ bus, world, now }) };
+  const stores: Stores = {
+    ...createStores(world, bus, db.call, { prefs: ui, settings }, now, fetch),
+    ...overrides?.({ bus, world, now }),
+  };
   return { db, world, bus, now, stores };
 }

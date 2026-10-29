@@ -1,6 +1,6 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
-import { pageLegacyStore } from '../src/content/core/legacy-store';
+import { pageLegacyStore } from '../src/content/backup/legacy-store';
 import { playerId } from '../src/shared/ids';
 import v1 from './fixtures/legacy-toolbox1.json';
 import v2 from './fixtures/legacy-toolbox2.json';

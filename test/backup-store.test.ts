@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BACKUP_DB, type CopyEntry, pageCopyStore } from '../src/content/core/backup-store';
+import { BACKUP_DB, type CopyEntry, pageCopyStore } from '../src/content/backup/backup-store';
 import { playerId, worldId } from '../src/shared/ids';
 
 const entry = (world: string, player: number, createdAt: number): CopyEntry => ({

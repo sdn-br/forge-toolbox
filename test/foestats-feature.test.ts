@@ -16,7 +16,7 @@ function setup() {
   }));
   const env = featureContext({ fetch });
   foestatsFeature.setup(env.ctx);
-  settingsFeature.setup(env.ctx);
+  settingsFeature(env.profileCopy).setup(env.ctx);
   const visit = (owner: number) =>
     env.ctx.cities.setVisited({
       world: worldId('de20'),

@@ -19,6 +19,7 @@ import type {
   GuildRef,
   IncomingAttack,
   Plunder,
+  Session,
 } from '../../shared/model';
 import type { LimitedBonus } from '../domain/gb-calculator';
 import type { CityGrid } from '../stores/catalog';
@@ -28,7 +29,6 @@ import type { GreatBuildingEntity, PlaceReward, RankingRow } from '../stores/gre
 import type { InventoryItem, ItemPayload } from '../stores/inventory';
 import type { PlayerObservation } from '../stores/players';
 import type { ResearchExpansion } from '../stores/research';
-import type { Session } from '../stores/session';
 import type {
   GameArmyContext,
   GameBattle,

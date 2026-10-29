@@ -1,6 +1,18 @@
-// Domain types that cross the content script / service worker boundary.
+// Domain types that cross the content script / service worker boundary, or the layers of the content script.
 import type { RankingRow } from '../content/stores/great-building-model';
 import type { BuildingDefId, EraId, GuildId, PlayerId, WorldId } from './ids';
+
+/** The own player of the game page, as the startup data name it. */
+export interface Session {
+  world: WorldId;
+  playerId: PlayerId;
+  name: string;
+  era: EraId;
+  guild?: GuildRef;
+}
+
+/** A city the game can show: the own one, or the city of this visited player. */
+export type CityKey = 'own' | PlayerId;
 
 export interface GuildRef {
   id: GuildId;

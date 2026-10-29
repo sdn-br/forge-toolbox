@@ -1,9 +1,8 @@
-// The backup copy on the game page: it starts writing and checks at the start whether a copy or old toolbox data wait
-// for this profile. The dialog "Gefundene Daten" offers them, at the start or from the settings ("Gefundene Daten
-// übernehmen"), one row per source.
+// The dialog "Gefundene Daten": it checks at the start whether a backup copy or old toolbox data wait for this profile
+// and offers them, at the start or from the settings ("Gefundene Daten übernehmen"), one row per source.
 import { html, type TemplateResult } from 'lit-html';
 import type { Area } from '../../../backup/merge';
-import type { FoundOffer, FoundSource } from '../../core/backup-copy';
+import type { FoundOffer, FoundSource } from '../../backup/found-data';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { formatFullDateTime, formatNumber, type TextKey, t } from '../../core/texts';
@@ -37,7 +36,7 @@ interface DialogState {
 export const backupCopyFeature: Feature = {
   id: 'backupCopy',
   setup(ctx) {
-    const copy = ctx.backupCopy;
+    const found = ctx.foundData;
     let state: DialogState = { mode: 'start', offers: null, chosen: [], busy: false, status: '' };
 
     const show = (mode: Mode, offers: FoundOffer[] | null) => {
@@ -65,7 +64,7 @@ export const backupCopyFeature: Feature = {
       state.busy = true;
       state.status = t('found.taking');
       box.update();
-      copy.take(offers.map((offer, i) => ({ offer, areas: state.chosen[i] ?? new Set<Area>() }))).catch((error) => {
+      found.take(offers.map((offer, i) => ({ offer, areas: state.chosen[i] ?? new Set<Area>() }))).catch((error) => {
         logError('taking the found data failed', error);
         state.busy = false;
         state.status = t('found.failed');
@@ -112,8 +111,8 @@ export const backupCopyFeature: Feature = {
           <button class="action" ?disabled=${busy || !any} @click=${take}>${t('found.take')}</button>
           ${
             mode === 'start'
-              ? html`<button class="action" ?disabled=${busy} @click=${answer((s) => copy.decline(s))}>${t('found.no')}</button>
-                <button class="action" ?disabled=${busy} @click=${answer((s) => copy.later(s))}>${t('core.later')}</button>`
+              ? html`<button class="action" ?disabled=${busy} @click=${answer((s) => found.decline(s))}>${t('found.no')}</button>
+                <button class="action" ?disabled=${busy} @click=${answer((s) => found.later(s))}>${t('core.later')}</button>`
               : html`<button class="action" ?disabled=${busy} @click=${() => box.close()}>${t('found.cancel')}</button>`
           }
         </p>
@@ -127,15 +126,14 @@ export const backupCopyFeature: Feature = {
 
     const box = ctx.createBox({ id: 'found-data', title: () => t('found.title'), width: 460, render });
 
-    copy.watch();
-    copy
+    found
       .start()
       .then((offers) => offers.length > 0 && show('start', offers))
       .catch((error) => logError('looking for a backup copy failed', error));
 
     ctx.bus.on('foundData.open', () => {
       show('manual', null);
-      copy
+      found
         .find()
         .then((offers) => {
           if (state.mode !== 'manual' || state.offers !== null) return;

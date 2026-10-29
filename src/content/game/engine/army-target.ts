@@ -1,10 +1,10 @@
 // Names the opponent of the army window before a pvp battle. The game traffic does not (see army.opened), so this asks
 // the page module, which reads it from the game engine. Without an answer nothing more happens: whoever listens to
 // army.opened works as before, and army.target only adds to it.
-import { ARMY_TAG, type ArmyCommand, type ArmyEvent, parseArmyEvent } from '../../shared/army-protocol';
-import { playerId } from '../../shared/ids';
-import type { ToolboxBus } from './events';
-import { pageLink } from './page-link';
+import { ARMY_TAG, type ArmyCommand, type ArmyEvent, parseArmyEvent } from '../../../shared/army-protocol';
+import { playerId } from '../../../shared/ids';
+import type { ToolboxBus } from '../../core/events';
+import { pageLink } from '../../core/page-link';
 
 /** The way to the page module; tests bring their own. */
 export interface ArmyLink {

@@ -1,4 +1,5 @@
 import type { PlayerId } from '../../shared/ids';
+import type { CityKey } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
 import type { Building, City } from './city-model';
 
@@ -12,9 +13,6 @@ export interface VisitInfo {
 export interface VisitedCity extends City {
   visit: VisitInfo;
 }
-
-/** A city the game can show: the own one, or the city of this visited player. */
-export type CityKey = 'own' | PlayerId;
 
 export class CityStore {
   private ownCity?: City;

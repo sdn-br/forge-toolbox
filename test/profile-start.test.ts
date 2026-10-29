@@ -4,6 +4,7 @@ import { memoryKv, profileKv } from '../src/content/core/kv';
 import { backgroundCall } from '../src/content/core/rpc';
 import { Settings } from '../src/content/core/settings';
 import { startupGate } from '../src/content/core/startup-gate';
+import { identifyStartup } from '../src/content/game/identify';
 import { createStores } from '../src/content/stores';
 import { UiState } from '../src/content/ui/ui-state';
 import { playerId, worldId } from '../src/shared/ids';
@@ -44,7 +45,7 @@ describe('startup gate', () => {
     const seen: string[] = [];
     const loaded = deferred<(t: Traffic) => void>();
     const start = vi.fn((_: Profile, _name: string) => loaded.promise);
-    const gate = startupGate(de20, start);
+    const gate = startupGate(identifyStartup(de20), start);
 
     gate.receive(json('meta'));
     gate.receive(startup(12345));
@@ -62,7 +63,7 @@ describe('startup gate', () => {
 
   it('starts once, and not before startup data with a player id', async () => {
     const start = vi.fn(async () => () => {});
-    const gate = startupGate(de20, start);
+    const gate = startupGate(identifyStartup(de20), start);
     gate.receive(json('other', [{ requestClass: 'StartupService', requestMethod: 'getData', responseData: {} }]));
     expect(start).not.toHaveBeenCalled();
     gate.receive(startup(1));
@@ -101,7 +102,13 @@ describe('background call', () => {
   it('names the profile in every call the stores make', async () => {
     const sendMessage = vi.fn(async () => ({ ok: true, result: { groups: [], pages: [] } }));
     vi.stubGlobal('chrome', { runtime: { id: 'x', sendMessage } });
-    const stores = createStores(de20, createBus(), backgroundCall(profile), () => 1000);
+    const stores = createStores(
+      de20,
+      createBus(),
+      backgroundCall(profile),
+      { prefs: new UiState(memoryKv()), settings: new Settings(memoryKv()) },
+      () => 1000,
+    );
 
     await stores.notes.load();
 

@@ -7,10 +7,10 @@ import type { Area } from '../../backup/merge';
 import type { BackupPersistence } from '../../persistence/backup/client';
 import type { Profile } from '../../shared/profile';
 import { answeredLaterToday } from '../../shared/time';
-import type { FoundOffer } from './backup-copy';
-import type { KeyValue } from './kv';
+import type { KeyValue } from '../core/kv';
+import { logInfo } from '../core/log';
+import type { FoundDataSource, FoundOffer } from './found-data';
 import type { LegacyStore } from './legacy-store';
-import { logInfo } from './log';
 
 /** the answer about the old data, in the profile's storage */
 export const LEGACY_ANSWER = 'legacy.answer';
@@ -32,7 +32,10 @@ export interface LegacyEnv {
 
 const MAPPERS = { '2.x': mapToolbox2, '1.x': mapToolbox1 } as const;
 
-export class LegacyData {
+export class LegacyData implements FoundDataSource {
+  readonly id = 'legacy';
+  readonly extra = 'old toolbox data';
+
   constructor(private env: LegacyEnv) {}
 
   /**

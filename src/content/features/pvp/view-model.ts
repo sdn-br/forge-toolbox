@@ -1,17 +1,11 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import type { Battle, IncomingAttack, IncomingTotals, Player, Plunder, PlunderTotals } from '../../../shared/model';
-import {
-  formatIncoming,
-  formatIncomingTotals,
-  formatPlunderTotals,
-  formatResources,
-  formatWhen,
-  t,
-} from '../../core/texts';
+import { formatWhen, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { measuredArmy } from '../../domain/measured-army';
 import { type BattleDetailsVm, battleDetails } from '../../ui/battle-details';
 import { plainText } from '../../ui/markdown';
+import { formatIncoming, formatIncomingTotals, formatPlunderTotals, formatResources } from '../../ui/pvp-format';
 
 export const PAGE_SIZE = 20;
 

@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
 import type { LegacyFound } from '../src/backup/legacy/types';
-import { BACKUP_SETTING } from '../src/content/core/backup-copy';
-import type { CopyEntry } from '../src/content/core/backup-store';
+import { BACKUP_SETTING } from '../src/content/backup/backup-copy';
+import type { CopyEntry } from '../src/content/backup/backup-store';
 import { backupCopyFeature } from '../src/content/features/backup-copy';
 import { settingsFeature } from '../src/content/features/settings-feature';
 import v2 from './fixtures/legacy-toolbox2.json';
@@ -41,14 +41,14 @@ async function setup(options: { copy?: CopyEntry; data?: boolean; settings?: boo
   env.legacyStore.found = options.legacy;
   if (options.data) await env.db.db.battles.put(battle(9));
   // the start reads and unpacks the copy, which takes more turns under load than a fixed count of ticks
-  const start = env.ctx.backupCopy.start.bind(env.ctx.backupCopy);
+  const start = env.ctx.foundData.start.bind(env.ctx.foundData);
   let started: Promise<unknown> = Promise.resolve();
-  env.ctx.backupCopy.start = () => {
+  env.ctx.foundData.start = () => {
     const run = start();
     started = run;
     return run;
   };
-  settingsFeature.setup(env.ctx);
+  settingsFeature(env.profileCopy).setup(env.ctx);
   backupCopyFeature.setup(env.ctx);
   await started.catch(() => undefined);
   await settle();

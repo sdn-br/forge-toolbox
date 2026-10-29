@@ -11,14 +11,17 @@ import { type FetchLike, foestatsApi } from '../../shared/foestats-api';
 import type { WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import type { Call } from '../core/rpc';
+import type { Settings } from '../core/settings';
 import { BattleStore } from './battles';
 import { CatalogStore } from './catalog';
 import { CityStore } from './cities';
 import { FoestatsStore } from './foestats';
+import { createGbOwnState, type GbOwnState } from './gb-own-state';
 import { GreatBuildingStore } from './great-buildings';
 import { IncomingStore } from './incoming';
 import { InventoryStore } from './inventory';
 import { NoteStore } from './notes';
+import type { PrefStore } from './place-factors';
 import { PlayerStore } from './players';
 import { PlunderStore } from './plunders';
 import { ResearchStore } from './research';
@@ -41,16 +44,20 @@ export interface Stores {
   notes: NoteStore;
   greatBuildings: GreatBuildingStore;
   foestats: FoestatsStore;
+  /** the factors and Ext the two own-share boxes share */
+  gbOwn: GbOwnState;
 }
 
 /**
- * `call` reaches the persistence in the service worker; `now` is the clock of the stores that keep times; `fetch` makes
- * the requests to foestats from the content script.
+ * `call` reaches the persistence in the service worker; `view` holds the view choices and settings the shared state of
+ * the own-share boxes rests on; `now` is the clock of the stores that keep times; `fetch` makes the requests to
+ * foestats from the content script.
  */
 export function createStores(
   world: WorldId,
   bus: ToolboxBus,
   call: Call,
+  view: { prefs: PrefStore; settings: Settings },
   now: () => number = Date.now,
   fetch: FetchLike = (url, init) => globalThis.fetch(url, init),
 ): Stores {
@@ -69,5 +76,6 @@ export function createStores(
     notes: new NoteStore(bus, world, notePersistence(call), now),
     greatBuildings: new GreatBuildingStore(bus, world, greatBuildingPersistence(call), now),
     foestats: new FoestatsStore(bus, world, foestatsPersistence(call), foestatsApi(fetch)),
+    gbOwn: createGbOwnState(bus, view.prefs, view.settings),
   };
 }

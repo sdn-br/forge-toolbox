@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createBus } from '../src/content/core/events';
-import { type GbWindowLink, watchGbWindow } from '../src/content/core/gb-window';
+import { type GbWindowLink, watchGbWindow } from '../src/content/game/engine/gb-window';
 import { gbWindow } from '../src/marker/gb-window';
 import {
   GB_WINDOW_TAG,

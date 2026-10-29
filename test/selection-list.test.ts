@@ -1,11 +1,20 @@
 // @vitest-environment happy-dom
 import { render } from 'lit-html';
 import { describe, expect, it, vi } from 'vitest';
-import type { SelectionEntry } from '../src/content/core/selection';
-import { selectionList } from '../src/content/ui/selection-list';
+import type { Footprint } from '../src/content/domain/city-grid';
+import { groupSelection, type SelectionEntry, selectionList } from '../src/content/ui/selection-list';
 
 function mount(entries: SelectionEntry[]) {
-  const selection = { entries: () => entries, removeName: vi.fn(), clear: vi.fn() };
+  // per entry `total` buildings of that name on the grid, the first `selected` of them selected
+  const buildings: Footprint[] = [];
+  const ids = new Set<number>();
+  for (const { name, selected, total } of entries)
+    for (let i = 0; i < total; i++) {
+      const id = buildings.length + 1;
+      buildings.push({ building: { id }, def: { name } } as Footprint);
+      if (i < selected) ids.add(id);
+    }
+  const selection = { buildings: () => buildings, ids: () => ids, removeName: vi.fn(), clear: vi.fn() };
   const root = document.createElement('div');
   render(selectionList(selection), root);
   const rows = () =>
@@ -49,5 +58,22 @@ describe('selection list', () => {
     const s = mount([]);
     expect(s.root.querySelector('p.muted')?.textContent).toContain('Nichts ausgewählt');
     expect(s.root.querySelector('button')).toBeNull();
+  });
+});
+
+describe('groupSelection', () => {
+  it('groups the selected buildings by name with the count of that name, sorted by name', () => {
+    const buildings = [
+      { id: 1, name: 'Domizil' },
+      { id: 2, name: 'Domizil' },
+      { id: 3, name: 'Aachener Dom' },
+      { id: 4, name: 'Bauernhof' },
+      { id: 5, name: 'Domizil' },
+    ];
+    expect(groupSelection(buildings, new Set([2, 3, 5]))).toEqual([
+      { name: 'Aachener Dom', selected: 1, total: 1 },
+      { name: 'Domizil', selected: 2, total: 3 },
+    ]);
+    expect(groupSelection(buildings, new Set())).toEqual([]);
   });
 });

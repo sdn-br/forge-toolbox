@@ -1,15 +1,13 @@
 import type { WorldId } from '../../shared/ids';
+import type { FoundData } from '../backup/found-data';
 import type { Stores } from '../stores';
-import type { GbOwnState } from '../stores/gb-own-state';
+import type { OwnSelection } from '../stores/selection';
 import { Box, type BoxOptions } from '../ui/box';
 import type { Menu } from '../ui/menu';
 import type { UiState } from '../ui/ui-state';
-import type { BackupCopy } from './backup-copy';
 import type { ToolboxBus } from './events';
 import type { Markers } from './markers';
-import type { ProfileCopy } from './profile-copy';
 import type { Recorder } from './recorder';
-import type { OwnSelection } from './selection';
 import type { Settings } from './settings';
 
 /** Everything a feature may use. Features never import each other. */
@@ -25,13 +23,9 @@ export interface FeatureContext extends Stores {
   selection: OwnSelection;
   /** remembered view choices of the viewer */
   ui: UiState;
-  /** the factors and Ext the two own-share boxes share */
-  gbOwn: GbOwnState;
   createBox(options: BoxOptions): Box;
-  /** the other profiles, to take over their settings */
-  profileCopy: ProfileCopy;
-  /** the backup copy on the game page and the data found there */
-  backupCopy: BackupCopy;
+  /** the data of the profile found on the game page: the backup copy and the old toolbox data */
+  foundData: FoundData;
 }
 
 export interface Feature {

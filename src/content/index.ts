@@ -6,26 +6,24 @@ import { worldId } from '../shared/ids';
 import { FOLDER_STATUS, type FolderStatus, importConcerns, isDataImported, OPEN_DATA_PAGE } from '../shared/messages';
 import type { Profile } from '../shared/profile';
 import type { Traffic } from '../shared/proxy-protocol';
-import { watchArmyTarget, windowArmyLink } from './core/army-target';
-import { BackupCopy } from './core/backup-copy';
-import { pageCopyStore } from './core/backup-store';
+import { BackupCopy } from './backup/backup-copy';
+import { pageCopyStore } from './backup/backup-store';
+import { folderLink, watchFolderPause } from './backup/folder-link';
+import { FoundData } from './backup/found-data';
+import { LegacyData } from './backup/legacy-data';
+import { pageLegacyStore } from './backup/legacy-store';
 import { createBus } from './core/events';
 import { extensionAlive, onExtensionLost, watchExtension } from './core/extension-context';
 import { boxFactory, type Feature, type FeatureContext } from './core/feature';
-import { folderLink, watchFolderPause } from './core/folder-link';
-import { watchGbWindow, windowGbWindowLink } from './core/gb-window';
 import { Ingestion } from './core/ingestion';
 import { chromeLocal, profileKv } from './core/kv';
-import { LegacyData } from './core/legacy-data';
-import { pageLegacyStore } from './core/legacy-store';
 import { logError } from './core/log';
 import { windowMarkerLink } from './core/marker-link';
 import { Markers } from './core/markers';
-import { chromeProfileStorage, profileCopy } from './core/profile-copy';
+import { chromeProfileStorage, type ProfileCopy, profileCopy } from './core/profile-copy';
 import { connectProxy } from './core/proxy-link';
 import { Recorder } from './core/recorder';
 import { backgroundCall } from './core/rpc';
-import { OwnSelection } from './core/selection';
 import { Settings } from './core/settings';
 import { startupGate } from './core/startup-gate';
 import { t } from './core/texts';
@@ -41,13 +39,16 @@ import { notesFeature } from './features/notes';
 import { pvpFeature } from './features/pvp';
 import { sabotageFeature } from './features/sabotage';
 import { settingsFeature } from './features/settings-feature';
+import { watchEngine } from './game/engine';
 import { registerGameHandlers } from './game/handlers';
+import { identifyStartup } from './game/identify';
 import { createStores } from './stores';
-import { createGbOwnState } from './stores/gb-own-state';
+import { OwnSelection } from './stores/selection';
 import { Menu } from './ui/menu';
 import { UiState } from './ui/ui-state';
 
-const features: Feature[] = [
+/** the settings box alone gets the other profiles, to take over their settings */
+const features = (copy: ProfileCopy): Feature[] => [
   sabotageFeature,
   pvpFeature,
   notesFeature,
@@ -58,7 +59,7 @@ const features: Feature[] = [
   gbPowerLevelFeature,
   investmentsFeature,
   foestatsFeature,
-  settingsFeature,
+  settingsFeature(copy),
   backupCopyFeature,
 ];
 
@@ -98,7 +99,7 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
   const settings = new Settings(kv);
   const ui = new UiState(kv);
   const call = backgroundCall(profile);
-  const stores = createStores(world, bus, call, now);
+  const stores = createStores(world, bus, call, { prefs: ui, settings }, now);
   const backupCopy = new BackupCopy({
     profile,
     name,
@@ -108,10 +109,12 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
     persistence: backupPersistence(call),
     store: pageCopyStore(),
     now,
-    reload: () => location.reload(),
-    legacy: new LegacyData({ profile, kv, persistence: backupPersistence(call), store: pageLegacyStore(), now }),
     folder: folder.changed,
   });
+  const foundData = new FoundData(
+    [backupCopy, new LegacyData({ profile, kv, persistence: backupPersistence(call), store: pageLegacyStore(), now })],
+    () => location.reload(),
+  );
   const recorder = new Recorder(
     () => settings.get('core.record'),
     () => settings.get('core.recordRequests'),
@@ -128,8 +131,7 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
   ]);
 
   const markers = new Markers(bus, stores.cities, windowMarkerLink);
-  watchArmyTarget(bus, windowArmyLink);
-  watchGbWindow(bus, windowGbWindowLink);
+  watchEngine(bus);
   const ctx: FeatureContext = {
     world,
     bus,
@@ -140,12 +142,12 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
     markers,
     selection: new OwnSelection(bus, stores.cities, stores.catalog, markers),
     ui,
-    gbOwn: createGbOwnState(bus, ui, settings),
     createBox: boxFactory(ui, (group) => bus.emit('settings.open', { group })),
-    profileCopy: profileCopy(chromeProfileStorage, profile, () => location.reload()),
-    backupCopy,
+    foundData,
   };
-  for (const feature of features) {
+  // after loading, so loading the settings is no change to back up
+  backupCopy.watch();
+  for (const feature of features(profileCopy(chromeProfileStorage, profile, () => location.reload()))) {
     try {
       feature.setup(ctx);
     } catch (error) {
@@ -185,7 +187,7 @@ function main() {
     ]);
     return false;
   });
-  const gate = startupGate(world, (started, name) => {
+  const gate = startupGate(identifyStartup(world), (started, name) => {
     profile = started;
     return start(started, name, menu);
   });

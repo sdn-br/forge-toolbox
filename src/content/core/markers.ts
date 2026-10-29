@@ -3,7 +3,7 @@
 // marking of the city the game shows (CityStore.shown) is drawn. The marker module in the page draws it and reports the
 // arrows the viewer dismissed there.
 import { MARKER_TAG, MAX_MARKERS, type MarkerCommand, type MarkerSpot } from '../../shared/marker-protocol';
-import type { CityKey } from '../stores/cities';
+import type { CityKey } from '../../shared/model';
 import type { ToolboxBus } from './events';
 import { t } from './texts';
 
