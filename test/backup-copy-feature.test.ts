@@ -41,9 +41,9 @@ async function setup(options: { copy?: CopyEntry; data?: boolean; settings?: boo
   env.legacyStore.found = options.legacy;
   if (options.data) await env.db.db.battles.put(battle(9));
   // the start reads and unpacks the copy, which takes more turns under load than a fixed count of ticks
-  const start = env.ctx.backupCopy.start.bind(env.ctx.backupCopy);
+  const start = env.ctx.foundData.start.bind(env.ctx.foundData);
   let started: Promise<unknown> = Promise.resolve();
-  env.ctx.backupCopy.start = () => {
+  env.ctx.foundData.start = () => {
     const run = start();
     started = run;
     return run;

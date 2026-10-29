@@ -1,6 +1,7 @@
 import { render } from 'lit-html';
 import { BackupCopy } from '../../src/content/backup/backup-copy';
 import { memoryCopyStore } from '../../src/content/backup/backup-store';
+import { FoundData } from '../../src/content/backup/found-data';
 import { LegacyData } from '../../src/content/backup/legacy-data';
 import { memoryLegacyStore } from '../../src/content/backup/legacy-store';
 import type { FeatureContext } from '../../src/content/core/feature';
@@ -124,6 +125,23 @@ export function featureContext(options: TestStoresOptions & { storage?: Record<s
   /** the databases of the old toolbox on the game page */
   const legacyStore = memoryLegacyStore();
   const markers = new Markers(bus, stores.cities, marker.link);
+  const profile = { world, player: playerId(1) };
+  const persistence = backupPersistence(db.call);
+  const backupCopy = new BackupCopy({
+    profile,
+    name: 'Ich',
+    bus,
+    settings,
+    kv,
+    persistence,
+    store: copyStore,
+    now,
+  });
+  backupCopy.watch();
+  const foundData = new FoundData(
+    [backupCopy, new LegacyData({ profile, kv, persistence, store: legacyStore, now })],
+    () => reloads++,
+  );
   const ctx: FeatureContext = {
     world,
     bus,
@@ -140,24 +158,7 @@ export function featureContext(options: TestStoresOptions & { storage?: Record<s
       return recording.box;
     },
     profileCopy: profileCopy(storage, { world, player: playerId(1) }, () => reloads++),
-    backupCopy: new BackupCopy({
-      profile: { world, player: playerId(1) },
-      name: 'Ich',
-      bus,
-      settings,
-      kv,
-      persistence: backupPersistence(db.call),
-      store: copyStore,
-      now,
-      reload: () => reloads++,
-      legacy: new LegacyData({
-        profile: { world, player: playerId(1) },
-        kv,
-        persistence: backupPersistence(db.call),
-        store: legacyStore,
-        now,
-      }),
-    }),
+    foundData,
   };
   return {
     ctx,

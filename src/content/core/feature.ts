@@ -1,5 +1,5 @@
 import type { WorldId } from '../../shared/ids';
-import type { BackupCopy } from '../backup/backup-copy';
+import type { FoundData } from '../backup/found-data';
 import type { Stores } from '../stores';
 import type { OwnSelection } from '../stores/selection';
 import { Box, type BoxOptions } from '../ui/box';
@@ -27,8 +27,8 @@ export interface FeatureContext extends Stores {
   createBox(options: BoxOptions): Box;
   /** the other profiles, to take over their settings */
   profileCopy: ProfileCopy;
-  /** the backup copy on the game page and the data found there */
-  backupCopy: BackupCopy;
+  /** the data of the profile found on the game page: the backup copy and the old toolbox data */
+  foundData: FoundData;
 }
 
 export interface Feature {

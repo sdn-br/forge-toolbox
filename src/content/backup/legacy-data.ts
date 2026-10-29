@@ -9,7 +9,7 @@ import type { Profile } from '../../shared/profile';
 import { answeredLaterToday } from '../../shared/time';
 import type { KeyValue } from '../core/kv';
 import { logInfo } from '../core/log';
-import type { FoundOffer } from './backup-copy';
+import type { FoundDataSource, FoundOffer } from './found-data';
 import type { LegacyStore } from './legacy-store';
 
 /** the answer about the old data, in the profile's storage */
@@ -32,7 +32,10 @@ export interface LegacyEnv {
 
 const MAPPERS = { '2.x': mapToolbox2, '1.x': mapToolbox1 } as const;
 
-export class LegacyData {
+export class LegacyData implements FoundDataSource {
+  readonly id = 'legacy';
+  readonly extra = 'old toolbox data';
+
   constructor(private env: LegacyEnv) {}
 
   /**

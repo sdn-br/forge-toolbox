@@ -9,6 +9,7 @@ import type { Traffic } from '../shared/proxy-protocol';
 import { BackupCopy } from './backup/backup-copy';
 import { pageCopyStore } from './backup/backup-store';
 import { folderLink, watchFolderPause } from './backup/folder-link';
+import { FoundData } from './backup/found-data';
 import { LegacyData } from './backup/legacy-data';
 import { pageLegacyStore } from './backup/legacy-store';
 import { createBus } from './core/events';
@@ -107,10 +108,12 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
     persistence: backupPersistence(call),
     store: pageCopyStore(),
     now,
-    reload: () => location.reload(),
-    legacy: new LegacyData({ profile, kv, persistence: backupPersistence(call), store: pageLegacyStore(), now }),
     folder: folder.changed,
   });
+  const foundData = new FoundData(
+    [backupCopy, new LegacyData({ profile, kv, persistence: backupPersistence(call), store: pageLegacyStore(), now })],
+    () => location.reload(),
+  );
   const recorder = new Recorder(
     () => settings.get('core.record'),
     () => settings.get('core.recordRequests'),
@@ -140,8 +143,10 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
     ui,
     createBox: boxFactory(ui, (group) => bus.emit('settings.open', { group })),
     profileCopy: profileCopy(chromeProfileStorage, profile, () => location.reload()),
-    backupCopy,
+    foundData,
   };
+  // after loading, so loading the settings is no change to back up
+  backupCopy.watch();
   for (const feature of features) {
     try {
       feature.setup(ctx);

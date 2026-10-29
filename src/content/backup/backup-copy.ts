@@ -1,6 +1,6 @@
 // The backup copy on the game page: written half a minute after the last change of backed up data, and offered back
-// at the start when the extension has no data for the profile (reinstalled, storage cleared) but a copy exists. The
-// found data of the dialog "Gefundene Daten" go through here: the copy first, then the old toolbox data.
+// at the start when the extension has no data for the profile (reinstalled, storage cleared) but a copy exists. It is
+// the first source of the dialog "Gefundene Daten".
 import {
   BACKUP_FORMAT,
   BACKUP_VERSION,
@@ -9,8 +9,7 @@ import {
   type BackupTables,
 } from '../../backup/format';
 import { gzipText } from '../../backup/gzip';
-import { areaCounts, type ImportChoice, importChoices, profileEntry, readBackupFile } from '../../backup/import';
-import type { LegacyVersion } from '../../backup/legacy/types';
+import { areaCounts, importChoices, profileEntry, readBackupFile } from '../../backup/import';
 import type { Area } from '../../backup/merge';
 import type { BackupPersistence } from '../../persistence/backup/client';
 import type { Profile } from '../../shared/profile';
@@ -20,7 +19,7 @@ import type { KeyValue } from '../core/kv';
 import { logError } from '../core/log';
 import type { Settings } from '../core/settings';
 import type { CopyStore } from './backup-store';
-import type { LegacyData } from './legacy-data';
+import type { FoundDataSource, FoundOffer } from './found-data';
 
 /** the setting "Sicherungskopie auf der Spielseite" */
 export const BACKUP_SETTING = 'core.backupCopy';
@@ -35,20 +34,6 @@ const ANSWER = 'backup.answer';
  */
 type Answer = { answer: 'no' } | { answer: 'later'; at: number } | { answer: 'open' };
 
-/** where found data come from: the own backup copy, or the databases of the old toolbox */
-export type FoundSource = 'backupCopy' | 'legacy';
-
-/** Found data of the profile, as the dialog offers them. */
-export interface FoundOffer {
-  source: FoundSource;
-  /** when the backup copy was written; the old toolbox does not say */
-  createdAt?: number;
-  /** the version of the old toolbox */
-  version?: LegacyVersion;
-  /** the profile entry with its counts and preselected areas */
-  choice: ImportChoice;
-}
-
 export interface BackupCopyEnv {
   profile: Profile;
   /** the own player name, stored with the copy like the export does */
@@ -60,10 +45,6 @@ export interface BackupCopyEnv {
   persistence: BackupPersistence;
   store: CopyStore;
   now: () => number;
-  /** restarts the game page after taking data, so the stores load them */
-  reload: () => void;
-  /** the data of the old toolbox, offered after the copy */
-  legacy?: LegacyData;
   /**
    * asks the service worker to write the backup in a local folder; called on the same delay as the copy, also when
    * the copy is switched off or held
@@ -73,7 +54,8 @@ export interface BackupCopyEnv {
 
 const isEmpty = (tables: BackupTables) => Object.values(tables).every((rows) => rows.length === 0);
 
-export class BackupCopy {
+export class BackupCopy implements FoundDataSource {
+  readonly id = 'backupCopy';
   private timer: ReturnType<typeof setTimeout> | undefined;
   /** a found copy waits for an answer: nothing is written, the near empty new state must not overwrite it */
   private held = false;
@@ -132,83 +114,42 @@ export class BackupCopy {
    * an offer waits for its answer, nothing is written. Without any copy of the profile the first one is written at
    * once, so a profile with data has a copy before its first change.
    */
-  start(): Promise<FoundOffer[]> {
-    // the old data are independent of the copy: look for both at once
-    const legacy = this.legacyOr(this.env.legacy?.offerAtStart(), []);
-    const run = this.offerAtStart();
+  async offerAtStart(): Promise<FoundOffer[]> {
+    const run = this.check();
     this.checked = run.catch(() => undefined);
-    const copy = run.then(async ({ offers, exists }) => {
-      if (!this.held && this.enabled() && !(exists ?? (await this.env.store.get(this.env.profile)))) this.writeNow();
-      return offers;
-    });
-    return Promise.all([copy, legacy]).then(([offers, found]) => [...offers, ...(found ?? [])]);
+    const { offers, exists } = await run;
+    if (!this.held && this.enabled() && !(exists ?? (await this.env.store.get(this.env.profile)))) this.writeNow();
+    return offers;
   }
 
-  /** "Gefundene Daten übernehmen": the copy of the profile and the old data, also when the profile has data */
-  async find(): Promise<FoundOffer[]> {
-    const [{ offer }, legacy] = await Promise.all([this.read(), this.legacyOr(this.env.legacy?.find(), undefined)]);
-    return [offer, legacy].filter((o) => o !== undefined);
+  /** the copy of the profile, also when the profile has data */
+  async find(): Promise<FoundOffer | undefined> {
+    return (await this.read()).offer;
   }
 
-  /** the old toolbox data are an extra: when looking for them fails, the offers of the copy stay */
-  private legacyOr<T, F>(found: Promise<T> | undefined, fallback: F): Promise<T | F> | undefined {
-    return found?.catch((error) => {
-      logError('looking for old toolbox data failed', error);
-      return fallback;
-    });
+  /** merges the chosen areas of the copy and stores its settings, if chosen; writing resumes, the data are back */
+  async take(offer: FoundOffer, areas: ReadonlySet<Area>): Promise<void> {
+    const entry = offer.choice.profile;
+    const data = [...areas].filter((a) => a !== 'settings');
+    if (data.length) await this.env.persistence.merge(entry, data);
+    if (areas.has('settings') && entry.settings) await this.env.settings.replace(entry.settings);
+    this.held = false;
+    await this.env.kv.set(ANSWER, null);
   }
 
-  /**
-   * "Übernehmen": merges the chosen areas of each offer in order, the copy before the old data, stores the chosen
-   * settings and reloads the game. An offer without any chosen area counts as "Nein" for its source. Once the copy is
-   * taken, writing resumes, the profile has its data back.
-   */
-  async take(items: { offer: FoundOffer; areas: ReadonlySet<Area> }[]): Promise<void> {
-    const { persistence, kv, legacy, settings } = this.env;
-    const ordered = [...items].sort(
-      (a, b) => Number(a.offer.source === 'legacy') - Number(b.offer.source === 'legacy'),
-    );
-    for (const { offer, areas } of ordered) {
-      if (areas.size === 0) {
-        await this.decline([offer.source]);
-      } else if (offer.source === 'legacy') {
-        await legacy?.take(offer, areas);
-      } else {
-        const entry = offer.choice.profile;
-        const data = [...areas].filter((a) => a !== 'settings');
-        if (data.length) await persistence.merge(entry, data);
-        if (areas.has('settings') && entry.settings) await settings.replace(entry.settings);
-        this.held = false;
-        await kv.set(ANSWER, null);
-      }
-    }
-    this.env.reload();
+  /** "Nein": the copy is never offered again for the profile and may be overwritten from now on */
+  async decline(): Promise<void> {
+    this.held = false;
+    await this.env.kv.set(ANSWER, { answer: 'no' } satisfies Answer);
   }
 
-  /**
-   * "Nein" for the sources shown: the copy is never offered again for the profile and may be overwritten from now
-   * on; the old data are not offered again at the start.
-   */
-  async decline(sources: readonly FoundSource[]): Promise<void> {
-    if (sources.includes('backupCopy')) {
-      this.held = false;
-      await this.env.kv.set(ANSWER, { answer: 'no' } satisfies Answer);
-    }
-    if (sources.includes('legacy')) await this.env.legacy?.decline();
-  }
-
-  /**
-   * "Später" for the sources shown: offered again at the next start of another day; until answered the copy stays as
-   * it is.
-   */
-  async later(sources: readonly FoundSource[]): Promise<void> {
-    if (sources.includes('backupCopy'))
-      await this.env.kv.set(ANSWER, { answer: 'later', at: this.env.now() } satisfies Answer);
-    if (sources.includes('legacy')) await this.env.legacy?.later();
+  /** "Später": offered again at the next start of another day; until answered the copy stays as it is */
+  async later(): Promise<void> {
+    await this.env.kv.set(ANSWER, { answer: 'later', at: this.env.now() } satisfies Answer);
   }
 
   /** `exists`: whether a stored copy was found, undefined when it was not looked for */
-  private async offerAtStart(): Promise<{ offers: FoundOffer[]; exists?: boolean }> {
+  private async check(): Promise<{ offers: FoundOffer[]; exists?: boolean }> {
     const { kv, persistence, profile, now } = this.env;
     // the cheap answer first: after "Nein" the copy is not even unpacked
     const answer = await kv.get<Answer | null>(ANSWER);
