@@ -41,6 +41,7 @@ import { pvpFeature } from './features/pvp';
 import { sabotageFeature } from './features/sabotage';
 import { settingsFeature } from './features/settings-feature';
 import { registerGameHandlers } from './game/handlers';
+import { identifyStartup } from './game/identify';
 import { createStores } from './stores';
 import { createGbOwnState } from './stores/gb-own-state';
 import { OwnSelection } from './stores/selection';
@@ -185,7 +186,7 @@ function main() {
     ]);
     return false;
   });
-  const gate = startupGate(world, (started, name) => {
+  const gate = startupGate(identifyStartup(world), (started, name) => {
     profile = started;
     return start(started, name, menu);
   });
