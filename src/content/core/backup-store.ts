@@ -1,6 +1,7 @@
 // The backup copy lives in the IndexedDB of the game page: the content script shares the page origin's storage. If the
 // extension loses its data (reinstalled, its storage cleared), the copy is still there and can be taken back.
 import type { Area } from '../../backup/merge';
+import { done } from '../../shared/idb';
 import type { PlayerId, WorldId } from '../../shared/ids';
 import type { Profile } from '../../shared/profile';
 
@@ -26,12 +27,6 @@ export interface CopyStore {
   put(entry: CopyEntry): Promise<void>;
   delete(profile: Profile): Promise<void>;
 }
-
-const done = <T>(request: IDBRequest<T>) =>
-  new Promise<T>((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
 
 /**
  * The copies in the page's IndexedDB. Each call opens the database and closes it after, so a page script deleting it

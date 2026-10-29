@@ -2,6 +2,7 @@
 // only read: opened without a version, so no upgrade runs, and only when they exist, so none is created. Nothing is
 // written or deleted.
 import type { LegacyDump, LegacyFound, LegacyVersion } from '../../backup/legacy/types';
+import { done } from '../../shared/idb';
 import type { PlayerId } from '../../shared/ids';
 
 export interface LegacyStore {
@@ -19,12 +20,6 @@ const NAMES: Record<LegacyVersion, (id: PlayerId) => { main: string; events: str
   // 1.x spelled its events database with a small "oe"
   '1.x': (id) => ({ main: `FoEToolboxDB_${id}`, events: `FoeToolboxDB_Events_${id}` }),
 };
-
-const done = <T>(request: IDBRequest<T>) =>
-  new Promise<T>((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
 
 export function pageLegacyStore(factory: IDBFactory = indexedDB): LegacyStore {
   /** the rows of each named store; a store or a database that is not there has none */

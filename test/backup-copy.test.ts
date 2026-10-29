@@ -260,7 +260,7 @@ describe('a found copy at the start', () => {
   it('after "Nein" never asks again for the profile and lets the copy be overwritten', async () => {
     const env = await setup({ copy: await found() });
     expect(await env.copy.start()).toHaveLength(1);
-    await env.copy.decline();
+    await env.copy.decline(['backupCopy']);
     await env.db.db.battles.put(battle(5));
     env.bus.emit('battle.recorded', { opponent: playerId(2) });
     await elapse(env);
@@ -273,7 +273,7 @@ describe('a found copy at the start', () => {
   it('after "Später" asks at the next start of another day, also once the profile has data, and holds the copy', async () => {
     const first = await setup({ copy: await found() });
     await first.copy.start();
-    await first.copy.later();
+    await first.copy.later(['backupCopy']);
     const answer = await first.kv.get('backup.answer');
 
     const sameDay = await setup({ copy: await found(), stored: { 'backup.answer': answer } });

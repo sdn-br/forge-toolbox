@@ -2,6 +2,8 @@
 // worker share the folder's handle through the IndexedDB of the extension origin. The page grants the permission on a
 // click; with "Bei jedem Besuch zulassen" Edge keeps it across restarts, and the service worker writes on its own.
 
+import { done } from '../shared/idb';
+
 /** The few calls the backup makes on a folder; `memoryFolder` stands in for it in tests. */
 export interface Folder {
   readonly name: string;
@@ -95,12 +97,9 @@ const HANDLES = 'handles';
 const KEY = 'folder';
 
 function openHandleDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(HANDLE_DB, 1);
-    request.onupgradeneeded = () => request.result.createObjectStore(HANDLES);
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+  const request = indexedDB.open(HANDLE_DB, 1);
+  request.onupgradeneeded = () => request.result.createObjectStore(HANDLES);
+  return done(request);
 }
 
 async function handleTx<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest): Promise<T> {

@@ -6,6 +6,7 @@ import { mapToolbox1, mapToolbox2 } from '../../backup/legacy/mapper';
 import type { Area } from '../../backup/merge';
 import type { BackupPersistence } from '../../persistence/backup/client';
 import type { Profile } from '../../shared/profile';
+import { answeredLaterToday } from '../../shared/time';
 import type { FoundOffer } from './backup-copy';
 import type { KeyValue } from './kv';
 import type { LegacyStore } from './legacy-store';
@@ -25,8 +26,6 @@ export interface LegacyEnv {
   store: LegacyStore;
   now: () => number;
 }
-
-const sameDay = (a: number, b: number) => new Date(a).toDateString() === new Date(b).toDateString();
 
 const MAPPERS = { '2.x': mapToolbox2, '1.x': mapToolbox1 } as const;
 
@@ -62,10 +61,9 @@ export class LegacyData {
   async offerAtStart(): Promise<FoundOffer[]> {
     const answer = await this.env.kv.get<Answer | null>(LEGACY_ANSWER);
     if (answer?.answer === 'no' || answer?.answer === 'taken') return [];
-    if (answer?.answer === 'later' && sameDay(answer.at, this.env.now())) return [];
+    if (answeredLaterToday(answer, this.env.now())) return [];
     const offer = await this.find();
-    const rows = offer ? Object.values(offer.choice.counts).some((n) => n > 0) : false;
-    return offer && rows ? [offer] : [];
+    return offer && Object.values(offer.choice.counts).some((n) => n > 0) ? [offer] : [];
   }
 
   /** merges the chosen areas, the known rows left out; the question is answered */

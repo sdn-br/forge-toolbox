@@ -4,7 +4,7 @@
 import type { ToolboxDb } from '../background/db';
 import { playerId, type WorldId } from '../shared/ids';
 import type { Player } from '../shared/model';
-import { type Profile, profileDbName, profileStorageKey } from '../shared/profile';
+import { type Profile, profileDbName, profileStorageKey, sameProfile } from '../shared/profile';
 import { BACKUP_FORMAT, BACKUP_VERSION, type BackupFile, type BackupProfile, type BackupTables } from './format';
 import { unpackText } from './gzip';
 import { type LocalRows, withoutKnown } from './legacy/known';
@@ -62,6 +62,10 @@ export async function readBackupFile(file: Blob): Promise<ReadResult> {
   if (!Array.isArray(v.profiles) || !v.profiles.every(isProfileEntry)) return { ok: false, error: 'notBackup' };
   return { ok: true, backup: value as BackupFile };
 }
+
+/** the entry of a profile in a backup file */
+export const profileEntry = (backup: BackupFile, profile: Profile): BackupProfile | undefined =>
+  backup.profiles.find((p) => sameProfile(p, profile));
 
 /** One row of the import choice: a profile of the file with its areas. */
 export interface ImportChoice {
