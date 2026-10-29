@@ -11,11 +11,9 @@ import { pageCopyStore } from './backup/backup-store';
 import { folderLink, watchFolderPause } from './backup/folder-link';
 import { LegacyData } from './backup/legacy-data';
 import { pageLegacyStore } from './backup/legacy-store';
-import { watchArmyTarget, windowArmyLink } from './core/army-target';
 import { createBus } from './core/events';
 import { extensionAlive, onExtensionLost, watchExtension } from './core/extension-context';
 import { boxFactory, type Feature, type FeatureContext } from './core/feature';
-import { watchGbWindow, windowGbWindowLink } from './core/gb-window';
 import { Ingestion } from './core/ingestion';
 import { chromeLocal, profileKv } from './core/kv';
 import { logError } from './core/log';
@@ -40,6 +38,7 @@ import { notesFeature } from './features/notes';
 import { pvpFeature } from './features/pvp';
 import { sabotageFeature } from './features/sabotage';
 import { settingsFeature } from './features/settings-feature';
+import { watchEngine } from './game/engine';
 import { registerGameHandlers } from './game/handlers';
 import { identifyStartup } from './game/identify';
 import { createStores } from './stores';
@@ -128,8 +127,7 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
   ]);
 
   const markers = new Markers(bus, stores.cities, windowMarkerLink);
-  watchArmyTarget(bus, windowArmyLink);
-  watchGbWindow(bus, windowGbWindowLink);
+  watchEngine(bus);
   const ctx: FeatureContext = {
     world,
     bus,

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { type ArmyLink, watchArmyTarget } from '../src/content/core/army-target';
 import { createBus } from '../src/content/core/events';
+import { type ArmyLink, watchArmyTarget } from '../src/content/game/engine/army-target';
 import { armyTarget } from '../src/marker/army';
 import { ARMY_TAG, type ArmyCommand } from '../src/shared/army-protocol';
 import { playerId } from '../src/shared/ids';

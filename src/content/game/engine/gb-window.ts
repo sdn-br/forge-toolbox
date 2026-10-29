@@ -7,9 +7,9 @@ import {
   type GbWindowEvent,
   type GbWindowState,
   parseGbWindowEvent,
-} from '../../shared/gb-window-protocol';
-import type { ToolboxBus } from './events';
-import { pageLink } from './page-link';
+} from '../../../shared/gb-window-protocol';
+import type { ToolboxBus } from '../../core/events';
+import { pageLink } from '../../core/page-link';
 
 /** The way to the page module; tests bring their own. */
 export interface GbWindowLink {
