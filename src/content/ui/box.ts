@@ -23,7 +23,8 @@ export interface BoxOptions {
   /** the smallest height a box with the handle can be dragged to or shows from a saved size (default `MIN_HEIGHT`), for a
    * box whose content needs more than the default to avoid a second scrollbar */
   minHeight?: number;
-  /** the content fills the body once the box has a height (resized or popped out), e.g. a map */
+  /** the content fills the body once the box has a height (resized or popped out), e.g. a map: the body does not
+   * scroll, its one child takes the height */
   fill?: boolean;
   /** the feature's own CSS, after the kit's `baseCss` in the box's shadow root */
   css?: string;

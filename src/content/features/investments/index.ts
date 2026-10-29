@@ -259,6 +259,7 @@ export const investmentsFeature: Feature = {
       // the lists grow with every building invested in or seen; the height is the viewer's. It starts tall, since the
       // rows that fit are counted in the height the box gives the table
       resizable: true,
+      fill: true,
       defaultSize: (win) => ({ width: WIDTH, height: Math.min(win.height * 0.7, 600) }),
       minHeight: MIN_HEIGHT,
       // the ages are drawn as of now, so each redraw shows them current

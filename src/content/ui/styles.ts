@@ -28,8 +28,10 @@ header button:hover { opacity: 1; }
 header button.active { color: var(--accent); }
 .body { padding: 6px 8px; max-height: 70vh; overflow: auto; }
 .box.minimized .body { display: none; }
-/* a box with a height, or popped out, whose content fills the body (BoxOptions.fill) */
-.box.tall .body.fill, .box.popped .body.fill { display: flex; flex-direction: column; }
+/* a box with a height, or popped out, whose content fills the body (BoxOptions.fill): the body does not scroll, its
+   content takes the height it has */
+:is(.box.tall, .box.popped) .body.fill { display: flex; flex-direction: column; overflow: hidden; }
+:is(.box.tall, .box.popped) .body.fill > * { flex: 1 1 auto; min-height: 0; }
 table { border-collapse: collapse; width: 100%; }
 th, td { padding: 2px 4px; border-bottom: 1px solid var(--btn); text-align: left; }
 td.num, th.num { text-align: right; }

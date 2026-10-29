@@ -33,10 +33,9 @@ td.inv-status.unknown { color: var(--muted); }
 .inv-table th.icon-head.inv-reach { text-align: left; padding: 0 0 0 4px; }
 .inv-reach svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px; }
 .inv-possible td { overflow: hidden; text-overflow: ellipsis; }
-/* investments: the body does not scroll, the pane fills it. The table area holds as many rows as fit (ui/fit-rows.ts),
+/* investments: the pane fills the body (BoxOptions.fill). The table area holds as many rows as fit (ui/fit-rows.ts),
    the two buttons beside it scroll them, and the area itself scrolls only sideways when the box is narrower than the table */
-.body:has(> .inv-pane) { display: flex; flex-direction: column; overflow: hidden; }
-.inv-pane { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.inv-pane { display: flex; flex-direction: column; }
 .inv-pane > :not(.inv-win) { flex: none; }
 .inv-win { flex: 1 1 auto; min-height: 0; }
 .inv-win .win-area { overflow-x: auto; overflow-y: hidden; }

@@ -7,7 +7,7 @@ export const cityMapCss = `
 .map-stats-layout { display: flex; align-items: flex-start; gap: 6px; }
 .map-main { flex: 1; min-width: 0; }
 /* a box with a height, or popped out: the map takes the height the controls above and the legend below leave */
-:is(.box.tall, .box.popped) .body.fill :is(.map-stats-layout, .city-map) { flex: 1 1 auto; min-height: 0; }
+:is(.box.tall, .box.popped) .body.fill .city-map { flex: 1 1 auto; min-height: 0; }
 :is(.box.tall, .box.popped) .body.fill .map-stats-layout { align-items: stretch; }
 :is(.box.tall, .box.popped) .body.fill :is(.map-main, .city-map) { display: flex; flex-direction: column; }
 :is(.box.tall, .box.popped) .body.fill .map-frame { flex: 1 1 auto; height: auto; }
