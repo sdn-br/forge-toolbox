@@ -1,11 +1,11 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import type { Relations } from '../../../shared/model';
 import { formatAge, formatNumber, t } from '../../core/texts';
-import { type OwnerShare, ownerShare, type SnipeTier } from '../../domain/gb-snipe';
+import { type OwnerShare, ownerShare, type SnipeTier, snipeProfitKey, TIER_ORDER } from '../../domain/gb-snipe';
 import type { PossibleInvestment } from '../../domain/investments';
 import { progressPercent } from '../../ui/fp-bar';
 import { ignoreNote } from '../../ui/ignore';
-import { snipeNotes, snipeProfit, snipeProfitKey, snipeProfitRange, TIER_ORDER } from '../../ui/snipe-hit';
+import { snipeNotes, snipeProfit, snipeProfitRange } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
 import { type RowWindow, rowWindow } from '../../ui/windowed-rows';
 import {

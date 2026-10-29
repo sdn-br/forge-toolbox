@@ -3,9 +3,9 @@ import { formatNumber, t } from '../../core/texts';
 import { iconButton } from '../../ui/buttons';
 import { estimateCell } from '../../ui/estimate-cell';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
-import { type FactorLevelActions, factorLevel, placeFactorField } from '../../ui/factor-state';
 import { headerIcons } from '../../ui/icons';
 import { keepKeys } from '../../ui/inputs';
+import { type FactorLevelActions, factorLevel, placeFactorField } from '../gb-own-share/factor-state';
 import { MAX_ROWS, type PayCell, type PowerLevelVm, type PowerRow } from './view-model';
 
 export interface PowerLevelActions extends FactorActions, FactorLevelActions {

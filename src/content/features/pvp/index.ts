@@ -5,6 +5,7 @@ import { t } from '../../core/texts';
 import { icons } from '../../ui/icons';
 import { PlayerNoteCard } from '../../ui/note-card';
 import { KEEP_SETTING, pruneBefore } from './retention';
+import { pvpCss } from './styles';
 import { type PvpActions, pvpView } from './view';
 import {
   opponentsFor,
@@ -122,6 +123,7 @@ export const pvpFeature: Feature = {
 
     const box = ctx.createBox({
       id: 'pvp',
+      css: pvpCss,
       settings: 'pvp.title',
       title: () => t('pvp.title'),
       width: 520,

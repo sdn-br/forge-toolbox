@@ -26,6 +26,7 @@ import {
   TIER_TOGGLES,
   type TierFilter,
 } from './possible-view-model';
+import { investmentsCss } from './styles';
 import { type InvestmentsActions, investmentsView } from './view';
 import {
   DEFAULT_MINE_FILTER,
@@ -250,6 +251,7 @@ export const investmentsFeature: Feature = {
 
     const box = ctx.createBox({
       id: 'investments',
+      css: investmentsCss,
       settings: 'investments.title',
       title: () => t('investments.title'),
       // twelve columns on the possible investments, their heads whole
@@ -257,6 +259,7 @@ export const investmentsFeature: Feature = {
       // the lists grow with every building invested in or seen; the height is the viewer's. It starts tall, since the
       // rows that fit are counted in the height the box gives the table
       resizable: true,
+      fill: true,
       defaultSize: (win) => ({ width: WIDTH, height: Math.min(win.height * 0.7, 600) }),
       minHeight: MIN_HEIGHT,
       // the ages are drawn as of now, so each redraw shows them current

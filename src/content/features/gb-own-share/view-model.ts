@@ -1,12 +1,13 @@
 import type { BuildingDefId } from '../../../shared/ids';
+import { effectiveFactor, effectiveFactors } from '../../domain/gb-factor';
 import { emptyLevel } from '../../domain/gb-level-preview';
 import { calculateOwnShare, type OwnPlace, type OwnShareCalc } from '../../domain/gb-own-share';
 import type { GreatBuildingDef } from '../../stores/catalog';
 import type { Construction, RankingRow } from '../../stores/great-building-model';
 import { type PlaceFactorState, sameChoice } from '../../stores/place-factors';
-import { effectiveFactor, effectiveFactors, type FactorButton, factorButtons } from '../../ui/factor-bar';
+import { type FactorButton, factorButtons } from '../../ui/factor-bar';
 import { type LevelChoice, levelChoice } from '../../ui/level-bar';
-import { type CopyOptions, copyText } from '../../ui/own-share-copy';
+import { type CopyOptions, copyText } from './copy-text';
 
 export {
   COPY_MODES,
@@ -15,7 +16,7 @@ export {
   type CopyOptions,
   copyText,
   DEFAULT_COPY,
-} from '../../ui/own-share-copy';
+} from './copy-text';
 
 export interface OwnShareInputs {
   /** the last own construction opened */

@@ -25,7 +25,8 @@ import {
   copyToggleKey,
   DEFAULT_COPY,
   readCopyOptions,
-} from '../../ui/own-share-copy';
+} from './copy-text';
+import { ownShareCss } from './styles';
 import { type OwnShareActions, ownShareView } from './view';
 import { ownShareViewModel } from './view-model';
 
@@ -222,6 +223,7 @@ export function createGbOwnShareFeature(
       };
       const box = ctx.createBox({
         id: 'gbOwnShare',
+        css: ownShareCss,
         settings: 'gbOwn.title',
         title: () => t('gbOwn.title'),
         width: 500,

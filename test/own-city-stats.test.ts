@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { CATEGORY_COLORS } from '../src/content/features/city-map/colors';
 import { ownCityStats } from '../src/content/features/city-map/stats';
 import type { BuildingDef } from '../src/content/stores/catalog';
 import type { Building, City } from '../src/content/stores/city-model';
-import { CATEGORY_COLORS } from '../src/content/ui/city-colors';
 import { type BuildingDefId, buildingDefId, type EraId, eraId, playerId, worldId } from '../src/shared/ids';
 
 const def = (id: string, width: number, length: number, street = 0): BuildingDef => ({

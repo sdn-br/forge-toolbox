@@ -1,7 +1,7 @@
 // Colors of the building groups on city maps, shared by every feature that draws a city.
-import { t } from '../core/texts';
-import { type BuildingCategory, CATEGORIES } from '../domain/city-grid';
-import type { LegendItem } from './city-map';
+import { t } from '../../core/texts';
+import { type BuildingCategory, CATEGORIES } from '../../domain/city-grid';
+import type { LegendItem } from '../../ui/city-map';
 
 export const CATEGORY_COLORS: Record<BuildingCategory, string> = {
   residential: '#5b8fd6',

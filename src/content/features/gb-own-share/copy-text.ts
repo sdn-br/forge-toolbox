@@ -1,10 +1,10 @@
 // The copy text of an own great building for the guild chat and what it is made of, shared by the Eigenanteil box and
 // the Powerleveln box: the switches, their defaults, reading them from the settings and the text itself.
 
-import type { Settings } from '../core/settings';
-import { type TextKey, t } from '../core/texts';
-import type { OwnPlace, OwnShareCalc } from '../domain/gb-own-share';
-import { factorText } from './factor-bar';
+import type { Settings } from '../../core/settings';
+import { type TextKey, t } from '../../core/texts';
+import type { OwnPlace, OwnShareCalc } from '../../domain/gb-own-share';
+import { factorText } from '../../ui/factor-bar';
 
 /** which places the copy text names: the safe ones from the top, all free ones, all with Forge points, or a choice */
 export type CopyMode = 'auto' | 'autoUnsafe' | 'all' | 'manual';

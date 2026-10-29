@@ -14,9 +14,6 @@ export const snipeProfitRange = (h: SnipeHit): string | undefined =>
     ? undefined
     : t('snipe.profitRange', { low: signed(h.profitLow), high: signed(h.profitHigh) });
 
-/** sorts by the best case, the worst case breaking ties */
-export const snipeProfitKey = (h: SnipeHit) => h.profitHigh * 1e9 + h.profitLow;
-
 const worstNote = (w: SnipePlace) =>
   t('snipe.worst', { rank: w.rank, cost: formatNumber(w.cost), profit: signed(w.profit) });
 
@@ -47,6 +44,3 @@ export const tierCell = (tier: SnipeTier) =>
 /** the profit, marked when the rewards are estimated; the range of a not exact profit in the tooltip */
 export const profitCell = (profit: string, estimate: boolean, range?: string) =>
   estimateCell(profit, estimate, [range]);
-
-/** the tiers from the best: exact over safe over possible, for sorting */
-export const TIER_ORDER: Record<SnipeTier, number> = { exact: 2, safe: 1, possible: 0 };

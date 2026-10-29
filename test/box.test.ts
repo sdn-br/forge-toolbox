@@ -4,7 +4,9 @@ import { html } from 'lit-html';
 import { afterEach, describe, expect, it } from 'vitest';
 import { memoryKv } from '../src/content/core/kv';
 import { t } from '../src/content/core/texts';
-import { Box, type BoxOptions, largeDefaultSize } from '../src/content/ui/box';
+import { largeDefaultSize } from '../src/content/features/city-map/size';
+import { cityMapCss } from '../src/content/features/city-map/styles';
+import { Box, type BoxOptions } from '../src/content/ui/box';
 import { UiState } from '../src/content/ui/ui-state';
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -321,11 +323,12 @@ describe('box default size', () => {
 });
 
 describe('box content that fills', () => {
+  const content = html`<div class="content"></div>`;
   const mapLike = html`<div class="city-map"><div class="map-frame"></div></div>`;
-  const frameStyle = (host: Element | null) =>
-    getComputedStyle(host?.shadowRoot?.querySelector('.map-frame') as HTMLElement);
+  const styleOf = (host: Element | null, selector: string, win: globalThis.Window = window) =>
+    win.getComputedStyle(host?.shadowRoot?.querySelector(selector) as HTMLElement);
 
-  it('lets a map keep its default height in a box without a saved height', async () => {
+  it('lets the content keep its own height in a box without a saved height', async () => {
     new Box(
       { id: 'map', title: () => 'Map', resizable: true, fill: true, render: () => mapLike },
       new UiState(memoryKv()),
@@ -333,28 +336,57 @@ describe('box content that fills', () => {
     await tick();
     const host = document.querySelector('[data-forge-toolbox=map]');
     expect(host?.shadowRoot?.querySelector('.box.tall')).toBeNull();
-    expect(Number.parseFloat(frameStyle(host).height)).toBeCloseTo(window.innerHeight * 0.55);
+    expect(styleOf(host, '.city-map').flexGrow).not.toBe('1');
+    expect(Number.parseFloat(styleOf(host, '.map-frame').height)).toBeCloseTo(window.innerHeight * 0.55);
   });
 
-  it('lets a map fill a box with a saved height', async () => {
+  it('lets the content fill a box with a saved height, the body not scrolling', async () => {
     const ui = new UiState(memoryKv());
     ui.saveBox('map', { width: 600, height: 500 });
-    new Box({ id: 'map', title: () => 'Map', resizable: true, fill: true, render: () => mapLike }, ui).open();
+    new Box({ id: 'map', title: () => 'Map', resizable: true, fill: true, render: () => content }, ui).open();
     await tick();
     const host = document.querySelector('[data-forge-toolbox=map]');
     expect(host?.shadowRoot?.querySelector('.box.tall .body.fill')).not.toBeNull();
-    expect(frameStyle(host).flexGrow).toBe('1');
-    expect(frameStyle(host).height).toBe('auto');
+    expect(styleOf(host, '.body').display).toBe('flex');
+    expect(styleOf(host, '.body').overflow).toBe('hidden');
+    expect(styleOf(host, '.content').flexGrow).toBe('1');
+    expect(Number.parseFloat(styleOf(host, '.content').minHeight)).toBe(0);
   });
 
-  it('lets a map fill the pop-out window', async () => {
+  it('lets the content fill the pop-out window', async () => {
     const popup = popupWindow();
-    await poppedBox(popup, { fill: true, render: () => mapLike });
+    await poppedBox(popup, { fill: true, render: () => content });
     const host = popup.document.querySelector('[data-forge-toolbox=test]');
     expect(host?.shadowRoot?.querySelector('.box.popped .body.fill')).not.toBeNull();
-    const style = popup.getComputedStyle(host?.shadowRoot?.querySelector('.map-frame') as HTMLElement);
-    expect(style.flexGrow).toBe('1');
-    expect(style.height).toBe('auto');
+    expect(styleOf(host, '.content', popup).flexGrow).toBe('1');
+  });
+
+  it('lets the city map stretch its frame with the CSS of its feature', async () => {
+    const ui = new UiState(memoryKv());
+    ui.saveBox('map', { width: 600, height: 500 });
+    const options = {
+      id: 'map',
+      title: () => 'Map',
+      resizable: true,
+      fill: true,
+      css: cityMapCss,
+      render: () => mapLike,
+    };
+    new Box(options, ui).open();
+    await tick();
+    const host = document.querySelector('[data-forge-toolbox=map]');
+    expect(styleOf(host, '.map-frame').flexGrow).toBe('1');
+    expect(styleOf(host, '.map-frame').height).toBe('auto');
+  });
+
+  it('puts the CSS of the feature after the CSS of the kit', async () => {
+    new Box(
+      { id: 'css', title: () => 'Css', css: '.own { color: red; }', render: () => content },
+      new UiState(memoryKv()),
+    ).open();
+    await tick();
+    const style = document.querySelector('[data-forge-toolbox=css]')?.shadowRoot?.querySelector('style')?.textContent;
+    expect(style?.endsWith('.own { color: red; }')).toBe(true);
   });
 });
 

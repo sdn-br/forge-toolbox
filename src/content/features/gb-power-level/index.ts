@@ -3,7 +3,8 @@ import { logError } from '../../core/log';
 import { t } from '../../core/texts';
 import { ONE_FP, ownArcBonus, SECURE, TRUST, viewFlag } from '../../stores/gb-own-state';
 import type { Construction } from '../../stores/great-building-model';
-import { COPY_PLAYER, copyBuildingKey, readCopyOptions } from '../../ui/own-share-copy';
+import { COPY_PLAYER, copyBuildingKey, readCopyOptions } from '../gb-own-share/copy-text';
+import { powerLevelCss } from './styles';
 import { powerLevelView } from './view';
 import { powerLevelViewModel } from './view-model';
 
@@ -53,6 +54,7 @@ export function createGbPowerLevelFeature(
       };
       const box = ctx.createBox({
         id: 'gbPowerLevel',
+        css: powerLevelCss,
         title: () => t('gbPower.title'),
         width: 560,
         render: () =>

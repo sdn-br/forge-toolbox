@@ -5,6 +5,7 @@ import { assessCity } from '../../domain/assess-city';
 import { footprints, spotOf } from '../../domain/city-grid';
 import { icons } from '../../ui/icons';
 import { PlayerNoteCard } from '../../ui/note-card';
+import { sabotageCss } from './styles';
 import { type PlunderMarks, sabotageView } from './view';
 import { type SabotageVm, sabotageViewModel } from './view-model';
 import { visitedRecord } from './visited-record';
@@ -45,6 +46,7 @@ export const sabotageFeature: Feature = {
     };
     const box = ctx.createBox({
       id: 'sabotage',
+      css: sabotageCss,
       settings: 'sabotage.title',
       title: () => t('sabotage.title'),
       width: 400,

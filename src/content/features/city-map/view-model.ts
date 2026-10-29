@@ -5,8 +5,8 @@ import { buildingCategory, footprints, freeTiles, nameOf, needsRoad } from '../.
 import { expansionBlocks } from '../../domain/expansions';
 import type { BuildingDef, CityGrid } from '../../stores/catalog';
 import type { Building, City } from '../../stores/city-model';
-import { CATEGORY_COLORS, categoryLegend, mutedColor } from '../../ui/city-colors';
 import type { CityMapData, LegendItem, MapBadge, MapTile } from '../../ui/city-map';
+import { CATEGORY_COLORS, categoryLegend, mutedColor } from './colors';
 
 export interface OwnMapUi {
   /** the text of the search field; hits are the names that contain it, a preview while typing */

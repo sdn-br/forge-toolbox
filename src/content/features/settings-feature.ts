@@ -17,9 +17,25 @@ import {
   type Settings,
 } from '../core/settings';
 import { type TextKey, t } from '../core/texts';
-import { FACTOR_STEP, factorOf, percentOf } from '../ui/factor-bar';
+import { FACTOR_STEP, factorOf, percentOf } from '../domain/gb-factor';
 import { headerIcons, icons } from '../ui/icons';
 import { keepKeys } from '../ui/inputs';
+
+/** settings: a column of module icons, the chosen module beside it */
+const settingsCss = `
+p.setting-hint { margin: 0 0 4px 22px; }
+/* settings: a column of module icons, the chosen module beside it */
+.settings-layout { display: flex; gap: 8px; align-items: flex-start; }
+.settings-nav { flex: 0 0 auto; display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0; }
+.settings-nav button { all: unset; cursor: pointer; width: 28px; height: 28px; display: grid; place-items: center;
+  font-size: 16px; border-radius: 4px; color: var(--ink); background: var(--btn); border-left: 3px solid transparent; }
+.settings-nav button:hover, .settings-nav button.active { --btn: var(--btn-hover); }
+.settings-nav button.active { border-left-color: var(--accent); }
+.settings-nav svg { display: block; width: 20px; height: 20px; }
+.settings-main { flex: 1; min-width: 0; }
+.settings-main h2:first-child { margin-top: 2px; }
+.settings-main h3 { font-size: 12px; margin: 10px 0 4px; color: var(--muted); }
+`;
 
 const save = (settings: Settings, key: string, value: boolean | string | number | number[]) =>
   settings.set(key, value).catch((error) => logError('saving settings failed', error));
@@ -231,6 +247,7 @@ export const settingsFeature: Feature = {
     };
     const box = ctx.createBox({
       id: 'settings',
+      css: settingsCss,
       title: () => t('settings.title'),
       width: 380,
       maxHeight: 0.8,

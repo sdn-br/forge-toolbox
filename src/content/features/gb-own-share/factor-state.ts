@@ -1,10 +1,10 @@
 // The part of the factor bar and the factor column both own-share boxes show: where the five factors come from with
 // the buttons that change it, and the narrow field of one place.
 import { html } from 'lit-html';
-import { t } from '../core/texts';
-import { offButton } from './buttons';
-import { factorInput } from './factor-bar';
-import { headerIcons } from './icons';
+import { t } from '../../core/texts';
+import { offButton } from '../../ui/buttons';
+import { factorInput } from '../../ui/factor-bar';
+import { headerIcons } from '../../ui/icons';
 
 /** where the five factors come from, and what each of the three buttons may do now */
 export interface FactorLevel {

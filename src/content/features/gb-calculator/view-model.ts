@@ -7,12 +7,13 @@ import {
   type PlaceCalc,
   type PlaceStatus,
 } from '../../domain/gb-calculator';
+import { effectiveFactor as effective, type FactorChoice } from '../../domain/gb-factor';
 import { type LevelUpAndFirst, levelUpAndFirst, previewLevel } from '../../domain/gb-level-preview';
 import { ignoreReason } from '../../domain/ignore';
 import type { GreatBuildingDef } from '../../stores/catalog';
 import type { FoestatsRecord } from '../../stores/foestats';
 import type { Construction, RankingRow } from '../../stores/great-building-model';
-import { effectiveFactor as effective, type FactorButton, type FactorChoice, factorButtons } from '../../ui/factor-bar';
+import { type FactorButton, factorButtons } from '../../ui/factor-bar';
 import { ignoreWords } from '../../ui/ignore';
 import { type LevelChoice, levelChoice } from '../../ui/level-bar';
 

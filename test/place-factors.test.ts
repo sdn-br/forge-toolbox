@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { memoryKv } from '../src/content/core/kv';
+import type { FactorChoice } from '../src/content/domain/gb-factor';
 import { PlaceFactors, STANDARD_KEY, savedKey } from '../src/content/stores/place-factors';
-import type { FactorChoice } from '../src/content/ui/factor-bar';
 import { UiState } from '../src/content/ui/ui-state';
 
 const fixed = (value: number): FactorChoice => ({ value, arc: false });

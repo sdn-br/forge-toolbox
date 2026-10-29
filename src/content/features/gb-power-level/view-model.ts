@@ -1,13 +1,14 @@
 import type { BuildingDefId } from '../../../shared/ids';
 import { clamp } from '../../../shared/math';
 import { type DoubleHarvest, doubleHarvest, hasDoubleHarvest } from '../../domain/gb-double-harvest';
+import { effectiveFactor, effectiveFactors } from '../../domain/gb-factor';
 import { emptyLevel } from '../../domain/gb-level-preview';
 import { calculateOwnShare, type OwnShareCalc } from '../../domain/gb-own-share';
 import type { GreatBuildingDef } from '../../stores/catalog';
 import type { Construction } from '../../stores/great-building-model';
 import { type PlaceFactorState, sameChoice } from '../../stores/place-factors';
-import { effectiveFactor, effectiveFactors, type FactorButton, factorButtons } from '../../ui/factor-bar';
-import { type CopyOptions, copyText } from '../../ui/own-share-copy';
+import { type FactorButton, factorButtons } from '../../ui/factor-bar';
+import { type CopyOptions, copyText } from '../gb-own-share/copy-text';
 
 /** the most levels one table shows */
 export const MAX_ROWS = 100;

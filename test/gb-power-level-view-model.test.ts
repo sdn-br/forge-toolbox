@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyLevel } from '../src/content/domain/gb-level-preview';
 import { calculateOwnShare } from '../src/content/domain/gb-own-share';
+import { DEFAULT_COPY } from '../src/content/features/gb-own-share/copy-text';
 import {
   MAX_ROWS,
   type PowerLevelInputs,
@@ -11,7 +12,6 @@ import { toBuildingDef } from '../src/content/game/building-defs';
 import type { GreatBuildingDef } from '../src/content/stores/catalog';
 import type { Construction, RankingRow } from '../src/content/stores/great-building-model';
 import type { PlaceFactorState } from '../src/content/stores/place-factors';
-import { DEFAULT_COPY } from '../src/content/ui/own-share-copy';
 import type { BuildingDefId, PlayerId } from '../src/shared/ids';
 import definitions from './fixtures/gb-definitions.json';
 

@@ -1,13 +1,14 @@
 import type { Feature } from '../../core/feature';
 import { t } from '../../core/texts';
 import { nameOf } from '../../domain/city-grid';
-import { largeDefaultSize } from '../../ui/box';
 import { CityMap, legendView, type MapTile } from '../../ui/city-map';
 import { icons } from '../../ui/icons';
 import { toMode } from '../../ui/map-projection';
 import { NameSearch } from '../../ui/name-search';
 import { selectionList } from '../../ui/selection-list';
+import { largeDefaultSize } from './size';
 import { ownCityStats } from './stats';
+import { cityMapCss } from './styles';
 import { type CityMapActions, cityMapView } from './view';
 import { nextFinish, type OwnMapUi, ownCityMapViewModel } from './view-model';
 
@@ -55,6 +56,7 @@ export const cityMapFeature: Feature = {
     };
     const box = ctx.createBox({
       id: 'cityMap',
+      css: cityMapCss,
       title: () => t('cityMap.title'),
       width: 500,
       resizable: true,

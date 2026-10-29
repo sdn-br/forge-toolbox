@@ -1,17 +1,10 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import { formatNumber, signed, t } from '../../core/texts';
-import type { SnipeHit, SnipeList, SnipeTier } from '../../domain/gb-snipe';
+import { type SnipeHit, type SnipeList, type SnipeTier, snipeProfitKey, TIER_ORDER } from '../../domain/gb-snipe';
 import { ignoreReason } from '../../domain/ignore';
 import type { FoestatsRecord } from '../../stores/foestats';
 import { ignoreWords } from '../../ui/ignore';
-import {
-  ownerShareNote,
-  snipeNotes,
-  snipeProfit,
-  snipeProfitKey,
-  snipeProfitRange,
-  TIER_ORDER,
-} from '../../ui/snipe-hit';
+import { ownerShareNote, snipeNotes, snipeProfit, snipeProfitRange } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
 import { clampTop, type RowWindow, rowWindow } from '../../ui/windowed-rows';
 import { type ActivityVm, activityVm } from './view-model';

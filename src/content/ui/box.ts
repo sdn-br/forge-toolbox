@@ -23,18 +23,15 @@ export interface BoxOptions {
   /** the smallest height a box with the handle can be dragged to or shows from a saved size (default `MIN_HEIGHT`), for a
    * box whose content needs more than the default to avoid a second scrollbar */
   minHeight?: number;
-  /** the content fills the body once the box has a height (resized or popped out), e.g. a map */
+  /** the content fills the body once the box has a height (resized or popped out), e.g. a map: the body does not
+   * scroll, its one child takes the height */
   fill?: boolean;
+  /** the feature's own CSS, after the kit's `baseCss` in the box's shadow root */
+  css?: string;
   onClose?: () => void;
   /** the settings group of the feature; the header then shows a button that opens the settings at it */
   settings?: string;
 }
-
-/** 70 % of the window in each direction, at most 1100 x 850 pixels; the default size of a map box */
-export const largeDefaultSize: NonNullable<BoxOptions['defaultSize']> = (win) => ({
-  width: Math.min(win.width * 0.7, 1100),
-  height: Math.min(win.height * 0.7, 850),
-});
 
 let topZ = 2147480000;
 
@@ -143,7 +140,7 @@ export class Box {
     const open = this.openSettings;
     const settingsButton =
       settings && open ? iconButton(t('box.settings'), () => open(settings), headerIcons.gear) : '';
-    return html`<style>${baseCss}</style>
+    return html`<style>${baseCss}${this.options.css ?? ''}</style>
       <div class=${classes} style=${style} @pointerdown=${() => this.raise()}>
         <header @pointerdown=${(e: PointerEvent) => this.startDrag(e)}>
           <h1>${this.options.title()}</h1>

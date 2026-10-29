@@ -4,10 +4,10 @@ import type { OwnPlace } from '../../domain/gb-own-share';
 import { iconButton } from '../../ui/buttons';
 import { estimateCell } from '../../ui/estimate-cell';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
-import { type FactorLevelActions, factorLevel, placeFactorField } from '../../ui/factor-state';
 import { headerIcons } from '../../ui/icons';
 import { keepKeys } from '../../ui/inputs';
 import { type LevelChoice, levelBar } from '../../ui/level-bar';
+import { type FactorLevelActions, factorLevel, placeFactorField } from './factor-state';
 import type { CopyVm, OwnPreviewVm, OwnRow, OwnShareVm } from './view-model';
 
 export interface OwnShareActions extends FactorActions, FactorLevelActions {
