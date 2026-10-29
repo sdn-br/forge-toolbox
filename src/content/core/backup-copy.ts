@@ -209,7 +209,8 @@ export class BackupCopy {
   private async offerAtStart(): Promise<FoundOffer[]> {
     const { kv, persistence, profile, now } = this.env;
     const offer = await this.read();
-    if (!offer) return [];
+    // the copy written at the first start of an empty profile holds nothing to take
+    if (!offer || !Object.values(offer.choice.counts).some((n) => n > 0)) return [];
     const answer = await kv.get<Answer | null>(ANSWER);
     if (answer?.answer === 'no') return [];
     // own settings count as data: a profile that only changed a setting wrote the copy itself, nothing is lost

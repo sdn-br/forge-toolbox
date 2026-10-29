@@ -222,6 +222,11 @@ describe('a found copy at the start', () => {
     expect((await env.store.get(me))?.createdAt).toBe(T0 - DAY);
   });
 
+  it('is not offered when the copy holds nothing', async () => {
+    const env = await setup({ copy: await copyOf({ name: 'Ich', tables: tables({}) }, T0 - DAY) });
+    expect(await env.copy.start()).toEqual([]);
+  });
+
   it('is not offered when the profile has only own settings', async () => {
     const env = await setup({ copy: await found(), stored: { settings: { b: 2 } } });
     expect(await env.copy.start()).toEqual([]);
