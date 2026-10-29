@@ -25,7 +25,7 @@ import {
   copyToggleKey,
   DEFAULT_COPY,
   readCopyOptions,
-} from '../../ui/own-share-copy';
+} from './copy-text';
 import { type OwnShareActions, ownShareView } from './view';
 import { ownShareViewModel } from './view-model';
 

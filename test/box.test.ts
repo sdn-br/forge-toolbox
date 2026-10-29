@@ -4,7 +4,8 @@ import { html } from 'lit-html';
 import { afterEach, describe, expect, it } from 'vitest';
 import { memoryKv } from '../src/content/core/kv';
 import { t } from '../src/content/core/texts';
-import { Box, type BoxOptions, largeDefaultSize } from '../src/content/ui/box';
+import { largeDefaultSize } from '../src/content/features/city-map/size';
+import { Box, type BoxOptions } from '../src/content/ui/box';
 import { UiState } from '../src/content/ui/ui-state';
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));

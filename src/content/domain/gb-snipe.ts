@@ -201,3 +201,9 @@ export function snipeList(input: SnipeInput): SnipeList {
   out.hits.sort((a, b) => b.profitHigh - a.profitHigh || b.profitLow - a.profitLow);
   return out;
 }
+
+/** sorts by the best case, the worst case breaking ties */
+export const snipeProfitKey = (h: SnipeHit) => h.profitHigh * 1e9 + h.profitLow;
+
+/** the tiers from the best: exact over safe over possible, for sorting */
+export const TIER_ORDER: Record<SnipeTier, number> = { exact: 2, safe: 1, possible: 0 };

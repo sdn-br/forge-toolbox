@@ -1,5 +1,5 @@
 // A short beep made with WebAudio, so the extension ships no sound file.
-import { logError } from '../core/log';
+import { logError } from '../../core/log';
 
 let audio: AudioContext | undefined;
 

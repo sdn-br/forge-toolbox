@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { CATEGORY_COLORS, mutedColor } from '../src/content/features/city-map/colors';
 import { MARK, nextFinish, type OwnMapUi, ownCityMapViewModel } from '../src/content/features/city-map/view-model';
 import type { BuildingDef } from '../src/content/stores/catalog';
 import type { Building, City } from '../src/content/stores/city-model';
-import { CATEGORY_COLORS, mutedColor } from '../src/content/ui/city-colors';
 import { type BuildingDefId, buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
 
 const def = (id: string, name: string, width: number, length: number): BuildingDef => ({

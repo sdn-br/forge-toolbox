@@ -14,7 +14,7 @@ import {
 import type { BuildingDef, CityGrid } from '../../stores/catalog';
 import type { City, ExpansionOffer, ResourceId } from '../../stores/city-model';
 import type { ResearchExpansion } from '../../stores/research';
-import { CATEGORY_COLORS } from '../../ui/city-colors';
+import { CATEGORY_COLORS } from './colors';
 
 /** What the statistics need beyond the city. */
 export interface StatsMeans {

@@ -13,7 +13,6 @@ import { FOESTATS_SETTING } from '../../stores/foestats';
 import type { Construction } from '../../stores/great-building-model';
 import { icons } from '../../ui/icons';
 import { nextSort } from '../../ui/sortable';
-import { playTone } from '../../ui/tone';
 import { type SnipeActions, snipeView } from './snipe-view';
 import {
   clampScroll,
@@ -23,6 +22,7 @@ import {
   type SnipeVm,
   snipeViewModel,
 } from './snipe-view-model';
+import { playTone } from './tone';
 import { type GbCalculatorActions, gbCalculatorView } from './view';
 import { type GbCalculatorVm, gbCalculatorViewModel } from './view-model';
 
