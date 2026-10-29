@@ -1,13 +1,8 @@
 // The factor buttons of the great building calculators: presets and the own Arc bonus, sorted by value, plus a field.
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../core/texts';
+import { FACTOR_STEP, type FactorChoice, factorOf, percentOf } from '../domain/gb-factor';
 import { keepKeys } from './inputs';
-
-/** the factor picked: a number in percent, or the own Arc bonus, which follows the bonus when it changes */
-export interface FactorChoice {
-  value: number;
-  arc: boolean;
-}
 
 export interface FactorButton {
   value: number;
@@ -22,19 +17,8 @@ export interface FactorActions {
   useArc(): void;
 }
 
-/** 90 % is the factor 1,9 helpers know */
-export const factorOf = (percent: number) => (100 + percent) / 100;
-
 /** 90 % reads as the factor 1,9 */
 export const factorText = (percent: number) => formatNumber(factorOf(percent));
-
-/** the factor in effect: the Arc bonus only while its button shows */
-export const effectiveFactor = (choice: FactorChoice, arcBonus: number | undefined) =>
-  choice.arc && arcBonus !== undefined ? arcBonus : choice.value;
-
-/** the factor of each place, one choice per place */
-export const effectiveFactors = (choices: FactorChoice[], arcBonus: number | undefined) =>
-  choices.map((c) => effectiveFactor(c, arcBonus));
 
 /** the presets and, when given, the own Arc bonus, sorted by value, the chosen one active; without a choice none is */
 export function factorButtons(
@@ -48,12 +32,6 @@ export function factorButtons(
     ...(arcBonus === undefined ? [] : [{ value: arcBonus, arc: true, active: arc }]),
   ].sort((a, b) => a.value - b.value);
 }
-
-/** what the arrows of a factor field add: 1,9 → 1,91; typing still takes 1,955 */
-export const FACTOR_STEP = 0.01;
-
-/** a factor as typed, 1,955, back to percent with one decimal, 95.5 */
-export const percentOf = (factor: number) => Math.round((factor - 1) * 1000) / 10;
 
 /** a field that reads `percent` as a factor; `set` gets what was typed in percent */
 export function factorInput(f: {

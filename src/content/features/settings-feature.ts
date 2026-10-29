@@ -17,7 +17,7 @@ import {
   type Settings,
 } from '../core/settings';
 import { type TextKey, t } from '../core/texts';
-import { FACTOR_STEP, factorOf, percentOf } from '../ui/factor-bar';
+import { FACTOR_STEP, factorOf, percentOf } from '../domain/gb-factor';
 import { headerIcons, icons } from '../ui/icons';
 import { keepKeys } from '../ui/inputs';
 

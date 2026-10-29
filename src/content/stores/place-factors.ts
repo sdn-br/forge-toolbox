@@ -1,6 +1,6 @@
 // The factor of each of the five places of an own great building, on three levels: the standard for every building,
 // the five saved for one building, and a change in the box not saved, kept per building until the page reloads.
-import type { FactorChoice } from '../ui/factor-bar';
+import type { FactorChoice } from '../domain/gb-factor';
 
 /** the places with a reward */
 export const PLACES = 5;

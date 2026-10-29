@@ -5,7 +5,7 @@
 import type { ToolboxBus } from '../core/events';
 import type { Settings } from '../core/settings';
 import { arcBonus } from '../domain/gb-calculator';
-import type { FactorChoice } from '../ui/factor-bar';
+import type { FactorChoice } from '../domain/gb-factor';
 import type { CityStore } from './cities';
 import type { GreatBuildingStore } from './great-buildings';
 import { type PlaceFactorState, PlaceFactors, type PrefStore } from './place-factors';
