@@ -25,6 +25,8 @@ export interface BoxOptions {
   minHeight?: number;
   /** the content fills the body once the box has a height (resized or popped out), e.g. a map */
   fill?: boolean;
+  /** the feature's own CSS, after the kit's `baseCss` in the box's shadow root */
+  css?: string;
   onClose?: () => void;
   /** the settings group of the feature; the header then shows a button that opens the settings at it */
   settings?: string;
@@ -137,7 +139,7 @@ export class Box {
     const open = this.openSettings;
     const settingsButton =
       settings && open ? iconButton(t('box.settings'), () => open(settings), headerIcons.gear) : '';
-    return html`<style>${baseCss}</style>
+    return html`<style>${baseCss}${this.options.css ?? ''}</style>
       <div class=${classes} style=${style} @pointerdown=${() => this.raise()}>
         <header @pointerdown=${(e: PointerEvent) => this.startDrag(e)}>
           <h1>${this.options.title()}</h1>

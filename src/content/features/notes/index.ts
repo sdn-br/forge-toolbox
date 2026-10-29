@@ -3,6 +3,7 @@ import { t } from '../../core/texts';
 import { PLAYER_GROUP, playerPageId } from '../../stores/notes';
 import { icons } from '../../ui/icons';
 import { NoteEditor } from '../../ui/note-editor';
+import { notesCss } from './styles';
 import { type NotesActions, notesView } from './view';
 import { type NotesUi, type NotesVm, notesViewModel } from './view-model';
 
@@ -33,7 +34,14 @@ export const notesFeature: Feature = {
       return notesView(vm, vm.page && editorFor(vm.page), actions);
     };
 
-    const box = ctx.createBox({ id: 'notes', title: () => t('notes.title'), width: 520, resizable: true, render });
+    const box = ctx.createBox({
+      id: 'notes',
+      title: () => t('notes.title'),
+      width: 520,
+      resizable: true,
+      css: notesCss,
+      render,
+    });
     const editor = new NoteEditor(() => box.update());
 
     const editorFor = (page: NonNullable<NotesVm['page']>) =>

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { memoryKv } from '../src/content/core/kv';
 import { t } from '../src/content/core/texts';
 import { largeDefaultSize } from '../src/content/features/city-map/size';
+import { cityMapCss } from '../src/content/features/city-map/styles';
 import { Box, type BoxOptions } from '../src/content/ui/box';
 import { UiState } from '../src/content/ui/ui-state';
 
@@ -322,13 +323,14 @@ describe('box default size', () => {
 });
 
 describe('box content that fills', () => {
+  const content = html`<div class="content"></div>`;
   const mapLike = html`<div class="city-map"><div class="map-frame"></div></div>`;
   const frameStyle = (host: Element | null) =>
     getComputedStyle(host?.shadowRoot?.querySelector('.map-frame') as HTMLElement);
 
   it('lets a map keep its default height in a box without a saved height', async () => {
     new Box(
-      { id: 'map', title: () => 'Map', resizable: true, fill: true, render: () => mapLike },
+      { id: 'map', title: () => 'Map', resizable: true, fill: true, css: cityMapCss, render: () => mapLike },
       new UiState(memoryKv()),
     ).open();
     await tick();
@@ -340,7 +342,10 @@ describe('box content that fills', () => {
   it('lets a map fill a box with a saved height', async () => {
     const ui = new UiState(memoryKv());
     ui.saveBox('map', { width: 600, height: 500 });
-    new Box({ id: 'map', title: () => 'Map', resizable: true, fill: true, render: () => mapLike }, ui).open();
+    new Box(
+      { id: 'map', title: () => 'Map', resizable: true, fill: true, css: cityMapCss, render: () => mapLike },
+      ui,
+    ).open();
     await tick();
     const host = document.querySelector('[data-forge-toolbox=map]');
     expect(host?.shadowRoot?.querySelector('.box.tall .body.fill')).not.toBeNull();
@@ -350,12 +355,22 @@ describe('box content that fills', () => {
 
   it('lets a map fill the pop-out window', async () => {
     const popup = popupWindow();
-    await poppedBox(popup, { fill: true, render: () => mapLike });
+    await poppedBox(popup, { fill: true, css: cityMapCss, render: () => mapLike });
     const host = popup.document.querySelector('[data-forge-toolbox=test]');
     expect(host?.shadowRoot?.querySelector('.box.popped .body.fill')).not.toBeNull();
     const style = popup.getComputedStyle(host?.shadowRoot?.querySelector('.map-frame') as HTMLElement);
     expect(style.flexGrow).toBe('1');
     expect(style.height).toBe('auto');
+  });
+
+  it('puts the CSS of the feature after the CSS of the kit', async () => {
+    new Box(
+      { id: 'css', title: () => 'Css', css: '.own { color: red; }', render: () => content },
+      new UiState(memoryKv()),
+    ).open();
+    await tick();
+    const style = document.querySelector('[data-forge-toolbox=css]')?.shadowRoot?.querySelector('style')?.textContent;
+    expect(style?.endsWith('.own { color: red; }')).toBe(true);
   });
 });
 

@@ -22,6 +22,7 @@ import {
   type SnipeVm,
   snipeViewModel,
 } from './snipe-view-model';
+import { gbCalculatorCss } from './styles';
 import { playTone } from './tone';
 import { type GbCalculatorActions, gbCalculatorView } from './view';
 import { type GbCalculatorVm, gbCalculatorViewModel } from './view-model';
@@ -236,6 +237,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
 
       const box = ctx.createBox({
         id: 'gbCalculator',
+        css: gbCalculatorCss,
         settings: 'gbCalc.title',
         title: () => t('gbCalc.title'),
         // the snipe table: fixed columns of 518 px and the building name with its 16 px eye; until 2026-10-25 a CSS cap held fixed boxes at 520 px

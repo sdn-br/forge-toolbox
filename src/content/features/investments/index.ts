@@ -26,6 +26,7 @@ import {
   TIER_TOGGLES,
   type TierFilter,
 } from './possible-view-model';
+import { investmentsCss } from './styles';
 import { type InvestmentsActions, investmentsView } from './view';
 import {
   DEFAULT_MINE_FILTER,
@@ -250,6 +251,7 @@ export const investmentsFeature: Feature = {
 
     const box = ctx.createBox({
       id: 'investments',
+      css: investmentsCss,
       settings: 'investments.title',
       title: () => t('investments.title'),
       // twelve columns on the possible investments, their heads whole
