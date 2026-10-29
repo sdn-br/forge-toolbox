@@ -1,7 +1,7 @@
 // Takes over the store of the time before profiles: one database `forge-toolbox` for all worlds and global settings.
 // The first profile that opens on a world gets the rows of that world, a second profile on it starts empty.
 import Dexie from 'dexie';
-import { LEGACY_DB, type Profile, profileDbName, profileStorageKey } from '../shared/profile';
+import { LEGACY_DB, PROFILE_KEYS, type Profile, profileDbName, profileStorageKey } from '../shared/profile';
 import { openDb, type ToolboxDb } from './db';
 
 /** the part of chrome.storage.local the takeover uses */
@@ -12,7 +12,6 @@ export interface LocalStorage {
 }
 
 /** settings and box state, global before profiles */
-export const GLOBAL_KEYS = ['settings', 'ui.boxes', 'ui.prefs'];
 /** the databases of the profiles that ran the takeover; opening a database creates it, so its existence tells nothing */
 export const SEEN_KEY = 'profiles.seen';
 
@@ -28,14 +27,14 @@ export async function adoptLegacy(profile: Profile, target: ToolboxDb, storage: 
       if (await isEmpty(legacy)) {
         legacy.close();
         await Dexie.delete(LEGACY_DB);
-        await storage.remove(GLOBAL_KEYS);
+        await storage.remove(PROFILE_KEYS);
       }
     } finally {
       legacy.close();
     }
   } else {
     // the database went first, so a takeover that stopped in between leaves only the keys
-    await storage.remove(GLOBAL_KEYS);
+    await storage.remove(PROFILE_KEYS);
   }
   await storage.set({ [SEEN_KEY]: [...seen, name] });
 }
@@ -64,10 +63,10 @@ async function moveWorld(from: ToolboxDb, to: ToolboxDb, world: string): Promise
 
 /** the old settings and boxes go with the rows, unless the profile has its own already */
 async function copyGlobalKeys(profile: Profile, storage: LocalStorage): Promise<void> {
-  const own = GLOBAL_KEYS.map((key) => profileStorageKey(key, profile));
-  const [old, current] = await Promise.all([storage.get(GLOBAL_KEYS), storage.get(own)]);
+  const own = PROFILE_KEYS.map((key) => profileStorageKey(key, profile));
+  const [old, current] = await Promise.all([storage.get(PROFILE_KEYS), storage.get(own)]);
   const copy: Record<string, unknown> = {};
-  GLOBAL_KEYS.forEach((key, i) => {
+  PROFILE_KEYS.forEach((key, i) => {
     const target = own[i] as string;
     if (old[key] !== undefined && current[target] === undefined) copy[target] = old[key];
   });

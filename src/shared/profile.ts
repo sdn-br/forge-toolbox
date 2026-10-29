@@ -7,6 +7,13 @@ export interface Profile {
   player: PlayerId;
 }
 
+/** the keys of chrome.storage.local a profile owns besides its rows: settings and box layout with the view choices */
+export const PROFILE_KEYS = ['settings', 'ui.boxes', 'ui.prefs'];
+
+/** whether two entries name the same profile; an entry without a player (time before profiles) matches only the same */
+export const sameProfile = (a: { world: WorldId; player?: PlayerId }, b: { world: WorldId; player?: PlayerId }) =>
+  a.world === b.world && a.player === b.player;
+
 /** the database of the time before profiles, all worlds in one, with global settings */
 export const LEGACY_DB = 'forge-toolbox';
 

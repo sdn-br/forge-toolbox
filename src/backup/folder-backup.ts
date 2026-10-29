@@ -5,7 +5,7 @@
 import type { ToolboxDb } from '../background/db';
 import { playerId } from '../shared/ids';
 import { FOLDER_STATUS, type FolderStatus } from '../shared/messages';
-import { type Profile, profileDbName, profileStorageKey } from '../shared/profile';
+import { type Profile, profileDbName, profileStorageKey, sameProfile } from '../shared/profile';
 import { collectBackup, storedOfProfile } from './collect';
 import type { RootFolder } from './folder';
 import {
@@ -17,7 +17,7 @@ import {
   profilesInFolder,
 } from './folder-files';
 import { gzipJson } from './gzip';
-import { importBackup, readBackupFile } from './import';
+import { importBackup, profileEntry, readBackupFile } from './import';
 import { type Area, DATA_AREAS } from './merge';
 
 /** the profiles merged with the folder in this browser session, in chrome.storage.session */
@@ -48,7 +48,6 @@ export interface FolderBackupEnv {
 class Paused extends Error {}
 
 const keyOf = ({ world, player }: Profile) => `${world}:${player}`;
-const sameProfile = (a: Profile) => (b: Profile) => a.world === b.world && a.player === b.player;
 const isRefused = (error: unknown) =>
   error instanceof DOMException && (error.name === 'NotAllowedError' || error.name === 'SecurityError');
 
@@ -89,9 +88,16 @@ export class FolderBackup {
     const changed: Profile[] = [];
     await this.run([], async (folder) => {
       const local = await this.env.localProfiles();
-      const found = profilesInFolder(await folder.files()).filter((p) => !local.some(sameProfile(p)));
+      const found = profilesInFolder(await folder.files()).filter((p) => !local.some((q) => sameProfile(q, p)));
       for (const profile of [...local, ...found]) {
-        if (await this.sync(folder, profile, local.some(sameProfile(profile)))) changed.push(profile);
+        if (
+          await this.sync(
+            folder,
+            profile,
+            local.some((q) => sameProfile(q, profile)),
+          )
+        )
+          changed.push(profile);
       }
       return 'written';
     });
@@ -126,7 +132,7 @@ export class FolderBackup {
         for (const profile of profiles.length ? profiles : [undefined]) results.push(await fn(folder, profile));
         // a profile that waited and was not written here stays waiting for its next write
         const before = await this.status();
-        const pending = before.pending.filter((p) => !profiles.some(sameProfile(p)));
+        const pending = before.pending.filter((p) => !profiles.some((q) => sameProfile(q, p)));
         const written = results.includes('written');
         if (written || before.paused || pending.length !== before.pending.length) {
           const lastWrite = written ? this.env.now() : before.lastWrite;
@@ -136,7 +142,7 @@ export class FolderBackup {
       } catch (error) {
         if (!(error instanceof Paused) && !isRefused(error)) throw error;
         const { lastWrite, pending } = await this.status();
-        const waiting = [...pending, ...profiles.filter((p) => !pending.some(sameProfile(p)))];
+        const waiting = [...pending, ...profiles.filter((p) => !pending.some((q) => sameProfile(q, p)))];
         await this.setStatus({ ...(lastWrite !== undefined && { lastWrite }), paused: true, pending: waiting });
         return profiles.map(() => 'paused' as const);
       }
@@ -176,7 +182,7 @@ export class FolderBackup {
   private async merge(file: Blob, profile: Profile): Promise<boolean> {
     const read = await readBackupFile(file);
     if (!read.ok) throw new Error(read.error);
-    const entry = read.backup.profiles.find((p) => p.world === profile.world && p.player === profile.player);
+    const entry = profileEntry(read.backup, profile);
     if (!entry) throw new Error('no entry of the profile');
     const settingsKey = profileStorageKey('settings', profile);
     const hasSettings = (await this.env.local.get([settingsKey]))[settingsKey] !== undefined;

@@ -9,11 +9,12 @@ import {
   type BackupTables,
 } from '../../backup/format';
 import { gzipJson } from '../../backup/gzip';
-import { areaCounts, type ImportChoice, importChoices, readBackupFile } from '../../backup/import';
+import { areaCounts, type ImportChoice, importChoices, profileEntry, readBackupFile } from '../../backup/import';
 import type { LegacyVersion } from '../../backup/legacy/types';
 import type { Area } from '../../backup/merge';
 import type { BackupPersistence } from '../../persistence/backup/client';
 import type { Profile } from '../../shared/profile';
+import { answeredLaterToday } from '../../shared/time';
 import type { CopyStore } from './backup-store';
 import type { ToolboxBus } from './events';
 import type { KeyValue } from './kv';
@@ -71,8 +72,6 @@ export interface BackupCopyEnv {
 }
 
 const isEmpty = (tables: BackupTables) => Object.values(tables).every((rows) => rows.length === 0);
-
-const sameDay = (a: number, b: number) => new Date(a).toDateString() === new Date(b).toDateString();
 
 export class BackupCopy {
   private timer: ReturnType<typeof setTimeout> | undefined;
@@ -138,10 +137,7 @@ export class BackupCopy {
     this.checked = run.catch(() => undefined);
     return run.then(async (offers) => {
       if (!this.held && this.enabled() && !(await this.env.store.get(this.env.profile))) this.writeNow();
-      const legacy = await this.env.legacy?.offerAtStart().catch((error) => {
-        logError('looking for old toolbox data failed', error);
-        return [];
-      });
+      const legacy = await this.legacyOr(this.env.legacy?.offerAtStart(), []);
       return [...offers, ...(legacy ?? [])];
     });
   }
@@ -149,11 +145,16 @@ export class BackupCopy {
   /** "Gefundene Daten übernehmen": the copy of the profile and the old data, also when the profile has data */
   async find(): Promise<FoundOffer[]> {
     const offer = await this.read();
-    const legacy = await this.env.legacy?.find().catch((error) => {
-      logError('looking for old toolbox data failed', error);
-      return undefined;
-    });
+    const legacy = await this.legacyOr(this.env.legacy?.find(), undefined);
     return [offer, legacy].filter((o) => o !== undefined);
+  }
+
+  /** the old toolbox data are an extra: when looking for them fails, the offers of the copy stay */
+  private legacyOr<T, F>(found: Promise<T> | undefined, fallback: F): Promise<T | F> | undefined {
+    return found?.catch((error) => {
+      logError('looking for old toolbox data failed', error);
+      return fallback;
+    });
   }
 
   /**
@@ -187,7 +188,7 @@ export class BackupCopy {
    * "Nein" for the sources shown: the copy is never offered again for the profile and may be overwritten from now
    * on; the old data are not offered again at the start.
    */
-  async decline(sources: readonly FoundSource[] = ['backupCopy']): Promise<void> {
+  async decline(sources: readonly FoundSource[]): Promise<void> {
     if (sources.includes('backupCopy')) {
       this.held = false;
       await this.env.kv.set(ANSWER, { answer: 'no' } satisfies Answer);
@@ -199,7 +200,7 @@ export class BackupCopy {
    * "Später" for the sources shown: offered again at the next start of another day; until answered the copy stays as
    * it is.
    */
-  async later(sources: readonly FoundSource[] = ['backupCopy']): Promise<void> {
+  async later(sources: readonly FoundSource[]): Promise<void> {
     if (sources.includes('backupCopy'))
       await this.env.kv.set(ANSWER, { answer: 'later', at: this.env.now() } satisfies Answer);
     if (sources.includes('legacy')) await this.env.legacy?.later();
@@ -213,7 +214,7 @@ export class BackupCopy {
     if (answer?.answer === 'no') return [];
     if (!answer && !isEmpty(await persistence.tables(profile.world))) return [];
     this.held = true;
-    if (answer?.answer === 'later' && sameDay(answer.at, now())) return [];
+    if (answeredLaterToday(answer, now())) return [];
     await kv.set(ANSWER, { answer: 'open' } satisfies Answer);
     return [offer];
   }
@@ -228,7 +229,7 @@ export class BackupCopy {
       logError('reading the backup copy failed', read.error);
       return undefined;
     }
-    const entry = read.backup.profiles.find((p) => p.world === profile.world && p.player === profile.player);
+    const entry = profileEntry(read.backup, profile);
     if (!entry) return undefined;
     const hasSettings = (await kv.get('settings')) !== undefined;
     const [choice] = importChoices({ ...read.backup, profiles: [entry] }, () => hasSettings);

@@ -1,5 +1,6 @@
 import type { BuildingDefId } from '../../shared/ids';
 import type { IncomingAttack, IncomingTotals } from '../../shared/model';
+import { sameDay } from '../../shared/time';
 import { de, type TextKey } from '../texts/de';
 
 export type { TextKey };
@@ -31,7 +32,7 @@ const dateTimeFormat = new Intl.DateTimeFormat('de-DE', {
   minute: '2-digit',
 });
 
-export const formatTime = (epochMs: number) => timeFormat.format(epochMs);
+const formatTime = (epochMs: number) => timeFormat.format(epochMs);
 
 const fullDateTimeFormat = new Intl.DateTimeFormat('de-DE', {
   day: '2-digit',
@@ -68,10 +69,9 @@ export const formatAge = (ms: number) => formatDuration(Math.max(MINUTE, ms));
 
 /** "heute 14:05", "morgen 04:14", otherwise date and time. */
 export function formatWhen(epochMs: number, now: number): string {
-  const day = (ms: number) => new Date(ms).toDateString();
-  if (day(epochMs) === day(now)) return t('time.today', { time: formatTime(epochMs) });
-  if (day(epochMs) === day(now + 86_400_000)) return t('time.tomorrow', { time: formatTime(epochMs) });
-  return dateTimeFormat.format(epochMs);
+  if (sameDay(epochMs, now)) return t('time.today', { time: formatTime(epochMs) });
+  if (sameDay(epochMs, now + 86_400_000)) return t('time.tomorrow', { time: formatTime(epochMs) });
+  return formatDateTime(epochMs);
 }
 
 /** Own name of a resource, else the game's name from the startup data, else its id. */

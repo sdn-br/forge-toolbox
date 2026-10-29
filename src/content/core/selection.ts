@@ -7,6 +7,7 @@ import type { BuildingDef } from '../stores/catalog';
 import type { City } from '../stores/city-model';
 import type { ToolboxBus } from './events';
 import type { Markers } from './markers';
+import { compareText } from './texts';
 
 /** the marking the selection sets in `Markers` */
 export const SELECTION = 'selection';
@@ -30,15 +31,13 @@ export function groupSelection(
     if (selected.has(id)) entry.selected++;
     byName.set(name, entry);
   }
-  return [...byName.values()].filter((e) => e.selected > 0).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  return [...byName.values()].filter((e) => e.selected > 0).sort((a, b) => compareText(a.name, b.name));
 }
 
 export class OwnSelection {
   private selected = new Set<number>();
-  /** the buildings the arrows were set on last, at most MAX_MARKERS of the selection */
-  private arrows: number[] = [];
-  /** the spots set last, to skip setting the same arrows again */
-  private spotsKey = '';
+  /** the spots the arrows were set on last, at most MAX_MARKERS of the selection; setting the same again is skipped */
+  private spots: ReturnType<typeof spotOf>[] = [];
 
   constructor(
     private bus: ToolboxBus,
@@ -63,10 +62,6 @@ export class OwnSelection {
     return this.selected;
   }
 
-  has(id: number): boolean {
-    return this.selected.has(id);
-  }
-
   entries(): SelectionEntry[] {
     return groupSelection(
       this.buildings().map((f) => ({ id: f.building.id, name: nameOf(f) })),
@@ -76,15 +71,11 @@ export class OwnSelection {
 
   /** adds all buildings of this name; picking never removes */
   addName(name: string): void {
-    this.change(() => {
-      for (const f of this.buildings()) if (nameOf(f) === name) this.selected.add(f.building.id);
-    });
+    this.editName(name, (id) => this.selected.add(id));
   }
 
   removeName(name: string): void {
-    this.change(() => {
-      for (const f of this.buildings()) if (nameOf(f) === name) this.selected.delete(f.building.id);
-    });
+    this.editName(name, (id) => this.selected.delete(id));
   }
 
   /** adds the building, or removes it when it is selected */
@@ -107,6 +98,12 @@ export class OwnSelection {
 
   clear(): void {
     this.change(() => this.selected.clear());
+  }
+
+  private editName(name: string, edit: (id: number) => unknown) {
+    this.change(() => {
+      for (const f of this.buildings()) if (nameOf(f) === name) edit(f.building.id);
+    });
   }
 
   private onGrid(id: number) {
@@ -135,19 +132,17 @@ export class OwnSelection {
       .filter((f) => this.selected.has(f.building.id))
       .slice(0, MAX_MARKERS)
       .map(spotOf);
-    const key = JSON.stringify(spots);
-    if (key === this.spotsKey) return;
-    this.spotsKey = key;
-    this.arrows = spots.map((s) => s.id);
+    if (JSON.stringify(spots) === JSON.stringify(this.spots)) return;
+    this.spots = spots;
     // the change this causes in `Markers` finds the arrows as set, so it removes nothing from the selection
     this.markers.set(SELECTION, 'own', spots);
   }
 
   private arrowsChanged() {
-    if (this.arrows.length === 0) return;
+    if (this.spots.length === 0) return;
     const marking = this.markers.of(SELECTION);
     const standing = new Set(marking?.city === 'own' ? marking.spots.map((s) => s.id) : []);
-    const removed = this.arrows.filter((id) => !standing.has(id));
+    const removed = this.spots.map((s) => s.id).filter((id) => !standing.has(id));
     if (removed.length === 0) return;
     // no arrow left: the ✕ in the game took them all, also the selected buildings beyond the arrows
     if (standing.size === 0) this.selected.clear();
