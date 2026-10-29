@@ -103,6 +103,21 @@ describe('old toolbox data at the start', () => {
     expect(await env.copy.start()).toEqual([]);
   });
 
+  it('are not read again while their row counts stay as when they held nothing new', async () => {
+    const env = await setup({ legacy: found({ events: [], groups: [], items: [] }) });
+    await env.copy.take(
+      await env.copy.start().then((offers) => offers.map((offer) => ({ offer, areas: new Set(['pvp' as const]) }))),
+    );
+    await env.kv.set(LEGACY_ANSWER, null);
+    expect(await env.copy.start()).toEqual([]);
+    const read = vi.spyOn(env.legacyStore, 'read');
+    expect(await env.copy.start()).toEqual([]);
+    expect(read).not.toHaveBeenCalled();
+    env.legacyStore.found = found();
+    expect((await env.copy.start()).map((o) => o.source)).toEqual(['legacy']);
+    expect(read).toHaveBeenCalledTimes(1);
+  });
+
   it('are not offered after "Nein" or taking, after "Später" only on another day', async () => {
     const no = await setup({ legacy: found() });
     await no.copy.decline(['legacy']);
