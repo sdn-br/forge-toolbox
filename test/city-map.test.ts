@@ -94,6 +94,21 @@ describe('city map', () => {
     expect(tip.textContent).toBe('Rathaus');
   });
 
+  it('keeps zoom and pan when hidden ground shows as zones', () => {
+    const map = new CityMap();
+    const { root, button } = mount(map);
+    const rects = [{ x: 12, y: 0, width: 4, length: 4 }];
+    render(map.render({ ...data, extent: rects }), root);
+    for (let i = 0; i < 10; i++) button('Verkleinern').click();
+    const whole = project('top', { x1: 0, y1: 0, x2: 15, y2: 9 }, 200, 100, { zoom: 1, panX: 0, panY: 0 });
+    const street = toScreen(whole, 5.5, 5.5);
+    expect(map.tileIndexAt(street.x, street.y)).toBe(1);
+    render(map.render({ ...data, extent: rects, zones: [{ rects, fill: '#0f0' }] }), root);
+    expect(map.tileIndexAt(street.x, street.y)).toBe(1);
+    render(map.render({ ...data, extent: rects }), root);
+    expect(map.tileIndexAt(street.x, street.y)).toBe(1);
+  });
+
   it('keeps the wheel away from the box and the game', () => {
     const { canvas } = mount();
     const outside = vi.fn();

@@ -158,4 +158,16 @@ describe('own city map view model', () => {
     expect(vm.legend.map((l) => l.label)).toContain('Erweiterung jetzt setzbar');
     expect(ownCityMapViewModel(town, lookup, { ...ui, expansions: true }).data.zones).toBeUndefined();
   });
+
+  it('keeps the expansion blocks in the extent while they are hidden, so the map keeps its frame', () => {
+    const grid = {
+      width: 12,
+      height: 12,
+      blocks: Array.from({ length: 9 }, (_, i) => ({ x: (i % 3) * 4, y: Math.floor(i / 3) * 4 })),
+    };
+    const hidden = ownCityMapViewModel(town, lookup, ui, grid).data;
+    const shown = ownCityMapViewModel(town, lookup, { ...ui, expansions: true }, grid).data;
+    expect(hidden.extent).toHaveLength(8);
+    expect(shown.extent).toEqual(hidden.extent);
+  });
 });

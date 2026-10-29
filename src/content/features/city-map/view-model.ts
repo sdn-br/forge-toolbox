@@ -90,10 +90,12 @@ export function ownCityMapViewModel(
     return tile;
   });
   const free = city.areas && freeTiles(city.areas, fps);
-  const blocks = ui.expansions && grid && city.areas && expansionBlocks(grid, city.areas, city.blocked);
+  const all = grid && city.areas && expansionBlocks(grid, city.areas, city.blocked);
+  const blocks = ui.expansions && all;
   const data: CityMapData = {
     areas: city.areas ?? [],
     tiles,
+    ...(all && { extent: [...all.now, ...all.later] }),
     ...(free && ui.free && { marked: { tiles: free, color: MARK.free } }),
     ...(blocks && {
       zones: [
