@@ -4,10 +4,12 @@
 import {
   GB_WINDOW_TAG,
   type GbWindowCommand,
+  type GbWindowEvent,
   type GbWindowState,
   parseGbWindowEvent,
 } from '../../shared/gb-window-protocol';
 import type { ToolboxBus } from './events';
+import { pageLink } from './page-link';
 
 /** The way to the page module; tests bring their own. */
 export interface GbWindowLink {
@@ -15,14 +17,11 @@ export interface GbWindowLink {
   onState(listener: (state: GbWindowState) => void): void;
 }
 
+const link = pageLink<GbWindowCommand, GbWindowEvent>(parseGbWindowEvent);
+
 export const windowGbWindowLink: GbWindowLink = {
-  post: (command) => window.postMessage(command, location.origin),
-  onState: (listener) =>
-    window.addEventListener('message', (event: MessageEvent) => {
-      if (event.source !== window) return;
-      const changed = parseGbWindowEvent(event.data);
-      if (changed) listener(changed.state);
-    }),
+  post: link.post,
+  onState: (listener) => link.on((changed) => listener(changed.state)),
 };
 
 export function watchGbWindow(bus: ToolboxBus, link: GbWindowLink): void {
