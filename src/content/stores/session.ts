@@ -1,14 +1,5 @@
-import type { EraId, PlayerId, WorldId } from '../../shared/ids';
-import type { GuildRef } from '../../shared/model';
+import type { Session } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
-
-export interface Session {
-  world: WorldId;
-  playerId: PlayerId;
-  name: string;
-  era: EraId;
-  guild?: GuildRef;
-}
 
 export class SessionStore {
   private session?: Session;

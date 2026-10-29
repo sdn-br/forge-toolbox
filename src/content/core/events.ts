@@ -1,9 +1,7 @@
 // Contracts of all domain events. A listener gets exactly this payload and reads the rest from the stores.
 import type { GbWindowState } from '../../shared/gb-window-protocol';
 import type { BuildingDefId, PlayerId } from '../../shared/ids';
-import type { PlayerSource } from '../../shared/model';
-import type { CityKey } from '../stores/cities';
-import type { Session } from '../stores/session';
+import type { CityKey, PlayerSource, Session } from '../../shared/model';
 import { EventBus } from './bus';
 
 export interface ToolboxEvents {
