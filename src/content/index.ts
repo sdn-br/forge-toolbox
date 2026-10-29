@@ -25,7 +25,6 @@ import { chromeProfileStorage, profileCopy } from './core/profile-copy';
 import { connectProxy } from './core/proxy-link';
 import { Recorder } from './core/recorder';
 import { backgroundCall } from './core/rpc';
-import { OwnSelection } from './core/selection';
 import { Settings } from './core/settings';
 import { startupGate } from './core/startup-gate';
 import { t } from './core/texts';
@@ -44,6 +43,7 @@ import { settingsFeature } from './features/settings-feature';
 import { registerGameHandlers } from './game/handlers';
 import { createStores } from './stores';
 import { createGbOwnState } from './stores/gb-own-state';
+import { OwnSelection } from './stores/selection';
 import { Menu } from './ui/menu';
 import { UiState } from './ui/ui-state';
 

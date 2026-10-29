@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import { Markers } from '../src/content/core/markers';
-import { groupSelection, OwnSelection, SELECTION } from '../src/content/core/selection';
 import type { BuildingDef } from '../src/content/stores/catalog';
 import { CityStore } from '../src/content/stores/cities';
 import type { Building, City } from '../src/content/stores/city-model';
+import { OwnSelection, SELECTION } from '../src/content/stores/selection';
+import { selectionEntries } from '../src/content/ui/selection-list';
 import { type BuildingDefId, buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
 import { MAX_MARKERS } from '../src/shared/marker-protocol';
 import { fakeMarkerLink } from './helpers/feature-context';
@@ -56,23 +57,6 @@ function setup(buildings = town) {
   return { bus, cities, marker, markers, selection, ids, changes: () => changes };
 }
 
-describe('groupSelection', () => {
-  it('groups the selected buildings by name with the count of that name, sorted by name', () => {
-    const buildings = [
-      { id: 1, name: 'Domizil' },
-      { id: 2, name: 'Domizil' },
-      { id: 3, name: 'Aachener Dom' },
-      { id: 4, name: 'Bauernhof' },
-      { id: 5, name: 'Domizil' },
-    ];
-    expect(groupSelection(buildings, new Set([2, 3, 5]))).toEqual([
-      { name: 'Aachener Dom', selected: 1, total: 1 },
-      { name: 'Domizil', selected: 2, total: 3 },
-    ]);
-    expect(groupSelection(buildings, new Set())).toEqual([]);
-  });
-});
-
 describe('own city selection', () => {
   it('adds all buildings of a name on the grid and puts arrows on them', () => {
     const s = setup();
@@ -88,7 +72,7 @@ describe('own city selection', () => {
       width: 2,
       length: 2,
     });
-    expect(s.selection.entries()).toEqual([{ name: 'Domizil', selected: 3, total: 3 }]);
+    expect(selectionEntries(s.selection)).toEqual([{ name: 'Domizil', selected: 3, total: 3 }]);
     expect(s.changes()).toBe(2);
     // all of the name already selected: nothing changes
     s.selection.addName('Domizil');
@@ -99,7 +83,7 @@ describe('own city selection', () => {
     const s = setup();
     s.selection.toggle(4);
     s.selection.toggle(2);
-    expect(s.selection.entries()).toEqual([
+    expect(selectionEntries(s.selection)).toEqual([
       { name: 'Aachener Dom', selected: 1, total: 1 },
       { name: 'Domizil', selected: 1, total: 3 },
     ]);
@@ -165,7 +149,7 @@ describe('own city selection', () => {
     // the ✕ in the game removes all arrows
     s.marker.dismiss([1, 3, 4]);
     expect(s.ids()).toEqual([]);
-    expect(s.selection.entries()).toEqual([]);
+    expect(selectionEntries(s.selection)).toEqual([]);
   });
 
   it('empties when the ✕ in the game removes the arrows, also beyond the arrows', () => {

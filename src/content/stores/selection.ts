@@ -2,37 +2,14 @@
 // city map are views on it, and the arrows in the game show exactly it. Kept in memory only: a reload starts empty.
 import type { BuildingDefId } from '../../shared/ids';
 import { MAX_MARKERS } from '../../shared/marker-protocol';
+import type { ToolboxBus } from '../core/events';
+import type { Markers } from '../core/markers';
 import { type Footprint, footprints, nameOf, spotOf } from '../domain/city-grid';
-import type { BuildingDef } from '../stores/catalog';
-import type { City } from '../stores/city-model';
-import type { ToolboxBus } from './events';
-import type { Markers } from './markers';
-import { compareText } from './texts';
+import type { BuildingDef } from './catalog';
+import type { City } from './city-model';
 
 /** the marking the selection sets in `Markers` */
 export const SELECTION = 'selection';
-
-/** One name in the selection: how many of its buildings are selected, of how many in the city. */
-export interface SelectionEntry {
-  name: string;
-  selected: number;
-  total: number;
-}
-
-/** The selected buildings grouped by name, each with the number of buildings of that name; sorted by name. */
-export function groupSelection(
-  buildings: Iterable<{ id: number; name: string }>,
-  selected: ReadonlySet<number>,
-): SelectionEntry[] {
-  const byName = new Map<string, SelectionEntry>();
-  for (const { id, name } of buildings) {
-    const entry = byName.get(name) ?? { name, selected: 0, total: 0 };
-    entry.total++;
-    if (selected.has(id)) entry.selected++;
-    byName.set(name, entry);
-  }
-  return [...byName.values()].filter((e) => e.selected > 0).sort((a, b) => compareText(a.name, b.name));
-}
 
 export class OwnSelection {
   private selected = new Set<number>();
@@ -60,13 +37,6 @@ export class OwnSelection {
 
   ids(): ReadonlySet<number> {
     return this.selected;
-  }
-
-  entries(): SelectionEntry[] {
-    return groupSelection(
-      this.buildings().map((f) => ({ id: f.building.id, name: nameOf(f) })),
-      this.selected,
-    );
   }
 
   /** adds all buildings of this name; picking never removes */
