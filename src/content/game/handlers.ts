@@ -101,7 +101,11 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     inventory,
   } = deps;
 
+  /** the game shows the main map of the own city, not a settlement or a colony; set by the map requests below */
+  let onMain = true;
+
   ingestion.on('StartupService', 'getData', ({ data }) => {
+    onMain = true;
     const d = data as GameStartup;
     const s = toSession(world, d.user_data);
     if (!s) return;
@@ -145,6 +149,13 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     // another map (a settlement, a colony) is not the own city
     if (Array.isArray(request) && request.length > 0 && request[0] !== 'main') return;
     home = true;
+    onMain = true;
+  });
+  // Entering a settlement loads its map (`getCityMap` with `cultural_outpost`), and its harvests bring its buildings as
+  // `updatedEntities` like those of the own city, without saying which map they belong to (recording of 2026-10-29).
+  // Until the game loads the main map again, building updates are not the own city's.
+  ingestion.on('CityMapService', 'getCityMap', ({ request }) => {
+    onMain = !Array.isArray(request) || request.length === 0 || request[0] === 'main';
   });
   ingestion.on('AnnouncementsService', 'fetchAllAnnouncements', () => {
     home = true;
@@ -290,7 +301,9 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
 
   const updateBuildings = ({ data }: { data: unknown }) => {
     const owner = session.current?.playerId;
-    if (!owner || !Array.isArray(data)) return;
+    // debt: an update of an own city building that comes while another map is open is dropped. ceiling: its state
+    // stays old until the next start. upgrade: take the buildings of `getEntities` with `main` when coming back.
+    if (!owner || !onMain || !Array.isArray(data)) return;
     const buildings = (data as GameCityEntity[])
       .map((e) => toBuilding(e, owner))
       .filter((b): b is Building => b !== null);
