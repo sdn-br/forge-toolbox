@@ -20,8 +20,12 @@ export function folderLink(profile: Profile, send: (message: unknown) => Promise
       const merged = send(folderRequest('start', profile)).catch((error) =>
         logError('merging the backup folder failed', error),
       );
-      const waited = new Promise<void>((resolve) => setTimeout(resolve, FOLDER_START_WAIT));
-      return Promise.race([merged, waited]).then(() => undefined);
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const waited = new Promise<void>((resolve) => {
+        timer = setTimeout(resolve, FOLDER_START_WAIT);
+      });
+      // the timer must not outlive the race: it would keep a dead promise and a pending callback for 5 s
+      return Promise.race([merged, waited]).then(() => clearTimeout(timer));
     },
     changed: () => {
       send(folderRequest('changed', profile)).catch((error) => logError('writing the backup folder failed', error));

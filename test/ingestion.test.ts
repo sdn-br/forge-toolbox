@@ -50,6 +50,15 @@ describe('Ingestion', () => {
     expect(order).toEqual(['startup', 'reset']);
   });
 
+  it('keeps the order of the other entries when moving the startup data first', () => {
+    const ingestion = new Ingestion();
+    const order: string[] = [];
+    for (const m of ['a', 'b', 'c']) ingestion.on('S', m, () => order.push(m));
+    ingestion.on('StartupService', 'getData', () => order.push('startup'));
+    ingestion.accept(json([entry('S', 'c'), entry('S', 'a'), entry('StartupService', 'getData'), entry('S', 'b')]));
+    expect(order).toEqual(['startup', 'c', 'a', 'b']);
+  });
+
   it('keeps going when a handler throws', () => {
     const ingestion = new Ingestion();
     const second = vi.fn();
