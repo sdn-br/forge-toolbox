@@ -187,7 +187,7 @@ describe('Powerleveln', () => {
 
   it('asks the player to open a great building first', () => {
     const { power, ctx } = setup();
-    ctx.bus.emit('gbPowerLevel.open', {});
+    ctx.open('gbPowerLevel');
     expect(power.text).toContain('Noch kein eigenes LG geöffnet');
   });
 });

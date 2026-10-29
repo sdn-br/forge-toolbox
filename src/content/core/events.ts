@@ -70,8 +70,6 @@ export interface ToolboxEvents {
   'gbOwn.extChanged': { def: string; level: number };
   /** the settings ask for the dialog of the data found for the profile ("Gefundene Daten übernehmen") */
   'foundData.open': Record<string, never>;
-  /** the Eigenanteil box asks for the Powerleveln box */
-  'gbPowerLevel.open': Record<string, never>;
 }
 
 export type ToolboxBus = EventBus<ToolboxEvents>;

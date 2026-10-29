@@ -9,6 +9,7 @@ import type { ToolboxBus } from './events';
 import type { Markers } from './markers';
 import type { Recorder } from './recorder';
 import type { Settings } from './settings';
+import type { Shell } from './shell';
 
 /** Everything a feature may use. Features never import each other. */
 export interface FeatureContext extends Stores {
@@ -26,6 +27,10 @@ export interface FeatureContext extends Stores {
   createBox(options: BoxOptions): Box;
   /** the data of the profile found on the game page: the backup copy and the old toolbox data */
   foundData: FoundData;
+  /** opens the box of another feature by the id of that feature (see core/shell.ts) */
+  open: Shell['open'];
+  /** tells the shell how to open the own box, for the other features */
+  registerOpen: Shell['registerOpen'];
 }
 
 export interface Feature {
