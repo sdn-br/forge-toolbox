@@ -48,7 +48,7 @@ async function setup(options: { copy?: CopyEntry; data?: boolean; settings?: boo
     started = run;
     return run;
   };
-  settingsFeature.setup(env.ctx);
+  settingsFeature(env.profileCopy).setup(env.ctx);
   backupCopyFeature.setup(env.ctx);
   await started.catch(() => undefined);
   await settle();

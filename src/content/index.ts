@@ -20,7 +20,7 @@ import { chromeLocal, profileKv } from './core/kv';
 import { logError } from './core/log';
 import { windowMarkerLink } from './core/marker-link';
 import { Markers } from './core/markers';
-import { chromeProfileStorage, profileCopy } from './core/profile-copy';
+import { chromeProfileStorage, type ProfileCopy, profileCopy } from './core/profile-copy';
 import { connectProxy } from './core/proxy-link';
 import { Recorder } from './core/recorder';
 import { backgroundCall } from './core/rpc';
@@ -47,7 +47,8 @@ import { OwnSelection } from './stores/selection';
 import { Menu } from './ui/menu';
 import { UiState } from './ui/ui-state';
 
-const features: Feature[] = [
+/** the settings box alone gets the other profiles, to take over their settings */
+const features = (copy: ProfileCopy): Feature[] => [
   sabotageFeature,
   pvpFeature,
   notesFeature,
@@ -58,7 +59,7 @@ const features: Feature[] = [
   gbPowerLevelFeature,
   investmentsFeature,
   foestatsFeature,
-  settingsFeature,
+  settingsFeature(copy),
   backupCopyFeature,
 ];
 
@@ -142,12 +143,11 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
     selection: new OwnSelection(bus, stores.cities, stores.catalog, markers),
     ui,
     createBox: boxFactory(ui, (group) => bus.emit('settings.open', { group })),
-    profileCopy: profileCopy(chromeProfileStorage, profile, () => location.reload()),
     foundData,
   };
   // after loading, so loading the settings is no change to back up
   backupCopy.watch();
-  for (const feature of features) {
+  for (const feature of features(profileCopy(chromeProfileStorage, profile, () => location.reload()))) {
     try {
       feature.setup(ctx);
     } catch (error) {

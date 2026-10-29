@@ -7,7 +7,6 @@ import type { Menu } from '../ui/menu';
 import type { UiState } from '../ui/ui-state';
 import type { ToolboxBus } from './events';
 import type { Markers } from './markers';
-import type { ProfileCopy } from './profile-copy';
 import type { Recorder } from './recorder';
 import type { Settings } from './settings';
 
@@ -25,8 +24,6 @@ export interface FeatureContext extends Stores {
   /** remembered view choices of the viewer */
   ui: UiState;
   createBox(options: BoxOptions): Box;
-  /** the other profiles, to take over their settings */
-  profileCopy: ProfileCopy;
   /** the data of the profile found on the game page: the backup copy and the old toolbox data */
   foundData: FoundData;
 }

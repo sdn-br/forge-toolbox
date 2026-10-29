@@ -157,11 +157,12 @@ export function featureContext(options: TestStoresOptions & { storage?: Record<s
       boxes.set(options.id, recording);
       return recording.box;
     },
-    profileCopy: profileCopy(storage, { world, player: playerId(1) }, () => reloads++),
     foundData,
   };
   return {
     ctx,
+    /** the other profiles, for the settings box */
+    profileCopy: profileCopy(storage, { world, player: playerId(1) }, () => reloads++),
     boxes,
     /** what went to the marker module in the page, and a way to report back from it */
     marker,

@@ -1,7 +1,7 @@
 import { html } from 'lit-html';
 import { OPEN_DATA_PAGE } from '../../shared/messages';
 import { BACKUP_SETTING } from '../backup/backup-copy';
-import type { Feature } from '../core/feature';
+import type { Feature, FeatureContext } from '../core/feature';
 import { logError } from '../core/log';
 import { type OtherProfile, type ProfileCopy, profileLabel } from '../core/profile-copy';
 import {
@@ -195,115 +195,118 @@ const MENU_SIZE = 'core.menuSize';
 /** the view choice of the group shown */
 const TAB = 'settings.group';
 
-export const settingsFeature: Feature = {
+/** The settings box. Only it gets the other profiles, to take over their settings. */
+export const settingsFeature = (profileCopy: ProfileCopy): Feature => ({
   id: 'settings',
-  setup(ctx) {
-    ctx.settings.register({
-      key: 'core.record',
-      group: 'settings.core',
-      label: 'settings.recordTraffic',
-      default: false,
-    });
-    ctx.settings.register({
-      key: 'core.recordRequests',
-      group: 'settings.core',
-      label: 'settings.recordRequests',
-      default: false,
-    });
+  setup: (ctx) => setup(ctx, profileCopy),
+});
 
-    ctx.settings.register({
-      key: MENU_SIZE,
-      group: 'settings.core',
-      label: 'settings.menuSize',
-      default: '35',
-      choices: [
-        { value: '30', label: 'settings.menuSize30' },
-        { value: '35', label: 'settings.menuSize35' },
-        { value: '45', label: 'settings.menuSize45' },
-      ],
-    });
-    const applyMenuSize = () => ctx.menu.setIconSize(Number(ctx.settings.choice(MENU_SIZE)));
-    applyMenuSize();
-    ctx.settings.onChange((key) => key === MENU_SIZE && applyMenuSize());
+function setup(ctx: FeatureContext, profileCopy: ProfileCopy) {
+  ctx.settings.register({
+    key: 'core.record',
+    group: 'settings.core',
+    label: 'settings.recordTraffic',
+    default: false,
+  });
+  ctx.settings.register({
+    key: 'core.recordRequests',
+    group: 'settings.core',
+    label: 'settings.recordRequests',
+    default: false,
+  });
 
-    ctx.settings.registerGroup('settings.core', ICON);
+  ctx.settings.register({
+    key: MENU_SIZE,
+    group: 'settings.core',
+    label: 'settings.menuSize',
+    default: '35',
+    choices: [
+      { value: '30', label: 'settings.menuSize30' },
+      { value: '35', label: 'settings.menuSize35' },
+      { value: '45', label: 'settings.menuSize45' },
+    ],
+  });
+  const applyMenuSize = () => ctx.menu.setIconSize(Number(ctx.settings.choice(MENU_SIZE)));
+  applyMenuSize();
+  ctx.settings.onChange((key) => key === MENU_SIZE && applyMenuSize());
 
-    /** the group shown, kept across page loads; a box's settings button picks the group of its feature */
-    const shownGroup = (groups: string[]) => {
-      const chosen = ctx.ui.pref(TAB);
-      return chosen && groups.includes(chosen) ? chosen : groups[0];
-    };
-    const select = (group: string) => {
-      copyFrom.reset();
-      backup.reset();
-      ctx.ui.savePref(TAB, group);
-      box.update();
-    };
-    const copyFrom = copyControl(ctx.profileCopy, () => box.update());
-    const backup = backupControl(ctx.settings, () => box.update());
-    const reset = () => {
-      copyFrom.reset();
-      backup.reset();
-    };
-    const box = ctx.createBox({
-      id: 'settings',
-      css: settingsCss,
-      title: () => t('settings.title'),
-      width: 380,
-      maxHeight: 0.8,
-      onClose: reset,
-      render: () => {
-        // the general settings first, then the features in the order they registered
-        const groups = [...new Set(['settings.core', ...ctx.settings.defs.map((d) => d.group)])];
-        const group = shownGroup(groups);
-        const defs = ctx.settings.defs.filter((d) => d.group === group && !d.ownControl);
-        const sections = [...new Set(defs.map((d) => d.section).filter((s) => s !== undefined))];
-        return html`<div class="settings-layout">
-          <nav class="settings-nav">${groups.map(
-            (g) => html`<button class=${g === group ? 'active' : ''} data-tip=${t(g as TextKey)}
-              aria-label=${t(g as TextKey)} @click=${() => select(g)}>${ctx.settings.groupIcon(g) ?? '•'}</button>`,
-          )}</nav>
-          <div class="settings-main">
-            <h2>${t(group as TextKey)}</h2>
-            ${defs.filter((d) => d.section === undefined).map((d) => control(ctx.settings, d))}
-            ${sections.map(
-              (section) => html`<h3>${t(section)}</h3>
-                ${defs.filter((d) => d.section === section).map((d) => control(ctx.settings, d))}`,
-            )}
-            ${
-              group === 'settings.core' && ctx.settings.get('core.record')
-                ? html`<button class="action icon-only" data-tip=${t('settings.saveRecording', { count: ctx.recorder.count })}
-                    aria-label=${t('settings.saveRecording', { count: ctx.recorder.count })}
-                    @click=${() => ctx.recorder.save()}>${headerIcons.download}${ctx.recorder.count}</button>
-                  <button class="action icon-only"
-                    aria-disabled=${ctx.recorder.count ? 'false' : 'true'} data-tip=${t('settings.clearRecording')}
-                    aria-label=${t('settings.clearRecording')}
-                    @click=${() => ctx.recorder.clear()}>${headerIcons.trash}</button>`
-                : ''
-            }
-            ${
-              group === 'settings.core'
-                ? html`<h3>${t('settings.data')}</h3>
-                  <button class="action" @click=${openDataPage}>${t('settings.manageData')}</button>
-                  <p class="muted setting-hint">${t('settings.manageDataHint')}</p>
-                  ${backup.render()}
-                  <button class="action" @click=${() => ctx.bus.emit('foundData.open', {})}>${t('settings.findData')}</button>
-                  <p class="muted setting-hint">${t('settings.findDataHint')}</p>
-                  ${copyFrom.render()}`
-                : ''
-            }
-          </div>
-        </div>`;
-      },
-    });
-    ctx.settings.onChange(() => box.update());
-    // the counter on the save button; update does nothing while the box is closed
-    ctx.recorder.onChange(() => box.update());
-    ctx.bus.on('settings.open', ({ group }) => {
-      reset();
-      ctx.ui.savePref(TAB, group);
-      box.open();
-    });
-    ctx.menu.add({ id: 'settings', icon: ICON, label: () => t('menu.settings'), action: () => box.toggle() });
-  },
-};
+  ctx.settings.registerGroup('settings.core', ICON);
+
+  /** the group shown, kept across page loads; a box's settings button picks the group of its feature */
+  const shownGroup = (groups: string[]) => {
+    const chosen = ctx.ui.pref(TAB);
+    return chosen && groups.includes(chosen) ? chosen : groups[0];
+  };
+  const select = (group: string) => {
+    copyFrom.reset();
+    backup.reset();
+    ctx.ui.savePref(TAB, group);
+    box.update();
+  };
+  const copyFrom = copyControl(profileCopy, () => box.update());
+  const backup = backupControl(ctx.settings, () => box.update());
+  const reset = () => {
+    copyFrom.reset();
+    backup.reset();
+  };
+  const box = ctx.createBox({
+    id: 'settings',
+    css: settingsCss,
+    title: () => t('settings.title'),
+    width: 380,
+    maxHeight: 0.8,
+    onClose: reset,
+    render: () => {
+      // the general settings first, then the features in the order they registered
+      const groups = [...new Set(['settings.core', ...ctx.settings.defs.map((d) => d.group)])];
+      const group = shownGroup(groups);
+      const defs = ctx.settings.defs.filter((d) => d.group === group && !d.ownControl);
+      const sections = [...new Set(defs.map((d) => d.section).filter((s) => s !== undefined))];
+      return html`<div class="settings-layout">
+        <nav class="settings-nav">${groups.map(
+          (g) => html`<button class=${g === group ? 'active' : ''} data-tip=${t(g as TextKey)}
+            aria-label=${t(g as TextKey)} @click=${() => select(g)}>${ctx.settings.groupIcon(g) ?? '•'}</button>`,
+        )}</nav>
+        <div class="settings-main">
+          <h2>${t(group as TextKey)}</h2>
+          ${defs.filter((d) => d.section === undefined).map((d) => control(ctx.settings, d))}
+          ${sections.map(
+            (section) => html`<h3>${t(section)}</h3>
+              ${defs.filter((d) => d.section === section).map((d) => control(ctx.settings, d))}`,
+          )}
+          ${
+            group === 'settings.core' && ctx.settings.get('core.record')
+              ? html`<button class="action icon-only" data-tip=${t('settings.saveRecording', { count: ctx.recorder.count })}
+                  aria-label=${t('settings.saveRecording', { count: ctx.recorder.count })}
+                  @click=${() => ctx.recorder.save()}>${headerIcons.download}${ctx.recorder.count}</button>
+                <button class="action icon-only"
+                  aria-disabled=${ctx.recorder.count ? 'false' : 'true'} data-tip=${t('settings.clearRecording')}
+                  aria-label=${t('settings.clearRecording')}
+                  @click=${() => ctx.recorder.clear()}>${headerIcons.trash}</button>`
+              : ''
+          }
+          ${
+            group === 'settings.core'
+              ? html`<h3>${t('settings.data')}</h3>
+                <button class="action" @click=${openDataPage}>${t('settings.manageData')}</button>
+                <p class="muted setting-hint">${t('settings.manageDataHint')}</p>
+                ${backup.render()}
+                <button class="action" @click=${() => ctx.bus.emit('foundData.open', {})}>${t('settings.findData')}</button>
+                <p class="muted setting-hint">${t('settings.findDataHint')}</p>
+                ${copyFrom.render()}`
+              : ''
+          }
+        </div>
+      </div>`;
+    },
+  });
+  ctx.settings.onChange(() => box.update());
+  // the counter on the save button; update does nothing while the box is closed
+  ctx.recorder.onChange(() => box.update());
+  ctx.bus.on('settings.open', ({ group }) => {
+    reset();
+    ctx.ui.savePref(TAB, group);
+    box.open();
+  });
+  ctx.menu.add({ id: 'settings', icon: ICON, label: () => t('menu.settings'), action: () => box.toggle() });
+}
