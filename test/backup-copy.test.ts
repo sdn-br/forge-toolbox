@@ -24,7 +24,6 @@ async function setup(options: { stored?: Record<string, unknown>; copy?: CopyEnt
   const store = memoryCopyStore();
   if (options.copy) await store.put(options.copy);
   let reloads = 0;
-  let folderWrites = 0;
   const copy = new BackupCopy({
     profile: me,
     name: 'Ich',
@@ -42,7 +41,6 @@ async function setup(options: { stored?: Record<string, unknown>; copy?: CopyEnt
     },
     store,
     now,
-    folder: () => folderWrites++,
   });
   const found = new FoundData([copy], () => reloads++);
   await settings.load();
@@ -66,9 +64,6 @@ async function setup(options: { stored?: Record<string, unknown>; copy?: CopyEnt
     written,
     get reloads() {
       return reloads;
-    },
-    get folderWrites() {
-      return folderWrites;
     },
     setTime: (at: number) => {
       time = at;
@@ -163,18 +158,6 @@ describe('writing the backup copy', () => {
     await env.settings.set(BACKUP_SETTING, true);
     await elapse(env);
     expect(await env.store.get(me)).toBeDefined();
-  });
-
-  it('asks the backup folder to write with the same delay, also with the copy on the game page switched off', async () => {
-    const env = await setup({ stored: { settings: { [BACKUP_SETTING]: false } } });
-    env.signal();
-    await elapse(env, BACKUP_DELAY - 1_000);
-    env.signal();
-    await elapse(env, BACKUP_DELAY - 1_000);
-    expect(env.folderWrites).toBe(0);
-    await elapse(env, 1_000);
-    expect(env.folderWrites).toBe(1);
-    expect(await env.store.get(me)).toBeUndefined();
   });
 
   it('is on by default', async () => {

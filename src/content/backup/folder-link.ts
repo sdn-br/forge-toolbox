@@ -1,5 +1,6 @@
-// The game's side of the backup in a local folder: the service worker reads and writes the folder, the game tells it
-// when, and shows a line next to the menu while the backup waits for the folder to be granted again.
+// The game's side of the backup in a local folder: the service worker reads and writes the folder and writes it on its
+// own after a change; the game has it merged at the start and shows a line next to the menu while the backup waits for
+// the folder to be granted again.
 import { type FolderStatus, folderRequest } from '../../shared/messages';
 import type { Profile } from '../../shared/profile';
 import { logError } from '../core/log';
@@ -10,8 +11,6 @@ export const FOLDER_START_WAIT = 5_000;
 export interface FolderLink {
   /** merges the folder into the profile before the stores load; gives up waiting after `FOLDER_START_WAIT` */
   start(): Promise<void>;
-  /** backed up data changed: write the folder, if one is chosen */
-  changed(): void;
 }
 
 export function folderLink(profile: Profile, send: (message: unknown) => Promise<unknown>): FolderLink {
@@ -26,9 +25,6 @@ export function folderLink(profile: Profile, send: (message: unknown) => Promise
       });
       // the timer must not outlive the race: it would keep a dead promise and a pending callback for 5 s
       return Promise.race([merged, waited]).then(() => clearTimeout(timer));
-    },
-    changed: () => {
-      send(folderRequest('changed', profile)).catch((error) => logError('writing the backup folder failed', error));
     },
   };
 }

@@ -45,11 +45,6 @@ export interface BackupCopyEnv {
   persistence: BackupPersistence;
   store: CopyStore;
   now: () => number;
-  /**
-   * asks the service worker to write the backup in a local folder; called on the same delay as the copy, also when
-   * the copy is switched off or held
-   */
-  folder?: () => void;
 }
 
 /** the change number of the rows (unknown before the first signal) and the count of setting changes */
@@ -101,7 +96,7 @@ export class BackupCopy implements FoundDataSource {
     this.env.settings.onChange((key) => {
       if (key === BACKUP_SETTING && !this.enabled())
         this.switchedOff().catch((error) => logError('deleting the backup copy failed', error));
-      // the setting itself is a setting the folder backs up
+      // the setting itself is a setting the copy holds
       this.state = { ...this.state, settings: this.state.settings + 1 };
       this.changed();
     });
@@ -192,12 +187,9 @@ export class BackupCopy implements FoundDataSource {
   }
 
   private changed() {
-    if (!this.enabled() && !this.env.folder) return;
+    if (!this.enabled()) return;
     clearTimeout(this.timer);
-    this.timer = setTimeout(() => {
-      this.env.folder?.();
-      if (this.enabled()) this.writeNow();
-    }, BACKUP_DELAY);
+    this.timer = setTimeout(() => this.writeNow(), BACKUP_DELAY);
   }
 
   /** queues a write behind the one running */

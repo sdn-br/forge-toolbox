@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { openDb } from '../src/background/db';
-import { PersistedSignal, ProfileTabs, watchBackupTables } from '../src/background/persisted';
+import {
+  folderAlarm,
+  PersistedSignal,
+  ProfileTabs,
+  profileOfFolderAlarm,
+  watchBackupTables,
+} from '../src/background/persisted';
 import { collectTables } from '../src/backup/collect';
 import { BACKUP_CHANGES } from '../src/backup/format';
 import { buildingDefId, eraId, playerId } from '../src/shared/ids';
@@ -201,5 +207,13 @@ describe('the game tab of a profile', () => {
     tabs.seen(other, 2);
     expect(tabs.of(me)).toEqual([]);
     expect(tabs.of(other)).toEqual([2, 3]);
+  });
+});
+
+describe('the alarm that writes the backup folder', () => {
+  it('names the profile, and nothing else is one', () => {
+    expect(folderAlarm(me)).toBe('folder:de20:1');
+    expect(profileOfFolderAlarm(folderAlarm(me))).toEqual(me);
+    expect(profileOfFolderAlarm('other:de20:1')).toBeNull();
   });
 });

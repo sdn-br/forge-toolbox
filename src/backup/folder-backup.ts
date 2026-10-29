@@ -41,6 +41,8 @@ export interface FolderBackupEnv {
   /** the profiles with a database here */
   localProfiles(): Promise<Profile[]>;
   now(): number;
+  /** the change number of the profile's backed up data (see `PersistedSignal`) */
+  change(profile: Profile): number;
   logError(what: string, error: unknown): void;
 }
 
@@ -54,8 +56,8 @@ const isRefused = (error: unknown) =>
 export class FolderBackup {
   /** one folder operation at a time: two writes of the same file must not interleave */
   private queue: Promise<unknown> = Promise.resolve();
-  /** the profile entry written last per profile, to skip a write that would store the same */
-  private last = new Map<string, string>();
+  /** the change number each profile was written at last, to skip a write when nothing changed since */
+  private written = new Map<string, number>();
 
   constructor(private env: FolderBackupEnv) {}
 
@@ -83,7 +85,7 @@ export class FolderBackup {
    * and writes every profile there is. Returns the profiles whose rows the merge changed.
    */
   async chosen(): Promise<Profile[]> {
-    this.last.clear();
+    this.written.clear();
     await this.env.session.set({ [SYNCED]: [] });
     const changed: Profile[] = [];
     await this.run([], async (folder) => {
@@ -199,24 +201,25 @@ export class FolderBackup {
 
   /**
    * Writes the profile as its export does, to the main file and the copy of the day, and drops the daily copies past
-   * the last seven. Unless forced, a write that would store the same as the one before is skipped.
+   * the last seven. Unless forced, a write at the change number of the one before is skipped.
    */
   private async write(folder: RootFolder, profile: Profile, force: boolean): Promise<boolean> {
     const { open, local, now } = this.env;
+    // taken before reading: a change while the rows are read makes the next write due
+    const change = this.env.change(profile);
+    if (!force && this.written.get(keyOf(profile)) === change) return false;
     const db = open(profileDbName(profile));
     const at = now();
     const backup = await collectBackup(
       [{ ...profile, ...(await storedOfProfile(profile, (keys) => local.get(keys))), db }],
       at,
     ).finally(() => db.close());
-    const json = JSON.stringify(backup.profiles[0]);
-    if (!force && this.last.get(keyOf(profile)) === json) return false;
     const file = await gzipJson(backup);
     await folder.write(folderFileName(profile), file);
     const daily = await folder.subfolder(DAILY_FOLDER);
     await daily.write(dailyFileName(profile, at), file);
     for (const name of dailyToDelete(await daily.files(), profile)) await daily.remove(name);
-    this.last.set(keyOf(profile), json);
+    this.written.set(keyOf(profile), change);
     return true;
   }
 

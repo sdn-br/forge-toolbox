@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { openDb } from '../src/background/db';
+import { watchBackupTables } from '../src/background/persisted';
 import { type MemoryFolder, memoryFolder } from '../src/backup/folder';
 import { FolderBackup } from '../src/backup/folder-backup';
 import { DAILY_FOLDER, dailyFileName, folderFileName } from '../src/backup/folder-files';
@@ -36,6 +37,8 @@ function setup(options: { folder?: MemoryFolder | null; local?: Record<string, u
   const local = memoryStorage(options.local);
   const session = memoryStorage();
   const errors: string[] = [];
+  /** the change number of the test profile, as the service worker counts it */
+  let change = 0;
   const open = (name: string) => openDb(`${prefix}${name}`);
   const backup = new FolderBackup({
     folder: async () => folder,
@@ -44,10 +47,15 @@ function setup(options: { folder?: MemoryFolder | null; local?: Record<string, u
     session,
     localProfiles: async () => options.profiles ?? [me],
     now: () => time,
+    change: () => change,
     logError: (what) => errors.push(what),
   });
-  /** the profile's database, for arranging rows; close it after */
-  const db = (profile: Profile = me) => open(profileDbName(profile));
+  /** the profile's database, for arranging rows, with the hooks of the service worker; close it after */
+  const db = (profile: Profile = me) => {
+    const opened = open(profileDbName(profile));
+    watchBackupTables(opened, () => change++);
+    return opened;
+  };
   return {
     backup,
     folder: folder as MemoryFolder,
@@ -97,7 +105,7 @@ describe('writing the backup folder', () => {
     expect(env.status()).toEqual({ lastWrite: T0, paused: false, pending: [] });
   });
 
-  it('skips a write that would store the same, and overwrites the copy of the day on a change', async () => {
+  it('skips a write when the change number is the one of the last write, and overwrites the copy of the day on a change', async () => {
     const env = setup();
     await env.backup.changed(me);
     env.setTime(T0 + 1000);
@@ -111,6 +119,18 @@ describe('writing the backup folder', () => {
     const daily = env.folder.folders.get(DAILY_FOLDER) as MemoryFolder;
     expect(daily.data.size).toBe(1);
     expect((await readFolderFile(daily, dailyFileName(me, T0)))?.createdAt).toBe(T0 + 1000);
+  });
+
+  it('decides by the change number, not by the content', async () => {
+    const env = setup();
+    await env.backup.changed(me);
+    const db = env.db();
+    await db.battles.put(battle(8));
+    await db.battles.delete([me.world, 8] as never);
+    db.close();
+    env.setTime(T0 + 1000);
+    expect(await env.backup.changed(me)).toBe('written');
+    expect(env.status()?.lastWrite).toBe(T0 + 1000);
   });
 
   it('keeps the copies of the last seven days', async () => {

@@ -55,10 +55,13 @@ export interface FolderStatus {
   pending: Profile[];
 }
 
-/** content script to service worker: merge and write the folder at the start of the game, or write after a change */
+/**
+ * content script to service worker: merge and write the folder at the start of the game; after a change the service
+ * worker writes on its own
+ */
 export interface FolderRequest {
   type: 'forge-toolbox.folder';
-  action: 'start' | 'changed';
+  action: 'start';
   profile: Profile;
 }
 
@@ -70,7 +73,7 @@ export const folderRequest = (action: FolderRequest['action'], profile: Profile)
 
 export function isFolderRequest(message: unknown): message is FolderRequest {
   const m = message as Partial<FolderRequest> | null;
-  return m?.type === 'forge-toolbox.folder' && (m.action === 'start' || m.action === 'changed') && isProfile(m.profile);
+  return m?.type === 'forge-toolbox.folder' && m.action === 'start' && isProfile(m.profile);
 }
 
 /** data page to service worker: a folder was chosen, merge what it holds and write every profile */

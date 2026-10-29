@@ -122,7 +122,6 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
     persistence: backupPersistence(call),
     store: pageCopyStore(),
     now,
-    folder: folder.changed,
   });
   const foundData = new FoundData(
     [backupCopy, new LegacyData({ profile, kv, persistence: backupPersistence(call), store: pageLegacyStore(), now })],
