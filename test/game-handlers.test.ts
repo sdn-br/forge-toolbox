@@ -96,6 +96,49 @@ describe('game handlers', () => {
     expect(cities.own()?.buildings.get(1)?.state).toMatchObject({ kind: 'producing', readyAt: 2_000_000 });
   });
 
+  it('leaves the buildings of a settlement out of the own city until the main map loads again', () => {
+    const { cities, send } = setup();
+    send('StartupService', 'getData', {
+      user_data: { player_id: 7 },
+      city_map: { entities: [house(1, 7, { __class__: 'ProductionFinishedState' })] },
+    });
+    send('CityMapService', 'getCityMap', { gridId: 'cultural_outpost', entities: [] }, ['cultural_outpost']);
+    const harvest = (id: number) =>
+      send(
+        'CityProductionService',
+        'pickupProduction',
+        { updatedEntities: [house(id, 7, { __class__: 'IdleState' })], __class__: 'CityProductionResult' },
+        [[id]],
+      );
+    harvest(500);
+    expect(cities.own()?.buildings.has(500)).toBe(false);
+    send('CityMapService', 'getEntities', [house(1, 7, { __class__: 'ProductionFinishedState' })], ['main']);
+    harvest(1);
+    expect(cities.own()?.buildings.get(1)?.state).toEqual({ kind: 'idle' });
+  });
+
+  it('takes all buildings of the main map anew when the game loads it again', () => {
+    const { cities, events, send } = setup();
+    send('StartupService', 'getData', {
+      user_data: { player_id: 7 },
+      city_map: {
+        entities: [house(1, 7, { __class__: 'ProductionFinishedState' }), house(2, 7, { __class__: 'IdleState' })],
+      },
+    });
+    events.length = 0;
+    send(
+      'CityMapService',
+      'getEntities',
+      [house(1, 7, { __class__: 'IdleState' }), house(3, 7, { __class__: 'IdleState' })],
+      ['main'],
+    );
+    expect([...(cities.own()?.buildings.keys() ?? [])]).toEqual([1, 3]);
+    expect(cities.own()?.buildings.get(1)?.state).toEqual({ kind: 'idle' });
+    expect(events).toEqual(['ownReset']);
+    send('CityMapService', 'getEntities', [house(9, 7, { __class__: 'IdleState' })], ['cultural_outpost']);
+    expect([...(cities.own()?.buildings.keys() ?? [])]).toEqual([1, 3]);
+  });
+
   it('keeps the unlocked areas of the city, with coordinates the game leaves out as 0', () => {
     const { cities, send } = setup();
     send('StartupService', 'getData', {

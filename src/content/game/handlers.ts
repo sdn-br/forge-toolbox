@@ -101,7 +101,11 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     inventory,
   } = deps;
 
+  /** the game shows the main map of the own city, not a settlement or a colony; set by the map requests below */
+  let onMain = true;
+
   ingestion.on('StartupService', 'getData', ({ data }) => {
+    onMain = true;
     const d = data as GameStartup;
     const s = toSession(world, d.user_data);
     if (!s) return;
@@ -141,10 +145,23 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   // the visited city shows. Going home from a visit with the home button sends nothing and stays unseen.
   let home = false;
   let visit = false;
-  ingestion.on('CityMapService', 'getEntities', ({ request }) => {
+  ingestion.on('CityMapService', 'getEntities', ({ request, data }) => {
     // another map (a settlement, a colony) is not the own city
     if (Array.isArray(request) && request.length > 0 && request[0] !== 'main') return;
     home = true;
+    onMain = true;
+    // all buildings of the main map (596 of 596, recording of 2026-10-29): what changed while another map was open
+    const owner = session.current?.playerId;
+    if (owner && Array.isArray(data))
+      cities.replaceOwnBuildings(
+        (data as GameCityEntity[]).map((e) => toBuilding(e, owner)).filter((b): b is Building => b !== null),
+      );
+  });
+  // Entering a settlement loads its map (`getCityMap` with `cultural_outpost`), and its harvests bring its buildings as
+  // `updatedEntities` like those of the own city, without saying which map they belong to (recording of 2026-10-29).
+  // Until the game loads the main map again, building updates are not the own city's.
+  ingestion.on('CityMapService', 'getCityMap', ({ request }) => {
+    onMain = !Array.isArray(request) || request.length === 0 || request[0] === 'main';
   });
   ingestion.on('AnnouncementsService', 'fetchAllAnnouncements', () => {
     home = true;
@@ -290,7 +307,8 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
 
   const updateBuildings = ({ data }: { data: unknown }) => {
     const owner = session.current?.playerId;
-    if (!owner || !Array.isArray(data)) return;
+    // an update of an own building while another map is open is lost here; `getEntities` brings it on the way back
+    if (!owner || !onMain || !Array.isArray(data)) return;
     const buildings = (data as GameCityEntity[])
       .map((e) => toBuilding(e, owner))
       .filter((b): b is Building => b !== null);

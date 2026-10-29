@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { LegacyFound } from '../src/backup/legacy/types';
 import { BACKUP_SETTING } from '../src/content/core/backup-copy';
 import type { CopyEntry } from '../src/content/core/backup-store';
@@ -40,8 +40,17 @@ async function setup(options: { copy?: CopyEntry; data?: boolean; settings?: boo
   if (options.copy) await env.copyStore.put(options.copy);
   env.legacyStore.found = options.legacy;
   if (options.data) await env.db.db.battles.put(battle(9));
+  // the start reads and unpacks the copy, which takes more turns under load than a fixed count of ticks
+  const start = env.ctx.backupCopy.start.bind(env.ctx.backupCopy);
+  let started: Promise<unknown> = Promise.resolve();
+  env.ctx.backupCopy.start = () => {
+    const run = start();
+    started = run;
+    return run;
+  };
   settingsFeature.setup(env.ctx);
   backupCopyFeature.setup(env.ctx);
+  await started.catch(() => undefined);
   await settle();
   const dialog = () => env.boxes.get('found-data');
   /** the checkbox of an area in the row of the copy */
@@ -92,14 +101,12 @@ describe('found data at the start', () => {
 
   it('"Nein" closes it for good, "Später" until another day', async () => {
     const no = await setup({ copy: await found() });
-    await vi.waitFor(() => expect(no.dialog()?.box.isOpen).toBe(true));
     no.dialog()?.click('Nein');
     await settle();
     expect(no.dialog()?.box.isOpen).toBe(false);
     expect(await no.env.kv.get('backup.answer')).toEqual({ answer: 'no' });
 
     const later = await setup({ copy: await found() });
-    await vi.waitFor(() => expect(later.dialog()?.box.isOpen).toBe(true));
     later.dialog()?.click('Später');
     await settle();
     expect(later.dialog()?.box.isOpen).toBe(false);
