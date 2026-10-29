@@ -8,20 +8,19 @@ import type {
   Plunder,
   PlunderTotals,
 } from '../../../shared/model';
-import {
-  formatIncoming,
-  formatIncomingTotals,
-  formatPlunderTotals,
-  formatResources,
-  formatWhen,
-  resourceLabel,
-  t,
-} from '../../core/texts';
+import { formatWhen, t } from '../../core/texts';
 import type { ArmyValues, CityAssessment, Plunderable } from '../../domain/assess-city';
 import { measuredArmy } from '../../domain/measured-army';
 import type { CatalogStore } from '../../stores/catalog';
 import type { VisitedCity } from '../../stores/cities';
 import { type BattleDetailsVm, battleDetails } from '../../ui/battle-details';
+import {
+  formatIncoming,
+  formatIncomingTotals,
+  formatPlunderTotals,
+  formatResources,
+  resourceLabel,
+} from '../../ui/pvp-format';
 import { type AttackStatus, attackStatus } from './attack-status';
 
 export interface PlunderItem {
