@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readBackupFile } from '../src/backup/import';
-import { BACKUP_DELAY, BACKUP_SETTING, BackupCopy } from '../src/content/core/backup-copy';
-import { type CopyEntry, memoryCopyStore } from '../src/content/core/backup-store';
+import { BACKUP_DELAY, BACKUP_SETTING, BackupCopy } from '../src/content/backup/backup-copy';
+import { type CopyEntry, memoryCopyStore } from '../src/content/backup/backup-store';
 import { createBus } from '../src/content/core/events';
 import { memoryKv } from '../src/content/core/kv';
 import { Settings } from '../src/content/core/settings';

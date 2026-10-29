@@ -8,7 +8,7 @@ Stand 2026-10-25. Altes Modul `citysearch` der alten Toolbox, hier nur als Idee 
 
 Gebäudesuche, Suche im Stadtplan und Klicks im [Stadtplan](stadtplan.md) sind Ansichten auf dieselbe Sache: **eine Auswahl von Gebäuden der eigenen Stadt** (Nutzer, 2026-10-25). Die Pfeile im Spiel zeigen genau diese Auswahl. Sie löst das frühere Modell ab, in dem jede Quelle die Pfeile der anderen ersetzte.
 
-- **Gemeinsamer Zustand** (`src/content/core/selection.ts`, `ctx.selection`): hält die ausgewählten Gebäude der eigenen Stadt und meldet jede Änderung (Event `selection.changed`). Beide Boxen und die Karte zeichnen sich daraus. Die Auswahl setzt die eine Markierung der eigenen Stadt in den Markierungspfeilen, leer nimmt sie sie weg. Mehr als 200 Gebäude bekommen keine weiteren Pfeile, bleiben aber ausgewählt.
+- **Gemeinsamer Zustand** (`src/content/stores/selection.ts`, `ctx.selection`): hält die ausgewählten Gebäude der eigenen Stadt und meldet jede Änderung (Event `selection.changed`). Beide Boxen und die Karte zeichnen sich daraus. Die Auswahl setzt die eine Markierung der eigenen Stadt in den Markierungspfeilen, leer nimmt sie sie weg. Mehr als 200 Gebäude bekommen keine weiteren Pfeile, bleiben aber ausgewählt.
 - **Nicht gespeichert:** Nach dem Neuladen ist die Auswahl leer.
 - **Was sie von selbst verliert:** Gebäude, die es in der eigenen Stadt nicht mehr gibt. Pfeile, die das Marker-Modul als entfernt meldet (Spielbild gewechselt), nehmen ihr Gebäude aus der Auswahl. Nimmt der runde Knopf mit Kreuz im Spiel alle Pfeile weg, ist die ganze Auswahl leer, auch Gebäude jenseits der 200 Pfeile.
 - **Eine Markierung je Stadt** bleibt: Die Pfeile aus „Jetzt plünderbar“ gehören zur besuchten Stadt und lassen die Auswahl unberührt.

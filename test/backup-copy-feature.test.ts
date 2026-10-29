@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
 import type { LegacyFound } from '../src/backup/legacy/types';
-import { BACKUP_SETTING } from '../src/content/core/backup-copy';
-import type { CopyEntry } from '../src/content/core/backup-store';
+import { BACKUP_SETTING } from '../src/content/backup/backup-copy';
+import type { CopyEntry } from '../src/content/backup/backup-store';
 import { backupCopyFeature } from '../src/content/features/backup-copy';
 import { settingsFeature } from '../src/content/features/settings-feature';
 import v2 from './fixtures/legacy-toolbox2.json';

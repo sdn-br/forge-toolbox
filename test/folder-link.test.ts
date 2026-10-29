@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { FOLDER_START_WAIT, folderLink, watchFolderPause } from '../src/content/core/folder-link';
+import { FOLDER_START_WAIT, folderLink, watchFolderPause } from '../src/content/backup/folder-link';
 import type { FolderStatus } from '../src/shared/messages';
 import { me } from './helpers/backup';
 

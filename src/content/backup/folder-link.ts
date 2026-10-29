@@ -2,7 +2,7 @@
 // when, and shows a line next to the menu while the backup waits for the folder to be granted again.
 import { type FolderStatus, folderRequest } from '../../shared/messages';
 import type { Profile } from '../../shared/profile';
-import { logError } from './log';
+import { logError } from '../core/log';
 
 /** how long the start of the game waits for the merge with the folder; the startup gate holds the game meanwhile */
 export const FOLDER_START_WAIT = 5_000;

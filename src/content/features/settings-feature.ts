@@ -1,6 +1,6 @@
 import { html } from 'lit-html';
 import { OPEN_DATA_PAGE } from '../../shared/messages';
-import { BACKUP_SETTING } from '../core/backup-copy';
+import { BACKUP_SETTING } from '../backup/backup-copy';
 import type { Feature } from '../core/feature';
 import { logError } from '../core/log';
 import { type OtherProfile, type ProfileCopy, profileLabel } from '../core/profile-copy';

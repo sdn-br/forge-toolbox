@@ -15,12 +15,12 @@ import type { Area } from '../../backup/merge';
 import type { BackupPersistence } from '../../persistence/backup/client';
 import type { Profile } from '../../shared/profile';
 import { answeredLaterToday } from '../../shared/time';
+import type { ToolboxBus } from '../core/events';
+import type { KeyValue } from '../core/kv';
+import { logError } from '../core/log';
+import type { Settings } from '../core/settings';
 import type { CopyStore } from './backup-store';
-import type { ToolboxBus } from './events';
-import type { KeyValue } from './kv';
 import type { LegacyData } from './legacy-data';
-import { logError } from './log';
-import type { Settings } from './settings';
 
 /** the setting "Sicherungskopie auf der Spielseite" */
 export const BACKUP_SETTING = 'core.backupCopy';

@@ -1,7 +1,7 @@
 import { BACKUP_FORMAT, type BackupProfile, type BackupTables } from '../../src/backup/format';
 import { gzipJson } from '../../src/backup/gzip';
 import { areaCounts } from '../../src/backup/import';
-import type { CopyEntry } from '../../src/content/core/backup-store';
+import type { CopyEntry } from '../../src/content/backup/backup-store';
 import { eraId, playerId, worldId } from '../../src/shared/ids';
 import type { Battle } from '../../src/shared/model';
 

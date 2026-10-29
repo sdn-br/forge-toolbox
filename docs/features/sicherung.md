@@ -16,7 +16,7 @@ Besprochen mit dem Nutzer am 2026-10-26. Umsetzung in getrennten PRs: Export, Im
 
 ## Altdaten-Import
 
-Umgesetzt (Nutzer, 2026-10-26 und 2026-10-27). Code in `src/backup/legacy/` (Mapper, Abgleich, HTML zu Markdown), `src/content/core/legacy-store.ts` (Lesen auf der Spielseite) und `src/content/core/legacy-data.ts` (Angebot und Antwort).
+Umgesetzt (Nutzer, 2026-10-26 und 2026-10-27). Code in `src/backup/legacy/` (Mapper, Abgleich, HTML zu Markdown), `src/content/backup/legacy-store.ts` (Lesen auf der Spielseite) und `src/content/backup/legacy-data.ts` (Angebot und Antwort).
 
 - **Quellen:** Beim Spielstart liest die Toolbox die DBs der alten Toolbox mit der eigenen Spieler-ID des Profils im Origin der Spielseite: `FoEToolbox2DB_<id>` mit `FoEToolbox2DB_Events_<id>` und `FoEToolbox2DB_Notice_<id>` (2.x), sonst `FoEToolboxDB_<id>` mit `FoeToolboxDB_Events_<id>` (1.x, Notizen lagen damals auf einem Server). Gibt es 2.x, bleibt 1.x unsichtbar. Helfer-DBs nicht: 2.x hat die Daten aus 1.x und dem Helfer beim ersten Start in ihre eigenen DBs kopiert.
 - **Nur lesen:** Geöffnet wird nur, was `indexedDB.databases()` nennt, und ohne Version (`indexedDB.open(name)`). So legt die Toolbox keine DB an und stößt kein Upgrade an. Nichts wird geschrieben oder gelöscht.

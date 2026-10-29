@@ -3,7 +3,7 @@
 // übernehmen"), one row per source.
 import { html, type TemplateResult } from 'lit-html';
 import type { Area } from '../../../backup/merge';
-import type { FoundOffer, FoundSource } from '../../core/backup-copy';
+import type { FoundOffer, FoundSource } from '../../backup/backup-copy';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { formatFullDateTime, formatNumber, type TextKey, t } from '../../core/texts';

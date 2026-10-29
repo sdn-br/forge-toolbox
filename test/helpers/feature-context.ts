@@ -1,10 +1,10 @@
 import { render } from 'lit-html';
-import { BackupCopy } from '../../src/content/core/backup-copy';
-import { memoryCopyStore } from '../../src/content/core/backup-store';
+import { BackupCopy } from '../../src/content/backup/backup-copy';
+import { memoryCopyStore } from '../../src/content/backup/backup-store';
+import { LegacyData } from '../../src/content/backup/legacy-data';
+import { memoryLegacyStore } from '../../src/content/backup/legacy-store';
 import type { FeatureContext } from '../../src/content/core/feature';
 import { memoryKv } from '../../src/content/core/kv';
-import { LegacyData } from '../../src/content/core/legacy-data';
-import { memoryLegacyStore } from '../../src/content/core/legacy-store';
 import { type MarkerLink, Markers } from '../../src/content/core/markers';
 import { memoryProfileStorage, profileCopy } from '../../src/content/core/profile-copy';
 import { Recorder } from '../../src/content/core/recorder';

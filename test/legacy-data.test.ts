@@ -1,12 +1,12 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { LegacyFound } from '../src/backup/legacy/types';
-import { BackupCopy } from '../src/content/core/backup-copy';
-import { type CopyEntry, memoryCopyStore } from '../src/content/core/backup-store';
+import { BackupCopy } from '../src/content/backup/backup-copy';
+import { type CopyEntry, memoryCopyStore } from '../src/content/backup/backup-store';
+import { LEGACY_ANSWER, LegacyData } from '../src/content/backup/legacy-data';
+import { memoryLegacyStore } from '../src/content/backup/legacy-store';
 import { createBus } from '../src/content/core/events';
 import { memoryKv } from '../src/content/core/kv';
-import { LEGACY_ANSWER, LegacyData } from '../src/content/core/legacy-data';
-import { memoryLegacyStore } from '../src/content/core/legacy-store';
 import { Settings } from '../src/content/core/settings';
 import { backupPersistence } from '../src/persistence/backup/client';
 import v2 from './fixtures/legacy-toolbox2.json';
