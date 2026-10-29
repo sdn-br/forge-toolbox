@@ -212,7 +212,9 @@ export class BackupCopy {
     if (!offer) return [];
     const answer = await kv.get<Answer | null>(ANSWER);
     if (answer?.answer === 'no') return [];
-    if (!answer && !isEmpty(await persistence.tables(profile.world))) return [];
+    // own settings count as data: a profile that only changed a setting wrote the copy itself, nothing is lost
+    if (!answer && ((await kv.get('settings')) !== undefined || !isEmpty(await persistence.tables(profile.world))))
+      return [];
     this.held = true;
     if (answeredLaterToday(answer, now())) return [];
     await kv.set(ANSWER, { answer: 'open' } satisfies Answer);

@@ -222,9 +222,14 @@ describe('a found copy at the start', () => {
     expect((await env.store.get(me))?.createdAt).toBe(T0 - DAY);
   });
 
+  it('is not offered when the profile has only own settings', async () => {
+    const env = await setup({ copy: await found(), stored: { settings: { b: 2 } } });
+    expect(await env.copy.start()).toEqual([]);
+  });
+
   it('preselects the settings only when the profile has none', async () => {
     const env = await setup({ copy: await found(), stored: { settings: { b: 2 } } });
-    const [offer] = await env.copy.start();
+    const [offer] = await env.copy.find();
     expect(offer?.choice.checked.settings).toBe(false);
   });
 
