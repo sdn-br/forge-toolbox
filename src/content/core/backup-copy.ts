@@ -8,7 +8,7 @@ import {
   type BackupProfile,
   type BackupTables,
 } from '../../backup/format';
-import { gzipJson } from '../../backup/gzip';
+import { gzipText } from '../../backup/gzip';
 import { areaCounts, type ImportChoice, importChoices, profileEntry, readBackupFile } from '../../backup/import';
 import type { LegacyVersion } from '../../backup/legacy/types';
 import type { Area } from '../../backup/merge';
@@ -133,19 +133,20 @@ export class BackupCopy {
    * once, so a profile with data has a copy before its first change.
    */
   start(): Promise<FoundOffer[]> {
+    // the old data are independent of the copy: look for both at once
+    const legacy = this.legacyOr(this.env.legacy?.offerAtStart(), []);
     const run = this.offerAtStart();
     this.checked = run.catch(() => undefined);
-    return run.then(async (offers) => {
-      if (!this.held && this.enabled() && !(await this.env.store.get(this.env.profile))) this.writeNow();
-      const legacy = await this.legacyOr(this.env.legacy?.offerAtStart(), []);
-      return [...offers, ...(legacy ?? [])];
+    const copy = run.then(async ({ offers, exists }) => {
+      if (!this.held && this.enabled() && !(exists ?? (await this.env.store.get(this.env.profile)))) this.writeNow();
+      return offers;
     });
+    return Promise.all([copy, legacy]).then(([offers, found]) => [...offers, ...(found ?? [])]);
   }
 
   /** "Gefundene Daten übernehmen": the copy of the profile and the old data, also when the profile has data */
   async find(): Promise<FoundOffer[]> {
-    const offer = await this.read();
-    const legacy = await this.legacyOr(this.env.legacy?.find(), undefined);
+    const [{ offer }, legacy] = await Promise.all([this.read(), this.legacyOr(this.env.legacy?.find(), undefined)]);
     return [offer, legacy].filter((o) => o !== undefined);
   }
 
@@ -206,37 +207,39 @@ export class BackupCopy {
     if (sources.includes('legacy')) await this.env.legacy?.later();
   }
 
-  private async offerAtStart(): Promise<FoundOffer[]> {
+  /** `exists`: whether a stored copy was found, undefined when it was not looked for */
+  private async offerAtStart(): Promise<{ offers: FoundOffer[]; exists?: boolean }> {
     const { kv, persistence, profile, now } = this.env;
-    const offer = await this.read();
-    // the copy written at the first start of an empty profile holds nothing to take
-    if (!offer || !Object.values(offer.choice.counts).some((n) => n > 0)) return [];
+    // the cheap answer first: after "Nein" the copy is not even unpacked
     const answer = await kv.get<Answer | null>(ANSWER);
-    if (answer?.answer === 'no') return [];
+    if (answer?.answer === 'no') return { offers: [] };
+    const { offer, exists } = await this.read();
+    // the copy written at the first start of an empty profile holds nothing to take
+    if (!offer || !Object.values(offer.choice.counts).some((n) => n > 0)) return { offers: [], exists };
     // own settings count as data: a profile that only changed a setting wrote the copy itself, nothing is lost
-    if (!answer && ((await kv.get('settings')) !== undefined || !isEmpty(await persistence.tables(profile.world))))
-      return [];
+    if (!answer && (this.env.settings.stored() !== undefined || !isEmpty(await persistence.tables(profile.world))))
+      return { offers: [], exists };
     this.held = true;
-    if (answeredLaterToday(answer, now())) return [];
+    if (answeredLaterToday(answer, now())) return { offers: [], exists };
     await kv.set(ANSWER, { answer: 'open' } satisfies Answer);
-    return [offer];
+    return { offers: [offer], exists };
   }
 
   /** the stored copy of the profile as an offer; a copy that cannot be read counts as none */
-  private async read(): Promise<FoundOffer | undefined> {
-    const { store, profile, kv } = this.env;
+  private async read(): Promise<{ offer?: FoundOffer; exists: boolean }> {
+    const { store, profile, settings } = this.env;
     const stored = await store.get(profile);
-    if (!stored) return undefined;
+    if (!stored) return { exists: false };
     const read = await readBackupFile(new Blob([stored.file]));
     if (!read.ok) {
       logError('reading the backup copy failed', read.error);
-      return undefined;
+      return { exists: true };
     }
     const entry = profileEntry(read.backup, profile);
-    if (!entry) return undefined;
-    const hasSettings = (await kv.get('settings')) !== undefined;
+    if (!entry) return { exists: true };
+    const hasSettings = settings.stored() !== undefined;
     const [choice] = importChoices({ ...read.backup, profiles: [entry] }, () => hasSettings);
-    return choice && { source: 'backupCopy', createdAt: read.backup.createdAt, choice };
+    return { exists: true, offer: choice && { source: 'backupCopy', createdAt: read.backup.createdAt, choice } };
   }
 
   private changed() {
@@ -258,17 +261,19 @@ export class BackupCopy {
   private async write() {
     await this.checked;
     if (this.held || !this.enabled()) return;
-    const { persistence, kv, profile, name, store, now } = this.env;
-    const [tables, settings] = await Promise.all([
-      persistence.tables(profile.world),
-      kv.get<Record<string, unknown>>('settings'),
-    ]);
+    const { persistence, profile, name, store, now } = this.env;
+    const tables = await persistence.tables(profile.world);
+    const settings = this.env.settings.stored();
     const entry: BackupProfile = { ...profile, ...(name && { name }), ...(settings && { settings }), tables };
     const json = JSON.stringify(entry);
     if (json === this.last) return;
     const createdAt = now();
-    const file: BackupFile = { format: BACKUP_FORMAT, version: BACKUP_VERSION, createdAt, profiles: [entry] };
-    const packed = await (await gzipJson(file)).arrayBuffer();
+    // the file around the entry already serialized for the comparison, so it is stringified once
+    const head = JSON.stringify({ format: BACKUP_FORMAT, version: BACKUP_VERSION, createdAt } satisfies Omit<
+      BackupFile,
+      'profiles'
+    >);
+    const packed = await (await gzipText(`${head.slice(0, -1)},"profiles":[${json}]}`)).arrayBuffer();
     // switched off meanwhile: the copy is gone and stays gone
     if (this.held || !this.enabled()) return;
     await store.put({ ...profile, createdAt, counts: areaCounts(entry), file: packed });
