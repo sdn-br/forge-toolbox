@@ -88,8 +88,9 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
 ### Features als Plugins
 
 - Ein Feature meldet sich bei der Shell an: Menüknopf, Boxen, Settings, Event-Abos.
-- Es hängt nur von Stores, Bus und UI-Kit ab, nie von einem anderen Feature.
+- Es hängt nur von Stores, Bus und UI-Kit ab, nie von einem anderen Feature. Bewusste Ausnahme: Powerleveln nutzt Kopiertext und Faktorstand des Eigenanteils (`features/gb-own-share/copy-text.ts`, `factor-state.ts`). Beide Boxen rechnen dasselbe eigene LG, Powerleveln öffnet sich aus dem Eigenanteil.
 - Aufbau je Feature: Datenteil liefert ein ViewModel, View ist eine reine lit-html-Funktion, die Box rendert das Ergebnis.
+- Ablage: Jedes Feature hat einen Ordner unter `src/content/features/` mit `index.ts` (Anmeldung), ViewModel, View und `styles.ts` für das CSS, das nur seine Box zeichnet. Fachregeln ohne Darstellung liegen in `src/content/domain/`, etwa die Faktoren der LG-Rechner (`domain/gb-factor.ts`) oder die Sortierschlüssel der Snipehilfe (`domain/gb-snipe.ts`). `src/content/ui/` ist das UI-Kit: Bausteine, die mehr als ein Feature nutzt oder die als allgemeiner Baustein gedacht sind (2026-10-29).
 
 ### UI-Kit
 
@@ -178,7 +179,7 @@ Features, die an Spielereignisse gebunden sind (GbG, Minispiele der Events), wer
 | 0 | Prototypen: Pop-out per Bild-im-Bild aus dem Content Script, Proxy im Seitenkontext übergibt aufgezeichnete Antworten an das Content Script |
 | 1 | Fundament (Shell, Proxy, Ingestion, Bus, Storage, Box, Menü, Settings) zusammen mit Sabotage als erstem echtem Feature |
 | 2 | Toolbox-Kern: PvP-Angriffe (speichern nach jedem Kampf die echten Boni des Gegners aus `BattlefieldService.startByBattleType`, die Box „Besuchte Stadt“ zeigt sie neben dem berechneten Wert mit Datum), Notizen, LG-Rechner mit Snipehilfe, Investitionen, Eigenanteilsrechner, Altdaten-Import, Sicherung und Export |
-| 2a | Design-Durchgang für das UI-Kit: Farben, Schrift, Abstände, Icons, Tabellen- und Kartenstil, Varianten live im Spiel. Bis dahin enthalten Features keine eigenen Styles. |
+| 2a | Design-Durchgang für das UI-Kit: Farben, Schrift, Abstände, Icons, Tabellen- und Kartenstil, Varianten live im Spiel. Farben und Grundstil kommen aus dem UI-Kit, ein Feature bringt nur das CSS seiner eigenen Box mit. |
 | 3 | Stadt und Produktion |
 | 4 | Gilde: GbG, GEX, QI, Mitgliederstatistik, Alarme |
 | 5 | Statistik mit Chart-Komponente |
