@@ -49,6 +49,11 @@ export interface CityMapData {
   marked?: { tiles: Tile[]; color: string };
   /** ground beside or under the city, e.g. free expansion blocks; the map widens to show them */
   zones?: MapZone[];
+  /**
+   * ground the map widens to even when nothing is drawn there, e.g. the expansion blocks while they are hidden, so
+   * switching them keeps the frame and with it zoom and pan
+   */
+  extent?: TileRect[];
 }
 
 export interface MapZone {
@@ -175,7 +180,12 @@ export class CityMap {
 
   private setData(data: CityMapData) {
     this.data = data;
-    const bounds = gridBounds([...data.areas, ...data.tiles, ...(data.zones ?? []).flatMap((z) => z.rects)]);
+    const bounds = gridBounds([
+      ...data.areas,
+      ...data.tiles,
+      ...(data.extent ?? []),
+      ...(data.zones ?? []).flatMap((z) => z.rects),
+    ]);
     // a city that grew or shrank shows in the start view again
     if (!sameBounds(bounds, this.bounds)) this.view = START_VIEW;
     this.bounds = bounds;
