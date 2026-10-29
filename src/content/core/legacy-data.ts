@@ -15,6 +15,9 @@ import { logInfo } from './log';
 /** the answer about the old data, in the profile's storage */
 export const LEGACY_ANSWER = 'legacy.answer';
 
+/** the fingerprint of old data that held nothing the profile lacked; read again only once it changes */
+const LEGACY_SEEN = 'legacy.seen';
+
 /** "Nein" and taken: never offered again at the start. "Später": not again on the same day. */
 type Answer = { answer: 'no' } | { answer: 'taken' } | { answer: 'later'; at: number };
 
@@ -57,13 +60,21 @@ export class LegacyData {
     };
   }
 
-  /** At the start: the offer while the question is open and the old data hold rows the profile lacks. */
+  /**
+   * At the start: the offer while the question is open and the old data hold rows the profile lacks. Old data that
+   * held none are not read again until their row counts change, as when the old toolbox keeps recording beside.
+   */
   async offerAtStart(): Promise<FoundOffer[]> {
-    const answer = await this.env.kv.get<Answer | null>(LEGACY_ANSWER);
+    const { kv, store, profile, now } = this.env;
+    const answer = await kv.get<Answer | null>(LEGACY_ANSWER);
     if (answer?.answer === 'no' || answer?.answer === 'taken') return [];
-    if (answeredLaterToday(answer, this.env.now())) return [];
+    if (answeredLaterToday(answer, now())) return [];
+    const fingerprint = await store.fingerprint(profile.player);
+    if (!fingerprint || fingerprint === (await kv.get<string>(LEGACY_SEEN))) return [];
     const offer = await this.find();
-    return offer && Object.values(offer.choice.counts).some((n) => n > 0) ? [offer] : [];
+    if (offer && Object.values(offer.choice.counts).some((n) => n > 0)) return [offer];
+    await kv.set(LEGACY_SEEN, fingerprint);
+    return [];
   }
 
   /** merges the chosen areas, the known rows left out; the question is answered */

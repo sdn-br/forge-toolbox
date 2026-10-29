@@ -82,12 +82,21 @@ export class Settings {
   /** the icon of each group, as its feature shows it in the menu */
   private icons = new Map<string, TemplateResult | string>();
   private values: Values = {};
+  /** whether anything was ever stored under `settings`, which `values` (empty by default) cannot tell */
+  private present = false;
   private listeners = new Set<(key: string) => void>();
 
   constructor(private kv: KeyValue) {}
 
   async load(): Promise<void> {
-    this.values = (await this.kv.get<Values>('settings')) ?? {};
+    const stored = await this.kv.get<Values>('settings');
+    this.present = stored !== undefined;
+    this.values = stored ?? {};
+  }
+
+  /** the values as stored under `settings`, undefined when nothing was ever stored; read only */
+  stored(): Readonly<Values> | undefined {
+    return this.present ? this.values : undefined;
   }
 
   register(def: SettingDef): void {
@@ -151,8 +160,17 @@ export class Settings {
 
   async set(key: string, value: Value): Promise<void> {
     this.values = { ...this.values, [key]: value };
+    this.present = true;
     await this.kv.set('settings', this.values);
     for (const listener of this.listeners) listener(key);
+  }
+
+  /** replaces all values, as taking found data does; no listener hears it, the game reloads right after */
+  async replace(values: Record<string, unknown>): Promise<void> {
+    // unchecked like a load: the getters fall back to the default for a value of the wrong type
+    this.values = values as Values;
+    this.present = true;
+    await this.kv.set('settings', values);
   }
 
   onChange(listener: (key: string) => void): () => void {

@@ -56,23 +56,37 @@ export class Ingestion {
     }
     // outgoing websocket messages are requests without responseData, no handler reads them yet
     if (traffic.kind === 'ws' && traffic.direction === 'out') return;
-    const entries = parseEntries(traffic.kind === 'json' ? traffic.response : traffic.data);
-    const requests = new Map<string, unknown>();
-    if (traffic.kind === 'json' && traffic.request) {
-      for (const r of parseEntries(traffic.request)) if (!requests.has(key(r))) requests.set(key(r), r.requestData);
-    }
-    entries.sort((a, b) => Number(key(b) === FIRST) - Number(key(a) === FIRST));
-    for (const entry of entries) {
-      const handlers = [...(this.game.get(key(entry)) ?? []), ...(this.services.get(entry.requestClass) ?? [])];
-      if (handlers.length === 0) continue;
+    const entries = parseEntries(traffic.kind === 'json' ? traffic.response : traffic.data).map((entry) => ({
+      entry,
+      key: key(entry),
+    }));
+    // only a response with a handler needs its request, and only once
+    let requests: Map<string, unknown> | undefined;
+    const requestOf = (k: string) => {
+      if (!requests) {
+        requests = new Map();
+        if (traffic.kind === 'json' && traffic.request) {
+          for (const r of parseEntries(traffic.request)) if (!requests.has(key(r))) requests.set(key(r), r.requestData);
+        }
+      }
+      return requests.get(k);
+    };
+    // FIRST to the front, the others keep their order
+    const ordered = [...entries.filter((e) => e.key === FIRST), ...entries.filter((e) => e.key !== FIRST)];
+    for (const { entry, key: k } of ordered) {
+      // the lists are replaced on registering, never changed, so a handler registered meanwhile waits for the next message
+      const byMethod = this.game.get(k);
+      const byService = this.services.get(entry.requestClass);
+      if (!byMethod?.length && !byService?.length) continue;
       const message: GameMessage = {
         service: entry.requestClass,
         method: entry.requestMethod,
         data: entry.responseData,
-        request: requests.get(key(entry)),
+        request: requestOf(k),
         via: traffic.kind,
       };
-      for (const handler of handlers) this.run(key(entry), () => handler(message));
+      for (const handler of byMethod ?? []) this.run(k, () => handler(message));
+      for (const handler of byService ?? []) this.run(k, () => handler(message));
     }
     for (const handler of this.batchEnds) this.run('batch end', handler);
   }

@@ -89,6 +89,18 @@ describe('pageLegacyStore', () => {
     const factory = new IDBFactory();
     await withToolbox2(factory, 1002);
     expect(await pageLegacyStore(factory).read(ME)).toBeUndefined();
+    expect(await pageLegacyStore(factory).fingerprint(ME)).toBeUndefined();
+  });
+
+  it('fingerprints the version and the row count of each store read', async () => {
+    const factory = new IDBFactory();
+    await withToolbox2(factory);
+    const counts = [v2.neighborhoodAttacks, v2.players, v2.Events, v2.groups, v2.items].map((rows) => rows.length);
+    expect(await pageLegacyStore(factory).fingerprint(ME)).toBe(`2.x:${counts.join(',')}`);
+    const one = new IDBFactory();
+    await withToolbox1(one);
+    const v1counts = [v1.neighborhoodAttacks, v1.players, v1.Events].map((rows) => rows.length);
+    expect(await pageLegacyStore(one).fingerprint(ME)).toBe(`1.x:${v1counts.join(',')}`);
   });
 
   it('changes nothing: no upgrade, no database created, nothing deleted', async () => {

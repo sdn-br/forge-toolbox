@@ -80,55 +80,56 @@ export class OwnSelection {
 
   /** adds the building, or removes it when it is selected */
   toggle(id: number): void {
-    if (!this.onGrid(id)) return;
-    this.change(() => {
-      if (!this.selected.delete(id)) this.selected.add(id);
-    });
+    const grid = this.buildings();
+    if (!onGrid(grid, id)) return;
+    if (!this.selected.delete(id)) this.selected.add(id);
+    this.changed(grid);
   }
 
   /** the selection becomes only this building; when it already is only this building, it becomes empty */
   selectOnly(id: number): void {
-    if (!this.onGrid(id)) return;
+    const grid = this.buildings();
+    if (!onGrid(grid, id)) return;
     const alone = this.selected.size === 1 && this.selected.has(id);
-    this.change(() => {
-      this.selected.clear();
-      if (!alone) this.selected.add(id);
-    });
+    this.selected.clear();
+    if (!alone) this.selected.add(id);
+    // never a no-op: from empty the building is added, from anything else the set loses or swaps a member
+    this.changed(grid);
   }
 
   clear(): void {
-    this.change(() => this.selected.clear());
+    if (this.selected.size === 0) return;
+    this.selected.clear();
+    this.changed(this.buildings());
   }
 
   private editName(name: string, edit: (id: number) => unknown) {
-    this.change(() => {
-      for (const f of this.buildings()) if (nameOf(f) === name) edit(f.building.id);
-    });
+    const grid = this.buildings();
+    const before = this.selected.size;
+    for (const f of grid) if (nameOf(f) === name) edit(f.building.id);
+    // an edit only adds or only removes, so the size tells whether the selection changed
+    if (this.selected.size !== before) this.changed(grid);
   }
 
-  private onGrid(id: number) {
-    return this.buildings().some((f) => f.building.id === id);
-  }
-
-  private change(edit: () => void) {
-    const before = [...this.selected].sort().join();
-    edit();
-    if ([...this.selected].sort().join() === before) return;
-    this.sync();
+  private changed(grid: Footprint[]) {
+    this.sync(grid);
     this.bus.emit('selection.changed', {});
   }
 
   private refresh() {
-    const present = new Set(this.buildings().map((f) => f.building.id));
+    // nothing selected, no arrows: nothing to drop or to show, the common case on every city update
+    if (this.selected.size === 0 && this.spots.length === 0) return;
+    const grid = this.buildings();
+    const present = new Set(grid.map((f) => f.building.id));
     const gone = [...this.selected].filter((id) => !present.has(id));
     for (const id of gone) this.selected.delete(id);
-    this.sync();
+    this.sync(grid);
     if (gone.length) this.bus.emit('selection.changed', {});
   }
 
   /** the arrows show the selection; beyond MAX_MARKERS buildings no more arrows */
-  private sync() {
-    const spots = this.buildings()
+  private sync(grid: Footprint[]) {
+    const spots = grid
       .filter((f) => this.selected.has(f.building.id))
       .slice(0, MAX_MARKERS)
       .map(spotOf);
@@ -147,7 +148,9 @@ export class OwnSelection {
     // no arrow left: the ✕ in the game took them all, also the selected buildings beyond the arrows
     if (standing.size === 0) this.selected.clear();
     else for (const id of removed) this.selected.delete(id);
-    this.sync();
+    this.sync(this.buildings());
     this.bus.emit('selection.changed', {});
   }
 }
+
+const onGrid = (grid: Footprint[], id: number) => grid.some((f) => f.building.id === id);
