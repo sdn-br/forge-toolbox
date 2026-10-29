@@ -1,7 +1,6 @@
 import type { WorldId } from '../../shared/ids';
 import type { BackupCopy } from '../backup/backup-copy';
 import type { Stores } from '../stores';
-import type { GbOwnState } from '../stores/gb-own-state';
 import type { OwnSelection } from '../stores/selection';
 import { Box, type BoxOptions } from '../ui/box';
 import type { Menu } from '../ui/menu';
@@ -25,8 +24,6 @@ export interface FeatureContext extends Stores {
   selection: OwnSelection;
   /** remembered view choices of the viewer */
   ui: UiState;
-  /** the factors and Ext the two own-share boxes share */
-  gbOwn: GbOwnState;
   createBox(options: BoxOptions): Box;
   /** the other profiles, to take over their settings */
   profileCopy: ProfileCopy;

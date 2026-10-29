@@ -9,7 +9,6 @@ import { type MarkerLink, Markers } from '../../src/content/core/markers';
 import { memoryProfileStorage, profileCopy } from '../../src/content/core/profile-copy';
 import { Recorder } from '../../src/content/core/recorder';
 import { Settings } from '../../src/content/core/settings';
-import { createGbOwnState } from '../../src/content/stores/gb-own-state';
 import { OwnSelection } from '../../src/content/stores/selection';
 import type { Box, BoxOptions } from '../../src/content/ui/box';
 import type { Menu, MenuItem } from '../../src/content/ui/menu';
@@ -109,13 +108,13 @@ export function fakeMarkerLink() {
 
 /** Real stores, bus and settings; persistence is the real handlers on in-memory Dexie unless a test overrides stores. */
 export function featureContext(options: TestStoresOptions & { storage?: Record<string, unknown> } = {}) {
-  const { world, bus, stores, db, now } = testStores(options);
-  const boxes = new Map<string, ReturnType<typeof recordingBox>>();
-  const menuItems = new Map<string, MenuItem>();
   /** the own profile's keys in chrome.storage.local */
   const kv = memoryKv();
   const settings = new Settings(kv);
   const ui = new UiState(memoryKv());
+  const { world, bus, stores, db, now } = testStores({ ...options, settings, ui });
+  const boxes = new Map<string, ReturnType<typeof recordingBox>>();
+  const menuItems = new Map<string, MenuItem>();
   const marker = fakeMarkerLink();
   /** chrome.storage.local of all profiles, the own one is de20:1 */
   const storage = memoryProfileStorage(options.storage);
@@ -135,7 +134,6 @@ export function featureContext(options: TestStoresOptions & { storage?: Record<s
     markers,
     selection: new OwnSelection(bus, stores.cities, stores.catalog, markers),
     ui,
-    gbOwn: createGbOwnState(bus, ui, settings),
     createBox: (options) => {
       const recording = recordingBox(options);
       boxes.set(options.id, recording);

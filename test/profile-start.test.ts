@@ -102,7 +102,13 @@ describe('background call', () => {
   it('names the profile in every call the stores make', async () => {
     const sendMessage = vi.fn(async () => ({ ok: true, result: { groups: [], pages: [] } }));
     vi.stubGlobal('chrome', { runtime: { id: 'x', sendMessage } });
-    const stores = createStores(de20, createBus(), backgroundCall(profile), () => 1000);
+    const stores = createStores(
+      de20,
+      createBus(),
+      backgroundCall(profile),
+      { prefs: new UiState(memoryKv()), settings: new Settings(memoryKv()) },
+      () => 1000,
+    );
 
     await stores.notes.load();
 
