@@ -169,7 +169,7 @@ describe('old toolbox data in the dialog', () => {
 describe('settings: data', () => {
   async function openSettings(options: { copy?: CopyEntry; data?: boolean } = {}) {
     const all = await setup(options);
-    all.env.ctx.bus.emit('settings.open', { group: 'settings.core' });
+    all.env.ctx.open('settings', 'settings.core');
     await tick();
     const box = all.env.boxes.get('settings') as NonNullable<ReturnType<typeof all.env.boxes.get>>;
     const toggle = () =>

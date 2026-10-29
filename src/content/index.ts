@@ -25,6 +25,7 @@ import { connectProxy } from './core/proxy-link';
 import { Recorder } from './core/recorder';
 import { backgroundCall } from './core/rpc';
 import { Settings } from './core/settings';
+import { createShell } from './core/shell';
 import { startupGate } from './core/startup-gate';
 import { t } from './core/texts';
 import { backupCopyFeature } from './features/backup-copy';
@@ -132,6 +133,7 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
 
   const markers = new Markers(bus, stores.cities, windowMarkerLink);
   watchEngine(bus);
+  const shell = createShell();
   const ctx: FeatureContext = {
     world,
     bus,
@@ -142,8 +144,10 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
     markers,
     selection: new OwnSelection(bus, stores.cities, stores.catalog, markers),
     ui,
-    createBox: boxFactory(ui, (group) => bus.emit('settings.open', { group })),
+    createBox: boxFactory(ui, (group) => shell.open('settings', group)),
     foundData,
+    open: shell.open,
+    registerOpen: shell.registerOpen,
   };
   // after loading, so loading the settings is no change to back up
   backupCopy.watch();

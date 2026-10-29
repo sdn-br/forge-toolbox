@@ -10,6 +10,7 @@ import { type MarkerLink, Markers } from '../../src/content/core/markers';
 import { memoryProfileStorage, profileCopy } from '../../src/content/core/profile-copy';
 import { Recorder } from '../../src/content/core/recorder';
 import { Settings } from '../../src/content/core/settings';
+import { createShell } from '../../src/content/core/shell';
 import { OwnSelection } from '../../src/content/stores/selection';
 import type { Box, BoxOptions } from '../../src/content/ui/box';
 import type { Menu, MenuItem } from '../../src/content/ui/menu';
@@ -125,6 +126,7 @@ export function featureContext(options: TestStoresOptions & { storage?: Record<s
   /** the databases of the old toolbox on the game page */
   const legacyStore = memoryLegacyStore();
   const markers = new Markers(bus, stores.cities, marker.link);
+  const shell = createShell();
   const profile = { world, player: playerId(1) };
   const persistence = backupPersistence(db.call);
   const backupCopy = new BackupCopy({
@@ -158,6 +160,8 @@ export function featureContext(options: TestStoresOptions & { storage?: Record<s
       return recording.box;
     },
     foundData,
+    open: shell.open,
+    registerOpen: shell.registerOpen,
   };
   return {
     ctx,

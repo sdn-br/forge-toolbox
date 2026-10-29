@@ -13,6 +13,13 @@ const FACTOR_BUTTONS = 'gbOwn.factorButtons';
 /** how long a copy button says it copied */
 const COPIED_MS = 1500;
 
+declare module '../../core/shell' {
+  interface OpenableBoxes {
+    /** the Eigenanteil box opens this one */
+    gbPowerLevel: [];
+  }
+}
+
 /** `copy` writes to the clipboard; tests pass their own. */
 export function createGbPowerLevelFeature(
   copy: (text: string) => Promise<void> = (text) => navigator.clipboard.writeText(text),
@@ -100,7 +107,7 @@ export function createGbPowerLevelFeature(
         return true;
       };
 
-      ctx.bus.on('gbPowerLevel.open', () => box.open());
+      ctx.registerOpen('gbPowerLevel', () => box.open());
       // either box changed the factors or Ext of a building
       ctx.bus.on('gbOwn.factorsChanged', () => box.update());
       ctx.bus.on('gbOwn.extChanged', () => box.update());

@@ -195,6 +195,13 @@ const MENU_SIZE = 'core.menuSize';
 /** the view choice of the group shown */
 const TAB = 'settings.group';
 
+declare module '../core/shell' {
+  interface OpenableBoxes {
+    /** the settings button of a box opens the settings at the group of its feature */
+    settings: [group: string];
+  }
+}
+
 /** The settings box. Only it gets the other profiles, to take over their settings. */
 export const settingsFeature = (profileCopy: ProfileCopy): Feature => ({
   id: 'settings',
@@ -291,7 +298,7 @@ function setup(ctx: FeatureContext, profileCopy: ProfileCopy) {
                 <button class="action" @click=${openDataPage}>${t('settings.manageData')}</button>
                 <p class="muted setting-hint">${t('settings.manageDataHint')}</p>
                 ${backup.render()}
-                <button class="action" @click=${() => ctx.bus.emit('foundData.open', {})}>${t('settings.findData')}</button>
+                <button class="action" @click=${() => ctx.open('backupCopy')}>${t('settings.findData')}</button>
                 <p class="muted setting-hint">${t('settings.findDataHint')}</p>
                 ${copyFrom.render()}`
               : ''
@@ -303,7 +310,7 @@ function setup(ctx: FeatureContext, profileCopy: ProfileCopy) {
   ctx.settings.onChange(() => box.update());
   // the counter on the save button; update does nothing while the box is closed
   ctx.recorder.onChange(() => box.update());
-  ctx.bus.on('settings.open', ({ group }) => {
+  ctx.registerOpen('settings', (group) => {
     reset();
     ctx.ui.savePref(TAB, group);
     box.open();

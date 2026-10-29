@@ -33,6 +33,13 @@ interface DialogState {
   status: string;
 }
 
+declare module '../../core/shell' {
+  interface OpenableBoxes {
+    /** the dialog of the data found, from the settings ("Gefundene Daten übernehmen") */
+    backupCopy: [];
+  }
+}
+
 export const backupCopyFeature: Feature = {
   id: 'backupCopy',
   setup(ctx) {
@@ -131,7 +138,7 @@ export const backupCopyFeature: Feature = {
       .then((offers) => offers.length > 0 && show('start', offers))
       .catch((error) => logError('looking for a backup copy failed', error));
 
-    ctx.bus.on('foundData.open', () => {
+    ctx.registerOpen('backupCopy', () => {
       show('manual', null);
       found
         .find()

@@ -187,7 +187,7 @@ export function createGbOwnShareFeature(
             })
             .catch((error) => logError('copying failed', error));
         },
-        openPowerLevel: () => ctx.bus.emit('gbPowerLevel.open', {}),
+        openPowerLevel: () => ctx.open('gbPowerLevel'),
         previewLevel: (level) => {
           preview = level;
           update();
