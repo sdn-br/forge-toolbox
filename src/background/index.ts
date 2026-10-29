@@ -9,11 +9,13 @@ import {
   isDataImported,
   isFolderRequest,
   OPEN_DATA_PAGE,
+  persisted,
 } from '../shared/messages';
 import { type Profile, profileOfDbName } from '../shared/profile';
 import type { RpcResponse } from '../shared/rpc';
 import { openDb } from './db';
 import { adoptLegacy, type LocalStorage } from './legacy';
+import { PersistedSignal, ProfileTabs, watchBackupTables } from './persisted';
 import { isRpcRequest, profileDispatch } from './profiles';
 
 const storage: LocalStorage = {
@@ -22,9 +24,24 @@ const storage: LocalStorage = {
   remove: (keys) => chrome.storage.local.remove(keys),
 };
 
+// the game tab of each profile, as its calls name it; empty after a restart of the worker until the tab calls again,
+// and the rows a tab changes come through its calls
+const tabs = new ProfileTabs();
+chrome.tabs.onRemoved.addListener((tab) => tabs.forget(tab));
+
+const signal = new PersistedSignal({
+  now: Date.now,
+  notify: (profile, change) => {
+    // a tab that refuses has no content script any more
+    for (const tab of tabs.of(profile)) chrome.tabs.sendMessage(tab, persisted(profile, change)).catch(() => {});
+  },
+  folderDue: () => {},
+});
+
 const dispatch = profileDispatch({
   open: openDb,
   prepare: (profile, db) => adoptLegacy(profile, db, storage),
+  watch: (profile, db) => watchBackupTables(db, () => signal.rowsChanged(profile)),
   deps: { now: Date.now },
   logError,
 });
@@ -96,8 +113,9 @@ chrome.runtime.onMessage.addListener((message: unknown) => {
   return false;
 });
 
-chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse: (res: RpcResponse) => void) => {
+chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse: (res: RpcResponse) => void) => {
   if (!isRpcRequest(message)) return false;
+  tabs.seen(message.profile, sender.tab?.id);
   dispatch(message).then(sendResponse);
   return true;
 });

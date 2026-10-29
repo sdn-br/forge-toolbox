@@ -1,11 +1,6 @@
 /** JSON gzipped with the browser's CompressionStream, as the backup file holds it. */
 export function gzipJson(value: unknown): Promise<Blob> {
-  return gzipText(JSON.stringify(value));
-}
-
-/** Text gzipped as it is, for a caller that has serialized the JSON already. */
-export function gzipText(text: string): Promise<Blob> {
-  const stream = new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'));
+  const stream = new Blob([JSON.stringify(value)]).stream().pipeThrough(new CompressionStream('gzip'));
   return new Response(stream).blob();
 }
 

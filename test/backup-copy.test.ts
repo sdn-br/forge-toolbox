@@ -3,11 +3,9 @@ import { readBackupFile } from '../src/backup/import';
 import { BACKUP_DELAY, BACKUP_SETTING, BackupCopy } from '../src/content/backup/backup-copy';
 import { type CopyEntry, memoryCopyStore } from '../src/content/backup/backup-store';
 import { FoundData } from '../src/content/backup/found-data';
-import { createBus } from '../src/content/core/events';
 import { memoryKv } from '../src/content/core/kv';
 import { Settings } from '../src/content/core/settings';
 import { backupPersistence } from '../src/persistence/backup/client';
-import { playerId } from '../src/shared/ids';
 import { battle, copyOf, de20, me, tables } from './helpers/backup';
 import { testDb } from './helpers/battle-db';
 
@@ -15,11 +13,12 @@ const DAY = 24 * 60 * 60 * 1000;
 /** noon, so a few hours later is the same local day */
 const T0 = new Date(2026, 9, 27, 12).getTime();
 
-async function setup(options: { stored?: Record<string, unknown>; copy?: CopyEntry } = {}) {
+async function setup(options: { stored?: Record<string, unknown>; copy?: CopyEntry; reading?: () => void } = {}) {
   let time = T0;
   const now = () => time;
   const db = testDb({ now });
-  const bus = createBus();
+  let persisted: (change: number) => void = () => {};
+  let change = 0;
   const kv = memoryKv(options.stored);
   const settings = new Settings(kv);
   const store = memoryCopyStore();
@@ -29,10 +28,18 @@ async function setup(options: { stored?: Record<string, unknown>; copy?: CopyEnt
   const copy = new BackupCopy({
     profile: me,
     name: 'Ich',
-    bus,
+    onPersisted: (fn) => {
+      persisted = fn;
+    },
     settings,
     kv,
-    persistence: backupPersistence(db.call),
+    persistence: {
+      ...backupPersistence(db.call),
+      tables: (world) => {
+        options.reading?.();
+        return db.call('backup.tables', { world });
+      },
+    },
     store,
     now,
     folder: () => folderWrites++,
@@ -49,7 +56,8 @@ async function setup(options: { stored?: Record<string, unknown>; copy?: CopyEnt
   };
   return {
     db,
-    bus,
+    /** the service worker signals changed rows, with the next change number or the one given */
+    signal: (at = ++change) => persisted(at),
     kv,
     settings,
     store,
@@ -85,9 +93,9 @@ describe('writing the backup copy', () => {
   it('writes the profile as the export does, half a minute after the last change', async () => {
     const env = await setup({ stored: { settings: { a: 1 } } });
     await env.db.db.battles.put(battle(7));
-    env.bus.emit('battle.recorded', { opponent: playerId(2) });
+    env.signal();
     await elapse(env, BACKUP_DELAY - 1_000);
-    env.bus.emit('note.changed', {});
+    env.signal();
     await elapse(env, BACKUP_DELAY - 1_000);
     expect(await env.store.get(me)).toBeUndefined();
     await elapse(env, 1_000);
@@ -99,59 +107,57 @@ describe('writing the backup copy', () => {
     ]);
   });
 
-  it('reacts to changes of backed up data only', async () => {
+  it('writes after a signal of the service worker or a change of a setting, and not without', async () => {
     const env = await setup();
-    env.bus.emit('player.updated', { ids: [playerId(2)], source: 'socialList' });
-    env.bus.emit('greatBuilding.changed', { owner: playerId(2), entityId: 1, reason: 'ranking' });
-    env.bus.emit('city.visited', { owner: playerId(2) });
     await elapse(env);
     expect(await env.store.get(me)).toBeUndefined();
     const changes: (() => void)[] = [
-      () => env.bus.emit('player.updated', { ids: [playerId(2)], source: 'mark' }),
-      () => env.bus.emit('player.updated', { ids: [playerId(2)], source: 'ignore' }),
-      () => env.bus.emit('plunder.recorded', { opponent: playerId(2) }),
-      () => env.bus.emit('incoming.recorded', { attacker: playerId(2) }),
-      () => env.bus.emit('shield.recorded', { players: [playerId(2)] }),
-      () => env.bus.emit('greatBuilding.marked', { owner: playerId(2), entityId: 1, marked: true }),
-      () => env.bus.emit('greatBuilding.ignored', { owner: playerId(2), entityId: 1, ignored: true }),
-      () => env.bus.emit('greatBuilding.changed', { owner: playerId(2), entityId: 1, reason: 'contributed' }),
-      () => env.bus.emit('greatBuildings.contributions', { at: 1, owners: [] }),
+      () => env.signal(),
       () => {
         env.settings.set('x', true);
       },
     ];
     for (const [i, change] of changes.entries()) {
       await env.store.delete(me);
-      // something new each time, so the copy is not the same as the one before
-      await env.db.db.battles.put(battle(100 + i));
       change();
       await elapse(env);
       expect(await env.store.get(me), `change ${i}`).toBeDefined();
     }
   });
 
-  it('writes nothing when the content did not change since the last copy', async () => {
+  it('writes nothing when the change number is the one of the last copy', async () => {
     const env = await setup();
     await env.db.db.battles.put(battle(7));
-    env.bus.emit('battle.recorded', { opponent: playerId(2) });
+    env.signal(5);
     await elapse(env);
     env.setTime(T0 + 60_000);
-    env.bus.emit('battle.recorded', { opponent: playerId(2) });
+    env.signal(5);
     await elapse(env);
     expect((await env.store.get(me))?.createdAt).toBe(T0);
+  });
+
+  it('writes again when a change came while the rows were read', async () => {
+    let reads = 0;
+    const env = await setup({ reading: () => reads++ === 0 && env.signal() });
+    env.signal();
+    await elapse(env);
+    expect((await env.store.get(me))?.createdAt).toBe(T0);
+    env.setTime(T0 + 60_000);
+    await elapse(env);
+    expect((await env.store.get(me))?.createdAt).toBe(T0 + 60_000);
   });
 
   it('switched off deletes the copy of the profile and stops writing; on again writes soon', async () => {
     const env = await setup();
     await env.db.db.battles.put(battle(7));
-    env.bus.emit('battle.recorded', { opponent: playerId(2) });
+    env.signal();
     await elapse(env);
     expect(await env.store.get(me)).toBeDefined();
-    env.bus.emit('battle.recorded', { opponent: playerId(2) });
+    env.signal();
     await env.settings.set(BACKUP_SETTING, false);
     await elapse(env);
     expect(await env.store.get(me)).toBeUndefined();
-    env.bus.emit('battle.recorded', { opponent: playerId(2) });
+    env.signal();
     await elapse(env);
     expect(await env.store.get(me)).toBeUndefined();
     await env.settings.set(BACKUP_SETTING, true);
@@ -161,9 +167,9 @@ describe('writing the backup copy', () => {
 
   it('asks the backup folder to write with the same delay, also with the copy on the game page switched off', async () => {
     const env = await setup({ stored: { settings: { [BACKUP_SETTING]: false } } });
-    env.bus.emit('battle.recorded', { opponent: playerId(2) });
+    env.signal();
     await elapse(env, BACKUP_DELAY - 1_000);
-    env.bus.emit('note.changed', {});
+    env.signal();
     await elapse(env, BACKUP_DELAY - 1_000);
     expect(env.folderWrites).toBe(0);
     await elapse(env, 1_000);
@@ -219,7 +225,7 @@ describe('a found copy at the start', () => {
     expect(offers[0]?.choice.counts).toEqual({ pvp: 1, notes: 0, greatBuildings: 0, settings: 1 });
     expect(offers[0]?.choice.checked).toEqual({ pvp: true, notes: false, greatBuildings: false, settings: true });
     await env.db.db.battles.put(battle(9));
-    env.bus.emit('battle.recorded', { opponent: playerId(2) });
+    env.signal();
     await elapse(env);
     expect((await env.store.get(me))?.createdAt).toBe(T0 - DAY);
   });
@@ -244,7 +250,7 @@ describe('a found copy at the start', () => {
     const env = await setup({ copy: await found() });
     await env.db.db.battles.put(battle(5));
     expect(await env.found.start()).toEqual([]);
-    env.bus.emit('battle.recorded', { opponent: playerId(2) });
+    env.signal();
     await elapse(env);
     expect((await env.written())?.file.profiles[0]?.tables.battles).toEqual([battle(5)]);
   });
@@ -264,7 +270,7 @@ describe('a found copy at the start', () => {
     expect((await env.db.db.battles.toArray()).map((b) => b.battleId)).toEqual([1, 3]);
     expect(await env.kv.get('settings')).toEqual({ a: 1 });
     expect(env.reloads).toBe(1);
-    env.bus.emit('battle.recorded', { opponent: playerId(2) });
+    env.signal();
     await elapse(env);
     const written = (await env.written())?.file.profiles[0];
     expect(written?.tables.battles.map((b) => b.battleId)).toEqual([1, 3]);
@@ -276,7 +282,7 @@ describe('a found copy at the start', () => {
     expect(await env.found.start()).toHaveLength(1);
     await env.found.decline(['backupCopy']);
     await env.db.db.battles.put(battle(5));
-    env.bus.emit('battle.recorded', { opponent: playerId(2) });
+    env.signal();
     await elapse(env);
     expect((await env.written())?.file.profiles[0]?.tables.battles).toEqual([battle(5)]);
     await env.db.db.battles.clear();
@@ -294,7 +300,7 @@ describe('a found copy at the start', () => {
     sameDay.setTime(T0 + 3 * 60 * 60 * 1000);
     await sameDay.db.db.battles.put(battle(5));
     expect(await sameDay.found.start()).toEqual([]);
-    sameDay.bus.emit('battle.recorded', { opponent: playerId(2) });
+    sameDay.signal();
     await elapse(sameDay);
     expect((await sameDay.store.get(me))?.createdAt).toBe(T0 - DAY);
 

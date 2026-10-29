@@ -8,13 +8,12 @@ import {
   type BackupProfile,
   type BackupTables,
 } from '../../backup/format';
-import { gzipText } from '../../backup/gzip';
+import { gzipJson } from '../../backup/gzip';
 import { areaCounts, importChoices, profileEntry, readBackupFile } from '../../backup/import';
 import type { Area } from '../../backup/merge';
 import type { BackupPersistence } from '../../persistence/backup/client';
 import type { Profile } from '../../shared/profile';
 import { answeredLaterToday } from '../../shared/time';
-import type { ToolboxBus } from '../core/events';
 import type { KeyValue } from '../core/kv';
 import { logError } from '../core/log';
 import type { Settings } from '../core/settings';
@@ -38,7 +37,8 @@ export interface BackupCopyEnv {
   profile: Profile;
   /** the own player name, stored with the copy like the export does */
   name: string;
-  bus: ToolboxBus;
+  /** the service worker's signal that rows the copy holds changed, with the profile's change number */
+  onPersisted(fn: (change: number) => void): void;
   settings: Settings;
   /** the profile's keys in chrome.storage.local */
   kv: KeyValue;
@@ -52,6 +52,15 @@ export interface BackupCopyEnv {
   folder?: () => void;
 }
 
+/** the change number of the rows (unknown before the first signal) and the count of setting changes */
+interface CopyState {
+  change: number | undefined;
+  settings: number;
+}
+
+const sameState = (a: CopyState, b: CopyState | undefined) =>
+  b !== undefined && a.change === b.change && a.settings === b.settings;
+
 const isEmpty = (tables: BackupTables) => Object.values(tables).every((rows) => rows.length === 0);
 
 export class BackupCopy implements FoundDataSource {
@@ -62,8 +71,13 @@ export class BackupCopy implements FoundDataSource {
   /** the start check; a write waits for it */
   private checked: Promise<unknown> = Promise.resolve();
   private writing: Promise<unknown> = Promise.resolve();
-  /** the profile entry written last, to skip a write that would store the same */
-  private last: string | undefined;
+  /**
+   * what the data are at: the change number the service worker signalled last, and a count of the setting changes,
+   * which the signal leaves out
+   */
+  private state: CopyState = { change: undefined, settings: 0 };
+  /** the state the copy written last holds, to skip a write that would store the same */
+  private written: CopyState | undefined;
 
   constructor(private env: BackupCopyEnv) {
     env.settings.register({
@@ -76,26 +90,20 @@ export class BackupCopy implements FoundDataSource {
     });
   }
 
-  /** Listens for changes of backed up data: rows of the export and the settings. */
+  /**
+   * Listens for changes of backed up data: the rows of the export, which the service worker signals, and the settings.
+   */
   watch(): void {
-    const { bus } = this.env;
-    const changed = () => this.changed();
-    bus.on('battle.recorded', changed);
-    bus.on('plunder.recorded', changed);
-    bus.on('incoming.recorded', changed);
-    bus.on('shield.recorded', changed);
-    bus.on('note.changed', changed);
-    // other updates of players are game data; a player goes into the copy only with a row or a mark
-    bus.on('player.updated', ({ source }) => (source === 'mark' || source === 'ignore') && changed());
-    bus.on('greatBuilding.marked', changed);
-    bus.on('greatBuilding.ignored', changed);
-    bus.on('greatBuilding.changed', ({ reason }) => reason === 'contributed' && changed());
-    bus.on('greatBuildings.contributions', changed);
+    this.env.onPersisted((change) => {
+      this.state = { ...this.state, change };
+      this.changed();
+    });
     this.env.settings.onChange((key) => {
       if (key === BACKUP_SETTING && !this.enabled())
         this.switchedOff().catch((error) => logError('deleting the backup copy failed', error));
       // the setting itself is a setting the folder backs up
-      changed();
+      this.state = { ...this.state, settings: this.state.settings + 1 };
+      this.changed();
     });
   }
 
@@ -202,30 +210,27 @@ export class BackupCopy implements FoundDataSource {
   private async write() {
     await this.checked;
     if (this.held || !this.enabled()) return;
+    // taken before reading: a change while the rows are read moves the state on, and the next write takes it
+    const state = this.state;
+    if (sameState(state, this.written)) return;
     const { persistence, profile, name, store, now } = this.env;
     const tables = await persistence.tables(profile.world);
     const settings = this.env.settings.stored();
     const entry: BackupProfile = { ...profile, ...(name && { name }), ...(settings && { settings }), tables };
-    const json = JSON.stringify(entry);
-    if (json === this.last) return;
     const createdAt = now();
-    // the file around the entry already serialized for the comparison, so it is stringified once
-    const head = JSON.stringify({ format: BACKUP_FORMAT, version: BACKUP_VERSION, createdAt } satisfies Omit<
-      BackupFile,
-      'profiles'
-    >);
-    const packed = await (await gzipText(`${head.slice(0, -1)},"profiles":[${json}]}`)).arrayBuffer();
+    const file: BackupFile = { format: BACKUP_FORMAT, version: BACKUP_VERSION, createdAt, profiles: [entry] };
+    const packed = await (await gzipJson(file)).arrayBuffer();
     // switched off meanwhile: the copy is gone and stays gone
     if (this.held || !this.enabled()) return;
     await store.put({ ...profile, createdAt, counts: areaCounts(entry), file: packed });
-    this.last = json;
+    this.written = state;
   }
 
   /** deletes the copy and forgets a question about it; nothing is written until switched on again */
   private async switchedOff() {
     clearTimeout(this.timer);
     this.held = false;
-    this.last = undefined;
+    this.written = undefined;
     await this.writing;
     await this.env.store.delete(this.env.profile);
     await this.env.kv.set(ANSWER, null);

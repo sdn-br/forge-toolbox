@@ -22,6 +22,27 @@ export function importConcerns(profiles: Profile[], world: WorldId, own: Profile
   return profiles.some((p) => p.world === world && (own === undefined || p.player === own.player));
 }
 
+/**
+ * service worker to the game tab of a profile: rows the backup holds changed; `change` is the profile's change number,
+ * a copy written at that number is up to date
+ */
+export interface Persisted {
+  type: 'forge-toolbox.persisted';
+  profile: Profile;
+  change: number;
+}
+
+export const persisted = (profile: Profile, change: number): Persisted => ({
+  type: 'forge-toolbox.persisted',
+  profile,
+  change,
+});
+
+export function isPersisted(message: unknown): message is Persisted {
+  const m = message as Partial<Persisted> | null;
+  return m?.type === 'forge-toolbox.persisted' && isProfile(m.profile) && typeof m.change === 'number';
+}
+
 /** the state of the backup in a local folder in chrome.storage.local; the data page and the game tabs watch it */
 export const FOLDER_STATUS = 'folder.status';
 

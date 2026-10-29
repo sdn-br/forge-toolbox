@@ -32,6 +32,24 @@ export interface BackupTables {
   players: Player[];
 }
 
+/**
+ * Which writes of an export table change the backup, for the service worker's signal that persisted data changed:
+ * `every` write, or only a change of the fields named. The other fields of players and great buildings are game data
+ * that comes again with each sighting; the export carries them along, but they alone are no reason for a new copy.
+ */
+export const BACKUP_CHANGES: {
+  [T in keyof BackupTables]: 'every' | readonly (keyof BackupTables[T][number] & string)[];
+} = {
+  battles: 'every',
+  plunders: 'every',
+  incoming: 'every',
+  noteGroups: 'every',
+  notePages: 'every',
+  cityShields: 'every',
+  greatBuildings: ['marksAt', 'ownContribution', 'contribution'],
+  players: ['marksAt'],
+};
+
 /** One profile: a world and the own player id, with its settings and rows. */
 export interface BackupProfile {
   world: WorldId;

@@ -6,7 +6,6 @@ import { type CopyEntry, memoryCopyStore } from '../src/content/backup/backup-st
 import { FoundData } from '../src/content/backup/found-data';
 import { LEGACY_ANSWER, LegacyData } from '../src/content/backup/legacy-data';
 import { memoryLegacyStore } from '../src/content/backup/legacy-store';
-import { createBus } from '../src/content/core/events';
 import { memoryKv } from '../src/content/core/kv';
 import { Settings } from '../src/content/core/settings';
 import { backupPersistence } from '../src/persistence/backup/client';
@@ -45,7 +44,7 @@ async function setup(options: { legacy?: LegacyFound; copy?: CopyEntry; stored?:
   const copy = new BackupCopy({
     profile: me,
     name: 'Ich',
-    bus: createBus(),
+    onPersisted: () => {},
     settings,
     kv,
     persistence,

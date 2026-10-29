@@ -132,7 +132,7 @@ export function featureContext(options: TestStoresOptions & { storage?: Record<s
   const backupCopy = new BackupCopy({
     profile,
     name: 'Ich',
-    bus,
+    onPersisted: () => {},
     settings,
     kv,
     persistence,
