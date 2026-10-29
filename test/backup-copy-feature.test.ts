@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { LegacyFound } from '../src/backup/legacy/types';
 import { BACKUP_SETTING } from '../src/content/core/backup-copy';
 import type { CopyEntry } from '../src/content/core/backup-store';
@@ -92,12 +92,14 @@ describe('found data at the start', () => {
 
   it('"Nein" closes it for good, "Später" until another day', async () => {
     const no = await setup({ copy: await found() });
+    await vi.waitFor(() => expect(no.dialog()?.box.isOpen).toBe(true));
     no.dialog()?.click('Nein');
     await settle();
     expect(no.dialog()?.box.isOpen).toBe(false);
     expect(await no.env.kv.get('backup.answer')).toEqual({ answer: 'no' });
 
     const later = await setup({ copy: await found() });
+    await vi.waitFor(() => expect(later.dialog()?.box.isOpen).toBe(true));
     later.dialog()?.click('Später');
     await settle();
     expect(later.dialog()?.box.isOpen).toBe(false);
