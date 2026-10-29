@@ -11,7 +11,7 @@ function setup() {
   const env = featureContext();
   createGbOwnShareFeature(async () => {}).setup(env.ctx);
   settingsFeature(env.profileCopy).setup(env.ctx);
-  env.ctx.bus.emit('settings.open', { group: 'gbOwn.title' });
+  env.ctx.open('settings', 'gbOwn.title');
   const box = env.boxes.get('settings') as NonNullable<ReturnType<typeof env.boxes.get>>;
   /** the input whose label starts with `text` */
   const field = (text: string) =>
@@ -63,7 +63,7 @@ describe('settings box layout', () => {
     menu('settings');
     expect(box.root.querySelector('.settings-main h2')?.textContent).toBe('Allgemein');
     // a box's settings button picks its module
-    ctx.bus.emit('settings.open', { group: 'gbOwn.title' });
+    ctx.open('settings', 'gbOwn.title');
     await tick();
     expect(box.root.querySelector('.settings-main h2')?.textContent).toBe('Eigenanteil');
   });
@@ -76,7 +76,7 @@ describe('settings box recording', () => {
     ctx.recorder = new Recorder(() => true);
     settingsFeature(env.profileCopy).setup(ctx);
     await ctx.settings.set('core.record', true);
-    ctx.bus.emit('settings.open', { group: 'settings.core' });
+    ctx.open('settings', 'settings.core');
     const box = env.boxes.get('settings') as NonNullable<ReturnType<typeof env.boxes.get>>;
     ctx.recorder.add({ kind: 'ws', data: '[]', at: 0 });
     ctx.recorder.add({ kind: 'ws', data: '[]', at: 0 });
@@ -94,7 +94,7 @@ describe('settings box: copy from another profile', () => {
   async function open(storage: Record<string, unknown>) {
     const env = featureContext({ storage });
     settingsFeature(env.profileCopy).setup(env.ctx);
-    env.ctx.bus.emit('settings.open', { group: 'settings.core' });
+    env.ctx.open('settings', 'settings.core');
     await tick();
     const box = env.boxes.get('settings') as NonNullable<ReturnType<typeof env.boxes.get>>;
     const copySelect = () =>

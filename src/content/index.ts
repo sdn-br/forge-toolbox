@@ -144,7 +144,7 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
     markers,
     selection: new OwnSelection(bus, stores.cities, stores.catalog, markers),
     ui,
-    createBox: boxFactory(ui, (group) => bus.emit('settings.open', { group })),
+    createBox: boxFactory(ui, (group) => shell.open('settings', group)),
     foundData,
     open: shell.open,
     registerOpen: shell.registerOpen,

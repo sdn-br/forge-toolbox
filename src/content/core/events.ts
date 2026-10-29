@@ -6,8 +6,6 @@ import { EventBus } from './bus';
 
 export interface ToolboxEvents {
   'session.started': { session: Session };
-  /** a box asks to open the settings at the group of its feature */
-  'settings.open': { group: string };
   /** `source` is where the data came from, or `mark` when the player put a star on a player or took it away */
   'player.updated': { ids: PlayerId[]; source: PlayerSource | 'mark' | 'ignore' };
   'city.ownChanged': { buildingIds?: number[]; reset: boolean };
