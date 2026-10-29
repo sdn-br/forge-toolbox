@@ -81,7 +81,7 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
 ### Event-Bus
 
 - Typisierte Events mit Payload, etwa `player.updated {id}` oder `city.changed {playerId}`. Jeder Vertrag ist ein TypeScript-Typ.
-- Stores senden Domain-Events. Features senden keine Events an andere Features, sie kennen sich nicht.
+- Stores senden Domain-Events. Features senden keine Events an andere Features, sie kennen sich nicht. Auch Befehle wie „öffne diese Box“ gehen nicht über den Bus, sondern an die Shell (siehe Features als Plugins).
 - Bewusste Ausnahme: Der Handler sendet `army.opened` direkt auf den Bus. Das Signal ist flüchtig und hat keinen Zustand, ein Store hätte dafür nichts zu halten.
 - `markers.changed` sendet `ctx.markers` (`core/markers.ts`). Er hält die Markierungen im Spiel, eine je Stadt, wie ein Store seinen Zustand und spricht mit dem Marker-Modul in der Seite.
 - Zusätzlich Lebenszyklus-Events der Shell (bereit, Spieler bekannt, Welt gewechselt).
@@ -89,6 +89,7 @@ Beispiel Stadtbesuch: Das Spiel schickt `visitPlayer`. Der Handler übersetzt di
 ### Features als Plugins
 
 - Ein Feature meldet sich bei der Shell an: Menüknopf, Boxen, Settings, Event-Abos.
+- **Boxen öffnen über die Shell** (Nutzer, 2026-10-29): Öffnet ein Feature die Box eines anderen, etwa der Eigenanteil das Powerleveln oder der Zahnrad-Knopf einer Box die Einstellungen, ruft es `ctx.open(id)` mit der ID des Features, dem die Box gehört. Das Feature meldet beim Start mit `ctx.registerOpen(id, …)`, wie seine Box aufgeht, und nennt neben sich die ID und die Argumente (`OpenableBoxes` in `core/shell.ts`, etwa `settings: [group: string]`). Grund: Ein Befehl hat genau einen Empfänger. Fehlt er, verschwindet ein Event still. So ist eine unbekannte ID ein Typfehler, und fehlt die Anmeldung zur Laufzeit, steht ein Fehler in der Konsole. Ein zweiter Empfänger für dieselbe Box ist ein Fehler beim Start des Features. Heute öffnen sich so die Einstellungen (`settings`), der Dialog „Gefundene Daten“ (`backupCopy`) und das Powerleveln (`gbPowerLevel`). Vorher gingen dafür die Events `settings.open`, `foundData.open` und `gbPowerLevel.open` über den Bus.
 - Es hängt nur von Stores, Bus und UI-Kit ab, nie von einem anderen Feature. Bewusste Ausnahme: Powerleveln nutzt Kopiertext und Faktorstand des Eigenanteils (`features/gb-own-share/copy-text.ts`, `factor-state.ts`). Beide Boxen rechnen dasselbe eigene LG, Powerleveln öffnet sich aus dem Eigenanteil.
 - Aufbau je Feature: Datenteil liefert ein ViewModel, View ist eine reine lit-html-Funktion, die Box rendert das Ergebnis.
 - Ablage: Jedes Feature hat einen Ordner unter `src/content/features/` mit `index.ts` (Anmeldung), ViewModel, View und `styles.ts` für das CSS, das nur seine Box zeichnet. Fachregeln ohne Darstellung liegen in `src/content/domain/`, etwa die Faktoren der LG-Rechner (`domain/gb-factor.ts`) oder die Sortierschlüssel der Snipehilfe (`domain/gb-snipe.ts`). `src/content/ui/` ist das UI-Kit: Bausteine, die mehr als ein Feature nutzt oder die als allgemeiner Baustein gedacht sind (2026-10-29).
