@@ -36,6 +36,13 @@ export class CityStore {
     this.bus.emit('city.ownChanged', { reset: true });
   }
 
+  /** all buildings of the own city anew, as the game sends them when it loads the main map again */
+  replaceOwnBuildings(buildings: Building[]): void {
+    if (!this.ownCity) return;
+    this.ownCity.buildings = new Map(buildings.map((b) => [b.id, b]));
+    this.bus.emit('city.ownChanged', { reset: true });
+  }
+
   /**
    * The city the game shows, as far as its traffic tells: a visit shows that city, the own city returns with
    * `showOwn`. Going home without a request to the game server stays unseen (docs/features/stadtplan.md).

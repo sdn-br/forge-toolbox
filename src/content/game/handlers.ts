@@ -145,11 +145,17 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   // the visited city shows. Going home from a visit with the home button sends nothing and stays unseen.
   let home = false;
   let visit = false;
-  ingestion.on('CityMapService', 'getEntities', ({ request }) => {
+  ingestion.on('CityMapService', 'getEntities', ({ request, data }) => {
     // another map (a settlement, a colony) is not the own city
     if (Array.isArray(request) && request.length > 0 && request[0] !== 'main') return;
     home = true;
     onMain = true;
+    // all buildings of the main map (596 of 596, recording of 2026-10-29): what changed while another map was open
+    const owner = session.current?.playerId;
+    if (owner && Array.isArray(data))
+      cities.replaceOwnBuildings(
+        (data as GameCityEntity[]).map((e) => toBuilding(e, owner)).filter((b): b is Building => b !== null),
+      );
   });
   // Entering a settlement loads its map (`getCityMap` with `cultural_outpost`), and its harvests bring its buildings as
   // `updatedEntities` like those of the own city, without saying which map they belong to (recording of 2026-10-29).
@@ -301,8 +307,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
 
   const updateBuildings = ({ data }: { data: unknown }) => {
     const owner = session.current?.playerId;
-    // debt: an update of an own city building that comes while another map is open is dropped. ceiling: its state
-    // stays old until the next start. upgrade: take the buildings of `getEntities` with `main` when coming back.
+    // an update of an own building while another map is open is lost here; `getEntities` brings it on the way back
     if (!owner || !onMain || !Array.isArray(data)) return;
     const buildings = (data as GameCityEntity[])
       .map((e) => toBuilding(e, owner))
