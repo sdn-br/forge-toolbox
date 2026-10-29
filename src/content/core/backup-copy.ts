@@ -164,7 +164,7 @@ export class BackupCopy {
    * taken, writing resumes, the profile has its data back.
    */
   async take(items: { offer: FoundOffer; areas: ReadonlySet<Area> }[]): Promise<void> {
-    const { persistence, kv, legacy } = this.env;
+    const { persistence, kv, legacy, settings } = this.env;
     const ordered = [...items].sort(
       (a, b) => Number(a.offer.source === 'legacy') - Number(b.offer.source === 'legacy'),
     );
@@ -177,7 +177,7 @@ export class BackupCopy {
         const entry = offer.choice.profile;
         const data = [...areas].filter((a) => a !== 'settings');
         if (data.length) await persistence.merge(entry, data);
-        if (areas.has('settings') && entry.settings) await kv.set('settings', entry.settings);
+        if (areas.has('settings') && entry.settings) await settings.replace(entry.settings);
         this.held = false;
         await kv.set(ANSWER, null);
       }

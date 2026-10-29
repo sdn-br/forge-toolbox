@@ -165,6 +165,14 @@ export class Settings {
     for (const listener of this.listeners) listener(key);
   }
 
+  /** replaces all values, as taking found data does; no listener hears it, the game reloads right after */
+  async replace(values: Record<string, unknown>): Promise<void> {
+    // unchecked like a load: the getters fall back to the default for a value of the wrong type
+    this.values = values as Values;
+    this.present = true;
+    await this.kv.set('settings', values);
+  }
+
   onChange(listener: (key: string) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);

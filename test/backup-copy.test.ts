@@ -264,7 +264,9 @@ describe('a found copy at the start', () => {
     expect(env.reloads).toBe(1);
     env.bus.emit('battle.recorded', { opponent: playerId(2) });
     await elapse(env);
-    expect((await env.written())?.file.profiles[0]?.tables.battles.map((b) => b.battleId)).toEqual([1, 3]);
+    const written = (await env.written())?.file.profiles[0];
+    expect(written?.tables.battles.map((b) => b.battleId)).toEqual([1, 3]);
+    expect(written?.settings).toEqual({ a: 1 });
   });
 
   it('after "Nein" never asks again for the profile and lets the copy be overwritten', async () => {
