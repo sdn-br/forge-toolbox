@@ -55,7 +55,9 @@ describe('footprints', () => {
   });
 
   it('leaves out buildings that are not on the city grid', () => {
-    const list = ['off_grid', 'outpost_ship', 'friends_tavern'].map((type) => building('Off', type, -5, -5));
+    const list = ['off_grid', 'outpost_ship', 'friends_tavern', 'hub_main', 'hub_part'].map((type) =>
+      building('Off', type, -5, -5),
+    );
     expect(footprints(list, catalog(def('Off', 4, 4)))).toEqual([]);
   });
 

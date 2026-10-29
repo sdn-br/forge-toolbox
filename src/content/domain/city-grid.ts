@@ -41,8 +41,9 @@ export interface Bounds {
   y2: number;
 }
 
-// Entities the game lists with the city but places beside the grid (seen in the own city, 2026-10-19).
-const OFF_GRID = new Set(['off_grid', 'outpost_ship', 'friends_tavern']);
+// Entities the game lists with the city but places beside the grid (seen in the own city, 2026-10-19). The hubs are the
+// Arctic Harbour and the Ocean Terminal with their parts (seen 2026-10-29).
+const OFF_GRID = new Set(['off_grid', 'outpost_ship', 'friends_tavern', 'hub_main', 'hub_part']);
 
 const onGrid = (b: Building) => !OFF_GRID.has(b.type);
 
