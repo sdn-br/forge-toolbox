@@ -1,24 +1,21 @@
 // Statistics of the own city for the side panel of the box "Stadtplan".
-import type { BuildingDefId, EraId } from '../../../shared/ids';
+import type { EraId } from '../../../shared/ids';
 import { type TextKey, t } from '../../core/texts';
-import { footprints } from '../../domain/city-grid';
-import { areaStats, type StreetEfficiency, streetEfficiency, type TypeStat, typeStats } from '../../domain/city-stats';
+import { type StreetEfficiency, streetEfficiency, type TypeStat, typeStats } from '../../domain/city-stats';
 import {
-  expansionBlocks,
   type OfferStat,
   offerStats,
   placedExpansions,
   type RewardSources,
   rewardSources,
 } from '../../domain/expansions';
-import type { BuildingDef, CityGrid } from '../../stores/catalog';
 import type { City, ExpansionOffer, ResourceId } from '../../stores/city-model';
 import type { ResearchExpansion } from '../../stores/research';
+import type { CityBasis } from './basis';
 import { CATEGORY_COLORS } from './colors';
 
 /** What the statistics need beyond the city. */
 export interface StatsMeans {
-  grid?: CityGrid;
   resources: { known: boolean; amount(id: ResourceId): number };
   research: { expansions(): ResearchExpansion[] | undefined; unlocked(): ReadonlySet<string> | undefined };
   eraIndex(era: EraId): number | undefined;
@@ -58,19 +55,19 @@ export interface OwnStatsVm {
   };
 }
 
-export function ownCityStats(city: City, def: (id: BuildingDefId) => BuildingDef | undefined, means: StatsMeans) {
-  const fps = footprints(city.buildings.values(), def);
+/** `basis` is derived from `city`. */
+export function ownCityStats(city: City, basis: CityBasis, means: StatsMeans) {
+  const { fps, area, blocks } = basis;
   const types = typeStats(fps);
-  const blocks = means.grid && city.areas && expansionBlocks(means.grid, city.areas, city.blocked);
   const streets = streetEfficiency(fps);
   const vm: OwnStatsVm = {
     buildings: types.total,
     types: types.types.map((s) => ({ ...s, label: t(`category.${s.category}`), color: CATEGORY_COLORS[s.category] })),
     ...(streets && { streets }),
-    ...(city.areas && { area: areaStats(city.areas, fps) }),
+    ...(area && { area: { free: area.free.length, total: area.total } }),
     expansions: {
       resourcesKnown: means.resources.known,
-      ...(city.areas && { placed: placedExpansions(city.areas) }),
+      ...(area && { placed: placedExpansions(area.total) }),
       ...(city.expansions && { offers: offers(city, city.expansions, means) }),
       ...(blocks && { blocks: { now: blocks.now.length, later: blocks.later.length } }),
     },

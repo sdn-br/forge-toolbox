@@ -60,31 +60,41 @@ export function footprints(buildings: Iterable<Building>, def: (id: BuildingDefI
   return out;
 }
 
-const key = (x: number, y: number) => `${x},${y}`;
+// Numbers instead of "x,y" strings: a late city has thousands of tiles per render. The offset keeps negative
+// coordinates apart, the grid stays far within it.
+const SPAN = 1 << 16;
+const OFFSET = SPAN / 2;
+
+/** A tile as one number, for sets of tiles. */
+export const tileKey = (x: number, y: number): number => (y + OFFSET) * SPAN + (x + OFFSET);
+
+/** The tile of a `tileKey`. */
+export const keyTile = (k: number): Tile => ({ x: (k % SPAN) - OFFSET, y: Math.floor(k / SPAN) - OFFSET });
 
 /** The keys of the tiles in the areas, in area order; overlapping areas count once. */
-export function areaTileKeys(areas: Area[]): Set<string> {
-  const keys = new Set<string>();
+export function areaTileKeys(areas: Area[]): Set<number> {
+  const keys = new Set<number>();
   for (const a of areas) {
-    for (let y = a.y; y < a.y + a.length; y++) for (let x = a.x; x < a.x + a.width; x++) keys.add(key(x, y));
+    for (let y = a.y; y < a.y + a.length; y++) for (let x = a.x; x < a.x + a.width; x++) keys.add(tileKey(x, y));
   }
   return keys;
 }
 
-/** Tiles inside the unlocked areas that no building covers, streets included; overlapping areas count once. */
-export function freeTiles(areas: Area[], fps: Footprint[]): Tile[] {
-  const occupied = new Set<string>();
+/** The keys in `inAreas` (from `areaTileKeys`) of the tiles no building covers, streets included, in their order. */
+export function freeTileKeys(inAreas: ReadonlySet<number>, fps: Footprint[]): number[] {
+  const occupied = new Set<number>();
   for (const f of fps) {
-    for (let dx = 0; dx < f.width; dx++) for (let dy = 0; dy < f.length; dy++) occupied.add(key(f.x + dx, f.y + dy));
+    for (let dx = 0; dx < f.width; dx++)
+      for (let dy = 0; dy < f.length; dy++) occupied.add(tileKey(f.x + dx, f.y + dy));
   }
-  const free: Tile[] = [];
-  for (const k of areaTileKeys(areas)) {
-    if (occupied.has(k)) continue;
-    const [x, y] = k.split(',').map(Number) as [number, number];
-    free.push({ x, y });
-  }
+  const free: number[] = [];
+  for (const k of inAreas) if (!occupied.has(k)) free.push(k);
   return free;
 }
+
+/** Tiles inside the unlocked areas that no building covers, streets included; overlapping areas count once. */
+export const freeTiles = (areas: Area[], fps: Footprint[]): Tile[] =>
+  freeTileKeys(areaTileKeys(areas), fps).map(keyTile);
 
 /** A rectangle of tiles, `width` along x and `length` along y: an area, a footprint, a tile on a map. */
 export type TileRect = Area;

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { areaTileKeys } from '../src/content/domain/city-grid';
 import { expansionBlocks, offerStats, placedExpansions, rewardSources } from '../src/content/domain/expansions';
 import type { ExpansionOffer } from '../src/content/stores/city-model';
 import { type EraId, eraId } from '../src/shared/ids';
@@ -18,10 +19,11 @@ const areas = [
 describe('placed expansions', () => {
   it('counts the unlocked blocks beyond the 16 of the start area', () => {
     const start = { x: 0, y: 0, width: 16, length: 16 };
-    expect(placedExpansions([start])).toBe(0);
-    expect(placedExpansions([start, { x: 16, y: 0, width: 4, length: 4 }, { x: 16, y: 4, width: 4, length: 4 }])).toBe(
-      2,
-    );
+    const tiles = (...areas: (typeof start)[]) => areaTileKeys(areas).size;
+    expect(placedExpansions(tiles(start))).toBe(0);
+    expect(
+      placedExpansions(tiles(start, { x: 16, y: 0, width: 4, length: 4 }, { x: 16, y: 4, width: 4, length: 4 })),
+    ).toBe(2);
   });
 });
 
@@ -41,6 +43,14 @@ describe('expansion blocks', () => {
 
   it('works without blocked areas', () => {
     expect(expansionBlocks(grid, areas, undefined).now).toHaveLength(4);
+  });
+
+  it('tests the top left tile of a block also for areas off the block lines', () => {
+    // covers the top left tile of the block at 4,4 only
+    const blocks = expansionBlocks(grid, [{ x: 2, y: 2, width: 3, length: 3 }], [{ x: 9, y: 1, width: 4, length: 4 }]);
+    expect(blocks.unlocked).toBe(1);
+    expect(blocks.blocked).toBe(1);
+    expect(blocks.now.map((b) => `${b.x},${b.y}`).sort()).toEqual(['0,4', '4,0', '4,8', '8,4']);
   });
 });
 
