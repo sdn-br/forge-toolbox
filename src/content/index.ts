@@ -3,8 +3,15 @@
 
 import { backupPersistence } from '../persistence/backup/client';
 import { worldId } from '../shared/ids';
-import { FOLDER_STATUS, type FolderStatus, importConcerns, isDataImported, OPEN_DATA_PAGE } from '../shared/messages';
-import type { Profile } from '../shared/profile';
+import {
+  FOLDER_STATUS,
+  type FolderStatus,
+  importConcerns,
+  isDataImported,
+  isPersisted,
+  OPEN_DATA_PAGE,
+} from '../shared/messages';
+import { type Profile, sameProfile } from '../shared/profile';
 import type { Traffic } from '../shared/proxy-protocol';
 import { BackupCopy } from './backup/backup-copy';
 import { pageCopyStore } from './backup/backup-store';
@@ -104,13 +111,17 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
   const backupCopy = new BackupCopy({
     profile,
     name,
-    bus,
+    // registered by watch(), after loading: a signal before is no change to back up
+    onPersisted: (fn) =>
+      chrome.runtime.onMessage.addListener((message: unknown) => {
+        if (isPersisted(message) && sameProfile(message.profile, profile)) fn(message.change);
+        return false;
+      }),
     settings,
     kv,
     persistence: backupPersistence(call),
     store: pageCopyStore(),
     now,
-    folder: folder.changed,
   });
   const foundData = new FoundData(
     [backupCopy, new LegacyData({ profile, kv, persistence: backupPersistence(call), store: pageLegacyStore(), now })],

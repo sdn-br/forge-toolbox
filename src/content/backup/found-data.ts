@@ -35,14 +35,25 @@ export interface FoundDataSource {
   decline(): Promise<void>;
   /** "Später" */
   later(): Promise<void>;
+  /** tells when its data changed, so an open dialog shows them anew */
+  onChanged?(fn: () => void): void;
 }
 
 export class FoundData {
+  private listeners: (() => void)[] = [];
+
   /** `sources` in the order of the dialog and of taking; `reload` restarts the game page, so the stores load the data */
   constructor(
     private sources: readonly FoundDataSource[],
     private reload: () => void,
-  ) {}
+  ) {
+    for (const source of sources) source.onChanged?.(() => this.changed());
+  }
+
+  /** the data of a source changed, e.g. the backup copy was written anew */
+  onChanged(fn: () => void): void {
+    this.listeners.push(fn);
+  }
 
   /** At the start of the game: the offers of all sources, looked for at once. */
   start(): Promise<FoundOffer[]> {
@@ -76,6 +87,10 @@ export class FoundData {
   /** "Später" for the sources shown */
   async later(ids: readonly FoundSource[]): Promise<void> {
     for (const source of this.shown(ids)) await source.later();
+  }
+
+  private changed() {
+    for (const fn of this.listeners) fn();
   }
 
   private shown(ids: readonly FoundSource[]) {

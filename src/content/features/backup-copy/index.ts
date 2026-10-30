@@ -46,16 +46,26 @@ export const backupCopyFeature: Feature = {
     const found = ctx.foundData;
     let state: DialogState = { mode: 'start', offers: null, chosen: [], busy: false, status: '' };
 
-    const show = (mode: Mode, offers: FoundOffer[] | null) => {
+    /** `kept`: the areas chosen so far per source, which stay chosen where the source still has data */
+    const fill = (mode: Mode, offers: FoundOffer[] | null, kept = new Map<FoundSource, Set<Area>>()) => {
       state = {
         mode,
         offers,
-        chosen: (offers ?? []).map(
-          ({ choice }) => new Set(AREAS.map((a) => a.area).filter((area) => choice.checked[area])),
-        ),
+        chosen: (offers ?? []).map(({ source, choice }) => {
+          const before = kept.get(source);
+          return new Set(
+            AREAS.map((a) => a.area).filter((area) =>
+              before ? before.has(area) && choice.counts[area] > 0 : choice.checked[area],
+            ),
+          );
+        }),
         busy: false,
         status: '',
       };
+    };
+
+    const show = (mode: Mode, offers: FoundOffer[] | null) => {
+      fill(mode, offers);
       box.open();
     };
 
@@ -137,6 +147,21 @@ export const backupCopyFeature: Feature = {
       .start()
       .then((offers) => offers.length > 0 && show('start', offers))
       .catch((error) => logError('looking for a backup copy failed', error));
+
+    // a copy written anew while the dialog is open from the settings shows at once; at the start the copy waits for the
+    // answer and is not written
+    found.onChanged(() => {
+      if (!box.isOpen || state.mode !== 'manual' || state.offers === null || state.busy) return;
+      const kept = new Map((state.offers ?? []).map((o, i) => [o.source, state.chosen[i] ?? new Set<Area>()]));
+      found
+        .find()
+        .then((offers) => {
+          if (!box.isOpen || state.mode !== 'manual' || state.busy) return;
+          fill('manual', offers, kept);
+          box.update();
+        })
+        .catch((error) => logError('looking for a backup copy failed', error));
+    });
 
     ctx.registerOpen('backupCopy', () => {
       show('manual', null);

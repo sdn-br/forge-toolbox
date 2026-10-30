@@ -9,6 +9,8 @@ export interface ProfileEnv {
   open: (name: string) => ToolboxDb;
   /** runs once per database before its first handler, the takeover of the old store */
   prepare: (profile: Profile, db: ToolboxDb) => Promise<void>;
+  /** runs once per database after the takeover, before its first handler: the hooks of the persisted signal */
+  watch: (profile: Profile, db: ToolboxDb) => void;
   deps: FoestatsDeps;
   logError: (what: string, error: unknown) => void;
 }
@@ -34,7 +36,10 @@ export function profileDispatch(env: ProfileEnv): (req: RpcRequest) => Promise<R
         env.prepare(profile, db).catch((error) => env.logError(`taking over the old data of ${name} failed`, error)),
       );
       queue = prepared;
-      ready = prepared.then(() => createHandlers(db, env.deps));
+      ready = prepared.then(() => {
+        env.watch(profile, db);
+        return createHandlers(db, env.deps);
+      });
       handlers.set(name, ready);
     }
     return ready;

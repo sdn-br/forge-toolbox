@@ -48,15 +48,21 @@ async function setup(options: { copy?: CopyEntry; data?: boolean; settings?: boo
     started = run;
     return run;
   };
+  // the backup copy tells of a new copy after its delay: the test tells it at once
+  const listeners: (() => void)[] = [];
+  env.ctx.foundData.onChanged = (fn) => listeners.push(fn);
   settingsFeature(env.profileCopy).setup(env.ctx);
   backupCopyFeature.setup(env.ctx);
+  const copyChanged = () => {
+    for (const fn of listeners) fn();
+  };
   await started.catch(() => undefined);
   await settle();
   const dialog = () => env.boxes.get('found-data');
   /** the checkbox of an area in the row of the copy */
   const area = (label: string) =>
     dialog()?.root.querySelector(`input[aria-label="${label}"]`) as HTMLInputElement | null;
-  return { env, dialog, area };
+  return { env, dialog, area, copyChanged };
 }
 
 describe('found data at the start', () => {
@@ -225,6 +231,33 @@ describe('settings: data', () => {
     await settle();
     expect((await env.db.db.battles.toArray()).map((b) => b.battleId)).toEqual([1, 2, 9]);
     expect(env.reloads).toBe(1);
+  });
+
+  it('shows a copy written anew while open, and keeps the areas chosen', async () => {
+    const { env, box, dialog, area, copyChanged } = await openSettings({ copy: await found(), data: true });
+    box.click('Gefundene Daten übernehmen');
+    await settle();
+    flip(area('Notizen'));
+    expect(area('Notizen')?.checked).toBe(false);
+    const later = AT + 3_600_000;
+    await env.copyStore.put(
+      await copyOf(
+        {
+          name: 'Ich',
+          tables: tables({
+            battles: [battle(1), battle(2), battle(3)],
+            notePages: [{ world: me.world, id: 'n', group: 'g', title: 'n', text: 'x', sort: 0, updatedAt: 1 }],
+          }),
+        },
+        later,
+      ),
+    );
+    copyChanged();
+    await settle();
+    expect(dialog()?.text).toContain('26.10.2026, 19:05');
+    expect(area('PvP')?.parentElement?.textContent?.trim()).toBe('3');
+    expect(area('Notizen')?.checked).toBe(false);
+    expect(area('PvP')?.checked).toBe(true);
   });
 
   it('says so when nothing was found, and "Abbrechen" closes it without an answer', async () => {

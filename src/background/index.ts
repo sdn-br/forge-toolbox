@@ -9,11 +9,20 @@ import {
   isDataImported,
   isFolderRequest,
   OPEN_DATA_PAGE,
+  persisted,
 } from '../shared/messages';
-import { type Profile, profileOfDbName } from '../shared/profile';
+import { type Profile, profileOfDbName, profileOfStorageKey } from '../shared/profile';
 import type { RpcResponse } from '../shared/rpc';
 import { openDb } from './db';
 import { adoptLegacy, type LocalStorage } from './legacy';
+import {
+  FOLDER_DELAY,
+  folderAlarm,
+  PersistedSignal,
+  ProfileTabs,
+  profileOfFolderAlarm,
+  watchBackupTables,
+} from './persisted';
 import { isRpcRequest, profileDispatch } from './profiles';
 
 const storage: LocalStorage = {
@@ -22,9 +31,37 @@ const storage: LocalStorage = {
   remove: (keys) => chrome.storage.local.remove(keys),
 };
 
+// the game tab of each profile, as its calls name it; empty after a restart of the worker until the tab calls again,
+// and the rows a tab changes come through its calls
+const tabs = new ProfileTabs();
+chrome.tabs.onRemoved.addListener((tab) => tabs.forget(tab));
+
+const signal = new PersistedSignal({
+  now: Date.now,
+  notify: (profile, change) => {
+    // a tab that refuses has no content script any more
+    for (const tab of tabs.of(profile)) chrome.tabs.sendMessage(tab, persisted(profile, change)).catch(() => {});
+  },
+  folderDue: (profile) => {
+    chrome.alarms
+      .create(folderAlarm(profile), { when: Date.now() + FOLDER_DELAY })
+      .catch((error) => logError('planning the write of the backup folder failed', error));
+  },
+});
+
+// the settings live in chrome.storage.local, written by the game tab; the folder backs them up as well
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local') return;
+  for (const key of Object.keys(changes)) {
+    const profile = profileOfStorageKey(key, 'settings');
+    if (profile) signal.settingsChanged(profile);
+  }
+});
+
 const dispatch = profileDispatch({
   open: openDb,
   prepare: (profile, db) => adoptLegacy(profile, db, storage),
+  watch: (profile, db) => watchBackupTables(db, () => signal.rowsChanged(profile)),
   deps: { now: Date.now },
   logError,
 });
@@ -55,7 +92,13 @@ const folderBackup = new FolderBackup({
       return profile ? [profile] : [];
     }),
   now: Date.now,
+  change: (profile) => signal.current(profile),
   logError,
+});
+
+chrome.alarms.onAlarm.addListener(({ name }) => {
+  const profile = profileOfFolderAlarm(name);
+  if (profile) folderBackup.changed(profile).catch((error) => logError('the backup folder failed', error));
 });
 
 /** the data page chose or granted the folder: the merge may have changed profiles an open game holds in memory */
@@ -67,8 +110,8 @@ function announce(profiles: Profile[]) {
 
 chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse: (res: unknown) => void) => {
   if (isFolderRequest(message)) {
-    const { action, profile } = message;
-    (action === 'start' ? folderBackup.start(profile) : folderBackup.changed(profile))
+    folderBackup
+      .start(message.profile)
       .catch((error) => {
         logError('the backup folder failed', error);
         return 'failed';
@@ -96,8 +139,9 @@ chrome.runtime.onMessage.addListener((message: unknown) => {
   return false;
 });
 
-chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse: (res: RpcResponse) => void) => {
+chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse: (res: RpcResponse) => void) => {
   if (!isRpcRequest(message)) return false;
+  tabs.seen(message.profile, sender.tab?.id);
   dispatch(message).then(sendResponse);
   return true;
 });

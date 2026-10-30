@@ -23,18 +23,20 @@ const battle = (world: string, battleId: number): Battle => ({
 function setup(prepare: (profile: Profile, db: ToolboxDb) => Promise<void> = async () => {}) {
   const world = worldId(`p${++worldCount}`);
   const opened: string[] = [];
+  const watched: string[] = [];
   const dispatch = profileDispatch({
     open: (name) => {
       opened.push(name);
       return openDb(name);
     },
     prepare,
+    watch: (profile, db) => watched.push(`${profile.player} ${db.name}`),
     deps: { now: () => 1000 },
     logError: vi.fn(),
   });
   const a: Profile = { world, player: playerId(1) };
   const b: Profile = { world, player: playerId(2) };
-  return { world, a, b, dispatch, opened };
+  return { world, a, b, dispatch, opened, watched };
 }
 
 const req = <M extends RpcRequest['rpc']>(profile: Profile, rpc: M, arg: RpcRequest<M>['arg']) =>
@@ -67,6 +69,17 @@ describe('profile dispatch', () => {
     ]).then((all) => order.push(...all.map((res) => (res.ok ? `count ${res.result}` : res.error))));
     expect(order).toEqual(['prepare 1', 'count 1', 'count 1']);
     expect(opened).toEqual([profileDbName(a)]);
+  });
+
+  it('watches the database once, after the preparation, so the takeover of old rows is no change', async () => {
+    const order: string[] = [];
+    const { world, a, dispatch, watched } = setup(async () => {
+      order.push(`prepare, watched ${watched.length}`);
+    });
+    await dispatch(req(a, 'battles.count', { world }));
+    await dispatch(req(a, 'battles.count', { world }));
+    expect(order).toEqual(['prepare, watched 0']);
+    expect(watched).toEqual([`1 ${profileDbName(a)}`]);
   });
 
   it('runs one preparation at a time', async () => {
