@@ -10,6 +10,7 @@ import { type MarkerLink, Markers } from '../../src/content/core/markers';
 import { memoryProfileStorage, profileCopy } from '../../src/content/core/profile-copy';
 import { Recorder } from '../../src/content/core/recorder';
 import { Settings } from '../../src/content/core/settings';
+import { SettingsControls } from '../../src/content/core/settings-controls';
 import { createShell } from '../../src/content/core/shell';
 import { OwnSelection } from '../../src/content/stores/selection';
 import type { Box, BoxOptions } from '../../src/content/ui/box';
@@ -148,6 +149,7 @@ export function featureContext(options: TestStoresOptions & { storage?: Record<s
     world,
     bus,
     settings,
+    settingsControls: new SettingsControls(),
     menu: { add: (item: MenuItem) => menuItems.set(item.id, item), setIconSize: () => {} } as unknown as Menu,
     ...stores,
     recorder: new Recorder(() => false),

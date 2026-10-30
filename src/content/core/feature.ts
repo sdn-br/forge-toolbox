@@ -9,6 +9,7 @@ import type { ToolboxBus } from './events';
 import type { Markers } from './markers';
 import type { Recorder } from './recorder';
 import type { Settings } from './settings';
+import type { SettingsControls } from './settings-controls';
 import type { Shell } from './shell';
 
 /** Everything a feature may use. Features never import each other. */
@@ -16,6 +17,8 @@ export interface FeatureContext extends Stores {
   world: WorldId;
   bus: ToolboxBus;
   settings: Settings;
+  /** places in the settings box where a feature hangs its own controls */
+  settingsControls: SettingsControls;
   menu: Menu;
   recorder: Recorder;
   /** arrows over buildings in the game view */
