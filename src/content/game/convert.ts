@@ -21,7 +21,7 @@ import type {
   Plunder,
   Session,
 } from '../../shared/model';
-import type { LimitedBonus } from '../domain/gb-calculator';
+import type { LimitedBonus } from '../domain/arc-bonus';
 import type { CityGrid } from '../stores/catalog';
 import type { VisitInfo } from '../stores/cities';
 import type { Area, Building, BuildingState, City, ExpansionOffer, Product } from '../stores/city-model';

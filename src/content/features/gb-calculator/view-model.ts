@@ -4,11 +4,14 @@ import { type Activity, playerActivity } from '../../domain/activity';
 import {
   type ConstructionCalc,
   calculateConstruction,
+  constructionOf,
   type PlaceCalc,
   type PlaceStatus,
 } from '../../domain/gb-calculator';
 import { effectiveFactor as effective, type FactorChoice } from '../../domain/gb-factor';
-import { type LevelUpAndFirst, levelUpAndFirst, previewLevel } from '../../domain/gb-level-preview';
+import { previewLevel } from '../../domain/gb-level-preview';
+import { ownerRow } from '../../domain/gb-snipe';
+import { type LevelUpAndFirst, levelUpAndFirst } from '../../domain/gb-strategy';
 import { ignoreReason } from '../../domain/ignore';
 import type { GreatBuildingDef } from '../../stores/catalog';
 import type { FoestatsRecord } from '../../stores/foestats';
@@ -385,8 +388,9 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
   const arcButton = input.arcButton ? input.arcBonus : undefined;
   const effectiveFactor = effective(input.factor, arcButton);
   const buttons = factorButtons(input.factorButtons, arcButton, input.factor);
-  const live = { ...entity, rankings: c.rankings, arcBonus: input.arcBonus, factor: effectiveFactor };
-  const levelUp = c.past || c.leveled ? undefined : levelUpAndFirst(live, input.greatBuilding(entity.def));
+  const live = constructionOf(entity, c.rankings, { arcBonus: input.arcBonus, factor: effectiveFactor });
+  const calc = calculateConstruction(live);
+  const levelUp = c.past || c.leveled ? undefined : levelUpAndFirst(live, calc, input.greatBuilding(entity.def));
   if (preview !== undefined) {
     return {
       kind: 'preview',
@@ -412,14 +416,8 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
         })),
     };
   }
-  const calc = calculateConstruction({
-    ...entity,
-    rankings: c.rankings,
-    arcBonus: input.arcBonus,
-    factor: effectiveFactor,
-  });
   const places = calc.places.map((p) => placeRow(p, calc.rest, availableFp));
-  const ownerFp = c.rankings.find((r) => r.rank === undefined && r.player === c.owner)?.fp;
+  const ownerFp = ownerRow(c.rankings, c.owner)?.fp;
   return {
     kind: 'current',
     header,

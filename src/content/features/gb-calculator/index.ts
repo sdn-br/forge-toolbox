@@ -7,7 +7,7 @@ import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { listDef, numberDef, type Setting, toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
-import { arcBonus } from '../../domain/gb-calculator';
+import { arcBonus } from '../../domain/arc-bonus';
 import { type SnipeList, snipeList } from '../../domain/gb-snipe';
 import { ignoreReason } from '../../domain/ignore';
 import { FOESTATS_SETTING } from '../../stores/foestats';

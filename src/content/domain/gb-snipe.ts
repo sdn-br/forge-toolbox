@@ -3,7 +3,7 @@
 import type { KnownGreatBuilding } from '../../shared/model';
 import type { GreatBuildingDef } from '../stores/catalog';
 import type { RankingRow } from '../stores/great-building-model';
-import { calculateConstruction, type PlaceCalc } from './gb-calculator';
+import { calculateConstruction, constructionOf, type PlaceCalc } from './gb-calculator';
 import { emptyLevel } from './gb-level-preview';
 
 /** exact: the ranking is as current as the list; safe: a place pays even in the worst case; possible: only in the best */
@@ -53,7 +53,7 @@ export type OwnerShare =
   | { state: 'unknown' };
 
 /** the owner's row: by player id, else the row without a place, which only the owner has */
-const ownerRow = (rows: RankingRow[], owner: KnownGreatBuilding['owner']) =>
+export const ownerRow = (rows: RankingRow[], owner: KnownGreatBuilding['owner']) =>
   rows.find((r) => r.player === owner) ?? rows.find((r) => r.rank === undefined && !r.self);
 
 /** the stored rankings when they belong to the building's current level */
@@ -118,23 +118,20 @@ const worthwhile = (places: PlaceCalc[]): SnipePlace | undefined => {
   return best;
 };
 
+export type SnipeResult = SnipeHit | 'none' | 'ownContribution' | 'unknownReward';
+
 /**
  * One building of a list. `none` when no place pays, `ownContribution` for a building the player invested in, and
  * `unknownReward` when the rewards of the level are not known.
  */
-export function snipeBuilding(
-  b: KnownGreatBuilding,
-  def: GreatBuildingDef | undefined,
-  arcBonus: number,
-): SnipeHit | 'none' | 'ownContribution' | 'unknownReward' {
+export function snipeBuilding(b: KnownGreatBuilding, def: GreatBuildingDef | undefined, arcBonus: number): SnipeResult {
   if (b.ownContribution) return 'ownContribution';
   const level = def && emptyLevel(def, b.level);
   const places = level?.rankings;
   if (!level || !places) return 'unknownReward';
 
-  const input = { level: b.level, maxLevel: b.maxLevel ?? b.level + 1, connected: b.connected ?? true };
   const solve = (rankings: RankingRow[]) =>
-    worthwhile(calculateConstruction({ ...input, required: b.required, rankings, arcBonus, factor: 0 }).places);
+    worthwhile(calculateConstruction(constructionOf(b, rankings, { arcBonus, factor: 0 })).places);
 
   const ranked = currentRankings(b);
   const holders = new Map(
@@ -186,22 +183,32 @@ export function snipeBuilding(
   };
 }
 
+/** sorts by the best case, the worst case breaking ties */
+export const snipeProfitKey = (h: SnipeHit) => h.profitHigh * 1e9 + h.profitLow;
+
+/** the best profit first, by `snipeProfitKey` */
+export const bySnipeProfit = (a: SnipeHit, b: SnipeHit) => snipeProfitKey(b) - snipeProfitKey(a);
+
+/** the tiers from the best: exact over safe over possible, for sorting */
+export const TIER_ORDER: Record<SnipeTier, number> = { exact: 2, safe: 1, possible: 0 };
+
+/** Each building of a list with what the snipe helper makes of it, in list order. */
+export const snipeBuildings = (
+  buildings: KnownGreatBuilding[],
+  greatBuilding: SnipeInput['greatBuilding'],
+  arcBonus: number,
+): { building: KnownGreatBuilding; result: SnipeResult }[] =>
+  buildings.map((b) => ({ building: b, result: snipeBuilding(b, greatBuilding(b.cityEntityId), arcBonus) }));
+
 /** The whole list: hits by profit, the rest counted. */
 export function snipeList(input: SnipeInput): SnipeList {
   const out: SnipeList = { hits: [], none: 0, ownContribution: 0, unknownReward: 0 };
-  for (const b of input.buildings) {
-    const r = snipeBuilding(b, input.greatBuilding(b.cityEntityId), input.arcBonus);
+  for (const { result: r } of snipeBuildings(input.buildings, input.greatBuilding, input.arcBonus)) {
     if (r === 'none') out.none++;
     else if (r === 'ownContribution') out.ownContribution++;
     else if (r === 'unknownReward') out.unknownReward++;
     else out.hits.push(r);
   }
-  out.hits.sort((a, b) => b.profitHigh - a.profitHigh || b.profitLow - a.profitLow);
+  out.hits.sort(bySnipeProfit);
   return out;
 }
-
-/** sorts by the best case, the worst case breaking ties */
-export const snipeProfitKey = (h: SnipeHit) => h.profitHigh * 1e9 + h.profitLow;
-
-/** the tiers from the best: exact over safe over possible, for sorting */
-export const TIER_ORDER: Record<SnipeTier, number> = { exact: 2, safe: 1, possible: 0 };

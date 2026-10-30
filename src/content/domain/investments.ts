@@ -2,8 +2,8 @@
 import type { BuildingDefId, PlayerId } from '../../shared/ids';
 import type { KnownGreatBuilding } from '../../shared/model';
 import type { GreatBuildingDef } from '../stores/catalog';
-import { calculateConstruction, plusPercent } from './gb-calculator';
-import { currentRankings, type SnipeHit, snipeBuilding } from './gb-snipe';
+import { calculateConstruction, constructionOf, plusPercent } from './gb-calculator';
+import { currentRankings, type SnipeHit, snipeBuildings } from './gb-snipe';
 
 /**
  * `safe`: nobody can pass the own place anymore. `unsafe`: the stored rankings fit the progress and someone can. `unknown`:
@@ -58,15 +58,9 @@ export interface Investments {
 function statusByRankings(b: KnownGreatBuilding): InvestmentStatus | undefined {
   const rankings = currentRankings(b);
   if (!rankings || b.rankingsInvested !== b.invested) return undefined;
-  const calc = calculateConstruction({
-    level: b.level,
-    maxLevel: b.level + 1,
-    connected: true,
-    required: b.required,
-    rankings,
-    arcBonus: 0,
-    factor: 0,
-  });
+  const calc = calculateConstruction(
+    constructionOf({ level: b.level, required: b.required }, rankings, { arcBonus: 0, factor: 0 }),
+  );
   const mine = calc.places.find((p) => p.mine);
   if (!mine) return undefined;
   return mine.secured ? 'safe' : 'unsafe';
@@ -137,10 +131,9 @@ export function possibleInvestments(
   arcBonus: number,
   me?: PlayerId,
 ): PossibleInvestment[] {
-  return buildings.flatMap<PossibleInvestment>((b) => {
-    if (b.owner === me) return [];
-    const r = snipeBuilding(b, greatBuilding(b.cityEntityId), arcBonus);
+  const others = buildings.filter((b) => b.owner !== me);
+  return snipeBuildings(others, greatBuilding, arcBonus).flatMap<PossibleInvestment>(({ building, result: r }) => {
     if (r === 'ownContribution') return [];
-    return [typeof r === 'string' ? { building: b } : { building: b, hit: r }];
+    return [typeof r === 'string' ? { building } : { building, hit: r }];
   });
 }

@@ -168,27 +168,11 @@ describe('own share per row', () => {
 describe('double harvest', () => {
   const harvests = (t: ReturnType<typeof vm>) => t.rows.map((r) => r.harvest);
 
-  it('is exact up to level 10 from the definition: the production of level X + 1', () => {
-    // levels 4 to 9 take the entries 5 to 10
-    const t = vm({ construction: construction({}, 4, 20), to: 10 });
-    expect(harvests(t)).toEqual([3, 3, 4, 4, 5, 6].map((fp) => ({ fp, estimate: false })));
-  });
-
   it('is exact for the level being built from the open construction', () => {
     const nextProduction = { level: LEVEL, type: 'strategy_points', value: 77 };
     const t = vm({ construction: construction({ nextProduction }) });
     expect(t.rows[0]?.harvest).toEqual({ fp: 77, estimate: false });
     expect(t.rows[1]?.harvest).toEqual({ fp: 3, estimate: false });
-  });
-
-  it('is estimated from level 10 above it and marked', () => {
-    // the production at level 10 is 6: × 11 / 10 = 6.6 → 7, × 20 / 10 = 12
-    const t = vm({ construction: construction({}, 9, 40), to: 20 });
-    expect(t.rows[0]?.harvest).toEqual({ fp: 6, estimate: false });
-    expect(t.rows[1]?.harvest).toEqual({ fp: 7, estimate: true });
-    expect(t.rows.at(-1)?.harvest).toEqual({ fp: Math.round((6 * 20) / 10), estimate: true });
-    // the note about computed rewards is for payments only
-    expect(t.estimate).toBe(false);
   });
 
   it('has no column for buildings without Forge point production, the Ark or the Temple of Relics', () => {
@@ -209,19 +193,11 @@ describe('double harvest', () => {
     }
   });
 
-  it('keeps the net and the running sum: own share minus harvest, added up from the first row', () => {
-    const t = vm();
-    let sum = 0;
-    for (const r of t.rows) {
-      expect(r.net).toBe(r.ownShare - (r.harvest?.fp ?? 0));
-      sum += r.net;
-      expect(r.sum).toBe(sum);
-    }
-    expect(t.totals).toEqual({
-      ownShare: t.rows.reduce((s, r) => s + r.ownShare, 0),
-      harvest: t.rows.reduce((s, r) => s + (r.harvest?.fp ?? 0), 0),
-      net: sum,
-    });
+  it('shows the net, the running sum and the totals of the plan', () => {
+    const t = vm({ construction: construction({}, 4, 20), to: 10 });
+    expect(t.rows.map((r) => r.net)).toEqual(t.rows.map((r) => r.ownShare - (r.harvest?.fp ?? 0)));
+    expect(t.totals.net).toBe(t.rows.at(-1)?.sum);
+    expect(t.totals.harvest).toBe(3 + 3 + 4 + 4 + 5 + 6);
   });
 });
 

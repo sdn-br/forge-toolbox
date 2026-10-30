@@ -1,6 +1,5 @@
 // The places of a great building construction: what each costs to take safely, what it pays and whether it is worth it.
 import { roundHalfUp } from '../../shared/math';
-import type { City } from '../stores/city-model';
 import type { RankingRow } from '../stores/great-building-model';
 
 export interface ConstructionInput {
@@ -98,6 +97,33 @@ export const ownDeposit = (rankings: RankingRow[]) => depositOf(rankings.find((r
 /** the places with a reward, best rank first */
 export const paidPlaces = (rows: Iterable<RankingRow>) =>
   [...rows].filter((r) => r.rank !== undefined && r.reward).sort((a, b) => (a.rank as number) - (b.rank as number));
+
+/** a level of a great building; the lock state where known */
+interface ConstructionLevel {
+  level: number;
+  /** Forge points the level needs */
+  required: number;
+  maxLevel?: number;
+  connected?: boolean;
+}
+
+/**
+ * The input of a construction: a lock state left out counts as open, the next level unlocked and the building
+ * connected. Leave it out on purpose to price the places whatever the lock.
+ */
+export const constructionOf = (
+  { level, required, maxLevel, connected }: ConstructionLevel,
+  rankings: RankingRow[],
+  { arcBonus, factor }: { arcBonus: number; factor: number },
+): ConstructionInput => ({
+  level,
+  maxLevel: maxLevel ?? level + 1,
+  connected: connected ?? true,
+  required,
+  rankings,
+  arcBonus,
+  factor,
+});
 
 /** `fp` in percent of the net reward, one decimal */
 const percentOfReward = (fp: number, net: number) => (net > 0 ? roundHalfUp((fp / net) * 1000) / 10 : undefined);
@@ -231,34 +257,4 @@ function statusOf(mine: boolean, available: boolean, levelWarning: boolean, wors
 export function bestRate(calc: ConstructionCalc): number | undefined {
   const rates = calc.places.filter((p) => p.available && p.rate !== undefined).map((p) => p.rate as number);
   return rates.length ? Math.min(...rates) : undefined;
-}
-
-/** A limited bonus of the player as `BonusService.getLimitedBonuses` lists it. */
-export interface LimitedBonus {
-  type: string;
-  value: number;
-  /** the own building that grants it, when it comes from one */
-  entityId?: number;
-}
-
-const CONTRIBUTION_BOOST = 'contribution_boost';
-
-/**
- * The Arc bonus in percent: the contribution boosts of the own great buildings plus limited ones of that type. Limited
- * bonuses of own great buildings show up in both lists (seen with a supplies boost), so a limited bonus of a building
- * that already counts is skipped.
- */
-export function arcBonus(own: City | undefined, limited: LimitedBonus[] = []): number {
-  const counted = new Set<number>();
-  let sum = 0;
-  for (const b of own?.buildings.values() ?? []) {
-    const bonus = b.greatBuilding?.bonus;
-    if (bonus?.type !== CONTRIBUTION_BOOST) continue;
-    sum += bonus.value;
-    counted.add(b.id);
-  }
-  for (const l of limited) {
-    if (l.type === CONTRIBUTION_BOOST && (l.entityId === undefined || !counted.has(l.entityId))) sum += l.value;
-  }
-  return sum;
 }
