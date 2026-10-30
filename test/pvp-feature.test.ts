@@ -1,5 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { toggleDef } from '../src/content/core/settings';
+import { OPEN_WITH_ARMY } from '../src/content/features/pvp';
 import { pvpFeature } from '../src/content/features/pvp/index';
 import { KEEP_SETTING } from '../src/content/features/pvp/retention';
 import { PAGE_SIZE } from '../src/content/features/pvp/view-model';
@@ -99,6 +101,8 @@ function setup(total = 1, open = true) {
 
 afterEach(() => vi.useRealTimers());
 
+const OTHER = toggleDef({ key: 'other.setting', group: 'pvp.title', label: 'pvp.title', default: false });
+
 describe('pvp feature', () => {
   it('shows only the newest query when an older one resolves last', async () => {
     const { ctx, box, lists } = setup();
@@ -150,10 +154,10 @@ describe('pvp feature', () => {
     const prune = vi.mocked(persistence.prune);
     const day = 86_400_000;
 
-    await ctx.settings.set('other.setting', true);
+    await ctx.settings.register(OTHER).set(true);
     expect(prune).not.toHaveBeenCalled();
 
-    await ctx.settings.set(KEEP_SETTING.key, '30');
+    await ctx.settings.of(KEEP_SETTING).set('30');
     await tick();
     expect(prune).toHaveBeenLastCalledWith(Date.now() - 30 * day);
 
@@ -164,7 +168,7 @@ describe('pvp feature', () => {
     expect(prune).toHaveBeenCalledExactlyOnceWith(Date.now() - 30 * day);
 
     prune.mockClear();
-    await ctx.settings.set(KEEP_SETTING.key, 'forever');
+    await ctx.settings.of(KEEP_SETTING).set('forever');
     ctx.bus.emit('session.started', { session: {} as never });
     await tick();
     expect(prune).not.toHaveBeenCalled();
@@ -175,10 +179,10 @@ describe('pvp feature', () => {
     await tick();
     const loads = lists.length;
     vi.mocked(persistence.prune).mockResolvedValueOnce(3);
-    await ctx.settings.set(KEEP_SETTING.key, '30');
+    await ctx.settings.of(KEEP_SETTING).set('30');
     await tick();
     expect(lists.length).toBe(loads + 1);
-    await ctx.settings.set(KEEP_SETTING.key, '90');
+    await ctx.settings.of(KEEP_SETTING).set('90');
     await tick();
     expect(lists.length).toBe(loads + 1);
   });
@@ -224,7 +228,7 @@ describe('pvp feature', () => {
     await tick();
     const loads = lists.length;
     vi.mocked(plunders.prune).mockResolvedValueOnce(2);
-    await ctx.settings.set(KEEP_SETTING.key, '30');
+    await ctx.settings.of(KEEP_SETTING).set('30');
     await tick();
     expect(plunders.prune).toHaveBeenCalledOnce();
     expect(lists.length).toBe(loads + 1);
@@ -277,7 +281,7 @@ describe('pvp feature', () => {
     await tick();
     const loads = lists.length;
     vi.mocked(incoming.prune).mockResolvedValueOnce(1);
-    await ctx.settings.set(KEEP_SETTING.key, '30');
+    await ctx.settings.of(KEEP_SETTING).set('30');
     await tick();
     expect(incoming.prune).toHaveBeenCalledOnce();
     expect(lists.length).toBe(loads + 1);
@@ -381,7 +385,7 @@ describe('pvp feature', () => {
 
     it('stays closed when the setting is off', async () => {
       const { ctx, box } = setup(1, false);
-      await ctx.settings.set('pvp.openWithArmy', false);
+      await ctx.settings.of(OPEN_WITH_ARMY).set(false);
       ctx.bus.emit('army.opened', { battleType: 'pvp' });
       expect(box.box.isOpen).toBe(false);
     });
@@ -392,7 +396,7 @@ describe('pvp feature', () => {
         label: 'pvp.openWithArmy',
         default: true,
       });
-      expect(ctx.settings.get('pvp.openWithArmy')).toBe(true);
+      expect(ctx.settings.of(OPEN_WITH_ARMY).get()).toBe(true);
     });
   });
 

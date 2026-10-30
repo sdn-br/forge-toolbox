@@ -4,7 +4,7 @@ import { BACKUP_DELAY, BACKUP_SETTING, BackupCopy } from '../src/content/backup/
 import { type CopyEntry, memoryCopyStore } from '../src/content/backup/backup-store';
 import { FoundData } from '../src/content/backup/found-data';
 import { memoryKv } from '../src/content/core/kv';
-import { Settings } from '../src/content/core/settings';
+import { Settings, toggleDef } from '../src/content/core/settings';
 import { backupPersistence } from '../src/persistence/backup/client';
 import { battle, copyOf, de20, me, tables } from './helpers/backup';
 import { testDb } from './helpers/battle-db';
@@ -21,6 +21,7 @@ async function setup(options: { stored?: Record<string, unknown>; copy?: CopyEnt
   let change = 0;
   const kv = memoryKv(options.stored);
   const settings = new Settings(kv);
+  settings.register(OTHER);
   const store = memoryCopyStore();
   if (options.copy) await store.put(options.copy);
   let reloads = 0;
@@ -84,6 +85,9 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+/** a setting besides the backup one, whose change the copy has to notice */
+const OTHER = toggleDef({ key: 'x', group: 'settings.core', label: 'settings.recordTraffic', default: false });
+
 describe('writing the backup copy', () => {
   it('tells the found data when the copy was written anew or deleted', async () => {
     const env = await setup();
@@ -96,7 +100,7 @@ describe('writing the backup copy', () => {
     env.signal(1);
     await elapse(env);
     expect(heard).toBe(1);
-    await env.settings.set(BACKUP_SETTING, false);
+    await env.settings.of(BACKUP_SETTING).set(false);
     await env.copy.idle();
     await vi.advanceTimersByTimeAsync(0);
     expect(await env.store.get(me)).toBeUndefined();
@@ -127,7 +131,7 @@ describe('writing the backup copy', () => {
     const changes: (() => void)[] = [
       () => env.signal(),
       () => {
-        env.settings.set('x', true);
+        env.settings.of(OTHER).set(true);
       },
     ];
     for (const [i, change] of changes.entries()) {
@@ -167,20 +171,20 @@ describe('writing the backup copy', () => {
     await elapse(env);
     expect(await env.store.get(me)).toBeDefined();
     env.signal();
-    await env.settings.set(BACKUP_SETTING, false);
+    await env.settings.of(BACKUP_SETTING).set(false);
     await elapse(env);
     expect(await env.store.get(me)).toBeUndefined();
     env.signal();
     await elapse(env);
     expect(await env.store.get(me)).toBeUndefined();
-    await env.settings.set(BACKUP_SETTING, true);
+    await env.settings.of(BACKUP_SETTING).set(true);
     await elapse(env);
     expect(await env.store.get(me)).toBeDefined();
   });
 
   it('is on by default', async () => {
     const env = await setup();
-    expect(env.settings.get(BACKUP_SETTING)).toBe(true);
+    expect(env.settings.of(BACKUP_SETTING).get()).toBe(true);
   });
 });
 
@@ -202,7 +206,7 @@ describe('the first copy at the start', () => {
     await existing.copy.idle();
     expect((await existing.store.get(me))?.createdAt).toBe(T0 - DAY);
 
-    const off = await setup({ stored: { settings: { [BACKUP_SETTING]: false } } });
+    const off = await setup({ stored: { settings: { [BACKUP_SETTING.key]: false } } });
     await off.found.start();
     await off.copy.idle();
     expect(await off.store.get(me)).toBeUndefined();
@@ -331,7 +335,7 @@ describe('a found copy at the start', () => {
   it('switched off while a copy waits for an answer deletes it and forgets the question', async () => {
     const env = await setup({ copy: await found() });
     await env.found.start();
-    await env.settings.set(BACKUP_SETTING, false);
+    await env.settings.of(BACKUP_SETTING).set(false);
     await elapse(env, 0);
     expect(await env.store.get(me)).toBeUndefined();
     expect(await env.kv.get('backup.answer')).toBeNull();

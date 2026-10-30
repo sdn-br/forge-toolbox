@@ -5,16 +5,15 @@ import type { Feature, FeatureContext } from '../core/feature';
 import { logError } from '../core/log';
 import { type OtherProfile, type ProfileCopy, profileLabel } from '../core/profile-copy';
 import {
+  choiceDef,
   formatNumberList,
-  isChoice,
-  isList,
-  isNumber,
-  isText,
   type ListSettingDef,
   type NumberSettingDef,
   parseNumberList,
+  type Setting,
   type SettingDef,
   type Settings,
+  toggleDef,
 } from '../core/settings';
 import { type TextKey, t } from '../core/texts';
 import { FACTOR_STEP, factorOf, percentOf } from '../domain/gb-factor';
@@ -37,8 +36,8 @@ p.setting-hint { margin: 0 0 4px 22px; }
 .settings-main h3 { font-size: 12px; margin: 10px 0 4px; color: var(--muted); }
 `;
 
-const save = (settings: Settings, key: string, value: boolean | string | number | number[]) =>
-  settings.set(key, value).catch((error) => logError('saving settings failed', error));
+const save = <T>(setting: Setting<T>, value: T) =>
+  setting.set(value).catch((error) => logError('saving settings failed', error));
 
 type NumberDef = NumberSettingDef | ListSettingDef;
 
@@ -49,18 +48,22 @@ const stored = (d: NumberDef, n: number) => (d.asFactor ? percentOf(n) : n);
 /** an empty or broken number keeps the stored value */
 function saveNumber(settings: Settings, d: NumberSettingDef, input: HTMLInputElement) {
   const value = input.valueAsNumber;
-  if (Number.isFinite(value)) save(settings, d.key, stored(d, value));
-  else input.value = String(shown(d, settings.number(d.key)));
+  if (Number.isFinite(value)) save(settings.of(d), stored(d, value));
+  else input.value = String(shown(d, settings.of(d).get()));
 }
 
 const listText = (settings: Settings, d: ListSettingDef) =>
-  formatNumberList(settings.numbers(d.key).map((n) => shown(d, n)));
+  formatNumberList(
+    settings
+      .of(d)
+      .get()
+      .map((n) => shown(d, n)),
+  );
 
 /** the stored list is cleaned when read, so an empty field gives the default again */
 function saveList(settings: Settings, d: ListSettingDef, input: HTMLInputElement) {
   save(
-    settings,
-    d.key,
+    settings.of(d),
     parseNumberList(input.value).map((n) => stored(d, n)),
   );
   input.value = listText(settings, d);
@@ -69,23 +72,27 @@ function saveList(settings: Settings, d: ListSettingDef, input: HTMLInputElement
 const control = (settings: Settings, d: SettingDef) =>
   html`${input(settings, d)}${d.hint ? html`<p class="muted setting-hint">${t(d.hint)}</p>` : ''}`;
 
-const input = (settings: Settings, d: SettingDef) =>
-  isText(d)
-    ? html`<label>${t(d.label)}<input type="text" .value=${settings.text(d.key)} @keydown=${keepKeys}
-        @change=${(e: Event) => save(settings, d.key, (e.target as HTMLInputElement).value)} /></label>`
-    : isList(d)
-      ? html`<label>${t(d.label)}<input type="text" .value=${listText(settings, d)}
-        @keydown=${keepKeys} @change=${(e: Event) => saveList(settings, d, e.target as HTMLInputElement)} /></label>`
-      : isNumber(d)
-        ? html`<label>${t(d.label)}<input type="number" min=${shown(d, d.min)} max=${shown(d, d.max)}
-        step=${d.asFactor ? FACTOR_STEP : (d.step ?? 1)} .value=${String(shown(d, settings.number(d.key)))}
-        @keydown=${keepKeys} @change=${(e: Event) => saveNumber(settings, d, e.target as HTMLInputElement)} /></label>`
-        : isChoice(d)
-          ? html`<label>${t(d.label)}<select @change=${(e: Event) => save(settings, d.key, (e.target as HTMLSelectElement).value)}>
-        ${d.choices.map((c) => html`<option value=${c.value} .selected=${settings.choice(d.key) === c.value}>${t(c.label)}</option>`)}
-      </select></label>`
-          : html`<label><input type="checkbox" .checked=${settings.get(d.key)}
-        @change=${(e: Event) => save(settings, d.key, (e.target as HTMLInputElement).checked)} />${t(d.label)}</label>`;
+function input(settings: Settings, d: SettingDef) {
+  switch (d.kind) {
+    case 'text':
+      return html`<label>${t(d.label)}<input type="text" .value=${settings.of(d).get()} @keydown=${keepKeys}
+        @change=${(e: Event) => save(settings.of(d), (e.target as HTMLInputElement).value)} /></label>`;
+    case 'list':
+      return html`<label>${t(d.label)}<input type="text" .value=${listText(settings, d)}
+        @keydown=${keepKeys} @change=${(e: Event) => saveList(settings, d, e.target as HTMLInputElement)} /></label>`;
+    case 'number':
+      return html`<label>${t(d.label)}<input type="number" min=${shown(d, d.min)} max=${shown(d, d.max)}
+        step=${d.asFactor ? FACTOR_STEP : (d.step ?? 1)} .value=${String(shown(d, settings.of(d).get()))}
+        @keydown=${keepKeys} @change=${(e: Event) => saveNumber(settings, d, e.target as HTMLInputElement)} /></label>`;
+    case 'choice':
+      return html`<label>${t(d.label)}<select @change=${(e: Event) => save(settings.of(d), (e.target as HTMLSelectElement).value)}>
+        ${d.choices.map((c) => html`<option value=${c.value} .selected=${settings.of(d).get() === c.value}>${t(c.label)}</option>`)}
+      </select></label>`;
+    case 'toggle':
+      return html`<label><input type="checkbox" .checked=${settings.of(d).get()}
+        @change=${(e: Event) => save(settings.of(d), (e.target as HTMLInputElement).checked)} />${t(d.label)}</label>`;
+  }
+}
 
 const openDataPage = () =>
   chrome.runtime.sendMessage(OPEN_DATA_PAGE).catch((error) => logError('opening the data page failed', error));
@@ -161,7 +168,7 @@ function backupControl(settings: Settings, update: () => void) {
     const input = e.target as HTMLInputElement;
     if (input.checked) {
       asking = false;
-      save(settings, BACKUP_SETTING, true);
+      save(settings.of(BACKUP_SETTING), true);
       return;
     }
     // stays on until the answer
@@ -170,11 +177,11 @@ function backupControl(settings: Settings, update: () => void) {
   };
   const switchOff = () => {
     asking = false;
-    save(settings, BACKUP_SETTING, false);
+    save(settings.of(BACKUP_SETTING), false);
   };
   return {
     render: () =>
-      html`<label><input type="checkbox" .checked=${settings.get(BACKUP_SETTING)} @change=${change} />${t('settings.backupCopy')}</label>
+      html`<label><input type="checkbox" .checked=${settings.of(BACKUP_SETTING).get()} @change=${change} />${t('settings.backupCopy')}</label>
         ${
           asking
             ? html`<p class="warn">${t('settings.backupCopyOffConfirm')}
@@ -190,8 +197,31 @@ function backupControl(settings: Settings, update: () => void) {
 
 /** the menu entry and the general settings show it */
 const ICON = icons.settings;
+/** the recording of the game traffic, and whether it holds the requests too; the recorder reads them */
+export const RECORD = toggleDef({
+  key: 'core.record',
+  group: 'settings.core',
+  label: 'settings.recordTraffic',
+  default: false,
+});
+export const RECORD_REQUESTS = toggleDef({
+  key: 'core.recordRequests',
+  group: 'settings.core',
+  label: 'settings.recordRequests',
+  default: false,
+});
 /** the menu's icon size in pixels, as a choice */
-const MENU_SIZE = 'core.menuSize';
+const MENU_SIZE = choiceDef({
+  key: 'core.menuSize',
+  group: 'settings.core',
+  label: 'settings.menuSize',
+  default: '35',
+  choices: [
+    { value: '30', label: 'settings.menuSize30' },
+    { value: '35', label: 'settings.menuSize35' },
+    { value: '45', label: 'settings.menuSize45' },
+  ],
+});
 /** the view choice of the group shown */
 const TAB = 'settings.group';
 
@@ -209,33 +239,12 @@ export const settingsFeature = (profileCopy: ProfileCopy): Feature => ({
 });
 
 function setup(ctx: FeatureContext, profileCopy: ProfileCopy) {
-  ctx.settings.register({
-    key: 'core.record',
-    group: 'settings.core',
-    label: 'settings.recordTraffic',
-    default: false,
-  });
-  ctx.settings.register({
-    key: 'core.recordRequests',
-    group: 'settings.core',
-    label: 'settings.recordRequests',
-    default: false,
-  });
-
-  ctx.settings.register({
-    key: MENU_SIZE,
-    group: 'settings.core',
-    label: 'settings.menuSize',
-    default: '35',
-    choices: [
-      { value: '30', label: 'settings.menuSize30' },
-      { value: '35', label: 'settings.menuSize35' },
-      { value: '45', label: 'settings.menuSize45' },
-    ],
-  });
-  const applyMenuSize = () => ctx.menu.setIconSize(Number(ctx.settings.choice(MENU_SIZE)));
+  const record = ctx.settings.register(RECORD);
+  ctx.settings.register(RECORD_REQUESTS);
+  const menuSize = ctx.settings.register(MENU_SIZE);
+  const applyMenuSize = () => ctx.menu.setIconSize(Number(menuSize.get()));
   applyMenuSize();
-  ctx.settings.onChange((key) => key === MENU_SIZE && applyMenuSize());
+  menuSize.onChange(applyMenuSize);
 
   ctx.settings.registerGroup('settings.core', ICON);
 
@@ -282,7 +291,7 @@ function setup(ctx: FeatureContext, profileCopy: ProfileCopy) {
               ${defs.filter((d) => d.section === section).map((d) => control(ctx.settings, d))}`,
           )}
           ${
-            group === 'settings.core' && ctx.settings.get('core.record')
+            group === 'settings.core' && record.get()
               ? html`<button class="action icon-only" data-tip=${t('settings.saveRecording', { count: ctx.recorder.count })}
                   aria-label=${t('settings.saveRecording', { count: ctx.recorder.count })}
                   @click=${() => ctx.recorder.save()}>${headerIcons.download}${ctx.recorder.count}</button>

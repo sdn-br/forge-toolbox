@@ -196,25 +196,25 @@ describe('settings: data', () => {
     const { env, box, toggle } = await openSettings({ copy: await found(), data: true });
     flip(toggle());
     await tick();
-    expect(env.ctx.settings.get(BACKUP_SETTING)).toBe(true);
+    expect(env.ctx.settings.of(BACKUP_SETTING).get()).toBe(true);
     expect(toggle().checked).toBe(true);
     const question = () => box.root.querySelector('p.warn');
     expect(question()?.textContent).toContain('löschen');
     box.click('Abbrechen');
     await tick();
     expect(question()).toBeNull();
-    expect(env.ctx.settings.get(BACKUP_SETTING)).toBe(true);
+    expect(env.ctx.settings.of(BACKUP_SETTING).get()).toBe(true);
     flip(toggle());
     await tick();
     box.click('Abschalten');
     await settle();
-    expect(env.ctx.settings.get(BACKUP_SETTING)).toBe(false);
+    expect(env.ctx.settings.of(BACKUP_SETTING).get()).toBe(false);
     expect(toggle().checked).toBe(false);
     expect(await env.copyStore.get(me)).toBeUndefined();
     flip(toggle());
     await tick();
     expect(question()).toBeNull();
-    expect(env.ctx.settings.get(BACKUP_SETTING)).toBe(true);
+    expect(env.ctx.settings.of(BACKUP_SETTING).get()).toBe(true);
   });
 
   it('"Gefundene Daten übernehmen" opens the dialog also when the profile has data, to take or cancel', async () => {

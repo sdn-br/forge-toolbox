@@ -1,10 +1,12 @@
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
+import { toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
 import {
   ARC_BUTTON,
   FACTOR,
   FACTOR_ARC,
+  FACTOR_BUTTONS,
   ONE_FP,
   ownArcBonus,
   SECURE,
@@ -16,14 +18,12 @@ import { icons } from '../../ui/icons';
 import {
   COPY_MANUAL,
   COPY_MODE,
-  COPY_MODES,
   COPY_PLAYER,
+  COPY_TOGGLE_DEFS,
   COPY_TOGGLES,
   COPY_WARN_PREFIX,
   COPY_WARN_SUFFIX,
   copyBuildingKey,
-  copyToggleKey,
-  DEFAULT_COPY,
   readCopyOptions,
 } from './copy-text';
 import { ownShareCss } from './styles';
@@ -33,9 +33,18 @@ import { ownShareViewModel } from './view-model';
 /** the menu entry and the settings group show it */
 const ICON = icons.gbOwnShare;
 
-const FACTOR_BUTTONS = 'gbOwn.factorButtons';
-const AUTO_OPEN = 'gbOwn.autoOpen';
-const CLOSE_WITHOUT_WINDOW = 'gbOwn.closeWithoutWindow';
+export const AUTO_OPEN = toggleDef({
+  key: 'gbOwn.autoOpen',
+  group: 'gbOwn.title',
+  label: 'gbOwn.autoOpenSetting',
+  default: true,
+});
+export const CLOSE_WITHOUT_WINDOW = toggleDef({
+  key: 'gbOwn.closeWithoutWindow',
+  group: 'gbOwn.title',
+  label: 'gbOwn.closeWithoutWindowSetting',
+  default: true,
+});
 /** how long a copy button says it copied */
 const COPIED_MS = 1500;
 
@@ -47,97 +56,19 @@ export function createGbOwnShareFeature(
     id: 'gbOwnShare',
     setup(ctx) {
       ctx.settings.registerGroup('gbOwn.title', ICON);
-      ctx.settings.register({
-        key: FACTOR,
-        group: 'gbOwn.title',
-        label: 'gbOwn.factorSetting',
-        default: 90,
-        min: -100,
-        max: 200,
-        step: 0.1,
-        asFactor: true,
-      });
-      ctx.settings.register({
-        key: FACTOR_BUTTONS,
-        group: 'gbOwn.title',
-        label: 'gbCalc.factorButtonsSetting',
-        hint: 'gbCalc.factorButtonsHint',
-        default: [80, 90, 100],
-        min: -100,
-        max: 200,
-        step: 0.1,
-        asFactor: true,
-      });
-      ctx.settings.register({ key: ARC_BUTTON, group: 'gbOwn.title', label: 'gbCalc.arcButtonSetting', default: true });
-      ctx.settings.register({ key: FACTOR_ARC, group: 'gbOwn.title', label: 'gbOwn.factorArcSetting', default: false });
-      ctx.settings.register({
-        key: ONE_FP,
-        group: 'gbOwn.title',
-        label: 'gbOwn.oneFpSetting',
-        hint: 'gbOwn.oneFpHint',
-        default: true,
-      });
-      ctx.settings.register({ key: AUTO_OPEN, group: 'gbOwn.title', label: 'gbOwn.autoOpenSetting', default: true });
-      ctx.settings.register({
-        key: CLOSE_WITHOUT_WINDOW,
-        group: 'gbOwn.title',
-        label: 'gbOwn.closeWithoutWindowSetting',
-        default: true,
-      });
-
-      ctx.settings.register({
-        key: COPY_PLAYER,
-        group: 'gbOwn.title',
-        section: 'gbOwn.copySettings',
-        label: 'gbOwn.copyPlayerName',
-        hint: 'gbOwn.copyPlayerNameHint',
-        default: '',
-        text: true,
-      });
-      for (const [option, label] of COPY_TOGGLES)
-        ctx.settings.register({
-          key: copyToggleKey(option),
-          group: 'gbOwn.title',
-          section: 'gbOwn.copySettings',
-          label,
-          default: DEFAULT_COPY[option],
-        });
-      ctx.settings.register({
-        key: COPY_WARN_PREFIX,
-        group: 'gbOwn.title',
-        section: 'gbOwn.copySettings',
-        label: 'gbOwn.copyWarnPrefix',
-        hint: 'gbOwn.copyWarnPrefixHint',
-        default: DEFAULT_COPY.warnPrefix,
-        text: true,
-      });
-      ctx.settings.register({
-        key: COPY_WARN_SUFFIX,
-        group: 'gbOwn.title',
-        section: 'gbOwn.copySettings',
-        label: 'gbOwn.copyWarnSuffix',
-        hint: 'gbOwn.copyWarnSuffixHint',
-        default: DEFAULT_COPY.warnSuffix,
-        text: true,
-      });
-      ctx.settings.register({
-        key: COPY_MODE,
-        group: 'gbOwn.title',
-        section: 'gbOwn.copySettings',
-        label: 'gbOwn.copyMode',
-        default: DEFAULT_COPY.mode,
-        choices: COPY_MODES.map(([value, label]) => ({ value, label })),
-      });
-      ctx.settings.register({
-        key: COPY_MANUAL,
-        group: 'gbOwn.title',
-        section: 'gbOwn.copySettings',
-        label: 'gbOwn.copyManualPlaces',
-        hint: 'gbOwn.copyManualPlacesHint',
-        default: [],
-        min: 1,
-        max: 5,
-      });
+      ctx.settings.register(FACTOR);
+      ctx.settings.register(FACTOR_BUTTONS);
+      ctx.settings.register(ARC_BUTTON);
+      ctx.settings.register(FACTOR_ARC);
+      ctx.settings.register(ONE_FP);
+      const autoOpen = ctx.settings.register(AUTO_OPEN);
+      const closeWithoutWindow = ctx.settings.register(CLOSE_WITHOUT_WINDOW);
+      ctx.settings.register(COPY_PLAYER);
+      for (const [option] of COPY_TOGGLES) ctx.settings.register(COPY_TOGGLE_DEFS[option]);
+      ctx.settings.register(COPY_WARN_PREFIX);
+      ctx.settings.register(COPY_WARN_SUFFIX);
+      ctx.settings.register(COPY_MODE);
+      ctx.settings.register(COPY_MANUAL);
 
       /** the last own construction, and the level it was opened at */
       let shown: Construction | undefined;
@@ -208,14 +139,14 @@ export function createGbOwnShareFeature(
           openedLevel,
           greatBuildingName: (id) => ctx.catalog.greatBuildingName(id),
           factors: state.state(d ?? ''),
-          factorButtons: ctx.settings.numbers(FACTOR_BUTTONS),
+          factorButtons: ctx.settings.of(FACTOR_BUTTONS).get(),
           arcBonus: arcNow(),
           secureExisting: flag(SECURE, true),
           trust: flag(TRUST, false),
-          oneFpForNoReward: ctx.settings.get(ONE_FP),
+          oneFpForNoReward: ctx.settings.of(ONE_FP).get(),
           exts: state.ext(d ?? '', openedLevel),
           copy: readCopyOptions(ctx.settings),
-          copyPlayer: ctx.settings.text(COPY_PLAYER) || ctx.session.current?.name,
+          copyPlayer: ctx.settings.of(COPY_PLAYER).get() || ctx.session.current?.name,
           copyBuilding: d ? ctx.ui.pref(copyBuildingKey(d)) : undefined,
           previewLevel: preview,
           greatBuilding: (id) => ctx.catalog.get(id)?.greatBuilding,
@@ -241,7 +172,7 @@ export function createGbOwnShareFeature(
         if (!own || !follow()) return;
         openedLevel = shown?.entity?.level;
         preview = undefined;
-        if (ctx.settings.get(AUTO_OPEN)) box.open();
+        if (autoOpen.get()) box.open();
         else update();
       });
       ctx.bus.on('greatBuilding.changed', ({ reason }) => {
@@ -263,7 +194,7 @@ export function createGbOwnShareFeature(
       ctx.bus.on('gbWindow.changed', ({ state }) => {
         const closed = ownWindow && state !== 'own';
         ownWindow = state === 'own';
-        if (closed && box.isOpen && ctx.settings.get(CLOSE_WITHOUT_WINDOW)) box.close();
+        if (closed && box.isOpen && closeWithoutWindow.get()) box.close();
       });
       ctx.bus.on('catalog.updated', () => update());
       ctx.bus.on('city.ownChanged', () => update());
@@ -272,7 +203,7 @@ export function createGbOwnShareFeature(
       ctx.bus.on('gbOwn.extChanged', () => update());
       ctx.settings.onChange((key) => {
         // the factor of the settings sets all five places alike again
-        if (key === FACTOR || key === FACTOR_ARC) state.dropStandard();
+        if (key === FACTOR.key || key === FACTOR_ARC.key) state.dropStandard();
         update();
       });
       ctx.menu.add({ id: 'gbOwnShare', icon: ICON, label: () => t('gbOwn.menu'), action: () => box.toggle() });

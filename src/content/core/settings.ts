@@ -16,16 +16,20 @@ interface BaseSettingDef {
 }
 
 export interface ToggleSettingDef extends BaseSettingDef {
+  kind: 'toggle';
   default: boolean;
 }
 
-export interface ChoiceSettingDef extends BaseSettingDef {
-  default: string;
-  choices: { value: string; label: TextKey }[];
+/** `V` is the union of the values, so a handle reads a literal type and no caller casts */
+export interface ChoiceSettingDef<V extends string = string> extends BaseSettingDef {
+  kind: 'choice';
+  default: V;
+  choices: { value: V; label: TextKey }[];
 }
 
 /** a number within `min` and `max`, rounded to `step` (default 1, a whole number) */
 export interface NumberSettingDef extends BaseSettingDef {
+  kind: 'number';
   default: number;
   min: number;
   max: number;
@@ -36,12 +40,39 @@ export interface NumberSettingDef extends BaseSettingDef {
 
 /** numbers within `min` and `max`, rounded to `step`, typed as a list like "80; 90; 95,5" */
 export interface ListSettingDef extends BaseSettingDef {
+  kind: 'list';
   default: number[];
   min: number;
   max: number;
   step?: number;
   /** stored in percent, shown and typed as factors: 90 reads 1,9 */
   asFactor?: boolean;
+}
+
+/** free text, such as a name */
+export interface TextSettingDef extends BaseSettingDef {
+  kind: 'text';
+  default: string;
+}
+
+export type SettingDef = ToggleSettingDef | ChoiceSettingDef | NumberSettingDef | ListSettingDef | TextSettingDef;
+
+/** a def is the single source of a setting: it is declared once, as a module constant, and its handle reads and writes */
+export const toggleDef = (def: Omit<ToggleSettingDef, 'kind'>): ToggleSettingDef => ({ kind: 'toggle', ...def });
+export const choiceDef = <const V extends string>(def: Omit<ChoiceSettingDef<V>, 'kind'>): ChoiceSettingDef<V> => ({
+  kind: 'choice',
+  ...def,
+});
+export const numberDef = (def: Omit<NumberSettingDef, 'kind'>): NumberSettingDef => ({ kind: 'number', ...def });
+export const listDef = (def: Omit<ListSettingDef, 'kind'>): ListSettingDef => ({ kind: 'list', ...def });
+export const textDef = (def: Omit<TextSettingDef, 'kind'>): TextSettingDef => ({ kind: 'text', ...def });
+
+/** a registered setting of one `Settings`: reads the normalised value, writes it, hears changes of its key only */
+export interface Setting<T> {
+  readonly def: SettingDef;
+  get(): T;
+  set(value: T): Promise<void>;
+  onChange(listener: () => void): () => void;
 }
 
 /** `value` rounded to a multiple of `step`, without the float tail of 955 × 0.1 */
@@ -61,19 +92,6 @@ export const parseNumberList = (text: string): number[] =>
 /** the list as it is typed, with decimal commas */
 export const formatNumberList = (list: number[]): string => list.map((n) => String(n).replace('.', ',')).join('; ');
 
-/** free text, such as a name */
-export interface TextSettingDef extends BaseSettingDef {
-  default: string;
-  text: true;
-}
-
-export type SettingDef = ToggleSettingDef | ChoiceSettingDef | NumberSettingDef | ListSettingDef | TextSettingDef;
-
-export const isChoice = (def: SettingDef): def is ChoiceSettingDef => 'choices' in def;
-export const isText = (def: SettingDef): def is TextSettingDef => 'text' in def;
-export const isList = (def: SettingDef): def is ListSettingDef => Array.isArray(def.default);
-export const isNumber = (def: SettingDef): def is NumberSettingDef => 'min' in def && !isList(def);
-
 type Value = boolean | string | number | number[];
 type Values = Record<string, Value>;
 
@@ -84,6 +102,7 @@ export class Settings {
   private values: Values = {};
   /** whether anything was ever stored under `settings`, which `values` (empty by default) cannot tell */
   private present = false;
+  private handles = new Map<SettingDef, Setting<Value>>();
   private listeners = new Set<(key: string) => void>();
 
   constructor(private kv: KeyValue) {}
@@ -99,10 +118,6 @@ export class Settings {
     return this.present ? this.values : undefined;
   }
 
-  register(def: SettingDef): void {
-    this.defs.push(def);
-  }
-
   /** the icon a group shows in the settings box; the feature passes the one of its menu entry */
   registerGroup(group: TextKey, icon: TemplateResult | string): void {
     this.icons.set(group, icon);
@@ -112,53 +127,55 @@ export class Settings {
     return this.icons.get(group);
   }
 
-  /** value of a toggle */
-  get(key: string): boolean {
-    const value = this.values[key];
-    if (typeof value === 'boolean') return value;
-    const def = this.def(key);
-    return def && !isChoice(def) && !isNumber(def) && !isList(def) && !isText(def) ? def.default : false;
+  /** the handle of a setting; the owner registers it, the handle is the only way to read or write the value */
+  register<D extends SettingDef>(def: D): Setting<D['default']> {
+    this.defs.push(def);
+    const handle: Setting<Value> = {
+      def,
+      get: () => this.read(def),
+      set: (value) => this.write(def.key, value),
+      onChange: (listener) =>
+        this.onChange((key) => {
+          if (key === def.key) listener();
+        }),
+    };
+    this.handles.set(def, handle);
+    return handle as Setting<D['default']>;
   }
 
-  /** value of a number setting, rounded and kept within its bounds; a stored value of another type gives the default */
-  number(key: string): number {
-    const def = this.def(key);
-    if (!def || !isNumber(def)) return 0;
-    const value = this.values[key];
-    if (typeof value !== 'number' || !Number.isFinite(value)) return def.default;
-    return clamp(toStep(value, def.step), def.min, def.max);
+  /** the handle of a registered setting, for readers that do not own it; an unregistered def is a programming error */
+  of<D extends SettingDef>(def: D): Setting<D['default']> {
+    const handle = this.handles.get(def);
+    if (!handle) throw new Error(`setting ${def.key} is not registered`);
+    return handle as Setting<D['default']>;
   }
 
-  /**
-   * value of a list setting: numbers rounded to the step, within bounds, each once, in the order given; nothing usable
-   * left gives the default
-   */
-  numbers(key: string): number[] {
-    const def = this.def(key);
-    if (!def || !isList(def)) return [];
-    const value = this.values[key];
-    const list = Array.isArray(value) ? value.filter((n) => Number.isFinite(n)).map((n) => toStep(n, def.step)) : [];
-    const kept = [...new Set(list.filter((n) => n >= def.min && n <= def.max))];
-    return kept.length ? kept : def.default;
+  private read(def: SettingDef): Value {
+    const value = this.values[def.key];
+    switch (def.kind) {
+      case 'toggle':
+        return typeof value === 'boolean' ? value : def.default;
+      case 'number':
+        // a stored value of another type gives the default
+        if (typeof value !== 'number' || !Number.isFinite(value)) return def.default;
+        return clamp(toStep(value, def.step), def.min, def.max);
+      case 'list': {
+        // numbers rounded to the step, within bounds, each once, in the order given; nothing usable left gives the default
+        const list = Array.isArray(value)
+          ? value.filter((n) => Number.isFinite(n)).map((n) => toStep(n, def.step))
+          : [];
+        const kept = [...new Set(list.filter((n) => n >= def.min && n <= def.max))];
+        return kept.length ? kept : def.default;
+      }
+      case 'text':
+        return typeof value === 'string' ? value.trim() : def.default;
+      case 'choice':
+        // a stored value that is no longer a choice falls back to the default
+        return typeof value === 'string' && def.choices.some((c) => c.value === value) ? value : def.default;
+    }
   }
 
-  /** value of a text setting, trimmed; another type stored gives the default */
-  text(key: string): string {
-    const def = this.def(key);
-    if (!def || !isText(def)) return '';
-    const value = this.values[key];
-    return typeof value === 'string' ? value.trim() : def.default;
-  }
-
-  /** value of a choice; a stored value that is no longer a choice falls back to the default */
-  choice(key: string): string {
-    const def = this.def(key);
-    if (!def || !isChoice(def)) return '';
-    const value = this.values[key];
-    return typeof value === 'string' && def.choices.some((c) => c.value === value) ? value : def.default;
-  }
-
-  async set(key: string, value: Value): Promise<void> {
+  private async write(key: string, value: Value): Promise<void> {
     this.values = { ...this.values, [key]: value };
     this.present = true;
     await this.kv.set('settings', this.values);
@@ -167,7 +184,7 @@ export class Settings {
 
   /** replaces all values, as taking found data does; no listener hears it, the game reloads right after */
   async replace(values: Record<string, unknown>): Promise<void> {
-    // unchecked like a load: the getters fall back to the default for a value of the wrong type
+    // unchecked like a load: the handles fall back to the default for a value of the wrong type
     this.values = values as Values;
     this.present = true;
     await this.kv.set('settings', values);
@@ -176,9 +193,5 @@ export class Settings {
   onChange(listener: (key: string) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
-  }
-
-  private def(key: string): SettingDef | undefined {
-    return this.defs.find((d) => d.key === key);
   }
 }

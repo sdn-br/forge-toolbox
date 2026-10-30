@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Ingestion } from '../src/content/core/ingestion';
-import { investmentsFeature } from '../src/content/features/investments';
+import { FACTOR as CALC_FACTOR } from '../src/content/features/gb-calculator';
+import { investmentsFeature, OPEN_WITH_LIST } from '../src/content/features/investments';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import { GreatBuildingStore } from '../src/content/stores/great-buildings';
 import { playerId, worldId } from '../src/shared/ids';
@@ -163,7 +164,7 @@ describe('Investitionen box', () => {
 
   it('stays closed with the setting off', async () => {
     const { box, send, settings } = setup();
-    await settings.set('investments.openWithList', false);
+    await settings.of(OPEN_WITH_LIST).set(false);
     send(contributions.contributions as Entry);
     await tick();
     expect(box.box.isOpen).toBe(false);
@@ -301,7 +302,7 @@ describe('Investitionen: reading the known buildings', () => {
     expect(box.updates.length).toBe(drawn + 1);
     // a collection in the own city leaves the Arc bonus as it is; the factor is the calculator's, a snipe is about profit
     bus.emit('city.ownChanged', { reset: false, buildingIds: [1] });
-    await settings.set('gbCalc.factor', 80);
+    await settings.register(CALC_FACTOR).set(80);
     expect(box.updates.length).toBe(drawn + 1);
     expect(reads).not.toHaveBeenCalled();
   });

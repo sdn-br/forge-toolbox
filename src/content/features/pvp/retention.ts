@@ -1,6 +1,6 @@
-import type { ChoiceSettingDef } from '../../core/settings';
+import { choiceDef } from '../../core/settings';
 
-export const KEEP_SETTING: ChoiceSettingDef = {
+export const KEEP_SETTING = choiceDef({
   key: 'pvp.keep',
   group: 'pvp.title',
   label: 'pvp.keep',
@@ -12,7 +12,7 @@ export const KEEP_SETTING: ChoiceSettingDef = {
     { value: '180', label: 'pvp.keep180' },
     { value: '365', label: 'pvp.keep365' },
   ],
-};
+});
 
 const DAY = 86_400_000;
 

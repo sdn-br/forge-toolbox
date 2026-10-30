@@ -5,6 +5,7 @@ import type { PlayerId } from '../../../shared/ids';
 import type { KnownGreatBuilding } from '../../../shared/model';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
+import { listDef, numberDef, type Setting, toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
 import { arcBonus } from '../../domain/gb-calculator';
 import { type SnipeList, snipeList } from '../../domain/gb-snipe';
@@ -30,15 +31,76 @@ import { type GbCalculatorVm, gbCalculatorViewModel } from './view-model';
 /** the menu entry and the settings group show it */
 const ICON = icons.gbCalculator;
 
-const CALCULATOR_FACTOR = { value: 'gbCalc.factor', arc: 'gbCalc.factorArc', arcButton: 'gbCalc.arcButton' };
-const FACTOR_BUTTONS = 'gbCalc.factorButtons';
-const SOUND = 'gbCalc.sound';
-const CLOSE_WITHOUT_WINDOW = 'gbCalc.closeWithoutWindow';
-const RETENTION = 'snipe.retentionDays';
+export const FACTOR = numberDef({
+  key: 'gbCalc.factor',
+  group: 'gbCalc.title',
+  label: 'gbCalc.factorSetting',
+  default: 90,
+  min: -100,
+  max: 200,
+  step: 0.1,
+  asFactor: true,
+});
+export const FACTOR_ARC = toggleDef({
+  key: 'gbCalc.factorArc',
+  group: 'gbCalc.title',
+  label: 'gbCalc.factorArcSetting',
+  default: false,
+});
+export const FACTOR_BUTTONS = listDef({
+  key: 'gbCalc.factorButtons',
+  group: 'gbCalc.title',
+  label: 'gbCalc.factorButtonsSetting',
+  hint: 'gbCalc.factorButtonsHint',
+  default: [80, 90, 100],
+  min: -100,
+  max: 200,
+  step: 0.1,
+  asFactor: true,
+});
+export const ARC_BUTTON = toggleDef({
+  key: 'gbCalc.arcButton',
+  group: 'gbCalc.title',
+  label: 'gbCalc.arcButtonSetting',
+  default: true,
+});
+export const SOUND = toggleDef({
+  key: 'gbCalc.sound',
+  group: 'gbCalc.title',
+  label: 'gbCalc.soundSetting',
+  default: true,
+});
+export const CLOSE_WITHOUT_WINDOW = toggleDef({
+  key: 'gbCalc.closeWithoutWindow',
+  group: 'gbCalc.title',
+  label: 'gbCalc.closeWithoutWindowSetting',
+  default: true,
+});
+export const RETENTION = numberDef({
+  key: 'snipe.retentionDays',
+  group: 'gbCalc.title',
+  section: 'snipe.section',
+  label: 'snipe.retentionSetting',
+  default: 30,
+  min: 1,
+  max: 365,
+});
 /** a list this soon after the owner's building was opened or paid into is the game's own question, not the player's */
 const ASKED_BY_GAME = 3000;
-const SNIPE_OPEN = 'snipe.open';
-const SNIPE_SOUND = 'snipe.sound';
+export const SNIPE_OPEN = toggleDef({
+  key: 'snipe.open',
+  group: 'gbCalc.title',
+  section: 'snipe.section',
+  label: 'snipe.openSetting',
+  default: true,
+});
+export const SNIPE_SOUND = toggleDef({
+  key: 'snipe.sound',
+  group: 'gbCalc.title',
+  section: 'snipe.section',
+  label: 'snipe.soundSetting',
+  default: true,
+});
 /** the snipe section shows the rows of ignored buildings and owners; a view choice, saved as 'true' or 'false' */
 const SNIPE_SHOW_IGNORED = 'snipe.showIgnored';
 const FP = 'strategy_points';
@@ -49,73 +111,17 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
     id: 'gbCalculator',
     setup(ctx) {
       ctx.settings.registerGroup('gbCalc.title', ICON);
-      ctx.settings.register({
-        key: CALCULATOR_FACTOR.value,
-        group: 'gbCalc.title',
-        label: 'gbCalc.factorSetting',
-        default: 90,
-        min: -100,
-        max: 200,
-        step: 0.1,
-        asFactor: true,
-      });
-      ctx.settings.register({
-        key: CALCULATOR_FACTOR.arc,
-        group: 'gbCalc.title',
-        label: 'gbCalc.factorArcSetting',
-        default: false,
-      });
-      ctx.settings.register({
-        key: FACTOR_BUTTONS,
-        group: 'gbCalc.title',
-        label: 'gbCalc.factorButtonsSetting',
-        hint: 'gbCalc.factorButtonsHint',
-        default: [80, 90, 100],
-        min: -100,
-        max: 200,
-        step: 0.1,
-        asFactor: true,
-      });
-      ctx.settings.register({
-        key: CALCULATOR_FACTOR.arcButton,
-        group: 'gbCalc.title',
-        label: 'gbCalc.arcButtonSetting',
-        default: true,
-      });
-      ctx.settings.register({ key: SOUND, group: 'gbCalc.title', label: 'gbCalc.soundSetting', default: true });
-      ctx.settings.register({
-        key: CLOSE_WITHOUT_WINDOW,
-        group: 'gbCalc.title',
-        label: 'gbCalc.closeWithoutWindowSetting',
-        default: true,
-      });
-      ctx.settings.register({
-        key: RETENTION,
-        group: 'gbCalc.title',
-        section: 'snipe.section',
-        label: 'snipe.retentionSetting',
-        default: 30,
-        min: 1,
-        max: 365,
-      });
-      ctx.settings.register({
-        key: SNIPE_OPEN,
-        group: 'gbCalc.title',
-        section: 'snipe.section',
-        label: 'snipe.openSetting',
-        default: true,
-      });
-      ctx.settings.register({
-        key: SNIPE_SOUND,
-        group: 'gbCalc.title',
-        section: 'snipe.section',
-        label: 'snipe.soundSetting',
-        default: true,
-      });
+      const factor = ctx.settings.register(FACTOR);
+      const factorArc = ctx.settings.register(FACTOR_ARC);
+      const factorButtons = ctx.settings.register(FACTOR_BUTTONS);
+      const arcButton = ctx.settings.register(ARC_BUTTON);
+      const sound = ctx.settings.register(SOUND);
+      const closeWithoutWindow = ctx.settings.register(CLOSE_WITHOUT_WINDOW);
+      const retention = ctx.settings.register(RETENTION);
+      const snipeOpen = ctx.settings.register(SNIPE_OPEN);
+      const snipeSound = ctx.settings.register(SNIPE_SOUND);
       // buildings of other players not seen for that long go; those with an own contribution stay
-      ctx.greatBuildings
-        .prune(ctx.settings.number(RETENTION))
-        .catch((error) => logError('pruning great buildings failed', error));
+      ctx.greatBuildings.prune(retention.get()).catch((error) => logError('pruning great buildings failed', error));
 
       /** the last foreign construction; an own one opened later leaves it in the box */
       let shown: Construction | undefined;
@@ -163,8 +169,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       };
       let loads = 0;
 
-      const save = (key: string, value: boolean | number) =>
-        ctx.settings.set(key, value).catch((error) => logError('saving settings failed', error));
+      const save = <T>(setting: Setting<T>, value: T) =>
+        setting.set(value).catch((error) => logError('saving settings failed', error));
       /** whether the player store knows the player and has them marked; undefined for an unknown one, who takes no star */
       const playerMarked = (id: PlayerId) =>
         ctx.players.get(id)?.marked === true || (ctx.players.get(id) ? false : undefined);
@@ -187,10 +193,10 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           .catch((error) => logError('marking a great building failed', error));
       const actions: GbCalculatorActions = {
         setFactor: (value) => {
-          save(CALCULATOR_FACTOR.value, value);
-          save(CALCULATOR_FACTOR.arc, false);
+          save(factor, value);
+          save(factorArc, false);
         },
-        useArc: () => save(CALCULATOR_FACTOR.arc, true),
+        useArc: () => save(factorArc, true),
         previewLevel: (level) => {
           preview = level;
           refresh();
@@ -261,10 +267,10 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           fpBar: ctx.resources.known ? ctx.resources.amount(FP) : undefined,
           fpPackages: ctx.inventory.knowsPackages ? ctx.inventory.forgePointPackages() : undefined,
           arcBonus: arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses()),
-          factor: { value: ctx.settings.number(CALCULATOR_FACTOR.value), arc: ctx.settings.get(CALCULATOR_FACTOR.arc) },
-          factorButtons: ctx.settings.numbers(FACTOR_BUTTONS),
-          arcButton: ctx.settings.get(CALCULATOR_FACTOR.arcButton),
-          foestats: shown && ctx.settings.get(FOESTATS_SETTING.key) ? ctx.foestats.get(shown.owner) : undefined,
+          factor: { value: factor.get(), arc: factorArc.get() },
+          factorButtons: factorButtons.get(),
+          arcButton: arcButton.get(),
+          foestats: shown && ctx.settings.of(FOESTATS_SETTING).get() ? ctx.foestats.get(shown.owner) : undefined,
           today: foestatsDay(Date.now()),
           previewLevel: preview,
           greatBuilding: (def) => ctx.catalog.get(def)?.greatBuilding,
@@ -288,7 +294,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           isIgnored,
           ownerIgnored,
           showIgnored,
-          foestats: list && ctx.settings.get(FOESTATS_SETTING.key) ? ctx.foestats.get(list.owner) : undefined,
+          foestats: list && ctx.settings.of(FOESTATS_SETTING).get() ? ctx.foestats.get(list.owner) : undefined,
           today: foestatsDay(Date.now()),
           now: Date.now(),
           sort,
@@ -316,8 +322,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         const hits = snipe.hits.filter((h) => !ignores(h.owner, h.entityId));
         if (hits.length === 0) return;
         const key = `${list?.owner}|${hits.map((h) => `${h.entityId}:${h.tier}:${h.place.rank}:${h.place.cost}`).join(',')}`;
-        if (ctx.settings.get(SNIPE_OPEN)) box.open();
-        if (ctx.settings.get(SNIPE_SOUND) && key !== snipeToned) tone();
+        if (snipeOpen.get()) box.open();
+        if (snipeSound.get() && key !== snipeToned) tone();
         snipeToned = key;
       };
 
@@ -326,7 +332,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       const shownIgnored = () => shown !== undefined && ignores(shown.owner, shown.entityId);
 
       const maybeTone = (leveled: boolean) => {
-        if (vm.kind !== 'current' || !ctx.settings.get(SOUND) || shownIgnored()) return;
+        if (vm.kind !== 'current' || !sound.get() || shownIgnored()) return;
         const profitable = vm.places.filter((p) => p.status === 'profit' && (p.profit ?? 0) > 0);
         const places = profitable.map((p) => `${p.rank}:${p.safe?.cost}`).join(',');
         const key = leveled ? `leveled:${vm.leveled}` : vm.profitable ? `${vm.header.name}:${places}` : undefined;
@@ -390,7 +396,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         } else if (state === 'foreign') {
           calcFolded = false;
           if (hasBuilding()) expanded = false;
-        } else if (box.isOpen && ctx.settings.get(CLOSE_WITHOUT_WINDOW)) box.close();
+        } else if (box.isOpen && closeWithoutWindow.get()) box.close();
         box.update();
       });
       ctx.bus.on('greatBuilding.marked', refresh);

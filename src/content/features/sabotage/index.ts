@@ -1,5 +1,6 @@
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
+import { toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
 import { assessCity } from '../../domain/assess-city';
 import { footprints, spotOf } from '../../domain/city-grid';
@@ -17,22 +18,25 @@ const TICK = 30_000;
 
 const ID = 'sabotage';
 
+export const AUTO_OPEN = toggleDef({
+  key: 'sabotage.autoOpen',
+  group: 'sabotage.title',
+  label: 'sabotage.autoOpen',
+  default: true,
+});
+export const SHOW_ARMY = toggleDef({
+  key: 'sabotage.showArmy',
+  group: 'sabotage.title',
+  label: 'sabotage.showArmy',
+  default: true,
+});
+
 export const sabotageFeature: Feature = {
   id: ID,
   setup(ctx) {
     ctx.settings.registerGroup('sabotage.title', ICON);
-    ctx.settings.register({
-      key: 'sabotage.autoOpen',
-      group: 'sabotage.title',
-      label: 'sabotage.autoOpen',
-      default: true,
-    });
-    ctx.settings.register({
-      key: 'sabotage.showArmy',
-      group: 'sabotage.title',
-      label: 'sabotage.showArmy',
-      default: true,
-    });
+    const autoOpen = ctx.settings.register(AUTO_OPEN);
+    const showArmy = ctx.settings.register(SHOW_ARMY);
 
     let vm: SabotageVm | undefined;
     // the countdowns of the attack line run on while the box is open; the ticker stops with the box
@@ -101,7 +105,7 @@ export const sabotageFeature: Feature = {
         player: ctx.players.get(city.owner),
         assessment,
         catalog: ctx.catalog,
-        showArmy: ctx.settings.get('sabotage.showArmy'),
+        showArmy: showArmy.get(),
         now: Date.now(),
         record: record.current(city.owner),
       });
@@ -115,7 +119,7 @@ export const sabotageFeature: Feature = {
       const marked = ctx.markers.of(ID);
       if (marked && marked.city !== owner) ctx.markers.clear(ID);
       refresh();
-      if (ctx.settings.get('sabotage.autoOpen')) box.open();
+      if (autoOpen.get()) box.open();
     });
     // the attack timers come with updatePlayer, for example after a battle or a plunder
     ctx.bus.on('player.updated', ({ ids }) => {

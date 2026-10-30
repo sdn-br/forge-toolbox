@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { foestatsFeature } from '../src/content/features/foestats';
 import { settingsFeature } from '../src/content/features/settings-feature';
+import { FOESTATS_SETTING } from '../src/content/stores/foestats';
 import type { FetchLike } from '../src/shared/foestats-api';
 import { eraId, playerId, worldId } from '../src/shared/ids';
 import { featureContext } from './helpers/feature-context';
@@ -49,7 +50,7 @@ describe('foestats feature', () => {
 
   it('asks nothing while the setting is off', async () => {
     const { ctx, visit, fetch } = setup();
-    await ctx.settings.set('foestats.fetch', false);
+    await ctx.settings.of(FOESTATS_SETTING).set(false);
     visit(42);
     ctx.bus.emit('greatBuilding.opened', { owner: playerId(8), entityId: 2, own: false });
     await tick();

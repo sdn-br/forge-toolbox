@@ -1,15 +1,13 @@
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
-import { ONE_FP, ownArcBonus, SECURE, TRUST, viewFlag } from '../../stores/gb-own-state';
+import { FACTOR_BUTTONS, ONE_FP, ownArcBonus, SECURE, TRUST, viewFlag } from '../../stores/gb-own-state';
 import type { Construction } from '../../stores/great-building-model';
 import { COPY_PLAYER, copyBuildingKey, readCopyOptions } from '../gb-own-share/copy-text';
 import { powerLevelCss } from './styles';
 import { powerLevelView } from './view';
 import { powerLevelViewModel } from './view-model';
 
-/** the settings of the Eigenanteil box this box reads too */
-const FACTOR_BUTTONS = 'gbOwn.factorButtons';
 /** how long a copy button says it copied */
 const COPIED_MS = 1500;
 
@@ -41,14 +39,14 @@ export function createGbPowerLevelFeature(
           greatBuildingName: (id) => ctx.catalog.greatBuildingName(id),
           greatBuilding: (id) => ctx.catalog.get(id)?.greatBuilding,
           factors: ctx.gbOwn.state(def ?? ''),
-          factorButtons: ctx.settings.numbers(FACTOR_BUTTONS),
+          factorButtons: ctx.settings.of(FACTOR_BUTTONS).get(),
           arcBonus: ownArcBonus(ctx.settings, ctx.cities, ctx.greatBuildings),
           secureExisting: viewFlag(ctx.ui, SECURE, true),
           trust: viewFlag(ctx.ui, TRUST, false),
           exts: ctx.gbOwn.ext(def ?? '', shown?.entity?.level),
-          oneFpForNoReward: ctx.settings.get(ONE_FP),
+          oneFpForNoReward: ctx.settings.of(ONE_FP).get(),
           copy: readCopyOptions(ctx.settings),
-          copyPlayer: ctx.settings.text(COPY_PLAYER) || ctx.session.current?.name,
+          copyPlayer: ctx.settings.of(COPY_PLAYER).get() || ctx.session.current?.name,
           copyBuilding: def ? ctx.ui.pref(copyBuildingKey(def)) : undefined,
           from,
           to,

@@ -2,8 +2,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Ingestion } from '../src/content/core/ingestion';
 import { foestatsFeature } from '../src/content/features/foestats';
-import { createGbCalculatorFeature } from '../src/content/features/gb-calculator';
+import {
+  ARC_BUTTON as CALC_ARC_BUTTON,
+  FACTOR as CALC_FACTOR,
+  FACTOR_ARC as CALC_FACTOR_ARC,
+  FACTOR_BUTTONS as CALC_FACTOR_BUTTONS,
+  createGbCalculatorFeature,
+  SOUND,
+} from '../src/content/features/gb-calculator';
 import { registerGameHandlers } from '../src/content/game/handlers';
+import { FOESTATS_SETTING } from '../src/content/stores/foestats';
 import type { FetchLike } from '../src/shared/foestats-api';
 import { playerId } from '../src/shared/ids';
 import definitions from './fixtures/gb-definitions.json';
@@ -188,7 +196,7 @@ describe('LG-Rechner', () => {
     const demand = () => rows()[0]?.querySelectorAll('td')[5]?.textContent?.trim();
     box.click('2');
     await tick();
-    expect(ctx.settings.number('gbCalc.factor')).toBe(100);
+    expect(ctx.settings.of(CALC_FACTOR).get()).toBe(100);
     expect(demand()).toBe('1.460');
     // the buttons read as factors, the own Arc bonus of 95,5 % sorted in
     expect([...box.root.querySelectorAll('.gb-factor button')].map((b) => b.textContent?.trim())).toEqual([
@@ -199,7 +207,7 @@ describe('LG-Rechner', () => {
     ]);
     box.click('1,955');
     await tick();
-    expect(ctx.settings.get('gbCalc.factorArc')).toBe(true);
+    expect(ctx.settings.of(CALC_FACTOR_ARC).get()).toBe(true);
     expect(demand()).toBe('1.427');
     const input = box.root.querySelector('.gb-factor input') as HTMLInputElement;
     // the field reads as a factor too, 2,5 is 150 %
@@ -207,11 +215,11 @@ describe('LG-Rechner', () => {
     input.value = '2.5';
     input.dispatchEvent(new Event('change'));
     await tick();
-    expect(ctx.settings.get('gbCalc.factorArc')).toBe(false);
+    expect(ctx.settings.of(CALC_FACTOR_ARC).get()).toBe(false);
     // round(730 × 2.5)
     expect(demand()).toBe('1.825');
-    await ctx.settings.set('gbCalc.factorButtons', [90, 95.5]);
-    await ctx.settings.set('gbCalc.arcButton', false);
+    await ctx.settings.of(CALC_FACTOR_BUTTONS).set([90, 95.5]);
+    await ctx.settings.of(CALC_ARC_BUTTON).set(false);
     await tick();
     expect([...box.root.querySelectorAll('.gb-factor button')].map((b) => b.textContent?.trim())).toEqual([
       '1,9',
@@ -383,7 +391,7 @@ describe('LG-Rechner', () => {
 
   it('plays no tone when it is switched off', async () => {
     const { ctx, open, tones } = setup();
-    await ctx.settings.set('gbCalc.sound', false);
+    await ctx.settings.of(SOUND).set(false);
     open(1909);
     expect(tones()).toBe(0);
   });
@@ -620,7 +628,7 @@ describe('LG-Rechner', () => {
     it('asks nothing and hides the activity when the setting is off, but keeps the link', async () => {
       const fetch = foestats(history);
       const { box, open, ctx } = activitySetup(fetch);
-      await ctx.settings.set('foestats.fetch', false);
+      await ctx.settings.of(FOESTATS_SETTING).set(false);
       open(1909);
       await tick();
       await tick();
@@ -631,7 +639,7 @@ describe('LG-Rechner', () => {
 
     it('is a setting that is on by default and tells what it sends', () => {
       const { ctx } = setup();
-      expect(ctx.settings.get('foestats.fetch')).toBe(true);
+      expect(ctx.settings.of(FOESTATS_SETTING).get()).toBe(true);
       expect(ctx.settings.defs.find((d) => d.key === 'foestats.fetch')).toMatchObject({
         label: 'foestats.fetchSetting',
         hint: 'foestats.fetchHint',

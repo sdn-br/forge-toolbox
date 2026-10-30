@@ -16,12 +16,19 @@ import type { Profile } from '../../shared/profile';
 import { answeredLaterToday } from '../../shared/time';
 import type { KeyValue } from '../core/kv';
 import { logError } from '../core/log';
-import type { Settings } from '../core/settings';
+import { type Setting, type Settings, toggleDef } from '../core/settings';
 import type { CopyStore } from './backup-store';
 import type { FoundDataSource, FoundOffer } from './found-data';
 
 /** the setting "Sicherungskopie auf der Spielseite" */
-export const BACKUP_SETTING = 'core.backupCopy';
+export const BACKUP_SETTING = toggleDef({
+  key: 'core.backupCopy',
+  group: 'settings.core',
+  label: 'settings.backupCopy',
+  hint: 'settings.backupCopyHint',
+  default: true,
+  ownControl: true,
+});
 /** how long after the last change the copy is written */
 export const BACKUP_DELAY = 30_000;
 /** the answer to a found copy, in the profile's storage */
@@ -75,15 +82,10 @@ export class BackupCopy implements FoundDataSource {
   private written: CopyState | undefined;
   private listeners: (() => void)[] = [];
 
+  private setting: Setting<boolean>;
+
   constructor(private env: BackupCopyEnv) {
-    env.settings.register({
-      key: BACKUP_SETTING,
-      group: 'settings.core',
-      label: 'settings.backupCopy',
-      hint: 'settings.backupCopyHint',
-      default: true,
-      ownControl: true,
-    });
+    this.setting = env.settings.register(BACKUP_SETTING);
   }
 
   /**
@@ -95,7 +97,7 @@ export class BackupCopy implements FoundDataSource {
       this.changed();
     });
     this.env.settings.onChange((key) => {
-      if (key === BACKUP_SETTING && !this.enabled())
+      if (key === BACKUP_SETTING.key && !this.enabled())
         this.switchedOff().catch((error) => logError('deleting the backup copy failed', error));
       // the setting itself is a setting the copy holds
       this.state = { ...this.state, settings: this.state.settings + 1 };
@@ -114,7 +116,7 @@ export class BackupCopy implements FoundDataSource {
   }
 
   enabled(): boolean {
-    return this.env.settings.get(BACKUP_SETTING);
+    return this.setting.get();
   }
 
   /**

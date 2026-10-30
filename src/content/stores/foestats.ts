@@ -3,7 +3,7 @@ import type { PlayerId, WorldId } from '../../shared/ids';
 import type { FoestatsDay } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
-import type { ToggleSettingDef } from '../core/settings';
+import { toggleDef } from '../core/settings';
 
 export interface FoestatsPersistence {
   /** whether to ask foestats now; `fetch: true` reserves the request until `store` */
@@ -20,13 +20,13 @@ export interface FoestatsPersistence {
 }
 
 /** Off: no requests to foestats, and the views hide what they know from it. Links to foestats stay. */
-export const FOESTATS_SETTING: ToggleSettingDef = {
+export const FOESTATS_SETTING = toggleDef({
   key: 'foestats.fetch',
   group: 'foestats.group',
   label: 'foestats.fetchSetting',
   hint: 'foestats.fetchHint',
   default: true,
-};
+});
 
 export interface FoestatsRecord {
   /** oldest first */
