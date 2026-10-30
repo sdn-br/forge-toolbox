@@ -1,6 +1,6 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
-import type { LevelUpAndFirst } from '../../domain/gb-level-preview';
+import type { LevelUpAndFirst } from '../../domain/gb-strategy';
 import { estimateCell } from '../../ui/estimate-cell';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
 import { foldToggle } from '../../ui/fold-toggle';

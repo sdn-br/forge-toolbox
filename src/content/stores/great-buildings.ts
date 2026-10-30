@@ -4,7 +4,8 @@ import type { KnownGreatBuilding, MarkKind } from '../../shared/model';
 import { DAY_MS } from '../../shared/time';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
-import { bestRate, calculateConstruction, type LimitedBonus } from '../domain/gb-calculator';
+import type { LimitedBonus } from '../domain/arc-bonus';
+import { bestRate, calculateConstruction, constructionOf } from '../domain/gb-calculator';
 import type { Construction, GreatBuildingEntity, RankingRow } from './great-building-model';
 
 export interface GreatBuildingPersistence {
@@ -290,7 +291,7 @@ export class GreatBuildingStore {
     const open = this.open;
     const entity = open?.entity;
     if (!open || open.own || !entity) return;
-    const rate = bestRate(calculateConstruction({ ...entity, rankings: open.rankings, arcBonus: 0, factor: 0 }));
+    const rate = bestRate(calculateConstruction(constructionOf(entity, open.rankings, { arcBonus: 0, factor: 0 })));
     const invested = open.rankings.reduce((sum, r) => sum + (r.fp ?? 0), 0);
     const self = open.rankings.find((r) => r.self && r.rank !== undefined);
     const at = this.now();

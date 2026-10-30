@@ -1,6 +1,13 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import { formatNumber, signed, t } from '../../core/texts';
-import { type SnipeHit, type SnipeList, type SnipeTier, snipeProfitKey, TIER_ORDER } from '../../domain/gb-snipe';
+import {
+  bySnipeProfit,
+  type SnipeHit,
+  type SnipeList,
+  type SnipeTier,
+  snipeProfitKey,
+  TIER_ORDER,
+} from '../../domain/gb-snipe';
 import { ignoreReason } from '../../domain/ignore';
 import type { FoestatsRecord } from '../../stores/foestats';
 import { ignoreWords } from '../../ui/ignore';
@@ -188,7 +195,7 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     result.unknownReward > 0 && t('snipe.countUnknown', { count: result.unknownReward }),
     result.hits.length > kept.length && t('snipe.countIgnored', { count: result.hits.length - kept.length }),
   ].filter((c): c is string => typeof c === 'string');
-  const best = [...kept].sort((a, b) => snipeProfitKey(b) - snipeProfitKey(a))[0];
+  const best = [...kept].sort(bySnipeProfit)[0];
   const ownerMarked = input.playerMarked(list.owner);
   const ownerIgnored = input.ownerIgnored(list.owner);
   return {

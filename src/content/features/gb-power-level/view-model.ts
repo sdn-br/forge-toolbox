@@ -1,9 +1,9 @@
 import type { BuildingDefId } from '../../../shared/ids';
 import { clamp } from '../../../shared/math';
-import { type DoubleHarvest, doubleHarvest, hasDoubleHarvest } from '../../domain/gb-double-harvest';
+import { type DoubleHarvest, hasDoubleHarvest } from '../../domain/gb-double-harvest';
 import { effectiveFactor, effectiveFactors } from '../../domain/gb-factor';
-import { emptyLevel } from '../../domain/gb-level-preview';
-import { calculateOwnShare, type OwnShareCalc } from '../../domain/gb-own-share';
+import type { OwnShareCalc } from '../../domain/gb-own-share';
+import { powerLevelPlan } from '../../domain/gb-power-level';
 import type { GreatBuildingDef } from '../../stores/catalog';
 import type { Construction } from '../../stores/great-building-model';
 import { type PlaceFactorState, sameChoice } from '../../stores/place-factors';
@@ -129,46 +129,37 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
   const building = input.copyBuilding ?? name;
   const player = input.copyPlayer ?? '';
 
-  const rows: PowerRow[] = [];
-  let endsAt: number | undefined;
-  let sum = 0;
-  for (let x = from; x < to; x++) {
-    const open = x === entity.level && !atMax;
-    const empty = open ? undefined : emptyLevel(gb, x);
-    const required = open ? entity.required : empty?.required;
-    const rankings = open ? c.rankings : empty?.rankings;
-    if (required === undefined || !rankings) {
-      endsAt = x;
-      break;
-    }
-    const calc = calculateOwnShare({
-      required,
-      rankings,
+  const plan = powerLevelPlan({
+    def: entity.def,
+    greatBuilding: gb,
+    level: entity.level,
+    maxLevel: entity.maxLevel,
+    required: entity.required,
+    rankings: c.rankings,
+    nextProduction: c.nextProduction,
+    from,
+    to,
+    share: {
       factor: factors,
       secureExisting: input.secureExisting,
       trust: input.trust,
       oneFpForNoReward: input.oneFpForNoReward,
-      exts: open ? input.exts : [],
-    });
-    const estimate = empty?.reward?.estimate === true;
-    const harvest = harvestColumn ? doubleHarvest(entity.def, gb, x, c.nextProduction) : undefined;
-    const ownShare = Math.max(0, calc.open);
-    const net = ownShare - (harvest?.fp ?? 0);
-    sum += net;
-    rows.push({
-      level: x,
-      next: x + 1,
-      current: open,
-      locked: x + 1 > entity.maxLevel,
-      places: payments(calc, estimate),
-      ownShare,
-      ...(open && { paid: calc.myDeposit }),
-      ...(harvest && { harvest }),
-      net,
-      sum,
-      copy: copyText(calc, input.copy, { player, building, level: x, factor: factors }),
-    });
-  }
+      exts: input.exts,
+    },
+  });
+  const rows = plan.rows.map<PowerRow>((r) => ({
+    level: r.level,
+    next: r.level + 1,
+    current: r.open,
+    locked: r.locked,
+    places: payments(r.calc, r.estimate),
+    ownShare: r.ownShare,
+    ...(r.open && { paid: r.calc.myDeposit }),
+    ...(r.harvest && { harvest: r.harvest }),
+    net: r.net,
+    sum: r.sum,
+    copy: copyText(r.calc, input.copy, { player, building, level: r.level, factor: factors }),
+  }));
   return {
     kind: 'table',
     name,
@@ -185,12 +176,8 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
     harvestColumn,
     rows,
     estimate: rows.some((r) => r.places.some((p) => p?.estimate)),
-    ...(endsAt !== undefined && { endsAt }),
-    totals: {
-      ownShare: rows.reduce((s, r) => s + r.ownShare, 0),
-      harvest: rows.reduce((s, r) => s + (r.harvest?.fp ?? 0), 0),
-      net: sum,
-    },
+    ...(plan.endsAt !== undefined && { endsAt: plan.endsAt }),
+    totals: plan.totals,
   };
 }
 

@@ -5,7 +5,7 @@ import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
-import { arcBonus } from '../../domain/gb-calculator';
+import { arcBonus } from '../../domain/arc-bonus';
 import {
   type Investments,
   myInvestments,

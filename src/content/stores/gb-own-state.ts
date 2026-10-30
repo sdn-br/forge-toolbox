@@ -4,7 +4,7 @@
 // from the view choices and settings with the helpers below. The Eigenanteil box registers the settings, the readers take them with `settings.of`.
 import type { ToolboxBus } from '../core/events';
 import { listDef, numberDef, type Settings, toggleDef } from '../core/settings';
-import { arcBonus } from '../domain/gb-calculator';
+import { arcBonus } from '../domain/arc-bonus';
 import type { FactorChoice } from '../domain/gb-factor';
 import type { CityStore } from './cities';
 import type { GreatBuildingStore } from './great-buildings';

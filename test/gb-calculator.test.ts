@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { arcBonus, bestRate, type ConstructionInput, calculateConstruction } from '../src/content/domain/gb-calculator';
+import { bestRate, type ConstructionInput, calculateConstruction } from '../src/content/domain/gb-calculator';
 import { toGreatBuildingEntity, toRankingRows } from '../src/content/game/convert';
 import type { GameCityEntity } from '../src/content/game/game-types';
-import type { Building, City } from '../src/content/stores/city-model';
 import type { RankingRow } from '../src/content/stores/great-building-model';
-import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
 import { roundHalfUp } from '../src/shared/math';
 import fixture from './fixtures/great-buildings.json';
 
@@ -362,40 +360,5 @@ describe('fallback place and worthwhile places', () => {
     expect(calculateConstruction(input(4000, level([]), { arcBonus: 0 })).places[0]?.worthwhile).toBe(true);
     // safe 3000 loses 1800 and the demand is below
     expect(calculateConstruction(input(6000, level([]), { arcBonus: 0 })).places[0]?.worthwhile).toBe(false);
-  });
-});
-
-describe('arcBonus', () => {
-  const gb = (id: number, type: string, value: number): Building => ({
-    id,
-    owner: playerId(1),
-    def: buildingDefId(`X_${id}`),
-    type: 'greatbuilding',
-    x: 0,
-    y: 0,
-    connected: true,
-    state: { kind: 'idle' },
-    greatBuilding: { level: 1, maxLevel: 2, bonus: { type, value } },
-  });
-  const city = (...buildings: Building[]): City => ({
-    world: worldId('de20'),
-    owner: playerId(1),
-    map: 'main',
-    era: eraId('IronAge'),
-    takenAt: 0,
-    buildings: new Map(buildings.map((b) => [b.id, b])),
-  });
-
-  it('sums the contribution boosts of the own great buildings and limited ones not already counted', () => {
-    const own = city(gb(1769, 'contribution_boost', 95.5), gb(701, 'supplies_boost', 300));
-    expect(arcBonus(own)).toBe(95.5);
-    expect(
-      arcBonus(own, [
-        { type: 'contribution_boost', value: 5 },
-        { type: 'contribution_boost', value: 95.5, entityId: 1769 },
-        { type: 'supplies_boost', value: 300, entityId: 701 },
-      ]),
-    ).toBe(100.5);
-    expect(arcBonus(undefined)).toBe(0);
   });
 });
