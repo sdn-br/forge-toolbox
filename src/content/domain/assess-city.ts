@@ -92,6 +92,8 @@ export function assessCity(city: City, ctx: AssessContext): CityAssessment {
   const missing = new Set<BuildingDefId>();
   const placed: Placed[] = [];
 
+  // off-grid entities count too (the map hides them): the game counts their boosts wherever they stand, and whether one
+  // is plunderable stays unknown without a recording
   for (const b of city.buildings.values()) {
     const def = ctx.def(b.def);
     if (def) placed.push(place(b, def));
