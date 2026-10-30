@@ -4,11 +4,9 @@
 // from the view choices and settings with the helpers below. The Eigenanteil box registers the settings, the readers take them with `settings.of`.
 import type { ToolboxBus } from '../core/events';
 import { listDef, numberDef, type Settings, toggleDef } from '../core/settings';
-import { arcBonus } from '../domain/arc-bonus';
 import type { FactorChoice } from '../domain/gb-factor';
-import type { CityStore } from './cities';
-import type { GreatBuildingStore } from './great-buildings';
 import { type PlaceFactorState, PlaceFactors, type PrefStore } from './place-factors';
+import type { PlayerBonusStore } from './player-bonuses';
 
 /** the settings of the Eigenanteil group the factors rest on */
 export const FACTOR = numberDef({
@@ -62,8 +60,8 @@ export const viewFlag = (prefs: Pick<PrefStore, 'pref'>, key: string, fallback: 
 };
 
 /** the own Arc bonus while its factor button shows */
-export const ownArcBonus = (settings: Settings, cities: CityStore, greatBuildings: GreatBuildingStore) =>
-  settings.of(ARC_BUTTON).get() ? arcBonus(cities.own(), greatBuildings.limitedBonuses()) : undefined;
+export const ownArcBonus = (settings: Settings, bonuses: PlayerBonusStore) =>
+  settings.of(ARC_BUTTON).get() ? bonuses.arcBonus() : undefined;
 
 export class GbOwnState {
   private factors: PlaceFactors;

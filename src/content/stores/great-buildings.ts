@@ -4,7 +4,6 @@ import type { KnownGreatBuilding, MarkKind } from '../../shared/model';
 import { DAY_MS } from '../../shared/time';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
-import type { LimitedBonus } from '../domain/arc-bonus';
 import type { Construction, GreatBuildingEntity, RankingRow } from '../model/great-building';
 
 export interface GreatBuildingPersistence {
@@ -43,7 +42,6 @@ const MAX_ENTITIES = 20;
 export class GreatBuildingStore {
   private open?: Construction;
   private entities = new Map<string, GreatBuildingEntity>();
-  private limited: LimitedBonus[] = [];
   private listedAt?: number;
   private pending: OpenedGreatBuilding[] = [];
   private writes: Promise<unknown> = Promise.resolve();
@@ -126,15 +124,6 @@ export class GreatBuildingStore {
   /** the construction open in the game, or the last one opened */
   current(): Construction | undefined {
     return this.open;
-  }
-
-  /** limited bonuses of the player; the Arc bonus counts those of type contribution_boost */
-  limitedBonuses(): LimitedBonus[] {
-    return this.limited;
-  }
-
-  setLimitedBonuses(bonuses: LimitedBonus[]): void {
-    this.limited = bonuses;
   }
 
   /** The building as the opening reports it. Its construction follows with `openConstruction`. */

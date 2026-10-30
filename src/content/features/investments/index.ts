@@ -5,7 +5,6 @@ import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
-import { arcBonus } from '../../domain/arc-bonus';
 import {
   type Investments,
   myInvestments,
@@ -188,7 +187,7 @@ export const investmentsFeature: Feature = {
       const player = ctx.players.get(id);
       return player && player.ignored === true;
     };
-    const ownArc = () => arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses());
+    const ownArc = () => ctx.playerBonuses.arcBonus();
 
     const possible = () => {
       if (!rated || rated.known !== known || rated.arc !== arc) {

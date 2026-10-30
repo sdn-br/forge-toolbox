@@ -129,7 +129,7 @@ export function createGbOwnShareFeature(
         update();
       };
 
-      const arcNow = () => ownArcBonus(ctx.settings, ctx.cities, ctx.greatBuildings);
+      const arcNow = () => ownArcBonus(ctx.settings, ctx.playerBonuses);
       const update = () => box.update();
 
       const vm = () => {
