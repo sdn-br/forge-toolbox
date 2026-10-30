@@ -1,7 +1,7 @@
 // The own great building: what helpers pay per place at a factor, what the owner pays in before each so the place is
 // safe once paid, and what is left to the owner in the end.
 import { roundHalfUp } from '../../shared/math';
-import type { RankingRow } from '../stores/great-building-model';
+import type { RankingRow } from '../model/great-building';
 import { ownDeposit, paidPlaces, plusPercent } from './gb-calculator';
 
 export interface OwnShareInput {

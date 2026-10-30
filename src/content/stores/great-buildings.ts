@@ -5,7 +5,7 @@ import { DAY_MS } from '../../shared/time';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
 import type { LimitedBonus } from '../domain/arc-bonus';
-import type { Construction, GreatBuildingEntity, RankingRow } from './great-building-model';
+import type { Construction, GreatBuildingEntity, RankingRow } from '../model/great-building';
 
 export interface GreatBuildingPersistence {
   /** a row of an opened building replaces what was known about that building */

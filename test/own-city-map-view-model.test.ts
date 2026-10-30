@@ -8,8 +8,8 @@ import {
   type OwnMapUi,
   ownCityMapViewModel as viewModel,
 } from '../src/content/features/city-map/view-model';
-import type { BuildingDef, CityGrid } from '../src/content/stores/catalog';
-import type { Building, City } from '../src/content/stores/city-model';
+import type { BuildingDef, CityGrid } from '../src/content/model/catalog';
+import type { Building, City } from '../src/content/model/city';
 import { type BuildingDefId, buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
 
 const def = (id: string, name: string, width: number, length: number): BuildingDef => ({

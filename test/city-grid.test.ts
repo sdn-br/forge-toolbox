@@ -14,8 +14,8 @@ import {
 import { toBuildingDef } from '../src/content/game/building-defs';
 import { toCity } from '../src/content/game/convert';
 import type { GameCityEntity } from '../src/content/game/game-types';
-import type { BuildingDef } from '../src/content/stores/catalog';
-import type { Building, BuildingState } from '../src/content/stores/city-model';
+import type { BuildingDef } from '../src/content/model/catalog';
+import type { Building, BuildingState } from '../src/content/model/city';
 import { type BuildingDefId, buildingDefId, playerId, worldId } from '../src/shared/ids';
 import ownCity from './fixtures/own-city.json';
 

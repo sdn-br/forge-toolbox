@@ -3,8 +3,8 @@ import { emptyLevel } from '../src/content/domain/gb-level-preview';
 import { calculateOwnShare } from '../src/content/domain/gb-own-share';
 import { type PowerLevelInput, powerLevelPlan } from '../src/content/domain/gb-power-level';
 import { toBuildingDef } from '../src/content/game/building-defs';
-import type { GreatBuildingDef } from '../src/content/stores/catalog';
-import type { RankingRow } from '../src/content/stores/great-building-model';
+import type { GreatBuildingDef } from '../src/content/model/catalog';
+import type { RankingRow } from '../src/content/model/great-building';
 import definitions from './fixtures/gb-definitions.json';
 
 const ROMAN = 'X_EarlyMiddleAge_Landmark1';

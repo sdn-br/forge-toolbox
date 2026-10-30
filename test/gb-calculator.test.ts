@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { type ConstructionInput, calculateConstruction } from '../src/content/domain/gb-calculator';
 import { toGreatBuildingEntity, toRankingRows } from '../src/content/game/convert';
 import type { GameCityEntity } from '../src/content/game/game-types';
-import type { RankingRow } from '../src/content/stores/great-building-model';
+import type { RankingRow } from '../src/content/model/great-building';
 import { roundHalfUp } from '../src/shared/math';
 import fixture from './fixtures/great-buildings.json';
 

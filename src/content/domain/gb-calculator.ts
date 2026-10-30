@@ -1,6 +1,6 @@
 // The places of a great building construction: what each costs to take safely, what it pays and whether it is worth it.
 import { roundHalfUp } from '../../shared/math';
-import type { RankingRow } from '../stores/great-building-model';
+import type { RankingRow } from '../model/great-building';
 
 export interface ConstructionInput {
   level: number;

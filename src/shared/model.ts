@@ -1,5 +1,5 @@
 // Domain types that cross the content script / service worker boundary, or the layers of the content script.
-import type { RankingRow } from '../content/stores/great-building-model';
+import type { RankingRow } from '../content/model/great-building';
 import type { BuildingDefId, EraId, GuildId, PlayerId, WorldId } from './ids';
 
 /** The own player of the game page, as the startup data name it. */

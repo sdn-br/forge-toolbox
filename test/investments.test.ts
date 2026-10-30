@@ -7,7 +7,7 @@ import {
   type MineFilter,
 } from '../src/content/features/investments/view-model';
 import { toGreatBuildingListRows } from '../src/content/game/convert';
-import type { RankingRow } from '../src/content/stores/great-building-model';
+import type { RankingRow } from '../src/content/model/great-building';
 import { applyListRow } from '../src/persistence/great-buildings/merge';
 import { type BuildingDefId, playerId, worldId } from '../src/shared/ids';
 import type { KnownGreatBuilding, Relations } from '../src/shared/model';

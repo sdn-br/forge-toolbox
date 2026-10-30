@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { calculateOwnShare } from '../src/content/domain/gb-own-share';
 import { toRankingRows } from '../src/content/game/convert';
-import type { RankingRow } from '../src/content/stores/great-building-model';
+import type { RankingRow } from '../src/content/model/great-building';
 import fixture from './fixtures/great-buildings.json';
 
 const me = (fp: number): RankingRow => ({ name: 'Ich', self: true, fp });

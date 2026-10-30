@@ -1,7 +1,7 @@
 // The own investments: where the session player's Forge points sit in great buildings of others and what they bring.
 import type { BuildingDefId, PlayerId } from '../../shared/ids';
 import type { KnownGreatBuilding } from '../../shared/model';
-import type { GreatBuildingDef } from '../stores/catalog';
+import type { GreatBuildingDef } from '../model/catalog';
 import { calculateConstruction, constructionOf, plusPercent } from './gb-calculator';
 import { currentRankings, type SnipeHit, snipeBuildings } from './gb-snipe';
 

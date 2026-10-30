@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { type ConstructionInput, calculateConstruction } from '../src/content/domain/gb-calculator';
 import { levelUpAndFirst } from '../src/content/domain/gb-strategy';
 import { toBuildingDef } from '../src/content/game/building-defs';
-import type { GreatBuildingDef } from '../src/content/stores/catalog';
-import type { RankingRow } from '../src/content/stores/great-building-model';
+import type { GreatBuildingDef } from '../src/content/model/catalog';
+import type { RankingRow } from '../src/content/model/great-building';
 import definitions from './fixtures/gb-definitions.json';
 
 const def = (id: string): GreatBuildingDef => {

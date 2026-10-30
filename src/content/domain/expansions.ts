@@ -1,8 +1,8 @@
 // Expansions of the own city: placed ones, free blocks of the grid, what the player can buy. Pure.
 import type { EraId } from '../../shared/ids';
-import type { CityGrid } from '../stores/catalog';
-import type { Area, ExpansionOffer, ResourceId } from '../stores/city-model';
-import type { ResearchExpansion } from '../stores/research';
+import type { CityGrid } from '../model/catalog';
+import type { Area, ExpansionOffer, ResourceId } from '../model/city';
+import type { ResearchExpansion } from '../model/research';
 import { type TileRect, tileKey } from './city-grid';
 
 const BLOCK = 4;

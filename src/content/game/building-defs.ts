@@ -1,8 +1,8 @@
 // Building definitions from the game metadata → own BuildingDef. Two formats exist:
 // classic definitions (`abilities`, `boostHintEraMap`) and GenericCityEntity (`components` per era).
 import { buildingDefId } from '../../shared/ids';
-import type { Boost, BoostsByEra, BuildingDef, GreatBuildingDef, LevelBonus, Rect } from '../stores/catalog';
-import type { Product } from '../stores/city-model';
+import type { Boost, BoostsByEra, BuildingDef, GreatBuildingDef, LevelBonus, Rect } from '../model/catalog';
+import type { Product } from '../model/city';
 
 type Json = Record<string, unknown>;
 

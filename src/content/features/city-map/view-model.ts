@@ -1,7 +1,7 @@
 // The own city as a map: colors by building group, switchable marks, name search and free tiles.
 import { t } from '../../core/texts';
 import { buildingCategory, keyTile, nameOf, needsRoad } from '../../domain/city-grid';
-import type { Building, City } from '../../stores/city-model';
+import type { Building, City } from '../../model/city';
 import type { CityMapData, LegendItem, MapBadge, MapTile } from '../../ui/city-map';
 import type { CityBasis } from './basis';
 import { CATEGORY_COLORS, categoryLegend, mutedColor } from './colors';

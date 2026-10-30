@@ -5,7 +5,7 @@ import { cityMapFeature } from '../src/content/features/city-map/index';
 import { toBuildingDef } from '../src/content/game/building-defs';
 import { toCity, toResearchExpansions } from '../src/content/game/convert';
 import type { GameCityEntity } from '../src/content/game/game-types';
-import type { Building, City } from '../src/content/stores/city-model';
+import type { Building, City } from '../src/content/model/city';
 import { START_VIEW } from '../src/content/ui/city-map';
 import { project, toScreen } from '../src/content/ui/map-projection';
 import { buildingDefId, playerId, worldId } from '../src/shared/ids';

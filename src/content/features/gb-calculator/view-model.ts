@@ -12,9 +12,9 @@ import { effectiveFactor as effective, type FactorChoice } from '../../domain/gb
 import { previewLevel } from '../../domain/gb-level-preview';
 import { ownerRow } from '../../domain/gb-snipe';
 import { type LevelUpAndFirst, levelUpAndFirst } from '../../domain/gb-strategy';
-import type { GreatBuildingDef } from '../../stores/catalog';
+import type { GreatBuildingDef } from '../../model/catalog';
+import type { Construction, RankingRow } from '../../model/great-building';
 import type { FoestatsRecord } from '../../stores/foestats';
-import type { Construction, RankingRow } from '../../stores/great-building-model';
 import { type FactorButton, factorButtons } from '../../ui/factor-bar';
 import { ignoreWords } from '../../ui/ignore';
 import { type LevelChoice, levelChoice } from '../../ui/level-bar';

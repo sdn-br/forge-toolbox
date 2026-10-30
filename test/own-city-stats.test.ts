@@ -3,8 +3,8 @@ import { footprints } from '../src/content/domain/city-grid';
 import { cityBasis } from '../src/content/features/city-map/basis';
 import { CATEGORY_COLORS } from '../src/content/features/city-map/colors';
 import { ownCityStats as ownStats } from '../src/content/features/city-map/stats';
-import type { BuildingDef } from '../src/content/stores/catalog';
-import type { Building, City } from '../src/content/stores/city-model';
+import type { BuildingDef } from '../src/content/model/catalog';
+import type { Building, City } from '../src/content/model/city';
 import { type BuildingDefId, buildingDefId, type EraId, eraId, playerId, worldId } from '../src/shared/ids';
 
 const def = (id: string, width: number, length: number, street = 0): BuildingDef => ({

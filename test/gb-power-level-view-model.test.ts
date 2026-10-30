@@ -9,8 +9,8 @@ import {
   powerLevelViewModel,
 } from '../src/content/features/gb-power-level/view-model';
 import { toBuildingDef } from '../src/content/game/building-defs';
-import type { GreatBuildingDef } from '../src/content/stores/catalog';
-import type { Construction, RankingRow } from '../src/content/stores/great-building-model';
+import type { GreatBuildingDef } from '../src/content/model/catalog';
+import type { Construction, RankingRow } from '../src/content/model/great-building';
 import type { PlaceFactorState } from '../src/content/stores/place-factors';
 import type { BuildingDefId, PlayerId } from '../src/shared/ids';
 import definitions from './fixtures/gb-definitions.json';

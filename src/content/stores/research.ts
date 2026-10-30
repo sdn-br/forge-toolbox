@@ -1,12 +1,5 @@
 import type { ToolboxBus } from '../core/events';
-
-/** A technology that rewards expansions of the main city. */
-export interface ResearchExpansion {
-  tech: string;
-  name: string;
-  /** main city expansions it rewards */
-  amount: number;
-}
+import type { ResearchExpansion } from '../model/research';
 
 /**
  * The research tree as far as the expansions need it: the technologies with main city expansions from the metadata

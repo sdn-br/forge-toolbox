@@ -3,7 +3,7 @@ import { type AssessContext, assessCity } from '../src/content/domain/assess-cit
 import { toBuildingDef } from '../src/content/game/building-defs';
 import { toCity } from '../src/content/game/convert';
 import type { GameCityEntity } from '../src/content/game/game-types';
-import type { BuildingDef } from '../src/content/stores/catalog';
+import type { BuildingDef } from '../src/content/model/catalog';
 import { type BuildingDefId, buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
 import ownCity from './fixtures/own-city.json';
 import fixture from './fixtures/visit-industrial.json';

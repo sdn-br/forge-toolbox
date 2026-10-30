@@ -1,5 +1,5 @@
 // The Arc bonus of the session player: what his own great buildings and limited bonuses add to every place reward.
-import type { City } from '../stores/city-model';
+import type { City } from '../model/city';
 
 /** A limited bonus of the player as `BonusService.getLimitedBonuses` lists it. */
 export interface LimitedBonus {

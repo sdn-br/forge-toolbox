@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { arcBonus } from '../src/content/domain/arc-bonus';
-import type { Building, City } from '../src/content/stores/city-model';
+import type { Building, City } from '../src/content/model/city';
 import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
 
 describe('arcBonus', () => {

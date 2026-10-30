@@ -5,8 +5,8 @@ import { MAX_MARKERS } from '../../shared/marker-protocol';
 import type { ToolboxBus } from '../core/events';
 import { type Markers, spotOf } from '../core/markers';
 import { type Footprint, footprints, nameOf } from '../domain/city-grid';
-import type { BuildingDef } from './catalog';
-import type { City } from './city-model';
+import type { BuildingDef } from '../model/catalog';
+import type { City } from '../model/city';
 
 /** the marking the selection sets in `Markers` */
 export const SELECTION = 'selection';

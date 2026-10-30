@@ -1,8 +1,8 @@
 // Where buildings sit on the city grid: footprints, free tiles, set adjacency and chain connections, building groups.
 // Pure, so fixtures test it.
 import type { BuildingDefId } from '../../shared/ids';
-import type { BuildingDef, Rect } from '../stores/catalog';
-import type { Area, Building } from '../stores/city-model';
+import type { BuildingDef, Rect } from '../model/catalog';
+import type { Area, Building } from '../model/city';
 
 /** The tiles a building covers: `width` along x, `length` along y from its top left tile. */
 export interface Footprint extends TileRect {

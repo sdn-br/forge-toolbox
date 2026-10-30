@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { footprints } from '../src/content/domain/city-grid';
 import { streetEfficiency, typeStats } from '../src/content/domain/city-stats';
-import type { BuildingDef } from '../src/content/stores/catalog';
-import type { Building } from '../src/content/stores/city-model';
+import type { BuildingDef } from '../src/content/model/catalog';
+import type { Building } from '../src/content/model/city';
 import { type BuildingDefId, buildingDefId, playerId } from '../src/shared/ids';
 
 const def = (id: string, width: number, length: number, street?: number): BuildingDef => ({

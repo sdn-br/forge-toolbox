@@ -4,9 +4,9 @@ import { eraId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import type { Ingestion } from '../core/ingestion';
 import { logInfo } from '../core/log';
+import type { Building } from '../model/city';
+import type { GreatBuildingEntity, RankingRow } from '../model/great-building';
 import type { Stores } from '../stores';
-import type { Building } from '../stores/city-model';
-import type { GreatBuildingEntity, RankingRow } from '../stores/great-building-model';
 import type { PlayerObservation } from '../stores/players';
 import { toBuildingDef } from './building-defs';
 import {
