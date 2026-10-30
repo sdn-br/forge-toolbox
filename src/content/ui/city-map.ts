@@ -3,7 +3,7 @@
 import { html, svg, type TemplateResult } from 'lit-html';
 import { ref } from 'lit-html/directives/ref.js';
 import { t } from '../core/texts';
-import { type Bounds, gridBounds, type Tile, type TileRect } from '../domain/city-grid';
+import { type Bounds, eachTile, gridBounds, type Tile, type TileRect } from '../domain/city-grid';
 import { iconButton } from './buttons';
 import { headerIcons } from './icons';
 import {
@@ -99,11 +99,7 @@ const badgeSwatch = (color: string, symbol: MapBadge['symbol']) =>
     }</svg>`;
 
 /** the key of each tile a rectangle covers, "x,y" */
-function forEachTile(r: TileRect, visit: (key: string) => void) {
-  for (let dx = 0; dx < r.width; dx++) {
-    for (let dy = 0; dy < r.length; dy++) visit(`${r.x + dx},${r.y + dy}`);
-  }
-}
+const forEachTile = (r: TileRect, visit: (key: string) => void) => eachTile(r, (x, y) => visit(`${x},${y}`));
 
 /** a colour square before a word; `outline` shows only its frame in the colour */
 export const swatch = (color: string, outline = false) =>

@@ -8,7 +8,6 @@ import {
   snipeProfitKey,
   TIER_ORDER,
 } from '../../domain/gb-snipe';
-import { ignoreReason } from '../../domain/ignore';
 import type { FoestatsRecord } from '../../stores/foestats';
 import { ignoreWords } from '../../ui/ignore';
 import { ownerShareNote, snipeNotes, snipeProfit, snipeProfitRange } from '../../ui/snipe-hit';
@@ -159,8 +158,8 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
   const places = new Map([...list.entityIds].map((id, i) => [id, i + 1]));
   const order = (h: SnipeHit) => places.get(h.entityId) ?? 0;
   const ignoreNote = (h: SnipeHit) => {
-    const reason = ignoreReason(input.isIgnored(h.owner, h.entityId), input.ownerIgnored(h.owner));
-    return reason ? ignoreWords(reason).join(', ') : undefined;
+    const words = ignoreWords(input.isIgnored(h.owner, h.entityId), input.ownerIgnored(h.owner));
+    return words.length > 0 ? words.join(', ') : undefined;
   };
   const kept = result.hits.filter((h) => ignoreNote(h) === undefined);
   const hits = sortRows(

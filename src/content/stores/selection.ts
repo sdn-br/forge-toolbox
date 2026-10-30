@@ -3,8 +3,8 @@
 import type { BuildingDefId } from '../../shared/ids';
 import { MAX_MARKERS } from '../../shared/marker-protocol';
 import type { ToolboxBus } from '../core/events';
-import type { Markers } from '../core/markers';
-import { type Footprint, footprints, nameOf, spotOf } from '../domain/city-grid';
+import { type Markers, spotOf } from '../core/markers';
+import { type Footprint, footprints, nameOf } from '../domain/city-grid';
 import type { BuildingDef } from './catalog';
 import type { City } from './city-model';
 
