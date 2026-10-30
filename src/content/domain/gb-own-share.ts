@@ -1,7 +1,8 @@
 // The own great building: what helpers pay per place at a factor, what the owner pays in before each so the place is
 // safe once paid, and what is left to the owner in the end.
+import { roundHalfUp } from '../../shared/math';
 import type { RankingRow } from '../stores/great-building-model';
-import { plusPercent, roundHalfUp } from './gb-calculator';
+import { ownDeposit, paidPlaces, plusPercent } from './gb-calculator';
 
 export interface OwnShareInput {
   /** Forge points the current level needs */
@@ -87,15 +88,13 @@ const DANGER_MIN = 5;
  */
 export function calculateOwnShare(input: OwnShareInput): OwnShareCalc {
   const { rankings, required, factor, secureExisting = true, trust = false, oneFpForNoReward = false } = input;
-  const myDeposit = rankings.find((r) => r.self)?.fp ?? 0;
+  const myDeposit = ownDeposit(rankings);
   // deposits of others, strongest first; a promised payment ranks behind an equal real one, which came first
   const holders: Holder[] = [
     ...rankings.filter((r) => !r.self && r.fp !== undefined).map((r) => ({ name: r.name, fp: r.fp as number })),
     ...(input.exts ?? []).filter((fp) => fp > 0).map((fp) => ({ name: 'Ext', fp, ext: true })),
   ].sort((a, b) => b.fp - a.fp);
-  const paid = rankings
-    .filter((r) => r.rank !== undefined && r.reward)
-    .sort((a, b) => (a.rank as number) - (b.rank as number));
+  const paid = paidPlaces(rankings);
   const others = holders.reduce((sum, h) => sum + h.fp, 0);
   // the deposits in place order as the walk plans them; helpers' payments go in and push smaller deposits down
   const slots: (Holder | number)[] = [...holders];
@@ -106,7 +105,8 @@ export function calculateOwnShare(input: OwnShareInput): OwnShareCalc {
   // with trust the deposits below cannot grow, so only a newcomer can pass
   const below = (i: number) => (trust ? 0 : fpAt(i));
 
-  let missing = required - myDeposit - others;
+  const missingNow = required - myDeposit - others;
+  let missing = missingNow;
   let planned = 0;
   const places: OwnPlace[] = [];
   paid.forEach((row, i) => {
@@ -168,7 +168,7 @@ export function calculateOwnShare(input: OwnShareInput): OwnShareCalc {
     myDeposit,
     open: ownShare - myDeposit,
     rest: Math.max(0, missing),
-    missing: required - myDeposit - others,
+    missing: missingNow,
     safeRanks,
     ...(rest.length && {
       pushed: { from: lastRank + 1, to: lastRank + rest.length, fp: rest.reduce((sum, h) => sum + h.fp, 0) },

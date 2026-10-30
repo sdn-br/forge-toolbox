@@ -1,16 +1,17 @@
 // Statistics of a city: area, buildings by group, street efficiency. Pure, so synthetic cities test it.
 
 import type { Area } from '../stores/city-model';
-import { type BuildingCategory, buildingCategory, CATEGORIES, type Footprint, freeTiles } from './city-grid';
+import {
+  areaTileKeys,
+  type BuildingCategory,
+  buildingCategory,
+  CATEGORIES,
+  type Footprint,
+  freeTiles,
+} from './city-grid';
 
 /** Number of distinct tiles in the areas; overlapping areas count once. */
-export function areaTiles(areas: Area[]): number {
-  const seen = new Set<string>();
-  for (const a of areas) {
-    for (let y = a.y; y < a.y + a.length; y++) for (let x = a.x; x < a.x + a.width; x++) seen.add(`${x},${y}`);
-  }
-  return seen.size;
-}
+export const areaTiles = (areas: Area[]): number => areaTileKeys(areas).size;
 
 export function areaStats(areas: Area[], fps: Footprint[]): { free: number; total: number } {
   return { free: freeTiles(areas, fps).length, total: areaTiles(areas) };

@@ -1,6 +1,7 @@
 import type { GreatBuildingListRow, OpenedGreatBuilding } from '../../persistence/great-buildings/contract';
 import type { BuildingDefId, PlayerId, WorldId } from '../../shared/ids';
 import type { KnownGreatBuilding, MarkKind } from '../../shared/model';
+import { DAY_MS } from '../../shared/time';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
 import { bestRate, calculateConstruction, type LimitedBonus } from '../domain/gb-calculator';
@@ -34,7 +35,6 @@ export interface GreatBuildingPersistence {
 const key = (owner: PlayerId, entityId: number) => `${owner}:${entityId}`;
 /** openings remembered until their construction arrives; the game sends both right after each other */
 const MAX_ENTITIES = 20;
-const DAY = 24 * 60 * 60 * 1000;
 
 /**
  * The great building construction the player has open in the game, and what is known about other players' great
@@ -267,7 +267,7 @@ export class GreatBuildingStore {
 
   /** Deletes buildings not seen for `days`, except those with an own contribution, marked and ignored ones; run at the start. */
   prune(days: number): Promise<void> {
-    const before = this.now() - days * DAY;
+    const before = this.now() - days * DAY_MS;
     this.enqueue(() => this.persistence.prune(this.world, before));
     return this.writes.then(() => undefined);
   }

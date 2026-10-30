@@ -1,16 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import {
-  arcBonus,
-  bestRate,
-  type ConstructionInput,
-  calculateConstruction,
-  roundHalfUp,
-} from '../src/content/domain/gb-calculator';
+import { arcBonus, bestRate, type ConstructionInput, calculateConstruction } from '../src/content/domain/gb-calculator';
 import { toGreatBuildingEntity, toRankingRows } from '../src/content/game/convert';
 import type { GameCityEntity } from '../src/content/game/game-types';
 import type { Building, City } from '../src/content/stores/city-model';
 import type { RankingRow } from '../src/content/stores/great-building-model';
 import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
+import { roundHalfUp } from '../src/shared/math';
 import fixture from './fixtures/great-buildings.json';
 
 const ARC = 95.5;
@@ -160,12 +155,13 @@ describe('calculateConstruction on edge cases', () => {
   it('scenario empty: only the first place can be had, the others cost the same and are dominated', () => {
     const calc = scenario([]);
     expect(calc.rest).toBe(5404);
-    expect(calc.places.map((p) => [p.safeCost, p.dominated, p.available])).toEqual([
+    // dominated: not secured, yet not available, as the place above costs the same
+    expect(calc.places.map((p) => [p.safeCost, p.secured, p.available])).toEqual([
       [2702, false, true],
-      [2702, true, false],
-      [2702, true, false],
-      [2702, true, false],
-      [2702, true, false],
+      [2702, false, false],
+      [2702, false, false],
+      [2702, false, false],
+      [2702, false, false],
     ]);
   });
 
@@ -175,7 +171,7 @@ describe('calculateConstruction on edge cases', () => {
     expect(calc).toMatchObject({ rest: 3004, missing: 2604, myDeposit: 400, myRank: 3 });
     // 1952 is first for now; rank 1 can pass it again, rank 2 cannot: place 2 is safe at round((900 + 3004) / 2)
     expect(calc.places[0]).toMatchObject({ safeCost: 2252, safeExtra: 1852, available: true, secured: false });
-    expect(calc.places[1]).toMatchObject({ safeCost: 1952, safeExtra: 1552, available: true, dominated: false });
+    expect(calc.places[1]).toMatchObject({ safeCost: 1952, safeExtra: 1552, available: true });
     // own place: no one below, round(3004 / 2) = 1502; 400 / 215 = 186 %, 1502 / 215 = 698.6 %
     expect(calc.places[2]).toMatchObject({
       mine: true,
@@ -207,19 +203,15 @@ describe('calculateConstruction on edge cases', () => {
     const calc = scenario([place(1, 1275, 1500), place(2, 640, 900), place(3, 215, 400, true)]);
     expect(calc.places[2]?.profit).toBe(-1082);
     // place 2 counts against place 1 only
-    expect(calc.places.slice(0, 3).map((p) => [p.status, p.worse])).toEqual([
-      ['profit', false],
-      ['worse', true],
-      ['mine', false],
-    ]);
+    expect(calc.places.slice(0, 3).map((p) => p.status)).toEqual(['profit', 'worse', 'mine']);
   });
 
   it('a held place whose holder cannot be passed anymore is secured, not dominated', () => {
     // rest 101: rank 1 holds 101, safe round(202 / 2) = 101
     const calc = calculateConstruction(input(302, [place(1, 100, 101), place(2, 100, 100)]));
-    expect(calc.places[0]).toMatchObject({ safeCost: 101, secured: true, dominated: false, available: false });
+    expect(calc.places[0]).toMatchObject({ safeCost: 101, secured: true, available: false });
     // rank 2: round(201 / 2) = 101, the same as above: dominated
-    expect(calc.places[1]).toMatchObject({ safeCost: 101, secured: false, dominated: true, available: false });
+    expect(calc.places[1]).toMatchObject({ safeCost: 101, secured: false, available: false });
   });
 
   it('takes a held place, marks lower places worse and keeps the owner out of the places', () => {
@@ -230,7 +222,7 @@ describe('calculateConstruction on edge cases', () => {
     expect(calc.places[0]).toMatchObject({ safeCost: 425, demandCost: 570, gross: 570, profit: 145, rate: 141.7 });
     expect(calc.places[0]?.status).toBe('profit');
     // rank 2: round(700 / 2) = 350 for 285 gross; rank 3 empty: round(650 / 2) = 325 for 95
-    expect(calc.places[1]).toMatchObject({ safeCost: 350, profit: -65, worse: true, status: 'worse' });
+    expect(calc.places[1]).toMatchObject({ safeCost: 350, profit: -65, status: 'worse' });
     expect(calc.places[2]).toMatchObject({ safeCost: 325, holderFp: 0, profit: -230, status: 'worse' });
   });
 
@@ -252,7 +244,7 @@ describe('calculateConstruction on edge cases', () => {
       status: 'levelWarning',
     });
     // rank 2: round(101 / 2) = 51 for 95 gross; not worse, the warned place does not count as best
-    expect(calc.places[1]).toMatchObject({ safeCost: 51, profit: 44, worse: false, status: 'profit' });
+    expect(calc.places[1]).toMatchObject({ safeCost: 51, profit: 44, status: 'profit' });
   });
 
   it('a place above the own one costs the total deposit; the extra is what is still to add', () => {
@@ -271,10 +263,10 @@ describe('calculateConstruction on edge cases', () => {
       input(1543, [owner(166), place(1, 410, 820), place(2, 205, 279, true), place(3, 70), place(4, 20), place(5, 5)]),
     );
     expect(calc).toMatchObject({ rest: 557, missing: 278, myDeposit: 279, myRank: 2 });
-    expect(calc.places[0]).toMatchObject({ safeCost: 689, available: false, belowMine: false });
-    expect(calc.places[1]).toMatchObject({ safeCost: 279, safeExtra: 0, status: 'mine', belowMine: false });
+    expect(calc.places[0]).toMatchObject({ safeCost: 689, available: false });
+    expect(calc.places[1]).toMatchObject({ safeCost: 279, safeExtra: 0, status: 'mine' });
     for (const p of calc.places.slice(2)) {
-      expect(p).toMatchObject({ belowMine: true, available: false, worse: false, status: 'unavailable' });
+      expect(p).toMatchObject({ available: false, status: 'unavailable' });
       expect([p.safeCost, p.safeExtra, p.profit, p.rate]).toEqual([undefined, undefined, undefined, undefined]);
     }
     // the owner's demand stays as an offer, its extra is all of it: the own deposit cannot move down

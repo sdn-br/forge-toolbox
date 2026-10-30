@@ -1,4 +1,4 @@
-import { sameDay } from '../../shared/time';
+import { DAY_MS, sameDay } from '../../shared/time';
 import { de, type TextKey } from '../texts/de';
 
 export type { TextKey };
@@ -68,6 +68,6 @@ export const formatAge = (ms: number) => formatDuration(Math.max(MINUTE, ms));
 /** "heute 14:05", "morgen 04:14", otherwise date and time. */
 export function formatWhen(epochMs: number, now: number): string {
   if (sameDay(epochMs, now)) return t('time.today', { time: formatTime(epochMs) });
-  if (sameDay(epochMs, now + 86_400_000)) return t('time.tomorrow', { time: formatTime(epochMs) });
+  if (sameDay(epochMs, now + DAY_MS)) return t('time.tomorrow', { time: formatTime(epochMs) });
   return formatDateTime(epochMs);
 }

@@ -25,7 +25,8 @@ export interface CityAssessment {
   boostTotals: Record<string, number>;
 }
 
-type Side = 'aa' | 'ad' | 'da' | 'dd';
+/** attacker attack, attacker defense, defender attack, defender defense */
+export type Side = 'aa' | 'ad' | 'da' | 'dd';
 
 const BOOST_SIDES: Record<string, Side[]> = {
   att_boost_attacker: ['aa'],
@@ -38,7 +39,7 @@ const BOOST_SIDES: Record<string, Side[]> = {
 };
 
 // same mapping as Forge Hammer (js/web/boosts/js/boosts.js, Boosts.Mapper), checked 2026-10-19
-const GREAT_BUILDING_SIDES: Record<string, Side[]> = {
+export const GREAT_BUILDING_SIDES: Record<string, Side[]> = {
   military_boost: ['aa', 'ad'],
   fierce_resistance: ['da', 'dd'],
   advanced_tactics: ['aa', 'ad', 'da', 'dd'],
@@ -100,13 +101,16 @@ export function assessCity(city: City, ctx: AssessContext): CityAssessment {
   const setLevel = setLevels(active);
   const linked = connectedLinks(active);
 
+  const addToSides = (sides: Record<string, Side[]>, type: string, value: number) => {
+    for (const side of sides[type] ?? []) sums[side] += value;
+    if (type === 'plunder_repel') plunderRepel += value;
+  };
   const boostTotals: Record<string, number> = {};
   const addBoosts = (boosts: Boost[]) => {
     for (const boost of boosts) {
       if (boost.feature !== 'all') continue;
       boostTotals[boost.type] = (boostTotals[boost.type] ?? 0) + boost.value;
-      for (const side of BOOST_SIDES[boost.type] ?? []) sums[side] += boost.value;
-      if (boost.type === 'plunder_repel') plunderRepel += boost.value;
+      addToSides(BOOST_SIDES, boost.type, boost.value);
     }
   };
 
@@ -118,10 +122,7 @@ export function assessCity(city: City, ctx: AssessContext): CityAssessment {
     // upgrade: when the game shows a higher chain bonus than the box for such a chain.
     if (def.chain && linked.has(b.id)) addBoosts(bonusesUpTo(def.chain.bonuses, 1, era));
     const bonus = b.greatBuilding?.bonus;
-    if (bonus) {
-      for (const side of GREAT_BUILDING_SIDES[bonus.type] ?? []) sums[side] += bonus.value;
-      if (bonus.type === 'plunder_repel') plunderRepel += bonus.value;
-    }
+    if (bonus) addToSides(GREAT_BUILDING_SIDES, bonus.type, bonus.value);
   }
 
   for (const { building: b, def } of placed) {

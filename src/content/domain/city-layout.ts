@@ -1,6 +1,7 @@
 // Where buildings sit relative to each other: set adjacency and chain connections.
 import type { BuildingDef, Rect } from '../stores/catalog';
 import type { Building } from '../stores/city-model';
+import { tileBounds } from './city-grid';
 
 export interface Placed {
   building: Building;
@@ -10,13 +11,13 @@ export interface Placed {
 
 export function place(building: Building, def: BuildingDef): Placed {
   const { x, y } = building;
-  return { building, def, area: { x1: x, y1: y, x2: x + def.size.width - 1, y2: y + def.size.length - 1 } };
+  return { building, def, area: tileBounds({ x, y, ...def.size }) };
 }
 
 const overlaps = (a1: number, a2: number, b1: number, b2: number) => a1 <= b2 && b1 <= a2;
 
 /** Touching along an edge. Corners do not count. */
-export function adjacent(a: Rect, b: Rect): boolean {
+function adjacent(a: Rect, b: Rect): boolean {
   const besideX = a.x2 + 1 === b.x1 || b.x2 + 1 === a.x1;
   const besideY = a.y2 + 1 === b.y1 || b.y2 + 1 === a.y1;
   return (besideX && overlaps(a.y1, a.y2, b.y1, b.y2)) || (besideY && overlaps(a.x1, a.x2, b.x1, b.x2));
@@ -32,7 +33,7 @@ export function setLevels(placed: Placed[]): Map<number, number> {
   for (const p of members) {
     const others = new Set(
       members
-        .filter((o) => o !== p && o.def.set?.id === p.def.set?.id && o.def.id !== p.def.id && adjacent(p.area, o.area))
+        .filter((o) => o.def.set?.id === p.def.set?.id && o.def.id !== p.def.id && adjacent(p.area, o.area))
         .map((o) => o.def.id),
     );
     levels.set(p.building.id, others.size);

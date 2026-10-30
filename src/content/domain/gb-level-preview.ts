@@ -1,20 +1,14 @@
 // A later level of a great building as if it were open and empty: what it costs and what each place pays. Pure, so
 // the own great buildings can use it too (Eigenanteilsrechner).
+import { EPSILON, roundHalfUp } from '../../shared/math';
 import table from '../data/gb-p1.json';
 import type { GreatBuildingDef } from '../stores/catalog';
 import type { RankingRow } from '../stores/great-building-model';
-import {
-  type ConstructionCalc,
-  type ConstructionInput,
-  calculateConstruction,
-  plusPercent,
-  roundHalfUp,
-} from './gb-calculator';
+import { type ConstructionCalc, type ConstructionInput, calculateConstruction, plusPercent } from './gb-calculator';
 
 /** the definition lists the costs of the first ten levels, later ones grow by this factor per level */
 const COST_GROWTH = 1.025;
 const LISTED_LEVELS = 10;
-const EPSILON = 1e-9;
 
 /**
  * Forge points to build `level` up to `level + 1`, from the costs of the definition. Undefined without them. The index
@@ -97,7 +91,7 @@ export function firstPlaceReward(era: string, level: number): FirstPlaceReward |
   return fp === undefined ? undefined : { fp, estimate: true };
 }
 
-export interface LevelPreviewInput {
+interface LevelPreviewInput {
   greatBuilding: GreatBuildingDef;
   /** the level the construction starts from */
   level: number;
@@ -105,18 +99,8 @@ export interface LevelPreviewInput {
   factor: number;
 }
 
-export interface LevelPreview {
-  level: number;
-  /** Forge points the level needs; undefined when the definition does not tell */
-  required?: number;
-  /** undefined when neither the table nor the curve knows the level */
-  reward?: FirstPlaceReward;
-  /** the places of the empty level; undefined without cost or reward */
-  calc?: ConstructionCalc;
-}
-
 /** A level as it opens: its cost, the reward of place 1 and the five places with nobody on them. */
-export interface EmptyLevel {
+interface EmptyLevel {
   level: number;
   /** Forge points the level needs; undefined when the definition does not tell */
   required?: number;
@@ -124,6 +108,11 @@ export interface EmptyLevel {
   reward?: FirstPlaceReward;
   /** places 1 to 5 without deposits; undefined without cost or reward */
   rankings?: RankingRow[];
+}
+
+export interface LevelPreview extends Omit<EmptyLevel, 'rankings'> {
+  /** the places of the empty level; undefined without cost or reward */
+  calc?: ConstructionCalc;
 }
 
 /** The level as if it were open and nobody had paid yet: blueprints and medals are not known, they stay 0. */
@@ -188,7 +177,7 @@ export function levelUpAndFirst(
   if (!greatBuilding || !input.connected || level + 1 >= maxLevel) return undefined;
   const calc = calculateConstruction(input);
   const fill = calc.missing;
-  if (calc.blocked || fill <= 0) return undefined;
+  if (fill <= 0) return undefined;
   const mine = calc.myDeposit + fill;
   const others = rankings.filter((r) => r.rank !== undefined && !r.self).map((r) => r.fp ?? 0);
   const rank = 1 + others.filter((fp) => fp >= mine).length;

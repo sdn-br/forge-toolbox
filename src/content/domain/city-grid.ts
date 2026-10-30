@@ -1,17 +1,13 @@
 // Where buildings sit on the city grid: footprints, free tiles, building groups. Pure, so fixtures test it.
 import type { BuildingDefId } from '../../shared/ids';
 import type { MarkerSpot } from '../../shared/marker-protocol';
-import type { BuildingDef } from '../stores/catalog';
+import type { BuildingDef, Rect } from '../stores/catalog';
 import type { Area, Building } from '../stores/city-model';
 
 /** The tiles a building covers: `width` along x, `length` along y from its top left tile. */
-export interface Footprint {
+export interface Footprint extends TileRect {
   building: Building;
   def?: BuildingDef;
-  x: number;
-  y: number;
-  width: number;
-  length: number;
   /** false while the definition is missing; the building then takes a single tile */
   known: boolean;
 }
@@ -34,12 +30,7 @@ export interface Tile {
 }
 
 /** Inclusive tile bounds. */
-export interface Bounds {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-}
+export type Bounds = Rect;
 
 // Entities the game lists with the city but places beside the grid (seen in the own city, 2026-10-19). The hubs are the
 // Arctic Harbour and the Ocean Terminal with their parts (seen 2026-10-29).
@@ -71,60 +62,56 @@ export function footprints(buildings: Iterable<Building>, def: (id: BuildingDefI
 
 const key = (x: number, y: number) => `${x},${y}`;
 
+/** The keys of the tiles in the areas, in area order; overlapping areas count once. */
+export function areaTileKeys(areas: Area[]): Set<string> {
+  const keys = new Set<string>();
+  for (const a of areas) {
+    for (let y = a.y; y < a.y + a.length; y++) for (let x = a.x; x < a.x + a.width; x++) keys.add(key(x, y));
+  }
+  return keys;
+}
+
 /** Tiles inside the unlocked areas that no building covers, streets included; overlapping areas count once. */
 export function freeTiles(areas: Area[], fps: Footprint[]): Tile[] {
   const occupied = new Set<string>();
   for (const f of fps) {
     for (let dx = 0; dx < f.width; dx++) for (let dy = 0; dy < f.length; dy++) occupied.add(key(f.x + dx, f.y + dy));
   }
-  const seen = new Set<string>();
   const free: Tile[] = [];
-  for (const a of areas) {
-    for (let y = a.y; y < a.y + a.length; y++) {
-      for (let x = a.x; x < a.x + a.width; x++) {
-        const k = key(x, y);
-        if (seen.has(k)) continue;
-        seen.add(k);
-        if (!occupied.has(k)) free.push({ x, y });
-      }
-    }
+  for (const k of areaTileKeys(areas)) {
+    if (occupied.has(k)) continue;
+    const [x, y] = k.split(',').map(Number) as [number, number];
+    free.push({ x, y });
   }
   return free;
 }
 
 /** A rectangle of tiles, `width` along x and `length` along y: an area, a footprint, a tile on a map. */
-export interface TileRect {
-  x: number;
-  y: number;
-  width: number;
-  length: number;
-}
+export type TileRect = Area;
+
+/** The inclusive tile bounds of a rectangle of tiles. */
+export const tileBounds = (r: TileRect): Bounds => ({
+  x1: r.x,
+  y1: r.y,
+  x2: r.x + r.width - 1,
+  y2: r.y + r.length - 1,
+});
 
 /** The tiles that hold all these rectangles. Undefined when there are none. */
 export function gridBounds(rects: TileRect[]): Bounds | undefined {
   if (rects.length === 0) return undefined;
   const bounds = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity };
   for (const r of rects) {
-    bounds.x1 = Math.min(bounds.x1, r.x);
-    bounds.y1 = Math.min(bounds.y1, r.y);
-    bounds.x2 = Math.max(bounds.x2, r.x + r.width - 1);
-    bounds.y2 = Math.max(bounds.y2, r.y + r.length - 1);
+    const b = tileBounds(r);
+    bounds.x1 = Math.min(bounds.x1, b.x1);
+    bounds.y1 = Math.min(bounds.y1, b.y1);
+    bounds.x2 = Math.max(bounds.x2, b.x2);
+    bounds.y2 = Math.max(bounds.y2, b.y2);
   }
   return bounds;
 }
 
-export type BuildingCategory =
-  | 'residential'
-  | 'production'
-  | 'goods'
-  | 'culture'
-  | 'military'
-  | 'greatBuilding'
-  | 'street'
-  | 'special'
-  | 'other';
-
-export const CATEGORIES: BuildingCategory[] = [
+export const CATEGORIES = [
   'residential',
   'production',
   'goods',
@@ -134,7 +121,9 @@ export const CATEGORIES: BuildingCategory[] = [
   'street',
   'special',
   'other',
-];
+] as const;
+
+export type BuildingCategory = (typeof CATEGORIES)[number];
 
 const CATEGORY_OF: Record<string, BuildingCategory> = {
   residential: 'residential',

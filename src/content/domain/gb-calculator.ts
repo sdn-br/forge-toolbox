@@ -1,4 +1,5 @@
 // The places of a great building construction: what each costs to take safely, what it pays and whether it is worth it.
+import { roundHalfUp } from '../../shared/math';
 import type { City } from '../stores/city-model';
 import type { RankingRow } from '../stores/great-building-model';
 
@@ -31,15 +32,8 @@ export interface PlaceCalc {
   gross: number;
   blueprints: number;
   medals: number;
-  /**
-   * below the own place: the player cannot hold a second place, so the place has no cost, profit or rate. The own
-   * deposit cannot move down, a sum with it would only pretend a price.
-   */
-  belowMine: boolean;
   /** the holder cannot be passed anymore, the place is safe (also the own place when the player holds enough) */
   secured: boolean;
-  /** the safe cost equals the one of the place above: the same cost buys the better place */
-  dominated: boolean;
   /** total own deposit that nobody can outbid anymore; missing below the own place */
   safeCost?: number;
   /**
@@ -72,8 +66,6 @@ export interface PlaceCalc {
    * place can be had or is the own place while not safe.
    */
   worthwhile?: boolean;
-  /** not more profit than a higher place offers */
-  worse: boolean;
   status: PlaceStatus;
 }
 
@@ -95,21 +87,25 @@ export interface ConstructionCalc {
   places: PlaceCalc[];
 }
 
-// Floating point products like 5 × 1.9 come out a hair below .5; the epsilon rounds them as the arithmetic means.
-const EPSILON = 1e-9;
-
-/** Commercial rounding, halves away from zero. */
-export const roundHalfUp = (x: number): number => Math.sign(x) * Math.floor(Math.abs(x) + 0.5 + EPSILON);
-
 /** `amount` grown by `percent`, rounded; integer arithmetic first so 5 × 190 / 100 is exactly 9.5 */
 export const plusPercent = (amount: number, percent: number) => roundHalfUp((amount * (100 + percent)) / 100);
 
 const depositOf = (row: RankingRow | undefined) => row?.fp ?? 0;
 
+/** what the session player has paid in */
+export const ownDeposit = (rankings: RankingRow[]) => depositOf(rankings.find((r) => r.self));
+
+/** the places with a reward, best rank first */
+export const paidPlaces = (rows: Iterable<RankingRow>) =>
+  [...rows].filter((r) => r.rank !== undefined && r.reward).sort((a, b) => (a.rank as number) - (b.rank as number));
+
+/** `fp` in percent of the net reward, one decimal */
+const percentOfReward = (fp: number, net: number) => (net > 0 ? roundHalfUp((fp / net) * 1000) / 10 : undefined);
+
 export function calculateConstruction(input: ConstructionInput): ConstructionCalc {
   const { rankings, required, arcBonus, factor } = input;
   const mine = rankings.find((r) => r.self && r.rank !== undefined);
-  const myDeposit = depositOf(rankings.find((r) => r.self));
+  const myDeposit = ownDeposit(rankings);
   const total = rankings.reduce((sum, r) => sum + depositOf(r), 0);
   const rest = required - (total - myDeposit);
   const base = { rest, missing: required - total, myDeposit, myRank: mine?.rank };
@@ -117,7 +113,7 @@ export function calculateConstruction(input: ConstructionInput): ConstructionCal
   if (!input.connected) return { ...base, blocked: 'unconnected', places: [] };
 
   const byRank = new Map(rankings.filter((r) => r.rank !== undefined).map((r) => [r.rank as number, r]));
-  const paid = [...byRank.values()].filter((r) => r.reward).sort((a, b) => (a.rank as number) - (b.rank as number));
+  const paid = paidPlaces(byRank.values());
 
   const fallbackGross =
     myDeposit > 0 ? worstCaseGross(byRank, paid, mine?.rank, myDeposit, base.missing, arcBonus) : undefined;
@@ -141,17 +137,16 @@ export function calculateConstruction(input: ConstructionInput): ConstructionCal
     };
     const demandCost = plusPercent(reward.fp, factor);
     const demand = { demandCost, demandOverRest: demandCost > rest, demandProfit: gross - demandCost };
+    // below the own place: the player cannot hold a second place, so the place has no cost, profit or rate. The own
+    // deposit cannot move down, a sum with it would only pretend a price.
     if (mine?.rank !== undefined && rank > mine.rank) {
       places.push({
         ...info,
         ...demand,
         demandExtra: demandCost,
-        belowMine: true,
         secured: false,
-        dominated: false,
         available: false,
         levelWarning: false,
-        worse: false,
         status: 'unavailable',
       });
       continue;
@@ -161,34 +156,32 @@ export function calculateConstruction(input: ConstructionInput): ConstructionCal
     // the own place costs the own deposit once that is more than the safe cost
     const profit = gross - (isMine ? Math.max(myDeposit, safeCost) : safeCost);
     const secured = safeCost <= holderFp;
+    // the safe cost equals the one of the place above: the same cost buys the better place
     const dominated = !isMine && safeCost === places.at(-1)?.safeCost;
     const available = !isMine && !secured && !dominated;
-    const percentOf = (fp: number) => (reward.fp > 0 ? roundHalfUp((fp / reward.fp) * 1000) / 10 : undefined);
     const levelWarning = available && safeCost >= rest;
     const priced = available || (isMine && !secured);
     const worthwhile =
       fallbackGross === undefined
         ? profit >= 0 || safeCost <= demandCost
         : gross - (safeCost - myDeposit) > fallbackGross;
+    // not more profit than a higher place offers
     const worse = available && !levelWarning && best !== undefined && profit <= best;
     if (available && !levelWarning) best = best === undefined ? profit : Math.max(best, profit);
     places.push({
       ...info,
       ...demand,
-      belowMine: false,
       secured,
-      dominated,
       safeCost,
       safeExtra: safeCost - myDeposit,
       demandExtra: demandCost - myDeposit,
       demandBelowSafe: demandCost < safeCost,
       profit,
-      rate: percentOf(safeCost),
-      ...(isMine && { depositRate: percentOf(myDeposit) }),
+      rate: percentOfReward(safeCost, reward.fp),
+      ...(isMine && { depositRate: percentOfReward(myDeposit, reward.fp) }),
       available,
       levelWarning,
       ...(priced && { worthwhile }),
-      worse,
       status: statusOf(isMine, available, levelWarning, worse, profit),
     });
   }
