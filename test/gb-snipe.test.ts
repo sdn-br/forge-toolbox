@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ownerShare, snipeBuilding, snipeList } from '../src/content/domain/gb-snipe';
-import type { GreatBuildingDef } from '../src/content/stores/catalog';
-import type { RankingRow } from '../src/content/stores/great-building-model';
+import type { GreatBuildingDef } from '../src/content/model/catalog';
+import type { RankingRow } from '../src/content/model/great-building';
 import { buildingDefId, playerId, worldId } from '../src/shared/ids';
 import type { KnownGreatBuilding } from '../src/shared/model';
 

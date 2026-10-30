@@ -4,8 +4,8 @@ import { type DoubleHarvest, hasDoubleHarvest } from '../../domain/gb-double-har
 import { effectiveFactor, effectiveFactors } from '../../domain/gb-factor';
 import type { OwnShareCalc } from '../../domain/gb-own-share';
 import { powerLevelPlan } from '../../domain/gb-power-level';
-import type { GreatBuildingDef } from '../../stores/catalog';
-import type { Construction } from '../../stores/great-building-model';
+import type { GreatBuildingDef } from '../../model/catalog';
+import type { Construction } from '../../model/great-building';
 import { type PlaceFactorState, sameChoice } from '../../stores/place-factors';
 import { type FactorButton, factorButtons } from '../../ui/factor-bar';
 import { type CopyOptions, copyText } from '../gb-own-share/copy-text';

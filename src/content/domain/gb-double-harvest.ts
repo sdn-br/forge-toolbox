@@ -1,6 +1,6 @@
 // The double harvest of a Forge point great building: a building harvested just before its level up produces again
 // right after it, now on the new level, so the Forge points of level X + 1 come on top of the level up.
-import type { GreatBuildingDef } from '../stores/catalog';
+import type { GreatBuildingDef } from '../model/catalog';
 
 /** the Ark and the Temple of Relics do not count, as in the old toolbox */
 const EXCLUDED: readonly string[] = ['X_FutureEra_Landmark1', 'X_AllAge_Expedition'];

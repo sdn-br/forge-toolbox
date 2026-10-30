@@ -9,8 +9,8 @@ import { listDef, numberDef, type Setting, toggleDef } from '../../core/settings
 import { t } from '../../core/texts';
 import { arcBonus } from '../../domain/arc-bonus';
 import { type SnipeList, snipeList } from '../../domain/gb-snipe';
+import type { Construction } from '../../model/great-building';
 import { FOESTATS_SETTING } from '../../stores/foestats';
-import type { Construction } from '../../stores/great-building-model';
 import { icons } from '../../ui/icons';
 import { nextSort } from '../../ui/sortable';
 import { type SnipeActions, snipeView } from './snipe-view';

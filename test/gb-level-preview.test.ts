@@ -11,7 +11,7 @@ import { calculateOwnShare } from '../src/content/domain/gb-own-share';
 import { toBuildingDef } from '../src/content/game/building-defs';
 import { toGreatBuildingEntity, toRankingRows } from '../src/content/game/convert';
 import type { GameCityEntity } from '../src/content/game/game-types';
-import type { GreatBuildingDef } from '../src/content/stores/catalog';
+import type { GreatBuildingDef } from '../src/content/model/catalog';
 import contribution from './fixtures/gb-contribution.json';
 import belowOwn from './fixtures/gb-contribution-below-own.json';
 import definitions from './fixtures/gb-definitions.json';

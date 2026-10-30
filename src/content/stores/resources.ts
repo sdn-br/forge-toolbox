@@ -1,5 +1,5 @@
 import type { ToolboxBus } from '../core/events';
-import type { ResourceId } from './city-model';
+import type { ResourceId } from '../model/city';
 
 /** The resources of the player as the game reported them last, with the updates since. Nothing is persisted. */
 export class ResourceStore {

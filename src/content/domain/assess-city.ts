@@ -1,7 +1,7 @@
 // Derived values of a city: army boosts, plunder repel, what can be plundered. Pure, so fixtures test it.
 import type { BuildingDefId, EraId } from '../../shared/ids';
-import { type Boost, type BuildingDef, boostsAt, boostsFor, type LevelBonus } from '../stores/catalog';
-import type { Building, City } from '../stores/city-model';
+import type { Boost, BoostsByEra, BuildingDef, LevelBonus } from '../model/catalog';
+import type { Building, City } from '../model/city';
 import { connectedLinks, type Placed, place, setLevels } from './city-grid';
 
 export interface ArmyValues {
@@ -80,6 +80,25 @@ function plunderableOf(b: Building, def: BuildingDef): Plunderable | null {
   // (2026-10-20). Some buildings with medals seem protected, by a property not found yet.
   if (Object.keys(resources).length === 0) return null;
   return { building: b.id, name: def.name, resources };
+}
+
+/**
+ * Era-bound values of a definition. Multi-age definitions carry every era, era-bound ones only their own,
+ * so the city era is used when present, otherwise the single era the definition has. `AllAge` always counts.
+ */
+function eraKey(byEra: Record<string, unknown>, era: EraId): string | undefined {
+  if (era in byEra) return era;
+  const own = Object.keys(byEra).filter((k) => k !== 'AllAge');
+  return own.length === 1 ? own[0] : undefined;
+}
+
+function boostsAt(byEra: BoostsByEra, era: EraId): Boost[] {
+  const key = eraKey(byEra, era);
+  return [...(byEra.AllAge ?? []), ...(key && key !== 'AllAge' ? (byEra[key] ?? []) : [])];
+}
+
+function boostsFor(def: BuildingDef, era: EraId): Boost[] {
+  return boostsAt(def.boostsByEra, era);
 }
 
 const bonusesUpTo = (bonuses: LevelBonus[], level: number, era: EraId): Boost[] =>

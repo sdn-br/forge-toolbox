@@ -1,7 +1,7 @@
 // The power level plan of an own great building: the own share of each level over a span, the double harvest taken
 // off, and what it adds up to. The open level counts with its real ranking, every other one as it opens, empty.
-import type { GreatBuildingDef } from '../stores/catalog';
-import type { RankingRow } from '../stores/great-building-model';
+import type { GreatBuildingDef } from '../model/catalog';
+import type { RankingRow } from '../model/great-building';
 import { type DoubleHarvest, doubleHarvest, type NextProduction } from './gb-double-harvest';
 import { emptyLevel } from './gb-level-preview';
 import { calculateOwnShare, type OwnShareCalc, type OwnShareInput } from './gb-own-share';

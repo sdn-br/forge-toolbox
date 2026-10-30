@@ -8,7 +8,7 @@ import {
   type PossibleSort,
   possibleViewModel,
 } from '../src/content/features/investments/possible-view-model';
-import type { GreatBuildingDef } from '../src/content/stores/catalog';
+import type { GreatBuildingDef } from '../src/content/model/catalog';
 import { nextSort } from '../src/content/ui/sortable';
 import { type BuildingDefId, buildingDefId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { KnownGreatBuilding, Relations } from '../src/shared/model';

@@ -2,6 +2,7 @@ import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
+import type { Construction } from '../../model/great-building';
 import {
   ARC_BUTTON,
   FACTOR,
@@ -13,7 +14,6 @@ import {
   TRUST,
   viewFlag,
 } from '../../stores/gb-own-state';
-import type { Construction } from '../../stores/great-building-model';
 import { icons } from '../../ui/icons';
 import {
   COPY_MANUAL,

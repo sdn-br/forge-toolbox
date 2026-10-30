@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { areaTileKeys } from '../src/content/domain/city-grid';
 import { expansionBlocks, offerStats, placedExpansions, rewardSources } from '../src/content/domain/expansions';
-import type { ExpansionOffer } from '../src/content/stores/city-model';
+import type { ExpansionOffer } from '../src/content/model/city';
 import { type EraId, eraId } from '../src/shared/ids';
 
 // a 24 × 24 grid of 36 blocks

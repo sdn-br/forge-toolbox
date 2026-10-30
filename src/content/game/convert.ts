@@ -22,13 +22,13 @@ import type {
   Session,
 } from '../../shared/model';
 import type { LimitedBonus } from '../domain/arc-bonus';
-import type { CityGrid } from '../stores/catalog';
+import type { CityGrid } from '../model/catalog';
+import type { Area, Building, BuildingState, City, ExpansionOffer, Product } from '../model/city';
+import type { GreatBuildingEntity, PlaceReward, RankingRow } from '../model/great-building';
+import type { ResearchExpansion } from '../model/research';
 import type { VisitInfo } from '../stores/cities';
-import type { Area, Building, BuildingState, City, ExpansionOffer, Product } from '../stores/city-model';
-import type { GreatBuildingEntity, PlaceReward, RankingRow } from '../stores/great-building-model';
 import type { InventoryItem, ItemPayload } from '../stores/inventory';
 import type { PlayerObservation } from '../stores/players';
-import type { ResearchExpansion } from '../stores/research';
 import type {
   GameArmyContext,
   GameBattle,

@@ -2,8 +2,8 @@
 // hands it to both, since the box redraws on every change of resources, city or selection.
 import { areaTileKeys, type Footprint, freeTileKeys } from '../../domain/city-grid';
 import { type ExpansionBlocks, expansionBlocks } from '../../domain/expansions';
-import type { CityGrid } from '../../stores/catalog';
-import type { City } from '../../stores/city-model';
+import type { CityGrid } from '../../model/catalog';
+import type { City } from '../../model/city';
 
 export interface CityBasis {
   /** the buildings on the grid */

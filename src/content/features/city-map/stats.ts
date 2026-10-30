@@ -9,8 +9,8 @@ import {
   type RewardSources,
   rewardSources,
 } from '../../domain/expansions';
-import type { City, ExpansionOffer, ResourceId } from '../../stores/city-model';
-import type { ResearchExpansion } from '../../stores/research';
+import type { City, ExpansionOffer, ResourceId } from '../../model/city';
+import type { ResearchExpansion } from '../../model/research';
 import type { CityBasis } from './basis';
 import { CATEGORY_COLORS } from './colors';
 

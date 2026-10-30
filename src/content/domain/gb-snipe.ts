@@ -1,8 +1,8 @@
 // The snipe helper: which great buildings of a list could be worth a place, from the state the list brings and the
 // rankings the toolbox saw before. Every row is calculated on an assumed ranking, in the best and the worst case.
 import type { KnownGreatBuilding } from '../../shared/model';
-import type { GreatBuildingDef } from '../stores/catalog';
-import type { RankingRow } from '../stores/great-building-model';
+import type { GreatBuildingDef } from '../model/catalog';
+import type { RankingRow } from '../model/great-building';
 import { calculateConstruction, constructionOf, type PlaceCalc } from './gb-calculator';
 import { emptyLevel } from './gb-level-preview';
 

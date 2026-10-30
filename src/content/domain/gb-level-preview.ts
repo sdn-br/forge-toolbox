@@ -2,8 +2,8 @@
 // the own great buildings can use it too (Eigenanteilsrechner).
 import { EPSILON, roundHalfUp } from '../../shared/math';
 import table from '../data/gb-p1.json';
-import type { GreatBuildingDef } from '../stores/catalog';
-import type { RankingRow } from '../stores/great-building-model';
+import type { GreatBuildingDef } from '../model/catalog';
+import type { RankingRow } from '../model/great-building';
 import { type ConstructionCalc, calculateConstruction, constructionOf } from './gb-calculator';
 
 /** the definition lists the costs of the first ten levels, later ones grow by this factor per level */

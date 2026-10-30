@@ -1,8 +1,8 @@
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
+import type { Construction } from '../../model/great-building';
 import { FACTOR_BUTTONS, ONE_FP, ownArcBonus, SECURE, TRUST, viewFlag } from '../../stores/gb-own-state';
-import type { Construction } from '../../stores/great-building-model';
 import { COPY_PLAYER, copyBuildingKey, readCopyOptions } from '../gb-own-share/copy-text';
 import { powerLevelCss } from './styles';
 import { powerLevelView } from './view';

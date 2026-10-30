@@ -2,10 +2,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SHOW_ARMY } from '../src/content/features/sabotage';
 import { sabotageFeature } from '../src/content/features/sabotage/index';
+import type { BuildingDef } from '../src/content/model/catalog';
+import type { Building } from '../src/content/model/city';
 import { type BattlePersistence, BattleStore } from '../src/content/stores/battles';
-import type { BuildingDef } from '../src/content/stores/catalog';
 import type { VisitedCity } from '../src/content/stores/cities';
-import type { Building } from '../src/content/stores/city-model';
 import type { PlayerObservation } from '../src/content/stores/players';
 import { buildingDefId, eraId, guildId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { AttackTimer, Battle, IncomingAttack, Plunder } from '../src/shared/model';

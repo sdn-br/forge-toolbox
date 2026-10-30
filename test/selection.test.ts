@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import { Markers } from '../src/content/core/markers';
-import type { BuildingDef } from '../src/content/stores/catalog';
+import type { BuildingDef } from '../src/content/model/catalog';
+import type { Building, City } from '../src/content/model/city';
 import { CityStore } from '../src/content/stores/cities';
-import type { Building, City } from '../src/content/stores/city-model';
 import { OwnSelection, SELECTION } from '../src/content/stores/selection';
 import { selectionEntries } from '../src/content/ui/selection-list';
 import { type BuildingDefId, buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';

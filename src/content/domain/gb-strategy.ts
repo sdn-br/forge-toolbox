@@ -1,5 +1,5 @@
 // Strategies on the running construction of a foreign great building: ways to pay in that the places alone do not show.
-import type { GreatBuildingDef } from '../stores/catalog';
+import type { GreatBuildingDef } from '../model/catalog';
 import { type ConstructionCalc, type ConstructionInput, plusPercent } from './gb-calculator';
 import { previewLevel } from './gb-level-preview';
 

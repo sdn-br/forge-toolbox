@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { doubleHarvest, hasDoubleHarvest } from '../src/content/domain/gb-double-harvest';
 import { toBuildingDef } from '../src/content/game/building-defs';
-import type { GreatBuildingDef } from '../src/content/stores/catalog';
+import type { GreatBuildingDef } from '../src/content/model/catalog';
 import definitions from './fixtures/gb-definitions.json';
 
 const def = (id: string): GreatBuildingDef => {
