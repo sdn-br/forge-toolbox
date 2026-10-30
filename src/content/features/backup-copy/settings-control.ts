@@ -42,8 +42,8 @@ export function backupSettingsControl(ctx: FeatureContext): SettingsControl {
         ${
           asking
             ? html`<p class="warn">${t('settings.backupCopyOffConfirm')}
-                <button class="action" @click=${switchOff}>${t('settings.backupCopyOff')}</button>
-                <button class="action" @click=${() => ask(false)}>${t('settings.backupCopyCancel')}</button></p>`
+                <span class="answers"><button class="action" @click=${switchOff}>${t('settings.backupCopyOff')}</button>
+                <button class="action" @click=${() => ask(false)}>${t('settings.backupCopyCancel')}</button></span></p>`
             : html`<p class="muted setting-hint">${t('settings.backupCopyHint')}</p>`
         }
         <button class="action" @click=${() => ctx.open('backupCopy')}>${t('settings.findData')}</button>

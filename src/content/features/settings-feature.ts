@@ -22,6 +22,8 @@ import { keepKeys } from '../ui/inputs';
 /** settings: a column of module icons, the chosen module beside it */
 const settingsCss = `
 p.setting-hint { margin: 0 0 4px 22px; }
+/* the answers of a question stay side by side, so they never part across two lines */
+.answers { white-space: nowrap; }
 /* settings: a column of module icons, the chosen module beside it */
 .settings-layout { display: flex; gap: 8px; align-items: flex-start; }
 .settings-nav { flex: 0 0 auto; display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0; }
@@ -139,8 +141,8 @@ function copyControl(copy: ProfileCopy, update: () => void): SettingsControl {
       ${
         asking
           ? html`<p class="warn">${t('settings.copyConfirm', { profile: profileLabel(from) })}
-              <button class="action" @click=${copyNow}>${t('settings.copy')}</button>
-              <button class="action" @click=${() => ask(false)}>${t('settings.copyCancel')}</button></p>`
+              <span class="answers"><button class="action" @click=${copyNow}>${t('settings.copy')}</button>
+              <button class="action" @click=${() => ask(false)}>${t('settings.copyCancel')}</button></span></p>`
           : html`<button class="action" @click=${() => ask(true)}>${t('settings.copy')}</button>
               <p class="muted setting-hint">${t('settings.copyHint')}</p>`
       }`;
