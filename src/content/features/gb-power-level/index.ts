@@ -40,7 +40,7 @@ export function createGbPowerLevelFeature(
           greatBuilding: (id) => ctx.catalog.get(id)?.greatBuilding,
           factors: ctx.gbOwn.state(def ?? ''),
           factorButtons: ctx.settings.of(FACTOR_BUTTONS).get(),
-          arcBonus: ownArcBonus(ctx.settings, ctx.cities, ctx.greatBuildings),
+          arcBonus: ownArcBonus(ctx.settings, ctx.playerBonuses),
           secureExisting: viewFlag(ctx.ui, SECURE, true),
           trust: viewFlag(ctx.ui, TRUST, false),
           exts: ctx.gbOwn.ext(def ?? '', shown?.entity?.level),

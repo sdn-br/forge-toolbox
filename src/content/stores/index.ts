@@ -22,6 +22,7 @@ import { IncomingStore } from './incoming';
 import { InventoryStore } from './inventory';
 import { NoteStore } from './notes';
 import type { PrefStore } from './place-factors';
+import { PlayerBonusStore } from './player-bonuses';
 import { PlayerStore } from './players';
 import { PlunderStore } from './plunders';
 import { ResearchStore } from './research';
@@ -43,6 +44,7 @@ export interface Stores {
   shields: ShieldStore;
   notes: NoteStore;
   greatBuildings: GreatBuildingStore;
+  playerBonuses: PlayerBonusStore;
   foestats: FoestatsStore;
   /** the factors and Ext the two own-share boxes share */
   gbOwn: GbOwnState;
@@ -61,10 +63,11 @@ export function createStores(
   now: () => number = Date.now,
   fetch: FetchLike = (url, init) => globalThis.fetch(url, init),
 ): Stores {
+  const cities = new CityStore(bus);
   return {
     session: new SessionStore(bus),
     players: new PlayerStore(bus, playerPersistence(call), now),
-    cities: new CityStore(bus),
+    cities,
     catalog: new CatalogStore(bus),
     resources: new ResourceStore(bus),
     inventory: new InventoryStore(bus),
@@ -75,6 +78,7 @@ export function createStores(
     shields: new ShieldStore(bus, world, shieldPersistence(call), now),
     notes: new NoteStore(bus, world, notePersistence(call), now),
     greatBuildings: new GreatBuildingStore(bus, world, greatBuildingPersistence(call), now),
+    playerBonuses: new PlayerBonusStore(cities),
     foestats: new FoestatsStore(bus, world, foestatsPersistence(call), foestatsApi(fetch)),
     gbOwn: createGbOwnState(bus, view.prefs, view.settings),
   };

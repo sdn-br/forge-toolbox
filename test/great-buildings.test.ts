@@ -203,7 +203,7 @@ describe('great building handlers and store', () => {
   });
 
   it('keeps the limited bonuses that are active', () => {
-    const { greatBuildings, send } = setup();
+    const { playerBonuses, send } = setup();
     send(
       entry(
         'getLimitedBonuses',
@@ -216,7 +216,7 @@ describe('great building handlers and store', () => {
         'BonusService',
       ),
     );
-    expect(greatBuildings.limitedBonuses()).toEqual([
+    expect(playerBonuses.limitedBonuses()).toEqual([
       { type: 'contribution_boost', value: 5 },
       { type: 'supplies_boost', value: 300, entityId: 701 },
     ]);

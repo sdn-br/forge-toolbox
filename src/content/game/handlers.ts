@@ -98,6 +98,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     incoming,
     shields,
     greatBuildings,
+    playerBonuses,
     inventory,
   } = deps;
 
@@ -472,7 +473,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     greatBuildings.noteContributions(toGreatBuildingListRows(data, session.current?.playerId), toListOwners(data));
   });
   ingestion.on('BonusService', 'getLimitedBonuses', ({ data }) => {
-    greatBuildings.setLimitedBonuses(toLimitedBonuses(data));
+    playerBonuses.setLimited(toLimitedBonuses(data));
   });
   // A great building of another player the player invested in levelled up, named by owner and display name only
   // (recorded 2026-10-23: great_building_contribution with level and rank). An own one levelling sends

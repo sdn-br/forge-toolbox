@@ -59,7 +59,7 @@ Je Domäne eine Datei. Für ein Feature nur die Dateien lesen, die es berührt.
 | `GreatBuildingsService.getAvailablePackageForgePoints` | Inventory | Summe der FP in Paketen laut Spiel |
 | `OtherPlayerService.newEvent` mit `great_building_contribution` (nicht aufgezeichnet) | GreatBuilding | offene Konstruktion als gelevelt markieren |
 | `InventoryService.getGreatBuildings`, `GreatBuildingsService.getOtherPlayerOverview` | Catalog | Namen der LGs |
-| `BonusService.getLimitedBonuses` | GreatBuilding | befristete Boni für den Arche-Bonus |
+| `BonusService.getLimitedBonuses` | PlayerBonus | befristete Boni für den Arche-Bonus |
 | `InventoryService.getItems` | Inventory | Inventar ersetzen (alle Gegenstände) |
 | `InventoryService.getItemsByType`, `getItem` (nicht aufgezeichnet) | Inventory | Gegenstände einfügen oder ersetzen |
 | `InventoryService.updateItem` | Inventory | neuen Bestand bekannter Gegenstände setzen |

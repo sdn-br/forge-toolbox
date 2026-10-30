@@ -7,7 +7,6 @@ import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { listDef, numberDef, type Setting, toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
-import { arcBonus } from '../../domain/arc-bonus';
 import { type SnipeList, snipeList } from '../../domain/gb-snipe';
 import type { Construction } from '../../model/great-building';
 import { FOESTATS_SETTING } from '../../stores/foestats';
@@ -264,7 +263,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           ownerIgnored,
           fpBar: ctx.resources.known ? ctx.resources.amount(FP) : undefined,
           fpPackages: ctx.inventory.knowsPackages ? ctx.inventory.forgePointPackages() : undefined,
-          arcBonus: arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses()),
+          arcBonus: ctx.playerBonuses.arcBonus(),
           factor: { value: factor.get(), arc: factorArc.get() },
           factorButtons: factorButtons.get(),
           arcButton: arcButton.get(),
@@ -273,7 +272,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           previewLevel: preview,
           greatBuilding: (def) => ctx.catalog.get(def)?.greatBuilding,
         });
-        const arc = arcBonus(ctx.cities.own(), ctx.greatBuildings.limitedBonuses());
+        const arc = ctx.playerBonuses.arcBonus();
         snipe =
           list &&
           snipeList({

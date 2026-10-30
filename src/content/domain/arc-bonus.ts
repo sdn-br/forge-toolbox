@@ -1,13 +1,6 @@
 // The Arc bonus of the session player: what his own great buildings and limited bonuses add to every place reward.
+import type { LimitedBonus } from '../model/bonus';
 import type { City } from '../model/city';
-
-/** A limited bonus of the player as `BonusService.getLimitedBonuses` lists it. */
-export interface LimitedBonus {
-  type: string;
-  value: number;
-  /** the own building that grants it, when it comes from one */
-  entityId?: number;
-}
 
 const CONTRIBUTION_BOOST = 'contribution_boost';
 

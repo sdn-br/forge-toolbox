@@ -21,7 +21,7 @@ import type {
   Plunder,
   Session,
 } from '../../shared/model';
-import type { LimitedBonus } from '../domain/arc-bonus';
+import type { LimitedBonus } from '../model/bonus';
 import type { CityGrid } from '../model/catalog';
 import type { Area, Building, BuildingState, City, ExpansionOffer, Product } from '../model/city';
 import type { GreatBuildingEntity, PlaceReward, RankingRow } from '../model/great-building';
