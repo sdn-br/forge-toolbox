@@ -13,7 +13,7 @@ describe('recorder buttons in the settings box', () => {
     const { ctx } = env;
     ctx.recorder = new Recorder(() => true);
     recorderFeature.setup(ctx);
-    settingsFeature(env.profileCopy).setup(ctx);
+    settingsFeature.setup(ctx);
     await ctx.settings.of(RECORD).set(true);
     ctx.open('settings', 'settings.core');
     const box = env.boxes.get('settings') as NonNullable<ReturnType<typeof env.boxes.get>>;
@@ -33,7 +33,7 @@ describe('recorder buttons in the settings box', () => {
     const { ctx } = env;
     ctx.recorder = new Recorder(() => true);
     recorderFeature.setup(ctx);
-    settingsFeature(env.profileCopy).setup(ctx);
+    settingsFeature.setup(ctx);
     ctx.open('settings', 'settings.core');
     const box = env.boxes.get('settings') as NonNullable<ReturnType<typeof env.boxes.get>>;
     expect(box.root.querySelector('[aria-label="Aufnahmedaten löschen"]')).toBeNull();

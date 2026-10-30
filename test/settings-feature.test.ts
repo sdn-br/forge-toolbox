@@ -17,7 +17,7 @@ function setup() {
   const env = featureContext();
   createGbOwnShareFeature(async () => {}).setup(env.ctx);
   recorderFeature.setup(env.ctx);
-  settingsFeature(env.profileCopy).setup(env.ctx);
+  settingsFeature.setup(env.ctx);
   env.ctx.open('settings', 'gbOwn.title');
   const box = env.boxes.get('settings') as NonNullable<ReturnType<typeof env.boxes.get>>;
   /** the input whose label starts with `text` */
@@ -103,7 +103,7 @@ describe('settings box: places of other features', () => {
     const env = featureContext({ storage: { 'settings:de20:1': {}, 'settings:de20:2': { a: true } } });
     env.ctx.recorder = new Recorder(() => true);
     recorderFeature.setup(env.ctx);
-    settingsFeature(env.profileCopy).setup(env.ctx);
+    settingsFeature.setup(env.ctx);
     backupCopyFeature.setup(env.ctx);
     profileCopyFeature(env.profileCopy).setup(env.ctx);
     await env.ctx.settings.of(RECORD).set(true);
@@ -130,7 +130,7 @@ describe('settings box: places of other features', () => {
 
   it('draws a control of a feature at its place, and not the def it claims in the list as well', async () => {
     const env = featureContext();
-    settingsFeature(env.profileCopy).setup(env.ctx);
+    settingsFeature.setup(env.ctx);
     const def = toggleDef({ key: 'mine', group: 'sabotage.title', label: 'sabotage.title', default: true });
     env.ctx.settings.register(def);
     let asking = false;
@@ -166,7 +166,7 @@ describe('settings box: places of other features', () => {
 describe('settings box: copy from another profile', () => {
   async function open(storage: Record<string, unknown>) {
     const env = featureContext({ storage });
-    settingsFeature(env.profileCopy).setup(env.ctx);
+    settingsFeature.setup(env.ctx);
     profileCopyFeature(env.profileCopy).setup(env.ctx);
     env.ctx.open('settings', 'settings.core');
     await tick();

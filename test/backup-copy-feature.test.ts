@@ -51,7 +51,7 @@ async function setup(options: { copy?: CopyEntry; data?: boolean; settings?: boo
   // the backup copy tells of a new copy after its delay: the test tells it at once
   const listeners: (() => void)[] = [];
   env.ctx.foundData.onChanged = (fn) => listeners.push(fn);
-  settingsFeature(env.profileCopy).setup(env.ctx);
+  settingsFeature.setup(env.ctx);
   backupCopyFeature.setup(env.ctx);
   const copyChanged = () => {
     for (const fn of listeners) fn();

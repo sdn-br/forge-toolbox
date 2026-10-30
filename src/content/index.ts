@@ -70,7 +70,7 @@ const features = (copy: ProfileCopy): Feature[] => [
   investmentsFeature,
   foestatsFeature,
   recorderFeature,
-  settingsFeature(copy),
+  settingsFeature,
   backupCopyFeature,
   profileCopyFeature(copy),
 ];

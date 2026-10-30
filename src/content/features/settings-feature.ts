@@ -179,13 +179,10 @@ declare module '../core/shell' {
   }
 }
 
-/** The settings box. Only it gets the other profiles, to take over their settings. */
-export const settingsFeature = (profileCopy: ProfileCopy): Feature => ({
-  id: 'settings',
-  setup: (ctx) => setup(ctx, profileCopy),
-});
+/** The settings box. */
+export const settingsFeature: Feature = { id: 'settings', setup };
 
-function setup(ctx: FeatureContext, profileCopy: ProfileCopy) {
+function setup(ctx: FeatureContext) {
   const menuSize = ctx.settings.register(MENU_SIZE);
   const applyMenuSize = () => ctx.menu.setIconSize(Number(menuSize.get()));
   applyMenuSize();
