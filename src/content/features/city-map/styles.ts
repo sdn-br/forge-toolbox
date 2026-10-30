@@ -12,10 +12,11 @@ export const cityMapCss = `
 :is(.box.tall, .box.popped) .body.fill :is(.map-main, .city-map) { display: flex; flex-direction: column; }
 :is(.box.tall, .box.popped) .body.fill .map-frame { flex: 1 1 auto; height: auto; }
 /* docked: the statistics hang out of the side of the box and leave the map whole; the body's overflow does not clip
-   them because their containing block is the box itself */
-.stats-drawer { position: absolute; top: 34px; right: 100%; display: flex; flex-direction: row-reverse;
+   them because their containing block is the box itself. The panel sits flush against the box and the tab on its outer
+   edge, so the tab moves out with the panel */
+.stats-drawer { position: absolute; top: 34px; right: 100%; display: flex; flex-direction: row;
   align-items: flex-start; }
-.stats-drawer[data-side=right] { right: auto; left: 100%; flex-direction: row; }
+.stats-drawer[data-side=right] { right: auto; left: 100%; flex-direction: row-reverse; }
 button.stats-tab { margin: 0; writing-mode: vertical-rl; padding: 8px 2px; border-width: 2px; border-right: 0; border-radius: 6px 0 0 6px; }
 .stats-drawer[data-side=right] .stats-tab { border-width: 2px; border-left: 0; border-radius: 0 6px 6px 0; }
 .stats-drawer.open .stats-tab { color: var(--accent); }
@@ -24,7 +25,7 @@ button.stats-tab { margin: 0; writing-mode: vertical-rl; padding: 8px 2px; borde
 .stats-panel p { margin: 2px 0; }
 .stats-list { list-style: none; margin: 2px 0; padding: 0; }
 /* popped out: no room beside the window, so the panel takes a column beside the map */
-.box.popped .stats-drawer { position: static; flex: 0 0 auto; flex-direction: row; }
+.box.popped .stats-drawer { position: static; flex: 0 0 auto; flex-direction: row-reverse; }
 .box.popped .stats-tab { border: 2px solid var(--line); border-radius: 6px; }
 .box.popped .stats-panel { max-height: none; align-self: stretch; width: 230px; box-shadow: none; }
 `;
