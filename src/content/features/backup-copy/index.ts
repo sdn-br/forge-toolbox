@@ -6,6 +6,7 @@ import type { FoundOffer, FoundSource } from '../../backup/found-data';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { formatFullDateTime, formatNumber, type TextKey, t } from '../../core/texts';
+import { backupSettingsControl } from './settings-control';
 
 /** "start": offered by the toolbox, with "Nein" and "Später"; "manual": opened from the settings */
 type Mode = 'start' | 'manual';
@@ -44,6 +45,7 @@ export const backupCopyFeature: Feature = {
   id: 'backupCopy',
   setup(ctx) {
     const found = ctx.foundData;
+    ctx.settingsControls.add(backupSettingsControl(ctx));
     let state: DialogState = { mode: 'start', offers: null, chosen: [], busy: false, status: '' };
 
     /** `kept`: the areas chosen so far per source, which stay chosen where the source still has data */

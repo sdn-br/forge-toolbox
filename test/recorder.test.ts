@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { memoryKv } from '../src/content/core/kv';
 import { Recorder } from '../src/content/core/recorder';
 import { Settings } from '../src/content/core/settings';
-import { RECORD } from '../src/content/features/settings-feature';
+import { RECORD } from '../src/content/features/recorder';
 
 const traffic = { kind: 'ws' as const, data: '[]', at: 0 };
 

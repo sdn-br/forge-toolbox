@@ -27,7 +27,6 @@ export const BACKUP_SETTING = toggleDef({
   label: 'settings.backupCopy',
   hint: 'settings.backupCopyHint',
   default: true,
-  ownControl: true,
 });
 /** how long after the last change the copy is written */
 export const BACKUP_DELAY = 30_000;

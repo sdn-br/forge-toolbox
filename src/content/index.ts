@@ -32,6 +32,7 @@ import { connectProxy } from './core/proxy-link';
 import { Recorder } from './core/recorder';
 import { backgroundCall } from './core/rpc';
 import { Settings } from './core/settings';
+import { SettingsControls } from './core/settings-controls';
 import { createShell } from './core/shell';
 import { startupGate } from './core/startup-gate';
 import { t } from './core/texts';
@@ -45,8 +46,9 @@ import { gbPowerLevelFeature } from './features/gb-power-level';
 import { investmentsFeature } from './features/investments';
 import { notesFeature } from './features/notes';
 import { pvpFeature } from './features/pvp';
+import { RECORD, RECORD_REQUESTS, recorderFeature } from './features/recorder';
 import { sabotageFeature } from './features/sabotage';
-import { RECORD, RECORD_REQUESTS, settingsFeature } from './features/settings-feature';
+import { profileCopyFeature, settingsFeature } from './features/settings-feature';
 import { watchEngine } from './game/engine';
 import { registerGameHandlers } from './game/handlers';
 import { identifyStartup } from './game/identify';
@@ -67,8 +69,10 @@ const features = (copy: ProfileCopy): Feature[] => [
   gbPowerLevelFeature,
   investmentsFeature,
   foestatsFeature,
-  settingsFeature(copy),
+  recorderFeature,
+  settingsFeature,
   backupCopyFeature,
+  profileCopyFeature(copy),
 ];
 
 /** the line next to the menu while the backup in a folder waits for the folder to be granted again */
@@ -149,6 +153,7 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
     world,
     bus,
     settings,
+    settingsControls: new SettingsControls(),
     menu,
     ...stores,
     recorder,

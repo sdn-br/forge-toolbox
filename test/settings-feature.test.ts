@@ -1,10 +1,13 @@
 // @vitest-environment happy-dom
+import { html } from 'lit-html';
 import { describe, expect, it } from 'vitest';
 import { Recorder } from '../src/content/core/recorder';
 import { toggleDef } from '../src/content/core/settings';
+import { backupCopyFeature } from '../src/content/features/backup-copy';
 import { createGbOwnShareFeature } from '../src/content/features/gb-own-share';
 import { COPY_MODE, COPY_PLAYER } from '../src/content/features/gb-own-share/copy-text';
-import { RECORD, settingsFeature } from '../src/content/features/settings-feature';
+import { RECORD, recorderFeature } from '../src/content/features/recorder';
+import { profileCopyFeature, settingsFeature } from '../src/content/features/settings-feature';
 import { FACTOR, FACTOR_BUTTONS } from '../src/content/stores/gb-own-state';
 import { featureContext } from './helpers/feature-context';
 
@@ -13,7 +16,8 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 function setup() {
   const env = featureContext();
   createGbOwnShareFeature(async () => {}).setup(env.ctx);
-  settingsFeature(env.profileCopy).setup(env.ctx);
+  recorderFeature.setup(env.ctx);
+  settingsFeature.setup(env.ctx);
   env.ctx.open('settings', 'gbOwn.title');
   const box = env.boxes.get('settings') as NonNullable<ReturnType<typeof env.boxes.get>>;
   /** the input whose label starts with `text` */
@@ -94,31 +98,76 @@ describe('settings box layout', () => {
   });
 });
 
-describe('settings box recording', () => {
-  it('clears the recorded data, greyed while there is none', async () => {
-    const env = featureContext();
-    const { ctx } = env;
-    ctx.recorder = new Recorder(() => true);
-    settingsFeature(env.profileCopy).setup(ctx);
-    await ctx.settings.of(RECORD).set(true);
-    ctx.open('settings', 'settings.core');
+describe('settings box: places of other features', () => {
+  it('draws the general group as before: toggles, recorder buttons, then the data section in registration order', async () => {
+    const env = featureContext({ storage: { 'settings:de20:1': {}, 'settings:de20:2': { a: true } } });
+    env.ctx.recorder = new Recorder(() => true);
+    recorderFeature.setup(env.ctx);
+    settingsFeature.setup(env.ctx);
+    backupCopyFeature.setup(env.ctx);
+    profileCopyFeature(env.profileCopy).setup(env.ctx);
+    await env.ctx.settings.of(RECORD).set(true);
+    env.ctx.open('settings', 'settings.core');
+    await tick();
     const box = env.boxes.get('settings') as NonNullable<ReturnType<typeof env.boxes.get>>;
-    ctx.recorder.add({ kind: 'ws', data: '[]', at: 0 });
-    ctx.recorder.add({ kind: 'ws', data: '[]', at: 0 });
+    const labels = [
+      'Spielverkehr aufzeichnen',
+      'Menügröße',
+      'Aufnahmedaten löschen',
+      'Daten',
+      'Daten verwalten',
+      'Sicherungskopie auf der Spielseite',
+      'Gefundene Daten übernehmen',
+      'Einstellungen von einem anderen Profil übernehmen',
+    ];
+    const at = (label: string) => (box.root.innerHTML.includes(label) ? box.root.innerHTML.indexOf(label) : -1);
+    const positions = labels.map(at);
+    expect(positions.every((p) => p >= 0)).toBe(true);
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    expect(box.text.split('Sicherungskopie auf der Spielseite').length).toBe(2);
+    expect(box.text.split('Spielverkehr aufzeichnen').length).toBe(2);
+  });
+
+  it('draws a control of a feature at its place, and not the def it claims in the list as well', async () => {
+    const env = featureContext();
+    settingsFeature.setup(env.ctx);
+    const def = toggleDef({ key: 'mine', group: 'sabotage.title', label: 'sabotage.title', default: true });
+    env.ctx.settings.register(def);
+    let asking = false;
+    env.ctx.settingsControls.add({
+      group: 'sabotage.title',
+      section: 'settings.data',
+      claims: [def],
+      render: () => html`<p class="mine">${asking ? 'asking' : 'plain'}</p>`,
+      reset: () => {
+        asking = false;
+      },
+    });
+    env.ctx.open('settings', 'sabotage.title');
     await tick();
-    const clear = () => box.root.querySelector('[aria-label="Aufnahmedaten löschen"]') as HTMLButtonElement;
-    expect(clear().getAttribute('aria-disabled')).toBe('false');
-    clear().click();
-    await tick();
-    expect(ctx.recorder.count).toBe(0);
-    expect(clear().getAttribute('aria-disabled')).toBe('true');
+    const box = env.boxes.get('settings') as NonNullable<ReturnType<typeof env.boxes.get>>;
+    expect(box.root.querySelectorAll('input[type=checkbox]').length).toBe(0);
+    expect(box.root.querySelector('.settings-main h3')?.textContent).toBe('Daten');
+    expect(box.root.querySelector('.mine')?.textContent).toBe('plain');
+    // a redraw request shows the new state
+    asking = true;
+    env.ctx.settingsControls.update();
+    expect(box.root.querySelector('.mine')?.textContent).toBe('asking');
+    // another group and closing reset it
+    const nav = () => [...box.root.querySelectorAll<HTMLButtonElement>('.settings-nav button')];
+    (nav()[0] as HTMLButtonElement).click();
+    expect(asking).toBe(false);
+    asking = true;
+    box.box.close();
+    expect(asking).toBe(false);
   });
 });
 
 describe('settings box: copy from another profile', () => {
   async function open(storage: Record<string, unknown>) {
     const env = featureContext({ storage });
-    settingsFeature(env.profileCopy).setup(env.ctx);
+    settingsFeature.setup(env.ctx);
+    profileCopyFeature(env.profileCopy).setup(env.ctx);
     env.ctx.open('settings', 'settings.core');
     await tick();
     const box = env.boxes.get('settings') as NonNullable<ReturnType<typeof env.boxes.get>>;

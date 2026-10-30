@@ -1,6 +1,5 @@
 import { html } from 'lit-html';
 import { OPEN_DATA_PAGE } from '../../shared/messages';
-import { BACKUP_SETTING } from '../backup/backup-copy';
 import type { Feature, FeatureContext } from '../core/feature';
 import { logError } from '../core/log';
 import { type OtherProfile, type ProfileCopy, profileLabel } from '../core/profile-copy';
@@ -13,16 +12,18 @@ import {
   type Setting,
   type SettingDef,
   type Settings,
-  toggleDef,
 } from '../core/settings';
+import type { SettingsControl } from '../core/settings-controls';
 import { type TextKey, t } from '../core/texts';
 import { FACTOR_STEP, factorOf, percentOf } from '../domain/gb-factor';
-import { headerIcons, icons } from '../ui/icons';
+import { icons } from '../ui/icons';
 import { keepKeys } from '../ui/inputs';
 
 /** settings: a column of module icons, the chosen module beside it */
 const settingsCss = `
 p.setting-hint { margin: 0 0 4px 22px; }
+/* the answers of a question stay side by side, so they never part across two lines */
+.answers { white-space: nowrap; }
 /* settings: a column of module icons, the chosen module beside it */
 .settings-layout { display: flex; gap: 8px; align-items: flex-start; }
 .settings-nav { flex: 0 0 auto; display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0; }
@@ -104,7 +105,7 @@ const profileKey = ({ profile }: OtherProfile) => `${profile.world}:${profile.pl
  * in a line of its own, naming the profile. The question stays through redraws of the box until it is answered, another
  * profile is chosen, the box shows another group or closes; a question that lasted one drawing only was gone again when a click raised the box.
  */
-function copyControl(copy: ProfileCopy, update: () => void) {
+function copyControl(copy: ProfileCopy, update: () => void): SettingsControl {
   let others: OtherProfile[] | undefined;
   let chosen: string | undefined;
   let asking = false;
@@ -140,55 +141,16 @@ function copyControl(copy: ProfileCopy, update: () => void) {
       ${
         asking
           ? html`<p class="warn">${t('settings.copyConfirm', { profile: profileLabel(from) })}
-              <button class="action" @click=${copyNow}>${t('settings.copy')}</button>
-              <button class="action" @click=${() => ask(false)}>${t('settings.copyCancel')}</button></p>`
+              <span class="answers"><button class="action" @click=${copyNow}>${t('settings.copy')}</button>
+              <button class="action" @click=${() => ask(false)}>${t('settings.copyCancel')}</button></span></p>`
           : html`<button class="action" @click=${() => ask(true)}>${t('settings.copy')}</button>
               <p class="muted setting-hint">${t('settings.copyHint')}</p>`
       }`;
   };
   return {
+    group: 'settings.core',
+    section: 'settings.data',
     render,
-    reset: () => {
-      asking = false;
-    },
-  };
-}
-
-/**
- * "Sicherungskopie auf der Spielseite": switching on saves at once, switching off asks in a line of its own first, since
- * it deletes the copy. The question lives like the one of the profile copy.
- */
-function backupControl(settings: Settings, update: () => void) {
-  let asking = false;
-  const ask = (value: boolean) => {
-    asking = value;
-    update();
-  };
-  const change = (e: Event) => {
-    const input = e.target as HTMLInputElement;
-    if (input.checked) {
-      asking = false;
-      save(settings.of(BACKUP_SETTING), true);
-      return;
-    }
-    // stays on until the answer
-    input.checked = true;
-    ask(true);
-  };
-  const switchOff = () => {
-    asking = false;
-    save(settings.of(BACKUP_SETTING), false);
-  };
-  return {
-    render: () =>
-      html`<label><input type="checkbox" .checked=${settings.of(BACKUP_SETTING).get()} @change=${change} />${t('settings.backupCopy')}</label>
-        ${
-          asking
-            ? html`<p class="warn">${t('settings.backupCopyOffConfirm')}
-                <button class="action" @click=${switchOff}>${t('settings.backupCopyOff')}</button>
-                <button class="action" @click=${() => ask(false)}>${t('settings.backupCopyCancel')}</button></p>`
-            : html`<p class="muted setting-hint">${t('settings.backupCopyHint')}</p>`
-        }`,
     reset: () => {
       asking = false;
     },
@@ -197,19 +159,6 @@ function backupControl(settings: Settings, update: () => void) {
 
 /** the menu entry and the general settings show it */
 const ICON = icons.settings;
-/** the recording of the game traffic, and whether it holds the requests too; the recorder reads them */
-export const RECORD = toggleDef({
-  key: 'core.record',
-  group: 'settings.core',
-  label: 'settings.recordTraffic',
-  default: false,
-});
-export const RECORD_REQUESTS = toggleDef({
-  key: 'core.recordRequests',
-  group: 'settings.core',
-  label: 'settings.recordRequests',
-  default: false,
-});
 /** the menu's icon size in pixels, as a choice */
 const MENU_SIZE = choiceDef({
   key: 'core.menuSize',
@@ -232,15 +181,10 @@ declare module '../core/shell' {
   }
 }
 
-/** The settings box. Only it gets the other profiles, to take over their settings. */
-export const settingsFeature = (profileCopy: ProfileCopy): Feature => ({
-  id: 'settings',
-  setup: (ctx) => setup(ctx, profileCopy),
-});
+/** The settings box. */
+export const settingsFeature: Feature = { id: 'settings', setup };
 
-function setup(ctx: FeatureContext, profileCopy: ProfileCopy) {
-  const record = ctx.settings.register(RECORD);
-  ctx.settings.register(RECORD_REQUESTS);
+function setup(ctx: FeatureContext) {
   const menuSize = ctx.settings.register(MENU_SIZE);
   const applyMenuSize = () => ctx.menu.setIconSize(Number(menuSize.get()));
   applyMenuSize();
@@ -254,17 +198,11 @@ function setup(ctx: FeatureContext, profileCopy: ProfileCopy) {
     return chosen && groups.includes(chosen) ? chosen : groups[0];
   };
   const select = (group: string) => {
-    copyFrom.reset();
-    backup.reset();
+    ctx.settingsControls.reset();
     ctx.ui.savePref(TAB, group);
     box.update();
   };
-  const copyFrom = copyControl(profileCopy, () => box.update());
-  const backup = backupControl(ctx.settings, () => box.update());
-  const reset = () => {
-    copyFrom.reset();
-    backup.reset();
-  };
+  const reset = () => ctx.settingsControls.reset();
   const box = ctx.createBox({
     id: 'settings',
     css: settingsCss,
@@ -275,9 +213,18 @@ function setup(ctx: FeatureContext, profileCopy: ProfileCopy) {
     render: () => {
       // the general settings first, then the features in the order they registered
       const groups = [...new Set(['settings.core', ...ctx.settings.defs.map((d) => d.group)])];
-      const group = shownGroup(groups);
-      const defs = ctx.settings.defs.filter((d) => d.group === group && !d.ownControl);
-      const sections = [...new Set(defs.map((d) => d.section).filter((s) => s !== undefined))];
+      const group = shownGroup(groups) ?? 'settings.core';
+      const defs = ctx.settings.defs.filter((d) => d.group === group && !ctx.settingsControls.claimed(d));
+      const sections = [
+        ...new Set(
+          [...defs.map((d) => d.section), ...ctx.settingsControls.sections(group)].filter((s) => s !== undefined),
+        ),
+      ];
+      /** the defs of a place, then the controls of the features for it */
+      const place = (
+        section?: TextKey,
+      ) => html`${defs.filter((d) => d.section === section).map((d) => control(ctx.settings, d))}
+        ${ctx.settingsControls.at(group, section).map((c) => c.render())}`;
       return html`<div class="settings-layout">
         <nav class="settings-nav">${groups.map(
           (g) => html`<button class=${g === group ? 'active' : ''} data-tip=${t(g as TextKey)}
@@ -285,44 +232,36 @@ function setup(ctx: FeatureContext, profileCopy: ProfileCopy) {
         )}</nav>
         <div class="settings-main">
           <h2>${t(group as TextKey)}</h2>
-          ${defs.filter((d) => d.section === undefined).map((d) => control(ctx.settings, d))}
-          ${sections.map(
-            (section) => html`<h3>${t(section)}</h3>
-              ${defs.filter((d) => d.section === section).map((d) => control(ctx.settings, d))}`,
-          )}
-          ${
-            group === 'settings.core' && record.get()
-              ? html`<button class="action icon-only" data-tip=${t('settings.saveRecording', { count: ctx.recorder.count })}
-                  aria-label=${t('settings.saveRecording', { count: ctx.recorder.count })}
-                  @click=${() => ctx.recorder.save()}>${headerIcons.download}${ctx.recorder.count}</button>
-                <button class="action icon-only"
-                  aria-disabled=${ctx.recorder.count ? 'false' : 'true'} data-tip=${t('settings.clearRecording')}
-                  aria-label=${t('settings.clearRecording')}
-                  @click=${() => ctx.recorder.clear()}>${headerIcons.trash}</button>`
-              : ''
-          }
-          ${
-            group === 'settings.core'
-              ? html`<h3>${t('settings.data')}</h3>
-                <button class="action" @click=${openDataPage}>${t('settings.manageData')}</button>
-                <p class="muted setting-hint">${t('settings.manageDataHint')}</p>
-                ${backup.render()}
-                <button class="action" @click=${() => ctx.open('backupCopy')}>${t('settings.findData')}</button>
-                <p class="muted setting-hint">${t('settings.findDataHint')}</p>
-                ${copyFrom.render()}`
-              : ''
-          }
+          ${place()}
+          ${sections.map((section) => html`<h3>${t(section)}</h3>${place(section)}`)}
         </div>
       </div>`;
     },
   });
   ctx.settings.onChange(() => box.update());
-  // the counter on the save button; update does nothing while the box is closed
-  ctx.recorder.onChange(() => box.update());
+  ctx.settingsControls.onUpdate(() => box.update());
   ctx.registerOpen('settings', (group) => {
     reset();
     ctx.ui.savePref(TAB, group);
     box.open();
   });
+  // the first control of the data section; the controls of other features follow in the order they registered
+  ctx.settingsControls.add({
+    group: 'settings.core',
+    section: 'settings.data',
+    render: () => html`<button class="action" @click=${openDataPage}>${t('settings.manageData')}</button>
+      <p class="muted setting-hint">${t('settings.manageDataHint')}</p>`,
+  });
   ctx.menu.add({ id: 'settings', icon: ICON, label: () => t('menu.settings'), action: () => box.toggle() });
 }
+
+/**
+ * The last control of the data section: it needs the other profiles, which only the settings get. A feature of its own,
+ * set up after the others, because the controls of a place draw in registration order and this one closes the section.
+ */
+export const profileCopyFeature = (profileCopy: ProfileCopy): Feature => ({
+  id: 'profileCopy',
+  setup: (ctx) => {
+    ctx.settingsControls.add(copyControl(profileCopy, () => ctx.settingsControls.update()));
+  },
+});
