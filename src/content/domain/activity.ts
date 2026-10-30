@@ -1,4 +1,5 @@
 // How active a player is, from their days at foestats.
+import { DAY_MS } from '../../shared/time';
 
 /** a day as foestats saw it; a value is missing when foestats did not tell it */
 export interface ActivityDay {
@@ -22,10 +23,10 @@ export interface Activity {
 }
 
 /** from this many days without an increase on, a player counts as idle */
-export const IDLE_DAYS = 3;
+const IDLE_DAYS = 3;
 const WEEK = 7;
 
-const dayNumber = (date: string) => Math.round(Date.parse(`${date}T00:00:00Z`) / 86_400_000);
+const dayNumber = (date: string) => Math.round(Date.parse(`${date}T00:00:00Z`) / DAY_MS);
 const daysBetween = (from: string, to: string) => dayNumber(to) - dayNumber(from);
 
 const rose = (before: number | undefined, after: number | undefined) =>

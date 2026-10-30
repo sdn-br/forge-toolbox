@@ -56,9 +56,14 @@ export type OwnerShare =
 const ownerRow = (rows: RankingRow[], owner: KnownGreatBuilding['owner']) =>
   rows.find((r) => r.player === owner) ?? rows.find((r) => r.rank === undefined && !r.self);
 
+/** the stored rankings when they belong to the building's current level */
+export const currentRankings = (b: KnownGreatBuilding): RankingRow[] | undefined =>
+  b.rankingsLevel === b.level ? b.rankings : undefined;
+
 export function ownerShare(b: KnownGreatBuilding): OwnerShare {
-  if (!b.rankings || b.rankingsLevel !== b.level) return { state: 'unknown' };
-  const fp = ownerRow(b.rankings, b.owner)?.fp ?? 0;
+  const rankings = currentRankings(b);
+  if (!rankings) return { state: 'unknown' };
+  const fp = ownerRow(rankings, b.owner)?.fp ?? 0;
   if (b.rankingsInvested === b.invested) return { state: 'current', fp };
   return { state: 'stale', fp, at: b.rankingsAt ?? b.seenAt };
 }
@@ -81,10 +86,6 @@ export interface SnipeList {
   unknownReward: number;
 }
 
-interface Case {
-  rankings: RankingRow[];
-}
-
 /** The places of the level as the table pays them, nobody on them. The owner's row holds `ownerFp`. */
 function assumed(
   places: RankingRow[],
@@ -92,7 +93,7 @@ function assumed(
   holders: Map<number, RankingRow>,
   extra: RankingRow[],
   strongestExtra = 0,
-): Case {
+): RankingRow[] {
   let strongest: number | undefined;
   for (const [rank, row] of holders) {
     if (rank > places.length || row.fp === undefined) continue;
@@ -104,7 +105,7 @@ function assumed(
     const fp = (held?.fp ?? 0) + (p.rank === grow ? strongestExtra : 0);
     return fp > 0 ? { ...p, name: held?.name ?? '', fp } : p;
   });
-  return { rankings: [{ name: '', self: false, fp: ownerFp }, ...rows, ...extra] };
+  return [{ name: '', self: false, fp: ownerFp }, ...rows, ...extra];
 }
 
 const worthwhile = (places: PlaceCalc[]): SnipePlace | undefined => {
@@ -132,33 +133,30 @@ export function snipeBuilding(
   if (!level || !places) return 'unknownReward';
 
   const input = { level: b.level, maxLevel: b.maxLevel ?? b.level + 1, connected: b.connected ?? true };
-  const solve = (c: Case) =>
-    worthwhile(
-      calculateConstruction({ ...input, required: b.required, rankings: c.rankings, arcBonus, factor: 0 }).places,
-    );
+  const solve = (rankings: RankingRow[]) =>
+    worthwhile(calculateConstruction({ ...input, required: b.required, rankings, arcBonus, factor: 0 }).places);
 
-  const ranked = b.rankings && b.rankingsLevel === b.level ? b.rankings : undefined;
+  const ranked = currentRankings(b);
   const holders = new Map(
     (ranked ?? []).flatMap((r) => (r.rank !== undefined && !r.self ? [[r.rank, r] as const] : [])),
   );
-  const sum = b.rankingsInvested ?? 0;
+  // without rankings of the level nothing counts as known, not even a stored sum of another level
+  const sum = ranked ? (b.rankingsInvested ?? 0) : 0;
   const beyond = (ranked ?? []).filter((r) => r.rank !== undefined && r.rank > places.length && !r.self);
   const ownerFp = (ranked && ownerRow(ranked, b.owner)?.fp) || 0;
   let exact = false;
-  let best: Case;
-  let worst: Case;
+  let best: RankingRow[];
+  let worst: RankingRow[];
   if (ranked && b.invested <= sum) {
     exact = true;
     best = worst = assumed(places, ownerFp, holders, beyond);
-  } else if (ranked) {
-    // the list is newer and the sum grew by delta: unknown deposits, from the owner at best, from the strongest holder at worst
+  } else {
+    // the list is newer and the sum grew by delta: unknown deposits, from the owner at best, from the strongest holder
+    // at worst. Without rankings nothing is known about who holds what and the sum is 0: at best the owner paid it
+    // all, at worst one player holds it all.
     const delta = b.invested - sum;
     best = assumed(places, ownerFp + delta, holders, beyond);
     worst = assumed(places, ownerFp, holders, beyond, delta);
-  } else {
-    // nothing known about who holds what: at best the owner paid it all, at worst one player holds it all
-    best = assumed(places, b.invested, new Map(), []);
-    worst = assumed(places, 0, new Map(), [], b.invested);
   }
 
   const atBest = solve(best);

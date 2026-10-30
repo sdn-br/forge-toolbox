@@ -3,7 +3,7 @@ import type { BuildingDefId, PlayerId } from '../../shared/ids';
 import type { KnownGreatBuilding } from '../../shared/model';
 import type { GreatBuildingDef } from '../stores/catalog';
 import { calculateConstruction, plusPercent } from './gb-calculator';
-import { type SnipeHit, snipeBuilding } from './gb-snipe';
+import { currentRankings, type SnipeHit, snipeBuilding } from './gb-snipe';
 
 /**
  * `safe`: nobody can pass the own place anymore. `unsafe`: the stored rankings fit the progress and someone can. `unknown`:
@@ -56,13 +56,14 @@ export interface Investments {
  * places, as the calculator would once it opens again. Undefined when the rankings do not fit or hold no own place.
  */
 function statusByRankings(b: KnownGreatBuilding): InvestmentStatus | undefined {
-  if (!b.rankings || b.rankingsLevel !== b.level || b.rankingsInvested !== b.invested) return undefined;
+  const rankings = currentRankings(b);
+  if (!rankings || b.rankingsInvested !== b.invested) return undefined;
   const calc = calculateConstruction({
     level: b.level,
     maxLevel: b.level + 1,
     connected: true,
     required: b.required,
-    rankings: b.rankings,
+    rankings,
     arcBonus: 0,
     factor: 0,
   });

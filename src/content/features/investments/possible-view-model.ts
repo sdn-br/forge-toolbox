@@ -1,5 +1,6 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import type { Relations } from '../../../shared/model';
+import { DAY_MS } from '../../../shared/time';
 import { formatAge, formatNumber, t } from '../../core/texts';
 import { type OwnerShare, ownerShare, type SnipeTier, snipeProfitKey, TIER_ORDER } from '../../domain/gb-snipe';
 import type { PossibleInvestment } from '../../domain/investments';
@@ -161,11 +162,10 @@ export interface PossibleInput {
 }
 
 const HOUR = 3_600_000;
-const DAY = 24 * HOUR;
 
 /** "3 Std." for three hours and forty minutes: the largest unit only, so the column stays narrow */
 const age = (ms: number) =>
-  formatAge(ms >= DAY ? Math.floor(ms / DAY) * DAY : ms >= HOUR ? Math.floor(ms / HOUR) * HOUR : ms);
+  formatAge(ms >= DAY_MS ? Math.floor(ms / DAY_MS) * DAY_MS : ms >= HOUR ? Math.floor(ms / HOUR) * HOUR : ms);
 
 type Named = PossibleInvestment & {
   ownerName: string;

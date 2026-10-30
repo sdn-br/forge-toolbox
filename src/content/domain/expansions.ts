@@ -50,11 +50,11 @@ export function expansionBlocks(grid: CityGrid, areas: Area[], blocked: Area[] |
   return out;
 }
 
-export type OfferKind = 'diamonds' | 'reward' | 'quantum';
+type OfferKind = 'diamonds' | 'reward' | 'quantum';
 
 export interface OfferStat {
-  /** an own kind, or the game type for kinds the toolbox does not know */
-  kind: OfferKind | string;
+  /** an own kind (`OfferKind`), or the game type for kinds the toolbox does not know */
+  kind: string;
   total: number;
   /** how many the player can buy in a row, cheapest first; missing for kinds nobody buys and unknown kinds */
   buyable?: number;
