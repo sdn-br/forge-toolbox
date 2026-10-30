@@ -85,6 +85,24 @@ afterEach(() => {
 });
 
 describe('writing the backup copy', () => {
+  it('tells the found data when the copy was written anew or deleted', async () => {
+    const env = await setup();
+    let heard = 0;
+    env.found.onChanged(() => heard++);
+    env.signal();
+    await elapse(env);
+    expect(heard).toBe(1);
+    // the same state again writes nothing, so nothing to tell
+    env.signal(1);
+    await elapse(env);
+    expect(heard).toBe(1);
+    await env.settings.set(BACKUP_SETTING, false);
+    await env.copy.idle();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(await env.store.get(me)).toBeUndefined();
+    expect(heard).toBe(2);
+  });
+
   it('writes the profile as the export does, half a minute after the last change', async () => {
     const env = await setup({ stored: { settings: { a: 1 } } });
     await env.db.db.battles.put(battle(7));

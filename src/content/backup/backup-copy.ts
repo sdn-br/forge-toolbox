@@ -73,6 +73,7 @@ export class BackupCopy implements FoundDataSource {
   private state: CopyState = { change: undefined, settings: 0 };
   /** the state the copy written last holds, to skip a write that would store the same */
   private written: CopyState | undefined;
+  private listeners: (() => void)[] = [];
 
   constructor(private env: BackupCopyEnv) {
     env.settings.register({
@@ -100,6 +101,11 @@ export class BackupCopy implements FoundDataSource {
       this.state = { ...this.state, settings: this.state.settings + 1 };
       this.changed();
     });
+  }
+
+  /** the copy was written anew or deleted */
+  onChanged(fn: () => void): void {
+    this.listeners.push(fn);
   }
 
   /** settles once the write started last is done */
@@ -216,6 +222,7 @@ export class BackupCopy implements FoundDataSource {
     if (this.held || !this.enabled()) return;
     await store.put({ ...profile, createdAt, counts: areaCounts(entry), file: packed });
     this.written = state;
+    for (const fn of this.listeners) fn();
   }
 
   /** deletes the copy and forgets a question about it; nothing is written until switched on again */
@@ -226,5 +233,6 @@ export class BackupCopy implements FoundDataSource {
     await this.writing;
     await this.env.store.delete(this.env.profile);
     await this.env.kv.set(ANSWER, null);
+    for (const fn of this.listeners) fn();
   }
 }
