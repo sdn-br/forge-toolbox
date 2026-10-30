@@ -1,11 +1,9 @@
 // The own city as a map: colors by building group, switchable marks, name search and free tiles.
-import type { BuildingDefId } from '../../../shared/ids';
 import { t } from '../../core/texts';
-import { buildingCategory, footprints, freeTiles, nameOf, needsRoad } from '../../domain/city-grid';
-import { expansionBlocks } from '../../domain/expansions';
-import type { BuildingDef, CityGrid } from '../../stores/catalog';
+import { buildingCategory, keyTile, nameOf, needsRoad } from '../../domain/city-grid';
 import type { Building, City } from '../../stores/city-model';
 import type { CityMapData, LegendItem, MapBadge, MapTile } from '../../ui/city-map';
+import type { CityBasis } from './basis';
 import { CATEGORY_COLORS, categoryLegend, mutedColor } from './colors';
 
 export interface OwnMapUi {
@@ -48,18 +46,17 @@ export const ZONE = {
 };
 
 /**
- * `grid` is the city grid; without it, or without areas, no expansion blocks are drawn. `selected` are the selected
+ * `basis` is derived from `city`; without grid or areas no expansion blocks are drawn. `selected` are the selected
  * buildings of the own city, which carry the arrows in the game.
  */
 export function ownCityMapViewModel(
   city: City,
-  def: (id: BuildingDefId) => BuildingDef | undefined,
+  basis: CityBasis,
   ui: OwnMapUi,
-  grid?: CityGrid,
   selected: ReadonlySet<number> = new Set(),
   now = Date.now(),
 ) {
-  const fps = footprints(city.buildings.values(), def);
+  const { fps, area } = basis;
   // while something is selected, the rest steps back
   const selecting = fps.some((f) => selected.has(f.building.id));
   const tiles: MapTile[] = fps.map((f) => {
@@ -89,14 +86,15 @@ export function ownCityMapViewModel(
     if (badges.length > 0) tile.badges = badges;
     return tile;
   });
-  const free = city.areas && freeTiles(city.areas, fps);
-  const all = grid && city.areas && expansionBlocks(grid, city.areas, city.blocked);
+  // the count shows always, the tiles only while marked
+  const free = ui.free && area?.free.map(keyTile);
+  const all = basis.blocks;
   const blocks = ui.expansions && all;
   const data: CityMapData = {
     areas: city.areas ?? [],
     tiles,
     ...(all && { extent: [...all.now, ...all.later] }),
-    ...(free && ui.free && { marked: { tiles: free, color: MARK.free } }),
+    ...(free && { marked: { tiles: free, color: MARK.free } }),
     ...(blocks && {
       zones: [
         { rects: blocks.now, ...ZONE.now, tooltip: t('cityMap.zoneNow') },
@@ -109,7 +107,7 @@ export function ownCityMapViewModel(
     ...(selecting ? [{ color: MARK.selected, label: t('cityMap.selected'), outline: true }] : []),
     ...(ui.finished ? [{ color: MARK.finished, label: t('cityMap.finished'), symbol: 'check' as const }] : []),
     ...(ui.unconnected ? [{ color: MARK.unconnected, label: t('cityMap.unconnected'), symbol: 'cross' as const }] : []),
-    ...(free && ui.free ? [{ color: MARK.free, label: t('cityMap.free') }] : []),
+    ...(free ? [{ color: MARK.free, label: t('cityMap.free') }] : []),
     ...(blocks
       ? [
           { color: ZONE.now.fill, label: t('cityMap.legendNow') },
@@ -118,7 +116,7 @@ export function ownCityMapViewModel(
       : []),
   ];
   const vm: OwnMapVm = { data, legend, incomplete: fps.some((f) => !f.known) };
-  if (free) vm.free = free.length;
+  if (area) vm.free = area.free.length;
   return vm;
 }
 

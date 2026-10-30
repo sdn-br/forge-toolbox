@@ -3,16 +3,15 @@ import type { EraId } from '../../shared/ids';
 import type { CityGrid } from '../stores/catalog';
 import type { Area, ExpansionOffer, ResourceId } from '../stores/city-model';
 import type { ResearchExpansion } from '../stores/research';
-import type { TileRect } from './city-grid';
-import { areaTiles } from './city-stats';
+import { type TileRect, tileKey } from './city-grid';
 
 const BLOCK = 4;
 /** the start area of 16 × 16 tiles holds 16 blocks */
 const START_BLOCKS = 16;
 
-/** Unlocked blocks beyond the start area. */
-export const placedExpansions = (areas: Area[]): number =>
-  Math.max(0, Math.floor(areaTiles(areas) / (BLOCK * BLOCK)) - START_BLOCKS);
+/** Unlocked blocks beyond the start area; `areaTiles` is the number of distinct tiles in the areas. */
+export const placedExpansions = (areaTiles: number): number =>
+  Math.max(0, Math.floor(areaTiles / (BLOCK * BLOCK)) - START_BLOCKS);
 
 export interface ExpansionBlocks {
   unlocked: number;
@@ -23,19 +22,44 @@ export interface ExpansionBlocks {
   later: TileRect[];
 }
 
-const covers = (areas: Area[], x: number, y: number) =>
-  areas.some((a) => x >= a.x && x < a.x + a.width && y >= a.y && y < a.y + a.length);
+/**
+ * The points of the lattice `xs` × `ys` that the areas cover, as tile keys. Only the points asked for are listed, so
+ * each test is a lookup instead of a scan over all areas.
+ */
+function coveredPoints(areas: Area[], xs: number[], ys: number[]): Set<number> {
+  const out = new Set<number>();
+  for (const a of areas) {
+    const inX = xs.filter((x) => x >= a.x && x < a.x + a.width);
+    for (const y of ys) {
+      if (y < a.y || y >= a.y + a.length) continue;
+      for (const x of inX) out.add(tileKey(x, y));
+    }
+  }
+  return out;
+}
 
 /**
  * The blocks of the grid: unlocked when the areas cover their top left tile, blocked when the blocked areas do,
  * free otherwise. Blocked blocks are assumed not to be buyable.
  */
 export function expansionBlocks(grid: CityGrid, areas: Area[], blocked: Area[] | undefined): ExpansionBlocks {
+  // the top left tiles of the blocks and of their neighbors, the only tiles tested below
+  const xs = new Set<number>();
+  const ys = new Set<number>();
+  for (const b of grid.blocks) {
+    for (const d of [-BLOCK, 0, BLOCK]) {
+      xs.add(b.x + d);
+      ys.add(b.y + d);
+    }
+  }
+  const unlocked = coveredPoints(areas, [...xs], [...ys]);
+  const locked = coveredPoints(blocked ?? [], [...xs], [...ys]);
   const out: ExpansionBlocks = { unlocked: 0, blocked: 0, now: [], later: [] };
   const free: TileRect[] = [];
   for (const b of grid.blocks) {
-    if (covers(areas, b.x, b.y)) out.unlocked++;
-    else if (blocked && covers(blocked, b.x, b.y)) out.blocked++;
+    const k = tileKey(b.x, b.y);
+    if (unlocked.has(k)) out.unlocked++;
+    else if (locked.has(k)) out.blocked++;
     else free.push({ x: b.x, y: b.y, width: BLOCK, length: BLOCK });
   }
   for (const f of free) {
@@ -45,7 +69,7 @@ export function expansionBlocks(grid: CityGrid, areas: Area[], blocked: Area[] |
       [f.x, f.y - BLOCK],
       [f.x, f.y + BLOCK],
     ] as const;
-    (neighbors.some(([x, y]) => covers(areas, x, y)) ? out.now : out.later).push(f);
+    (neighbors.some(([x, y]) => unlocked.has(tileKey(x, y))) ? out.now : out.later).push(f);
   }
   return out;
 }

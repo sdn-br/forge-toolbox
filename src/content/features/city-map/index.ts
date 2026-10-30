@@ -6,6 +6,7 @@ import { icons } from '../../ui/icons';
 import { toMode } from '../../ui/map-projection';
 import { NameSearch } from '../../ui/name-search';
 import { selectionList } from '../../ui/selection-list';
+import { cityBasis } from './basis';
 import { largeDefaultSize } from './size';
 import { ownCityStats } from './stats';
 import { cityMapCss } from './styles';
@@ -65,15 +66,14 @@ export const cityMapFeature: Feature = {
       render: () => {
         const city = ctx.cities.own();
         if (!city) return cityMapView(undefined, ui, actions);
-        const def = (id: Parameters<typeof ctx.catalog.get>[0]) => ctx.catalog.get(id);
-        const grid = ctx.catalog.cityGrid();
         const now = Date.now();
         redrawAt(nextFinish(city, now), now);
-        const vm = ownCityMapViewModel(city, def, ui, grid, ctx.selection.ids(), now);
+        // the footprints come from the selection, which keeps them until the city or the catalog change
+        const basis = cityBasis(city, ctx.selection.buildings(), ctx.catalog.cityGrid());
+        const vm = ownCityMapViewModel(city, basis, ui, ctx.selection.ids(), now);
         const stats =
           ui.stats &&
-          ownCityStats(city, def, {
-            ...(grid && { grid }),
+          ownCityStats(city, basis, {
             resources: ctx.resources,
             research: ctx.research,
             eraIndex: (era) => ctx.catalog.eraIndex(era),

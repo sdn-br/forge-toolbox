@@ -15,6 +15,8 @@ export class OwnSelection {
   private selected = new Set<number>();
   /** the spots the arrows were set on last, at most MAX_MARKERS of the selection; setting the same again is skipped */
   private spots: ReturnType<typeof spotOf>[] = [];
+  /** the footprints of `buildings()`, kept until the city or the catalog change; every render and key asks for them */
+  private footprints?: Footprint[];
 
   constructor(
     private bus: ToolboxBus,
@@ -22,17 +24,19 @@ export class OwnSelection {
     private catalog: { get(id: BuildingDefId): BuildingDef | undefined },
     private markers: Markers,
   ) {
-    // buildings that left the own city drop out; sizes and places may have changed
+    // buildings that left the own city drop out; sizes and places may have changed. Registered before the features,
+    // so their redraws on these events already see fresh footprints.
     bus.on('city.ownChanged', () => this.refresh());
     bus.on('catalog.updated', () => this.refresh());
     // the page removed arrows: the viewer dismissed them, or the game view changed
     bus.on('markers.changed', () => this.arrowsChanged());
   }
 
-  /** the buildings on the grid of the own city, in the order the city lists them */
+  /** the buildings on the grid of the own city, in the order the city lists them; shared, so not to be changed */
   buildings(): Footprint[] {
     const city = this.cities.own();
-    return city ? footprints(city.buildings.values(), (id) => this.catalog.get(id)) : [];
+    this.footprints ??= city ? footprints(city.buildings.values(), (id) => this.catalog.get(id)) : [];
+    return this.footprints;
   }
 
   ids(): ReadonlySet<number> {
@@ -87,6 +91,7 @@ export class OwnSelection {
   }
 
   private refresh() {
+    this.footprints = undefined;
     // nothing selected, no arrows: nothing to drop or to show, the common case on every city update
     if (this.selected.size === 0 && this.spots.length === 0) return;
     const grid = this.buildings();

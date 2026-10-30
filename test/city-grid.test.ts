@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
+  areaTileKeys,
   buildingCategory,
   type Footprint,
   footprints,
+  freeTileKeys,
   freeTiles,
   gridBounds,
+  keyTile,
   needsRoad,
+  tileKey,
 } from '../src/content/domain/city-grid';
 import { toBuildingDef } from '../src/content/game/building-defs';
 import { toCity } from '../src/content/game/convert';
@@ -109,6 +113,28 @@ describe('free tiles', () => {
       fps,
     );
     expect(free).toHaveLength(6);
+  });
+
+  it('counts free and all unlocked tiles by key, overlapping areas once', () => {
+    const keys = areaTileKeys([
+      { x: 0, y: 0, width: 4, length: 4 },
+      { x: 2, y: 0, width: 4, length: 4 },
+    ]);
+    const fps = footprints([building('House', 'residential', 0, 0)], lookup);
+    expect(keys.size).toBe(24);
+    expect(freeTileKeys(keys, fps)).toHaveLength(24 - 4);
+    expect(freeTileKeys(keys, fps)).toContain(tileKey(5, 3));
+    expect(freeTileKeys(keys, fps)).not.toContain(tileKey(1, 1));
+  });
+
+  it('turns tiles into keys and back, negative ones too', () => {
+    for (const tile of [
+      { x: 0, y: 0 },
+      { x: 71, y: 3 },
+      { x: -2, y: 5 },
+      { x: 4, y: -1 },
+    ])
+      expect(keyTile(tileKey(tile.x, tile.y))).toEqual(tile);
   });
 
   it('spans the bounds over areas and buildings', () => {

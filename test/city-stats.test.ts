@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { footprints } from '../src/content/domain/city-grid';
-import { areaStats, streetEfficiency, typeStats } from '../src/content/domain/city-stats';
+import { streetEfficiency, typeStats } from '../src/content/domain/city-stats';
 import type { BuildingDef } from '../src/content/stores/catalog';
 import type { Building } from '../src/content/stores/city-model';
 import { type BuildingDefId, buildingDefId, playerId } from '../src/shared/ids';
@@ -33,17 +33,6 @@ const catalog = (...defs: BuildingDef[]) => {
   const map = new Map(defs.map((d) => [d.id, d]));
   return (id: BuildingDefId) => map.get(id);
 };
-
-describe('area of the city', () => {
-  it('counts free and all unlocked tiles, overlapping areas once', () => {
-    const fps = footprints([building('House', 'residential', 0, 0)], catalog(def('House', 2, 2)));
-    const areas = [
-      { x: 0, y: 0, width: 4, length: 4 },
-      { x: 2, y: 0, width: 4, length: 4 },
-    ];
-    expect(areaStats(areas, fps)).toEqual({ free: 24 - 4, total: 24 });
-  });
-});
 
 describe('buildings by type', () => {
   it('counts buildings, their share and their tiles per group, most frequent first', () => {

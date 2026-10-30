@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { footprints } from '../src/content/domain/city-grid';
+import { cityBasis } from '../src/content/features/city-map/basis';
 import { CATEGORY_COLORS } from '../src/content/features/city-map/colors';
-import { ownCityStats } from '../src/content/features/city-map/stats';
+import { ownCityStats as ownStats } from '../src/content/features/city-map/stats';
 import type { BuildingDef } from '../src/content/stores/catalog';
 import type { Building, City } from '../src/content/stores/city-model';
 import { type BuildingDefId, buildingDefId, type EraId, eraId, playerId, worldId } from '../src/shared/ids';
@@ -67,9 +69,12 @@ const means = (
   eraName: (era: EraId) => (era === 'MarsAge' ? 'Mars' : era),
 });
 
+const ownCityStats = (c: City, m: ReturnType<typeof means>) =>
+  ownStats(c, cityBasis(c, footprints(c.buildings.values(), lookup), m.grid), m);
+
 describe('statistics of the own city', () => {
   it('counts area, buildings by group with their legend color, and street efficiency', () => {
-    const stats = ownCityStats(city, lookup, means({ money: 30e6, expansions: 1 }));
+    const stats = ownCityStats(city, means({ money: 30e6, expansions: 1 }));
     expect(stats.area).toEqual({ free: 16 * 16 + 32 - 6, total: 16 * 16 + 32 });
     expect(stats.buildings).toBe(3);
     expect(stats.types[0]).toMatchObject({
@@ -83,7 +88,7 @@ describe('statistics of the own city', () => {
   });
 
   it('counts placed and open expansions, the placeable reward expansions and the free blocks of the grid', () => {
-    const stats = ownCityStats(city, lookup, means({ money: 30e6, expansions: 1 }));
+    const stats = ownCityStats(city, means({ money: 30e6, expansions: 1 }));
     expect(stats.expansions.placed).toBe(2);
     expect(stats.expansions.offers).toEqual([
       { kind: 'diamonds', label: 'Diamant-Erweiterungen', total: 1, buyable: 0, minEra: 'MarsAge', eraName: 'Mars' },
@@ -97,7 +102,7 @@ describe('statistics of the own city', () => {
 
   it('leaves out what it does not know', () => {
     const bare: City = { ...city, areas: undefined, expansions: undefined };
-    const stats = ownCityStats(bare, lookup, means(undefined, false));
+    const stats = ownCityStats(bare, means(undefined, false));
     expect(stats.area).toBeUndefined();
     expect(stats.expansions).toEqual({ resourcesKnown: false });
   });
@@ -105,29 +110,29 @@ describe('statistics of the own city', () => {
   const reward = (stats: ReturnType<typeof ownCityStats>) => stats.expansions.offers?.find((o) => o.kind === 'reward');
 
   it('shows the placeable reward expansions also when there are none, and only once the resources are known', () => {
-    expect(reward(ownCityStats(city, lookup, means({ expansions: 0 })))?.placeable).toBe(0);
-    expect(reward(ownCityStats(city, lookup, means(undefined)))?.placeable).toBeUndefined();
+    expect(reward(ownCityStats(city, means({ expansions: 0 })))?.placeable).toBe(0);
+    expect(reward(ownCityStats(city, means(undefined)))?.placeable).toBeUndefined();
   });
 
   it('keeps placeable reward expansions when none is open any more', () => {
     const none: City = { ...city, expansions: city.expansions?.filter((e) => e.kind !== 'tileset_reward') };
-    expect(ownCityStats(none, lookup, means({ expansions: 2 })).expansions.offers?.map((o) => o.kind)).toEqual([
+    expect(ownCityStats(none, means({ expansions: 2 })).expansions.offers?.map((o) => o.kind)).toEqual([
       'diamonds',
       'reward',
       'quantum',
     ]);
-    expect(reward(ownCityStats(none, lookup, means({ expansions: 2 })))).toMatchObject({ total: 0, placeable: 2 });
-    expect(reward(ownCityStats(none, lookup, means({ expansions: 0 })))).toBeUndefined();
+    expect(reward(ownCityStats(none, means({ expansions: 2 })))).toMatchObject({ total: 0, placeable: 2 });
+    expect(reward(ownCityStats(none, means({ expansions: 0 })))).toBeUndefined();
   });
 
   it('tells where the open reward expansions come from once research metadata and progress are known', () => {
     const research = { expansions: [{ tech: 'mars_rules', name: 'Mars-Vorschriften', amount: 1 }], unlocked: ['root'] };
-    expect(reward(ownCityStats(city, lookup, means({ expansions: 0 }, true, research)))?.sources).toEqual({
+    expect(reward(ownCityStats(city, means({ expansions: 0 }, true, research)))?.sources).toEqual({
       fromResearch: 1,
       nextTech: 'Mars-Vorschriften',
       fromMap: 1,
     });
     const halfway = { expansions: research.expansions };
-    expect(reward(ownCityStats(city, lookup, means({ expansions: 0 }, true, halfway)))?.sources).toBeUndefined();
+    expect(reward(ownCityStats(city, means({ expansions: 0 }, true, halfway)))?.sources).toBeUndefined();
   });
 });
