@@ -12,7 +12,6 @@ import { effectiveFactor as effective, type FactorChoice } from '../../domain/gb
 import { previewLevel } from '../../domain/gb-level-preview';
 import { ownerRow } from '../../domain/gb-snipe';
 import { type LevelUpAndFirst, levelUpAndFirst } from '../../domain/gb-strategy';
-import { ignoreReason } from '../../domain/ignore';
 import type { GreatBuildingDef } from '../../stores/catalog';
 import type { FoestatsRecord } from '../../stores/foestats';
 import type { Construction, RankingRow } from '../../stores/great-building-model';
@@ -365,7 +364,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
       ? undefined
       : (input.fpBar ?? 0) + (input.fpPackages ?? 0);
   const ignored = input.isIgnored(c.owner, c.entityId);
-  const reason = ignoreReason(ignored, ownerIgnored);
+  const words = ignoreWords(ignored, ownerIgnored);
   const header: GbHeader = {
     name: input.greatBuildingName(entity.def) ?? entity.def,
     level: entity.level,
@@ -383,7 +382,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     ...(ownerMarked !== undefined && { ownerMarked }),
     ignored,
     ...(ownerIgnored !== undefined && { ownerIgnored }),
-    ...(reason && { ignoreWords: ignoreWords(reason) }),
+    ...(words.length > 0 && { ignoreWords: words }),
   };
   const arcButton = input.arcButton ? input.arcBonus : undefined;
   const effectiveFactor = effective(input.factor, arcButton);

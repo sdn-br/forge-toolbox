@@ -1,20 +1,22 @@
 // The closed eye that ignores a great building or a player: outline-less eye when not ignored, accent when ignored.
 import { html } from 'lit-html';
 import { t } from '../core/texts';
-import { type IgnoreReason, ignoreReason } from '../domain/ignore';
 import { filterToggle, toggleButton } from './buttons';
 import { headerIcons } from './icons';
 
-/** the reasons in words, building first: "LG ignoriert", "Spieler ignoriert" */
-export const ignoreWords = (reason: IgnoreReason): string[] => [
-  ...(reason.building ? [t('ignore.building')] : []),
-  ...(reason.owner ? [t('ignore.player')] : []),
+/**
+ * Why a great building counts as ignored, in words, building first: "LG ignoriert", "Spieler ignoriert". Empty when
+ * neither is ignored. `owner` is undefined for a player the store does not know.
+ */
+export const ignoreWords = (building: boolean, owner: boolean | undefined): string[] => [
+  ...(building ? [t('ignore.building')] : []),
+  ...(owner ? [t('ignore.player')] : []),
 ];
 
 /** `{ ignoreNote }` with the reasons in words for a row tooltip; nothing for a row that is not ignored */
 export const ignoreNote = (building: boolean, owner: boolean | undefined) => {
-  const reason = ignoreReason(building, owner);
-  return reason ? { ignoreNote: ignoreWords(reason).join(', ') } : {};
+  const words = ignoreWords(building, owner);
+  return words.length > 0 ? { ignoreNote: words.join(', ') } : {};
 };
 
 /**

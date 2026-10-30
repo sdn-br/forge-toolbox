@@ -4,6 +4,7 @@
 // arrows the viewer dismissed there.
 import { MARKER_TAG, MAX_MARKERS, type MarkerCommand, type MarkerSpot } from '../../shared/marker-protocol';
 import type { CityKey } from '../../shared/model';
+import type { Footprint } from '../domain/city-grid';
 import type { ToolboxBus } from './events';
 import { t } from './texts';
 
@@ -20,6 +21,15 @@ export interface Marking {
   city: CityKey;
   spots: MarkerSpot[];
 }
+
+/** Where an arrow in the game points: the building and its footprint. */
+export const spotOf = (f: Footprint): MarkerSpot => ({
+  id: f.building.id,
+  x: f.x,
+  y: f.y,
+  width: f.width,
+  length: f.length,
+});
 
 export class Markers {
   private markings = new Map<CityKey, Marking>();

@@ -9,7 +9,6 @@ import { listDef, numberDef, type Setting, toggleDef } from '../../core/settings
 import { t } from '../../core/texts';
 import { arcBonus } from '../../domain/arc-bonus';
 import { type SnipeList, snipeList } from '../../domain/gb-snipe';
-import { ignoreReason } from '../../domain/ignore';
 import { FOESTATS_SETTING } from '../../stores/foestats';
 import type { Construction } from '../../stores/great-building-model';
 import { icons } from '../../ui/icons';
@@ -181,8 +180,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       };
       const isIgnored = (owner: PlayerId, entityId: number) => ctx.greatBuildings.isIgnored(owner, entityId);
       /** the building, or its owner, is ignored */
-      const ignores = (owner: PlayerId, entityId: number) =>
-        ignoreReason(isIgnored(owner, entityId), ownerIgnored(owner)) !== undefined;
+      const ignores = (owner: PlayerId, entityId: number) => isIgnored(owner, entityId) || ownerIgnored(owner) === true;
       const ignoreBuilding = (owner: PlayerId, entityId: number, ignored: boolean) =>
         ctx.greatBuildings
           .ignore(owner, entityId, ignored)

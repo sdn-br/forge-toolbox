@@ -1,9 +1,10 @@
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
+import { spotOf } from '../../core/markers';
 import { toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
 import { assessCity } from '../../domain/assess-city';
-import { footprints, spotOf } from '../../domain/city-grid';
+import { footprints } from '../../domain/city-grid';
 import { icons } from '../../ui/icons';
 import { PlayerNoteCard } from '../../ui/note-card';
 import { sabotageCss } from './styles';

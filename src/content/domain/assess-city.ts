@@ -2,7 +2,7 @@
 import type { BuildingDefId, EraId } from '../../shared/ids';
 import { type Boost, type BuildingDef, boostsAt, boostsFor, type LevelBonus } from '../stores/catalog';
 import type { Building, City } from '../stores/city-model';
-import { connectedLinks, type Placed, place, setLevels } from './city-layout';
+import { connectedLinks, type Placed, place, setLevels } from './city-grid';
 
 export interface ArmyValues {
   attack: number;
