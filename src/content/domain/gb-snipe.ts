@@ -111,7 +111,8 @@ function assumed(
 const worthwhile = (places: PlaceCalc[]): SnipePlace | undefined => {
   let best: SnipePlace | undefined;
   for (const p of places) {
-    // a snipe is about profit; paying a place at a factor is the calculator's business
+    // a snipe is about the most profit, so a place that completes the level is a valid hit; paying a place at a factor
+    // is the calculator's business
     if (!p.available || p.safeCost === undefined || p.profit === undefined || p.profit < 0) continue;
     if (!best || p.profit > best.profit) best = { rank: p.rank, cost: p.safeCost, profit: p.profit };
   }

@@ -49,7 +49,6 @@ export function applyListRow(
     delete next.rankingsLevel;
     delete next.rankingsAt;
     delete next.rankingsInvested;
-    delete next.bestRate;
     delete next.contribution;
     delete next.growthBase;
   }
@@ -84,16 +83,7 @@ export const hasOwnContribution = (b: KnownGreatBuilding): boolean =>
  * investment. The star and the ignore are the player's own and stay with the building, which then stands as a plain foreign one.
  */
 export function withoutOwnContribution(b: KnownGreatBuilding): KnownGreatBuilding {
-  const {
-    ownContribution,
-    contribution,
-    growthBase,
-    rankings,
-    rankingsLevel,
-    rankingsAt,
-    rankingsInvested,
-    bestRate,
-    ...rest
-  } = b;
+  const { ownContribution, contribution, growthBase, rankings, rankingsLevel, rankingsAt, rankingsInvested, ...rest } =
+    b;
   return rest;
 }

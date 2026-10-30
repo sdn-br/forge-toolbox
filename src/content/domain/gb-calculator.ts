@@ -191,7 +191,7 @@ export function calculateConstruction(input: ConstructionInput): ConstructionCal
       fallbackGross === undefined
         ? profit >= 0 || safeCost <= demandCost
         : gross - (safeCost - myDeposit) > fallbackGross;
-    // not more profit than a higher place offers
+    // not more profit than a higher place offers; places that complete the level stay out, `levelWarning` flags them
     const worse = available && !levelWarning && best !== undefined && profit <= best;
     if (available && !levelWarning) best = best === undefined ? profit : Math.max(best, profit);
     places.push({
@@ -251,10 +251,4 @@ function statusOf(mine: boolean, available: boolean, levelWarning: boolean, wors
   if (levelWarning) return 'levelWarning';
   if (worse) return 'worse';
   return profit >= 0 ? 'profit' : 'loss';
-}
-
-/** The lowest rate of all places the player could take, for the snipe helper; undefined when none is free. */
-export function bestRate(calc: ConstructionCalc): number | undefined {
-  const rates = calc.places.filter((p) => p.available && p.rate !== undefined).map((p) => p.rate as number);
-  return rates.length ? Math.min(...rates) : undefined;
 }

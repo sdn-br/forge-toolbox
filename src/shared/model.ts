@@ -206,10 +206,11 @@ export interface KnownGreatBuilding {
   rankingsLevel?: number;
   /** when the rankings came */
   rankingsAt?: number;
-  /** sum of the deposits in the rankings, owner included */
+  /**
+   * sum of the deposits in the stored rankings when the building was opened, owner included; tells whether the rankings
+   * still match the progress (current or stale)
+   */
   rankingsInvested?: number;
-  /** lowest rate in percent of all places the session player could take then; missing when none was free */
-  bestRate?: number;
   /** the session player invested here (own row in the rankings, or the town hall list); such a row is never pruned */
   ownContribution?: boolean;
   /**
@@ -226,7 +227,11 @@ export interface KnownGreatBuilding {
    * a row without it counts as oldest
    */
   marksAt?: number;
-  /** the progress (`invested`) when the building was last seen open in the game; growth beyond it means others pay in */
+  /**
+   * start point of the growth in the investments: the progress (`invested`) when the building was last seen open, or
+   * from the town hall list for a building never opened, which has no rankings; equals `rankingsInvested` only when both
+   * come from an opening whose rankings cover exactly `invested`
+   */
   growthBase?: number;
   /**
    * Forge points paid in between the last two sightings of the same level (a list or the open building); missing when

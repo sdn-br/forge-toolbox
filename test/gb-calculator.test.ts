@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bestRate, type ConstructionInput, calculateConstruction } from '../src/content/domain/gb-calculator';
+import { type ConstructionInput, calculateConstruction } from '../src/content/domain/gb-calculator';
 import { toGreatBuildingEntity, toRankingRows } from '../src/content/game/convert';
 import type { GameCityEntity } from '../src/content/game/game-types';
 import type { RankingRow } from '../src/content/stores/great-building-model';
@@ -80,7 +80,6 @@ describe('calculateConstruction on recorded great buildings', () => {
       [1406, 'unavailable'],
       [1406, 'unavailable'],
     ]);
-    expect(bestRate(calc)).toBe(192.6);
   });
 
   it('own first place with the owner and an almost empty rest: exactly safe with the recorded deposit', () => {
@@ -91,7 +90,6 @@ describe('calculateConstruction on recorded great buildings', () => {
     expect(calc.places[0]).toMatchObject({ mine: true, safeCost: 696, safeExtra: 0, gross: 860, profit: 164 });
     expect(calc.places[0]?.status).toBe('mine');
     expect(calc.places.slice(1).every((p) => p.status === 'unavailable')).toBe(true);
-    expect(bestRate(calc)).toBeUndefined();
   });
 
   it('ranks without reward count as deposits but are no places', () => {
@@ -193,7 +191,6 @@ describe('calculateConstruction on edge cases', () => {
     });
     // gross round(1275 × 1.955) = 2493 minus the own 2800, the larger of deposit and safe cost
     expect(calc.places[0]?.profit).toBe(-307);
-    expect(bestRate(calc)).toBeUndefined();
   });
 
   it('the own place not yet safe: the profit counts the safe cost, the worse mark ignores the own place', () => {
@@ -271,7 +268,6 @@ describe('calculateConstruction on edge cases', () => {
     expect(calc.places[2]).toMatchObject({ demandCost: 133, demandExtra: 133 });
     // gross, blueprints and medals stay as information
     expect(calc.places[2]).toMatchObject({ net: 70, gross: 133 });
-    expect(bestRate(calc)).toBeUndefined();
   });
 
   it('the own place without a successor needs half of what is left', () => {

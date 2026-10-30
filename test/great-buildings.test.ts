@@ -94,7 +94,6 @@ describe('great building handlers and store', () => {
       rankingsLevel: 75,
       rankingsAt: 5_000,
       rankingsInvested: 251,
-      bestRate: 192.6,
       seenAt: 5_000,
     });
     expect(stored?.rankings).toEqual(c?.rankings);
@@ -126,10 +125,7 @@ describe('great building handlers and store', () => {
     open(650);
     expect(greatBuildings.current()?.rankings.find((r) => r.self)).toMatchObject({ rank: 1, player: 1000, fp: 696 });
     const known = await greatBuildings.known();
-    expect(known.map((k) => [k.entityId, k.bestRate])).toEqual([
-      [650, undefined],
-      [1500, undefined],
-    ]);
+    expect(known.map((k) => k.entityId)).toEqual([650, 1500]);
   });
 
   it('opens an own construction with the building of the own city and stores nothing', async () => {

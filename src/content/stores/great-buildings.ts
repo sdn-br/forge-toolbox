@@ -5,7 +5,6 @@ import { DAY_MS } from '../../shared/time';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
 import type { LimitedBonus } from '../domain/arc-bonus';
-import { bestRate, calculateConstruction, constructionOf } from '../domain/gb-calculator';
 import type { Construction, GreatBuildingEntity, RankingRow } from './great-building-model';
 
 export interface GreatBuildingPersistence {
@@ -291,7 +290,6 @@ export class GreatBuildingStore {
     const open = this.open;
     const entity = open?.entity;
     if (!open || open.own || !entity) return;
-    const rate = bestRate(calculateConstruction(constructionOf(entity, open.rankings, { arcBonus: 0, factor: 0 })));
     const invested = open.rankings.reduce((sum, r) => sum + (r.fp ?? 0), 0);
     const self = open.rankings.find((r) => r.self && r.rank !== undefined);
     const at = this.now();
@@ -309,7 +307,6 @@ export class GreatBuildingStore {
       rankingsLevel: open.rankingsLevel ?? entity.level,
       rankingsAt: open.seenAt,
       rankingsInvested: invested,
-      ...(rate !== undefined && { bestRate: rate }),
       ...(self?.rank !== undefined && {
         ownContribution: true,
         contribution: { rank: self.rank, forgePoints: self.fp ?? 0, reward: self.reward?.fp ?? 0, at },

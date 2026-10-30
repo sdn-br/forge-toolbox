@@ -44,8 +44,8 @@ export function levelUpAndFirst(
   const first = previewLevel({ greatBuilding, level: level + 1, arcBonus, factor: input.factor }).calc?.places[0];
   if (first?.safeCost === undefined || first.profit === undefined) return undefined;
   const total = fillGain + first.profit;
-  // worth it only above what the current level pays without levelling: the own place as it stands, or a place still to
-  // take; a place whose safe cost levels the building is this case itself
+  // levelling up plus first place against what the current level pays without levelling: the own place as it stands,
+  // or a place still to take that does not complete the level; completing the level is this case itself
   const best = Math.max(
     0,
     ...calc.places.filter((p) => p.mine || (p.available && !p.levelWarning)).map((p) => p.profit ?? 0),
