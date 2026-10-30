@@ -1,8 +1,14 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Ingestion } from '../src/content/core/ingestion';
-import { createGbCalculatorFeature } from '../src/content/features/gb-calculator';
+import {
+  CLOSE_WITHOUT_WINDOW as CALC_CLOSE_WITHOUT_WINDOW,
+  createGbCalculatorFeature,
+  SNIPE_OPEN,
+  SNIPE_SOUND,
+} from '../src/content/features/gb-calculator';
 import { registerGameHandlers } from '../src/content/game/handlers';
+import { FOESTATS_SETTING } from '../src/content/stores/foestats';
 import type { GbWindowState } from '../src/shared/gb-window-protocol';
 import { playerId } from '../src/shared/ids';
 import definitions from './fixtures/gb-definitions.json';
@@ -38,6 +44,8 @@ function setup(prefs: Record<string, string> = {}) {
   const ingestion = new Ingestion();
   registerGameHandlers(ingestion, { ...ctx, now });
   let tones = 0;
+  // the foestats feature owns this setting; the calculator only reads it
+  ctx.settings.register(FOESTATS_SETTING);
   createGbCalculatorFeature(() => tones++).setup(ctx);
   drain = () => ctx.greatBuildings.known();
   const box = env.boxes.get('gbCalculator') as NonNullable<ReturnType<typeof env.boxes.get>>;
@@ -313,8 +321,8 @@ describe('LG-Rechner: follows the windows of the game', () => {
     'stays open for %s when its setting is off, and still folds',
     async (state) => {
       const { box, bus, settings } = await overList();
-      expect(settings.get('gbCalc.closeWithoutWindow')).toBe(true);
-      await settings.set('gbCalc.closeWithoutWindow', false);
+      expect(settings.of(CALC_CLOSE_WITHOUT_WINDOW).get()).toBe(true);
+      await settings.of(CALC_CLOSE_WITHOUT_WINDOW).set(false);
       shows(bus, 'foreign');
       shows(bus, state);
       expect(box.box.isOpen).toBe(true);
@@ -660,8 +668,8 @@ describe('Snipehilfe: stacked box', () => {
 
   it('stays closed and quiet when its settings are off', async () => {
     const { box, list, tones, settings } = setup();
-    await settings.set('snipe.open', false);
-    await settings.set('snipe.sound', false);
+    await settings.of(SNIPE_OPEN).set(false);
+    await settings.of(SNIPE_SOUND).set(false);
     list([hitZeus()]);
     await tick();
     expect(box.box.isOpen).toBe(false);

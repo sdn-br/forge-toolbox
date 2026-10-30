@@ -3,6 +3,7 @@ import type { PlayerId } from '../../../shared/ids';
 import type { KnownGreatBuilding } from '../../../shared/model';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
+import { toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
 import { arcBonus } from '../../domain/gb-calculator';
 import {
@@ -41,7 +42,12 @@ import {
 
 /** the menu entry and the settings group show it */
 const ICON = icons.investments;
-const OPEN_WITH_LIST = 'investments.openWithList';
+export const OPEN_WITH_LIST = toggleDef({
+  key: 'investments.openWithList',
+  group: 'investments.title',
+  label: 'investments.openSetting',
+  default: true,
+});
 /** view choices: the tab and the filters of the possible investments */
 const TAB = 'investments.tab';
 const FILTER = 'investments.filter';
@@ -91,12 +97,7 @@ export const investmentsFeature: Feature = {
   id: 'investments',
   setup(ctx) {
     ctx.settings.registerGroup('investments.title', ICON);
-    ctx.settings.register({
-      key: OPEN_WITH_LIST,
-      group: 'investments.title',
-      label: 'investments.openSetting',
-      default: true,
-    });
+    const openWithList = ctx.settings.register(OPEN_WITH_LIST);
 
     let tab: InvestmentsTab = ctx.ui.pref(TAB) === 'possible' ? 'possible' : 'mine';
     let sort: InvestmentSort | undefined;
@@ -302,7 +303,7 @@ export const investmentsFeature: Feature = {
 
     ctx.bus.on('greatBuildings.contributions', ({ owners }) => {
       for (const o of owners) ownerNames.set(o.id, o.name);
-      if (ctx.settings.get(OPEN_WITH_LIST)) {
+      if (openWithList.get()) {
         showTab('mine');
         box.open();
       }

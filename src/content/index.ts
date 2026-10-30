@@ -46,7 +46,7 @@ import { investmentsFeature } from './features/investments';
 import { notesFeature } from './features/notes';
 import { pvpFeature } from './features/pvp';
 import { sabotageFeature } from './features/sabotage';
-import { settingsFeature } from './features/settings-feature';
+import { RECORD, RECORD_REQUESTS, settingsFeature } from './features/settings-feature';
 import { watchEngine } from './game/engine';
 import { registerGameHandlers } from './game/handlers';
 import { identifyStartup } from './game/identify';
@@ -128,8 +128,8 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
     () => location.reload(),
   );
   const recorder = new Recorder(
-    () => settings.get('core.record'),
-    () => settings.get('core.recordRequests'),
+    () => settings.of(RECORD).get(),
+    () => settings.of(RECORD_REQUESTS).get(),
   );
 
   registerGameHandlers(ingestion, { world, bus, now, ...stores });

@@ -101,6 +101,7 @@ Bausteine und Regeln der Oberfläche (Box, Tabelle, Chart, Icons, Größe der Bo
 ### Settings
 
 - Jede Einstellung hat ein Schema mit Typ und Default, angemeldet vom Feature.
+- **Typisierte Handles** (Nutzer, 2026-10-30): Die Definition ist die einzige Quelle. Sie ist eine exportierte Modulkonstante, gebaut mit `toggleDef`, `choiceDef`, `numberDef`, `listDef` oder `textDef`, und trägt ihre Art in `kind`. `choiceDef` behält die Werte als Literal-Union, ein Cast beim Lesen entfällt. Der Besitzer ruft `ctx.settings.register(DEF)` und bekommt ein `Setting<T>` mit `get()`, `set(value)` und `onChange(listener)`. Jeder andere Leser holt es mit `ctx.settings.of(DEF)` aus seiner eigenen `Settings`-Instanz, auch in den Stores. `of` wirft bei einer Definition, die nie angemeldet wurde. Die Reihenfolge der `setup`-Aufrufe spielt für das Lesen keine Rolle, solange der Leser das Handle erst im Handler holt und nicht schon im eigenen `setup`. Das globale `settings.onChange((key) => …)` bleibt für alles, was auf jede Änderung hört (Sicherungskopie, Einstellungsfenster).
 - Gespeichert in `chrome.storage`, nicht im localStorage der Spielseite, je Profil (Welt und Spieler, siehe Persistenz).
 - Double-Opt-In für Einstellungen, die Daten nach außen senden.
 

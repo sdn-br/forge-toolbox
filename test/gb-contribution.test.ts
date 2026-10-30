@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { Ingestion } from '../src/content/core/ingestion';
 import { createGbCalculatorFeature } from '../src/content/features/gb-calculator';
 import { registerGameHandlers } from '../src/content/game/handlers';
+import { FOESTATS_SETTING } from '../src/content/stores/foestats';
 import fixture from './fixtures/gb-contribution.json';
 import belowOwn from './fixtures/gb-contribution-below-own.json';
 import { featureContext } from './helpers/feature-context';
@@ -29,6 +30,8 @@ function setup(f: ContributionFixture = fixture) {
   const { ctx } = env;
   const ingestion = new Ingestion();
   registerGameHandlers(ingestion, { ...ctx, now: Date.now });
+  // the foestats feature owns this setting; the calculator only reads it
+  ctx.settings.register(FOESTATS_SETTING);
   createGbCalculatorFeature(() => {}).setup(ctx);
   const box = env.boxes.get('gbCalculator') as NonNullable<ReturnType<typeof env.boxes.get>>;
   const events: string[] = [];

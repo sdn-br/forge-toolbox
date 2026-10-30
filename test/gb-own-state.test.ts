@@ -2,22 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import { memoryKv } from '../src/content/core/kv';
 import { Settings } from '../src/content/core/settings';
-import { createGbOwnState, viewFlag } from '../src/content/stores/gb-own-state';
+import { createGbOwnState, FACTOR, FACTOR_ARC, viewFlag } from '../src/content/stores/gb-own-state';
 import { UiState } from '../src/content/ui/ui-state';
 
 function setup() {
   const bus = createBus();
   const ui = new UiState(memoryKv());
   const settings = new Settings(memoryKv());
-  settings.register({
-    key: 'gbOwn.factor',
-    group: 'gbOwn.title',
-    label: 'gbOwn.factorSetting',
-    default: 90,
-    min: -100,
-    max: 200,
-  });
-  settings.register({ key: 'gbOwn.factorArc', group: 'gbOwn.title', label: 'gbOwn.factorArcSetting', default: false });
+  settings.register(FACTOR);
+  settings.register(FACTOR_ARC);
   const state = createGbOwnState(bus, ui, settings);
   const factorEvents: unknown[] = [];
   const extEvents: unknown[] = [];

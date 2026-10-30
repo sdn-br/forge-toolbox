@@ -4,6 +4,7 @@ import { Ingestion } from '../src/content/core/ingestion';
 import { createGbCalculatorFeature } from '../src/content/features/gb-calculator';
 import { investmentsFeature } from '../src/content/features/investments';
 import { registerGameHandlers } from '../src/content/game/handlers';
+import { FOESTATS_SETTING } from '../src/content/stores/foestats';
 import { playerId } from '../src/shared/ids';
 import friendAccept from './fixtures/friend-accept.json';
 import contributions from './fixtures/gb-contributions.json';
@@ -54,6 +55,8 @@ function setup() {
   const ingestion = new Ingestion();
   registerGameHandlers(ingestion, { ...ctx, now });
   // the calculator owns the factor the snipe helper and the possible investments rate places with
+  // the foestats feature owns this setting; the calculator only reads it
+  ctx.settings.register(FOESTATS_SETTING);
   createGbCalculatorFeature(() => {}).setup(ctx);
   investmentsFeature.setup(ctx);
   drain = () => ctx.greatBuildings.known();

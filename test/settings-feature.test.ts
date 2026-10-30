@@ -1,8 +1,11 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
 import { Recorder } from '../src/content/core/recorder';
+import { toggleDef } from '../src/content/core/settings';
 import { createGbOwnShareFeature } from '../src/content/features/gb-own-share';
-import { settingsFeature } from '../src/content/features/settings-feature';
+import { COPY_MODE, COPY_PLAYER } from '../src/content/features/gb-own-share/copy-text';
+import { RECORD, settingsFeature } from '../src/content/features/settings-feature';
+import { FACTOR, FACTOR_BUTTONS } from '../src/content/stores/gb-own-state';
 import { featureContext } from './helpers/feature-context';
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -33,12 +36,34 @@ describe('settings box', () => {
     expect(factor.value).toBe('1.9');
     expect([factor.min, factor.max, factor.step]).toEqual(['0', '3', '0.01']);
     await type(factor, '1.955');
-    expect(ctx.settings.number('gbOwn.factor')).toBe(95.5);
+    expect(ctx.settings.of(FACTOR).get()).toBe(95.5);
     const buttons = field('Faktor-Knöpfe');
     expect(buttons.value).toBe('1,8; 1,9; 2');
     await type(buttons, '1,9 2,1; 1,955');
-    expect(ctx.settings.numbers('gbOwn.factorButtons')).toEqual([90, 110, 95.5]);
+    expect(ctx.settings.of(FACTOR_BUTTONS).get()).toEqual([90, 110, 95.5]);
     expect(buttons.value).toBe('1,9; 2,1; 1,955');
+  });
+});
+
+describe('settings box text and choice', () => {
+  it('shows a text setting and stores what is typed', async () => {
+    const { ctx, field, type } = setup();
+    const name = field('Spielername');
+    expect(name.value).toBe('');
+    await type(name, ' Michi ');
+    expect(ctx.settings.of(COPY_PLAYER).get()).toBe('Michi');
+    expect(field('Spielername').value).toBe('Michi');
+  });
+
+  it('shows a choice setting with the stored value selected and stores the picked one', async () => {
+    const { ctx, box } = setup();
+    const select = box.root.querySelector('select') as HTMLSelectElement;
+    expect(select.selectedOptions[0]?.textContent).toBe('Auto: sichere Plätze');
+    select.value = 'autoUnsafe';
+    select.dispatchEvent(new Event('change'));
+    await tick();
+    expect(ctx.settings.of(COPY_MODE).get()).toBe('autoUnsafe');
+    expect(select.options.length).toBe(4);
   });
 });
 
@@ -75,7 +100,7 @@ describe('settings box recording', () => {
     const { ctx } = env;
     ctx.recorder = new Recorder(() => true);
     settingsFeature(env.profileCopy).setup(ctx);
-    await ctx.settings.set('core.record', true);
+    await ctx.settings.of(RECORD).set(true);
     ctx.open('settings', 'settings.core');
     const box = env.boxes.get('settings') as NonNullable<ReturnType<typeof env.boxes.get>>;
     ctx.recorder.add({ kind: 'ws', data: '[]', at: 0 });
@@ -144,7 +169,9 @@ describe('settings box: copy from another profile', () => {
     expect(question(box)).toBeNull();
     button().click();
     await tick();
-    env.ctx.settings.register({ key: 'other', group: 'sabotage.title', label: 'sabotage.title', default: true });
+    env.ctx.settings.register(
+      toggleDef({ key: 'other', group: 'sabotage.title', label: 'sabotage.title', default: true }),
+    );
     box.box.update();
     const nav = () => [...box.root.querySelectorAll<HTMLButtonElement>('.settings-nav button')];
     (nav()[1] as HTMLButtonElement).click();

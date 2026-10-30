@@ -1,6 +1,7 @@
 import { foestatsPlayerUrl } from '../../../shared/foestats';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
+import { toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
 import { icons } from '../../ui/icons';
 import { PlayerNoteCard } from '../../ui/note-card';
@@ -20,17 +21,19 @@ import {
 /** the menu entry and the settings group show it */
 const ICON = icons.pvp;
 
+export const OPEN_WITH_ARMY = toggleDef({
+  key: 'pvp.openWithArmy',
+  group: 'pvp.title',
+  label: 'pvp.openWithArmy',
+  default: true,
+});
+
 export const pvpFeature: Feature = {
   id: 'pvp',
   setup(ctx) {
     ctx.settings.registerGroup('pvp.title', ICON);
-    ctx.settings.register(KEEP_SETTING);
-    ctx.settings.register({
-      key: 'pvp.openWithArmy',
-      group: 'pvp.title',
-      label: 'pvp.openWithArmy',
-      default: true,
-    });
+    const keep = ctx.settings.register(KEEP_SETTING);
+    const openWithArmy = ctx.settings.register(OPEN_WITH_ARMY);
 
     let vm: PvpVm | undefined;
     let tab: PvpTab = 'battles';
@@ -137,7 +140,7 @@ export const pvpFeature: Feature = {
     const card = new PlayerNoteCard(ctx.notes, () => box.update());
 
     const prune = () => {
-      const before = pruneBefore(ctx.settings.choice(KEEP_SETTING.key), Date.now());
+      const before = pruneBefore(keep.get(), Date.now());
       if (before === undefined) return;
       Promise.all([ctx.battles.prune(before), ctx.plunders.prune(before), ctx.incoming.prune(before)])
         .then((deleted) => {
@@ -146,19 +149,17 @@ export const pvpFeature: Feature = {
         .catch((error) => logError('pruning battles, plunders and attacks failed', error));
     };
     ctx.bus.on('session.started', prune);
-    ctx.settings.onChange((key) => {
-      if (key === KEEP_SETTING.key) prune();
-    });
+    keep.onChange(prune);
 
     // The game traffic names no opponent before the battle starts, so the box opens on the battles to search them
     // there. When the page module reads the opponent from the game engine, the box picks it.
     ctx.bus.on('army.opened', ({ battleType }) => {
-      if (battleType !== 'pvp' || !ctx.settings.get('pvp.openWithArmy')) return;
+      if (battleType !== 'pvp' || !openWithArmy.get()) return;
       box.open();
       actions.tab('battles');
     });
     ctx.bus.on('army.target', ({ opponent }) => {
-      if (!box.isOpen || !ctx.settings.get('pvp.openWithArmy')) return;
+      if (!box.isOpen || !openWithArmy.get()) return;
       actions.pick(opponent);
     });
     ctx.bus.on('battle.recorded', show);

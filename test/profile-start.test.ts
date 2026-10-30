@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import { memoryKv, profileKv } from '../src/content/core/kv';
 import { backgroundCall } from '../src/content/core/rpc';
-import { Settings } from '../src/content/core/settings';
+import { Settings, toggleDef } from '../src/content/core/settings';
 import { startupGate } from '../src/content/core/startup-gate';
 import { identifyStartup } from '../src/content/game/identify';
 import { createStores } from '../src/content/stores';
@@ -78,12 +78,14 @@ describe('profile keys', () => {
     const kv = memoryKv({ settings: { a: false }, 'settings:de20:12345': { a: true }, 'ui.boxes:de20:12345': {} });
     const own = profileKv(kv, profile);
     const settings = new Settings(own);
-    settings.register({ key: 'a', group: 'settings.core', label: 'settings.recordTraffic', default: false });
+    const a = settings.register(
+      toggleDef({ key: 'a', group: 'settings.core', label: 'settings.recordTraffic', default: false }),
+    );
     const ui = new UiState(own);
     await Promise.all([settings.load(), ui.load()]);
-    expect(settings.get('a')).toBe(true);
+    expect(a.get()).toBe(true);
 
-    await settings.set('a', false);
+    await a.set(false);
     ui.saveBox('pvp', { x: 5 });
     ui.savePref('map', 'grid');
     await new Promise((resolve) => setTimeout(resolve, 0));

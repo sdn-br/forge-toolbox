@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { SHOW_ARMY } from '../src/content/features/sabotage';
 import { sabotageFeature } from '../src/content/features/sabotage/index';
 import { type BattlePersistence, BattleStore } from '../src/content/stores/battles';
 import type { BuildingDef } from '../src/content/stores/catalog';
@@ -424,7 +425,7 @@ describe('sabotage feature', () => {
     expect(details.textContent).toContain('0 % / 111 %');
 
     details.open = true;
-    await ctx.settings.set('sabotage.showArmy', false);
+    await ctx.settings.of(SHOW_ARMY).set(false);
     expect(box.root.querySelector('details')).toBe(details);
     expect(details.open).toBe(true);
     expect(details.textContent).toContain('feudal_knight');

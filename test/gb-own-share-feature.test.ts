@@ -2,8 +2,14 @@
 import { describe, expect, it } from 'vitest';
 import { Ingestion } from '../src/content/core/ingestion';
 import { createGbCalculatorFeature } from '../src/content/features/gb-calculator';
-import { createGbOwnShareFeature } from '../src/content/features/gb-own-share';
+import {
+  createGbOwnShareFeature,
+  AUTO_OPEN as OWN_AUTO_OPEN,
+  CLOSE_WITHOUT_WINDOW as OWN_CLOSE_WITHOUT_WINDOW,
+} from '../src/content/features/gb-own-share';
+import { COPY_MANUAL, COPY_MODE, COPY_PLAYER, COPY_TOGGLE_DEFS } from '../src/content/features/gb-own-share/copy-text';
 import { registerGameHandlers } from '../src/content/game/handlers';
+import { ARC_BUTTON, FACTOR, FACTOR_BUTTONS, ONE_FP } from '../src/content/stores/gb-own-state';
 import type { GbWindowState } from '../src/shared/gb-window-protocol';
 import definitions from './fixtures/gb-definitions.json';
 import levelUp from './fixtures/gb-own-level-up.json';
@@ -143,9 +149,9 @@ describe('Eigenanteil', () => {
     box.click('2');
     await tick();
     // the buttons change the building in the box, not the setting
-    expect(ctx.settings.number('gbOwn.factor')).toBe(90);
+    expect(ctx.settings.of(FACTOR).get()).toBe(90);
     expect(rows()[1]).toBe('P1 5.210 – –');
-    await ctx.settings.set('gbOwn.factorButtons', [90, 120]);
+    await ctx.settings.of(FACTOR_BUTTONS).set([90, 120]);
     await tick();
     const buttons = [...box.root.querySelectorAll('.gb-factor button:not(.icon)')].map((b) => b.textContent?.trim());
     // the own Arc bonus of 95,5 % sorts in by its value
@@ -158,7 +164,7 @@ describe('Eigenanteil', () => {
     // 2.605 × 1,955 = 5.092,8
     expect(rows()[1]).toBe('P1 5.093 – –');
     expect(box.root.querySelector('.gb-factor button.active')?.textContent?.trim()).toBe('1,955');
-    await ctx.settings.set('gbOwn.arcButton', false);
+    await ctx.settings.of(ARC_BUTTON).set(false);
     await tick();
     expect([...box.root.querySelectorAll('.gb-factor button:not(.icon)')].map((b) => b.textContent?.trim())).toEqual([
       '1,9',
@@ -207,7 +213,7 @@ describe('Eigenanteil', () => {
     await tick();
     expect(rows()[1]).toBe('P1 4.689 – –');
     expect(active()).toEqual(['field']);
-    await ctx.settings.set('gbOwn.copy.factor', true);
+    await ctx.settings.of(COPY_TOGGLE_DEFS.factor).set(true);
     await tick();
     expect(copyField().value).toContain('1,8/2');
 
@@ -233,7 +239,7 @@ describe('Eigenanteil', () => {
     expect(fields().map((f) => f.value)).toEqual(['1.8', '2', '2', '2', '2']);
 
     // a new factor in the settings sets all five alike again
-    await ctx.settings.set('gbOwn.factor', 80);
+    await ctx.settings.of(FACTOR).set(80);
     await tick();
     expect(ctx.ui.pref('gbOwn.factorDefault')).toBeUndefined();
     expect(fields().map((f) => f.value)).toEqual(['1.8', '1.8', '1.8', '1.8', '1.8']);
@@ -246,20 +252,20 @@ describe('Eigenanteil', () => {
     await tick();
     // place 1 needs own Forge points first, so no place is safe to hand out yet
     expect(copyField().value).toBe('Ich X_FutureEra_Landmark1 Kein Platz sicher');
-    await ctx.settings.set('gbOwn.copy.mode', 'autoUnsafe');
+    await ctx.settings.of(COPY_MODE).set('autoUnsafe');
     await tick();
     expect(copyField().value).toBe('Ich X_FutureEra_Landmark1 P5(38) P4(209) P3(827) P2(2480) P1(4950)');
-    await ctx.settings.set('gbOwn.copy.descending', false);
-    await ctx.settings.set('gbOwn.copy.level', true);
-    await ctx.settings.set('gbOwn.copy.ownPart', true);
-    await ctx.settings.set('gbOwn.copy.prefixP', false);
+    await ctx.settings.of(COPY_TOGGLE_DEFS.descending).set(false);
+    await ctx.settings.of(COPY_TOGGLE_DEFS.level).set(true);
+    await ctx.settings.of(COPY_TOGGLE_DEFS.ownPart).set(true);
+    await ctx.settings.of(COPY_TOGGLE_DEFS.prefixP).set(false);
     await tick();
     expect(copyField().value).toBe('Ich X_FutureEra_Landmark1 135→136 1(4950) 2(2480) 3(827) 4(209) 5(38) EA(8141)');
     // the player name is a setting, the building name stays in the box, kept per building
-    await ctx.settings.set('gbOwn.copy.playerName', 'Michi');
+    await ctx.settings.of(COPY_PLAYER).set('Michi');
     type(box.root.querySelector('.copy-building') as HTMLInputElement, 'Arche');
-    await ctx.settings.set('gbOwn.copy.mode', 'manual');
-    await ctx.settings.set('gbOwn.copy.manual', [2]);
+    await ctx.settings.of(COPY_MODE).set('manual');
+    await ctx.settings.of(COPY_MANUAL).set([2]);
     await tick();
     expect(copyField().value).toBe('Michi Arche 135→136 2(2480) EA(8141)');
     expect(box.root.querySelector('details')).toBeNull();
@@ -385,11 +391,11 @@ describe('Eigenanteil', () => {
           : row,
       ),
     );
-    await ctx.settings.set('gbOwn.copy.mode', 'autoUnsafe');
+    await ctx.settings.of(COPY_MODE).set('autoUnsafe');
     await tick();
     expect(rows().find((r) => r.startsWith('P5'))).toBe('P5 1 – –');
     expect(copyField().value).toBe('Ich X_FutureEra_Landmark1 P5(1) P4(209) P3(827) P2(2480) P1(4950)');
-    await ctx.settings.set('gbOwn.oneFpForNoReward', false);
+    await ctx.settings.of(ONE_FP).set(false);
     await tick();
     expect(rows().find((r) => r.startsWith('P5'))).toBe('P5 – – –');
     expect(copyField().value).toBe('Ich X_FutureEra_Landmark1 P4(209) P3(827) P2(2480) P1(4950)');
@@ -397,7 +403,7 @@ describe('Eigenanteil', () => {
 
   it('stays closed for an own great building when it should not open by itself', async () => {
     const { box, openOwn, ctx } = setup();
-    await ctx.settings.set('gbOwn.autoOpen', false);
+    await ctx.settings.of(OWN_AUTO_OPEN).set(false);
     openOwn();
     await tick();
     expect(box.box.isOpen).toBe(false);
@@ -526,8 +532,8 @@ describe('Eigenanteil', () => {
 
     it('stays open when its setting is off', async () => {
       const env = setup();
-      expect(env.ctx.settings.get('gbOwn.closeWithoutWindow')).toBe(true);
-      await env.ctx.settings.set('gbOwn.closeWithoutWindow', false);
+      expect(env.ctx.settings.of(OWN_CLOSE_WITHOUT_WINDOW).get()).toBe(true);
+      await env.ctx.settings.of(OWN_CLOSE_WITHOUT_WINDOW).set(false);
       env.openOwn();
       shows(env, 'own');
       shows(env, 'none');
@@ -621,8 +627,8 @@ describe('Eigenanteil', () => {
       loadDefinitions();
       openOwn();
       await tick();
-      await ctx.settings.set('gbOwn.copy.mode', 'autoUnsafe');
-      await ctx.settings.set('gbOwn.copy.level', true);
+      await ctx.settings.of(COPY_MODE).set('autoUnsafe');
+      await ctx.settings.of(COPY_TOGGLE_DEFS.level).set(true);
       choose(box.root, 140);
       expect(copyField().value).toBe(PREVIEW_140_COPY);
       box.click('2');
