@@ -59,10 +59,16 @@ export const sabotageFeature: Feature = {
         keepTicking();
         const owner = ctx.cities.visited()?.owner;
         const note = vm && owner !== undefined ? card.render(owner, ctx.players.get(owner)?.name) : undefined;
-        const markPlayer = owner === undefined ? undefined : (marked: boolean) => ctx.players.setMarked(owner, marked);
+        const playerMarks =
+          owner === undefined
+            ? undefined
+            : {
+                mark: (marked: boolean) => ctx.players.setMarked(owner, marked),
+                ignore: (ignored: boolean) => ctx.players.setIgnored(owner, ignored),
+              };
         // rows set arrows only while the game shows this city; back home the box still shows it, without arrows
         const markable = owner !== undefined && ctx.cities.shown() === owner;
-        return sabotageView(vm, note, markable ? marks : undefined, markPlayer);
+        return sabotageView(vm, note, markable ? marks : undefined, playerMarks);
       },
     });
     const card = new PlayerNoteCard(ctx.notes, () => box.update());
