@@ -9,6 +9,7 @@ import { ALL_REACH, passesReach, REACH_ORDER, type Reach, type ReachFilter, reas
 import type { Box } from '../../ui/box';
 import { type ProgressVm, progressVm } from '../../ui/fp-bar';
 import { ignoreNote } from '../../ui/ignore';
+import { nameWithGuild } from '../../ui/links';
 import { nextSort, type Sort } from '../../ui/sortable';
 import { prefRecord } from '../../ui/ui-state';
 import type { RowWindow } from '../../ui/windowed-rows';
@@ -83,6 +84,8 @@ export interface RowBuilding {
 /** what the lookups say about a row: names, relation, stars and eyes */
 export interface RowNames {
   ownerName: string;
+  /** the owner's guild; missing for an owner without a guild or with an unknown one */
+  ownerGuild?: string;
   name: string;
   reasons: Reach[];
   marked: boolean;
@@ -91,8 +94,11 @@ export interface RowNames {
   ownerIgnored: boolean | undefined;
 }
 
+const guildName = (guild: { name: string } | undefined) => (guild ? { ownerGuild: guild.name } : {});
+
 export const rowNames = (input: GbLookups, b: RowBuilding): RowNames => ({
   ownerName: input.playerName(b.owner) ?? String(b.owner),
+  ...guildName(input.playerGuild(b.owner)),
   name: input.greatBuildingName(b.cityEntityId) ?? b.cityEntityId,
   reasons: reasonsOf(input.relations(b.owner)),
   marked: input.isMarked(b.owner, b.entityId),
@@ -129,6 +135,8 @@ export interface CommonRowVm extends ProgressVm {
   /** the player put a star on the building */
   marked: boolean;
   ownerName: string;
+  /** the owner's name with the guild, for the tooltip of the owner cell */
+  ownerTip: string;
   ownerUrl: string;
   /** the player put a star on the owner */
   ownerMarked: boolean;
@@ -153,6 +161,7 @@ export const commonRowVm = (input: Pick<GbLookups, 'playerUrl'>, b: RowBuilding,
   entityId: b.entityId,
   marked: n.marked,
   ownerName: n.ownerName,
+  ownerTip: nameWithGuild(n.ownerName, n.ownerGuild),
   ownerUrl: input.playerUrl(b.owner),
   ownerMarked: n.ownerMarked,
   ignored: n.ignored,

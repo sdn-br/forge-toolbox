@@ -41,6 +41,7 @@ const names: Record<number, string> = { 1001: 'Testgegner' };
 const name = (id: PlayerId) => names[id];
 const lookups = {
   name,
+  guild: (id: PlayerId) => (id === 1001 ? 'Testgilde' : undefined),
   playerUrl: (id: PlayerId) => `https://foestats.com/de/de20/players/${id}`,
   building: (id: string) => (id === 'R_IronAge_Residential2' ? 'Strohdachhaus' : undefined),
   resourceName: () => undefined,
@@ -91,6 +92,7 @@ describe('pvp view model', () => {
       battleId: 1,
       opponent: 1001,
       name: 'Testgegner',
+      nameTip: 'Testgegner [Testgilde]',
       url: 'https://foestats.com/de/de20/players/1001',
       when: 'heute 13:49',
       result: 'gewonnen',
@@ -100,7 +102,13 @@ describe('pvp view model', () => {
       note: 'stark\n• Schilde',
       expanded: false,
     });
-    expect(vm.rows[1]).toMatchObject({ name: '1002', result: 'aufgegeben', battle: '5 Runden', note: '' });
+    expect(vm.rows[1]).toMatchObject({
+      name: '1002',
+      nameTip: '1002',
+      result: 'aufgegeben',
+      battle: '5 Runden',
+      note: '',
+    });
     expect(vm).toMatchObject({ page: 0, pages: 1, empty: undefined, picked: undefined });
   });
 
@@ -141,6 +149,7 @@ describe('pvp view model', () => {
       {
         opponent: 1001,
         name: 'Testgegner',
+        nameTip: 'Testgegner [Testgilde]',
         url: 'https://foestats.com/de/de20/players/1001',
         when: 'heute 14:05',
         building: 'Strohdachhaus',
@@ -179,6 +188,7 @@ describe('pvp view model', () => {
       {
         opponent: 1001,
         name: 'Testgegner',
+        nameTip: 'Testgegner [Testgilde]',
         url: 'https://foestats.com/de/de20/players/1001',
         when: 'heute 14:05',
         building: '–',
@@ -238,6 +248,7 @@ describe('pvp view model', () => {
       {
         attacker: 1001,
         name: 'Testgegner',
+        nameTip: 'Testgegner [Testgilde]',
         url: 'https://foestats.com/de/de20/players/1001',
         when: 'heute 14:05',
         what: 'Kampf: durchbrochen',
@@ -246,6 +257,7 @@ describe('pvp view model', () => {
       {
         attacker: 1002,
         name: '1002',
+        nameTip: '1002',
         url: 'https://foestats.com/de/de20/players/1002',
         when: '16.10., 14:05',
         what: 'Kampf: gehalten',

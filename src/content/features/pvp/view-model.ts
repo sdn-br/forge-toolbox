@@ -4,6 +4,7 @@ import { formatWhen, t, textFilter } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { measuredArmy } from '../../domain/measured-army';
 import { type BattleDetailsVm, battleDetails } from '../../ui/battle-details';
+import { nameWithGuild } from '../../ui/links';
 import { plainText } from '../../ui/markdown';
 import { formatIncoming, formatIncomingTotals, formatPlunderTotals, formatResources } from '../../ui/pvp-format';
 
@@ -19,6 +20,8 @@ export interface PvpRow {
   battleId: number;
   opponent: PlayerId;
   name: string;
+  /** the name with the guild, for the tooltip */
+  nameTip: string;
   /** the opponent's page at foestats */
   url: string;
   when: string;
@@ -38,6 +41,7 @@ export type PvpTab = 'battles' | 'plunders' | 'incoming';
 export interface PlunderRow {
   opponent: PlayerId;
   name: string;
+  nameTip: string;
   url: string;
   when: string;
   building: string;
@@ -50,6 +54,7 @@ export interface PlunderRow {
 export interface IncomingRow {
   attacker: PlayerId;
   name: string;
+  nameTip: string;
   url: string;
   when: string;
   /** kind and outcome, e.g. "Kampf: durchbrochen" */
@@ -106,6 +111,8 @@ export function pvpViewModel(input: {
   /** battle ids whose rows show their details */
   expanded?: ReadonlySet<number>;
   name: (id: PlayerId) => string | undefined;
+  /** the player's guild; undefined for a player without a guild or with an unknown one */
+  guild: (id: PlayerId) => string | undefined;
   /** the player's page at foestats */
   playerUrl: (id: PlayerId) => string;
   building: (id: BuildingDefId) => string | undefined;
@@ -116,6 +123,7 @@ export function pvpViewModel(input: {
 }): PvpVm {
   const { tab, battles, plunders, total, page, filter, name, building, resourceName, now } = input;
   const nameOf = (id: PlayerId) => name(id) || String(id);
+  const tipOf = (id: PlayerId) => nameWithGuild(nameOf(id), input.guild(id));
   const noteOf = (id: PlayerId) => plainText(input.note(id) ?? '');
   const filtered = filter.opponent !== undefined || filter.text.trim() !== '';
   return {
@@ -127,6 +135,7 @@ export function pvpViewModel(input: {
         battleId: b.battleId,
         opponent: b.opponent,
         name: nameOf(b.opponent),
+        nameTip: tipOf(b.opponent),
         url: input.playerUrl(b.opponent),
         when: formatWhen(b.at, now),
         result: t(`pvp.${b.result}`),
@@ -141,6 +150,7 @@ export function pvpViewModel(input: {
     plunders: plunders.map((p) => ({
       opponent: p.opponent,
       name: nameOf(p.opponent),
+      nameTip: tipOf(p.opponent),
       url: input.playerUrl(p.opponent),
       when: formatWhen(p.at, now),
       building: p.cityEntityId === undefined ? '–' : (building(p.cityEntityId) ?? p.cityEntityId),
@@ -152,6 +162,7 @@ export function pvpViewModel(input: {
     incoming: input.incoming.map((a) => ({
       attacker: a.attacker,
       name: nameOf(a.attacker),
+      nameTip: tipOf(a.attacker),
       url: input.playerUrl(a.attacker),
       when: formatWhen(a.at, now),
       what: formatIncoming(a, building),

@@ -185,6 +185,7 @@ describe('marked owner', () => {
       playerMarked: (id) => id === playerId(2002),
       isIgnored: () => false,
       ownerIgnored: () => false,
+      playerGuild: () => undefined,
       filter: DEFAULT_MINE_FILTER,
       relations: () => undefined,
     }).rows;
@@ -217,6 +218,7 @@ describe('rows in view', () => {
       playerMarked: () => false,
       isIgnored: () => false,
       ownerIgnored: () => false,
+      playerGuild: () => undefined,
       filter: DEFAULT_MINE_FILTER,
       relations: () => undefined,
     });
@@ -245,6 +247,7 @@ describe('totals line', () => {
       playerMarked: () => false,
       isIgnored: () => false,
       ownerIgnored: () => false,
+      playerGuild: () => undefined,
       filter: DEFAULT_MINE_FILTER,
       relations: () => undefined,
     }).totals;
@@ -301,6 +304,7 @@ describe('relation and filters of the own investments', () => {
       playerMarked: (id) => id === playerId(2003),
       isIgnored: () => false,
       ownerIgnored: () => false,
+      playerGuild: () => undefined,
       relations: (id) => owners[id],
       filter: { ...DEFAULT_MINE_FILTER, reach: ALL_REACH, ...over },
       ...extra,
@@ -400,6 +404,7 @@ describe('ignored rows of the own investments', () => {
       playerMarked: () => false,
       isIgnored: (_o, entityId) => entityId === 2,
       ownerIgnored: (id) => (id === playerId(2003) ? true : id === playerId(2999) ? undefined : false),
+      playerGuild: () => undefined,
       relations: () => undefined,
       filter: { ...DEFAULT_MINE_FILTER, reach: ALL_REACH, ...over },
       ...extra,

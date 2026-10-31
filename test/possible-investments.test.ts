@@ -70,6 +70,7 @@ const vmInput = (buildings: KnownGreatBuilding[], filter: Partial<PossibleFilter
   isIgnored: (owner: PlayerId, entityId: number) => ignoredBuildings.has(`${owner}:${entityId}`),
   ownerIgnored: (id: PlayerId) => (id in relations ? ignoredOwners.has(id) : undefined),
   playerUrl: (id: PlayerId) => `https://foestats.example/${id}`,
+  playerGuild: () => undefined,
 });
 const vm = (buildings: KnownGreatBuilding[], filter: Partial<PossibleFilter> = {}, sort?: PossibleSort) =>
   possibleViewModel(vmInput(buildings, filter, sort));

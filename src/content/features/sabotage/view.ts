@@ -2,7 +2,7 @@ import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, formatPercent, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { battleDetailsView } from '../../ui/battle-details';
-import { externalLink } from '../../ui/links';
+import { externalLink, guildTag } from '../../ui/links';
 import { starButton } from '../../ui/star';
 import type { PlunderItem, SabotageVm } from './view-model';
 
@@ -85,11 +85,7 @@ export function sabotageView(
       vm.player.marked !== undefined && markPlayer
         ? html` ${starButton(vm.player.marked, () => markPlayer(!vm.player.marked))}`
         : ''
-    }${
-      vm.player.guild
-        ? html` <span class="muted">[${externalLink(vm.player.guild.name, vm.player.guild.url)}]</span>`
-        : ''
-    }
+    }${vm.player.guild ? html` ${guildTag(vm.player.guild)}` : ''}
       <br /><span class="muted">${t('sabotage.era')}: ${vm.player.era}</span>
       <br />${vm.attack.kind === 'plunderable' ? html`<b>${vm.attack.text}</b>` : vm.attack.text}</p>
     ${note ?? ''}
