@@ -1,4 +1,5 @@
-import type { FoestatsClient, HistoryPoint } from '../../shared/foestats-api';
+import type { FoestatsState } from '../../persistence/foestats/contract';
+import type { FoestatsAnswer, FoestatsClient } from '../../shared/foestats-api';
 import type { PlayerId, WorldId } from '../../shared/ids';
 import type { FoestatsDay } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
@@ -7,14 +8,9 @@ import { toggleDef } from '../core/settings';
 
 export interface FoestatsPersistence {
   /** whether to ask foestats now; `fetch: true` reserves the request until `store` */
-  claim(world: WorldId, player: PlayerId): Promise<{ fetch: boolean; unreachable: boolean }>;
-  /** what foestats answered to a claimed request, a missing history when it did not answer */
-  store(
-    world: WorldId,
-    player: PlayerId,
-    points: HistoryPoint[] | undefined,
-    battles: HistoryPoint[] | undefined,
-  ): Promise<{ unreachable: boolean }>;
+  claim(world: WorldId, player: PlayerId): Promise<{ fetch: boolean } & FoestatsState>;
+  /** what foestats answered to a claimed request */
+  store(world: WorldId, player: PlayerId, answer: FoestatsAnswer): Promise<FoestatsState>;
   /** the known days of the player, oldest first */
   history(world: WorldId, player: PlayerId): Promise<FoestatsDay[]>;
 }
@@ -31,19 +27,21 @@ export const FOESTATS_SETTING = toggleDef({
 export interface FoestatsRecord {
   /** oldest first */
   days: FoestatsDay[];
-  /** foestats did not answer the last time it was asked */
+  /** foestats did not answer the last time it was asked, about any player */
   unreachable: boolean;
+  /** foestats does not know the player */
+  unknown: boolean;
   /** a view is bringing the days up to date; until then `days` is what was known before, maybe nothing */
   loading: boolean;
 }
 
 /** the requests the store makes to foestats */
-export type FoestatsRequests = Pick<FoestatsClient, 'pointsHistory' | 'battlesHistory'>;
+export type FoestatsRequests = Pick<FoestatsClient, 'player'>;
 
 /**
  * Days of players at foestats, kept in the database. A view of a player asks the service worker whether a request is
- * due (at most once a day), makes it from the content script, hands the answer to the service worker to append the new
- * days, then reads the days from the database.
+ * due (at most once a day), asks foestats for the daily snapshot from the content script, hands it to the service
+ * worker to keep its days, then reads the days from the database. The history grows from these snapshots.
  */
 export class FoestatsStore {
   private records = new Map<PlayerId, FoestatsRecord>();
@@ -74,21 +72,23 @@ export class FoestatsStore {
 
   private async update(player: PlayerId): Promise<void> {
     const before = this.records.get(player);
-    this.records.set(player, { days: before?.days ?? [], unreachable: before?.unreachable ?? false, loading: true });
+    this.records.set(player, {
+      days: before?.days ?? [],
+      unreachable: before?.unreachable ?? false,
+      unknown: before?.unknown ?? false,
+      loading: true,
+    });
     this.bus.emit('foestats.updated', { player });
     try {
-      const claim = await this.persistence.claim(this.world, player);
-      let unreachable = claim.unreachable;
-      if (claim.fetch) {
-        // the requests never fail, a missing answer is undefined
-        const [points, battles] = await Promise.all([
-          this.requests.pointsHistory(this.world, player),
-          this.requests.battlesHistory(this.world, player),
-        ]);
-        ({ unreachable } = await this.persistence.store(this.world, player, points, battles));
+      const { fetch, ...claimed } = await this.persistence.claim(this.world, player);
+      let state = claimed;
+      if (fetch) {
+        // the request never fails, a missing answer is 'unreachable'
+        const answer = await this.requests.player(this.world, player);
+        state = await this.persistence.store(this.world, player, answer);
       }
       const days = await this.persistence.history(this.world, player);
-      this.records.set(player, { days, unreachable, loading: false });
+      this.records.set(player, { days, ...state, loading: false });
     } catch (error) {
       logError('loading foestats data failed', error);
       const record = this.records.get(player);

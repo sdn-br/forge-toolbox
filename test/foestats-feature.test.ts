@@ -13,7 +13,7 @@ function setup() {
   const fetch = vi.fn<FetchLike>(async () => ({
     ok: true,
     status: 200,
-    text: async () => JSON.stringify({ success: true, data: [{ date: '2026-10-22', value: 1 }] }),
+    text: async () => JSON.stringify({ success: true, data: { points: 1, battles: 1, data_date: '2026-10-22' } }),
   }));
   const env = featureContext({ fetch });
   foestatsFeature.setup(env.ctx);
@@ -57,6 +57,17 @@ describe('foestats feature', () => {
     await vi.waitFor(() => expect(ctx.foestats.get(playerId(10))?.loading).toBe(false));
     expect(asked()).toEqual(['10']);
     expect(ctx.foestats.get(playerId(9))).toBeUndefined();
+  });
+
+  it('asks no other player while foestats was unreachable a short while ago', async () => {
+    const { ctx, visit, fetch } = setup();
+    fetch.mockResolvedValue({ ok: false, status: 403, text: async () => '' });
+    visit(42);
+    await vi.waitFor(() => expect(ctx.foestats.get(playerId(42))?.loading).toBe(false));
+    visit(43);
+    await vi.waitFor(() => expect(ctx.foestats.get(playerId(43))?.loading).toBe(false));
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(ctx.foestats.get(playerId(43))?.unreachable).toBe(true);
   });
 
   it('asks nothing while the setting is off', async () => {

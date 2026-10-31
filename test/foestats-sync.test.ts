@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fetchDue, foestatsDay, RETRY_AFTER } from '../src/shared/foestats';
+import { fetchDue, foestatsDay } from '../src/shared/foestats';
 import { playerId, worldId } from '../src/shared/ids';
 import type { FoestatsFetch } from '../src/shared/model';
 
@@ -36,9 +36,13 @@ describe('fetchDue', () => {
     expect(fetchDue(last({ day: '2026-10-21', at: at(22, 5) }), at(22, 5, 30))).toBe(false);
   });
 
-  it('asks again after a failure, but not right away', () => {
-    const failed = last({ ok: false, at: at(22, 8) });
-    expect(fetchDue(failed, at(22, 8) + RETRY_AFTER - 1)).toBe(false);
-    expect(fetchDue(failed, at(22, 8) + RETRY_AFTER)).toBe(true);
+  it('asks about a player foestats does not know on the next foestats day only', () => {
+    const unknown = last({ unknown: true });
+    expect(fetchDue(unknown, at(22, 23))).toBe(false);
+    expect(fetchDue(unknown, at(23, 5, 40))).toBe(true);
+  });
+
+  it('asks at once after a failure kept per player by an older version', () => {
+    expect(fetchDue(last({ ok: false, at: at(22, 8) }), at(22, 8, 1))).toBe(true);
   });
 });

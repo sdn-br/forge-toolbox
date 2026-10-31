@@ -7,14 +7,21 @@ export interface ActivityDay {
   date: string;
   points?: number;
   battles?: number;
+  /** foestats' own status of the player that day */
+  active?: boolean;
 }
 
 export interface Activity {
-  /** the last day with more points or battles than the day before; missing when no increase is known */
+  /** foestats' own status on the newest day; missing when foestats did not tell it for that day */
+  active?: boolean;
+  /**
+   * the last day with more points or battles than the calendar day before; missing when no such increase is known,
+   * also when the last increase lies in a gap between two known days
+   */
   lastActive?: string;
   /** days from `lastActive` to the current foestats day, 0 for today */
   daysAgo?: number;
-  /** without a known increase: days from the oldest known day to the current foestats day */
+  /** without a known `lastActive`: days from the oldest day known without an increase to the current foestats day */
   flatFor?: number;
   /** `IDLE_DAYS` or more days without an increase */
   idle: boolean;
@@ -42,17 +49,23 @@ export function playerActivity(history: ActivityDay[], today: string): Activity 
   const newest = days.at(-1);
   if (!first || !newest) return undefined;
 
+  // the newest increase decides; across a gap its day is not known, only that it was quiet since the day after the gap
   let lastActive: string | undefined;
-  for (let i = days.length - 1; i > 0 && lastActive === undefined; i--) {
+  let flatSince = first.date;
+  for (let i = days.length - 1; i > 0; i--) {
     const [before, after] = [days[i - 1] as ActivityDay, days[i] as ActivityDay];
-    if (rose(before.points, after.points) || rose(before.battles, after.battles)) lastActive = after.date;
+    if (!rose(before.points, after.points) && !rose(before.battles, after.battles)) continue;
+    if (daysBetween(before.date, after.date) === 1) lastActive = after.date;
+    else flatSince = after.date;
+    break;
   }
-  const quiet = daysBetween(lastActive ?? first.date, today);
+  const quiet = daysBetween(lastActive ?? flatSince, today);
 
   const base = [...days].reverse().find((d) => daysBetween(d.date, newest.date) >= WEEK) ?? first;
   const points = change(base.points, newest.points);
   const battles = change(base.battles, newest.battles);
   return {
+    ...(newest.active !== undefined && { active: newest.active }),
     ...(lastActive === undefined ? { flatFor: quiet } : { lastActive, daysAgo: quiet }),
     idle: quiet >= IDLE_DAYS,
     week: {

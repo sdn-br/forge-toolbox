@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { type FetchLike, foestatsApi, parseHistory, parsePlayer } from '../src/shared/foestats-api';
+import { type FetchLike, foestatsApi, parsePlayer } from '../src/shared/foestats-api';
 import { playerId, worldId } from '../src/shared/ids';
 
 describe('parsePlayer', () => {
@@ -46,32 +46,6 @@ describe('parsePlayer', () => {
   });
 });
 
-describe('parseHistory', () => {
-  it('reads one value per day and skips broken entries', () => {
-    expect(
-      parseHistory({
-        success: true,
-        data: [
-          { date: '2025-12-01', value: '100' },
-          { date: '2025-12-02T00:00:00.000Z', value: 120 },
-          { date: 'gestern', value: 5 },
-          { date: '2025-12-03', value: 'x' },
-          { value: 7 },
-        ],
-      }),
-    ).toEqual([
-      { date: '2025-12-01', value: 100 },
-      { date: '2025-12-02', value: 120 },
-    ]);
-  });
-
-  it('gives nothing for a failed or broken answer', () => {
-    expect(parseHistory({ success: false, data: [] })).toBeUndefined();
-    expect(parseHistory({ success: true, data: {} })).toBeUndefined();
-    expect(parseHistory(undefined)).toBeUndefined();
-  });
-});
-
 const response = (status: number, body: string) => ({
   ok: status >= 200 && status < 300,
   status,
@@ -82,34 +56,32 @@ describe('foestats api', () => {
   const world = worldId('de20');
   const player = playerId(4711);
 
-  it('asks the history of a player without cookies', async () => {
-    const fetch = vi.fn<FetchLike>(async () =>
-      response(200, JSON.stringify({ success: true, data: [{ date: '2026-10-21', value: 9 }] })),
-    );
-    const api = foestatsApi(fetch);
-    expect(await api.pointsHistory(world, player)).toEqual([{ date: '2026-10-21', value: 9 }]);
-    expect(await api.battlesHistory(world, player)).toEqual([{ date: '2026-10-21', value: 9 }]);
-    expect(fetch.mock.calls.map(([url]) => url)).toEqual([
-      'https://api.forge-db.com/api/players/de/de20/4711/points-history',
-      'https://api.forge-db.com/api/players/de/de20/4711/battles-history',
-    ]);
+  it('asks the snapshot of a player without cookies', async () => {
+    const fetch = vi.fn<FetchLike>(async () => response(200, JSON.stringify({ success: true, data: { points: 5 } })));
+    expect(await foestatsApi(fetch).player(world, player)).toEqual({ snapshot: { points: 5 } });
+    expect(fetch.mock.calls[0]?.[0]).toBe('https://api.forge-db.com/api/players/de/de20/4711');
     expect(fetch.mock.calls[0]?.[1]).toMatchObject({ credentials: 'omit' });
   });
 
-  it('asks the snapshot of a player', async () => {
-    const fetch = vi.fn<FetchLike>(async () => response(200, JSON.stringify({ success: true, data: { points: 5 } })));
-    expect(await foestatsApi(fetch).player(world, player)).toEqual({ points: 5 });
-    expect(fetch.mock.calls[0]?.[0]).toBe('https://api.forge-db.com/api/players/de/de20/4711');
+  it('tells a player foestats does not know', async () => {
+    const missing = foestatsApi(async () => response(404, JSON.stringify({ error: 'Player not found' })));
+    expect(await missing.player(world, player)).toBe('unknown');
   });
 
-  it('gives nothing instead of failing when foestats cannot be reached', async () => {
+  it('tells foestats unreachable instead of failing', async () => {
     const blocked = foestatsApi(async () => response(403, '<html>Cloudflare</html>'));
-    expect(await blocked.pointsHistory(world, player)).toBeUndefined();
+    expect(await blocked.player(world, player)).toBe('unreachable');
+    const sessionRequired = foestatsApi(async () =>
+      response(403, JSON.stringify({ error: 'Session required', sessionRequired: true, reason: 'missing' })),
+    );
+    expect(await sessionRequired.player(world, player)).toBe('unreachable');
+    const down = foestatsApi(async () => response(503, ''));
+    expect(await down.player(world, player)).toBe('unreachable');
     const html = foestatsApi(async () => response(200, '<html>'));
-    expect(await html.battlesHistory(world, player)).toBeUndefined();
+    expect(await html.player(world, player)).toBe('unreachable');
     const offline = foestatsApi(async () => {
       throw new TypeError('Failed to fetch');
     });
-    expect(await offline.player(world, player)).toBeUndefined();
+    expect(await offline.player(world, player)).toBe('unreachable');
   });
 });
