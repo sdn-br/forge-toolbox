@@ -1,3 +1,4 @@
+import { html } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
 import type { KnownGreatBuilding } from '../../../shared/model';
 import type { Feature } from '../../core/feature';
@@ -12,29 +13,15 @@ import {
 } from '../../domain/investments';
 import { rowFit } from '../../ui/fit-rows';
 import { icons } from '../../ui/icons';
-import { nextSort } from '../../ui/sortable';
-import { prefRecord } from '../../ui/ui-state';
-import { type GbLookups, gbLookups, gbRowActions } from '../shared/gb-lookups';
-import { migrateReach } from './filter-model';
-import { type PossibleActions, possibleView } from './possible-view';
-import {
-  DEFAULT_FILTER,
-  DEFAULT_POSSIBLE_SORT,
-  POSSIBLE_DESC_FIRST,
-  type PossibleFilter,
-  type PossibleSort,
-  possibleViewModel,
-} from './possible-view-model';
+import { tabBar } from '../../ui/tabs';
+import { type GbLookups, gbLookups } from '../shared/gb-lookups';
+import { createMineSection } from './mine/section';
+import { createPossibleSection } from './possible/section';
 import { investmentsCss } from './styles';
-import { type InvestmentsActions, investmentsView } from './view';
-import {
-  DEFAULT_MINE_FILTER,
-  INVESTMENT_DESC_FIRST,
-  type InvestmentSort,
-  type InvestmentsTab,
-  investmentsViewModel,
-  type MineFilter,
-} from './view-model';
+
+/** the tabs of the box: the own investments and the buildings of others worth a place */
+type InvestmentsTab = 'mine' | 'possible';
+const TABS: InvestmentsTab[] = ['mine', 'possible'];
 
 /** the menu entry and the settings group show it */
 const ICON = icons.investments;
@@ -44,17 +31,8 @@ export const OPEN_WITH_LIST = toggleDef({
   label: 'investments.openSetting',
   default: true,
 });
-/** view choices: the tab and the filters of the possible investments */
+/** view choice: the tab; each tab keeps its own filters */
 const TAB = 'investments.tab';
-const FILTER = 'investments.filter';
-/** the filters of the own investments, kept apart from those of the possible ones */
-const MINE_FILTER = 'investments.mineFilter';
-
-/** the saved filters, each part that is missing or broken at its default */
-const savedFilter = (saved: string | undefined): PossibleFilter => prefRecord(DEFAULT_FILTER, saved, migrateReach);
-
-/** the saved filters of the own investments, each part that is missing or broken at its default */
-const savedMineFilter = (saved: string | undefined): MineFilter => prefRecord(DEFAULT_MINE_FILTER, saved, migrateReach);
 
 export const investmentsFeature: Feature = {
   id: 'investments',
@@ -63,10 +41,6 @@ export const investmentsFeature: Feature = {
     const openWithList = ctx.settings.register(OPEN_WITH_LIST);
 
     let tab: InvestmentsTab = ctx.ui.pref(TAB) === 'possible' ? 'possible' : 'mine';
-    let sort: InvestmentSort = [];
-    let possibleSort: PossibleSort = DEFAULT_POSSIBLE_SORT;
-    let filter = savedFilter(ctx.ui.pref(FILTER));
-    let mineFilter = savedMineFilter(ctx.ui.pref(MINE_FILTER));
     /** the known buildings as last read; data events read them again, the other inputs only rate them anew */
     let known: KnownGreatBuilding[] = [];
     let arc = 0;
@@ -76,60 +50,22 @@ export const investmentsFeature: Feature = {
     /** owner names the town hall list and the lists of others give, for owners the player store does not know */
     const ownerNames = new Map<PlayerId, string>();
 
-    /** the first row in view of each tab, kept inside its list on every draw */
-    const tops: Record<InvestmentsTab, number> = { mine: 0, possible: 0 };
     /** how many rows fit into the table area; a change redraws */
     const fit = rowFit(() => box.update());
-    const scrollBy = (rows: number) => {
-      tops[tab] += rows;
-      box.update();
-    };
 
     const showTab = (next: InvestmentsTab) => {
       tab = next;
       ctx.ui.savePref(TAB, next);
     };
-    const rowActions = gbRowActions(ctx);
-    const actions: InvestmentsActions = {
-      tab: (next) => {
-        showTab(next);
-        box.update();
-      },
-      ...rowActions,
-      sort: (column, append) => {
-        sort = nextSort(sort, column, INVESTMENT_DESC_FIRST, append);
-        box.update();
-      },
-      filter: (patch) => {
-        mineFilter = { ...mineFilter, ...patch };
-        ctx.ui.savePref(MINE_FILTER, JSON.stringify(mineFilter));
-        box.update();
-      },
-      pickPlayer: (player) => actions.filter({ player }),
-      scroll: scrollBy,
-      measure: fit.measure,
-    };
-    const possibleActions: PossibleActions = {
-      tab: actions.tab,
-      ...rowActions,
-      sort: (column, append) => {
-        possibleSort = nextSort(possibleSort, column, POSSIBLE_DESC_FIRST, append);
-        box.update();
-      },
-      filter: (patch) => {
-        filter = { ...filter, ...patch };
-        ctx.ui.savePref(FILTER, JSON.stringify(filter));
-        box.update();
-      },
-      pickPlayer: (player) => possibleActions.filter({ player }),
-      scroll: scrollBy,
-      measure: fit.measure,
+    const pickTab = (next: InvestmentsTab) => {
+      showTab(next);
+      box.update();
     };
     const shared = gbLookups(ctx);
     const lookups: GbLookups = { ...shared, playerName: (id) => shared.playerName(id) ?? ownerNames.get(id) };
     const ownArc = () => ctx.playerBonuses.arcBonus();
 
-    const possible = () => {
+    const candidates = () => {
       if (!rated || rated.known !== known || rated.arc !== arc) {
         const greatBuilding = (def: KnownGreatBuilding['cityEntityId']) => ctx.catalog.get(def)?.greatBuilding;
         const rows = possibleInvestments(known, greatBuilding, arc, ctx.session.current?.playerId);
@@ -148,31 +84,10 @@ export const investmentsFeature: Feature = {
     const WIDTH = 850;
 
     const render = () => {
-      if (tab === 'possible') {
-        const vm = possibleViewModel({
-          candidates: possible(),
-          filter,
-          sort: possibleSort,
-          visible: fit.rows(),
-          scroll: tops.possible,
-          now: Date.now(),
-          ...lookups,
-        });
-        tops.possible = vm.scroll.top;
-        return possibleView(vm, possibleActions);
-      }
-      const vm = investmentsViewModel({
-        investments,
-        listedAt: ctx.greatBuildings.contributionsAt(),
-        now: Date.now(),
-        sort,
-        visible: fit.rows(),
-        scroll: tops.mine,
-        filter: mineFilter,
-        ...lookups,
-      });
-      tops.mine = vm.scroll.top;
-      return investmentsView(vm, actions);
+      const frame = { lookups, visible: fit.rows(), now: Date.now() };
+      const content = tab === 'possible' ? possible.render(frame, candidates()) : mine.render(frame, investments);
+      // tabs, filters and the totals or count stay, the rows that fit are drawn and the two buttons scroll them
+      return html`<div class="inv-pane">${tabBar(TABS, tab, (key) => t(`investments.tab.${key}`), pickTab)}${content}</div>`;
     };
 
     const box = ctx.createBox({
@@ -191,6 +106,8 @@ export const investmentsFeature: Feature = {
       // the ages are drawn as of now, so each redraw shows them current
       render,
     });
+    const mine = createMineSection(ctx, box, fit.measure);
+    const possible = createPossibleSection(ctx, box, fit.measure);
 
     const rate = () => {
       arc = ownArc();
