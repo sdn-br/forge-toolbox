@@ -11,7 +11,7 @@ describe('arcBonus', () => {
     id,
     owner: playerId(1),
     def: buildingDefId(`X_${id}`),
-    type: 'greatbuilding',
+    category: 'greatBuilding',
     x: 0,
     y: 0,
     connected: true,

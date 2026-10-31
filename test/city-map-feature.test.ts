@@ -363,9 +363,9 @@ describe('city map feature', () => {
       ],
       blocked: [{ x: 0, y: 16, width: 4, length: 4 }],
       expansions: [
-        { kind: 'tileset_reward', cost: { money: 20e6, premium: 1500 } },
-        { kind: 'tileset_reward', cost: { money: 45e6, premium: 3000 } },
-        { kind: 'raidMedals', cost: { guild_raids_medals: 6e5 } },
+        { kind: 'reward', cost: { money: 20e6, premium: 1500 } },
+        { kind: 'reward', cost: { money: 45e6, premium: 3000 } },
+        { kind: 'quantum', cost: { guild_raids_medals: 6e5 } },
       ],
     });
     menu('cityMap');
@@ -391,7 +391,7 @@ describe('city map feature', () => {
     const city = toCity(worldId('de20'), playerId(1), 'SpaceAgeMars', { entities: [] }, 0);
     ctx.cities.setOwn({
       ...city,
-      expansions: Array.from({ length: 23 }, () => ({ kind: 'tileset_reward', cost: { money: 20e6 } })),
+      expansions: Array.from({ length: 23 }, () => ({ kind: 'reward' as const, cost: { money: 20e6 } })),
     });
     menu('cityMap');
     const line = () =>

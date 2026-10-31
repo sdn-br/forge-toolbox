@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { footprints } from '../src/content/domain/city-grid';
 import { streetEfficiency, typeStats } from '../src/content/domain/city-stats';
 import type { BuildingDef } from '../src/content/model/catalog';
-import type { Building } from '../src/content/model/city';
+import type { Building, BuildingCategory } from '../src/content/model/city';
 import { type BuildingDefId, buildingDefId, playerId } from '../src/shared/ids';
 
 const def = (id: string, width: number, length: number, street?: number): BuildingDef => ({
@@ -17,12 +17,12 @@ const def = (id: string, width: number, length: number, street?: number): Buildi
 });
 
 let nextId = 1;
-const building = (d: string, type: string, x: number, y: number) =>
+const building = (d: string, category: BuildingCategory, x: number, y: number) =>
   ({
     id: nextId++,
     owner: playerId(1),
     def: buildingDefId(d),
-    type,
+    category,
     x,
     y,
     connected: true,
@@ -74,7 +74,7 @@ describe('street efficiency', () => {
         building('Small', 'residential', 0, 0),
         building('House', 'residential', 1, 0),
         building('Big', 'production', 3, 0),
-        building('Deco', 'decoration', 6, 0),
+        building('Deco', 'culture', 6, 0),
         ...[0, 1, 2, 3, 4].map((y) => building('Street', 'street', 8, y)),
       ],
       lookup,

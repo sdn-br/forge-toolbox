@@ -22,24 +22,29 @@ interface City {
   expansions?: ExpansionOffer[];// nur eigene Stadt: city_map.tilesets, offene Erweiterungen
 }
 
-interface ExpansionOffer {
-  kind: string;                 // Spieltyp: 'tileset_reward' | 'raidMedals' | 'tileset_premium' | …
-  minEra?: EraId;               // requirements.min_era
-  cost: Record<ResourceId, number>;
-}
+type ExpansionKind = 'diamonds' | 'reward' | 'quantum';
+
+type ExpansionOffer =         // Art aus dem Spieltyp: tileset_premium → diamonds, tileset_reward → reward, raidMedals → quantum
+  | { kind: ExpansionKind; minEra?: EraId; cost: Record<ResourceId, number> }
+  | { kind: 'unknown'; gameType: string; minEra?: EraId; cost: Record<ResourceId, number> }; // unbekannter Spieltyp, zum Anzeigen
 
 interface Area { x: number; y: number; width: number; length: number }
 
 interface Building {
   id: number;                   // Entity-ID, eindeutig innerhalb der Stadt
   def: BuildingDefId;
-  type: BuildingType;
+  category: BuildingCategory;   // Gruppe aus dem Spieltyp der Entity
+  offGrid?: boolean;            // steht neben dem Gitter, etwa Außenposten-Schiff oder Freundeskneipe
   x: number;
   y: number;
   connected: boolean;
   state: BuildingState;
   greatBuilding?: GreatBuildingState;
 }
+
+type BuildingCategory =
+  | 'residential' | 'production' | 'goods' | 'culture' | 'military'
+  | 'greatBuilding' | 'street' | 'special' | 'other';
 
 type BuildingState =
   | { kind: 'idle' }
@@ -66,6 +71,7 @@ interface GreatBuildingState {
 **Regeln**
 
 - `CityMapService.updateEntity` und `CityMapService.reset` tragen die Spieler-ID der Gebäude. Danach entscheidet der Store, ob die eigene oder die besuchte Stadt betroffen ist. Die alte Toolbox hatte hier einen Fehler: Nach einer FP-Einzahlung in ein fremdes LG kam `reset`, und die Daten des LGs blieben alt.
+- Spielbegriffe übersetzt `game/convert.ts` beim Einlesen, die Domäne kennt nur die eigenen Namen. `category` kommt aus dem Spieltyp der Entity: `decoration` zählt als `culture`, `greatbuilding` wird `greatBuilding`, `generic_building`, `random_production`, `tower` und `clan_power_production` werden `special`, jeder unbekannte Typ wird `other`. `offGrid` setzt convert für `off_grid`, `outpost_ship`, `friends_tavern`, `hub_main` und `hub_part` (die Hubs Arctic Harbour und Ocean Terminal mit ihren Teilen). Den Spieltyp selbst behält das Gebäude nicht.
 - Unbekannte Zustände des Spiels werden `unknown` mit dem Klassennamen. Ein neuer Zustand im Spiel bricht dann nichts, er wird nur nicht ausgewertet.
 
 **Gezeigte Stadt:** `shown()` ist `'own'` oder die Spieler-ID der besuchten Stadt, so weit der Spielverkehr es verrät. Ein Besuch zeigt die besuchte Stadt. Die eigene Stadt kehrt zurück mit `CityMapService.getEntities` der Karte `main` oder `AnnouncementsService.fetchAllAnnouncements`, ausgewertet am Ende der Antwort und nur, wenn dieselbe Antwort keinen Besuch bringt (nach einem Kampf aus einer besuchten Stadt schickt das Spiel beides). Der Knopf „Nach Hause“ schickt nichts, diese Rückkehr bleibt unbemerkt. Nutzer: die Markierungspfeile (siehe [Stadtplan](../features/stadtplan.md)).

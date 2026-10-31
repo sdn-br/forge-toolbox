@@ -59,10 +59,10 @@ const eraIndex = (era: EraId) => {
   const i = eras.indexOf(era);
   return i < 0 ? undefined : i;
 };
-const coins = (money: number): ExpansionOffer => ({ kind: 'tileset_reward', cost: { money, premium: 1500 } });
-const medals = (amount: number): ExpansionOffer => ({ kind: 'raidMedals', cost: { guild_raids_medals: amount } });
+const coins = (money: number): ExpansionOffer => ({ kind: 'reward', cost: { money, premium: 1500 } });
+const medals = (amount: number): ExpansionOffer => ({ kind: 'quantum', cost: { guild_raids_medals: amount } });
 const diamonds = (era: string): ExpansionOffer => ({
-  kind: 'tileset_premium',
+  kind: 'diamonds',
   minEra: eraId(era),
   cost: { premium: 2000 },
 });
@@ -96,8 +96,8 @@ describe('open expansions by kind', () => {
 
   it('counts only offers of a reached era and leaves out kinds without offers', () => {
     const gated: ExpansionOffer[] = [
-      { kind: 'raidMedals', minEra: eraId('MarsAge'), cost: { guild_raids_medals: 1 } },
-      { kind: 'raidMedals', cost: { guild_raids_medals: 2 } },
+      { kind: 'quantum', minEra: eraId('MarsAge'), cost: { guild_raids_medals: 1 } },
+      { kind: 'quantum', cost: { guild_raids_medals: 2 } },
     ];
     const stats = offerStats(gated, { era: eraId('BronzeAge'), eraIndex, amount: () => 100 });
     expect(stats).toEqual([{ kind: 'quantum', total: 2, buyable: 1, minEra: eraId('MarsAge') }]);
@@ -113,9 +113,13 @@ describe('open expansions by kind', () => {
   });
 
   it('lists unknown kinds by their game type without a buy count', () => {
-    expect(offerStats([{ kind: 'mystery', cost: {} }], { era: eraId('MarsAge'), eraIndex, amount: () => 0 })).toEqual([
-      { kind: 'mystery', total: 1 },
-    ]);
+    expect(
+      offerStats([{ kind: 'unknown', gameType: 'mystery', cost: {} }], {
+        era: eraId('MarsAge'),
+        eraIndex,
+        amount: () => 0,
+      }),
+    ).toEqual([{ kind: 'mystery', total: 1 }]);
   });
 });
 

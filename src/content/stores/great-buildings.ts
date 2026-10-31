@@ -150,7 +150,7 @@ export class GreatBuildingStore {
     own: boolean,
     rankings: RankingRow[],
     known?: GreatBuildingEntity,
-    nextProduction?: { type: string; value: number },
+    nextProduction?: { fp?: number },
   ): void {
     const entity = this.entities.get(key(owner, entityId)) ?? known;
     this.open = {

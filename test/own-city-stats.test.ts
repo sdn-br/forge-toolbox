@@ -4,7 +4,7 @@ import { cityBasis } from '../src/content/features/city-map/basis';
 import { CATEGORY_COLORS } from '../src/content/features/city-map/colors';
 import { ownCityStats as ownStats } from '../src/content/features/city-map/stats';
 import type { BuildingDef } from '../src/content/model/catalog';
-import type { Building, City } from '../src/content/model/city';
+import type { Building, BuildingCategory, City } from '../src/content/model/city';
 import { type BuildingDefId, buildingDefId, type EraId, eraId, playerId, worldId } from '../src/shared/ids';
 
 const def = (id: string, width: number, length: number, street = 0): BuildingDef => ({
@@ -20,8 +20,17 @@ const def = (id: string, width: number, length: number, street = 0): BuildingDef
 const defs = new Map([def('House', 2, 2, 1), def('Street', 1, 1)].map((d) => [d.id, d]));
 const lookup = (id: BuildingDefId) => defs.get(id);
 
-const building = (id: number, d: string, type: string, x: number, y: number) =>
-  ({ id, owner: playerId(1), def: buildingDefId(d), type, x, y, connected: true, state: { kind: 'idle' } }) as Building;
+const building = (id: number, d: string, category: BuildingCategory, x: number, y: number) =>
+  ({
+    id,
+    owner: playerId(1),
+    def: buildingDefId(d),
+    category,
+    x,
+    y,
+    connected: true,
+    state: { kind: 'idle' },
+  }) as Building;
 
 // start area 16 × 16 and two expansions to the right
 const city: City = {
@@ -44,10 +53,10 @@ const city: City = {
   ],
   blocked: [{ x: 0, y: 16, width: 4, length: 4 }],
   expansions: [
-    { kind: 'tileset_reward', cost: { money: 20e6, premium: 1500 } },
-    { kind: 'tileset_reward', cost: { money: 45e6, premium: 3000 } },
-    { kind: 'raidMedals', cost: { guild_raids_medals: 6e5 } },
-    { kind: 'tileset_premium', minEra: eraId('MarsAge'), cost: { premium: 2000 } },
+    { kind: 'reward', cost: { money: 20e6, premium: 1500 } },
+    { kind: 'reward', cost: { money: 45e6, premium: 3000 } },
+    { kind: 'quantum', cost: { guild_raids_medals: 6e5 } },
+    { kind: 'diamonds', minEra: eraId('MarsAge'), cost: { premium: 2000 } },
   ],
 };
 // 6 × 6 blocks of 4 tiles
@@ -115,7 +124,7 @@ describe('statistics of the own city', () => {
   });
 
   it('keeps placeable reward expansions when none is open any more', () => {
-    const none: City = { ...city, expansions: city.expansions?.filter((e) => e.kind !== 'tileset_reward') };
+    const none: City = { ...city, expansions: city.expansions?.filter((e) => e.kind !== 'reward') };
     expect(ownCityStats(none, means({ expansions: 2 })).expansions.offers?.map((o) => o.kind)).toEqual([
       'diamonds',
       'reward',

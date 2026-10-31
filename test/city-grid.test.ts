@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   areaTileKeys,
-  buildingCategory,
   type Footprint,
   footprints,
   freeTileKeys,
@@ -12,10 +11,10 @@ import {
   tileKey,
 } from '../src/content/domain/city-grid';
 import { toBuildingDef } from '../src/content/game/building-defs';
-import { toCity } from '../src/content/game/convert';
+import { toBuilding, toCity } from '../src/content/game/convert';
 import type { GameCityEntity } from '../src/content/game/game-types';
 import type { BuildingDef } from '../src/content/model/catalog';
-import type { Building, BuildingState } from '../src/content/model/city';
+import type { Building, BuildingCategory, BuildingState } from '../src/content/model/city';
 import { type BuildingDefId, buildingDefId, playerId, worldId } from '../src/shared/ids';
 import ownCity from './fixtures/own-city.json';
 
@@ -30,11 +29,17 @@ const def = (id: string, width: number, length: number): BuildingDef => ({
 });
 
 let nextId = 1;
-const building = (def: string, type: string, x: number, y: number, change: Partial<Building> = {}): Building => ({
+const building = (
+  def: string,
+  category: BuildingCategory,
+  x: number,
+  y: number,
+  change: Partial<Building> = {},
+): Building => ({
   id: nextId++,
   owner: playerId(1),
   def: buildingDefId(def),
-  type,
+  category,
   x,
   y,
   connected: true,
@@ -59,10 +64,8 @@ describe('footprints', () => {
   });
 
   it('leaves out buildings that are not on the city grid', () => {
-    const list = ['off_grid', 'outpost_ship', 'friends_tavern', 'hub_main', 'hub_part'].map((type) =>
-      building('Off', type, -5, -5),
-    );
-    expect(footprints(list, catalog(def('Off', 4, 4)))).toEqual([]);
+    const off = building('Off', 'other', -5, -5, { offGrid: true });
+    expect(footprints([off], catalog(def('Off', 4, 4)))).toEqual([]);
   });
 
   it('places every building of a recorded city without overlap', () => {
@@ -144,9 +147,11 @@ describe('free tiles', () => {
   });
 });
 
-describe('building category', () => {
+describe('building category from the game', () => {
+  const entity = (type: string): GameCityEntity => ({ id: 1, cityentity_id: 'X', type });
+
   it('groups the game types', () => {
-    const cases: [string, string][] = [
+    const cases: [string, BuildingCategory][] = [
       ['residential', 'residential'],
       ['production', 'production'],
       ['goods', 'goods'],
@@ -162,7 +167,16 @@ describe('building category', () => {
       ['main_building', 'other'],
       ['something_new', 'other'],
     ];
-    for (const [type, category] of cases) expect([type, buildingCategory(type)]).toEqual([type, category]);
+    for (const [type, category] of cases) {
+      expect([type, toBuilding(entity(type), playerId(1))?.category]).toEqual([type, category]);
+    }
+  });
+
+  it('marks the entities beside the grid', () => {
+    for (const type of ['off_grid', 'outpost_ship', 'friends_tavern', 'hub_main', 'hub_part']) {
+      expect([type, toBuilding(entity(type), playerId(1))?.offGrid]).toEqual([type, true]);
+    }
+    expect(toBuilding(entity('residential'), playerId(1))).not.toHaveProperty('offGrid');
   });
 });
 

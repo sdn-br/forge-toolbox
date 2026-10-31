@@ -36,7 +36,7 @@ describe('doubleHarvest', () => {
 
   it('takes the next production of the open construction for the level being built, exact, also above level 10', () => {
     const gb = def(ROMAN);
-    const next = { level: 40, type: 'strategy_points', value: 31 };
+    const next = { level: 40, fp: 31 };
     expect(doubleHarvest(ROMAN, gb, 40, next)).toEqual({ fp: 31, estimate: false });
     // another level is not the one the construction told about
     expect(doubleHarvest(ROMAN, gb, 41, next)).toEqual({ fp: 25, estimate: true });
@@ -52,9 +52,9 @@ describe('doubleHarvest', () => {
     expect(doubleHarvest(ROMAN, gb, 10)).toEqual({ fp: 7, estimate: true });
   });
 
-  it('ignores a next production of another type', () => {
+  it('ignores a next production without Forge points', () => {
     const gb = def(ROMAN);
-    expect(doubleHarvest(ROMAN, gb, 40, { level: 40, type: 'money', value: 99 })).toEqual({
+    expect(doubleHarvest(ROMAN, gb, 40, { level: 40 })).toEqual({
       fp: 25,
       estimate: true,
     });

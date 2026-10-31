@@ -1,6 +1,7 @@
 // The double harvest of a Forge point great building: a building harvested just before its level up produces again
 // right after it, now on the new level, so the Forge points of level X + 1 come on top of the level up.
 import type { GreatBuildingDef } from '../model/catalog';
+import type { NextProduction } from '../model/great-building';
 
 /** the Ark and the Temple of Relics do not count, as in the old toolbox */
 const EXCLUDED: readonly string[] = ['X_FutureEra_Landmark1', 'X_AllAge_Expedition'];
@@ -13,14 +14,6 @@ export interface DoubleHarvest {
   fp: number;
   /** computed from level 10, not game data */
   estimate: boolean;
-}
-
-/** what `GreatBuildingsService.getConstruction` told about the level after the one being built */
-export interface NextProduction {
-  /** the building's level when the construction was opened */
-  level: number;
-  type: string;
-  value: number;
 }
 
 /** The building takes part in the double harvest: it produces Forge points by its definition and is not excluded. */
@@ -40,7 +33,7 @@ export function doubleHarvest(
   next?: NextProduction,
 ): DoubleHarvest | undefined {
   if (!hasDoubleHarvest(def, greatBuilding)) return undefined;
-  if (next && next.level === level && next.type === 'strategy_points') return { fp: next.value, estimate: false };
+  if (next?.level === level && next.fp !== undefined) return { fp: next.fp, estimate: false };
   const production = greatBuilding.fpProduction as number[];
   const target = level + 1;
   if (target <= LISTED_LEVEL) {

@@ -9,7 +9,7 @@ import {
   ownCityMapViewModel as viewModel,
 } from '../src/content/features/city-map/view-model';
 import type { BuildingDef, CityGrid } from '../src/content/model/catalog';
-import type { Building, City } from '../src/content/model/city';
+import type { Building, BuildingCategory, City } from '../src/content/model/city';
 import { type BuildingDefId, buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
 
 const def = (id: string, name: string, width: number, length: number): BuildingDef => ({
@@ -29,12 +29,19 @@ const defs = new Map(
 );
 const lookup = (id: BuildingDefId) => defs.get(id);
 
-const building = (id: number, d: string, type: string, x: number, y: number, change: Partial<Building> = {}) =>
+const building = (
+  id: number,
+  d: string,
+  category: BuildingCategory,
+  x: number,
+  y: number,
+  change: Partial<Building> = {},
+) =>
   ({
     id,
     owner: playerId(1),
     def: buildingDefId(d),
-    type,
+    category,
     x,
     y,
     connected: true,

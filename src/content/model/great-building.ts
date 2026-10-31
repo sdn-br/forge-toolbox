@@ -35,6 +35,14 @@ export interface GreatBuildingEntity {
   connected: boolean;
 }
 
+/** What a great building produces on the level after `level`, as the open construction told. */
+export interface NextProduction {
+  /** the building's level when the construction was opened */
+  level: number;
+  /** Forge points; missing when the next production is something else */
+  fp?: number;
+}
+
 /** The construction window the player has open in the game. */
 export interface Construction {
   owner: PlayerId;
@@ -50,11 +58,8 @@ export interface Construction {
    * without rankings keeps the old one. Missing when the building was unknown then.
    */
   rankingsLevel?: number;
-  /**
-   * what the building produces on the level after `level` (`next_production_bonus` of `getConstruction`): `level` is
-   * the building's level when it was opened; missing without a known building
-   */
-  nextProduction?: { level: number; type: string; value: number };
+  /** what the building produces on the level after `level`; missing without a known building */
+  nextProduction?: NextProduction;
   /** a finished level the player looks at instead; places and Forge points only, nothing to calculate */
   past?: { level: number; rankings: RankingRow[] };
   /** a contribution made it level up and the rankings of the new level are unknown; they are stale then */

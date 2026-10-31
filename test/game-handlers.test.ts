@@ -182,6 +182,7 @@ describe('game handlers', () => {
             available: true,
             requirements: { min_era: 'MarsAge', cost: { resources: { premium: 2000 } } },
           },
+          { type: 'mystery', available: true },
           { available: true },
         ],
       },
@@ -192,9 +193,10 @@ describe('game handlers', () => {
       { x: 64, y: 8, width: 4, length: 4 },
     ]);
     expect(city?.expansions).toEqual([
-      { kind: 'tileset_reward', cost: { money: 20_000_000, premium: 1500 } },
-      { kind: 'raidMedals', cost: { guild_raids_medals: 600_000 } },
-      { kind: 'tileset_premium', minEra: 'MarsAge', cost: { premium: 2000 } },
+      { kind: 'reward', cost: { money: 20_000_000, premium: 1500 } },
+      { kind: 'quantum', cost: { guild_raids_medals: 600_000 } },
+      { kind: 'diamonds', minEra: 'MarsAge', cost: { premium: 2000 } },
+      { kind: 'unknown', gameType: 'mystery', cost: {} },
     ]);
   });
 

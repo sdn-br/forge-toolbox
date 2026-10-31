@@ -151,7 +151,7 @@ describe('recording plunders', () => {
             id: 904,
             owner: opponent,
             def: buildingDefId('R_MultiAge_PatrickBonusSet20b'),
-            type: 'residential',
+            category: 'residential',
             x: 0,
             y: 0,
             connected: true,

@@ -28,12 +28,6 @@ export interface Tile {
 /** Inclusive tile bounds. */
 export type Bounds = Rect;
 
-// Entities the game lists with the city but places beside the grid (seen in the own city, 2026-10-19). The hubs are the
-// Arctic Harbour and the Ocean Terminal with their parts (seen 2026-10-29).
-const OFF_GRID = new Set(['off_grid', 'outpost_ship', 'friends_tavern', 'hub_main', 'hub_part']);
-
-const onGrid = (b: Building) => !OFF_GRID.has(b.type);
-
 /**
  * The footprint of a building with its definition. The entities carry no rotation; the recorded own city fits together
  * without overlap with width along x and length along y, and overlaps when the two are swapped.
@@ -52,7 +46,7 @@ export const place = (building: Building, def: BuildingDef): Placed => ({
 export function footprints(buildings: Iterable<Building>, def: (id: BuildingDefId) => BuildingDef | undefined) {
   const out: Footprint[] = [];
   for (const building of buildings) {
-    if (!onGrid(building)) continue;
+    if (building.offGrid) continue;
     const d = def(building.def);
     out.push(d ? place(building, d) : { building, x: building.x, y: building.y, width: 1, length: 1, known: false });
   }
@@ -179,38 +173,6 @@ export function connectedLinks(placed: Placed[]): Set<number> {
   }
   return connected;
 }
-
-export const CATEGORIES = [
-  'residential',
-  'production',
-  'goods',
-  'culture',
-  'military',
-  'greatBuilding',
-  'street',
-  'special',
-  'other',
-] as const;
-
-export type BuildingCategory = (typeof CATEGORIES)[number];
-
-const CATEGORY_OF: Record<string, BuildingCategory> = {
-  residential: 'residential',
-  production: 'production',
-  goods: 'goods',
-  culture: 'culture',
-  decoration: 'culture',
-  military: 'military',
-  greatbuilding: 'greatBuilding',
-  street: 'street',
-  generic_building: 'special',
-  random_production: 'special',
-  tower: 'special',
-  clan_power_production: 'special',
-};
-
-/** Group of a building by the game type of its entity; types the toolbox does not know are `other`. */
-export const buildingCategory = (type: string): BuildingCategory => CATEGORY_OF[type] ?? 'other';
 
 /** A building without road connection. Buildings that need no road never come as unconnected. */
 export const needsRoad = (b: Building) => !b.connected || b.state.kind === 'unconnected';
