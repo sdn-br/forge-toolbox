@@ -1,24 +1,28 @@
-import type { BuildingDefId, PlayerId } from '../../../shared/ids';
+import type { BuildingDefId } from '../../../../shared/ids';
 import {
+  availableForgePoints,
   type ConstructionCalc,
   calculateConstruction,
   constructionOf,
+  ownAdvice,
   type PlaceCalc,
   type PlaceStatus,
-} from '../../domain/gb-calculator';
-import { effectiveFactor as effective, type FactorChoice } from '../../domain/gb-factor';
-import { previewLevel } from '../../domain/gb-level-preview';
-import { ownerRow } from '../../domain/gb-snipe';
-import { type LevelUpAndFirst, levelUpAndFirst } from '../../domain/gb-strategy';
-import type { GreatBuildingDef } from '../../model/catalog';
-import type { Construction } from '../../model/great-building';
-import type { FoestatsRecord } from '../../stores/foestats';
-import { type ActivityVm, activityVm } from '../../ui/activity';
-import { type FactorButton, factorButtons } from '../../ui/factor-bar';
-import { ignoreWords } from '../../ui/ignore';
-import { type LevelChoice, levelChoice } from '../../ui/level-bar';
-import { type LevelPreview, levelPreview } from '../../ui/level-preview';
-import { type OwnerLookups, type OwnerVm, ownerVm } from '../../ui/owner-line';
+  priced,
+  profitablePlaces,
+} from '../../../domain/gb-calculator';
+import { effectiveFactor as effective, type FactorChoice } from '../../../domain/gb-factor';
+import { previewLevel } from '../../../domain/gb-level-preview';
+import { ownerRow } from '../../../domain/gb-snipe';
+import { type LevelUpAndFirst, levelUpAndFirst } from '../../../domain/gb-strategy';
+import type { GreatBuildingDef } from '../../../model/catalog';
+import type { Construction } from '../../../model/great-building';
+import { type ActivityVm, activityVm } from '../../../ui/activity';
+import { type FactorButton, factorButtons } from '../../../ui/factor-bar';
+import { ignoreWords } from '../../../ui/ignore';
+import { type LevelChoice, levelChoice } from '../../../ui/level-bar';
+import { type LevelPreview, levelPreview } from '../../../ui/level-preview';
+import { type OwnerVm, ownerVm } from '../../../ui/owner-line';
+import type { GbLookups } from '../lookups';
 
 export interface GbHeader extends OwnerVm {
   name: string;
@@ -146,22 +150,9 @@ export type GbCalculatorVm =
       required: number;
       /** what the owner paid into the level; missing when nothing */
       ownerFp?: number;
-      /** at least one place pays more than it costs */
-      profitable: boolean;
+      /** the places that pay more than they cost, as the domain has them, for the tone; none while the level is stale */
+      profitable: PlaceCalc[];
     };
-
-/** what the calculator and the snipe list look up about buildings and players */
-export interface GbLookups extends OwnerLookups {
-  greatBuildingName(def: BuildingDefId): string | undefined;
-  /** the owner's name when the rankings or the list do not tell it */
-  playerName(id: PlayerId): string | undefined;
-  isMarked(owner: PlayerId, entityId: number): boolean;
-  isIgnored(owner: PlayerId, entityId: number): boolean;
-  /** the owner's days at foestats; undefined while foestats is off or was not asked yet */
-  foestats(id: PlayerId): FoestatsRecord | undefined;
-  /** the current foestats day, `YYYY-MM-DD` */
-  today: string;
-}
 
 export interface GbCalculatorInput extends GbLookups {
   /** the foreign construction to show */
@@ -181,12 +172,6 @@ export interface GbCalculatorInput extends GbLookups {
   /** era and level costs of the building; undefined while its definition is not loaded */
   greatBuilding(def: BuildingDefId): GreatBuildingDef | undefined;
 }
-
-/** a price only where the place can be had, or for the own place while it is not safe */
-const priced = (p: PlaceCalc) => p.available || (p.mine && !p.secured);
-
-/** the place pays more than it costs */
-export const profitable = (p: { status: PlaceStatus; profit?: number }) => p.status === 'profit' && (p.profit ?? 0) > 0;
 
 /** no cell where nothing can be paid */
 const cell = (cost: number | undefined, extra: number | undefined, available?: number): CostCell | undefined =>
@@ -222,24 +207,18 @@ function placeRow(p: PlaceCalc, rest: number, available?: number): PlaceRow {
 
 function meVm(calc: ConstructionCalc): MeVm {
   const own = calc.places.find((p) => p.mine);
-  const open = calc.places.filter((p) => priced(p) && (calc.myRank === undefined || p.rank <= calc.myRank));
-  const worthwhile = open.filter((p) => p.worthwhile);
-  const best = worthwhile.reduce<PlaceCalc | undefined>(
-    (b, p) => (b && (b.profit ?? 0) >= (p.profit ?? 0) ? b : p),
-    undefined,
-  );
-  const targets = worthwhile.map((p) => ({
-    rank: p.rank,
-    cost: p.safeCost as number,
-    extra: p.safeExtra as number,
-    best: p === best,
-  }));
+  const advice = ownAdvice(calc);
   return {
     fp: calc.myDeposit,
     ...(calc.myRank !== undefined && { rank: calc.myRank }),
     ...(own && { secured: own.secured }),
-    targets,
-    ...(open.length > 0 && worthwhile.length === 0 && { noneWorthwhile: true }),
+    targets: advice.targets.map((p) => ({
+      rank: p.rank,
+      cost: p.safeCost as number,
+      extra: p.safeExtra as number,
+      best: p === advice.best,
+    })),
+    ...(advice.noneWorthwhile && { noneWorthwhile: true }),
   };
 }
 
@@ -277,10 +256,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
   // the preview starts where the live construction ends; a level up can overtake a chosen level
   const levels = levelChoice(entity.level, input.previewLevel);
   const preview = levels.preview ? levels.chosen : undefined;
-  const availableFp =
-    input.fpBar === undefined && input.fpPackages === undefined
-      ? undefined
-      : (input.fpBar ?? 0) + (input.fpPackages ?? 0);
+  const availableFp = availableForgePoints(input.fpBar, input.fpPackages);
   const ignored = input.isIgnored(c.owner, c.entityId);
   const foestats = input.foestats(c.owner);
   const words = ignoreWords(ignored, owner.ownerIgnored);
@@ -347,6 +323,6 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     invested: entity.invested,
     required: entity.required,
     ...(ownerFp && { ownerFp }),
-    profitable: !calc.blocked && !c.leveled && places.some(profitable),
+    profitable: c.leveled ? [] : profitablePlaces(calc),
   };
 }

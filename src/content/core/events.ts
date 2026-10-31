@@ -55,8 +55,18 @@ export interface ToolboxEvents {
   'greatBuilding.marked': { owner: PlayerId; entityId: number; marked: boolean };
   /** the player ignored or released a stored great building */
   'greatBuilding.ignored': { owner: PlayerId; entityId: number; ignored: boolean };
-  /** the great building list of another player arrived (not the own one); `at` is when, `entityIds` its buildings */
-  'greatBuildings.listed': { owner: PlayerId; ownerName?: string; entityIds: number[]; at: number };
+  /**
+   * the great building list of another player arrived (not the own one); `at` is when, `entityIds` its buildings.
+   * `askedByGame`: the game asked for it itself, not the player (it came right after a building of that owner was opened
+   * or paid into), so it opens and unfolds nothing
+   */
+  'greatBuildings.listed': {
+    owner: PlayerId;
+    ownerName?: string;
+    entityIds: number[];
+    at: number;
+    askedByGame: boolean;
+  };
   /**
    * the town hall list of the own contributions arrived at `at`, with the names of the owners as it gives them;
    * `known()` has it once read

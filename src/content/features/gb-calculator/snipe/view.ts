@@ -1,17 +1,17 @@
 import { html, type TemplateResult } from 'lit-html';
-import type { PlayerId } from '../../../shared/ids';
-import { formatAge, t } from '../../core/texts';
-import { activityLine } from '../../ui/activity';
-import { foldToggle } from '../../ui/fold-toggle';
-import { growthTag, progressCell } from '../../ui/fp-bar';
-import { headerIcons } from '../../ui/icons';
-import { buildingCell, ignoredFilter, rowTip } from '../../ui/ignore';
-import { ownerOf } from '../../ui/owner-line';
-import { hitCells } from '../../ui/snipe-hit';
-import { type SortColumn, sortHeads } from '../../ui/sortable';
-import { starButton } from '../../ui/star';
-import { rowsIn, windowedRows } from '../../ui/windowed-rows';
-import type { SnipeColumn, SnipeRowVm, SnipeVm } from './snipe-view-model';
+import type { PlayerId } from '../../../../shared/ids';
+import { formatAge, t } from '../../../core/texts';
+import { activityLine } from '../../../ui/activity';
+import { foldToggle } from '../../../ui/fold-toggle';
+import { growthTag, progressCell } from '../../../ui/fp-bar';
+import { headerIcons } from '../../../ui/icons';
+import { buildingCell, ignoredFilter, rowTip } from '../../../ui/ignore';
+import { ownerOf } from '../../../ui/owner-line';
+import { hitCells } from '../../../ui/snipe-hit';
+import { type SortColumn, sortHeads } from '../../../ui/sortable';
+import { starButton } from '../../../ui/star';
+import { rowsIn, windowedRows } from '../../../ui/windowed-rows';
+import type { SnipeColumn, SnipeRowVm, SnipeVm } from './view-model';
 
 export interface SnipeActions {
   sort(column: SnipeColumn, append: boolean): void;

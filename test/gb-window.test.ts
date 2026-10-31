@@ -33,7 +33,7 @@ describe('watchGbWindow', () => {
   it('asks the page to watch once a list or a great building opens', () => {
     const { bus, posted } = setup();
     expect(posted).toEqual([]);
-    bus.emit('greatBuildings.listed', { owner: playerId(1001), entityIds: [], at: 0 });
+    bus.emit('greatBuildings.listed', { owner: playerId(1001), entityIds: [], at: 0, askedByGame: false });
     bus.emit('greatBuilding.opened', { owner: playerId(1001), entityId: 1, own: false });
     bus.emit('greatBuilding.opened', { owner: playerId(1), entityId: 2, own: true });
     expect(posted).toEqual([WATCH, WATCH, WATCH]);
