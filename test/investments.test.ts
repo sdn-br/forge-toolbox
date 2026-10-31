@@ -5,7 +5,7 @@ import {
   type InvestmentsInput,
   investmentsViewModel,
   type MineFilter,
-} from '../src/content/features/investments/view-model';
+} from '../src/content/features/investments/mine/view-model';
 import { toGreatBuildingListRows } from '../src/content/game/convert';
 import type { RankingRow } from '../src/content/model/great-building';
 import { applyListRow } from '../src/persistence/great-buildings/merge';
