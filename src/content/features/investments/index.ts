@@ -1,21 +1,16 @@
 import { html } from 'lit-html';
-import type { KnownGreatBuilding } from '../../../shared/model';
+import type { PlayerId } from '../../../shared/ids';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
-import {
-  type Investments,
-  myInvestments,
-  type PossibleInvestment,
-  possibleInvestments,
-} from '../../domain/investments';
 import { rowFit } from '../../ui/fit-rows';
 import { icons } from '../../ui/icons';
 import { tabBar } from '../../ui/tabs';
 import { gbLookups } from '../shared/gb-lookups';
 import { createMineSection } from './mine/section';
 import { createPossibleSection } from './possible/section';
+import { ownerRatings } from './ratings';
 import { investmentsCss } from './styles';
 
 /** the tabs of the box: the own investments and the buildings of others worth a place */
@@ -40,12 +35,12 @@ export const investmentsFeature: Feature = {
     const openWithList = ctx.settings.register(OPEN_WITH_LIST);
 
     let tab: InvestmentsTab = ctx.ui.pref(TAB) === 'possible' ? 'possible' : 'mine';
-    /** the known buildings as last read; data events read them again, the other inputs only rate them anew */
-    let known: KnownGreatBuilding[] = [];
-    let arc = 0;
-    let investments: Investments = { rows: [] };
-    /** the possible investments, rated only for their tab and kept while the read buildings and bonus stay */
-    let rated: { known: KnownGreatBuilding[]; arc: number; rows: PossibleInvestment[] } | undefined;
+    /** the known buildings as last read, by owner; a stored owner is read again, the other inputs only rate anew. The
+     * possible investments are rated only for their tab */
+    const ratings = ownerRatings(
+      (def) => ctx.catalog.get(def)?.greatBuilding,
+      () => ctx.session.current?.playerId,
+    );
 
     /** how many rows fit into the table area; a change redraws */
     const fit = rowFit(() => box.update());
@@ -61,15 +56,6 @@ export const investmentsFeature: Feature = {
     const lookups = gbLookups(ctx);
     const ownArc = () => ctx.playerBonuses.arcBonus();
 
-    const candidates = () => {
-      if (!rated || rated.known !== known || rated.arc !== arc) {
-        const greatBuilding = (def: KnownGreatBuilding['cityEntityId']) => ctx.catalog.get(def)?.greatBuilding;
-        const rows = possibleInvestments(known, greatBuilding, arc, ctx.session.current?.playerId);
-        rated = { known, arc, rows };
-      }
-      return rated.rows;
-    };
-
     /** the height the box needs for what always shows, so the table area never gets a second scrollbar: border 4 +
      * header 29 + body padding 12 + tabs 32 + filter row 46 (22 high, 2 x 12 margin) + the totals of the own tab at
      * their tallest, two lines of 60 (one line 41, the line of the selection 19 more) + head row 22 + two rows
@@ -81,7 +67,8 @@ export const investmentsFeature: Feature = {
 
     const render = () => {
       const frame = { lookups, visible: fit.rows(), now: Date.now() };
-      const content = tab === 'possible' ? possible.render(frame, candidates()) : mine.render(frame, investments);
+      const content =
+        tab === 'possible' ? possible.render(frame, ratings.candidates()) : mine.render(frame, ratings.investments());
       // tabs, filters and the totals or count stay, the rows that fit are drawn and the two buttons scroll them
       return html`<div class="inv-pane">${tabBar(TABS, tab, (key) => t(`investments.tab.${key}`), pickTab)}${content}</div>`;
     };
@@ -106,66 +93,76 @@ export const investmentsFeature: Feature = {
     const possible = createPossibleSection(ctx, box, fit.measure);
 
     const rate = () => {
-      arc = ownArc();
-      investments = myInvestments(known, arc);
+      ratings.setArc(ownArc());
       box.update();
     };
     const rerate = () => {
       if (box.isOpen) rate();
     };
 
+    /** what to read on the next read: every owner (before the first read, after the box was closed meanwhile), or the
+     * owners stored since the last one */
+    let pending: Set<PlayerId> | 'all' = 'all';
     let loading = false;
-    let again = false;
-    /** reads the known buildings; what triggers a read while one runs gets one more read after it */
+    /** reads what is pending; what is stored while a read runs is read right after it */
     const load = async () => {
-      if (loading) {
-        again = true;
-        return;
-      }
+      if (loading) return;
       loading = true;
       try {
         // the events of one game response come together and share the read
         await Promise.resolve();
-        do {
-          again = false;
-          known = await ctx.greatBuildings.known();
-        } while (again);
+        while (pending === 'all' || pending.size > 0) {
+          const next = pending;
+          pending = new Set();
+          if (next === 'all') ratings.replaceAll(await ctx.greatBuildings.known());
+          else {
+            const owners = [...next];
+            const rows = await Promise.all(owners.map((owner) => ctx.greatBuildings.known(owner)));
+            owners.forEach((owner, i) => {
+              ratings.replace(owner, rows[i] ?? []);
+            });
+          }
+        }
+      } catch (error) {
+        // what failed may be anything; the next read reads all
+        pending = 'all';
+        throw error;
       } finally {
         loading = false;
       }
       rate();
     };
-    const reload = () => {
-      if (box.isOpen) load().catch((error) => logError('reading the investments failed', error));
+    const read = () => load().catch((error) => logError('reading the investments failed', error));
+    /** the box opened: it reads what it missed while closed, else it rates what it holds */
+    const opened = () => {
+      if (pending === 'all' || pending.size > 0) read();
+      else rate();
     };
 
+    // the town hall list opens the box; it is read once the store wrote it (`greatBuildings.stored` without an owner)
     ctx.bus.on('greatBuildings.contributions', () => {
       if (openWithList.get()) {
         showTab('mine');
         box.open();
       }
-      reload();
     });
-    // an opened building or an own contribution changes the own place, the progress and the growth
-    ctx.bus.on('greatBuilding.opened', ({ own }) => {
-      if (!own) reload();
+    // a list, an opened or a changed building of another player, or the town hall list, once it is in the database:
+    // the box reads that owner alone, every owner after the town hall list or when it was closed meanwhile
+    ctx.bus.on('greatBuildings.stored', ({ owner }) => {
+      if (owner === undefined || !box.isOpen) pending = 'all';
+      else if (pending !== 'all') pending.add(owner);
+      if (box.isOpen) read();
     });
-    ctx.bus.on('greatBuilding.changed', reload);
     // a star put on or taken from a building shows at once, the data stay as read
     ctx.bus.on('greatBuilding.marked', () => box.update());
     ctx.bus.on('greatBuilding.ignored', () => box.update());
-    // a list of another player brings the state of its buildings; one the game asked for itself comes right after the
-    // owner's building, which reloaded already (the owner's name reaches the player store, which redraws)
-    ctx.bus.on('greatBuildings.listed', ({ askedByGame }) => {
-      if (!askedByGame) reload();
-    });
     // every collection in the own city reports a change; only the Arc bonus counts
     ctx.bus.on('city.ownChanged', () => {
-      if (ownArc() !== arc) rerate();
+      if (ownArc() !== ratings.arc()) rerate();
     });
     // the rewards of a level decide which places pay
     ctx.bus.on('catalog.updated', () => {
-      rated = undefined;
+      ratings.rewardsChanged();
       rerate();
     });
     // names and relations, for example a new friend or the social list at the start
@@ -176,7 +173,7 @@ export const investmentsFeature: Feature = {
       label: () => t('investments.menu'),
       action: () => {
         box.toggle();
-        reload();
+        if (box.isOpen) opened();
       },
     });
   },
