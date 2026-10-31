@@ -81,11 +81,11 @@ export function sabotageView(
 ): TemplateResult {
   if (!vm) return html`<p class="muted">${t('sabotage.noVisit')}</p>`;
   return html`
-    <p><b>${externalLink(vm.player.name, vm.player.url)}</b>${
+    <p><b>${externalLink(vm.player.name, vm.player.url)}</b>${vm.player.guild ? html` ${guildTag(vm.player.guild)}` : ''}${
       vm.player.marked !== undefined && markPlayer
         ? html` ${starButton(vm.player.marked, () => markPlayer(!vm.player.marked))}`
         : ''
-    }${vm.player.guild ? html` ${guildTag(vm.player.guild)}` : ''}
+    }
       <br /><span class="muted">${t('sabotage.era')}: ${vm.player.era}</span>
       <br />${vm.attack.kind === 'plunderable' ? html`<b>${vm.attack.text}</b>` : vm.attack.text}</p>
     ${note ?? ''}
