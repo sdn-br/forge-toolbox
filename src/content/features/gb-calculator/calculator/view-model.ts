@@ -114,14 +114,6 @@ export type GbCalculatorVm =
   | { kind: 'none' }
   | ({ kind: 'noEntity' } & OwnerVm)
   | {
-      kind: 'past';
-      header: GbHeader;
-      /** the finished level: from `level - 1` to `level` */
-      level: number;
-      /** `url` is the player's page at foestats, missing for deleted players */
-      rows: { rank?: number; name: string; url?: string; fp?: number }[];
-    }
-  | {
       kind: 'preview';
       header: GbHeader;
       /** sorted by value, the own Arc bonus among them while its setting shows it */
@@ -282,7 +274,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
   const live = constructionOf(entity, c.rankings, { arcBonus: input.arcBonus, factor: effectiveFactor });
   const calc = calculateConstruction(live);
   const gb = input.greatBuilding(entity.def);
-  const levelUp = c.past || c.leveled ? undefined : levelUpAndFirst(live, calc, gb);
+  const levelUp = c.leveled ? undefined : levelUpAndFirst(live, calc, gb);
   if (preview !== undefined) {
     return {
       kind: 'preview',
@@ -291,21 +283,6 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
       effectiveFactor,
       preview: previewVm(gb, preview, entity.maxLevel, input.arcBonus, effectiveFactor),
       ...(levelUp && preview === levelUp.nextLevel && { levelUp }),
-    };
-  }
-  if (c.past) {
-    return {
-      kind: 'past',
-      header,
-      level: c.past.level,
-      rows: c.past.rankings
-        .filter((r) => r.fp !== undefined)
-        .map((r) => ({
-          ...(r.rank !== undefined && { rank: r.rank }),
-          name: r.name,
-          ...(r.player !== undefined && { url: input.playerUrl(r.player) }),
-          fp: r.fp,
-        })),
     };
   }
   const places = calc.places.map((p) => placeRow(p, calc.rest, availableFp));

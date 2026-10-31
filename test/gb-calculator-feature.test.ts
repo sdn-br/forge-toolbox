@@ -303,19 +303,15 @@ describe('LG-Rechner', () => {
     expect(box.root.querySelector('.gb-overlay')?.textContent).toContain('nicht an eine Straße angeschlossen');
   });
 
-  it('shows a past level with places and Forge points only', async () => {
-    const { box, send, open, rows } = setup();
+  it('stays on the level being built when the game pages to a finished level', async () => {
+    const { box, send, open } = setup();
     open(2434);
+    await tick();
+    const before = box.text;
     send(fixture.ranking as Entry);
     await tick();
-    expect(box.text).toContain('Vergangene Stufe 51 → 52');
-    expect(box.root.querySelector('.gb-factor')).toBeNull();
-    expect([...(rows()[0]?.querySelectorAll('td') ?? [])].map((td) => td.textContent?.trim())).toEqual([
-      '1',
-      'Spieler 2011',
-      '1.020',
-    ]);
-    expect(rows()[0]?.querySelector('a')?.getAttribute('href')).toBe('https://foestats.com/de/de20/players/2011');
+    expect(box.text).toBe(before);
+    expect(box.root.querySelector('.gb-factor')).not.toBeNull();
   });
 
   it('stays quiet for the same places and covers them after a level up with one more tone', async () => {

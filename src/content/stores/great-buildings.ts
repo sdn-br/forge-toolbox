@@ -184,18 +184,16 @@ export class GreatBuildingStore {
 
   /**
    * Rankings of one level. The level being built is the current level plus one; asking for it repeats the current
-   * rankings. A level up to the current one is finished, its rankings show as a past level.
+   * rankings. A level up to the current one is finished: the game shows it already and it adds nothing to the
+   * calculation, so it is left out (Nutzer, 2026-10-31).
    */
   levelRanking(owner: PlayerId, entityId: number, level: number, rankings: RankingRow[]): void {
     const open = this.matching(owner, entityId);
     if (!open) return;
     this.shownAt = this.now();
-    if (open.entity !== undefined && level <= open.entity.level) {
-      this.open = { ...open, past: { level, rankings } };
-    } else {
-      this.open = { ...open, rankings, rankingsLevel: level - 1, past: undefined, seenAt: this.now() };
-      this.remember(true);
-    }
+    if (open.entity !== undefined && level <= open.entity.level) return;
+    this.open = { ...open, rankings, rankingsLevel: level - 1, seenAt: this.now() };
+    this.remember(true);
     this.changed('ranking');
   }
 
@@ -220,7 +218,7 @@ export class GreatBuildingStore {
     const rankingsLevel = entity?.level;
     const leveled =
       open.leveled && rankingsLevel !== undefined && rankingsLevel >= open.leveled.level ? undefined : open.leveled;
-    this.open = { ...open, entity, rankings, rankingsLevel, past: undefined, leveled, seenAt: this.now() };
+    this.open = { ...open, entity, rankings, rankingsLevel, leveled, seenAt: this.now() };
     this.shownAt = this.now();
     this.remember(true);
     this.changed('contributed');

@@ -440,7 +440,6 @@ export const de = {
   'gbCalc.previewNoDefinition': 'Die Definition des LGs ist noch nicht geladen, deshalb fehlen Kosten und Belohnungen.',
   'gbCalc.previewNoReward': 'Für diese Stufe ist die Belohnung nicht bekannt.',
   'gbCalc.estimate': 'Belohnung geschätzt, auf etwa 5 FP genau',
-  'gbCalc.pastLevel': 'Vergangene Stufe {from} → {to}, nur Plätze und FP',
   'gbOwn.title': 'Eigenanteil',
   'gbOwn.menu': 'Eigenanteil an eigenen LGs',
   'gbOwn.factorSetting': 'Faktor für eigene LGs (z. B. 1,9)',

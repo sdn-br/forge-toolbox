@@ -38,7 +38,6 @@ interface Construction {
   own: boolean;
   entity?: GreatBuildingEntity; // fehlt, wenn weder Öffnung noch Stadt das Gebäude kennen
   rankings: RankingRow[];       // laufende Stufe
-  past?: { level: number; rankings: RankingRow[] };  // angesehene vergangene Stufe
   rankingsLevel?: number;      // Stufe des Gebäudes, zu der die Rangliste gehört
   leveled?: { level: number; rank?: number };        // gelevelt, Rangliste der neuen Stufe unbekannt
   seenAt: number;
