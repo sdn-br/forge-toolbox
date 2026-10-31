@@ -13,7 +13,7 @@ import { ownerMarks } from '../../ui/owner-line';
 import { RELATION_ICONS, relationToggles } from '../../ui/relations';
 import { type Sort, type SortColumn, sortHeads } from '../../ui/sortable';
 import { markCell, markedFilter } from '../../ui/star';
-import { type RowWindow, rowsIn, windowedRows } from '../../ui/windowed-rows';
+import { type RowWindow, windowedRows } from '../../ui/windowed-rows';
 import type { GbRowActions } from '../shared/gb-lookups';
 import type { CommonFilter, CommonRowVm, NamedColumn, RowActions } from './rows';
 
@@ -92,6 +92,7 @@ export interface RowsTable<R, C extends string> {
   /** in table order; each gets its `col` with the class `c-<column>` for the widths in the styles */
   columns: SortColumn<C>[];
   sort: Sort<C>;
+  /** the rows of the window, the only ones drawn */
   rows: R[];
   window: RowWindow;
   actions: Pick<RowActions<C, CommonFilter>, 'sort' | 'scroll' | 'measure'>;
@@ -108,7 +109,7 @@ export const rowsTable = <R, C extends string>(spec: RowsTable<R, C>) =>
     table: html`<table class=${`gb-table inv-table ${spec.cls}`}>
     <colgroup>${spec.columns.map((c) => html`<col class=${`c-${c.column}`} />`)}</colgroup>
     <thead><tr>${sortHeads(spec.columns, spec.sort, spec.actions.sort)}</tr></thead>
-    <tbody>${rowsIn(spec.rows, spec.window).map(spec.row)}</tbody>
+    <tbody>${spec.rows.map(spec.row)}</tbody>
   </table>`,
   });
 

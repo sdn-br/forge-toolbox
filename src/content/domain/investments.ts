@@ -83,6 +83,10 @@ export const sumTotals = (rows: Investment[]): InvestmentTotals =>
     { circulating: 0, profitSafe: 0, profitTotal: 0 },
   );
 
+/** the default order of the own investments: rows with growth first, then the rest to the level up ascending */
+export const byDefaultOrder = (a: Investment, b: Investment): number =>
+  Number(b.growth !== undefined) - Number(a.growth !== undefined) || a.rest - b.rest;
+
 export function myInvestments(buildings: KnownGreatBuilding[], arcBonus: number): Investments {
   const rows = buildings.flatMap<Investment>((b) => {
     const c = b.contribution;
@@ -109,7 +113,7 @@ export function myInvestments(buildings: KnownGreatBuilding[], arcBonus: number)
       },
     ];
   });
-  rows.sort((a, b) => Number(b.growth !== undefined) - Number(a.growth !== undefined) || a.rest - b.rest);
+  rows.sort(byDefaultOrder);
   return { rows };
 }
 

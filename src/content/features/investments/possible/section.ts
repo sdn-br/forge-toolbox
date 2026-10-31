@@ -3,9 +3,16 @@ import type { TemplateResult } from 'lit-html';
 import type { FeatureContext } from '../../../core/feature';
 import type { PossibleInvestment } from '../../../domain/investments';
 import type { Box } from '../../../ui/box';
-import { createTabState, type TabFrame } from '../rows';
+import { createTabState, lastResult, type TabFrame } from '../rows';
 import { type PossibleActions, possibleView } from './view';
-import { DEFAULT_FILTER, DEFAULT_POSSIBLE_SORT, POSSIBLE_DESC_FIRST, possibleViewModel } from './view-model';
+import {
+  DEFAULT_FILTER,
+  DEFAULT_POSSIBLE_SORT,
+  POSSIBLE_DESC_FIRST,
+  type PossibleRows,
+  possibleRows,
+  possibleViewModel,
+} from './view-model';
 
 export interface PossibleSection {
   render(frame: TabFrame, candidates: PossibleInvestment[]): TemplateResult;
@@ -22,8 +29,15 @@ export function createPossibleSection(
     defaultSort: DEFAULT_POSSIBLE_SORT,
     descFirst: POSSIBLE_DESC_FIRST,
   });
+  const rows = lastResult<PossibleRows>();
   return {
-    render: ({ lookups, visible, now }, candidates) =>
-      draw((choices) => possibleViewModel({ candidates, visible, now, ...choices, ...lookups }), possibleView),
+    render: ({ lookups, visible, now, revision }, candidates) =>
+      draw((choices) => {
+        const input = { candidates, visible, now, ...choices, ...lookups };
+        return possibleViewModel(
+          input,
+          rows([candidates, choices.sort, choices.filter, revision], () => possibleRows(input)),
+        );
+      }, possibleView),
   };
 }

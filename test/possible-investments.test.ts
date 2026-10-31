@@ -56,22 +56,23 @@ const defNames: Record<string, string> = { [DEF_ID]: 'Kathedrale von Aachen', [O
 const candidates = (buildings: KnownGreatBuilding[]) =>
   possibleInvestments(buildings, (d) => (d === DEF_ID ? def : undefined), 0, ME);
 
+const vmInput = (buildings: KnownGreatBuilding[], filter: Partial<PossibleFilter> = {}, sort?: PossibleSort) => ({
+  visible: 100,
+  candidates: candidates(buildings),
+  filter: { ...DEFAULT_FILTER, ...filter },
+  sort: sort ?? DEFAULT_POSSIBLE_SORT,
+  now: NOW,
+  greatBuildingName: (d: BuildingDefId) => defNames[d],
+  playerName: (id: PlayerId) => names[id],
+  relations: (id: PlayerId) => relations[id],
+  isMarked: (owner: PlayerId, entityId: number) => markedBuildings.has(`${owner}:${entityId}`),
+  playerMarked: (id: PlayerId) => markedOwners.has(id),
+  isIgnored: (owner: PlayerId, entityId: number) => ignoredBuildings.has(`${owner}:${entityId}`),
+  ownerIgnored: (id: PlayerId) => (id in relations ? ignoredOwners.has(id) : undefined),
+  playerUrl: (id: PlayerId) => `https://foestats.example/${id}`,
+});
 const vm = (buildings: KnownGreatBuilding[], filter: Partial<PossibleFilter> = {}, sort?: PossibleSort) =>
-  possibleViewModel({
-    visible: 100,
-    candidates: candidates(buildings),
-    filter: { ...DEFAULT_FILTER, ...filter },
-    sort: sort ?? DEFAULT_POSSIBLE_SORT,
-    now: NOW,
-    greatBuildingName: (d: BuildingDefId) => defNames[d],
-    playerName: (id: PlayerId) => names[id],
-    relations: (id: PlayerId) => relations[id],
-    isMarked: (owner: PlayerId, entityId: number) => markedBuildings.has(`${owner}:${entityId}`),
-    playerMarked: (id: PlayerId) => markedOwners.has(id),
-    isIgnored: (owner: PlayerId, entityId: number) => ignoredBuildings.has(`${owner}:${entityId}`),
-    ownerIgnored: (id: PlayerId) => (id in relations ? ignoredOwners.has(id) : undefined),
-    playerUrl: (id: PlayerId) => `https://foestats.example/${id}`,
-  });
+  possibleViewModel(vmInput(buildings, filter, sort));
 
 /** pays place 1 in both cases: safe, +45 to +285 */
 const safe = building({ entityId: 1, invested: 400 });
@@ -105,6 +106,23 @@ describe('possibleViewModel', () => {
     expect(v.rows.map((r) => r.entityId)).toEqual([1, 2]);
     expect(v.count).toBe('2 mit Gewinn von 4 LGs');
     expect(v.empty).toBe(false);
+  });
+
+  it('builds the cells of the rows in view only, the count still over all', () => {
+    const urls: number[] = [];
+    const v = possibleViewModel({
+      ...vmInput([possible, none, safe, unknown], { onlyHits: false }),
+      visible: 2,
+      scroll: 1,
+      playerUrl: (id: PlayerId) => {
+        urls.push(id);
+        return '';
+      },
+    });
+    expect(v.rows).toHaveLength(2);
+    expect(v.scroll).toEqual({ top: 1, below: 1 });
+    expect(urls).toHaveLength(2);
+    expect(v.count).toBe('2 mit Gewinn von 4 LGs');
   });
 
   it('builds a row like the snipe helper: place, stake, profit range, tier, worst case in the tooltip', () => {

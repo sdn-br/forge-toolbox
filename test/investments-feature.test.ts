@@ -104,21 +104,17 @@ describe('Investitionen box', () => {
     expect((progress.querySelector('.fp-bar > div') as HTMLElement).style.width).toMatch(/^98\.1/);
   });
 
-  it('takes the owner name from the player store after a list the game asked for itself, but reads nothing anew for it', async () => {
+  it('takes the owner name from the player store after a list the game asked for itself, reading nothing for the event', async () => {
     const { box, send, bus, greatBuildings, players, world } = setup();
     send(contributions.contributions as Entry);
     await tick();
     const known = vi.spyOn(greatBuildings, 'known');
-    const list = (askedByGame: boolean) =>
-      bus.emit('greatBuildings.listed', { owner: playerId(2005), entityIds: [], at: Date.now(), askedByGame });
     // the handler of the list teaches the player store the name first
     players.applyListed(world, [{ id: playerId(2005), name: 'Leuchtturmwärter' }]);
-    list(true);
+    bus.emit('greatBuildings.listed', { owner: playerId(2005), entityIds: [], at: Date.now(), askedByGame: true });
     expect(known).not.toHaveBeenCalled();
     await tick();
     expect(box.text).toContain('Leuchtturmwärter');
-    list(false);
-    expect(known).toHaveBeenCalled();
   });
 
   it('shows growth between two town hall lists of a building never opened', async () => {
@@ -303,7 +299,7 @@ describe('Investitionen: reading the known buildings', () => {
     menuClick('investments');
     await tick();
     const reads = vi.spyOn(greatBuildings, 'known');
-    const changed = () => bus.emit('greatBuilding.changed', { owner: playerId(1001), entityId: 1, reason: 'ranking' });
+    const changed = () => bus.emit('greatBuildings.stored', { owner: playerId(1001), entityIds: [1] });
     changed();
     await vi.waitFor(() => expect(reads).toHaveBeenCalledTimes(1));
     changed();
@@ -312,6 +308,50 @@ describe('Investitionen: reading the known buildings', () => {
     await tick();
     // two reads of the box, one of the test waiting for them
     expect(reads).toHaveBeenCalledTimes(3);
+  });
+
+  it('reads only the owner the store wrote, and that only once it is written', async () => {
+    const { send, menuClick, bus, greatBuildings, rows } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    const reads = vi.spyOn(greatBuildings, 'known');
+    const own = contributions.contributions.responseData[0];
+    const owner = own?.player.player_id as number;
+    // what the game sends is no reason to read: the box waits for the write
+    bus.emit('greatBuildings.listed', { owner: playerId(owner), entityIds: [], at: Date.now(), askedByGame: false });
+    bus.emit('greatBuilding.changed', { owner: playerId(owner), entityId: 1, reason: 'leveled' });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(reads).not.toHaveBeenCalled();
+    menuClick('investments');
+    menuClick('investments');
+    // opened again without anything stored meanwhile: nothing to read
+    expect(reads).not.toHaveBeenCalled();
+    send({
+      requestClass: 'GreatBuildingsService',
+      requestMethod: 'getOtherPlayerOverview',
+      requestData: [owner],
+      responseData: [{ ...own, rank: undefined, forge_points: undefined, reward: undefined, entity_id: 4711 }],
+    });
+    await tick();
+    // one read of the box for that owner alone, one of the test waiting for it
+    expect(reads).toHaveBeenCalledTimes(2);
+    expect(reads).toHaveBeenCalledWith(playerId(owner));
+    expect(rows()).toHaveLength(12);
+  });
+
+  it('reads every owner when it opens after something was stored while it was closed', async () => {
+    const { send, menuClick, bus, greatBuildings, box } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    menuClick('investments');
+    expect(box.box.isOpen).toBe(false);
+    const reads = vi.spyOn(greatBuildings, 'known');
+    bus.emit('greatBuildings.stored', { owner: playerId(1001), entityIds: [1] });
+    expect(reads).not.toHaveBeenCalled();
+    menuClick('investments');
+    await vi.waitFor(() => expect(reads).toHaveBeenCalledWith());
+    expect(reads).not.toHaveBeenCalledWith(playerId(1001));
   });
 
   it('rates the read buildings anew on other inputs without reading them again', async () => {
@@ -367,6 +407,20 @@ describe('Investitionen: long lists', () => {
     expect(button(box, 'Nach oben').getAttribute('aria-disabled')).toBe('true');
     expect(button(box, 'Nach unten').getAttribute('aria-disabled')).toBe('false');
     expect(box.root.querySelector('.inv-pane > p.gb-me')).not.toBeNull();
+  });
+
+  it('filters and sorts again on new data, filters, sort or lookups, not on a scroll', async () => {
+    const { box, texts, all, greatBuildings, bus } = await listed(5);
+    const named = vi.spyOn(greatBuildings, 'isMarked');
+    button(box, 'Nach unten').click();
+    wheel(box, 1);
+    expect(texts()).toEqual(all.slice(2, 7));
+    expect(named).not.toHaveBeenCalled();
+    bus.emit('greatBuilding.marked', { owner: playerId(2005), entityId: 1, marked: true });
+    expect(named).toHaveBeenCalledTimes(12);
+    named.mockClear();
+    (box.root.querySelectorAll('th.sortable')[4] as HTMLElement).click();
+    expect(named).toHaveBeenCalledTimes(12);
   });
 
   it('shows all rows, greyed buttons and no line, when they fit and when nothing can be measured', async () => {

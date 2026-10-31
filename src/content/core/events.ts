@@ -68,6 +68,12 @@ export interface ToolboxEvents {
   };
   /** the town hall list of the own contributions arrived at `at`; `known()` has it once read */
   'greatBuildings.contributions': { at: number };
+  /**
+   * the store wrote what it learned about the buildings `entityIds` of `owner` to the database: a list, an opened or
+   * changed building. The town hall list touches many owners and drops the rows of owners no longer in it, so it comes
+   * once without an owner: then every owner may have changed
+   */
+  'greatBuildings.stored': { owner: PlayerId; entityIds: number[] } | { owner?: undefined };
   /** the factors per place of a building changed (any of the three levels); without `def` those of every building */
   'gbOwn.factorsChanged': { def?: string };
   /** the Ext of a building's level changed */
