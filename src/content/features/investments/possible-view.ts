@@ -52,10 +52,10 @@ const row = (
   r: PossibleRowVm,
   playerField: string,
   actions: PossibleActions,
-) => html`<tr class=${r.reach === 'none' || r.ignoreNote !== undefined ? 'muted' : ''} data-tip=${rowTip(r)}>
+) => html`<tr class=${r.reasons[0] === 'none' || r.ignoreNote !== undefined ? 'muted' : ''} data-tip=${rowTip(r)}>
   ${markCell(r, actions.mark)}
   ${ownerCell(r, playerField, actions)}
-  <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r.reach, r.reasons)}</td>
+  <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r.reasons)}</td>
   ${buildingCell(r.name, rowTip(r), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
   <td class="num">${r.level}</td>
   ${progressCell(r, growthTag(r.growth, 'investments.possible.growthHint'))}
@@ -83,8 +83,8 @@ const tierFilter = (f: PossibleFilter, actions: PossibleActions) =>
 
 /** the filters, the count at the end of the same row so it shows without scrolling */
 const filters = (f: PossibleFilter, count: string, actions: PossibleActions) => html`<p class="inv-filter">
-    ${text(f.player, t('investments.possible.player'), (player) => actions.filter({ player }))}
-    ${text(f.name, t('investments.possible.name'), (name) => actions.filter({ name }))}
+    ${text(f.player, t('investments.filter.player'), (player) => actions.filter({ player }))}
+    ${text(f.name, t('investments.filter.name'), (name) => actions.filter({ name }))}
     ${hitsFilter(f, actions)}
     ${reachFilter(f.reach, (reach) => actions.filter({ reach }))}
     ${tierFilter(f, actions)}
@@ -111,7 +111,7 @@ const content = (vm: PossibleVm, actions: PossibleActions) =>
   vm.empty
     ? html`<p class="muted">${t('investments.possible.none')}</p>`
     : vm.rows.length === 0
-      ? html`<p class="muted">${t('investments.possible.noRow')}</p>`
+      ? html`<p class="muted">${t('investments.filter.noRow')}</p>`
       : table(vm, actions);
 
 /** The tab "Mögliche Investitionen": tabs, filters and count stay, the rows that fit are drawn and the two buttons scroll them. */

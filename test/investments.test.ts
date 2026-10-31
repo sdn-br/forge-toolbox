@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { myInvestments } from '../src/content/domain/investments';
+import { myInvestments, sumTotals } from '../src/content/domain/investments';
 import {
   DEFAULT_MINE_FILTER,
   type InvestmentsInput,
@@ -133,7 +133,7 @@ describe('profit, growth and order', () => {
     const safe = building({ entityId: 1, contribution: { rank: 1, forgePoints: 140, reward: 100, at: 1 } });
     const unknown = building({ entityId: 2 });
     const result = myInvestments([safe, unknown], 0);
-    expect(result.totals).toEqual({ circulating: 240, profitSafe: -40, profitTotal: -90 });
+    expect(sumTotals(result.rows)).toEqual({ circulating: 240, profitSafe: -40, profitTotal: -90 });
   });
 });
 
@@ -166,7 +166,7 @@ describe('the recorded town hall list', () => {
 
   it('sums all rows and orders them by the rest', () => {
     const result = myInvestments(buildings, 90);
-    expect(result.totals).toEqual({ circulating: 4896, profitSafe: 0, profitTotal: 4342 });
+    expect(sumTotals(result.rows)).toEqual({ circulating: 4896, profitSafe: 0, profitTotal: 4342 });
     expect(result.rows.map((r) => r.rest)).toEqual([17, 67, 80, 120, 231, 237, 425, 472, 539, 1735, 5263, 5913]);
   });
 });
@@ -175,6 +175,7 @@ describe('marked owner', () => {
   it('tells per row whether the owner is marked, for the star beside the name', () => {
     const rows = investmentsViewModel({
       visible: 100,
+      sort: [],
       investments: myInvestments([building(), building({ owner: playerId(2002), entityId: 2 })], 90),
       now: 0,
       greatBuildingName: () => undefined,
@@ -198,6 +199,7 @@ describe('totals line', () => {
   const vm = (profitSafe: number) =>
     investmentsViewModel({
       visible: 100,
+      sort: [],
       // a safe row (the own deposit holds the rest and all the others) whose profit is `profitSafe`
       investments: myInvestments(
         [building({ contribution: { rank: 1, forgePoints: 120, reward: 120 + profitSafe, at: 1 } })],
@@ -257,6 +259,7 @@ describe('relation and filters of the own investments', () => {
   const vm = (over: Partial<MineFilter> = {}, extra: Partial<InvestmentsInput> = {}) =>
     investmentsViewModel({
       visible: 100,
+      sort: [],
       investments: myInvestments(rows(), 0),
       now: 0,
       greatBuildingName: (def) => def.replace('X_Test_', ''),
@@ -275,16 +278,14 @@ describe('relation and filters of the own investments', () => {
   it('names the relation per row like the possible tab, an owner the store does not know as unknown', () => {
     const byOwner = Object.fromEntries(vm().rows.map((r) => [r.ownerName, r]));
     expect(byOwner.Anna).toMatchObject({
-      reach: 'neighbor',
       reasons: ['neighbor', 'guildMember'],
       reachTip: 'Nachbar, Gilde',
     });
     expect(byOwner.Bert).toMatchObject({
-      reach: 'none',
       reasons: ['none'],
       reachTip: 'keine Beziehung, nicht erreichbar',
     });
-    expect(byOwner.Carla).toMatchObject({ reach: 'unknown', reasons: ['unknown'] });
+    expect(byOwner.Carla).toMatchObject({ reasons: ['unknown'] });
   });
 
   it('sorts by the relation: neighbors first, out of reach last', () => {
@@ -357,6 +358,7 @@ describe('ignored rows of the own investments', () => {
   const vm = (over: Partial<MineFilter> = {}, extra: Partial<InvestmentsInput> = {}) =>
     investmentsViewModel({
       visible: 100,
+      sort: [],
       investments: myInvestments(rows, 0),
       now: 0,
       greatBuildingName: () => undefined,

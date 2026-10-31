@@ -184,7 +184,7 @@ describe('possibleViewModel', () => {
     relations[1001] = { neighbor: true, guildMember: true, friend: true };
     relations[1002] = { ...NONE, guildMember: true };
     const v = vm([safe, possible]);
-    expect(v.rows.map((r) => [r.reach, r.reachTip])).toEqual([
+    expect(v.rows.map((r) => [r.reasons[0], r.reachTip])).toEqual([
       ['neighbor', 'Nachbar, Freund, Gilde'],
       ['guildMember', 'Gilde'],
     ]);
@@ -194,7 +194,7 @@ describe('possibleViewModel', () => {
     relations[1002] = NONE;
     expect(vm([safe, possible]).rows.map((r) => r.entityId)).toEqual([1]);
     const all = vm([safe, possible], { reach: EVERY });
-    expect(all.rows.map((r) => [r.entityId, r.reach, r.reachTip])).toEqual([
+    expect(all.rows.map((r) => [r.entityId, r.reasons[0], r.reachTip])).toEqual([
       [1, 'neighbor', 'Nachbar'],
       [2, 'none', 'keine Beziehung, nicht erreichbar'],
     ]);
@@ -220,13 +220,16 @@ describe('possibleViewModel', () => {
   it('keeps owners the player store does not know with every reason off', () => {
     delete relations[1001];
     const off = { neighbor: false, friend: false, guildMember: false, none: false };
-    expect(vm([safe], { reach: off }).rows.map((r) => r.reach)).toEqual(['unknown']);
+    expect(vm([safe], { reach: off }).rows.map((r) => r.reasons[0])).toEqual(['unknown']);
   });
 
   it('keeps owners the player store does not know in the filter, marked as unknown', () => {
     delete relations[1001];
     const [row] = vm([safe]).rows;
-    expect(row).toMatchObject({ reach: 'unknown', reachTip: 'unbekannt: die Toolbox kennt den Spieler noch nicht' });
+    expect(row).toMatchObject({
+      reasons: ['unknown'],
+      reachTip: 'unbekannt: die Toolbox kennt den Spieler noch nicht',
+    });
   });
 
   it('counts hits among the buildings the name and reach filters leave', () => {
@@ -242,7 +245,7 @@ describe('possibleViewModel', () => {
     const sort = nextSort(DEFAULT_POSSIBLE_SORT, 'reach', POSSIBLE_DESC_FIRST);
     expect(sort).toEqual([{ column: 'reach', desc: false }]);
     const v = vm([safe, possible, none], { onlyHits: false, reach: EVERY }, sort);
-    expect(v.rows.map((r) => r.reach)).toEqual(['friend', 'unknown', 'none']);
+    expect(v.rows.map((r) => r.reasons[0])).toEqual(['friend', 'unknown', 'none']);
   });
 });
 

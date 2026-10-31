@@ -69,11 +69,11 @@ export const markCell = (r: { owner: PlayerId; entityId: number; marked: boolean
 /** "x / y" of the level with the thin bar below, the rest to the level up in the tooltip; `extra` goes under the bar */
 const row = (r: InvestmentRowVm, playerField: string, actions: InvestmentsActions) => {
   const status = t(`investments.status.${r.status}`);
-  const muted = r.reach === 'none' || r.ignoreNote !== undefined;
+  const muted = r.reasons[0] === 'none' || r.ignoreNote !== undefined;
   return html`<tr class=${[r.growth ? 'grown' : '', muted ? 'muted' : ''].join(' ').trim()} data-tip=${rowTip(r)}>
   ${markCell(r, actions.mark)}
   ${ownerCell(r, playerField, actions)}
-  <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r.reach, r.reasons)}</td>
+  <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r.reasons)}</td>
   ${buildingCell(r.name, rowTip(r), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
   <td class="num">${r.level}</td>
   ${progressCell(r, growthTag(r.growth, 'investments.growthHint'))}
@@ -117,8 +117,8 @@ const statusFilter = (f: MineFilter, actions: InvestmentsActions) =>
 
 /** the filters, the age of the town hall list at the end of the same row so it shows without scrolling */
 const filters = (f: MineFilter, age: string, actions: InvestmentsActions) => html`<p class="inv-filter">
-    ${text(f.player, t('investments.possible.player'), (player) => actions.filter({ player }))}
-    ${text(f.name, t('investments.possible.name'), (name) => actions.filter({ name }))}
+    ${text(f.player, t('investments.filter.player'), (player) => actions.filter({ player }))}
+    ${text(f.name, t('investments.filter.name'), (name) => actions.filter({ name }))}
     ${reachFilter(f.reach, (reach) => actions.filter({ reach }))}
     ${statusFilter(f, actions)}
     ${markedFilter(f.onlyMarked, (onlyMarked) => actions.filter({ onlyMarked }))}
@@ -148,11 +148,10 @@ const totals = (vm: InvestmentsVm) =>
   html`<p class="gb-me">${totalsLine(vm.totals, false)}${vm.selection ? totalsLine(vm.selection, true) : ''}</p>`;
 
 export function investmentsView(vm: InvestmentsVm, actions: InvestmentsActions): TemplateResult {
-  const age = vm.age === undefined ? t('investments.noList') : t('gb.age', { duration: vm.age });
   // the filter fields stay in one outer template: swapping templates would replace them and take their focus mid-typing
   const content = vm.empty
     ? html`<p class="muted">${t('investments.none')}</p>`
-    : html`${totals(vm)}${vm.rows.length === 0 ? html`<p class="muted">${t('investments.possible.noRow')}</p>` : table(vm, actions)}`;
+    : html`${totals(vm)}${vm.rows.length === 0 ? html`<p class="muted">${t('investments.filter.noRow')}</p>` : table(vm, actions)}`;
   // tabs, filters and totals stay, the rows that fit are drawn and the two buttons scroll them, sideways the area scrolls
-  return html`<div class="inv-pane">${tabs('mine', actions)}${filters(vm.filter, age, actions)}${content}</div>`;
+  return html`<div class="inv-pane">${tabs('mine', actions)}${filters(vm.filter, vm.age, actions)}${content}</div>`;
 }

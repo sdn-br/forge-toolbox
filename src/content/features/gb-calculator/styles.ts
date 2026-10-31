@@ -19,7 +19,7 @@ tr.gb-levelWarning { background: var(--row-warn); }
 tr.gb-mine { background: var(--row-mine); }
 td.over-rest { color: var(--bad); }
 /* the circled check where a place is safe, in the cell and after "sicher" in the own line */
-td.secured svg, .gb-me .secured-icon svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; }
+td.secured svg, .gb-me .secured-icon svg { display: inline-block; }
 td.below-safe { font-style: italic; opacity: .75; }
 .gb-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 8px;
   background: rgba(43, 29, 16, .88); text-align: center; color: var(--accent); }

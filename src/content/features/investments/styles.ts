@@ -14,20 +14,17 @@ const POSSIBLE_FIXED =
   hit.mark + REACH + hit.level + hit.progress + SHARE + hit.rank + hit.cost + hit.profit + hit.icon + SEEN;
 
 export const investmentsCss = `
-/* investments: fixed columns so heads show whole; owner and building names give way */
-.inv-table { table-layout: fixed; }
-/* the box can be resized: the fixed columns plus the least room for the names; narrower, the box scrolls sideways
-   instead of squeezing the names to nothing */
-.inv-table { min-width: ${MINE_FIXED + NAMES}px; }
+/* investments: fixed columns so heads show whole; owner and building names give way. The box can be resized: the
+   fixed columns plus the least room for the names; narrower, the box scrolls sideways instead of squeezing the names
+   to nothing */
+.inv-table { table-layout: fixed; min-width: ${MINE_FIXED + NAMES}px; }
 .inv-table.inv-possible { min-width: ${POSSIBLE_FIXED + NAMES}px; }
 .inv-table .c-reach { width: ${REACH}px; }
 .inv-mine .c-progress { width: ${MINE_PROGRESS}px; }
 .inv-table .c-deposit { width: ${DEPOSIT}px; }
 .inv-possible .c-share { width: ${SHARE}px; }
 .inv-possible .c-seen { width: ${SEEN}px; }
-.inv-table :is(.icon-head, .inv-status, .snipe-tier, .mark-cell) { text-align: center; padding: 0; }
-.inv-table .inv-status svg { display: block; width: 14px; height: 14px; margin: auto; }
-.inv-table .icon-head svg { display: inline-block; width: 14px; height: 14px; vertical-align: middle; }
+.inv-table :is(.icon-head, .inv-status, .snipe-tier) { text-align: center; padding: 0; }
 .inv-table .icon-head { white-space: nowrap; }
 td.inv-status.safe { color: var(--good); }
 td.inv-status.unsafe { color: var(--warn); }
@@ -35,7 +32,7 @@ td.inv-status.unknown { color: var(--muted); }
 .inv-table tr.grown { background: var(--row-warn); }
 /* the head left, over the icons of the cells */
 .inv-table th.icon-head.inv-reach { text-align: left; padding: 0 0 0 4px; }
-.inv-reach svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px; }
+.inv-reach svg { display: inline-block; margin-right: 3px; }
 .inv-possible td { overflow: hidden; text-overflow: ellipsis; }
 /* investments: the pane fills the body (BoxOptions.fill). The table area holds as many rows as fit (ui/fit-rows.ts),
    the two buttons beside it scroll them, and the area itself scrolls only sideways when the box is narrower than the table */
@@ -52,10 +49,11 @@ td.inv-status.unknown { color: var(--muted); }
 button.inv-pick { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 16px; height: 16px; margin-left: auto; opacity: 0; color: var(--ink); }
 tr:is(:hover, :has(:focus-visible)) button.inv-pick { opacity: .7; }
 tr button.inv-pick:is(:hover, :focus-visible), button.inv-pick.on { opacity: 1; color: var(--accent); }
-.inv-ignored-total svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; }
+.inv-ignored-total svg { display: inline-block; }
 button.inv-pick svg { display: block; width: 12px; height: 12px; }
-.inv-mine .fp-line { height: 11px; }
+/* both tabs show a growth beside the bar: the bar line keeps its height without one, so every row is equally tall and
+   the row window counts them right */
+.inv-table .fp-line { height: 11px; }
 .gb-me-line { display: block; }
 .gb-me .profit-icon { color: var(--ink); }
-.gb-me .profit-icon svg { width: 14px; height: 14px; vertical-align: -2px; }
 `;
