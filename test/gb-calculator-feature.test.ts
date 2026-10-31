@@ -13,7 +13,7 @@ import {
 import { registerGameHandlers } from '../src/content/game/handlers';
 import { FOESTATS_SETTING } from '../src/content/stores/foestats';
 import type { FetchLike } from '../src/shared/foestats-api';
-import { playerId } from '../src/shared/ids';
+import { playerId, worldId } from '../src/shared/ids';
 import definitions from './fixtures/gb-definitions.json';
 import levelUp from './fixtures/gb-level-up.json';
 import fixture from './fixtures/great-buildings.json';
@@ -542,17 +542,25 @@ describe('LG-Rechner', () => {
   describe('activity of the owner by foestats', () => {
     afterEach(() => vi.useRealTimers());
 
-    /** foestats with a history of `[date, points, battles]` per day; `status` other than 200 refuses */
-    function foestats(days: [string, number, number][], status = 200) {
-      const series = (i: 1 | 2) =>
-        JSON.stringify({ success: true, data: days.map((d) => ({ date: d[0], value: d[i] })) });
-      return vi.fn<FetchLike>(async (url) => ({
-        ok: status === 200,
-        status,
-        text: async () => (url.endsWith('/points-history') ? series(1) : series(2)),
-      }));
+    /** foestats answering the player snapshot of the 22nd; `status` other than 200 refuses like a missing session */
+    function foestats(data: Record<string, unknown> = {}, status = 200) {
+      const snapshot = {
+        rank: '812',
+        points: 1500,
+        points_change: '300',
+        battles: '53',
+        battles_change: 3,
+        era: 'SpaceAgeMars',
+        is_active: 1,
+        data_date: '2026-10-22',
+        ...data,
+      };
+      const body =
+        status === 200 ? { success: true, data: snapshot } : { error: 'Session required', sessionRequired: true };
+      return vi.fn<FetchLike>(async () => ({ ok: status === 200, status, text: async () => JSON.stringify(body) }));
     }
 
+    /** days of the owner stored from earlier snapshots, `[date, points, battles]` */
     const history: [string, number, number][] = [
       ['2026-10-14', 1000, 50],
       ['2026-10-15', 1000, 50],
@@ -562,42 +570,75 @@ describe('LG-Rechner', () => {
       ['2026-10-19', 1500, 53],
       ['2026-10-20', 1500, 53],
       ['2026-10-21', 1500, 53],
-      ['2026-10-22', 1500, 53],
     ];
 
-    function activitySetup(fetch: FetchLike) {
+    function activitySetup(fetch: FetchLike, known: [string, number, number][] = []) {
       vi.useFakeTimers({ toFake: ['Date'] });
       vi.setSystemTime(new Date(2026, 9, 22, 9, 0));
-      return setup({ fetch });
+      const env = setup({ fetch });
+      const stored = env.db.db.foestatsDays.bulkPut(
+        known.map(([date, points, battles]) => ({
+          world: worldId('de20'),
+          player: playerId(1001),
+          date,
+          points,
+          battles,
+        })),
+      );
+      return { ...env, stored };
     }
 
     const line = (root: HTMLElement) => root.querySelector('.gb-activity') as HTMLElement | null;
+    const done = (root: HTMLElement) => expect(line(root)?.parentElement?.querySelector('.spinner')).toBeNull();
 
-    it('shows the last active day and the last week in the header, flagged after three quiet days', async () => {
-      const fetch = foestats(history);
+    it('shows foestats status and the change to the day before when the owner is seen the first time', async () => {
+      const fetch = foestats();
       const { box, open } = activitySetup(fetch);
       open(1909);
-      await vi.waitFor(() => expect(line(box.root)?.parentElement?.querySelector('.spinner')).toBeNull());
-      expect(fetch.mock.calls.map(([url]) => url)).toEqual([
-        'https://api.forge-db.com/api/players/de/de20/1001/points-history',
-        'https://api.forge-db.com/api/players/de/de20/1001/battles-history',
-      ]);
+      await vi.waitFor(() => done(box.root));
+      expect(fetch.mock.calls.map(([url]) => url)).toEqual(['https://api.forge-db.com/api/players/de/de20/1001']);
       const activity = line(box.root) as HTMLElement;
-      expect(activity.textContent).toBe('zuletzt aktiv vor 4 Tagen · 7 Tage: +500 Punkte, +3 Kämpfe');
+      expect(activity.textContent).toBe(
+        'aktiv laut foestats.com · zuletzt aktiv heute · 1 Tag: +300 Punkte, +3 Kämpfe',
+      );
+      expect(activity.className).toBe('gb-activity muted');
+      expect(activity.dataset.tip).toBe(
+        'aktiv oder inaktiv: Status laut foestats.com\nPunkte und Kämpfe laut foestats.com, Stand 2026-10-22',
+      );
+    });
+
+    it('shows the last active day and the last week from the stored days, flagged after three quiet days', async () => {
+      const { box, open, stored } = activitySetup(foestats({ points_change: 0, battles_change: '0' }), history);
+      await stored;
+      open(1909);
+      await vi.waitFor(() => done(box.root));
+      const activity = line(box.root) as HTMLElement;
+      expect(activity.textContent).toBe(
+        'aktiv laut foestats.com · zuletzt aktiv vor 4 Tagen · 7 Tage: +500 Punkte, +3 Kämpfe',
+      );
       expect(activity.className).toBe('gb-activity warn');
-      expect(activity.dataset.tip).toBe('Punkte und Kämpfe laut foestats.com, Stand 2026-10-22');
+    });
+
+    it('flags a player foestats calls inactive', async () => {
+      const { box, open } = activitySetup(foestats({ is_active: 0, points_change: 0, battles_change: 0 }));
+      open(1909);
+      await vi.waitFor(() => done(box.root));
+      expect(line(box.root)?.textContent).toBe('inaktiv laut foestats.com · 1 Tag: 0 Punkte, 0 Kämpfe');
+      expect(line(box.root)?.className).toBe('gb-activity warn');
     });
 
     it('reads the stored days when the owner is opened again the same day', async () => {
-      const fetch = foestats(history.slice(0, 5));
+      const fetch = foestats();
       const { box, open, ctx } = activitySetup(fetch);
       open(1909);
-      await vi.waitFor(() => expect(line(box.root)?.parentElement?.querySelector('.spinner')).toBeNull());
+      await vi.waitFor(() => done(box.root));
       open(1909);
       await vi.waitFor(() => expect(ctx.foestats.get(1001 as never)?.loading).toBe(false));
       await tick();
-      expect(fetch).toHaveBeenCalledTimes(2);
-      expect(line(box.root)?.textContent).toBe('zuletzt aktiv vor 4 Tagen · 4 Tage: +500 Punkte, +3 Kämpfe');
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(line(box.root)?.textContent).toBe(
+        'aktiv laut foestats.com · zuletzt aktiv heute · 1 Tag: +300 Punkte, +3 Kämpfe',
+      );
     });
 
     it('labels the line and shows that foestats is being asked before anything is known', async () => {
@@ -605,7 +646,7 @@ describe('LG-Rechner', () => {
       const answered = new Promise<void>((resolve) => {
         answer = resolve;
       });
-      const ready = foestats(history);
+      const ready = foestats();
       const fetch = vi.fn<FetchLike>(async (url, init) => {
         await answered;
         return ready(url, init);
@@ -618,18 +659,27 @@ describe('LG-Rechner', () => {
       expect(header.querySelector('.spinner')).not.toBeNull();
       answer();
       await vi.waitFor(() => expect(header.querySelector('.spinner')).toBeNull());
-      expect(line(box.root)?.textContent).toBe('zuletzt aktiv vor 4 Tagen · 7 Tage: +500 Punkte, +3 Kämpfe');
+      expect(line(box.root)?.textContent).toBe(
+        'aktiv laut foestats.com · zuletzt aktiv heute · 1 Tag: +300 Punkte, +3 Kämpfe',
+      );
     });
 
     it('says when foestats cannot be reached', async () => {
-      const { box, open } = activitySetup(foestats([], 403));
+      const { box, open } = activitySetup(foestats({}, 403));
       open(1909);
       await vi.waitFor(() => expect(line(box.root)?.textContent).toBe('foestats nicht erreichbar'));
       expect(line(box.root)?.className).toBe('gb-activity muted');
     });
 
+    it('says when foestats does not know the owner', async () => {
+      const { box, open } = activitySetup(foestats({}, 404));
+      open(1909);
+      await vi.waitFor(() => expect(line(box.root)?.textContent).toBe('bei foestats unbekannt'));
+      expect(line(box.root)?.className).toBe('gb-activity muted');
+    });
+
     it('asks nothing and hides the activity when the setting is off, but keeps the link', async () => {
-      const fetch = foestats(history);
+      const fetch = foestats();
       const { box, open, ctx } = activitySetup(fetch);
       await ctx.settings.of(FOESTATS_SETTING).set(false);
       open(1909);

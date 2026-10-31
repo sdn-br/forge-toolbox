@@ -250,6 +250,8 @@ export interface FoestatsDay {
   date: string;
   points?: number;
   battles?: number;
+  /** foestats' own status of the player on a snapshot day; not indexed, older rows lack it */
+  active?: boolean;
 }
 
 /** The last time foestats was asked about a player. */
@@ -259,6 +261,8 @@ export interface FoestatsFetch {
   /** the foestats day it was asked for, see `foestatsDay` */
   day: string;
   at: number;
-  /** foestats answered */
+  /** foestats answered; false only in records of older versions, which kept a failed request per player */
   ok: boolean;
+  /** foestats does not know the player; older records lack it */
+  unknown?: boolean;
 }

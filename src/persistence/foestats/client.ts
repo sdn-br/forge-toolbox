@@ -5,8 +5,7 @@ import type { FoestatsPersistence } from '../../content/stores/foestats';
 export function foestatsPersistence(call: Call): FoestatsPersistence {
   return {
     claim: (world, player) => call('foestats.claim', { world, player }),
-    store: (world, player, points, battles) =>
-      call('foestats.store', { world, player, ...(points && { points }), ...(battles && { battles }) }),
+    store: (world, player, answer) => call('foestats.store', { world, player, answer }),
     history: (world, player) => call('foestats.history', { world, player }),
   };
 }

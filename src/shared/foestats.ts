@@ -27,7 +27,7 @@ export const foestatsGuildUrl = (world: WorldId, guild: GuildId) =>
 
 /** foestats takes its daily snapshot early in the morning; from this local time on, today's data counts */
 const UPDATE_MINUTE = 5 * 60 + 40;
-/** after a failed request, foestats is asked again about the same player no sooner than this */
+/** after foestats was unreachable, it is asked again about any player no sooner than this */
 export const RETRY_AFTER = 30 * 60_000;
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -39,8 +39,10 @@ export function foestatsDay(now: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-/** At most once per player and foestats day; after a failure again once `RETRY_AFTER` has passed. */
+/**
+ * At most once per player and foestats day, also when foestats does not know the player. A record of a failure from an
+ * older version is due at once: foestats being unreachable is no longer kept per player.
+ */
 export function fetchDue(last: FoestatsFetch | undefined, now: number): boolean {
-  if (!last || last.day < foestatsDay(now)) return true;
-  return !last.ok && now - last.at >= RETRY_AFTER;
+  return !last?.ok || last.day < foestatsDay(now);
 }

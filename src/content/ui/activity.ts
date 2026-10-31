@@ -1,4 +1,5 @@
 // How active a player is by foestats: one line under the owner (LG-Rechner, snipe helper), its source in the tooltip.
+// foestats' own status comes first as a quick hint, then what the stored days tell.
 import { html } from 'lit-html';
 import { signed, t } from '../core/texts';
 import { type Activity, playerActivity } from '../domain/activity';
@@ -9,41 +10,54 @@ export interface ActivityVm {
   text: string;
   /** change of points and battles over the last days */
   week?: string;
-  /** several days without an increase */
+  /** several days without an increase, or inactive by foestats' status */
   idle: boolean;
   title: string;
   /** foestats is being asked right now */
   loading: boolean;
 }
 
-function activityText(a: Activity): string {
+/** what the stored days tell; nothing when they tell nothing yet and foestats' status stands alone */
+function ownText(a: Activity): string | undefined {
   if (a.daysAgo === 0) return t('foestats.activeToday');
   if (a.daysAgo === 1) return t('foestats.activeYesterday');
   if (a.daysAgo !== undefined) return t('foestats.activeDaysAgo', { days: a.daysAgo });
   const flat = a.flatFor ?? 0;
-  return flat >= 2 ? t('foestats.flatFor', { days: flat }) : t('foestats.noIncrease');
+  if (flat >= 2) return t('foestats.flatFor', { days: flat });
+  return a.active === undefined ? t('foestats.noIncrease') : undefined;
 }
+
+const statusText = (a: Activity) =>
+  a.active === undefined ? undefined : t(a.active ? 'foestats.statusActive' : 'foestats.statusInactive');
 
 export function activityVm(record: FoestatsRecord | undefined, today: string): ActivityVm | undefined {
   if (!record) return undefined;
   const activity = playerActivity(record.days, today);
-  const unreachable = t('foestats.unreachable');
   const { loading } = record;
   if (!activity) {
-    const text = loading ? t('foestats.loading') : record.unreachable ? unreachable : t('foestats.noData');
+    const text = loading
+      ? t('foestats.loading')
+      : record.unknown
+        ? t('foestats.unknown')
+        : record.unreachable
+          ? t('foestats.unreachable')
+          : t('foestats.noData');
     return { text, idle: false, title: text, loading };
   }
   const newest = record.days.at(-1)?.date ?? '';
   const { week } = activity;
   const known = (n: number | undefined) => (n === undefined ? '?' : signed(n));
+  const change = { days: week.days, points: known(week.points), battles: known(week.battles) };
   return {
-    text: activityText(activity),
-    ...(week.days > 0 && {
-      week: t('foestats.week', { days: week.days, points: known(week.points), battles: known(week.battles) }),
-    }),
-    idle: activity.idle,
+    text: [statusText(activity), ownText(activity)].filter(Boolean).join(' · '),
+    ...(week.days > 0 && { week: t(week.days === 1 ? 'foestats.oneDay' : 'foestats.week', change) }),
+    idle: activity.idle || activity.active === false,
     loading,
-    title: [t('foestats.source', { date: newest }), record.unreachable && t('foestats.stale')]
+    title: [
+      activity.active !== undefined && t('foestats.statusSource'),
+      t('foestats.source', { date: newest }),
+      record.unreachable && t('foestats.stale'),
+    ]
       .filter(Boolean)
       .join('\n'),
   };

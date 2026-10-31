@@ -1,7 +1,7 @@
 // Client of the unofficial foestats API (api.forge-db.com), used by the content script: the API answers requests from
 // the game page, while those of the service worker (origin chrome-extension://) seem to be blocked by Cloudflare.
 // The answers are not ours, so everything is read defensively: numbers may come as strings, fields may be missing, and
-// a failed or blocked call gives undefined instead of an error.
+// a failed or blocked call gives `'unreachable'` instead of an error.
 import { foestatsWorld } from './foestats';
 import type { PlayerId, WorldId } from './ids';
 
@@ -25,11 +25,11 @@ export interface FoestatsPlayer {
   date?: string;
 }
 
-/** one value per day */
-export interface HistoryPoint {
-  date: string;
-  value: number;
-}
+/**
+ * What foestats answered about a player: the snapshot, `'unknown'` when foestats does not know the player (404), or
+ * `'unreachable'` when it did not answer usefully (network error, any other failing status, no snapshot in the body).
+ */
+export type FoestatsAnswer = { snapshot: FoestatsPlayer } | 'unknown' | 'unreachable';
 
 const BASE = 'https://api.forge-db.com/api/players';
 
@@ -70,38 +70,28 @@ export function parsePlayer(json: unknown): FoestatsPlayer | undefined {
   });
 }
 
-export function parseHistory(json: unknown): HistoryPoint[] | undefined {
-  const d = data(json);
-  if (!Array.isArray(d)) return undefined;
-  return d.flatMap((entry) => {
-    if (!isRecord(entry)) return [];
-    const date = day(entry.date);
-    const value = num(entry.value);
-    return date === undefined || value === undefined ? [] : [{ date, value }];
-  });
-}
-
 export function foestatsApi(fetch: FetchLike) {
-  /** the parsed answer, undefined when foestats cannot be reached, refuses or sends no JSON */
-  async function get<T>(url: string, parse: (json: unknown) => T | undefined): Promise<T | undefined> {
-    try {
-      const res = await fetch(url, { credentials: 'omit', headers: { accept: 'application/json' } });
-      if (!res.ok) return undefined;
-      return parse(JSON.parse(await res.text()));
-    } catch {
-      return undefined;
-    }
-  }
+  // the histories (`/points-history`, `/battles-history`) need a foestats session since 2026-10-28; the daily snapshot
+  // still answers without one
   const playerUrl = (world: WorldId, player: PlayerId) => {
     const w = foestatsWorld(world);
     return `${BASE}/${w.server}/${w.world}/${player}`;
   };
   return {
-    player: (world: WorldId, player: PlayerId) => get(playerUrl(world, player), parsePlayer),
-    pointsHistory: (world: WorldId, player: PlayerId) =>
-      get(`${playerUrl(world, player)}/points-history`, parseHistory),
-    battlesHistory: (world: WorldId, player: PlayerId) =>
-      get(`${playerUrl(world, player)}/battles-history`, parseHistory),
+    async player(world: WorldId, player: PlayerId): Promise<FoestatsAnswer> {
+      try {
+        const res = await fetch(playerUrl(world, player), {
+          credentials: 'omit',
+          headers: { accept: 'application/json' },
+        });
+        if (res.status === 404) return 'unknown';
+        if (!res.ok) return 'unreachable';
+        const snapshot = parsePlayer(JSON.parse(await res.text()));
+        return snapshot ? { snapshot } : 'unreachable';
+      } catch {
+        return 'unreachable';
+      }
+    },
   };
 }
 
