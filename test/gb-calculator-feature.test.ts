@@ -303,19 +303,15 @@ describe('LG-Rechner', () => {
     expect(box.root.querySelector('.gb-overlay')?.textContent).toContain('nicht an eine Straße angeschlossen');
   });
 
-  it('shows a past level with places and Forge points only', async () => {
-    const { box, send, open, rows } = setup();
+  it('stays on the level being built when the game pages to a finished level', async () => {
+    const { box, send, open } = setup();
     open(2434);
+    await tick();
+    const before = box.text;
     send(fixture.ranking as Entry);
     await tick();
-    expect(box.text).toContain('Vergangene Stufe 51 → 52');
-    expect(box.root.querySelector('.gb-factor')).toBeNull();
-    expect([...(rows()[0]?.querySelectorAll('td') ?? [])].map((td) => td.textContent?.trim())).toEqual([
-      '1',
-      'Spieler 2011',
-      '1.020',
-    ]);
-    expect(rows()[0]?.querySelector('a')?.getAttribute('href')).toBe('https://foestats.com/de/de20/players/2011');
+    expect(box.text).toBe(before);
+    expect(box.root.querySelector('.gb-factor')).not.toBeNull();
   });
 
   it('stays quiet for the same places and covers them after a level up with one more tone', async () => {
@@ -591,20 +587,16 @@ describe('LG-Rechner', () => {
     const line = (root: HTMLElement) => root.querySelector('.gb-activity') as HTMLElement | null;
     const done = (root: HTMLElement) => expect(line(root)?.parentElement?.querySelector('.spinner')).toBeNull();
 
-    it('shows foestats status and the change to the day before when the owner is seen the first time', async () => {
+    it('shows the change to the day before when the owner is seen the first time', async () => {
       const fetch = foestats();
       const { box, open } = activitySetup(fetch);
       open(1909);
       await vi.waitFor(() => done(box.root));
       expect(fetch.mock.calls.map(([url]) => url)).toEqual(['https://api.forge-db.com/api/players/de/de20/1001']);
       const activity = line(box.root) as HTMLElement;
-      expect(activity.textContent).toBe(
-        'aktiv laut foestats.com · zuletzt aktiv heute · 1 Tag: +300 Punkte, +3 Kämpfe',
-      );
+      expect(activity.textContent).toBe('zuletzt aktiv heute · 1 Tag: +300 Punkte, +3 Kämpfe');
       expect(activity.className).toBe('gb-activity muted');
-      expect(activity.dataset.tip).toBe(
-        'aktiv oder inaktiv: Status laut foestats.com\nPunkte und Kämpfe laut foestats.com, Stand 2026-10-22',
-      );
+      expect(activity.dataset.tip).toBe('Punkte und Kämpfe laut foestats.com, Stand 2026-10-22');
     });
 
     it('shows the last active day and the last week from the stored days, flagged after three quiet days', async () => {
@@ -613,18 +605,23 @@ describe('LG-Rechner', () => {
       open(1909);
       await vi.waitFor(() => done(box.root));
       const activity = line(box.root) as HTMLElement;
-      expect(activity.textContent).toBe(
-        'aktiv laut foestats.com · zuletzt aktiv vor 4 Tagen · 7 Tage: +500 Punkte, +3 Kämpfe',
-      );
+      expect(activity.textContent).toBe('zuletzt aktiv vor 4 Tagen · 7 Tage: +500 Punkte, +3 Kämpfe');
       expect(activity.className).toBe('gb-activity warn');
     });
 
-    it('flags a player foestats calls inactive', async () => {
-      const { box, open } = activitySetup(foestats({ is_active: 0, points_change: 0, battles_change: 0 }));
+    it("leaves foestats' status out, so an inactive status beside an increase does not contradict it", async () => {
+      const { box, open } = activitySetup(foestats({ is_active: 0 }));
       open(1909);
       await vi.waitFor(() => done(box.root));
-      expect(line(box.root)?.textContent).toBe('inaktiv laut foestats.com · 1 Tag: 0 Punkte, 0 Kämpfe');
-      expect(line(box.root)?.className).toBe('gb-activity warn');
+      expect(line(box.root)?.textContent).toBe('zuletzt aktiv heute · 1 Tag: +300 Punkte, +3 Kämpfe');
+      expect(line(box.root)?.className).toBe('gb-activity muted');
+    });
+
+    it('reads a quiet day as no increase', async () => {
+      const { box, open } = activitySetup(foestats({ points_change: 0, battles_change: 0 }));
+      open(1909);
+      await vi.waitFor(() => done(box.root));
+      expect(line(box.root)?.textContent).toBe('noch keine Zunahme bekannt · 1 Tag: 0 Punkte, 0 Kämpfe');
     });
 
     it('reads the stored days when the owner is opened again the same day', async () => {
@@ -636,9 +633,7 @@ describe('LG-Rechner', () => {
       await vi.waitFor(() => expect(ctx.foestats.get(1001 as never)?.loading).toBe(false));
       await tick();
       expect(fetch).toHaveBeenCalledTimes(1);
-      expect(line(box.root)?.textContent).toBe(
-        'aktiv laut foestats.com · zuletzt aktiv heute · 1 Tag: +300 Punkte, +3 Kämpfe',
-      );
+      expect(line(box.root)?.textContent).toBe('zuletzt aktiv heute · 1 Tag: +300 Punkte, +3 Kämpfe');
     });
 
     it('labels the line and shows that foestats is being asked before anything is known', async () => {
@@ -659,9 +654,7 @@ describe('LG-Rechner', () => {
       expect(header.querySelector('.spinner')).not.toBeNull();
       answer();
       await vi.waitFor(() => expect(header.querySelector('.spinner')).toBeNull());
-      expect(line(box.root)?.textContent).toBe(
-        'aktiv laut foestats.com · zuletzt aktiv heute · 1 Tag: +300 Punkte, +3 Kämpfe',
-      );
+      expect(line(box.root)?.textContent).toBe('zuletzt aktiv heute · 1 Tag: +300 Punkte, +3 Kämpfe');
     });
 
     it('says when foestats cannot be reached', async () => {

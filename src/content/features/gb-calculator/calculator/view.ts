@@ -10,7 +10,6 @@ import { headerIcons } from '../../../ui/icons';
 import { ignoreButton } from '../../../ui/ignore';
 import { levelBar } from '../../../ui/level-bar';
 import { previewCost, previewEstimate, previewHeading, previewUnknown } from '../../../ui/level-preview';
-import { externalLink } from '../../../ui/links';
 import { ownerOf } from '../../../ui/owner-line';
 import { starButton } from '../../../ui/star';
 import type { CostCell, DemandCell, GbCalculatorVm, GbHeader, MeVm, PlaceRow, PreviewVm } from './view-model';
@@ -201,18 +200,6 @@ function calculatorBody(vm: GbCalculatorVm, actions: GbCalculatorActions): Templ
       return html`<p class="muted">${t('gbCalc.none')}</p>`;
     case 'noEntity':
       return html`<p>${ownerOf(vm, actions.toggleOwnerMark, actions.toggleOwnerIgnore)}</p><p class="warn">${t('gbCalc.noEntity')}</p>`;
-    case 'past':
-      return html`${header(vm.header, actions)}
-        ${levelBar(vm.header.levels, actions.previewLevel)}
-        <p class="warn">${t('gbCalc.pastLevel', { from: vm.level - 1, to: vm.level })}</p>
-        <table class="gb-table">
-          <tr><th>${t('gbCalc.place')}</th><th>${t('gbCalc.player')}</th><th class="num">${t('gbCalc.fp')}</th></tr>
-          ${vm.rows.map(
-            (r) =>
-              html`<tr><td>${r.rank ?? ''}</td><td>${r.url ? externalLink(r.name, r.url) : r.name}</td>
-                <td class="num">${formatNumber(r.fp ?? 0)}</td></tr>`,
-          )}
-        </table>`;
     case 'preview':
       return html`${header(vm.header, actions)}
         ${levelBar(vm.header.levels, actions.previewLevel)}

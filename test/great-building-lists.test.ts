@@ -165,6 +165,26 @@ describe('known great buildings from lists', () => {
     expect(asked).toEqual(['1001:7999:true', '1001:8000:false', '1002:5500:false']);
   });
 
+  it('flags a list of the owner within 3 s of paging the open building to another level as asked by the game', () => {
+    const { bus, send, open, list, row, at } = setup();
+    const asked: string[] = [];
+    bus.on('greatBuildings.listed', (e) => asked.push(`${e.at}:${e.askedByGame}`));
+    open(1909);
+    // paging back to a finished level: the game asks for its rankings, then for the owner's list (seen 2026-10-31)
+    at(20_000);
+    send({
+      requestClass: 'GreatBuildingsService',
+      requestMethod: 'getConstructionRanking',
+      requestData: [1909, 1001, 70],
+      responseData: [],
+    });
+    at(20_500);
+    list([row(1909, 75, 300, 3062)]);
+    at(23_000);
+    list([row(1909, 75, 300, 3062)]);
+    expect(asked).toEqual(['20500:true', '23000:false']);
+  });
+
   it('counts a list as asked by the player while no building is open', () => {
     const { bus, list, row, at } = setup();
     const asked: boolean[] = [];

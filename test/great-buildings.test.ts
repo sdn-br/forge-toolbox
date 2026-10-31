@@ -148,25 +148,22 @@ describe('great building handlers and store', () => {
     expect(await greatBuildings.known()).toEqual([]);
   });
 
-  it('shows a finished level beside the current rankings and returns to them', () => {
+  it('leaves out a finished level and takes the rankings of the level being built', () => {
     const { greatBuildings, events, send, open } = setup();
     open(2434);
-    const current = greatBuildings.current()?.rankings;
+    const current = greatBuildings.current();
     send(fixture.ranking as Entry);
-    expect(greatBuildings.current()?.past?.level).toBe(52);
-    expect(greatBuildings.current()?.past?.rankings[0]).toMatchObject({ rank: 1, fp: 1020 });
-    expect(greatBuildings.current()?.rankings).toBe(current);
+    expect(greatBuildings.current()).toBe(current);
     // the level being built is 53
     send(entry('getConstructionRanking', [2434, 1002, 53], fixture.openings[3]?.construction.responseData.rankings));
-    expect(greatBuildings.current()?.past).toBeUndefined();
-    expect(events).toEqual(['opened:1002:2434:foreign', 'changed:ranking', 'changed:ranking']);
+    expect(greatBuildings.current()?.rankingsLevel).toBe(52);
+    expect(events).toEqual(['opened:1002:2434:foreign', 'changed:ranking']);
   });
 
   it('ignores rankings of another building', () => {
-    const { greatBuildings, events, send, open } = setup();
+    const { events, send, open } = setup();
     open(2434);
     send(entry('getConstructionRanking', [650, 1002, 49], []));
-    expect(greatBuildings.current()?.past).toBeUndefined();
     expect(events).toEqual(['opened:1002:2434:foreign']);
   });
 
