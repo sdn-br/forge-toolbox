@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { type ConstructionInput, calculateConstruction } from '../src/content/domain/gb-calculator';
+import {
+  availableForgePoints,
+  type ConstructionInput,
+  calculateConstruction,
+  ownAdvice,
+  type PlaceCalc,
+  priced,
+  profitable,
+  profitablePlaces,
+} from '../src/content/domain/gb-calculator';
 import { toGreatBuildingEntity, toRankingRows } from '../src/content/game/convert';
 import type { GameCityEntity } from '../src/content/game/game-types';
 import type { RankingRow } from '../src/content/model/great-building';
@@ -356,5 +365,64 @@ describe('fallback place and worthwhile places', () => {
     expect(calculateConstruction(input(4000, level([]), { arcBonus: 0 })).places[0]?.worthwhile).toBe(true);
     // safe 3000 loses 1800 and the demand is below
     expect(calculateConstruction(input(6000, level([]), { arcBonus: 0 })).places[0]?.worthwhile).toBe(false);
+  });
+
+  it('advises the worthwhile places up to the own one and marks the one with the highest profit', () => {
+    // place 1 loses 200, the own place 2 loses 150 at its safe cost of 750; both beat the fallback of 100
+    const advice = ownAdvice(calc([1300, 400], 2, 1100));
+    expect(advice.targets.map((p) => p.rank)).toEqual([1, 2]);
+    expect(advice.best?.rank).toBe(2);
+    expect(advice.noneWorthwhile).toBe(false);
+  });
+
+  it('keeps the higher place as the best on equal profit', () => {
+    const c = calc([1300, 400], 2, 1100);
+    const places = c.places.map((p) => (p.rank <= 2 ? { ...p, profit: 0 } : p));
+    expect(ownAdvice({ ...c, places }).best?.rank).toBe(1);
+  });
+
+  it('says none is worthwhile when places can be had but none pays, and nothing when none can be had', () => {
+    // safe 3000 loses 1800 and the demand is below
+    const losing = ownAdvice(calculateConstruction(input(6000, level([]), { arcBonus: 0 })));
+    expect(losing).toEqual({ targets: [], noneWorthwhile: true });
+    const full = ownAdvice(calculateConstruction(input(5, [place(1, 10, 5)])));
+    expect(full).toEqual({ targets: [], noneWorthwhile: false });
+  });
+});
+
+describe('priced and profitable places', () => {
+  const at = (p: Partial<PlaceCalc>) => ({ available: false, mine: false, secured: false, ...p }) as PlaceCalc;
+
+  it('prices a place that can be had and the own place while it is not safe', () => {
+    expect(priced(at({ available: true }))).toBe(true);
+    expect(priced(at({ mine: true }))).toBe(true);
+    expect(priced(at({ mine: true, secured: true }))).toBe(false);
+    expect(priced(at({}))).toBe(false);
+  });
+
+  it('counts a place as profitable only with the status profit and a profit above 0', () => {
+    expect(profitable(at({ status: 'profit', profit: 1 }))).toBe(true);
+    expect(profitable(at({ status: 'profit', profit: 0 }))).toBe(false);
+    expect(profitable(at({ status: 'worse', profit: 50 }))).toBe(false);
+  });
+
+  it('lists the profitable places of a construction, none while blocked', () => {
+    const rewards = [place(1, 1200), place(2, 600)];
+    // safe 1000 earns 200
+    expect(profitablePlaces(calculateConstruction(input(2000, rewards, { arcBonus: 0 }))).map((p) => p.rank)).toEqual([
+      1,
+    ]);
+    expect(profitablePlaces(calculateConstruction(input(2000, rewards, { arcBonus: 0, connected: false })))).toEqual(
+      [],
+    );
+  });
+});
+
+describe('availableForgePoints', () => {
+  it('adds the bar and the packages, an unknown part counts 0, unknown while neither is known', () => {
+    expect(availableForgePoints(100, 250)).toBe(350);
+    expect(availableForgePoints(100, undefined)).toBe(100);
+    expect(availableForgePoints(undefined, 250)).toBe(250);
+    expect(availableForgePoints(undefined, undefined)).toBeUndefined();
   });
 });

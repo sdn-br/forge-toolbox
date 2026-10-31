@@ -308,10 +308,11 @@ export const investmentsFeature: Feature = {
     // a star put on or taken from a building shows at once, the data stay as read
     ctx.bus.on('greatBuilding.marked', () => box.update());
     ctx.bus.on('greatBuilding.ignored', () => box.update());
-    // a list of another player brings the state of its buildings
-    ctx.bus.on('greatBuildings.listed', ({ owner, ownerName }) => {
+    // a list of another player brings the state of its buildings; one the game asked for itself only the owner's name,
+    // it comes right after the owner's building, which reloaded already
+    ctx.bus.on('greatBuildings.listed', ({ owner, ownerName, askedByGame }) => {
       if (ownerName !== undefined) ownerNames.set(owner, ownerName);
-      reload();
+      if (!askedByGame) reload();
     });
     // every collection in the own city reports a change; only the Arc bonus counts
     ctx.bus.on('city.ownChanged', () => {

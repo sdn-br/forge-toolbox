@@ -34,6 +34,8 @@ export interface GreatBuildingPersistence {
 const key = (owner: PlayerId, entityId: number) => `${owner}:${entityId}`;
 /** openings remembered until their construction arrives; the game sends both right after each other */
 const MAX_ENTITIES = 20;
+/** a list this soon after the owner's building was opened or paid into is the game's own question, not the player's */
+export const ASKED_BY_GAME = 3000;
 
 /**
  * The great building construction the player has open in the game, and what is known about other players' great
@@ -237,17 +239,24 @@ export class GreatBuildingStore {
     return this.writes.then(() => this.persistence.list(this.world, owner));
   }
 
-  /** The great building list of another player (`getOtherPlayerOverview`); the caller leaves out the own list. */
+  /**
+   * The great building list of another player (`getOtherPlayerOverview`); the caller leaves out the own list. After a
+   * contribution that levels a building the game asks for the owner's list to learn names: a list of the owner of the
+   * open construction less than `ASKED_BY_GAME` after it was opened or paid into counts as asked by the game. There is no
+   * other sign, the request looks the same.
+   */
   noteList(rows: GreatBuildingListRow[], ownerName?: string): void {
     const owner = rows[0]?.owner;
     if (owner === undefined) return;
     const at = this.now();
     this.enqueue(() => this.persistence.putList(this.world, rows, at));
+    const open = this.open;
     this.bus.emit('greatBuildings.listed', {
       owner,
       ...(ownerName !== undefined && { ownerName }),
       entityIds: rows.map((r) => r.entityId),
       at,
+      askedByGame: open?.owner === owner && at - open.seenAt < ASKED_BY_GAME,
     });
   }
 

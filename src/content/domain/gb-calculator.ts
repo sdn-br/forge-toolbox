@@ -252,3 +252,39 @@ function statusOf(mine: boolean, available: boolean, levelWarning: boolean, wors
   if (worse) return 'worse';
   return profit >= 0 ? 'profit' : 'loss';
 }
+
+/** a price only where the place can be had, or for the own place while it is not safe */
+export const priced = (p: PlaceCalc): boolean => p.available || (p.mine && !p.secured);
+
+/** the place can be had and pays more than it costs */
+export const profitable = (p: PlaceCalc): boolean => p.status === 'profit' && (p.profit ?? 0) > 0;
+
+/** the places that pay more than they cost, best rank first; none while blocked */
+export const profitablePlaces = (calc: ConstructionCalc): PlaceCalc[] => calc.places.filter(profitable);
+
+/** what the player can do on the construction himself, the advice of the own line */
+export interface OwnAdvice {
+  /** the worthwhile places the player can still make safe, from the first down to the own one */
+  targets: PlaceCalc[];
+  /** the target with the highest profit, the higher place on a tie; missing without targets */
+  best?: PlaceCalc;
+  /** places could be had, but none is worthwhile */
+  noneWorthwhile: boolean;
+}
+
+export function ownAdvice(calc: ConstructionCalc): OwnAdvice {
+  const open = calc.places.filter((p) => priced(p) && (calc.myRank === undefined || p.rank <= calc.myRank));
+  const targets = open.filter((p) => p.worthwhile);
+  const best = targets.reduce<PlaceCalc | undefined>(
+    (b, p) => (b && (b.profit ?? 0) >= (p.profit ?? 0) ? b : p),
+    undefined,
+  );
+  return { targets, ...(best && { best }), noneWorthwhile: open.length > 0 && targets.length === 0 };
+}
+
+/**
+ * Forge points the player can pay: those of the bar plus those in packages, which the game opens when contributing. A
+ * part that is not known counts 0; undefined while neither is known.
+ */
+export const availableForgePoints = (bar: number | undefined, packages: number | undefined): number | undefined =>
+  bar === undefined && packages === undefined ? undefined : (bar ?? 0) + (packages ?? 0);

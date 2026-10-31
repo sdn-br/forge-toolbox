@@ -99,6 +99,29 @@ describe('Investitionen box', () => {
     expect((progress.querySelector('.fp-bar > div') as HTMLElement).style.width).toMatch(/^98\.1/);
   });
 
+  it('takes the owner name from a list the game asked for itself, but reads nothing anew for it', async () => {
+    const { box, send, bus, greatBuildings } = setup();
+    send(contributions.contributions as Entry);
+    await tick();
+    const known = vi.spyOn(greatBuildings, 'known');
+    const list = (askedByGame: boolean) =>
+      bus.emit('greatBuildings.listed', {
+        owner: playerId(2005),
+        ownerName: 'Leuchtturmwärter',
+        entityIds: [],
+        at: Date.now(),
+        askedByGame,
+      });
+    list(true);
+    expect(known).not.toHaveBeenCalled();
+    // a star redraws the box without reading
+    bus.emit('greatBuilding.marked', { owner: playerId(2005), entityId: 1, marked: false });
+    await tick();
+    expect(box.text).toContain('Leuchtturmwärter');
+    list(false);
+    expect(known).toHaveBeenCalled();
+  });
+
   it('shows growth between two town hall lists of a building never opened', async () => {
     const { send, rows, advance } = setup();
     const first = contributions.contributions

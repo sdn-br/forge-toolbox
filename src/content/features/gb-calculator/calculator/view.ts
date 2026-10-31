@@ -1,18 +1,18 @@
 import { html, type TemplateResult } from 'lit-html';
-import { formatNumber, formatPercent, signed, t } from '../../core/texts';
-import type { LevelUpAndFirst } from '../../domain/gb-strategy';
-import { activityLine } from '../../ui/activity';
-import { emptyCell, estimateCell } from '../../ui/estimate-cell';
-import { type FactorActions, factorBar } from '../../ui/factor-bar';
-import { foldToggle } from '../../ui/fold-toggle';
-import { fpBar, progressPercent } from '../../ui/fp-bar';
-import { headerIcons } from '../../ui/icons';
-import { ignoreButton } from '../../ui/ignore';
-import { levelBar } from '../../ui/level-bar';
-import { previewCost, previewEstimate, previewHeading, previewUnknown } from '../../ui/level-preview';
-import { externalLink } from '../../ui/links';
-import { ownerOf } from '../../ui/owner-line';
-import { starButton } from '../../ui/star';
+import { formatNumber, formatPercent, signed, t } from '../../../core/texts';
+import type { LevelUpAndFirst } from '../../../domain/gb-strategy';
+import { activityLine } from '../../../ui/activity';
+import { emptyCell, estimateCell } from '../../../ui/estimate-cell';
+import { type FactorActions, factorBar } from '../../../ui/factor-bar';
+import { foldToggle } from '../../../ui/fold-toggle';
+import { fpBar, progressPercent } from '../../../ui/fp-bar';
+import { headerIcons } from '../../../ui/icons';
+import { ignoreButton } from '../../../ui/ignore';
+import { levelBar } from '../../../ui/level-bar';
+import { previewCost, previewEstimate, previewHeading, previewUnknown } from '../../../ui/level-preview';
+import { externalLink } from '../../../ui/links';
+import { ownerOf } from '../../../ui/owner-line';
+import { starButton } from '../../../ui/star';
 import type { CostCell, DemandCell, GbCalculatorVm, GbHeader, MeVm, PlaceRow, PreviewVm } from './view-model';
 
 export interface GbCalculatorActions extends FactorActions {

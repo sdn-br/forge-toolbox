@@ -149,6 +149,31 @@ describe('known great buildings from lists', () => {
     expect((await greatBuildings.known(playerId(1001)))[0]).toMatchObject({ level: 75, invested: 251 });
   });
 
+  it("flags a list of the open building's owner within 3 s of opening or paying in as asked by the game", () => {
+    const { bus, open, list, row, at } = setup();
+    const asked: string[] = [];
+    bus.on('greatBuildings.listed', (e) => asked.push(`${e.owner}:${e.at}:${e.askedByGame}`));
+    // 1909 of 1001 opened at 5 000
+    open(1909);
+    at(7_999);
+    list([row(1909, 75, 300, 3062)]);
+    at(8_000);
+    list([row(1909, 75, 300, 3062)]);
+    // another owner's list right after the opening is the player's own question
+    at(5_500);
+    list([row(650, 49, 917, 2000, 1002)], 1002);
+    expect(asked).toEqual(['1001:7999:true', '1001:8000:false', '1002:5500:false']);
+  });
+
+  it('counts a list as asked by the player while no building is open', () => {
+    const { bus, list, row, at } = setup();
+    const asked: boolean[] = [];
+    bus.on('greatBuildings.listed', (e) => asked.push(e.askedByGame));
+    at(6_000);
+    list([row(1909, 75, 300, 3062)]);
+    expect(asked).toEqual([false]);
+  });
+
   it('writes nothing for the own list', async () => {
     const { greatBuildings, list, row, at } = setup();
     at(6_000);
