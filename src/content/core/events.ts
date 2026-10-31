@@ -62,16 +62,12 @@ export interface ToolboxEvents {
    */
   'greatBuildings.listed': {
     owner: PlayerId;
-    ownerName?: string;
     entityIds: number[];
     at: number;
     askedByGame: boolean;
   };
-  /**
-   * the town hall list of the own contributions arrived at `at`, with the names of the owners as it gives them;
-   * `known()` has it once read
-   */
-  'greatBuildings.contributions': { at: number; owners: { id: PlayerId; name: string }[] };
+  /** the town hall list of the own contributions arrived at `at`; `known()` has it once read */
+  'greatBuildings.contributions': { at: number };
   /** the factors per place of a building changed (any of the three levels); without `def` those of every building */
   'gbOwn.factorsChanged': { def?: string };
   /** the Ext of a building's level changed */

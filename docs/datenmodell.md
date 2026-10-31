@@ -53,6 +53,7 @@ Je Domäne eine Datei. Für ein Feature nur die Dateien lesen, die es berührt.
 | Metadaten `building_entity_lookup` und `building_entity_<id>` | Catalog | Gebäude-Definitionen |
 | `OtherPlayerService.getOtherPlayerCityMapEntity` | GreatBuilding | fremdes LG vormerken, bis die Konstruktion kommt |
 | `GreatBuildingsService.getConstruction` | GreatBuilding | Konstruktion öffnen, fremdes LG speichern |
+| `GreatBuildingsService.getOtherPlayerOverview`, `GreatBuildingsService.getContributions` | Player | Eigentümer der Liste: unbekannte ohne Beziehung anlegen, bei bekannten nur Name und Avatar setzen |
 | `GreatBuildingsService.getConstructionRanking` | GreatBuilding | vergangene Stufe zeigen oder laufende Rangliste erneuern |
 | `GreatBuildingsService.contributeForgePoints` | GreatBuilding | am Ende der Antwort: neue Rangliste, Gebäude aus dem `reset` derselben Antwort |
 | `CityMapService.reset`, `updateEntity` mit dem offenen fremden LG | GreatBuilding (und City) | Stand des LGs, bei einer Einzahlung mit ihr zusammen |

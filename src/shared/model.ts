@@ -26,8 +26,17 @@ export interface Relations {
   friend: boolean;
 }
 
-/** `legacy`: taken over from the old toolbox */
-export type PlayerSource = 'socialList' | 'visit' | 'update' | 'ranking' | 'gbg' | 'event' | 'friend' | 'legacy';
+/** `legacy`: taken over from the old toolbox; `list`: known only from a great building list (id, name, avatar) */
+export type PlayerSource =
+  | 'socialList'
+  | 'visit'
+  | 'update'
+  | 'ranking'
+  | 'gbg'
+  | 'event'
+  | 'friend'
+  | 'legacy'
+  | 'list';
 
 /** what the session player may put on a player or a great building: a star, or an ignore */
 export type MarkKind = 'marked' | 'ignored';
@@ -40,16 +49,20 @@ export interface AttackTimer {
   nextInteractionAt?: number;
 }
 
+/**
+ * A player as the game last reported them. The fields a great building list does not carry are missing until a source
+ * that carries the whole player reported them.
+ */
 export interface Player {
   world: WorldId;
   id: PlayerId;
   name: string;
-  avatar: string;
-  cityName: string;
-  era: EraId;
-  score: number;
-  rank: number;
-  active: boolean;
+  avatar?: string;
+  cityName?: string;
+  era?: EraId;
+  score?: number;
+  rank?: number;
+  active?: boolean;
   guild?: GuildRef;
   relations: Relations;
   /** the session player put a star on the player; only the player removes it, never a change of relations */

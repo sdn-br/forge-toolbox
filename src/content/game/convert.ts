@@ -37,7 +37,7 @@ import type { GreatBuildingEntity, PlaceReward, RankingRow } from '../model/grea
 import type { ResearchExpansion } from '../model/research';
 import type { VisitInfo } from '../stores/cities';
 import type { InventoryItem, ItemPayload } from '../stores/inventory';
-import type { PlayerObservation } from '../stores/players';
+import type { ListedPlayer, PlayerObservation } from '../stores/players';
 import type {
   GameArmyContext,
   GameBattle,
@@ -665,15 +665,21 @@ export function toGreatBuildingListRows(data: unknown, except?: PlayerId): Great
   });
 }
 
-/** The owners of the rows of a great building list with the names the list gives them. */
-export function toListOwners(data: unknown): { id: PlayerId; name: string }[] {
-  const owners = new Map<PlayerId, string>();
+/** The owners of the rows of a great building list as the list gives them, each once; `except` (the own id) is left out. */
+export function toListedPlayers(data: unknown, except?: PlayerId): ListedPlayer[] {
+  const owners = new Map<PlayerId, ListedPlayer>();
   for (const r of (Array.isArray(data) ? data : []) as (GameGreatBuildingListRow | null)[]) {
     const id = num(r?.player?.player_id);
     const name = r?.player?.name;
-    if (id !== undefined && typeof name === 'string' && name !== '') owners.set(playerId(id), name);
+    if (id === undefined || id === except || typeof name !== 'string' || name === '') continue;
+    const avatar = r?.player?.avatar;
+    owners.set(playerId(id), {
+      id: playerId(id),
+      name,
+      ...(typeof avatar === 'string' && avatar !== '' && { avatar }),
+    });
   }
-  return [...owners].map(([id, name]) => ({ id, name }));
+  return [...owners.values()];
 }
 
 /** Display names of great buildings by definition, from the inventory list or the overview of a player. */

@@ -114,10 +114,10 @@ export function createSnipeSection(
     chime.ring(key, settings.sound.get());
   };
 
-  ctx.bus.on('greatBuildings.listed', ({ owner, ownerName, entityIds, at, askedByGame }) => {
+  ctx.bus.on('greatBuildings.listed', ({ owner, entityIds, at, askedByGame }) => {
     // the game asked for the list itself, the player did not open it, so it leaves the box alone
     if (askedByGame) return;
-    list = { owner, ...(ownerName !== undefined && { ownerName }), at, entityIds: new Set(entityIds) };
+    list = { owner, at, entityIds: new Set(entityIds) };
     listed = [];
     scroll = 0;
     hooks.listArrived();

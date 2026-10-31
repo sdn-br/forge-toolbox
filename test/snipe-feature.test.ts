@@ -104,7 +104,8 @@ type Row = {
   level: number;
   current_progress?: number;
   max_progress: number;
-  player: { player_id: number; name: string };
+  /** a row without the owner's name teaches the player store nothing */
+  player: { player_id: number; name?: string };
 };
 const zeus = levelUp.overview.responseData[0] as Row;
 const lighthouse = levelUp.overview.responseData[1] as Row;
@@ -112,6 +113,8 @@ const oracle = levelUp.overview.responseData[2] as Row;
 /** rows that pay a place: Zeusstatue P1 pays 45, Orakel 75, so a cost of 80 or 100 makes place 1 cheap enough */
 const hitZeus = () => withRequired(zeus, 80);
 const hitOracle = () => withRequired(oracle, 100);
+/** the row without the owner's name: the list then teaches the player store nothing, the owner stays unknown */
+const unnamed = (r: Row): Row => ({ ...r, player: { player_id: r.player.player_id } });
 const withRequired = (r: Row, required: number, invested?: number): Row => ({
   ...r,
   max_progress: required,
@@ -953,11 +956,15 @@ describe('Snipehilfe: marking the owner', () => {
   const ownerStar = (box: { root: ParentNode }) =>
     box.root.querySelector('.gb-owner button.star') as HTMLElement | null;
 
-  it('has no star for an owner the player store does not know', async () => {
-    const { box, list } = setup();
-    list([hitZeus()]);
+  it('has a star for the owner the list teaches the player store, none for an owner the store does not know', async () => {
+    const { box, list, players } = setup();
+    list([unnamed(hitZeus())]);
     await tick();
     expect(ownerStar(box)).toBeNull();
+    list([hitZeus()]);
+    await tick();
+    expect(players.get(playerId(1001))).toMatchObject({ name: 'Eigentümer 1001', source: 'list' });
+    expect(ownerStar(box)?.closest('p')?.textContent).toContain('Eigentümer 1001');
   });
 
   it('marks the owner of the list at its name, in the header of the section', async () => {
@@ -1188,7 +1195,7 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
 
   it('puts the eye after the owner star in the section header, for a known player only', async () => {
     const { box, players, send, list, rows } = setup();
-    list([hitZeus(), hitOracle()]);
+    list([unnamed(hitZeus()), unnamed(hitOracle())]);
     await tick();
     expect(headerEye(box)).toBeNull();
     social(send);

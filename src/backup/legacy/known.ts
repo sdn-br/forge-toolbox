@@ -108,7 +108,7 @@ function players(source: Player[], local: Player[]): Player[] {
         name: p.name,
         ...(p.avatar && { avatar: p.avatar }),
         ...(p.era && { era: p.era }),
-        ...(p.score > 0 && { score: p.score }),
+        ...(p.score !== undefined && p.score > 0 && { score: p.score }),
         ...(p.guild && { guild: p.guild }),
         seenAt: p.seenAt,
       },

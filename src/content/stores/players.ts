@@ -19,12 +19,32 @@ export interface PlayerObservation {
   attack?: AttackTimer;
 }
 
+/** What a great building list tells about the owner of a row: the id, the name and maybe the avatar. */
+export interface ListedPlayer {
+  id: PlayerId;
+  name: string;
+  /** missing or empty keeps what is known */
+  avatar?: string;
+}
+
 export interface PlayerPersistence {
   load(world: WorldId): Promise<Player[]>;
   put(rows: Player[]): Promise<void>;
 }
 
 const NO_RELATIONS: Relations = { neighbor: false, guildMember: false, friend: false };
+
+/** A known player seen in a list: the name follows the newest sighting, an empty avatar keeps the known one. */
+const listedOnto = <T extends Omit<Player, 'marked' | 'ignored' | 'marksAt'>>(
+  old: T,
+  l: Pick<ListedPlayer, 'name' | 'avatar'>,
+  seenAt: number,
+): T => ({
+  ...old,
+  name: l.name,
+  ...(l.avatar && { avatar: l.avatar }),
+  seenAt: Math.max(old.seenAt, seenAt),
+});
 
 export class PlayerStore {
   private players = new Map<PlayerId, Player>();
@@ -41,10 +61,24 @@ export class PlayerStore {
   async load(world: WorldId): Promise<void> {
     const rows = await this.persistence.load(world);
     for (const row of rows) {
-      const live = this.players.get(row.id);
+      let live = this.players.get(row.id);
       if (!live) {
         this.players.set(row.id, row);
         continue;
+      }
+      if (live.source === 'list') {
+        // known this session only from a list: the database knows more, the list adds only the name and the sighting
+        const { marked: _, ignored: __, marksAt: ___, ...data } = row;
+        const { marked, ignored, marksAt } = live;
+        live = {
+          ...listedOnto(data, live, live.seenAt),
+          ...(marked && { marked }),
+          ...(ignored && { ignored }),
+          ...(marksAt !== undefined && { marksAt }),
+        };
+        this.players.set(row.id, live);
+        this.dirty.add(row.id);
+        this.scheduleFlush();
       }
       // the star and the ignore are the player's own and the game never reports them, so what the database holds stays
       // (a flag the player set this session wins over the other one of the database, the two exclude each other)
@@ -137,6 +171,38 @@ export class PlayerStore {
     const touched = new Set<PlayerId>();
     for (const o of observations) this.merge(world, o, source, undefined, touched);
     this.changed(touched, source);
+  }
+
+  /**
+   * Owners of great building lists (the town hall list, the list of another player): an unknown one is learned with
+   * the name and no relation, a known one takes only the name and the avatar, as every sighting does. Nothing else
+   * changes, neither the richer fields of other sources nor relations, timers or marks.
+   */
+  applyListed(world: WorldId, listed: ListedPlayer[]): void {
+    const touched = new Set<PlayerId>();
+    const now = this.now();
+    for (const l of listed) {
+      const old = this.players.get(l.id);
+      const next: Player =
+        old && old.world === world
+          ? listedOnto(old, l, now)
+          : {
+              world,
+              id: l.id,
+              name: l.name,
+              ...(l.avatar && { avatar: l.avatar }),
+              relations: NO_RELATIONS,
+              firstSeenAt: now,
+              seenAt: now,
+              source: 'list',
+            };
+      this.players.set(l.id, next);
+      // the same name again changes no view; only the sighting is saved
+      if (next.name !== old?.name || next.avatar !== old?.avatar) touched.add(l.id);
+      else this.dirty.add(l.id);
+    }
+    if (touched.size === 0 && this.dirty.size > 0) this.scheduleFlush();
+    this.changed(touched, 'list');
   }
 
   /** An accepted friend invitation: the new friend with what the player brings; the other relations stay. */

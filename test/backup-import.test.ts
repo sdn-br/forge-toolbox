@@ -10,6 +10,7 @@ import {
   addMissing,
   longerShield,
   mergeMarked,
+  mergePlayer,
   mergeRows,
   newerPage,
   selectTables,
@@ -133,6 +134,56 @@ describe('merge rules', () => {
     const local = player(2, { seenAt: 10, ignored: true });
     const source = player(2, { seenAt: 5, marked: true, marksAt: 1 });
     expect(mergeMarked(local, source)).toEqual(player(2, { seenAt: 10, marked: true, marksAt: 1 }));
+  });
+
+  it('keeps the fields a newer row learned from a list lacks, from the richer older row', () => {
+    const rich = player(2, {
+      name: 'old',
+      cityName: 'Burg',
+      score: 900,
+      rank: 4,
+      seenAt: 10,
+      marked: true,
+      marksAt: 5,
+    });
+    const { avatar: _, cityName: __, era: ___, score: ____, rank: _____, active: ______, ...rest } = player(2);
+    const lean: Player = {
+      ...rest,
+      name: 'new',
+      relations: { neighbor: false, guildMember: false, friend: false },
+      seenAt: 20,
+      source: 'list',
+    };
+    // the file's lean row is newer: its name and sighting win, the city and the score stay
+    expect(mergePlayer(rich, lean)).toEqual({
+      ...rich,
+      name: 'new',
+      relations: lean.relations,
+      seenAt: 20,
+      source: 'list',
+    });
+    // the file's rich row is older than the local lean one: it fills the gaps, the rest stays local
+    expect(mergePlayer({ ...lean, seenAt: 30 }, player(2, { cityName: 'Burg', score: 900, seenAt: 10 }))).toEqual({
+      ...lean,
+      seenAt: 30,
+      avatar: '',
+      cityName: 'Burg',
+      era: eraId('ColonialAge'),
+      score: 900,
+      rank: 0,
+      active: true,
+    });
+    // nothing to fill and nothing newer: the local row stays
+    expect(mergePlayer({ ...lean, seenAt: 30 }, { ...lean, seenAt: 25 })).toBeUndefined();
+    expect(mergePlayer({ ...lean, seenAt: 30 }, { ...rich, marksAt: 50 })).toEqual({
+      ...rich,
+      name: 'new',
+      relations: lean.relations,
+      seenAt: 30,
+      source: 'list',
+      marksAt: 50,
+    });
+    expect(mergePlayer(undefined, lean)).toEqual(lean);
   });
 
   it('changes nothing when the file row is older in both', () => {

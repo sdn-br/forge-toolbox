@@ -28,12 +28,17 @@ const tick = async () => {
 };
 const MINUTE = 60_000;
 
-function setup() {
+/**
+ * `reachNone`: the reach filter lets owners without a relation in. The town hall list teaches the player store its
+ * owners, without a relation, so by default the filter would hide them all.
+ */
+function setup({ reachNone = true } = {}) {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(1_000_000);
   const now = () => Date.now();
   const env = featureContext({ now });
   const { ctx } = env;
+  if (reachNone) ctx.ui.savePref('investments.mineFilter', JSON.stringify({ reach: { none: true } }));
   const ingestion = new Ingestion();
   registerGameHandlers(ingestion, { ...ctx, now });
   investmentsFeature.setup(ctx);
@@ -85,7 +90,7 @@ describe('Investitionen box', () => {
     expect(cells(rows()[0])).toEqual([
       '',
       'Eigentümer 2005',
-      'unbekannt',
+      'keine',
       'Leuchtturm von Alexandria',
       '30',
       '907 / 924',
@@ -99,23 +104,17 @@ describe('Investitionen box', () => {
     expect((progress.querySelector('.fp-bar > div') as HTMLElement).style.width).toMatch(/^98\.1/);
   });
 
-  it('takes the owner name from a list the game asked for itself, but reads nothing anew for it', async () => {
-    const { box, send, bus, greatBuildings } = setup();
+  it('takes the owner name from the player store after a list the game asked for itself, but reads nothing anew for it', async () => {
+    const { box, send, bus, greatBuildings, players, world } = setup();
     send(contributions.contributions as Entry);
     await tick();
     const known = vi.spyOn(greatBuildings, 'known');
     const list = (askedByGame: boolean) =>
-      bus.emit('greatBuildings.listed', {
-        owner: playerId(2005),
-        ownerName: 'Leuchtturmwärter',
-        entityIds: [],
-        at: Date.now(),
-        askedByGame,
-      });
+      bus.emit('greatBuildings.listed', { owner: playerId(2005), entityIds: [], at: Date.now(), askedByGame });
+    // the handler of the list teaches the player store the name first
+    players.applyListed(world, [{ id: playerId(2005), name: 'Leuchtturmwärter' }]);
     list(true);
     expect(known).not.toHaveBeenCalled();
-    // a star redraws the box without reading
-    bus.emit('greatBuilding.marked', { owner: playerId(2005), entityId: 1, marked: false });
     await tick();
     expect(box.text).toContain('Leuchtturmwärter');
     list(false);
@@ -489,6 +488,18 @@ const SOCIAL = (friends: number[]) =>
     },
   }) as Entry;
 
+/**
+ * The town hall list with the names of `owners` left out: such a row teaches the player store nothing, so its owner
+ * stays unknown, like the owner of a building stored before lists taught the store.
+ */
+const UNNAMED = (...owners: number[]) =>
+  ({
+    ...contributions.contributions,
+    responseData: contributions.contributions.responseData.map((r) =>
+      owners.includes(r.player.player_id) ? { ...r, player: { player_id: r.player.player_id } } : r,
+    ),
+  }) as Entry;
+
 describe('Investitionen: Beziehung in Meine Investitionen', () => {
   it('has the same columns in the same order as the possible tab, the relation after the owner', async () => {
     const { send, heads } = setup();
@@ -512,13 +523,13 @@ describe('Investitionen: Beziehung in Meine Investitionen', () => {
   it('shows the reason as an icon with the word in the tooltip, an unknown owner as a word, and sorts by it', async () => {
     const { send, rows, cells, heads } = setup();
     send(SOCIAL([2005, 2008]));
-    send(contributions.contributions as Entry);
+    send(UNNAMED(2001));
     await tick();
     const reach = (r: Element) => r.querySelectorAll('td')[2] as HTMLElement;
     const byOwner = (owner: string) => rows().filter((r) => cells(r)[1] === owner);
     expect(reach(byOwner('Eigentümer 2005')[0] as Element).dataset.tip).toBe('Freund');
     expect(reach(byOwner('Eigentümer 2005')[0] as Element).querySelector('svg')).not.toBeNull();
-    expect(cells(byOwner('Eigentümer 2001')[0])[2]).toBe('unbekannt');
+    expect(cells(byOwner('2001')[0])[2]).toBe('unbekannt');
     (heads()[2] as HTMLElement).click();
     await tick();
     // friends before unknown owners
@@ -530,12 +541,13 @@ describe('Investitionen: Beziehung in Meine Investitionen', () => {
   });
 
   it('hides an owner out of reach by default and draws him muted, with "keine", once the filter lets him in', async () => {
-    const { box, send, rows, cells } = setup();
+    const { box, send, rows, cells } = setup({ reachNone: false });
     send(SOCIAL([2005, 2006]));
     send({ requestClass: 'FriendService', requestMethod: 'deleteFriend', requestData: null, responseData: 2006 });
     send(contributions.contributions as Entry);
     await tick();
-    expect(rows()).toHaveLength(10);
+    // only the friend's building; the other owners are known from the list alone, without a relation
+    expect(rows().map((r) => cells(r)[1])).toEqual(['Eigentümer 2005']);
     const toggles = [...box.root.querySelectorAll('.inv-reach-filter button')] as HTMLButtonElement[];
     expect(toggles.map((b) => [b.getAttribute('aria-label'), b.getAttribute('aria-pressed')])).toEqual([
       ['Nachbar', 'true'],
@@ -552,6 +564,24 @@ describe('Investitionen: Beziehung in Meine Investitionen', () => {
       ['keine', 'muted'],
     ]);
     expect(out[0]?.querySelectorAll('td')[2]?.getAttribute('data-tip')).toBe('keine Beziehung, nicht erreichbar');
+  });
+
+  it('counts an owner known only from the town hall list as without relation, an owner never seen as unknown', async () => {
+    const { box, send, rows, cells, players } = setup({ reachNone: false });
+    send(UNNAMED(2004));
+    await tick();
+    expect(players.get(playerId(2005))).toMatchObject({
+      name: 'Eigentümer 2005',
+      source: 'list',
+      relations: { neighbor: false, guildMember: false, friend: false },
+    });
+    expect(players.get(playerId(2004))).toBeUndefined();
+    // the unknown owner always passes the filter; the owners from the list wait for "keine"
+    expect(rows().map((r) => cells(r).slice(1, 3))).toEqual([['2004', 'unbekannt']]);
+    (box.root.querySelectorAll('.inv-reach-filter button')[3] as HTMLButtonElement).click();
+    await tick();
+    expect(rows()).toHaveLength(12);
+    expect(cells(rows().find((r) => cells(r)[1] === 'Eigentümer 2005'))[2]).toBe('keine');
   });
 });
 
@@ -668,7 +698,8 @@ describe('Investitionen: Filter in Meine Investitionen', () => {
     await tick();
     const pick = () => rows()[0]?.querySelector('td.name-cell .inv-pick') as HTMLButtonElement;
     expect(pick().getAttribute('aria-label')).toBe('Nur diesen Spieler zeigen');
-    expect(pick().previousElementSibling?.tagName).toBe('A');
+    // the owner is known from the list: the eye of the owner sits between the name and the funnel
+    expect(pick().previousElementSibling?.classList.contains('ignore')).toBe(true);
     const name = cells(rows()[0])[1] as string;
     pick().click();
     await tick();
@@ -685,7 +716,7 @@ describe('Investitionen: Filter in Meine Investitionen', () => {
   it('puts a star toggle before the eye of a known owner, which marks the player and clears an ignore', async () => {
     const { send, rows, players, cells, box } = setup();
     send(SOCIAL([2005]));
-    send(contributions.contributions as Entry);
+    send(UNNAMED(2001));
     await tick();
     const first = () => rows().find((r) => cells(r)[1] === 'Eigentümer 2005') as Element;
     const star = () => first().querySelector('.row-name button.star') as HTMLButtonElement;
@@ -714,7 +745,7 @@ describe('Investitionen: Filter in Meine Investitionen', () => {
     await tick();
     expect(players.get(playerId(2005))).not.toHaveProperty('marked');
     // an owner the store does not know has no star
-    const unknown = rows().find((r) => cells(r)[1] !== 'Eigentümer 2005') as Element;
+    const unknown = rows().find((r) => cells(r)[1] === '2001') as Element;
     expect(unknown.querySelector('.row-name button.star')).toBeNull();
   });
 });
@@ -813,7 +844,7 @@ describe('Investitionen: Ignorieren in Meine Investitionen', () => {
   it('puts a closed eye beside the building name and, for a known player, beside the owner, next to the funnel', async () => {
     const { send, rows } = setup();
     send(SOCIAL([2005]));
-    send(contributions.contributions as Entry);
+    send(UNNAMED(2001));
     await tick();
     const first = rows()[0];
     expect(buildingEye(first)?.getAttribute('aria-label')).toBe('LG ignorieren');
@@ -826,7 +857,7 @@ describe('Investitionen: Ignorieren in Meine Investitionen', () => {
     expect(ownerEye(first)?.nextElementSibling?.classList.contains('inv-pick')).toBe(true);
     expect(first?.querySelector('td.name-cell .row-name > :last-child')?.classList.contains('inv-pick')).toBe(true);
     // an owner the store does not know cannot be ignored
-    const unknown = rows().find((r) => !text(r)?.includes('Eigentümer 2005'));
+    const unknown = rows().find((r) => r.querySelector('td.name-cell')?.textContent?.trim() === '2001');
     expect(ownerEye(unknown)).toBeNull();
     expect(unknown?.querySelector('td.name-cell .row-name > :last-child')?.classList.contains('inv-pick')).toBe(true);
   });
@@ -859,9 +890,10 @@ describe('Investitionen: Ignorieren in Meine Investitionen', () => {
     expect(showToggle(box).getAttribute('aria-pressed')).toBe('true');
     expect(JSON.parse(ui.pref('investments.mineFilter') ?? '{}')).toMatchObject({ showIgnored: true });
     expect(rows()).toHaveLength(12);
-    const ignored = rows().filter((r) => r.classList.contains('muted'));
+    // the owners without a relation are drawn muted too
+    const ignored = rows().filter((r) => r.getAttribute('data-tip') === 'LG ignoriert');
     expect(ignored).toHaveLength(1);
-    expect(ignored[0]?.getAttribute('data-tip')).toBe('LG ignoriert');
+    expect(ignored[0]?.classList.contains('muted')).toBe(true);
     const eye = buildingEye(ignored[0]) as HTMLButtonElement;
     expect(eye.classList.contains('on')).toBe(true);
     expect(eye.getAttribute('aria-pressed')).toBe('true');
@@ -870,7 +902,7 @@ describe('Investitionen: Ignorieren in Meine Investitionen', () => {
     expect(text(lines(box)[0])).toContain('Umlauf: 4.654 FP');
     eye.click();
     await tick();
-    expect(rows().some((r) => r.classList.contains('muted'))).toBe(false);
+    expect(rows().some((r) => r.getAttribute('data-tip') === 'LG ignoriert')).toBe(false);
     expect(text(lines(box)[0])).toContain('Umlauf: 4.896 FP');
     expect(text(lines(box)[0])).not.toContain('ignoriert');
   });

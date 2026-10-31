@@ -249,7 +249,7 @@ export class GreatBuildingStore {
    * owner of the open construction less than `ASKED_BY_GAME` after it was opened, paid into or paged counts as asked by
    * the game. There is no other sign, the request looks the same.
    */
-  noteList(rows: GreatBuildingListRow[], ownerName?: string): void {
+  noteList(rows: GreatBuildingListRow[]): void {
     const owner = rows[0]?.owner;
     if (owner === undefined) return;
     const at = this.now();
@@ -257,19 +257,18 @@ export class GreatBuildingStore {
     const open = this.open;
     this.bus.emit('greatBuildings.listed', {
       owner,
-      ...(ownerName !== undefined && { ownerName }),
       entityIds: rows.map((r) => r.entityId),
       at,
       askedByGame: open?.owner === owner && at - this.shownAt < ASKED_BY_GAME,
     });
   }
 
-  /** The town hall list of the buildings the session player invested in (`getContributions`), with owner names. */
-  noteContributions(rows: GreatBuildingListRow[], owners: { id: PlayerId; name: string }[] = []): void {
+  /** The town hall list of the buildings the session player invested in (`getContributions`). */
+  noteContributions(rows: GreatBuildingListRow[]): void {
     const at = this.now();
     this.listedAt = at;
     this.enqueue(() => this.persistence.putContributions(this.world, rows, at));
-    this.bus.emit('greatBuildings.contributions', { at, owners });
+    this.bus.emit('greatBuildings.contributions', { at });
   }
 
   /** when the town hall list of the own contributions last came, also from before a reload once `load` ran */
