@@ -69,7 +69,7 @@ export const DEFAULT_MINE_FILTER: MineFilter = {
   showIgnored: false,
 };
 
-/** without a sort the rows keep the default order (growth first, then the rest to the level up ascending) */
+/** without a level the rows keep the default order (growth first, then the rest to the level up ascending) */
 export type InvestmentSort = Sort<InvestmentColumn>;
 
 /** names, places, status and progress (nearest level up) read from the top, deposit, profit and level from the largest */
@@ -87,13 +87,11 @@ export interface InvestmentRowVm extends ProgressVm {
   ownerMarked: boolean;
   /** the player ignores the building */
   ignored: boolean;
-  /** the player ignores the owner; missing when the player store does not know the owner, who cannot be ignored */
-  ownerIgnored?: boolean;
+  /** the player ignores the owner; undefined when the player store does not know the owner, who cannot be ignored */
+  ownerIgnored: boolean | undefined;
   /** why the row counts as ignored, in words; missing when it does not */
   ignoreNote?: string;
-  /** the first reason, `none` drawn muted */
-  reach: Reach;
-  /** every reason, each drawn as its icon */
+  /** every reason, each drawn as its icon; a first `none` drawn muted */
   reasons: Reach[];
   /** every reason, for the tooltip */
   reachTip: string;
@@ -122,9 +120,9 @@ export type InvestmentsVm = {
   filter: MineFilter;
   /** no own investment is known at all */
   empty: boolean;
-  /** "5 Minuten" since the last town hall list; missing when none was seen */
-  age?: string;
-  sort?: InvestmentSort;
+  /** "Stand: vor 5 Min." since the last town hall list, or the hint that none was seen */
+  age: string;
+  sort: InvestmentSort;
   /** all rows; the view draws those of `scroll` */
   rows: InvestmentRowVm[];
   /** which rows of `rows` are in view */
@@ -140,7 +138,7 @@ export interface InvestmentsInput {
   /** when the last town hall list came */
   listedAt?: number;
   now: number;
-  sort?: InvestmentSort;
+  sort: InvestmentSort;
   /** rows that fit into the table area, and the index of the first one in view (default the top) */
   visible: number;
   scroll?: number;
@@ -167,7 +165,7 @@ type Named = Investment & {
   ownerMarked: boolean;
   ignored: boolean;
   ownerIgnored: boolean | undefined;
-  /** the building or its owner is ignored */
+  /** neither the building nor its owner is ignored */
   counted: boolean;
   reasons: Reach[];
 };
@@ -186,34 +184,36 @@ const sortKey: Record<InvestmentColumn, (r: Named) => number | string> = {
   progress: (r) => r.rest,
 };
 
-const totalsVm = (totals: InvestmentTotals, ignored?: Investment[]): TotalsVm => ({
+const totalsVm = (totals: InvestmentTotals, ignored: Investment[] = []): TotalsVm => ({
   circulating: formatNumber(totals.circulating),
   profitSafe: signed(totals.profitSafe),
   profitTotal: signed(totals.profitTotal),
   gain: totals.profitSafe > 0,
-  ...(ignored &&
-    ignored.length > 0 && {
-      ignored: t('investments.ignoredTotals', {
-        count: formatNumber(ignored.length),
-        fp: formatNumber(sumTotals(ignored).circulating),
-      }),
+  ...(ignored.length > 0 && {
+    ignored: t('investments.ignoredTotals', {
+      count: formatNumber(ignored.length),
+      fp: formatNumber(sumTotals(ignored).circulating),
     }),
+  }),
 });
 
 export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
   const { sort, filter } = input;
-  const all: Named[] = input.investments.rows
-    .map((r) => ({
+  const all: Named[] = input.investments.rows.map((r) => {
+    const ignored = input.isIgnored(r.owner, r.entityId);
+    const ownerIgnored = input.ownerIgnored(r.owner);
+    return {
       ...r,
       ownerName: input.playerName(r.owner) ?? String(r.owner),
       name: input.greatBuildingName(r.cityEntityId) ?? r.cityEntityId,
       marked: input.isMarked(r.owner, r.entityId),
       ownerMarked: input.ownerMarked(r.owner),
-      ignored: input.isIgnored(r.owner, r.entityId),
-      ownerIgnored: input.ownerIgnored(r.owner),
+      ignored,
+      ownerIgnored,
+      counted: !ignored && ownerIgnored !== true,
       reasons: reasonsOf(input.relations(r.owner)),
-    }))
-    .map((r) => ({ ...r, counted: !r.ignored && r.ownerIgnored !== true }));
+    };
+  });
   const named = all
     .filter((r) => filter.showIgnored || r.counted)
     .filter((r) => contains(r.ownerName, filter.player) && contains(r.name, filter.name))
@@ -223,10 +223,13 @@ export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
   const counted = all.filter((r) => r.counted);
   const selected = named.filter((r) => r.counted);
   // stable: equal keys keep the default order
-  if (sort) sortRows(named, sort, (column) => sortKey[column]);
+  sortRows(named, sort, (column) => sortKey[column]);
   return {
-    ...(input.listedAt !== undefined && { age: formatAge(input.now - input.listedAt) }),
-    ...(sort && { sort }),
+    age:
+      input.listedAt === undefined
+        ? t('investments.noList')
+        : t('gb.age', { duration: formatAge(input.now - input.listedAt) }),
+    sort,
     filter,
     empty: all.length === 0,
     rows: named.map((r) => ({
@@ -237,9 +240,8 @@ export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
       ownerUrl: input.playerUrl(r.owner),
       ownerMarked: r.ownerMarked,
       ignored: r.ignored,
-      ...(r.ownerIgnored !== undefined && { ownerIgnored: r.ownerIgnored }),
+      ownerIgnored: r.ownerIgnored,
       ...ignoreNote(r.ignored, r.ownerIgnored),
-      reach: r.reasons[0] as Reach,
       reasons: r.reasons,
       reachTip: reachTip(r.reasons),
       name: r.name,

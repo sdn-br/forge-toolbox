@@ -183,7 +183,11 @@ ${hitColumnsCss.trim()}
    18 px) */
 :is(.snipe-table, .inv-table) td.mark-cell { text-align: left; padding: 0 0 0 2px; }
 :is(.snipe-table, .inv-table) th.icon-head.mark-cell { text-align: left; padding: 0 0 0 4px; }
-:is(.snipe-table, .inv-table) .snipe-tier svg { display: block; width: 14px; height: 14px; margin: auto; }
+:is(.snipe-table, .inv-table) :is(.snipe-tier, .inv-status) svg { display: block; width: 14px; height: 14px; margin: auto; }
+/* a 14 px icon inside a line of text, lowered to sit on the baseline (investments, GB calculator). A list, not :is(),
+   so each selector keeps its own specificity and the column heads keep theirs */
+.inv-reach svg, .inv-ignored-total svg, .gb-me .profit-icon svg, td.secured svg, .gb-me .secured-icon svg {
+  width: 14px; height: 14px; vertical-align: -2px; }
 /* an ignored hit shown on request or an owner out of reach: the whole row muted, links and tier colours too */
 :is(.snipe-table, .inv-table) tr.muted :is(td, a) { color: inherit; }
 td.snipe-tier.exact { color: var(--good); }
@@ -205,7 +209,7 @@ td.snipe-tier.possible { color: var(--warn); }
 /* keyboard focus shows them too, a mouse click does not keep them (:focus-within would, until the next click) */
 tr:is(:hover, :has(:focus-visible)) .row-name :is(button.star, button.ignore) { opacity: .7; }
 tr .row-name :is(button.star, button.ignore):is(:hover, :focus-visible), tr .row-name :is(button.star, button.ignore).on { opacity: 1; color: var(--accent); }
-/* the growth beside the bar; in "Meine" the bar line has one height in every row, so all rows are equally tall and the
+/* the growth beside the bar; in the investments the bar line has one height in every row, so all rows are equally tall and the
    row window counts them right */
 .growth-tag { flex: none; color: var(--accent); font-weight: 600; font-size: 10px; line-height: 1; }
 .fp-line { display: flex; align-items: center; gap: 4px; margin-top: 2px; }

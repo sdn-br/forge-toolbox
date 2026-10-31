@@ -10,17 +10,19 @@ import { externalLink } from '../../ui/links';
 import { starButton } from '../../ui/star';
 import { picks, REACH_TOGGLES, type Reach, type ReachFilter } from './filter-model';
 
-export const REACH_ICONS: Partial<Record<Reach, TemplateResult>> = {
+const REACH_ICONS: Partial<Record<Reach, TemplateResult>> = {
   neighbor: headerIcons.neighbor,
   friend: headerIcons.friend,
   guildMember: headerIcons.guild,
 };
 
 /** an icon per reason; out of reach and unknown stay words */
-export const reachCell = (reach: Reach, reasons: Reach[]) =>
-  reach === 'none' || reach === 'unknown'
-    ? t(`investments.reach.${reach}`)
+export const reachCell = (reasons: Reach[]) => {
+  const [first] = reasons;
+  return first === 'none' || first === 'unknown'
+    ? t(`investments.reach.${first}`)
     : reasons.map((reason) => REACH_ICONS[reason]);
+};
 
 export const text = (value: string, label: string, set: (value: string) => void) =>
   html`<input type="search" placeholder=${label} aria-label=${label} .value=${value}
@@ -45,19 +47,19 @@ export const reachFilter = (reach: ReachFilter, set: (reach: ReachFilter) => voi
 
 /** a toggle with the star: only marked buildings and buildings of marked owners */
 export const markedFilter = (onlyMarked: boolean, set: (onlyMarked: boolean) => void) =>
-  filterToggle('mark-celled-filter', onlyMarked, t('investments.possible.onlyMarked'), headerIcons.starFilled, set);
+  filterToggle('inv-marked-filter', onlyMarked, t('investments.filter.onlyMarked'), headerIcons.starFilled, set);
 
 /** shown on row hover or focus (styles), always and in the accent while the player field names this owner; then a click
  * empties the field */
-export const pickButton = (name: string, picked: boolean, pick: (name: string) => void) => {
-  const word = t(picked ? 'investments.possible.unpickPlayer' : 'investments.possible.pickPlayer');
+const pickButton = (name: string, picked: boolean, pick: (name: string) => void) => {
+  const word = t(picked ? 'investments.filter.unpickPlayer' : 'investments.filter.pickPlayer');
   return toggleButton('inv-pick', picked, word, picked ? headerIcons.funnelFilled : headerIcons.funnel, () =>
     pick(picked ? '' : name),
   );
 };
 
 /** what a row says about its owner */
-export interface OwnerCellRow {
+interface OwnerCellRow {
   owner: PlayerId;
   ownerName: string;
   ownerUrl: string;
@@ -66,7 +68,7 @@ export interface OwnerCellRow {
   ownerIgnored?: boolean;
 }
 
-export interface OwnerCellActions {
+interface OwnerCellActions {
   /** put the owner's name into the "Spieler" filter, as if typed */
   pickPlayer(name: string): void;
   ignorePlayer(owner: PlayerId, ignored: boolean): void;

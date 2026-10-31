@@ -47,7 +47,6 @@ export interface InvestmentTotals {
 export interface Investments {
   /** rows with growth first, then the rest ascending */
   rows: Investment[];
-  totals: InvestmentTotals;
 }
 
 /**
@@ -111,7 +110,7 @@ export function myInvestments(buildings: KnownGreatBuilding[], arcBonus: number)
     ];
   });
   rows.sort((a, b) => Number(b.growth !== undefined) - Number(a.growth !== undefined) || a.rest - b.rest);
-  return { rows, totals: sumTotals(rows) };
+  return { rows };
 }
 
 /** A great building of another player without an own place, with the best place the snipe helper finds there. */

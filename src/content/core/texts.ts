@@ -68,6 +68,10 @@ export function formatDuration(ms: number): string {
 /** how long ago something was, `ms` back, at least "1 Min.", so what just came never reads as 0 */
 export const formatAge = (ms: number) => formatDuration(Math.max(MINUTE, ms));
 
+/** "3 Std." for three hours and forty minutes: like `formatAge`, but the largest unit only, for a narrow column */
+export const formatAgeShort = (ms: number) =>
+  formatAge(ms >= DAY_MS ? Math.floor(ms / DAY_MS) * DAY_MS : ms >= HOUR ? Math.floor(ms / HOUR) * HOUR : ms);
+
 /** "heute 14:05", "morgen 04:14", otherwise date and time. */
 export function formatWhen(epochMs: number, now: number): string {
   if (sameDay(epochMs, now)) return t('time.today', { time: formatTime(epochMs) });

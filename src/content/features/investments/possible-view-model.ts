@@ -1,12 +1,11 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import type { Relations } from '../../../shared/model';
-import { DAY_MS } from '../../../shared/time';
-import { formatAge, formatNumber, t } from '../../core/texts';
-import { type OwnerShare, ownerShare, type SnipeTier } from '../../domain/gb-snipe';
+import { formatAgeShort, formatNumber, t } from '../../core/texts';
+import { ownerShare, type SnipeTier } from '../../domain/gb-snipe';
 import type { PossibleInvestment } from '../../domain/investments';
 import { type ProgressVm, progressVm } from '../../ui/fp-bar';
 import { ignoreNote } from '../../ui/ignore';
-import { type HitVm, hitSortKeys, hitVm, snipeNotes } from '../../ui/snipe-hit';
+import { type HitVm, hitSortKeys, hitVm, type OwnerShareCell, ownerShareCell, snipeNotes } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
 import { type RowWindow, rowWindow } from '../../ui/windowed-rows';
 import {
@@ -98,13 +97,11 @@ export interface PossibleRowVm extends ProgressVm {
   ownerMarked: boolean;
   /** the player ignores the building */
   ignored: boolean;
-  /** the player ignores the owner; missing when the player store does not know the owner, who cannot be ignored */
-  ownerIgnored?: boolean;
+  /** the player ignores the owner; undefined when the player store does not know the owner, who cannot be ignored */
+  ownerIgnored: boolean | undefined;
   /** why the row counts as ignored, in words; missing when it does not */
   ignoreNote?: string;
-  /** the first reason, `none` drawn muted */
-  reach: Reach;
-  /** every reason, each drawn as its icon */
+  /** every reason, each drawn as its icon; a first `none` drawn muted */
   reasons: Reach[];
   /** every reason, for the tooltip */
   reachTip: string;
@@ -112,8 +109,8 @@ export interface PossibleRowVm extends ProgressVm {
   level: number;
   /** "300" when the building gained Forge points between its last two sightings on this level */
   growth?: string;
-  /** the owner's share of the level: "320", "?" when unknown; `stale` when drawn muted, with its age as the tip */
-  share: { text: string; stale: boolean; tip: string };
+  /** the owner's share of the level */
+  share: OwnerShareCell;
   /** the best place; missing when none pays */
   hit?: HitVm;
   /** lines of the row tooltip */
@@ -156,12 +153,6 @@ export interface PossibleInput {
   playerUrl(id: PlayerId): string;
 }
 
-const HOUR = 3_600_000;
-
-/** "3 Std." for three hours and forty minutes: the largest unit only, so the column stays narrow */
-const age = (ms: number) =>
-  formatAge(ms >= DAY_MS ? Math.floor(ms / DAY_MS) * DAY_MS : ms >= HOUR ? Math.floor(ms / HOUR) * HOUR : ms);
-
 type Named = PossibleInvestment & {
   ownerName: string;
   name: string;
@@ -189,15 +180,6 @@ const sortKey: Record<PossibleColumn, (r: Named) => number | string | undefined>
   ),
   seen: (r) => r.building.seenAt,
 };
-
-const shareCell = (share: OwnerShare, now: number): PossibleRowVm['share'] =>
-  share.state === 'unknown'
-    ? { text: '?', stale: false, tip: '' }
-    : {
-        text: formatNumber(share.fp),
-        stale: share.state === 'stale',
-        tip: share.state === 'stale' ? t('investments.shareStale', { age: formatAge(now - share.at) }) : '',
-      };
 
 export function possibleViewModel(input: PossibleInput): PossibleVm {
   const { filter, sort } = input;
@@ -233,19 +215,18 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
       ownerUrl: input.playerUrl(b.owner),
       ownerMarked,
       ignored,
-      ...(ownerIgnored !== undefined && { ownerIgnored }),
+      ownerIgnored,
       ...ignoreNote(ignored, ownerIgnored),
-      reach: reasons[0] as Reach,
       reasons,
       reachTip: reachTip(reasons),
       name,
       level: b.level,
       ...progressVm(b.invested, b.required),
       ...(b.growth !== undefined && { growth: formatNumber(b.growth) }),
-      share: shareCell(ownerShare(b), input.now),
+      share: ownerShareCell(ownerShare(b), input.now),
       ...(hit && { hit: hitVm(hit) }),
       notes: hit ? snipeNotes(hit) : [],
-      age: t('investments.ago', { duration: age(input.now - b.seenAt) }),
+      age: t('investments.ago', { duration: formatAgeShort(input.now - b.seenAt) }),
     })),
     scroll: rowWindow(input.scroll ?? 0, shown.length, input.visible),
     count: t('investments.possible.count', { hits: formatNumber(hits), count: formatNumber(counted.length) }),

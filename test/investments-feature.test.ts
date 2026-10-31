@@ -619,7 +619,7 @@ describe('Investitionen: Filter in Meine Investitionen', () => {
     const { box, send, rows, cells, ui } = setup();
     send(contributions.contributions as Entry);
     await tick();
-    const marked = box.root.querySelector('.mark-celled-filter button') as HTMLButtonElement;
+    const marked = box.root.querySelector('.inv-marked-filter button') as HTMLButtonElement;
     expect(marked.getAttribute('aria-label')).toBe('nur gemerkte');
     expect(marked.getAttribute('aria-pressed')).toBe('false');
     const last = rows()[rows().length - 1] as Element;
@@ -651,7 +651,7 @@ describe('Investitionen: Filter in Meine Investitionen', () => {
       [...root.querySelectorAll(`${sel} button`)].map((b) => b.getAttribute('aria-pressed'));
     expect(pressed('.inv-status-filter')).toEqual(['false', 'true', 'true']);
     expect(pressed('.inv-reach-filter')).toEqual(['true', 'true', 'true', 'true']);
-    expect(pressed('.mark-celled-filter')).toEqual(['true']);
+    expect(pressed('.inv-marked-filter')).toEqual(['true']);
     const broken = open('{nope');
     await tick();
     expect(

@@ -34,6 +34,22 @@ export const ownerShareNote = (share: OwnerShare, now: number) =>
       ? t('snipe.owner', { fp: formatNumber(share.fp) })
       : t('snipe.ownerStale', { fp: formatNumber(share.fp), age: formatAge(now - share.at) });
 
+/** the owner's share as its own cell: "320", "?" when unknown; `stale` when drawn muted, with its age as the tip */
+export interface OwnerShareCell {
+  text: string;
+  stale: boolean;
+  tip: string;
+}
+
+export const ownerShareCell = (share: OwnerShare, now: number): OwnerShareCell =>
+  share.state === 'unknown'
+    ? { text: '?', stale: false, tip: '' }
+    : {
+        text: formatNumber(share.fp),
+        stale: share.state === 'stale',
+        tip: share.state === 'stale' ? t('investments.shareStale', { age: formatAge(now - share.at) }) : '',
+      };
+
 /** lines of the row tooltip: the place of the worst case, a building that may be locked */
 export const snipeNotes = (h: SnipeHit): string[] =>
   [h.worst && worstNote(h.worst), h.maybeLocked && t('snipe.maybeLocked')].filter(

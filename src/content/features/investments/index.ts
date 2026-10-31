@@ -52,7 +52,6 @@ const TAB = 'investments.tab';
 const FILTER = 'investments.filter';
 /** the filters of the own investments, kept apart from those of the possible ones */
 const MINE_FILTER = 'investments.mineFilter';
-/** the settings the rating reads */
 
 /** the saved tier toggles, each one that is missing at its default */
 const savedTier = (f: Partial<PossibleFilter>): TierFilter => savedToggles(TIER_TOGGLES, f.tier, DEFAULT_FILTER.tier);
@@ -99,14 +98,14 @@ export const investmentsFeature: Feature = {
     const openWithList = ctx.settings.register(OPEN_WITH_LIST);
 
     let tab: InvestmentsTab = ctx.ui.pref(TAB) === 'possible' ? 'possible' : 'mine';
-    let sort: InvestmentSort | undefined;
+    let sort: InvestmentSort = [];
     let possibleSort: PossibleSort = DEFAULT_POSSIBLE_SORT;
     let filter = savedFilter(ctx.ui.pref(FILTER));
     let mineFilter = savedMineFilter(ctx.ui.pref(MINE_FILTER));
     /** the known buildings as last read; data events read them again, the other inputs only rate them anew */
     let known: KnownGreatBuilding[] = [];
     let arc = 0;
-    let investments: Investments = { rows: [], totals: { circulating: 0, profitSafe: 0, profitTotal: 0 } };
+    let investments: Investments = { rows: [] };
     /** the possible investments, rated only for their tab and kept while the read buildings and bonus stay */
     let rated: { known: KnownGreatBuilding[]; arc: number; rows: PossibleInvestment[] } | undefined;
     /** owner names the town hall list and the lists of others give, for owners the player store does not know */
@@ -129,12 +128,8 @@ export const investmentsFeature: Feature = {
       ctx.greatBuildings.setMarked(owner, entityId, marked);
     const ignore = (owner: PlayerId, entityId: number, ignored: boolean) =>
       ctx.greatBuildings.setIgnored(owner, entityId, ignored);
-    const ignorePlayer = (owner: PlayerId, ignored: boolean) => {
-      ctx.players.setIgnored(owner, ignored);
-    };
-    const markPlayer = (owner: PlayerId, marked: boolean) => {
-      ctx.players.setMarked(owner, marked);
-    };
+    const ignorePlayer = (owner: PlayerId, ignored: boolean) => ctx.players.setIgnored(owner, ignored);
+    const markPlayer = (owner: PlayerId, marked: boolean) => ctx.players.setMarked(owner, marked);
     const actions: InvestmentsActions = {
       tab: (next) => {
         showTab(next);
@@ -224,7 +219,7 @@ export const investmentsFeature: Feature = {
         investments,
         listedAt: ctx.greatBuildings.contributionsAt(),
         now: Date.now(),
-        ...(sort && { sort }),
+        sort,
         visible: fit.rows(),
         scroll: tops.mine,
         greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
