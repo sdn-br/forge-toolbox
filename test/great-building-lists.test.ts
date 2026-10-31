@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createBus } from '../src/content/core/events';
 import { Ingestion } from '../src/content/core/ingestion';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import { GreatBuildingStore } from '../src/content/stores/great-buildings';
@@ -214,6 +215,80 @@ describe('known great buildings from lists', () => {
     expect((await greatBuildings.known())[0]).toMatchObject({ entityId: 1909, ownContribution: true, level: 75 });
     open(1909);
     expect((await greatBuildings.known())[0]).toMatchObject({ ownContribution: true, level: 75, maxLevel: 76 });
+  });
+});
+
+describe('stored signal', () => {
+  /** the stored events as "owner:entityIds", "all" for one without owner, with what the database held at that moment */
+  const watch = ({ bus, db, world }: ReturnType<typeof setup>) => {
+    const seen: { event: string; rows: number }[] = [];
+    const reads: Promise<unknown>[] = [];
+    bus.on('greatBuildings.stored', (e) => {
+      const event = e.owner === undefined ? 'all' : `${e.owner}:${e.entityIds.join(',')}`;
+      reads.push(db.greatBuildings.list(world, e.owner).then((rows) => seen.push({ event, rows: rows.length })));
+    });
+    return async () => {
+      await db.greatBuildings.list(world);
+      await Promise.all(reads);
+      return seen;
+    };
+  };
+
+  it('names the owner of a list once its rows are in the database, not before', async () => {
+    const env = setup();
+    const stored = watch(env);
+    env.list([env.row(1909, 75, 300, 3062), env.row(777, 3, 1, 90)]);
+    expect(await stored()).toEqual([]);
+    await env.greatBuildings.known();
+    expect(await stored()).toEqual([{ event: '1001:1909,777', rows: 2 }]);
+  });
+
+  it('names the owner of an opened building once per write, and nothing for an own building', async () => {
+    const env = setup();
+    const stored = watch(env);
+    env.open(1909);
+    await env.greatBuildings.known();
+    expect(await stored()).toEqual([{ event: '1001:1909', rows: 1 }]);
+    // the own list leaves the database alone
+    env.list([env.row(1909, 75, 300, 3062, 1000)], 1000);
+    await env.greatBuildings.known();
+    expect(await stored()).toHaveLength(1);
+  });
+
+  it('comes once without an owner for the town hall list, which may drop rows of any owner', async () => {
+    const env = setup();
+    env.send(...(contributions.startup as Entry[]));
+    const stored = watch(env);
+    env.send(contributions.contributions as Entry);
+    await env.greatBuildings.known();
+    expect((await stored()).map((s) => s.event)).toEqual(['all']);
+  });
+
+  it('stays silent when the write fails', async () => {
+    const bus = createBus();
+    const events: unknown[] = [];
+    bus.on('greatBuildings.stored', (e) => events.push(e));
+    const failing = Promise.reject(new Error('quota'));
+    failing.catch(() => undefined);
+    const persistence = {
+      putList: () => failing,
+      putContributions: () => failing,
+      list: async () => [],
+    } as unknown as ConstructorParameters<typeof GreatBuildingStore>[2];
+    const store = new GreatBuildingStore(bus, worldId('de20'), persistence);
+    store.noteList([
+      {
+        owner: playerId(1001),
+        entityId: 1,
+        cityEntityId: 'X' as KnownGreatBuilding['cityEntityId'],
+        level: 1,
+        invested: 0,
+        required: 10,
+      },
+    ]);
+    store.noteContributions([]);
+    await store.known();
+    expect(events).toEqual([]);
   });
 });
 

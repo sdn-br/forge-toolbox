@@ -39,7 +39,8 @@ export const ASKED_BY_GAME = 3000;
 
 /**
  * The great building construction the player has open in the game, and what is known about other players' great
- * buildings. The open construction lives in memory only; the state of foreign buildings goes to the database.
+ * buildings. The open construction lives in memory only; the state of foreign buildings goes to the database, and once
+ * it is written there, `greatBuildings.stored` names its owner.
  */
 export class GreatBuildingStore {
   private open?: Construction;
@@ -253,11 +254,15 @@ export class GreatBuildingStore {
     const owner = rows[0]?.owner;
     if (owner === undefined) return;
     const at = this.now();
-    this.enqueue(() => this.persistence.putList(this.world, rows, at));
+    const entityIds = rows.map((r) => r.entityId);
+    this.enqueue(async () => {
+      await this.persistence.putList(this.world, rows, at);
+      this.bus.emit('greatBuildings.stored', { owner, entityIds });
+    });
     const open = this.open;
     this.bus.emit('greatBuildings.listed', {
       owner,
-      entityIds: rows.map((r) => r.entityId),
+      entityIds,
       at,
       askedByGame: open?.owner === owner && at - this.shownAt < ASKED_BY_GAME,
     });
@@ -267,7 +272,10 @@ export class GreatBuildingStore {
   noteContributions(rows: GreatBuildingListRow[]): void {
     const at = this.now();
     this.listedAt = at;
-    this.enqueue(() => this.persistence.putContributions(this.world, rows, at));
+    this.enqueue(async () => {
+      await this.persistence.putContributions(this.world, rows, at);
+      this.bus.emit('greatBuildings.stored', {});
+    });
     this.bus.emit('greatBuildings.contributions', { at });
   }
 
@@ -329,9 +337,13 @@ export class GreatBuildingStore {
     });
     if (this.flushQueued) return;
     this.flushQueued = true;
-    this.enqueue(() => {
+    this.enqueue(async () => {
       this.flushQueued = false;
-      return this.persistence.put(this.pending.splice(0));
+      const rows = this.pending.splice(0);
+      await this.persistence.put(rows);
+      const written = new Map<PlayerId, Set<number>>();
+      for (const r of rows) written.set(r.owner, (written.get(r.owner) ?? new Set()).add(r.entityId));
+      for (const [owner, ids] of written) this.bus.emit('greatBuildings.stored', { owner, entityIds: [...ids] });
     });
   }
 
