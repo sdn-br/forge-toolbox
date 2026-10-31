@@ -4,7 +4,7 @@ import type { PossibleInvestment } from '../../../domain/investments';
 import { countsIgnored } from '../../../ui/ignore';
 import { type HitVm, hitSortKeys, hitVm, type OwnerShareCell, ownerShareCell, snipeNotes } from '../../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../../ui/sortable';
-import { type RowWindow, rowWindow } from '../../../ui/windowed-rows';
+import { type RowWindow, rowsIn, rowWindow } from '../../../ui/windowed-rows';
 import type { GbLookups } from '../../shared/gb-lookups';
 import {
   type CommonFilter,
@@ -91,7 +91,7 @@ export interface PossibleVm {
   sort: PossibleSort;
   /** no building of another player is known at all */
   empty: boolean;
-  /** all rows; the view draws those of `scroll` */
+  /** the rows in view, those of `scroll` */
   rows: PossibleRowVm[];
   /** which rows of `rows` are in view */
   scroll: RowWindow;
@@ -109,7 +109,7 @@ export interface PossibleInput extends GbLookups {
   now: number;
 }
 
-type Named = PossibleInvestment & RowNames;
+export type Named = PossibleInvestment & RowNames;
 
 /** undefined for a row without a hit in a column of the hit; such rows go last in either direction */
 const sortKey: Record<PossibleColumn, (r: Named) => number | string | undefined> = {
@@ -126,7 +126,17 @@ const sortKey: Record<PossibleColumn, (r: Named) => number | string | undefined>
   seen: (r) => r.building.seenAt,
 };
 
-export function possibleViewModel(input: PossibleInput): PossibleVm {
+/** the rows the filters leave, sorted, with the count: what a scroll leaves as it is */
+export interface PossibleRows {
+  /** no building of another player is known at all */
+  empty: boolean;
+  rows: Named[];
+  count: string;
+}
+
+export type PossibleRowsInput = Omit<PossibleInput, 'visible' | 'scroll' | 'now'>;
+
+export function possibleRows(input: PossibleRowsInput): PossibleRows {
   const { filter, sort } = input;
   const named: Named[] = input.candidates
     .map((c) => ({ ...c, ...rowNames(input, c.building) }))
@@ -138,10 +148,21 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
   const shown = filter.onlyHits ? visible.filter((r) => r.hit) : visible;
   sortRows(shown, sort, (column) => sortKey[column]);
   return {
-    filter,
-    sort,
     empty: input.candidates.length === 0,
-    rows: shown.map((r) => {
+    rows: shown,
+    count: t('investments.possible.count', { hits: formatNumber(hits), count: formatNumber(counted.length) }),
+  };
+}
+
+/** the view of the tab; `rows` from `possibleRows`, kept by the caller while only the scroll changes */
+export function possibleViewModel(input: PossibleInput, rows: PossibleRows = possibleRows(input)): PossibleVm {
+  const scroll = rowWindow(input.scroll ?? 0, rows.rows.length, input.visible);
+  return {
+    filter: input.filter,
+    sort: input.sort,
+    empty: rows.empty,
+    // only the rows in view are drawn, so only they get their cells
+    rows: rowsIn(rows.rows, scroll).map((r) => {
       const { building: b, hit } = r;
       return {
         ...commonRowVm(input, b, r),
@@ -151,7 +172,7 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
         age: t('investments.ago', { duration: formatAgeShort(input.now - b.seenAt) }),
       };
     }),
-    scroll: rowWindow(input.scroll ?? 0, shown.length, input.visible),
-    count: t('investments.possible.count', { hits: formatNumber(hits), count: formatNumber(counted.length) }),
+    scroll,
+    count: rows.count,
   };
 }

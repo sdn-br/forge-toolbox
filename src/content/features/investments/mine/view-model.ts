@@ -8,7 +8,7 @@ import {
 } from '../../../domain/investments';
 import { countsIgnored } from '../../../ui/ignore';
 import { type Sort, sortRows } from '../../../ui/sortable';
-import { type RowWindow, rowWindow } from '../../../ui/windowed-rows';
+import { type RowWindow, rowsIn, rowWindow } from '../../../ui/windowed-rows';
 import type { GbLookups } from '../../shared/gb-lookups';
 import {
   type CommonFilter,
@@ -86,7 +86,7 @@ export type InvestmentsVm = {
   /** "Stand: vor 5 Min." since the last town hall list, or the hint that none was seen */
   age: string;
   sort: InvestmentSort;
-  /** all rows; the view draws those of `scroll` */
+  /** the rows in view, those of `scroll` */
   rows: InvestmentRowVm[];
   /** which rows of `rows` are in view */
   scroll: RowWindow;
@@ -110,7 +110,7 @@ export interface InvestmentsInput extends GbLookups {
 
 const STATUS_ORDER: Record<InvestmentStatus, number> = { safe: 0, unsafe: 1, unknown: 2 };
 
-type Named = Investment &
+export type Named = Investment &
   RowNames & {
     /** neither the building nor its owner is ignored */
     counted: boolean;
@@ -140,7 +140,18 @@ const totalsVm = (totals: InvestmentTotals, ignored: Investment[] = []): TotalsV
   }),
 });
 
-export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
+/** the rows the filters leave, sorted, with the totals: what a scroll leaves as it is */
+export interface MineRows {
+  /** no own investment is known at all */
+  empty: boolean;
+  rows: Named[];
+  totals: TotalsVm;
+  selection?: TotalsVm;
+}
+
+export type MineRowsInput = Omit<InvestmentsInput, 'listedAt' | 'now' | 'visible' | 'scroll'>;
+
+export function mineRows(input: MineRowsInput): MineRows {
   const { sort, filter } = input;
   const all: Named[] = input.investments.rows.map((r) => {
     const names = rowNames(input, r);
@@ -156,14 +167,29 @@ export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
   // stable: equal keys keep the default order
   sortRows(named, sort, (column) => sortKey[column]);
   return {
+    empty: all.length === 0,
+    rows: named,
+    totals: totalsVm(
+      sumTotals(counted),
+      all.filter((r) => !r.counted),
+    ),
+    ...(selected.length < counted.length && { selection: totalsVm(sumTotals(selected)) }),
+  };
+}
+
+/** the view of the tab; `rows` from `mineRows`, kept by the caller while only the scroll changes */
+export function investmentsViewModel(input: InvestmentsInput, rows: MineRows = mineRows(input)): InvestmentsVm {
+  const scroll = rowWindow(input.scroll ?? 0, rows.rows.length, input.visible);
+  return {
     age:
       input.listedAt === undefined
         ? t('investments.noList')
         : t('gb.age', { duration: formatAge(input.now - input.listedAt) }),
-    sort,
-    filter,
-    empty: all.length === 0,
-    rows: named.map((r) => ({
+    sort: input.sort,
+    filter: input.filter,
+    empty: rows.empty,
+    // only the rows in view are drawn, so only they get their cells
+    rows: rowsIn(rows.rows, scroll).map((r) => ({
       ...commonRowVm(input, r, r),
       rank: r.rank,
       deposit: formatNumber(r.forgePoints),
@@ -171,11 +197,8 @@ export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
       gross: formatNumber(r.gross),
       status: r.status,
     })),
-    scroll: rowWindow(input.scroll ?? 0, named.length, input.visible),
-    totals: totalsVm(
-      sumTotals(counted),
-      all.filter((r) => !r.counted),
-    ),
-    ...(selected.length < counted.length && { selection: totalsVm(sumTotals(selected)) }),
+    scroll,
+    totals: rows.totals,
+    ...(rows.selection && { selection: rows.selection }),
   };
 }

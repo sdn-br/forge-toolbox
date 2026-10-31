@@ -195,6 +195,38 @@ describe('marked owner', () => {
   });
 });
 
+describe('rows in view', () => {
+  it('builds the cells of the rows in view only, the totals still over all', () => {
+    const urls: number[] = [];
+    const vm = investmentsViewModel({
+      visible: 1,
+      scroll: 1,
+      sort: [],
+      investments: myInvestments(
+        [building(), building({ entityId: 2 }), building({ owner: playerId(2002), entityId: 3 })],
+        90,
+      ),
+      now: 0,
+      greatBuildingName: () => undefined,
+      playerName: () => undefined,
+      playerUrl: (id) => {
+        urls.push(id);
+        return '';
+      },
+      isMarked: () => false,
+      playerMarked: () => false,
+      isIgnored: () => false,
+      ownerIgnored: () => false,
+      filter: DEFAULT_MINE_FILTER,
+      relations: () => undefined,
+    });
+    expect(vm.rows.map((r) => r.entityId)).toEqual([2]);
+    expect(vm.scroll).toEqual({ top: 1, below: 1 });
+    expect(urls).toEqual([2001]);
+    expect(vm.totals.circulating).toBe('300');
+  });
+});
+
 describe('totals line', () => {
   const vm = (profitSafe: number) =>
     investmentsViewModel({
