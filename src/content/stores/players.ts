@@ -68,6 +68,18 @@ export class PlayerStore {
     return this.players.get(id);
   }
 
+  /** whether the player carries a star; undefined for a player the store does not know */
+  marked(id: PlayerId): boolean | undefined {
+    const p = this.players.get(id);
+    return p && p.marked === true;
+  }
+
+  /** whether the player is ignored; undefined for a player the store does not know */
+  ignored(id: PlayerId): boolean | undefined {
+    const p = this.players.get(id);
+    return p && p.ignored === true;
+  }
+
   list(filter: { relation?: keyof Relations } = {}): Player[] {
     const all = [...this.players.values()];
     return filter.relation ? all.filter((p) => p.relations[filter.relation as keyof Relations]) : all;

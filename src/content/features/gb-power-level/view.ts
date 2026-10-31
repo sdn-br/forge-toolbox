@@ -1,7 +1,7 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import { iconButton } from '../../ui/buttons';
-import { estimateCell } from '../../ui/estimate-cell';
+import { emptyCell, estimateCell } from '../../ui/estimate-cell';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
 import { headerIcons } from '../../ui/icons';
 import { keepKeys } from '../../ui/inputs';
@@ -99,12 +99,12 @@ function table(vm: TableVm, actions: PowerLevelActions, copied?: string) {
 
 /** a payment from a computed reward stands italic with „≈“, as in the Eigenanteil box */
 function payCell(p: PayCell | undefined) {
-  if (!p) return html`<td class="num">–</td>`;
+  if (!p) return emptyCell;
   return estimateCell(number(p.fp), p.estimate);
 }
 
 function harvestCell(r: PowerRow): TemplateResult {
-  if (!r.harvest) return html`<td class="num">–</td>`;
+  if (!r.harvest) return emptyCell;
   return estimateCell(number(r.harvest.fp), r.harvest.estimate, [], t('gbPower.harvestEstimate'));
 }
 

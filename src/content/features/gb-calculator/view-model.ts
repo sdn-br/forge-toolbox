@@ -1,5 +1,5 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
-import { formatNumber, t } from '../../core/texts';
+import { signed, t } from '../../core/texts';
 import { type Activity, playerActivity } from '../../domain/activity';
 import {
   type ConstructionCalc,
@@ -13,21 +13,29 @@ import { previewLevel } from '../../domain/gb-level-preview';
 import { ownerRow } from '../../domain/gb-snipe';
 import { type LevelUpAndFirst, levelUpAndFirst } from '../../domain/gb-strategy';
 import type { GreatBuildingDef } from '../../model/catalog';
-import type { Construction, RankingRow } from '../../model/great-building';
+import type { Construction } from '../../model/great-building';
 import type { FoestatsRecord } from '../../stores/foestats';
 import { type FactorButton, factorButtons } from '../../ui/factor-bar';
 import { ignoreWords } from '../../ui/ignore';
 import { type LevelChoice, levelChoice } from '../../ui/level-bar';
 
-export interface GbHeader {
+/** the owner line: the name with the foestats page, the star and the eye only for a player the store knows */
+export interface OwnerVm {
+  owner: string;
+  /** the owner's page at foestats */
+  ownerUrl: string;
+  /** the player put a star on the owner; missing when the player store does not know the owner */
+  ownerMarked?: boolean;
+  /** the player ignores the owner; missing when the player store does not know the owner */
+  ownerIgnored?: boolean;
+}
+
+export interface GbHeader extends OwnerVm {
   name: string;
   level: number;
   next: number;
   /** the highest level the owner has unlocked */
   maxLevel: number;
-  owner: string;
-  /** the owner's page at foestats */
-  ownerUrl: string;
   /** how active the owner is by foestats; missing while foestats is off or not asked yet */
   activity?: ActivityVm;
   /** Forge points of the bar plus those in packages, which the game opens when contributing; undefined while neither
@@ -41,12 +49,8 @@ export interface GbHeader {
   levels: LevelChoice;
   /** the player put a star on the building */
   marked: boolean;
-  /** the player put a star on the owner; missing when the player store does not know the owner */
-  ownerMarked?: boolean;
   /** the player ignores the building */
   ignored: boolean;
-  /** the player ignores the owner; missing when the player store does not know the owner */
-  ownerIgnored?: boolean;
   /** why the building counts as ignored, one word per reason; missing when it does not */
   ignoreWords?: string[];
 }
@@ -97,11 +101,6 @@ export interface PlaceRow {
   rate?: number;
   /** the own row only: the own deposit in percent of the reward, what the place costs if nobody passes */
   depositRate?: number;
-  /** missing in the preview, a future level does not tell them */
-  blueprints?: number;
-  medals?: number;
-  /** the reward is computed, not game data */
-  estimate?: boolean;
   status: PlaceStatus;
 }
 
@@ -141,7 +140,7 @@ export interface MeVm {
 
 export type GbCalculatorVm =
   | { kind: 'none' }
-  | { kind: 'noEntity'; owner: string; ownerUrl: string; ownerMarked?: boolean; ownerIgnored?: boolean }
+  | ({ kind: 'noEntity' } & OwnerVm)
   | {
       kind: 'past';
       header: GbHeader;
@@ -183,12 +182,11 @@ export type GbCalculatorVm =
       profitable: boolean;
     };
 
-export interface GbCalculatorInput {
-  /** the foreign construction to show */
-  construction?: Construction;
+/** what the calculator and the snipe list look up about buildings and players */
+export interface GbLookups {
   greatBuildingName(def: BuildingDefId): string | undefined;
-  /** the owner's name when the rankings do not tell it */
-  playerName(id: Construction['owner']): string | undefined;
+  /** the owner's name when the rankings or the list do not tell it */
+  playerName(id: PlayerId): string | undefined;
   /** a player's page at foestats */
   playerUrl(id: PlayerId): string;
   isMarked(owner: PlayerId, entityId: number): boolean;
@@ -197,6 +195,15 @@ export interface GbCalculatorInput {
   isIgnored(owner: PlayerId, entityId: number): boolean;
   /** whether the owner is ignored; undefined for a player the store does not know */
   ownerIgnored(id: PlayerId): boolean | undefined;
+  /** the owner's days at foestats; undefined while foestats is off or was not asked yet */
+  foestats(id: PlayerId): FoestatsRecord | undefined;
+  /** the current foestats day, `YYYY-MM-DD` */
+  today: string;
+}
+
+export interface GbCalculatorInput extends GbLookups {
+  /** the foreign construction to show */
+  construction?: Construction;
   /** Forge points of the bar; undefined while the resources are not known */
   fpBar?: number;
   /** Forge points in the packages of the inventory; undefined while the inventory is not known */
@@ -207,17 +214,11 @@ export interface GbCalculatorInput {
   factorButtons: number[];
   /** the own Arc bonus shows as one more button */
   arcButton: boolean;
-  /** the owner's days at foestats; undefined while foestats is off or was not asked yet */
-  foestats?: FoestatsRecord;
-  /** the current foestats day, `YYYY-MM-DD` */
-  today: string;
   /** the level chosen for the preview; undefined shows the current construction */
   previewLevel?: number;
   /** era and level costs of the building; undefined while its definition is not loaded */
   greatBuilding(def: BuildingDefId): GreatBuildingDef | undefined;
 }
-
-const signed = (n: number) => `${n > 0 ? '+' : ''}${formatNumber(n)}`;
 
 function activityText(a: Activity): string {
   if (a.daysAgo === 0) return t('foestats.activeToday');
@@ -252,8 +253,22 @@ export function activityVm(record: FoestatsRecord | undefined, today: string): A
   };
 }
 
-const ownerName = (c: Construction, rows: RankingRow[], playerName: GbCalculatorInput['playerName']) =>
-  rows.find((r) => r.rank === undefined && r.player === c.owner)?.name ?? playerName(c.owner) ?? String(c.owner);
+export const ownerVm = (lookups: GbLookups, id: PlayerId, owner: string): OwnerVm => {
+  const ownerMarked = lookups.playerMarked(id);
+  const ownerIgnored = lookups.ownerIgnored(id);
+  return {
+    owner,
+    ownerUrl: lookups.playerUrl(id),
+    ...(ownerMarked !== undefined && { ownerMarked }),
+    ...(ownerIgnored !== undefined && { ownerIgnored }),
+  };
+};
+
+/** a price only where the place can be had, or for the own place while it is not safe */
+const priced = (p: PlaceCalc) => p.available || (p.mine && !p.secured);
+
+/** the place pays more than it costs */
+export const profitable = (p: { status: PlaceStatus; profit?: number }) => p.status === 'profit' && (p.profit ?? 0) > 0;
 
 /** no cell where nothing can be paid */
 const cell = (cost: number | undefined, extra: number | undefined, available?: number): CostCell | undefined =>
@@ -273,29 +288,23 @@ function demandCell(p: PlaceCalc, rest: number, available?: number): DemandCell 
 }
 
 function placeRow(p: PlaceCalc, rest: number, available?: number): PlaceRow {
-  // a price only where the place can be had, or for the own place while it is not safe
-  const priced = p.available || (p.mine && !p.secured);
   return {
     rank: p.rank,
     ...(p.holder !== undefined && { holder: { name: p.holder, fp: p.holderFp } }),
-    safe: priced ? cell(p.safeCost, p.safeExtra, available) : undefined,
+    safe: priced(p) ? cell(p.safeCost, p.safeExtra, available) : undefined,
     secured: p.secured,
     demand: demandCell(p, rest, available),
     gross: p.gross,
     profit: p.available || p.mine ? p.profit : undefined,
-    rate: priced ? p.rate : undefined,
+    rate: priced(p) ? p.rate : undefined,
     ...(p.depositRate !== undefined && { depositRate: p.depositRate }),
-    blueprints: p.blueprints,
-    medals: p.medals,
     status: p.status,
   };
 }
 
 function meVm(calc: ConstructionCalc): MeVm {
   const own = calc.places.find((p) => p.mine);
-  const open = calc.places.filter(
-    (p) => (p.available || (p.mine && !p.secured)) && (calc.myRank === undefined || p.rank <= calc.myRank),
-  );
+  const open = calc.places.filter((p) => priced(p) && (calc.myRank === undefined || p.rank <= calc.myRank));
   const worthwhile = open.filter((p) => p.worthwhile);
   const best = worthwhile.reduce<PlaceCalc | undefined>(
     (b, p) => (b && (b.profit ?? 0) >= (p.profit ?? 0) ? b : p),
@@ -333,29 +342,20 @@ function previewVm(
     ...base,
     required: p.required,
     estimate: reward.estimate,
-    places: calc.places.map((place) => {
-      const { blueprints: _b, medals: _m, ...row } = placeRow(place, calc.rest);
-      return { ...row, ...(reward.estimate && { estimate: true }) };
-    }),
+    places: calc.places.map((place) => placeRow(place, calc.rest)),
   };
 }
 
 export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm {
   const c = input.construction;
   if (!c) return { kind: 'none' };
-  const owner = ownerName(c, c.rankings, input.playerName);
-  const ownerUrl = input.playerUrl(c.owner);
+  const owner = ownerVm(
+    input,
+    c.owner,
+    ownerRow(c.rankings, c.owner)?.name ?? input.playerName(c.owner) ?? String(c.owner),
+  );
   const entity = c.entity;
-  const ownerMarked = input.playerMarked(c.owner);
-  const ownerIgnored = input.ownerIgnored(c.owner);
-  if (!entity)
-    return {
-      kind: 'noEntity',
-      owner,
-      ownerUrl,
-      ...(ownerMarked !== undefined && { ownerMarked }),
-      ...(ownerIgnored !== undefined && { ownerIgnored }),
-    };
+  if (!entity) return { kind: 'noEntity', ...owner };
   // the preview starts where the live construction ends; a level up can overtake a chosen level
   const levels = levelChoice(entity.level, input.previewLevel);
   const preview = levels.preview ? levels.chosen : undefined;
@@ -364,24 +364,22 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
       ? undefined
       : (input.fpBar ?? 0) + (input.fpPackages ?? 0);
   const ignored = input.isIgnored(c.owner, c.entityId);
-  const words = ignoreWords(ignored, ownerIgnored);
+  const foestats = input.foestats(c.owner);
+  const words = ignoreWords(ignored, owner.ownerIgnored);
   const header: GbHeader = {
     name: input.greatBuildingName(entity.def) ?? entity.def,
     level: entity.level,
     next: entity.level + 1,
     maxLevel: entity.maxLevel,
-    owner,
-    ownerUrl,
-    ...(input.foestats && { activity: activityVm(input.foestats, input.today) }),
+    ...owner,
+    ...(foestats && { activity: activityVm(foestats, input.today) }),
     availableFp,
     fpBar: input.fpBar,
     fpPackages: input.fpPackages,
     arcBonus: input.arcBonus,
     levels,
     marked: input.isMarked(c.owner, c.entityId),
-    ...(ownerMarked !== undefined && { ownerMarked }),
     ignored,
-    ...(ownerIgnored !== undefined && { ownerIgnored }),
     ...(words.length > 0 && { ignoreWords: words }),
   };
   const arcButton = input.arcButton ? input.arcBonus : undefined;
@@ -389,14 +387,15 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
   const buttons = factorButtons(input.factorButtons, arcButton, input.factor);
   const live = constructionOf(entity, c.rankings, { arcBonus: input.arcBonus, factor: effectiveFactor });
   const calc = calculateConstruction(live);
-  const levelUp = c.past || c.leveled ? undefined : levelUpAndFirst(live, calc, input.greatBuilding(entity.def));
+  const gb = input.greatBuilding(entity.def);
+  const levelUp = c.past || c.leveled ? undefined : levelUpAndFirst(live, calc, gb);
   if (preview !== undefined) {
     return {
       kind: 'preview',
       header,
       factorButtons: buttons,
       effectiveFactor,
-      preview: previewVm(input.greatBuilding(entity.def), preview, entity.maxLevel, input.arcBonus, effectiveFactor),
+      preview: previewVm(gb, preview, entity.maxLevel, input.arcBonus, effectiveFactor),
       ...(levelUp && preview === levelUp.nextLevel && { levelUp }),
     };
   }
@@ -430,6 +429,6 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     invested: entity.invested,
     required: entity.required,
     ...(ownerFp && { ownerFp }),
-    profitable: !calc.blocked && !c.leveled && places.some((p) => p.status === 'profit' && (p.profit ?? 0) > 0),
+    profitable: !calc.blocked && !c.leveled && places.some(profitable),
   };
 }

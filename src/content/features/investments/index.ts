@@ -126,13 +126,9 @@ export const investmentsFeature: Feature = {
       ctx.ui.savePref(TAB, next);
     };
     const mark = (owner: PlayerId, entityId: number, marked: boolean) =>
-      ctx.greatBuildings
-        .mark(owner, entityId, marked)
-        .catch((error) => logError('marking a great building failed', error));
+      ctx.greatBuildings.setMarked(owner, entityId, marked);
     const ignore = (owner: PlayerId, entityId: number, ignored: boolean) =>
-      ctx.greatBuildings
-        .ignore(owner, entityId, ignored)
-        .catch((error) => logError('ignoring a great building failed', error));
+      ctx.greatBuildings.setIgnored(owner, entityId, ignored);
     const ignorePlayer = (owner: PlayerId, ignored: boolean) => {
       ctx.players.setIgnored(owner, ignored);
     };
@@ -182,11 +178,7 @@ export const investmentsFeature: Feature = {
     };
     const playerName = (id: PlayerId) => ctx.players.get(id)?.name ?? ownerNames.get(id);
     const playerUrl = (id: PlayerId) => foestatsPlayerUrl(ctx.world, id);
-    /** whether the player ignores the owner; undefined for an owner the player store does not know */
-    const ownerIgnored = (id: PlayerId) => {
-      const player = ctx.players.get(id);
-      return player && player.ignored === true;
-    };
+    const ownerIgnored = (id: PlayerId) => ctx.players.ignored(id);
     const ownArc = () => ctx.playerBonuses.arcBonus();
 
     const possible = () => {
@@ -220,7 +212,7 @@ export const investmentsFeature: Feature = {
           playerName,
           relations: (id) => ctx.players.get(id)?.relations,
           isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
-          ownerMarked: (id) => ctx.players.get(id)?.marked === true,
+          ownerMarked: (id) => ctx.players.marked(id) === true,
           isIgnored: (owner, entityId) => ctx.greatBuildings.isIgnored(owner, entityId),
           ownerIgnored,
           playerUrl,
@@ -239,7 +231,7 @@ export const investmentsFeature: Feature = {
         playerName,
         playerUrl,
         isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
-        ownerMarked: (id) => ctx.players.get(id)?.marked === true,
+        ownerMarked: (id) => ctx.players.marked(id) === true,
         isIgnored: (owner, entityId) => ctx.greatBuildings.isIgnored(owner, entityId),
         ownerIgnored,
         filter: mineFilter,

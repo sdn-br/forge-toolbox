@@ -13,3 +13,6 @@ export const estimateCell = (
   html`<td class=${estimate ? 'num estimate' : 'num'} data-tip=${[...lines, estimate ? tip : undefined]
     .filter((line) => line !== undefined)
     .join('\n')}>${estimate ? '≈ ' : ''}${content}</td>`;
+
+/** stands where a number cell has nothing to show */
+export const emptyCell = html`<td class="num">–</td>`;

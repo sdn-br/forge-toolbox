@@ -1,7 +1,7 @@
 import { html } from 'lit-html';
 import { BACKUP_SETTING } from '../../backup/backup-copy';
 import type { FeatureContext } from '../../core/feature';
-import { logError } from '../../core/log';
+import { saveSetting } from '../../core/settings';
 import type { SettingsControl } from '../../core/settings-controls';
 import { t } from '../../core/texts';
 
@@ -17,7 +17,7 @@ export function backupSettingsControl(ctx: FeatureContext): SettingsControl {
     asking = value;
     ctx.settingsControls.update();
   };
-  const save = (value: boolean) => setting.set(value).catch((error) => logError('saving settings failed', error));
+  const save = (value: boolean) => saveSetting(setting, value);
   const change = (e: Event) => {
     const input = e.target as HTMLInputElement;
     if (input.checked) {

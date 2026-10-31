@@ -97,6 +97,16 @@ export class GreatBuildingStore {
     });
   }
 
+  /** `mark` for a click: nobody waits for it, a failure goes to the log */
+  setMarked(owner: PlayerId, entityId: number, marked: boolean): void {
+    this.mark(owner, entityId, marked).catch((error) => logError('marking a great building failed', error));
+  }
+
+  /** `ignore` for a click: nobody waits for it, a failure goes to the log */
+  setIgnored(owner: PlayerId, entityId: number, ignored: boolean): void {
+    this.ignore(owner, entityId, ignored).catch((error) => logError('ignoring a great building failed', error));
+  }
+
   private setFlag(
     kind: MarkKind,
     owner: PlayerId,

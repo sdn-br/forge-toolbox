@@ -2,7 +2,7 @@ import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import type { OwnPlace } from '../../domain/gb-own-share';
 import { iconButton } from '../../ui/buttons';
-import { estimateCell } from '../../ui/estimate-cell';
+import { emptyCell, estimateCell } from '../../ui/estimate-cell';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
 import { headerIcons } from '../../ui/icons';
 import { keepKeys } from '../../ui/inputs';
@@ -101,8 +101,6 @@ const previewHeading = (p: OwnPreviewVm) =>
 const previewCost = (p: OwnPreviewVm) =>
   p.required === undefined ? '' : html`<p>${t('gbCalc.previewCost', { fp: formatNumber(p.required) })}</p>`;
 
-const NONE = html`<td class="num">–</td>`;
-
 /**
  * The columns with their fixed widths in em, so the box keeps its size whatever the cells hold; a column that has
  * nothing to show stays and is left empty. Numbers fit six digits with separators; Zahlen also holds `(=total)`,
@@ -134,13 +132,13 @@ function ownRow(r: Extract<OwnRow, { kind: 'own' }>, cell: Cell, i: number) {
   const pay =
     r.fp > 0
       ? html`<td class="num own-fp">${cell(r.fp, `own${i}`)} <span class="muted">(=${formatNumber(r.total)})</span></td>`
-      : NONE;
-  return html`<tr class="own-row"><td colspan=${LABEL_SPAN}>${t('gbOwn.ownFp')}</td>${pay}${r.paid > 0 ? fp(r.paid) : NONE}<td></td><td></td><td></td></tr>`;
+      : emptyCell;
+  return html`<tr class="own-row"><td colspan=${LABEL_SPAN}>${t('gbOwn.ownFp')}</td>${pay}${r.paid > 0 ? fp(r.paid) : emptyCell}<td></td><td></td><td></td></tr>`;
 }
 
 function pushedRow(r: Extract<OwnRow, { kind: 'pushed' }>) {
   const ranks = r.from === r.to ? `#${r.from}` : `#${r.from}-${r.to}`;
-  return html`<tr class="gb-unavailable"><td colspan=${LABEL_SPAN} data-tip=${t('gbOwn.pushedHint')}>${ranks}</td>${NONE}${fp(r.fp)}<td></td><td></td><td></td></tr>`;
+  return html`<tr class="gb-unavailable"><td colspan=${LABEL_SPAN} data-tip=${t('gbOwn.pushedHint')}>${ranks}</td>${emptyCell}${fp(r.fp)}<td></td><td></td><td></td></tr>`;
 }
 
 /** an icon with its words in the tooltip and as its name; the avatar of the player takes this place later */
@@ -155,8 +153,9 @@ function placeRow(r: Extract<OwnRow, { kind: 'place' }>, cell: Cell, actions: Ow
       ? marker(headerIcons.person, p.holder.name)
       : '';
   // a payment from a computed reward stands italic with „≈“, as the reward in the LG-Rechner
-  const pay = p.holder || p.full || p.unoffered ? NONE : estimateCell(cell(p.amount, `place${p.rank}`), r.estimate);
-  const done = p.holder ? fp(p.holder.fp, p.holder.ext ? 'num muted' : 'num') : NONE;
+  const pay =
+    p.holder || p.full || p.unoffered ? emptyCell : estimateCell(cell(p.amount, `place${p.rank}`), r.estimate);
+  const done = p.holder ? fp(p.holder.fp, p.holder.ext ? 'num muted' : 'num') : emptyCell;
   const typed = (e: Event) => {
     const value = (e.target as HTMLInputElement).valueAsNumber;
     actions.setExt(p.rank, Number.isFinite(value) && value > 0 ? Math.round(value) : 0);
@@ -182,7 +181,7 @@ const factorCell = (r: Extract<OwnRow, { kind: 'place' }>, actions: OwnShareActi
 
 /** a holder who keeps the place: his deposit against the payment at the factor, + paid more, − paid less */
 function diffCell(p: OwnPlace) {
-  if (!p.holder) return NONE;
+  if (!p.holder) return emptyCell;
   const diff = p.holder.fp - p.ask;
   const tip = t('gbOwn.diffTip', { paid: formatNumber(p.holder.fp), ask: formatNumber(p.ask) });
   const cls = diff > 0 ? 'num gain' : diff < 0 ? 'num short' : 'num';

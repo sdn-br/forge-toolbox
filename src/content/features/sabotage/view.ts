@@ -1,16 +1,14 @@
 import { html, type TemplateResult } from 'lit-html';
-import { formatNumber, t } from '../../core/texts';
+import { formatNumber, formatPercent, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { battleDetailsView } from '../../ui/battle-details';
 import { externalLink } from '../../ui/links';
 import { starButton } from '../../ui/star';
 import type { PlunderItem, SabotageVm } from './view-model';
 
-const percent = (n: number) => `${formatNumber(n)} %`;
-
 const armyCells = (army: ArmyValues | undefined) =>
   army
-    ? html`<td class="num">${percent(army.attack)}</td><td class="num">${percent(army.defense)}</td>`
+    ? html`<td class="num">${formatPercent(army.attack)}</td><td class="num">${formatPercent(army.defense)}</td>`
     : html`<td></td><td></td>`;
 
 function armyTable(army: NonNullable<SabotageVm['army']>, repel: number, measured: SabotageVm['measured']) {
@@ -26,7 +24,7 @@ function armyTable(army: NonNullable<SabotageVm['army']>, repel: number, measure
     <tr><th></th>${heads}${measured ? heads : ''}</tr>
     <tr><td>${t('sabotage.attacker')}</td>${armyCells(army.attacker)}${measured ? armyCells(undefined) : ''}</tr>
     <tr><td>${t('sabotage.defender')}</td>${armyCells(army.defender)}${measured ? armyCells(measured.defender) : ''}</tr>
-    <tr><td>${t('sabotage.plunderRepel')}</td><td class="num" colspan="2">${percent(repel)}</td></tr>
+    <tr><td>${t('sabotage.plunderRepel')}</td><td class="num" colspan="2">${formatPercent(repel)}</td></tr>
   </table>
   ${measured ? html`<p class="muted">${t('sabotage.measuredHint')}</p>` : ''}`;
 }

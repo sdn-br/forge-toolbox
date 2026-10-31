@@ -10,7 +10,7 @@ import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { starButton } from '../../ui/star';
 import { rowsIn, windowedRows } from '../../ui/windowed-rows';
 import type { SnipeColumn, SnipeRowVm, SnipeVm } from './snipe-view-model';
-import { activityLine, owner } from './view';
+import { activityLine, ownerOf } from './view';
 
 export interface SnipeActions {
   sort(column: SnipeColumn, append: boolean): void;
@@ -41,7 +41,7 @@ const columns: SortColumn<SnipeColumn>[] = [
   { column: 'rank', label: 'gb.col.rank', num: true },
   { column: 'cost', label: 'gb.col.cost', num: true },
   { column: 'profit', label: 'gb.col.profit', num: true, icon: headerIcons.profit },
-  { column: 'tier', label: 'gb.col.tier', num: false, icon: headerIcons.info },
+  { column: 'tier', label: 'gb.col.tier', num: false, icon: headerIcons.info, cls: 'tier-head' },
 ];
 
 const row = (r: SnipeRowVm, actions: SnipeActions) =>
@@ -106,12 +106,21 @@ const notices = (vm: Extract<SnipeVm, { kind: 'list' }>, actions: SnipeActions) 
 
 /** The section "Mögliche Einzahlungen" above the calculator; nothing without a list, since there is nothing to fold.
  * While the calculator shows no building the section is the only part with content: it stays open, without fold line. */
-export function snipeView(vm: SnipeVm, actions: SnipeActions, expanded: boolean, foldable = true): TemplateResult | '' {
+export function snipeView(
+  vm: SnipeVm,
+  actions: SnipeActions,
+  expanded: boolean,
+  foldable: boolean,
+): TemplateResult | '' {
   if (vm.kind === 'none') return '';
   if (foldable && !expanded) return html`${toggle(false, summary(vm), actions)}<hr class="snipe-sep" />`;
   const heading = html`<span class="gb-title">${t('snipe.heading')}</span>`;
   return html`${foldable ? toggle(true, heading, actions) : html`<p class="snipe-head">${heading}</p>`}
-    <p>${owner(vm.owner, vm.ownerUrl, vm.ownerMarked === undefined ? undefined : { marked: vm.ownerMarked, toggle: (marked) => actions.markPlayer(vm.ownerId, marked) }, vm.ownerIgnored === undefined ? undefined : { ignored: vm.ownerIgnored, toggle: (ignored) => actions.ignorePlayer(vm.ownerId, ignored) })}${vm.activity ? activityLine(vm.activity) : ''}
+    <p>${ownerOf(
+      vm,
+      (marked) => actions.markPlayer(vm.ownerId, marked),
+      (ignored) => actions.ignorePlayer(vm.ownerId, ignored),
+    )}${vm.activity ? activityLine(vm.activity) : ''}
     <br /><span class="muted">${t('gb.age', { duration: formatAge(Date.now() - vm.at) })}</span></p>
     ${vm.rows.length === 0 ? html`<p class="muted">${t('snipe.noHit')}</p>` : table(vm, actions)}
     ${notices(vm, actions)}<hr class="snipe-sep" />`;

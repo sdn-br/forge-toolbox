@@ -1,6 +1,7 @@
 import type { TemplateResult } from 'lit-html';
 import { clamp } from '../../shared/math';
 import type { KeyValue } from './kv';
+import { logError } from './log';
 import type { TextKey } from './texts';
 
 interface BaseSettingDef {
@@ -72,6 +73,11 @@ export interface Setting<T> {
   set(value: T): Promise<void>;
   onChange(listener: () => void): () => void;
 }
+
+/** saves a value from a click or an input; nobody waits for it, a failure goes to the log */
+export const saveSetting = <T>(setting: Setting<T>, value: T): void => {
+  setting.set(value).catch((error) => logError('saving settings failed', error));
+};
 
 /** `value` rounded to a multiple of `step`, without the float tail of 955 × 0.1 */
 export function toStep(value: number, step = 1): number {
