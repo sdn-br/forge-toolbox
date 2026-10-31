@@ -106,7 +106,7 @@ const house = (id: number, owner: number, def: string, x: number, resources?: Re
   id,
   owner: playerId(owner),
   def: buildingDefId(def),
-  type: 'residential',
+  category: 'residential',
   x,
   y: 0,
   connected: true,
@@ -304,7 +304,7 @@ describe('sabotage feature', () => {
     it('sets no arrow for a building without a place on the grid', async () => {
       const { ctx, marker, row } = markSetup();
       const city = coinsAndPoints(1);
-      const ship = { ...house(5, 1, 'Coins', 0, { money: 900 }), type: 'off_grid' };
+      const ship = { ...house(5, 1, 'Coins', 0, { money: 900 }), offGrid: true };
       ctx.cities.setVisited({ ...city, buildings: new Map([[5, ship]]) });
       await tick();
       row('Münzhaus').click();

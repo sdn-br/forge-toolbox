@@ -1,6 +1,7 @@
 // Statistics of a city: buildings by group, street efficiency. Pure, so synthetic cities test it.
 
-import { type BuildingCategory, buildingCategory, CATEGORIES, type Footprint } from './city-grid';
+import { type BuildingCategory, CATEGORIES } from '../model/city';
+import type { Footprint } from './city-grid';
 
 export interface TypeStat {
   category: BuildingCategory;
@@ -15,7 +16,7 @@ export interface TypeStat {
 export function typeStats(fps: Footprint[]): { total: number; types: TypeStat[] } {
   const by = new Map<BuildingCategory, { count: number; tiles: number }>();
   for (const f of fps) {
-    const c = buildingCategory(f.building.type);
+    const c = f.building.category;
     const s = by.get(c) ?? { count: 0, tiles: 0 };
     s.count++;
     s.tiles += f.width * f.length;
@@ -58,7 +59,7 @@ export function streetEfficiency(fps: Footprint[]): StreetEfficiency | undefined
   let known = false;
   let partial = false;
   for (const f of fps) {
-    if (buildingCategory(f.building.type) === 'street') {
+    if (f.building.category === 'street') {
       placed += f.width * f.length;
       continue;
     }

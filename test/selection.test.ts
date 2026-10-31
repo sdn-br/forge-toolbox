@@ -14,16 +14,17 @@ const def = (id: string, name: string, width: number, length: number) =>
   ({ id: buildingDefId(id), name, size: { width, length } }) as BuildingDef;
 const defs = new Map([def('House', 'Domizil', 2, 2), def('Dome', 'Aachener Dom', 3, 4)].map((d) => [d.id, d]));
 
-const building = (id: number, d: string, x: number, type = 'residential') =>
+const building = (id: number, d: string, x: number, change: Partial<Building> = {}) =>
   ({
     id,
     owner: playerId(1),
     def: buildingDefId(d),
-    type,
+    category: 'residential',
     x,
     y: 0,
     connected: true,
     state: { kind: 'idle' },
+    ...change,
   }) as Building;
 
 const city = (buildings: Building[]): City => ({
@@ -40,8 +41,8 @@ const town = [
   building(1, 'House', 0),
   building(2, 'House', 2),
   building(3, 'House', 4),
-  building(4, 'Dome', 6, 'culture'),
-  building(5, 'House', 0, 'off_grid'),
+  building(4, 'Dome', 6, { category: 'culture' }),
+  building(5, 'House', 0, { offGrid: true }),
 ];
 
 function setup(buildings = town) {

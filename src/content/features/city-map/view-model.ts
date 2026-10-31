@@ -1,6 +1,6 @@
 // The own city as a map: colors by building group, switchable marks, name search and free tiles.
 import { t } from '../../core/texts';
-import { buildingCategory, keyTile, nameOf, needsRoad } from '../../domain/city-grid';
+import { keyTile, nameOf, needsRoad } from '../../domain/city-grid';
 import type { Building, City } from '../../model/city';
 import type { CityMapData, LegendItem, MapBadge, MapTile } from '../../ui/city-map';
 import type { CityBasis } from './basis';
@@ -62,7 +62,7 @@ export function ownCityMapViewModel(
   const tiles: MapTile[] = fps.map((f) => {
     const b = f.building;
     const name = nameOf(f);
-    const category = buildingCategory(b.type);
+    const category = b.category;
     const finished = isFinished(b, now);
     const unconnected = needsRoad(b);
     const lines = [name];

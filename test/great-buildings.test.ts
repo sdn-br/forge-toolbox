@@ -99,7 +99,7 @@ describe('great building handlers and store', () => {
     expect(stored?.rankings).toEqual(c?.rankings);
   });
 
-  it('keeps the production of the next level from the construction with the level it was opened at', () => {
+  it('keeps the Forge points of the next level from the construction with the level it was opened at', () => {
     const { greatBuildings, send } = setup();
     const o = fixture.openings.find((x) => x.entity.requestData[0] === 1909);
     if (!o) throw new Error('no opening 1909');
@@ -111,7 +111,14 @@ describe('great building handlers and store', () => {
         next_production_bonus: { type: 'strategy_points', value: 31, amount: -1 },
       },
     } as Entry);
-    expect(greatBuildings.current()?.nextProduction).toEqual({ level: 75, type: 'strategy_points', value: 31 });
+    expect(greatBuildings.current()?.nextProduction).toEqual({ level: 75, fp: 31 });
+    // another production keeps the level, without Forge points
+    send(o.entity as Entry);
+    send({
+      ...o.construction,
+      responseData: { ...o.construction.responseData, next_production_bonus: { type: 'money', value: 900 } },
+    } as Entry);
+    expect(greatBuildings.current()?.nextProduction).toEqual({ level: 75 });
     // a construction without it, or one that cannot be placed on a building, keeps none
     send(o.entity as Entry);
     send(o.construction as Entry);

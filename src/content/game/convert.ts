@@ -23,7 +23,16 @@ import type {
 } from '../../shared/model';
 import type { LimitedBonus } from '../model/bonus';
 import type { CityGrid } from '../model/catalog';
-import type { Area, Building, BuildingState, City, ExpansionOffer, Product } from '../model/city';
+import type {
+  Area,
+  Building,
+  BuildingCategory,
+  BuildingState,
+  City,
+  ExpansionKind,
+  ExpansionOffer,
+  Product,
+} from '../model/city';
 import type { GreatBuildingEntity, PlaceReward, RankingRow } from '../model/great-building';
 import type { ResearchExpansion } from '../model/research';
 import type { VisitInfo } from '../stores/cities';
@@ -125,13 +134,34 @@ function toState(s: GameState | undefined): BuildingState {
   }
 }
 
+/** Groups by the game type of the entity; types the toolbox does not know are `other`. */
+const CATEGORY_OF: Record<string, BuildingCategory> = {
+  residential: 'residential',
+  production: 'production',
+  goods: 'goods',
+  culture: 'culture',
+  decoration: 'culture',
+  military: 'military',
+  greatbuilding: 'greatBuilding',
+  street: 'street',
+  generic_building: 'special',
+  random_production: 'special',
+  tower: 'special',
+  clan_power_production: 'special',
+};
+
+// Entities the game lists with the city but places beside the grid (seen in the own city, 2026-10-19). The hubs are the
+// Arctic Harbour and the Ocean Terminal with their parts (seen 2026-10-29).
+const OFF_GRID = new Set(['off_grid', 'outpost_ship', 'friends_tavern', 'hub_main', 'hub_part']);
+
 export function toBuilding(e: GameCityEntity, owner: PlayerId): Building | null {
   if (typeof e.id !== 'number' || !e.cityentity_id) return null;
   const building: Building = {
     id: e.id,
     owner: typeof e.player_id === 'number' ? playerId(e.player_id) : owner,
     def: buildingDefId(e.cityentity_id),
-    type: e.type ?? 'unknown',
+    category: CATEGORY_OF[e.type ?? ''] ?? 'other',
+    ...(OFF_GRID.has(e.type ?? '') && { offGrid: true }),
     x: e.x ?? 0,
     y: e.y ?? 0,
     level: e.level,
@@ -197,12 +227,24 @@ const numbers = (v: unknown): Record<string, number> => {
   return out;
 };
 
+/**
+ * Expansion kinds by the game type of a tileset: `tileset_premium` (diamonds), `tileset_reward` (coins or diamonds, yet
+ * only won as a reward), `raidMedals` (medals of the Quantum Incursions).
+ */
+const EXPANSION_KIND: Record<string, ExpansionKind> = {
+  tileset_premium: 'diamonds',
+  tileset_reward: 'reward',
+  raidMedals: 'quantum',
+};
+
 function toExpansionOffers(tilesets: GameTileset[]): ExpansionOffer[] {
-  return tilesets.flatMap((t) => {
+  return tilesets.flatMap((t): ExpansionOffer[] => {
     if (typeof t?.type !== 'string') return [];
     const cost = numbers((t.requirements?.cost ?? t.cost)?.resources);
     const minEra = t.requirements?.min_era;
-    return [{ kind: t.type, ...(minEra && { minEra: eraId(minEra) }), cost }];
+    const era = minEra ? { minEra: eraId(minEra) } : {};
+    const kind = Object.hasOwn(EXPANSION_KIND, t.type) ? EXPANSION_KIND[t.type] : undefined;
+    return [kind ? { kind, ...era, cost } : { kind: 'unknown', gameType: t.type, ...era, cost }];
   });
 }
 
@@ -536,11 +578,15 @@ export function toRankingRows(data: unknown): RankingRow[] | null {
   });
 }
 
-/** The production of the next level from `getConstruction`; undefined when the answer has none. */
-export function toNextProduction(data: GameGreatBuildingConstruction | null | undefined) {
+/**
+ * The production of the next level from `getConstruction` (`next_production_bonus`); undefined when the answer has
+ * none. Forge points only when the game names strategy points.
+ */
+export function toNextProduction(data: GameGreatBuildingConstruction | null | undefined): { fp?: number } | undefined {
   const bonus = data?.next_production_bonus;
   const value = num(bonus?.value);
-  return typeof bonus?.type === 'string' && value !== undefined ? { type: bonus.type, value } : undefined;
+  if (typeof bonus?.type !== 'string' || value === undefined) return undefined;
+  return bonus.type === 'strategy_points' ? { fp: value } : {};
 }
 
 /**

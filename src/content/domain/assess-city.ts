@@ -56,14 +56,14 @@ export interface AssessContext {
  * order). Everything else counts with the city era. Checked 2026-10-19 against the game's own boosts.
  */
 function eraOf(b: Building, def: BuildingDef, ctx: AssessContext, cityEra: EraId): EraId {
-  if (def.generic || b.type === 'greatbuilding' || b.level === undefined) return cityEra;
+  if (def.generic || b.category === 'greatBuilding' || b.level === undefined) return cityEra;
   return ctx.eraByLevel(b.level) ?? cityEra;
 }
 
 function givesBoosts(b: Building): boolean {
   if (b.state.kind === 'constructing') return false;
-  // unconnected buildings lose their boosts, except culture buildings, which need no road
-  if (b.state.kind === 'unconnected') return b.type === 'culture';
+  // unconnected buildings lose their boosts, except culture buildings (decorations included), which need no road
+  if (b.state.kind === 'unconnected') return b.category === 'culture';
   return true;
 }
 

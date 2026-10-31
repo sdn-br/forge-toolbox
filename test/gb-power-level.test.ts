@@ -99,7 +99,7 @@ describe('powerLevelPlan', () => {
   });
 
   it('takes the double harvest of the level being built from the open construction', () => {
-    const { rows } = plan({ nextProduction: { level: LEVEL, type: 'strategy_points', value: 77 } });
+    const { rows } = plan({ nextProduction: { level: LEVEL, fp: 77 } });
     expect(rows[0]?.harvest).toEqual({ fp: 77, estimate: false });
     expect(rows[1]?.harvest).toEqual({ fp: 3, estimate: false });
   });

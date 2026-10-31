@@ -26,11 +26,28 @@ export interface GreatBuildingState {
   bonus?: { type: string; value: number; amount?: number };
 }
 
+export const CATEGORIES = [
+  'residential',
+  'production',
+  'goods',
+  'culture',
+  'military',
+  'greatBuilding',
+  'street',
+  'special',
+  'other',
+] as const;
+
+/** Group of a building, for the city map and its stats; decorations count as culture. */
+export type BuildingCategory = (typeof CATEGORIES)[number];
+
 export interface Building {
   id: number;
   owner: PlayerId;
   def: BuildingDefId;
-  type: string;
+  category: BuildingCategory;
+  /** listed with the city but placed beside the grid, e.g. the outpost ship or the friends tavern */
+  offGrid?: boolean;
   x: number;
   y: number;
   level?: number;
@@ -47,16 +64,22 @@ export interface Area {
   length: number;
 }
 
-/**
- * An expansion the player has not obtained yet, from `city_map.tilesets` of the startup data. `kind` is the game type,
- * known: `tileset_reward` (coins or diamonds), `raidMedals` (medals of the Quantum Incursions), `tileset_premium`
- * (diamonds). `cost` lists every price the game names; whether they are alternatives is assumed, not checked.
- */
-export interface ExpansionOffer {
-  kind: string;
+/** How an expansion is paid: diamonds, as a reward only (research, provinces), or medals of the Quantum Incursions. */
+export type ExpansionKind = 'diamonds' | 'reward' | 'quantum';
+
+interface ExpansionOfferBase {
   minEra?: EraId;
+  /** every price the game names; whether they are alternatives is assumed, not checked */
   cost: Record<ResourceId, number>;
 }
+
+/**
+ * An expansion the player has not obtained yet, from the startup data. A kind the toolbox does not know keeps the
+ * game's name in `gameType`, to show it as it is.
+ */
+export type ExpansionOffer =
+  | (ExpansionOfferBase & { kind: ExpansionKind })
+  | (ExpansionOfferBase & { kind: 'unknown'; gameType: string });
 
 export interface City {
   world: WorldId;

@@ -169,7 +169,7 @@ describe('double harvest', () => {
   const harvests = (t: ReturnType<typeof vm>) => t.rows.map((r) => r.harvest);
 
   it('is exact for the level being built from the open construction', () => {
-    const nextProduction = { level: LEVEL, type: 'strategy_points', value: 77 };
+    const nextProduction = { level: LEVEL, fp: 77 };
     const t = vm({ construction: construction({ nextProduction }) });
     expect(t.rows[0]?.harvest).toEqual({ fp: 77, estimate: false });
     expect(t.rows[1]?.harvest).toEqual({ fp: 3, estimate: false });

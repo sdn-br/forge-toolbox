@@ -1,7 +1,7 @@
 // Expansions of the own city: placed ones, free blocks of the grid, what the player can buy. Pure.
 import type { EraId } from '../../shared/ids';
 import type { CityGrid } from '../model/catalog';
-import type { Area, ExpansionOffer, ResourceId } from '../model/city';
+import type { Area, ExpansionKind, ExpansionOffer, ResourceId } from '../model/city';
 import type { ResearchExpansion } from '../model/research';
 import { type TileRect, tileKey } from './city-grid';
 
@@ -74,10 +74,8 @@ export function expansionBlocks(grid: CityGrid, areas: Area[], blocked: Area[] |
   return out;
 }
 
-type OfferKind = 'diamonds' | 'reward' | 'quantum';
-
 export interface OfferStat {
-  /** an own kind (`OfferKind`), or the game type for kinds the toolbox does not know */
+  /** an own kind, or the game's name for kinds the toolbox does not know */
   kind: string;
   total: number;
   /** how many the player can buy in a row, cheapest first; missing for kinds nobody buys and unknown kinds */
@@ -89,13 +87,13 @@ export interface OfferStat {
 }
 
 /**
- * Kinds in the game's order with the resource that pays them. Reward expansions (`tileset_reward`) come as rewards
- * only: their entries name coins and diamonds, yet the game sells none of them (seen 2026-10-21).
+ * Kinds in the game's order with the resource that pays them. Reward expansions come as rewards only: their entries
+ * name coins and diamonds, yet the game sells none of them (seen 2026-10-21).
  */
-const KINDS: { type: string; kind: OfferKind; pay?: ResourceId }[] = [
-  { type: 'tileset_premium', kind: 'diamonds', pay: 'premium' },
-  { type: 'tileset_reward', kind: 'reward' },
-  { type: 'raidMedals', kind: 'quantum', pay: 'guild_raids_medals' },
+const KINDS: { kind: ExpansionKind; pay?: ResourceId }[] = [
+  { kind: 'diamonds', pay: 'premium' },
+  { kind: 'reward' },
+  { kind: 'quantum', pay: 'guild_raids_medals' },
 ];
 
 export interface PlayerMeans {
@@ -113,8 +111,8 @@ export function offerStats(offers: ExpansionOffer[], means: PlayerMeans): OfferS
     return own !== undefined && need !== undefined && own >= need;
   };
   const stats: OfferStat[] = [];
-  for (const { type, kind, pay } of KINDS) {
-    const of = offers.filter((o) => o.kind === type);
+  for (const { kind, pay } of KINDS) {
+    const of = offers.filter((o) => o.kind === kind);
     if (of.length === 0) continue;
     if (!pay) {
       stats.push({ kind, total: of.length });
@@ -143,9 +141,8 @@ export function offerStats(offers: ExpansionOffer[], means: PlayerMeans): OfferS
       ...(later[0] && { minEra: later[0] }),
     });
   }
-  const known = new Set(KINDS.map((k) => k.type));
   const others = new Map<string, number>();
-  for (const o of offers) if (!known.has(o.kind)) others.set(o.kind, (others.get(o.kind) ?? 0) + 1);
+  for (const o of offers) if (o.kind === 'unknown') others.set(o.gameType, (others.get(o.gameType) ?? 0) + 1);
   for (const [kind, total] of others) stats.push({ kind, total });
   return stats;
 }
@@ -163,7 +160,7 @@ export interface RewardSources {
   fromMap?: number;
 }
 
-/** `open` is the number of `tileset_reward` entries; undefined while research metadata or progress are unknown. */
+/** `open` is the number of reward expansions; undefined while research metadata or progress are unknown. */
 export function rewardSources(
   open: number,
   research: ResearchExpansion[] | undefined,
