@@ -442,3 +442,135 @@ describe('PlayerStore: time of the marks', () => {
     expect(changed.store.get(playerId(1))).toMatchObject({ marked: true, marksAt: 1000 });
   });
 });
+
+describe('PlayerStore: owners of great building lists', () => {
+  const NONE = { neighbor: false, guildMember: false, friend: false };
+  function clocked(persisted: Player[] = []) {
+    let clock = 1000;
+    const bus = createBus();
+    const put = vi.fn(async (_rows: Player[]) => {});
+    const store = new PlayerStore(bus, { load: async () => persisted, put }, () => clock);
+    const events: unknown[] = [];
+    bus.on('player.updated', (e) => events.push(e));
+    return {
+      store,
+      put,
+      events,
+      at: (t: number) => {
+        clock = t;
+      },
+    };
+  }
+
+  it('learns an unknown owner with the name, the avatar and no relation, in one event for the list', async () => {
+    const { store, put, events } = clocked();
+    store.applyListed(world, [
+      { id: playerId(1), name: 'Anna', avatar: 'portrait_1' },
+      { id: playerId(2), name: 'Bert' },
+    ]);
+    expect(store.get(playerId(1))).toEqual({
+      world,
+      id: playerId(1),
+      name: 'Anna',
+      avatar: 'portrait_1',
+      relations: NONE,
+      firstSeenAt: 1000,
+      seenAt: 1000,
+      source: 'list',
+    });
+    // the fields a list does not carry stay missing
+    expect(store.get(playerId(2))).not.toHaveProperty('avatar');
+    expect(store.get(playerId(2))).not.toHaveProperty('cityName');
+    expect(store.get(playerId(2))).not.toHaveProperty('score');
+    expect(events).toEqual([{ ids: [playerId(1), playerId(2)], source: 'list' }]);
+    await Promise.resolve();
+    expect(put).toHaveBeenCalledTimes(1);
+    expect(put.mock.calls[0]?.[0]).toHaveLength(2);
+  });
+
+  it('gives a known player only the newest name and a new avatar, never the richer fields, relations, timers or marks', () => {
+    const { store, at } = clocked();
+    store.applySocialList(world, {
+      neighbor: [{ ...obs(1, 'Anna'), avatar: 'portrait_1', attack: { canPlunder: true } }],
+      guildMember: [],
+      friend: [],
+    });
+    store.setMarked(playerId(1), true);
+    const before = store.get(playerId(1));
+    at(2000);
+    store.applyListed(world, [{ id: playerId(1), name: 'Anna II' }]);
+    expect(store.get(playerId(1))).toEqual({ ...before, name: 'Anna II', seenAt: 2000 });
+    store.applyListed(world, [{ id: playerId(1), name: 'Anna II', avatar: 'portrait_2' }]);
+    expect(store.get(playerId(1))).toMatchObject({
+      avatar: 'portrait_2',
+      source: 'socialList',
+      relations: before?.relations,
+    });
+  });
+
+  it('keeps no relation for a learned owner until the social list names them, and the social list still takes it away', () => {
+    const { store } = clocked();
+    store.applySocialList(world, { neighbor: [], guildMember: [], friend: [obs(1)] });
+    store.applyListed(world, [{ id: playerId(1), name: 'P1' }]);
+    expect(store.get(playerId(1))?.relations.friend).toBe(true);
+    store.applyListed(world, [{ id: playerId(2), name: 'P2' }]);
+    store.applySocialList(world, { neighbor: [obs(2)], guildMember: [], friend: [] });
+    expect(store.get(playerId(2))).toMatchObject({ relations: { ...NONE, neighbor: true }, source: 'socialList' });
+    expect(store.get(playerId(2))?.cityName).toBe('');
+  });
+
+  it('saves a known player seen again with the same name without an event', async () => {
+    const { store, put, events, at } = clocked();
+    store.applyListed(world, [{ id: playerId(1), name: 'Anna' }]);
+    await Promise.resolve();
+    events.length = 0;
+    at(5000);
+    store.applyListed(world, [{ id: playerId(1), name: 'Anna' }]);
+    expect(events).toEqual([]);
+    await Promise.resolve();
+    expect(put).toHaveBeenCalledTimes(2);
+    expect(put.mock.calls[1]?.[0]).toEqual([expect.objectContaining({ id: playerId(1), seenAt: 5000 })]);
+  });
+
+  it('takes the database row of an owner learned from a list before the load, with the name and the marks of the session', async () => {
+    const stored: Player = {
+      ...obs(1, 'Old name'),
+      score: 77,
+      world,
+      guild: undefined,
+      relations: { ...NONE, neighbor: true },
+      ignored: true,
+      marksAt: 10,
+      firstSeenAt: 5,
+      seenAt: 500,
+      source: 'socialList',
+    };
+    const { store, put } = clocked([stored]);
+    store.applyListed(world, [{ id: playerId(1), name: 'New name' }]);
+    store.setMarked(playerId(1), true);
+    await store.load(world);
+    const { ignored: _, ...rest } = stored;
+    expect(store.get(playerId(1))).toEqual({ ...rest, name: 'New name', marked: true, marksAt: 1000, seenAt: 1000 });
+    await Promise.resolve();
+    expect(put.mock.calls.at(-1)?.[0]).toEqual([store.get(playerId(1))]);
+  });
+
+  it('loads rows of the old shape and rows learned from a list alike', async () => {
+    const lean: Player = {
+      world,
+      id: playerId(2),
+      name: 'B',
+      relations: NONE,
+      firstSeenAt: 1,
+      seenAt: 1,
+      source: 'list',
+    };
+    const { store } = clocked([
+      { ...obs(1), world, guild: undefined, relations: NONE, firstSeenAt: 1, seenAt: 1, source: 'visit' } as Player,
+      lean,
+    ]);
+    await store.load(world);
+    expect(store.get(playerId(1))?.score).toBe(1);
+    expect(store.get(playerId(2))).toEqual(lean);
+  });
+});

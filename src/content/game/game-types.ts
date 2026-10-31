@@ -291,7 +291,8 @@ export interface GameGreatBuildingListRow {
   level?: number;
   current_progress?: number;
   max_progress?: number;
-  player?: { player_id?: number; name?: string };
+  /** the owner; `avatar` seen in both lists (2026-10-23, 2026-10-24), anonymized empty in the fixtures */
+  player?: { player_id?: number; name?: string; avatar?: string };
   rank?: number;
   forge_points?: number;
   reward?: GameGreatBuildingReward;

@@ -15,6 +15,7 @@ import {
   longerShield,
   type MergeRule,
   mergeMarked,
+  mergePlayer,
   mergeRows,
   newerPage,
   selectTables,
@@ -319,7 +320,7 @@ async function mergeTables(
         (r) => [r.world, r.owner, r.entityId],
         mergeMarked,
       ),
-      players: await merge(db.players, t.players, (r) => [r.world, r.id], mergeMarked),
+      players: await merge(db.players, t.players, (r) => [r.world, r.id], mergePlayer),
     };
   });
 }

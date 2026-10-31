@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { Ingestion } from '../src/content/core/ingestion';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import { playerId } from '../src/shared/ids';
+import contributions from './fixtures/gb-contributions.json';
+import levelUp from './fixtures/gb-level-up.json';
 import { testStores } from './helpers/stores';
 
 function setup() {
@@ -45,7 +47,7 @@ function setup() {
       ),
       at: 0,
     });
-  return { session, players, cities, catalog, resources, research, events, send, sendAll, meta };
+  return { session, players, cities, catalog, resources, research, events, send, sendAll, meta, bus };
 }
 
 const house = (id: number, owner: number, state: object) => ({
@@ -417,5 +419,56 @@ describe('game handlers', () => {
       send('CityMapService', 'getEntities', [], ['cultural_outpost']);
       expect(cities.shown()).toBe(42);
     });
+  });
+});
+
+describe('owners of great building lists', () => {
+  const NONE = { neighbor: false, guildMember: false, friend: false };
+  type Recorded = { requestClass: string; requestMethod: string; responseData: unknown };
+  const sendRecorded = (send: ReturnType<typeof setup>['send'], e: Recorded) =>
+    send(e.requestClass, e.requestMethod, e.responseData);
+
+  it('teaches the player store every owner of the town hall list, once, without a relation', () => {
+    const { players, send } = setup();
+    for (const e of contributions.startup as Recorded[]) sendRecorded(send, e);
+    expect(players.list()).toEqual([]);
+    sendRecorded(send, contributions.contributions as Recorded);
+    const owners = [...new Set(contributions.contributions.responseData.map((r) => r.player.player_id))];
+    expect(
+      players
+        .list()
+        .map((p) => p.id)
+        .sort(),
+    ).toEqual(owners.sort());
+    // the recording carries id, name and an (anonymized, empty) avatar
+    expect(players.get(playerId(2001))).toEqual({
+      world: expect.anything(),
+      id: playerId(2001),
+      name: 'Eigentümer 2001',
+      relations: NONE,
+      firstSeenAt: 1_000_000,
+      seenAt: 1_000_000,
+      source: 'list',
+    });
+  });
+
+  it("teaches the player store the owner of another player's list before the list is announced", () => {
+    const { players, send, bus } = setup();
+    const known: unknown[] = [];
+    bus.on('greatBuildings.listed', ({ owner }) => known.push(players.get(owner)?.name));
+    sendRecorded(send, levelUp.overview as Recorded);
+    expect(players.get(playerId(1001))).toMatchObject({ name: 'Eigentümer 1001', relations: NONE, source: 'list' });
+    expect(known).toEqual(['Eigentümer 1001']);
+  });
+
+  it('leaves out the own player and rows without a name', () => {
+    const { players, send } = setup();
+    for (const e of contributions.startup as Recorded[]) sendRecorded(send, e);
+    const [first, second] = contributions.contributions.responseData;
+    send('GreatBuildingsService', 'getContributions', [
+      { ...first, player: { player_id: 1000, name: 'Ich' } },
+      { ...second, player: { player_id: 2002 } },
+    ]);
+    expect(players.list()).toEqual([]);
   });
 });

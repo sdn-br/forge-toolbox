@@ -35,7 +35,7 @@ import {
   toItemAmount,
   toItemUpdates,
   toLimitedBonuses,
-  toListOwners,
+  toListedPlayers,
   toNewFriend,
   toNextProduction,
   toObservation,
@@ -60,7 +60,6 @@ import type {
   GameEvent,
   GameEventPage,
   GameGreatBuildingConstruction,
-  GameGreatBuildingListRow,
   GameSocialList,
   GameStartup,
   GameVisit,
@@ -459,18 +458,20 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     catalog.setGreatBuildingNames(toGreatBuildingNames(data));
   });
   ingestion.on('GreatBuildingsService', 'getOtherPlayerOverview', ({ data }) => {
+    const me = session.current?.playerId;
     catalog.setGreatBuildingNames(toGreatBuildingNames(data));
-    greatBuildings.noteList(
-      toGreatBuildingListRows(data, session.current?.playerId),
-      (data as GameGreatBuildingListRow[] | null)?.[0]?.player?.name,
-    );
+    // the owner first, so the views the list redraws already know the name
+    players.applyListed(world, toListedPlayers(data, me));
+    greatBuildings.noteList(toGreatBuildingListRows(data, me));
   });
   // The town hall list "Legendäre Bauwerke" of the buildings the session player invested in (recorded 2026-10-24,
   // 39 rows, no request data): the same rows as the overview, with the own rank, deposit and reward on top.
   ingestion.on('GreatBuildingsService', 'getContributions', ({ data }) => {
     if (!Array.isArray(data)) return;
+    const me = session.current?.playerId;
     catalog.setGreatBuildingNames(toGreatBuildingNames(data));
-    greatBuildings.noteContributions(toGreatBuildingListRows(data, session.current?.playerId), toListOwners(data));
+    players.applyListed(world, toListedPlayers(data, me));
+    greatBuildings.noteContributions(toGreatBuildingListRows(data, me));
   });
   ingestion.on('BonusService', 'getLimitedBonuses', ({ data }) => {
     playerBonuses.setLimited(toLimitedBonuses(data));

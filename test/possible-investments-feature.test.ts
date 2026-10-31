@@ -37,7 +37,8 @@ type Row = {
   level: number;
   current_progress?: number;
   max_progress: number;
-  player: { player_id: number; name: string };
+  /** a row without the owner's name teaches the player store nothing */
+  player: { player_id: number; name?: string };
 };
 const zeus = levelUp.overview.responseData[0] as Row;
 const lighthouse = levelUp.overview.responseData[1] as Row;
@@ -46,12 +47,19 @@ const oracle = levelUp.overview.responseData[2] as Row;
 const hitZeus = (): Row => ({ ...zeus, max_progress: 80 });
 const hitOracle = (): Row => ({ ...oracle, max_progress: 100, current_progress: 30 });
 
-function setup() {
+/**
+ * `reachNone`: the reach filter lets owners without a relation in. A list teaches the player store its owner, without a
+ * relation, so by default the filter would hide them.
+ */
+function setup({ reachNone = true } = {}) {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(1_000_000);
   const now = () => Date.now();
   const env = featureContext({ now });
   const { ctx } = env;
+  if (reachNone)
+    for (const key of ['investments.filter', 'investments.mineFilter'])
+      ctx.ui.savePref(key, JSON.stringify({ reach: { none: true } }));
   const ingestion = new Ingestion();
   registerGameHandlers(ingestion, { ...ctx, now });
   // the calculator owns the factor the snipe helper and the possible investments rate places with
@@ -137,8 +145,8 @@ describe('Investitionen: Mögliche Investitionen', () => {
       expect(c.slice(7, 10)).toEqual(same?.slice(5, 8));
     }
     expect(mine[0]?.[1]).toBe('Eigentümer 1001');
-    // the owners are known only from their lists, not to the player store
-    expect(mine[0]?.[2]).toBe('unbekannt');
+    // the owners are known only from their lists: the player store has them, without a relation
+    expect(mine[0]?.[2]).toBe('keine');
     expect(mine[0]?.[11]).toBe('vor 1 Min.');
     const tier = rows()[0]?.querySelector('td.snipe-tier');
     expect(tier?.getAttribute('aria-label')).toContain('sicher');
@@ -173,7 +181,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
       player: '',
       name: 'zeus',
       onlyHits: false,
-      reach: { neighbor: true, friend: true, guildMember: true, none: false },
+      reach: { neighbor: true, friend: true, guildMember: true, none: true },
       tier: { exact: true, safe: true, possible: true },
       onlyMarked: false,
       showIgnored: false,
@@ -280,9 +288,9 @@ describe('Investitionen: Mögliche Investitionen', () => {
     const pick = rows()[0]?.querySelector('td.name-cell .inv-pick') as HTMLButtonElement;
     expect(pick.getAttribute('aria-label')).toBe('Nur diesen Spieler zeigen');
     expect(pick.getAttribute('data-tip')).toBe('Nur diesen Spieler zeigen');
-    // the filter sits after the name, the name stays the link
-    expect(pick.previousElementSibling?.tagName).toBe('A');
-    const name = pick.previousElementSibling?.textContent;
+    // the filter sits after the name and the eye of the owner, the list taught the player store; the name stays the link
+    expect(pick.previousElementSibling?.classList.contains('ignore')).toBe(true);
+    const name = rows()[0]?.querySelector('td.name-cell a')?.textContent;
     pick.click();
     await tick();
     expect(input('Spieler').value).toBe(name);
@@ -502,7 +510,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
 
   it('shows why an owner is reachable, hides those out of reach and follows the friend messages live', async () => {
     vi.spyOn(console, 'info').mockImplementation(() => {});
-    const { box, send, list, rows, cells, showPossible, ui } = setup();
+    const { box, send, list, rows, cells, showPossible, ui } = setup({ reachNone: false });
     // the owner of both buildings is the friend of the recorded invitation
     send({
       requestClass: 'OtherPlayerService',
@@ -744,7 +752,8 @@ describe('Investitionen: Spielerstern in Mögliche Investitionen', () => {
       responseData: { friends: [{ player_id: 1001, name: 'Eigentümer 1001' }], neighbours: [], guildMembers: [] },
     });
     list([hitZeus()], 1001);
-    list([{ ...hitOracle(), player: { player_id: 1002, name: 'Bert' } }], 1002);
+    // without the owner's name the list teaches the player store nothing: the owner stays unknown
+    list([{ ...hitOracle(), player: { player_id: 1002 } }], 1002);
     await tick();
     await showPossible();
     const row = (name: string) => rows().find((r) => r.textContent?.includes(name)) as Element;
@@ -801,7 +810,8 @@ describe('Investitionen: Ignorieren in Mögliche Investitionen', () => {
     const { list, rows, send, showPossible } = setup();
     social(send, [1001]);
     list([hitZeus()], 1001);
-    list([{ ...hitOracle(), player: { player_id: 1002, name: 'Bert' } }], 1002);
+    // without the owner's name the list teaches the player store nothing: the owner stays unknown
+    list([{ ...hitOracle(), player: { player_id: 1002 } }], 1002);
     await tick();
     await showPossible();
     const [known, unknown] = [
@@ -816,7 +826,9 @@ describe('Investitionen: Ignorieren in Mögliche Investitionen', () => {
   });
 
   it('hides an ignored building, counts without it and shows it muted with "ignorierte zeigen"', async () => {
-    const { box, list, rows, cells, showPossible, ui } = setup();
+    const { box, list, rows, cells, showPossible, ui, send } = setup();
+    // a friend: an owner without a relation would be drawn muted too
+    social(send, [1001]);
     list([hitZeus(), hitOracle()]);
     await tick();
     await showPossible();

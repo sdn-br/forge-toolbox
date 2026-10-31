@@ -86,7 +86,6 @@ export type SnipeVm =
 /** the last list of another player: its owner, when it came and its buildings in the game's order */
 export interface ListedOwner {
   owner: PlayerId;
-  ownerName?: string;
   at: number;
   entityIds: Iterable<number>;
 }
@@ -156,7 +155,7 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
   const activity = activityVm(input.foestats(list.owner), input.today);
   return {
     kind: 'list',
-    ...ownerVm(input, list.owner, list.ownerName ?? input.playerName(list.owner) ?? String(list.owner)),
+    ...ownerVm(input, list.owner, input.playerName(list.owner) ?? String(list.owner)),
     ownerId: list.owner,
     ...(activity && { activity }),
     at: list.at,

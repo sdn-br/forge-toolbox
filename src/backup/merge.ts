@@ -1,6 +1,6 @@
 // The rules of the import "Zusammenführen": what a row of the file does to the row the profile already holds. Each rule
 // returns the row to write, or undefined when the local row stays as it is.
-import type { CityShield, NotePage } from '../shared/model';
+import type { CityShield, NotePage, Player } from '../shared/model';
 import { type BackupTables, playersToKeep, referencedPlayers } from './format';
 
 /** The parts of a profile the import offers one by one. */
@@ -57,6 +57,26 @@ export function mergeMarked<T extends Marked>(local: T | undefined, source: T): 
     ...(from.marksAt !== undefined && { marksAt: from.marksAt }),
   } as T;
 }
+
+/** the fields of a player a great building list does not carry */
+const LIST_GAPS = ['avatar', 'cityName', 'era', 'score', 'rank', 'active'] as const;
+
+/**
+ * A player: as `mergeMarked`. A row known only from a great building list lacks most game fields; whichever row wins,
+ * the fields it lacks come from the other row, so a list never wipes what a richer row knows and a richer row of the
+ * file fills a row the profile knows only from a list.
+ */
+export const mergePlayer: MergeRule<Player> = (local, source) => {
+  const merged = mergeMarked(local, source);
+  if (!local) return merged;
+  const base = merged ?? local;
+  const other = source.seenAt > local.seenAt ? local : source;
+  const filled: Partial<Player> = {};
+  for (const key of LIST_GAPS)
+    if (base[key] === undefined && other[key] !== undefined) Object.assign(filled, { [key]: other[key] });
+  if (!merged && Object.keys(filled).length === 0) return undefined;
+  return { ...base, ...filled };
+};
 
 /**
  * The rows of the chosen areas, and the players that go with them: the ones those rows refer to and the marked or

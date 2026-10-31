@@ -1,5 +1,4 @@
 import { html } from 'lit-html';
-import type { PlayerId } from '../../../shared/ids';
 import type { KnownGreatBuilding } from '../../../shared/model';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
@@ -14,7 +13,7 @@ import {
 import { rowFit } from '../../ui/fit-rows';
 import { icons } from '../../ui/icons';
 import { tabBar } from '../../ui/tabs';
-import { type GbLookups, gbLookups } from '../shared/gb-lookups';
+import { gbLookups } from '../shared/gb-lookups';
 import { createMineSection } from './mine/section';
 import { createPossibleSection } from './possible/section';
 import { investmentsCss } from './styles';
@@ -47,8 +46,6 @@ export const investmentsFeature: Feature = {
     let investments: Investments = { rows: [] };
     /** the possible investments, rated only for their tab and kept while the read buildings and bonus stay */
     let rated: { known: KnownGreatBuilding[]; arc: number; rows: PossibleInvestment[] } | undefined;
-    /** owner names the town hall list and the lists of others give, for owners the player store does not know */
-    const ownerNames = new Map<PlayerId, string>();
 
     /** how many rows fit into the table area; a change redraws */
     const fit = rowFit(() => box.update());
@@ -61,8 +58,7 @@ export const investmentsFeature: Feature = {
       showTab(next);
       box.update();
     };
-    const shared = gbLookups(ctx);
-    const lookups: GbLookups = { ...shared, playerName: (id) => shared.playerName(id) ?? ownerNames.get(id) };
+    const lookups = gbLookups(ctx);
     const ownArc = () => ctx.playerBonuses.arcBonus();
 
     const candidates = () => {
@@ -143,8 +139,7 @@ export const investmentsFeature: Feature = {
       if (box.isOpen) load().catch((error) => logError('reading the investments failed', error));
     };
 
-    ctx.bus.on('greatBuildings.contributions', ({ owners }) => {
-      for (const o of owners) ownerNames.set(o.id, o.name);
+    ctx.bus.on('greatBuildings.contributions', () => {
       if (openWithList.get()) {
         showTab('mine');
         box.open();
@@ -159,10 +154,9 @@ export const investmentsFeature: Feature = {
     // a star put on or taken from a building shows at once, the data stay as read
     ctx.bus.on('greatBuilding.marked', () => box.update());
     ctx.bus.on('greatBuilding.ignored', () => box.update());
-    // a list of another player brings the state of its buildings; one the game asked for itself only the owner's name,
-    // it comes right after the owner's building, which reloaded already
-    ctx.bus.on('greatBuildings.listed', ({ owner, ownerName, askedByGame }) => {
-      if (ownerName !== undefined) ownerNames.set(owner, ownerName);
+    // a list of another player brings the state of its buildings; one the game asked for itself comes right after the
+    // owner's building, which reloaded already (the owner's name reaches the player store, which redraws)
+    ctx.bus.on('greatBuildings.listed', ({ askedByGame }) => {
       if (!askedByGame) reload();
     });
     // every collection in the own city reports a change; only the Arc bonus counts
