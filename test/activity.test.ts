@@ -72,10 +72,9 @@ describe('playerActivity', () => {
   it('knows the day from one snapshot and the day before worked out from its changes', () => {
     const history = [
       { date: '2026-10-21', points: 1150, battles: 67 },
-      { date: '2026-10-22', points: 1200, battles: 70, active: true },
+      { date: '2026-10-22', points: 1200, battles: 70 },
     ];
     expect(playerActivity(history, '2026-10-22')).toEqual({
-      active: true,
       lastActive: '2026-10-22',
       daysAgo: 0,
       idle: false,
@@ -83,21 +82,12 @@ describe('playerActivity', () => {
     });
   });
 
-  it('tells nothing of its own from a single snapshot day, only foestats status', () => {
-    expect(playerActivity([{ date: '2026-10-22', points: 1200, battles: 70, active: false }], '2026-10-22')).toEqual({
-      active: false,
+  it('tells no increase from a single snapshot day', () => {
+    expect(playerActivity([{ date: '2026-10-22', points: 1200, battles: 70 }], '2026-10-22')).toEqual({
       flatFor: 0,
       idle: false,
       week: { points: 0, battles: 0, days: 0 },
     });
-  });
-
-  it('takes foestats status from the newest day only', () => {
-    const history = [
-      { date: '2026-10-21', points: 100, battles: 6, active: true },
-      { date: '2026-10-22', points: 100, battles: 6 },
-    ];
-    expect(playerActivity(history, '2026-10-22')?.active).toBeUndefined();
   });
 
   it('does not date an increase that lies in a gap between known days', () => {

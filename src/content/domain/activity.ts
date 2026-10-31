@@ -7,13 +7,9 @@ export interface ActivityDay {
   date: string;
   points?: number;
   battles?: number;
-  /** foestats' own status of the player that day */
-  active?: boolean;
 }
 
 export interface Activity {
-  /** foestats' own status on the newest day; missing when foestats did not tell it for that day */
-  active?: boolean;
   /**
    * the last day with more points or battles than the calendar day before; missing when no such increase is known,
    * also when the last increase lies in a gap between two known days
@@ -65,7 +61,6 @@ export function playerActivity(history: ActivityDay[], today: string): Activity 
   const points = change(base.points, newest.points);
   const battles = change(base.battles, newest.battles);
   return {
-    ...(newest.active !== undefined && { active: newest.active }),
     ...(lastActive === undefined ? { flatFor: quiet } : { lastActive, daysAgo: quiet }),
     idle: quiet >= IDLE_DAYS,
     week: {
