@@ -7,6 +7,8 @@ ul.rows { list-style: none; margin: 4px 0; padding: 0; }
 ul.rows li { padding: 2px 4px; cursor: pointer; border-bottom: 1px solid var(--btn); }
 ul.rows li.active { background: var(--btn); }
 input.title { width: 100%; font-weight: 600; }
+/* relation icons beside a player name, as in the investments */
+.rel-icons svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 2px; }
 .page-mark { display: inline-block; vertical-align: -2px; }
 .page-mark svg { display: block; width: 14px; height: 14px; }
 `;

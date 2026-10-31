@@ -16,6 +16,22 @@ export const formatNumber = (n: number) => numberFormat.format(n);
 /** compares two texts in German order, as `a.localeCompare(b, 'de')` without setting up the order on each call */
 export const compareText = new Intl.Collator('de').compare;
 
+/** a text in the case that `containsText` and `sameName` compare in */
+export const foldCase = (text: string) => text.toLocaleLowerCase('de');
+
+/** a test whether a text contains `part`, any case; `part` is trimmed, an empty one matches every text. Built once per
+ * filter run, so the part is not lowered again for each row */
+export const textFilter = (part: string): ((text: string) => boolean) => {
+  const needle = foldCase(part.trim());
+  return (text) => foldCase(text).includes(needle);
+};
+
+/** part of a text, any case; an empty part matches every text */
+export const containsText = (text: string, part: string) => textFilter(part)(text);
+
+/** the same name in any case; neither side is trimmed */
+export const sameName = (a: string, b: string) => foldCase(a) === foldCase(b);
+
 /** a gain or loss with its sign, „+310“, „−40“; zero without one */
 export const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatNumber(Math.abs(n))}`;
 

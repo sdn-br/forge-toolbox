@@ -1,5 +1,4 @@
 import { html, type TemplateResult } from 'lit-html';
-import type { PlayerId } from '../../../../shared/ids';
 import { formatAge, t } from '../../../core/texts';
 import { activityLine } from '../../../ui/activity';
 import { foldToggle } from '../../../ui/fold-toggle';
@@ -9,24 +8,17 @@ import { buildingCell, ignoredFilter, rowTip } from '../../../ui/ignore';
 import { ownerOf } from '../../../ui/owner-line';
 import { hitCells } from '../../../ui/snipe-hit';
 import { type SortColumn, sortHeads } from '../../../ui/sortable';
-import { starButton } from '../../../ui/star';
+import { markCell } from '../../../ui/star';
 import { rowsIn, windowedRows } from '../../../ui/windowed-rows';
+import type { GbRowActions } from '../../shared/gb-lookups';
 import type { SnipeColumn, SnipeRowVm, SnipeVm } from './view-model';
 
-export interface SnipeActions {
+export interface SnipeActions extends GbRowActions {
   sort(column: SnipeColumn, append: boolean): void;
   /** moves the table by rows, down for positive; the owner keeps the offset inside the list */
   scroll(rows: number): void;
   /** folds the section in or out */
   toggle(): void;
-  /** puts the star on a building or takes it away */
-  mark(owner: PlayerId, entityId: number, marked: boolean): void;
-  /** puts the star on a player or takes it away */
-  markPlayer(player: PlayerId, marked: boolean): void;
-  /** ignores a building or releases it */
-  ignore(owner: PlayerId, entityId: number, ignored: boolean): void;
-  /** ignores a player or releases them */
-  ignorePlayer(player: PlayerId, ignored: boolean): void;
   /** shows the rows of ignored buildings and owners, or hides them */
   showIgnored(show: boolean): void;
 }
@@ -48,7 +40,7 @@ const columns: SortColumn<SnipeColumn>[] = [
 const row = (r: SnipeRowVm, actions: SnipeActions) =>
   html`<tr class=${r.ignoreNote === undefined ? '' : 'muted'} data-tip=${rowTip(r)}>
   <td>${r.order}</td>
-  <td class="mark-cell">${starButton(r.marked, () => actions.mark(r.owner, r.entityId, !r.marked))}</td>
+  ${markCell(r, actions.mark)}
   ${buildingCell(r.name, rowTip(r), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
   <td class="num">${r.level}</td>
   ${progressCell(r, growthTag(r.growth, 'investments.possible.growthHint'), r.ownerShare === undefined ? [] : [r.ownerShare])}

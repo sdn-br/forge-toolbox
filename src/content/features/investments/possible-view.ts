@@ -4,10 +4,13 @@ import { filterToggle, toggleGroup } from '../../ui/buttons';
 import { growthTag, progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { buildingCell, ignoredFilter, rowTip } from '../../ui/ignore';
+import { searchField } from '../../ui/inputs';
 import { hitCells, tierIcon } from '../../ui/snipe-hit';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
+import { markCell, markedFilter } from '../../ui/star';
 import { rowsIn, windowedRows } from '../../ui/windowed-rows';
-import { markedFilter, ownerCell, reachCell, reachFilter, text } from './filter-parts';
+import type { GbRowActions } from '../shared/gb-lookups';
+import { ownerCell, reachCell, reachFilter } from './filter-parts';
 import {
   type PossibleColumn,
   type PossibleFilter,
@@ -15,19 +18,15 @@ import {
   type PossibleVm,
   TIER_TOGGLES,
 } from './possible-view-model';
-import { type InvestmentsActions, markCell, tabs } from './view';
+import { type InvestmentsActions, tabs } from './view';
 import type { InvestmentsTab } from './view-model';
 
-export interface PossibleActions {
+export interface PossibleActions extends GbRowActions {
   tab(tab: InvestmentsTab): void;
   sort(column: PossibleColumn, append: boolean): void;
   filter(patch: Partial<PossibleFilter>): void;
   /** put the owner's name into the "Spieler" filter, as if typed */
   pickPlayer(name: string): void;
-  mark: InvestmentsActions['mark'];
-  ignore: InvestmentsActions['ignore'];
-  ignorePlayer: InvestmentsActions['ignorePlayer'];
-  markPlayer: InvestmentsActions['markPlayer'];
   scroll: InvestmentsActions['scroll'];
   measure: InvestmentsActions['measure'];
 }
@@ -83,8 +82,8 @@ const tierFilter = (f: PossibleFilter, actions: PossibleActions) =>
 
 /** the filters, the count at the end of the same row so it shows without scrolling */
 const filters = (f: PossibleFilter, count: string, actions: PossibleActions) => html`<p class="inv-filter">
-    ${text(f.player, t('investments.filter.player'), (player) => actions.filter({ player }))}
-    ${text(f.name, t('investments.filter.name'), (name) => actions.filter({ name }))}
+    ${searchField(f.player, t('investments.filter.player'), (player) => actions.filter({ player }))}
+    ${searchField(f.name, t('investments.filter.name'), (name) => actions.filter({ name }))}
     ${hitsFilter(f, actions)}
     ${reachFilter(f.reach, (reach) => actions.filter({ reach }))}
     ${tierFilter(f, actions)}

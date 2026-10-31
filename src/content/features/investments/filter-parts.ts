@@ -1,53 +1,34 @@
-// The filter pieces both investment tabs draw: text fields, icon toggles, the star filter, the funnel beside an owner.
-import { html, type TemplateResult } from 'lit-html';
+// The filter pieces both investment tabs draw: the relation toggles, the funnel beside an owner, the owner and relation cells.
+import { html } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
-import { t } from '../../core/texts';
-import { filterToggle, toggleButton, toggleGroup } from '../../ui/buttons';
+import { sameName, t } from '../../core/texts';
+import type { Reach, ReachFilter } from '../../domain/reach';
+import { toggleButton } from '../../ui/buttons';
 import { headerIcons } from '../../ui/icons';
-import { ignoreButton } from '../../ui/ignore';
-import { keepKeys } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
-import { starButton } from '../../ui/star';
-import { picks, REACH_TOGGLES, type Reach, type ReachFilter } from './filter-model';
-
-const REACH_ICONS: Partial<Record<Reach, TemplateResult>> = {
-  neighbor: headerIcons.neighbor,
-  friend: headerIcons.friend,
-  guildMember: headerIcons.guild,
-};
+import { ownerMarks } from '../../ui/owner-line';
+import { RELATION_ICONS, relationToggles } from '../../ui/relations';
+import type { GbRowActions } from '../shared/gb-lookups';
 
 /** an icon per reason; out of reach and unknown stay words */
 export const reachCell = (reasons: Reach[]) => {
   const [first] = reasons;
   return first === 'none' || first === 'unknown'
     ? t(`investments.reach.${first}`)
-    : reasons.map((reason) => REACH_ICONS[reason]);
+    : reasons.map((reason) => RELATION_ICONS[reason as keyof typeof RELATION_ICONS]);
 };
-
-export const text = (value: string, label: string, set: (value: string) => void) =>
-  html`<input type="search" placeholder=${label} aria-label=${label} .value=${value}
-    @input=${(e: Event) => set((e.target as HTMLInputElement).value)}
-    @keydown=${keepKeys} @keypress=${keepKeys} @keyup=${keepKeys} />`;
-
-const REACH_FILTER_ICONS = { ...REACH_ICONS, none: headerIcons.notReachable } as Record<
-  keyof ReachFilter,
-  TemplateResult
->;
 
 /** one toggle per reason, any switched on lets a row through */
 export const reachFilter = (reach: ReachFilter, set: (reach: ReachFilter) => void) =>
-  toggleGroup(
+  relationToggles(
     'inv-reach-filter',
-    REACH_TOGGLES,
     reach,
     (key) => t(key === 'none' ? 'investments.reachHint.none' : `investments.reach.${key}`),
-    (key) => REACH_FILTER_ICONS[key],
     set,
   );
 
-/** a toggle with the star: only marked buildings and buildings of marked owners */
-export const markedFilter = (onlyMarked: boolean, set: (onlyMarked: boolean) => void) =>
-  filterToggle('inv-marked-filter', onlyMarked, t('investments.filter.onlyMarked'), headerIcons.starFilled, set);
+/** the player field names this owner exactly, in any case; the field is the only state, a part of a name marks nothing */
+const picks = (field: string, name: string) => sameName(field.trim(), name);
 
 /** shown on row hover or focus (styles), always and in the accent while the player field names this owner; then a click
  * empties the field */
@@ -68,11 +49,9 @@ interface OwnerCellRow {
   ownerIgnored?: boolean;
 }
 
-interface OwnerCellActions {
+interface OwnerCellActions extends Pick<GbRowActions, 'ignorePlayer' | 'markPlayer'> {
   /** put the owner's name into the "Spieler" filter, as if typed */
   pickPlayer(name: string): void;
-  ignorePlayer(owner: PlayerId, ignored: boolean): void;
-  markPlayer(owner: PlayerId, marked: boolean): void;
 }
 
 /**
@@ -80,8 +59,8 @@ interface OwnerCellActions {
  * store knows. All keep their place in every row, so the mouse can run straight down the column.
  */
 export const ownerCell = (r: OwnerCellRow, playerField: string, actions: OwnerCellActions) =>
-  html`<td class="name-cell" data-tip=${r.ownerName}><span class="row-name">${externalLink(r.ownerName, r.ownerUrl)}${
-    r.ownerIgnored === undefined
-      ? ''
-      : html`${starButton(r.ownerMarked, () => actions.markPlayer(r.owner, !r.ownerMarked))}${ignoreButton('player', r.ownerIgnored, () => actions.ignorePlayer(r.owner, !r.ownerIgnored))}`
-  }${pickButton(r.ownerName, picks(playerField, r.ownerName), actions.pickPlayer)}</span></td>`;
+  html`<td class="name-cell" data-tip=${r.ownerName}><span class="row-name">${externalLink(r.ownerName, r.ownerUrl)}${ownerMarks(
+    r.ownerIgnored === undefined ? {} : { ownerMarked: r.ownerMarked, ownerIgnored: r.ownerIgnored },
+    (marked) => actions.markPlayer(r.owner, marked),
+    (ignored) => actions.ignorePlayer(r.owner, ignored),
+  )}${pickButton(r.ownerName, picks(playerField, r.ownerName), actions.pickPlayer)}</span></td>`;

@@ -1,6 +1,5 @@
-import type { BuildingDefId, PlayerId } from '../../../shared/ids';
-import type { Relations } from '../../../shared/model';
-import { formatAge, formatNumber, signed, t } from '../../core/texts';
+import type { PlayerId } from '../../../shared/ids';
+import { formatAge, formatNumber, signed, t, textFilter } from '../../core/texts';
 import {
   type Investment,
   type InvestmentStatus,
@@ -8,20 +7,13 @@ import {
   type InvestmentTotals,
   sumTotals,
 } from '../../domain/investments';
+import { passesReach, REACH_ORDER, type Reach, type ReachFilter, reasonsOf } from '../../domain/reach';
 import { type ProgressVm, progressVm } from '../../ui/fp-bar';
-import { ignoreNote } from '../../ui/ignore';
+import { countsIgnored, ignoreNote } from '../../ui/ignore';
 import { type Sort, sortRows } from '../../ui/sortable';
 import { type RowWindow, rowWindow } from '../../ui/windowed-rows';
-import {
-  contains,
-  DEFAULT_REACH,
-  passesReach,
-  REACH_ORDER,
-  type Reach,
-  type ReachFilter,
-  reachTip,
-  reasonsOf,
-} from './filter-model';
+import type { GbLookups } from '../shared/gb-lookups';
+import { DEFAULT_REACH, reachTip } from './filter-model';
 
 /** the tabs of the box: the own investments and the buildings of others worth a place */
 export type InvestmentsTab = 'mine' | 'possible';
@@ -133,7 +125,7 @@ export type InvestmentsVm = {
   selection?: TotalsVm;
 };
 
-export interface InvestmentsInput {
+export interface InvestmentsInput extends GbLookups {
   investments: Investments;
   /** when the last town hall list came */
   listedAt?: number;
@@ -142,18 +134,7 @@ export interface InvestmentsInput {
   /** rows that fit into the table area, and the index of the first one in view (default the top) */
   visible: number;
   scroll?: number;
-  greatBuildingName(def: BuildingDefId): string | undefined;
-  playerName(id: PlayerId): string | undefined;
-  playerUrl(id: PlayerId): string;
-  isMarked(owner: PlayerId, entityId: number): boolean;
-  /** the player put a star on the owner */
-  ownerMarked(owner: PlayerId): boolean;
-  isIgnored(owner: PlayerId, entityId: number): boolean;
-  /** undefined for an owner the player store does not know */
-  ownerIgnored(owner: PlayerId): boolean | undefined;
   filter: MineFilter;
-  /** undefined for an owner the player store does not know */
-  relations(id: PlayerId): Relations | undefined;
 }
 
 const STATUS_ORDER: Record<InvestmentStatus, number> = { safe: 0, unsafe: 1, unknown: 2 };
@@ -207,16 +188,18 @@ export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
       ownerName: input.playerName(r.owner) ?? String(r.owner),
       name: input.greatBuildingName(r.cityEntityId) ?? r.cityEntityId,
       marked: input.isMarked(r.owner, r.entityId),
-      ownerMarked: input.ownerMarked(r.owner),
+      ownerMarked: input.playerMarked(r.owner) === true,
       ignored,
       ownerIgnored,
-      counted: !ignored && ownerIgnored !== true,
+      counted: !countsIgnored(ignored, ownerIgnored),
       reasons: reasonsOf(input.relations(r.owner)),
     };
   });
+  const byPlayer = textFilter(filter.player);
+  const byName = textFilter(filter.name);
   const named = all
     .filter((r) => filter.showIgnored || r.counted)
-    .filter((r) => contains(r.ownerName, filter.player) && contains(r.name, filter.name))
+    .filter((r) => byPlayer(r.ownerName) && byName(r.name))
     .filter((r) => passesReach(r.reasons, filter.reach))
     .filter((r) => filter.status[r.status])
     .filter((r) => !filter.onlyMarked || r.marked || r.ownerMarked);

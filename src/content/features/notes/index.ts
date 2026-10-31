@@ -1,5 +1,6 @@
 import type { Feature } from '../../core/feature';
 import { t } from '../../core/texts';
+import { ALL_REACH } from '../../domain/reach';
 import { PLAYER_GROUP, playerPageId } from '../../stores/notes';
 import { icons } from '../../ui/icons';
 import { NoteEditor } from '../../ui/note-editor';
@@ -11,7 +12,7 @@ export const notesFeature: Feature = {
   id: 'notes',
   setup(ctx) {
     const { notes } = ctx;
-    const ui: NotesUi = { group: PLAYER_GROUP, search: '', relation: 'all', addingGroup: false };
+    const ui: NotesUi = { group: PLAYER_GROUP, search: '', relation: ALL_REACH, addingGroup: false };
     let dragging: { kind: 'group' | 'page'; id: string } | undefined;
 
     const viewModel = (): NotesVm =>
@@ -107,7 +108,7 @@ export const notesFeature: Feature = {
       openPicker: () => set({ picker: '', confirm: undefined }),
       pickerSearch: (picker) => set({ picker }),
       pick: (player) =>
-        set({ picker: undefined, group: PLAYER_GROUP, page: playerPageId(player), relation: 'all', search: '' }),
+        set({ picker: undefined, group: PLAYER_GROUP, page: playerPageId(player), relation: ALL_REACH, search: '' }),
       drag: (kind, id) => {
         dragging = { kind, id };
       },

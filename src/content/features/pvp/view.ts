@@ -4,8 +4,9 @@ import { formatNumber, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { battleDetailsView } from '../../ui/battle-details';
 import { headerIcons } from '../../ui/icons';
-import { keepKeys } from '../../ui/inputs';
+import { searchField } from '../../ui/inputs';
 import { externalIcon } from '../../ui/links';
+import { tabBar } from '../../ui/tabs';
 import type { IncomingRow, PlunderRow, PvpRow, PvpTab, PvpVm } from './view-model';
 
 export interface PvpActions {
@@ -80,11 +81,10 @@ const EMPTY = {
   incoming: { none: 'pvp.noIncoming', noMatch: 'pvp.noIncomingMatch' },
 } as const;
 
+const TABS: PvpTab[] = ['battles', 'plunders', 'incoming'];
+
 const tabs = (current: PvpTab | undefined, actions: PvpActions) =>
-  html`<div class="tabs">${(['battles', 'plunders', 'incoming'] as const).map(
-    (tab) =>
-      html`<button class=${tab === (current ?? 'battles') ? 'active' : ''} ?disabled=${tab === (current ?? 'battles')} @click=${() => actions.tab(tab)}>${t(`pvp.tab.${tab}`)}</button>`,
-  )}</div>`;
+  tabBar(TABS, current ?? 'battles', (tab) => t(`pvp.tab.${tab}`), actions.tab);
 
 const paging = (vm: PvpVm, actions: PvpActions) =>
   vm.pages <= 1
@@ -100,9 +100,7 @@ const paging = (vm: PvpVm, actions: PvpActions) =>
 /** `note` is the note card of the picked player */
 export function pvpView(vm: PvpVm | undefined, actions: PvpActions, note?: TemplateResult): TemplateResult {
   const filter = html`<p>
-    <input type="search" placeholder=${t('pvp.search')} .value=${vm?.search ?? ''}
-      @input=${(e: Event) => actions.search((e.target as HTMLInputElement).value)}
-      @keydown=${keepKeys} @keypress=${keepKeys} @keyup=${keepKeys} />
+    ${searchField(vm?.search ?? '', t('pvp.search'), actions.search)}
     ${
       vm?.picked
         ? html`<button class="action icon-only" data-tip=${t('pvp.clearFilter')} aria-label=${t('pvp.clearFilter')}

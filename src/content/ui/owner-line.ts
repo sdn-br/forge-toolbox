@@ -39,8 +39,18 @@ export const ownerVm = (lookups: OwnerLookups, id: PlayerId, owner: string): Own
   };
 };
 
+/** the star and the closed eye of an owner, each only while the player store knows the owner */
+export const ownerMarks = (
+  o: { ownerMarked?: boolean; ownerIgnored?: boolean },
+  toggleMark: (marked: boolean) => void,
+  toggleIgnore: (ignored: boolean) => void,
+) =>
+  html`${o.ownerMarked === undefined ? '' : starButton(o.ownerMarked, () => toggleMark(!o.ownerMarked))}${
+    o.ownerIgnored === undefined ? '' : ignoreButton('player', o.ownerIgnored, () => toggleIgnore(!o.ownerIgnored))
+  }`;
+
 /** the owner with a star and the closed eye beside it while the player store knows them */
 export const ownerOf = (o: OwnerVm, toggleMark: (marked: boolean) => void, toggleIgnore: (ignored: boolean) => void) =>
   html`<span class="gb-owner">${t('gbCalc.ownerLabel')}: ${externalLink(o.owner, o.ownerUrl)}${
-    o.ownerMarked === undefined ? '' : html` ${starButton(o.ownerMarked, () => toggleMark(!o.ownerMarked))}`
-  }${o.ownerIgnored === undefined ? '' : ignoreButton('player', o.ownerIgnored, () => toggleIgnore(!o.ownerIgnored))}</span>`;
+    o.ownerMarked === undefined ? '' : ' '
+  }${ownerMarks(o, toggleMark, toggleIgnore)}</span>`;

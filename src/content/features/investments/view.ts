@@ -1,15 +1,17 @@
 import { html, type TemplateResult } from 'lit-html';
-import type { PlayerId } from '../../../shared/ids';
 import { t } from '../../core/texts';
 import type { InvestmentStatus } from '../../domain/investments';
 import { toggleGroup } from '../../ui/buttons';
 import { growthTag, progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { buildingCell, ignoredFilter, rowTip } from '../../ui/ignore';
+import { searchField } from '../../ui/inputs';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
-import { starButton } from '../../ui/star';
+import { markCell, markedFilter } from '../../ui/star';
+import { tabBar } from '../../ui/tabs';
 import { rowsIn, windowedRows } from '../../ui/windowed-rows';
-import { markedFilter, ownerCell, reachCell, reachFilter, text } from './filter-parts';
+import type { GbRowActions } from '../shared/gb-lookups';
+import { ownerCell, reachCell, reachFilter } from './filter-parts';
 import {
   type InvestmentColumn,
   type InvestmentRowVm,
@@ -21,16 +23,8 @@ import {
   type TotalsVm,
 } from './view-model';
 
-export interface InvestmentsActions {
+export interface InvestmentsActions extends GbRowActions {
   tab(tab: InvestmentsTab): void;
-  /** puts the star on a building or takes it away */
-  mark(owner: PlayerId, entityId: number, marked: boolean): void;
-  /** ignores a building or releases it */
-  ignore(owner: PlayerId, entityId: number, ignored: boolean): void;
-  /** ignores a player or releases them */
-  ignorePlayer(owner: PlayerId, ignored: boolean): void;
-  /** puts the star on a player or takes it away */
-  markPlayer(owner: PlayerId, marked: boolean): void;
   sort(column: InvestmentColumn, append: boolean): void;
   filter(patch: Partial<MineFilter>): void;
   /** put the owner's name into the "Spieler" filter, as if typed */
@@ -62,10 +56,6 @@ const columns: SortColumn<InvestmentColumn>[] = [
   { column: 'status', label: 'investments.col.status', num: false, icon: headerIcons.info },
 ];
 
-/** the first cell of a row: the star of the building */
-export const markCell = (r: { owner: PlayerId; entityId: number; marked: boolean }, mark: InvestmentsActions['mark']) =>
-  html`<td class="mark-cell">${starButton(r.marked, () => mark(r.owner, r.entityId, !r.marked))}</td>`;
-
 /** "x / y" of the level with the thin bar below, the rest to the level up in the tooltip; `extra` goes under the bar */
 const row = (r: InvestmentRowVm, playerField: string, actions: InvestmentsActions) => {
   const status = t(`investments.status.${r.status}`);
@@ -85,10 +75,7 @@ const row = (r: InvestmentRowVm, playerField: string, actions: InvestmentsAction
 };
 
 export const tabs = (current: InvestmentsTab, actions: { tab(tab: InvestmentsTab): void }) =>
-  html`<div class="tabs">${TABS.map(
-    (tab) =>
-      html`<button class=${tab === current ? 'active' : ''} ?disabled=${tab === current} @click=${() => actions.tab(tab)}>${t(`investments.tab.${tab}`)}</button>`,
-  )}</div>`;
+  tabBar(TABS, current, (tab) => t(`investments.tab.${tab}`), actions.tab);
 
 const table = (vm: InvestmentsVm, actions: InvestmentsActions) =>
   windowedRows({
@@ -117,8 +104,8 @@ const statusFilter = (f: MineFilter, actions: InvestmentsActions) =>
 
 /** the filters, the age of the town hall list at the end of the same row so it shows without scrolling */
 const filters = (f: MineFilter, age: string, actions: InvestmentsActions) => html`<p class="inv-filter">
-    ${text(f.player, t('investments.filter.player'), (player) => actions.filter({ player }))}
-    ${text(f.name, t('investments.filter.name'), (name) => actions.filter({ name }))}
+    ${searchField(f.player, t('investments.filter.player'), (player) => actions.filter({ player }))}
+    ${searchField(f.name, t('investments.filter.name'), (name) => actions.filter({ name }))}
     ${reachFilter(f.reach, (reach) => actions.filter({ reach }))}
     ${statusFilter(f, actions)}
     ${markedFilter(f.onlyMarked, (onlyMarked) => actions.filter({ onlyMarked }))}

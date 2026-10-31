@@ -54,3 +54,40 @@ export class UiState {
     this.kv.set(key, value).catch((error) => logError(failure, error));
   }
 }
+
+type PrefFields = Record<string, unknown>;
+
+const isRecord = (value: unknown): value is PrefFields =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** each field of `defaults` from `saved` where it has the type of its default, else the default; records within field
+ * by field the same way */
+const pickFields = <T extends object>(defaults: T, saved: unknown): T => {
+  const found: PrefFields = isRecord(saved) ? saved : {};
+  return Object.fromEntries(
+    Object.entries(defaults).map(([key, fallback]) => {
+      const value = found[key];
+      if (isRecord(fallback)) return [key, pickFields(fallback, value)];
+      return [key, typeof value === typeof fallback ? value : fallback];
+    }),
+  ) as T;
+};
+
+/**
+ * A view choice saved as a JSON record (`savePref(key, JSON.stringify(value))`), read back with each field that is
+ * missing or of another type than its default at the default. `migrate` turns a record of an older shape into the
+ * current one before the fields are checked.
+ */
+export function prefRecord<T extends object>(
+  defaults: T,
+  saved: string | undefined,
+  migrate?: (saved: PrefFields) => PrefFields,
+): T {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(saved ?? '{}');
+  } catch {
+    return defaults;
+  }
+  return pickFields(defaults, migrate && isRecord(parsed) ? migrate(parsed) : parsed);
+}

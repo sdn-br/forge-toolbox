@@ -1,23 +1,15 @@
-import type { BuildingDefId, PlayerId } from '../../../shared/ids';
-import type { Relations } from '../../../shared/model';
-import { formatAgeShort, formatNumber, t } from '../../core/texts';
+import type { PlayerId } from '../../../shared/ids';
+import { formatAgeShort, formatNumber, t, textFilter } from '../../core/texts';
 import { ownerShare, type SnipeTier } from '../../domain/gb-snipe';
 import type { PossibleInvestment } from '../../domain/investments';
+import { passesReach, REACH_ORDER, type Reach, type ReachFilter, reasonsOf } from '../../domain/reach';
 import { type ProgressVm, progressVm } from '../../ui/fp-bar';
-import { ignoreNote } from '../../ui/ignore';
+import { countsIgnored, ignoreNote } from '../../ui/ignore';
 import { type HitVm, hitSortKeys, hitVm, type OwnerShareCell, ownerShareCell, snipeNotes } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
 import { type RowWindow, rowWindow } from '../../ui/windowed-rows';
-import {
-  contains,
-  DEFAULT_REACH,
-  passesReach,
-  REACH_ORDER,
-  type Reach,
-  type ReachFilter,
-  reachTip,
-  reasonsOf,
-} from './filter-model';
+import type { GbLookups } from '../shared/gb-lookups';
+import { DEFAULT_REACH, reachTip } from './filter-model';
 
 export type PossibleColumn =
   | 'mark'
@@ -132,7 +124,7 @@ export interface PossibleVm {
   count: string;
 }
 
-export interface PossibleInput {
+export interface PossibleInput extends GbLookups {
   candidates: PossibleInvestment[];
   filter: PossibleFilter;
   sort: PossibleSort;
@@ -140,17 +132,6 @@ export interface PossibleInput {
   visible: number;
   scroll?: number;
   now: number;
-  greatBuildingName(def: BuildingDefId): string | undefined;
-  playerName(id: PlayerId): string | undefined;
-  /** undefined for an owner the player store does not know */
-  relations(id: PlayerId): Relations | undefined;
-  isMarked(owner: PlayerId, entityId: number): boolean;
-  /** the player put a star on the owner */
-  ownerMarked(owner: PlayerId): boolean;
-  isIgnored(owner: PlayerId, entityId: number): boolean;
-  /** undefined for an owner the player store does not know */
-  ownerIgnored(owner: PlayerId): boolean | undefined;
-  playerUrl(id: PlayerId): string;
 }
 
 type Named = PossibleInvestment & {
@@ -183,6 +164,8 @@ const sortKey: Record<PossibleColumn, (r: Named) => number | string | undefined>
 
 export function possibleViewModel(input: PossibleInput): PossibleVm {
   const { filter, sort } = input;
+  const byPlayer = textFilter(filter.player);
+  const byName = textFilter(filter.name);
   const named: Named[] = input.candidates
     .map((c) => ({
       ...c,
@@ -190,15 +173,15 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
       name: input.greatBuildingName(c.building.cityEntityId) ?? c.building.cityEntityId,
       reasons: reasonsOf(input.relations(c.building.owner)),
       marked: input.isMarked(c.building.owner, c.building.entityId),
-      ownerMarked: input.ownerMarked(c.building.owner),
+      ownerMarked: input.playerMarked(c.building.owner) === true,
       ignored: input.isIgnored(c.building.owner, c.building.entityId),
       ownerIgnored: input.ownerIgnored(c.building.owner),
     }))
-    .filter((r) => contains(r.ownerName, filter.player) && contains(r.name, filter.name))
+    .filter((r) => byPlayer(r.ownerName) && byName(r.name))
     .filter((r) => passesReach(r.reasons, filter.reach))
     .filter((r) => !r.hit || filter.tier[r.hit.tier])
     .filter((r) => !filter.onlyMarked || r.marked || r.ownerMarked);
-  const counted = named.filter((r) => !r.ignored && r.ownerIgnored !== true);
+  const counted = named.filter((r) => !countsIgnored(r.ignored, r.ownerIgnored));
   const hits = counted.filter((r) => r.hit).length;
   const visible = filter.showIgnored ? named : counted;
   const shown = filter.onlyHits ? visible.filter((r) => r.hit) : visible;

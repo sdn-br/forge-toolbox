@@ -10,8 +10,9 @@ import { type SnipeList, snipeList } from '../../../domain/gb-snipe';
 import type { Box } from '../../../ui/box';
 import { nextSort } from '../../../ui/sortable';
 import { createChime } from '../../../ui/sound';
+import { gbRowActions, ignores } from '../../shared/gb-lookups';
 import type { FoldShow } from '../fold-state';
-import { type GbShared, ignores } from '../lookups';
+import type { GbShared } from '../lookups';
 import { type SnipeActions, snipeView } from './view';
 import {
   clampScroll,
@@ -82,10 +83,7 @@ export function createSnipeSection(
       hooks.refresh();
     },
     toggle: hooks.toggle,
-    mark: (owner, entityId, marked) => ctx.greatBuildings.setMarked(owner, entityId, marked),
-    markPlayer: (player, marked) => ctx.players.setMarked(player, marked),
-    ignore: (owner, entityId, ignored) => ctx.greatBuildings.setIgnored(owner, entityId, ignored),
-    ignorePlayer: (player, ignored) => ctx.players.setIgnored(player, ignored),
+    ...gbRowActions(ctx),
     showIgnored: (show) => {
       showIgnored = show;
       ctx.ui.savePref(SNIPE_SHOW_IGNORED, String(show));
