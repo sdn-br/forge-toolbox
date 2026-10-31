@@ -45,6 +45,8 @@ export class GreatBuildingStore {
   private open?: Construction;
   private entities = new Map<string, GreatBuildingEntity>();
   private listedAt?: number;
+  /** when the game last showed the open construction anew: opened, paid into or paged to another level */
+  private shownAt = 0;
   private pending: OpenedGreatBuilding[] = [];
   private writes: Promise<unknown> = Promise.resolve();
   private flushQueued = false;
@@ -175,6 +177,7 @@ export class GreatBuildingStore {
       ...(entity && nextProduction && { nextProduction: { level: entity.level, ...nextProduction } }),
       seenAt: this.now(),
     };
+    this.shownAt = this.now();
     this.remember(false);
     this.bus.emit('greatBuilding.opened', { owner, entityId, own });
   }
@@ -186,6 +189,7 @@ export class GreatBuildingStore {
   levelRanking(owner: PlayerId, entityId: number, level: number, rankings: RankingRow[]): void {
     const open = this.matching(owner, entityId);
     if (!open) return;
+    this.shownAt = this.now();
     if (open.entity !== undefined && level <= open.entity.level) {
       this.open = { ...open, past: { level, rankings } };
     } else {
@@ -217,6 +221,7 @@ export class GreatBuildingStore {
     const leveled =
       open.leveled && rankingsLevel !== undefined && rankingsLevel >= open.leveled.level ? undefined : open.leveled;
     this.open = { ...open, entity, rankings, rankingsLevel, past: undefined, leveled, seenAt: this.now() };
+    this.shownAt = this.now();
     this.remember(true);
     this.changed('contributed');
   }
@@ -241,9 +246,10 @@ export class GreatBuildingStore {
 
   /**
    * The great building list of another player (`getOtherPlayerOverview`); the caller leaves out the own list. After a
-   * contribution that levels a building the game asks for the owner's list to learn names: a list of the owner of the
-   * open construction less than `ASKED_BY_GAME` after it was opened or paid into counts as asked by the game. There is no
-   * other sign, the request looks the same.
+   * contribution that levels a building, and after paging back to a finished level (seen 2026-10-31: right after its
+   * `getConstructionRanking`, in a request of its own), the game asks for the owner's list to learn names: a list of the
+   * owner of the open construction less than `ASKED_BY_GAME` after it was opened, paid into or paged counts as asked by
+   * the game. There is no other sign, the request looks the same.
    */
   noteList(rows: GreatBuildingListRow[], ownerName?: string): void {
     const owner = rows[0]?.owner;
@@ -256,7 +262,7 @@ export class GreatBuildingStore {
       ...(ownerName !== undefined && { ownerName }),
       entityIds: rows.map((r) => r.entityId),
       at,
-      askedByGame: open?.owner === owner && at - open.seenAt < ASKED_BY_GAME,
+      askedByGame: open?.owner === owner && at - this.shownAt < ASKED_BY_GAME,
     });
   }
 
