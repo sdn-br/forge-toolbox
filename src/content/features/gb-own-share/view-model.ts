@@ -7,6 +7,7 @@ import type { Construction, RankingRow } from '../../model/great-building';
 import { type PlaceFactorState, sameChoice } from '../../stores/place-factors';
 import { type FactorButton, factorButtons } from '../../ui/factor-bar';
 import { type LevelChoice, levelChoice } from '../../ui/level-bar';
+import { type LevelPreview, levelPreview } from '../../ui/level-preview';
 import { type CopyOptions, copyText } from './copy-text';
 
 export {
@@ -65,20 +66,6 @@ export interface CopyVm {
   building: string;
 }
 
-/** a later level as if it were open and empty, as in the LG-Rechner */
-export interface OwnPreviewVm {
-  level: number;
-  next: number;
-  /** Forge points the level needs; undefined without the definition */
-  required?: number;
-  /** the owner has not unlocked the level yet */
-  locked: boolean;
-  /** why there are no places: the definition is not loaded or the reward of the level is unknown */
-  unknown?: 'definition' | 'reward';
-  /** the rewards are computed, off by up to 5 Forge points */
-  estimate: boolean;
-}
-
 export type OwnShareVm =
   | { kind: 'none' }
   | { kind: 'noEntity' }
@@ -93,7 +80,7 @@ export type OwnShareVm =
       /** the level field: the open level or a later one as a preview */
       levels: LevelChoice;
       /** set while a later level is previewed: empty, without deposits, Ext and live Forge points */
-      preview?: OwnPreviewVm;
+      preview?: LevelPreview;
       /** the factor of the free field: the one of place 1 */
       factor: number;
       /** sorted by value; `arc` marks the button of the own Arc bonus; active only when all five places hold it */
@@ -113,7 +100,7 @@ export type OwnShareVm =
       copy: CopyVm;
     }
   /** a previewed level whose places are unknown: no definition, or a reward no table reaches */
-  | { kind: 'previewUnknown'; name: string; levels: LevelChoice; preview: OwnPreviewVm };
+  | { kind: 'previewUnknown'; name: string; levels: LevelChoice; preview: LevelPreview };
 
 export function ownShareViewModel(input: OwnShareInputs): OwnShareVm {
   const c = input.construction;
@@ -126,7 +113,7 @@ export function ownShareViewModel(input: OwnShareInputs): OwnShareVm {
   const atMax = entity.level >= entity.maxLevel;
   if (levels.preview || atMax) {
     const level = levels.chosen;
-    const base = { level, next: level + 1, locked: level + 1 > entity.maxLevel, estimate: false };
+    const base = levelPreview(level, entity.maxLevel);
     const gb = input.greatBuilding?.(entity.def);
     if (!gb) return { kind: 'previewUnknown', name, levels, preview: { ...base, unknown: 'definition' } };
     const empty = emptyLevel(gb, level);

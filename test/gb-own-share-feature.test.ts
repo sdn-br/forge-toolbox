@@ -281,9 +281,13 @@ describe('Eigenanteil', () => {
     const { box, openOwn, copies } = setup();
     openOwn();
     await tick();
-    (box.root.querySelector('button.copy-fp') as HTMLButtonElement).click();
+    const button = box.root.querySelector('button.copy-fp') as HTMLButtonElement;
+    button.click();
     await tick();
     expect(copies).toEqual(['6742']);
+    // a moment the check stands in for the number, named for screen readers
+    expect(button.querySelector('svg path[d^="M4.5 12.5"]')).not.toBeNull();
+    expect(button.getAttribute('aria-label')).toBe('Kopiert');
   });
 
   it('counts a promised payment, secures only deposits that keep their place, and trusts when told', async () => {

@@ -32,6 +32,10 @@ export const ignoreButton = (kind: 'building' | 'player', ignored: boolean, togg
 export const ignoredFilter = (show: boolean, set: (show: boolean) => void) =>
   filterToggle('ignored-filter', show, t('ignore.show'), headerIcons.eye, set);
 
-/** the building name with the closed eye at the right edge; `tip` is the name and, when ignored, why */
+/** the tooltip of a table row: why it is ignored, then its notes */
+export const rowTip = (r: { ignoreNote?: string; notes?: string[] }) =>
+  [r.ignoreNote, ...(r.notes ?? [])].filter(Boolean).join('\n');
+
+/** the building name with the closed eye at the right edge; the tooltip is the name over `tip`, the row's tooltip */
 export const buildingCell = (name: string, tip: string, ignored: boolean, toggle: () => void) =>
-  html`<td class="name-cell" data-tip=${tip}><span class="row-name"><span class="row-label">${name}</span>${ignoreButton('building', ignored, toggle)}</span></td>`;
+  html`<td class="name-cell" data-tip=${[name, tip].filter(Boolean).join('\n')}><span class="row-name"><span class="row-label">${name}</span>${ignoreButton('building', ignored, toggle)}</span></td>`;

@@ -1,5 +1,5 @@
-// A short beep made with WebAudio, so the extension ships no sound file.
-import { logError } from '../../core/log';
+// A short beep made with WebAudio, so the extension ships no sound file, and a chime that beeps once per new state.
+import { logError } from '../core/log';
 
 let audio: AudioContext | undefined;
 
@@ -23,4 +23,25 @@ export function playTone(): void {
   } catch (error) {
     logError('playing a tone failed', error);
   }
+}
+
+export interface Chime {
+  /** beeps unless `key` is the one of the last ring; `audible` false only remembers the key */
+  ring(key: string, audible?: boolean): void;
+  /** forgets the last key, so the next ring beeps whatever it is */
+  reset(): void;
+}
+
+/** A chime that stays silent for the same key as last time, so a redraw of the same state does not beep again. */
+export function createChime(tone: () => void = playTone): Chime {
+  let last: string | undefined;
+  return {
+    ring(key, audible = true) {
+      if (audible && key !== last) tone();
+      last = key;
+    },
+    reset() {
+      last = undefined;
+    },
+  };
 }

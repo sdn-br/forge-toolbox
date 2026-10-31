@@ -8,7 +8,7 @@ import {
   type InvestmentTotals,
   sumTotals,
 } from '../../domain/investments';
-import { progressPercent } from '../../ui/fp-bar';
+import { type ProgressVm, progressVm } from '../../ui/fp-bar';
 import { ignoreNote } from '../../ui/ignore';
 import { type Sort, sortRows } from '../../ui/sortable';
 import { type RowWindow, rowWindow } from '../../ui/windowed-rows';
@@ -75,7 +75,8 @@ export type InvestmentSort = Sort<InvestmentColumn>;
 /** names, places, status and progress (nearest level up) read from the top, deposit, profit and level from the largest */
 export const INVESTMENT_DESC_FIRST: ReadonlySet<InvestmentColumn> = new Set(['mark', 'deposit', 'profit', 'level']);
 
-export interface InvestmentRowVm {
+/** the progress of the level for its cell */
+export interface InvestmentRowVm extends ProgressVm {
   owner: PlayerId;
   entityId: number;
   /** the player put a star on the building */
@@ -103,11 +104,6 @@ export interface InvestmentRowVm {
   profit: string;
   gross: string;
   status: InvestmentStatus;
-  rest: string;
-  invested: string;
-  required: string;
-  /** paid in of the level, 0 to 100, for the bar */
-  percent: number;
   /** "44" when others paid in since the building was last open or, never opened, since the first town hall list */
   growth?: string;
 }
@@ -253,10 +249,7 @@ export function investmentsViewModel(input: InvestmentsInput): InvestmentsVm {
       profit: signed(r.profit),
       gross: formatNumber(r.gross),
       status: r.status,
-      rest: formatNumber(r.rest),
-      invested: formatNumber(r.invested),
-      required: formatNumber(r.required),
-      percent: progressPercent(r.invested, r.required),
+      ...progressVm(r.invested, r.required),
       ...(r.growth !== undefined && { growth: formatNumber(r.growth) }),
     })),
     scroll: rowWindow(input.scroll ?? 0, named.length, input.visible),

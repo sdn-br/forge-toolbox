@@ -6,6 +6,8 @@ tr.own-row td { background: #3a2814; }
 td.own-fp, td.gain { color: var(--good); }
 button.copy-fp { all: unset; cursor: pointer; }
 button.copy-fp:hover { text-decoration: underline; }
+/* the check that stands in for the number a moment after copying */
+button.copy-fp svg { display: inline-block; width: 12px; height: 12px; vertical-align: -1px; }
 /* the Eigenanteil table keeps its column widths (the colgroup) whatever the cells hold */
 table.own-share { table-layout: fixed; width: auto; }
 table.own-share th, table.own-share td { overflow: hidden; text-overflow: ellipsis; }

@@ -2,11 +2,11 @@ import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import type { Relations } from '../../../shared/model';
 import { DAY_MS } from '../../../shared/time';
 import { formatAge, formatNumber, t } from '../../core/texts';
-import { type OwnerShare, ownerShare, type SnipeTier, snipeProfitKey, TIER_ORDER } from '../../domain/gb-snipe';
+import { type OwnerShare, ownerShare, type SnipeTier } from '../../domain/gb-snipe';
 import type { PossibleInvestment } from '../../domain/investments';
-import { progressPercent } from '../../ui/fp-bar';
+import { type ProgressVm, progressVm } from '../../ui/fp-bar';
 import { ignoreNote } from '../../ui/ignore';
-import { snipeNotes, snipeProfit, snipeProfitRange } from '../../ui/snipe-hit';
+import { type HitVm, hitSortKeys, hitVm, snipeNotes } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
 import { type RowWindow, rowWindow } from '../../ui/windowed-rows';
 import {
@@ -86,7 +86,8 @@ export const DEFAULT_FILTER: PossibleFilter = {
   showIgnored: false,
 };
 
-export interface PossibleRowVm {
+/** the progress of the level for its cell */
+export interface PossibleRowVm extends ProgressVm {
   owner: PlayerId;
   entityId: number;
   /** the player put a star on the building */
@@ -109,18 +110,12 @@ export interface PossibleRowVm {
   reachTip: string;
   name: string;
   level: number;
-  invested: string;
-  required: string;
-  rest: string;
-  /** paid in of the level, 0 to 100, for the bar */
-  percent: number;
   /** "300" when the building gained Forge points between its last two sightings on this level */
   growth?: string;
   /** the owner's share of the level: "320", "?" when unknown; `stale` when drawn muted, with its age as the tip */
   share: { text: string; stale: boolean; tip: string };
   /** the best place; missing when none pays */
-  /** `profit` is the best case, `range` the range for its tooltip when not exact */
-  hit?: { rank: number; cost: string; profit: string; range?: string; estimate: boolean; tier: SnipeTier };
+  hit?: HitVm;
   /** lines of the row tooltip */
   notes: string[];
   /** "vor 3 Std." since the building or its list was seen */
@@ -184,15 +179,14 @@ const sortKey: Record<PossibleColumn, (r: Named) => number | string | undefined>
   reach: (r) => REACH_ORDER.indexOf(r.reasons[0] as Reach),
   name: (r) => r.name,
   level: (r) => r.building.level,
-  progress: ({ building: b }) => progressPercent(b.invested, b.required),
   share: (r) => {
     const share = ownerShare(r.building);
     return share.state === 'unknown' ? undefined : share.fp;
   },
-  rank: (r) => r.hit?.place.rank,
-  cost: (r) => r.hit?.place.cost,
-  profit: (r) => r.hit && snipeProfitKey(r.hit),
-  tier: (r) => r.hit && TIER_ORDER[r.hit.tier],
+  ...hitSortKeys<Named>(
+    (r) => r.building,
+    (r) => r.hit,
+  ),
   seen: (r) => r.building.seenAt,
 };
 
@@ -204,8 +198,6 @@ const shareCell = (share: OwnerShare, now: number): PossibleRowVm['share'] =>
         stale: share.state === 'stale',
         tip: share.state === 'stale' ? t('investments.shareStale', { age: formatAge(now - share.at) }) : '',
       };
-
-const withRange = (range: string | undefined) => (range === undefined ? {} : { range });
 
 export function possibleViewModel(input: PossibleInput): PossibleVm {
   const { filter, sort } = input;
@@ -248,22 +240,10 @@ export function possibleViewModel(input: PossibleInput): PossibleVm {
       reachTip: reachTip(reasons),
       name,
       level: b.level,
-      invested: formatNumber(b.invested),
-      required: formatNumber(b.required),
-      rest: formatNumber(Math.max(0, b.required - b.invested)),
-      percent: progressPercent(b.invested, b.required),
+      ...progressVm(b.invested, b.required),
       ...(b.growth !== undefined && { growth: formatNumber(b.growth) }),
       share: shareCell(ownerShare(b), input.now),
-      ...(hit && {
-        hit: {
-          rank: hit.place.rank,
-          cost: formatNumber(hit.place.cost),
-          profit: snipeProfit(hit),
-          ...withRange(snipeProfitRange(hit)),
-          estimate: hit.estimate,
-          tier: hit.tier,
-        },
-      }),
+      ...(hit && { hit: hitVm(hit) }),
       notes: hit ? snipeNotes(hit) : [],
       age: t('investments.ago', { duration: age(input.now - b.seenAt) }),
     })),

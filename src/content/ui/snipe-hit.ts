@@ -1,8 +1,17 @@
-// How a snipe hit reads, in the snipe helper and in the possible investments: profit, row notes, tier icon.
+// How a snipe hit reads, in the snipe helper and in the possible investments: profit, row notes, tier icon, the cells
+// of the best place, their sort keys and the widths of the columns the hit lists share with the own investments.
 import { html, type TemplateResult } from 'lit-html';
 import { formatAge, formatNumber, signed, t } from '../core/texts';
-import type { OwnerShare, SnipeHit, SnipePlace, SnipeTier } from '../domain/gb-snipe';
+import {
+  type OwnerShare,
+  type SnipeHit,
+  type SnipePlace,
+  type SnipeTier,
+  snipeProfitKey,
+  TIER_ORDER,
+} from '../domain/gb-snipe';
 import { estimateCell } from './estimate-cell';
+import { progressPercent } from './fp-bar';
 import { headerIcons } from './icons';
 
 /** the best case, "+310"; the tier beside it tells how sure it is, the range goes to the tooltip */
@@ -44,3 +53,88 @@ export const tierCell = (tier: SnipeTier) =>
 /** the profit, marked when the rewards are estimated; the range of a not exact profit in the tooltip */
 export const profitCell = (profit: string, estimate: boolean, range?: string) =>
   estimateCell(profit, estimate, [range]);
+
+/** the best place of a hit as drawn: `profit` the best case, `range` the range for its tooltip when not exact */
+export interface HitVm {
+  rank: number;
+  cost: string;
+  profit: string;
+  range?: string;
+  /** the rewards are estimated */
+  estimate: boolean;
+  tier: SnipeTier;
+}
+
+export const hitVm = (h: SnipeHit): HitVm => {
+  const range = snipeProfitRange(h);
+  return {
+    rank: h.place.rank,
+    cost: formatNumber(h.place.cost),
+    profit: snipeProfit(h),
+    ...(range !== undefined && { range }),
+    estimate: h.estimate,
+    tier: h.tier,
+  };
+};
+
+/** Platz, Einsatz, Gewinn, Sicherheit of the best place */
+export const hitCells = (h: HitVm) =>
+  html`<td class="num">${t('gb.rank', { rank: h.rank })}</td>
+  <td class="num" data-tip=${t('snipe.costHint')}>${h.cost}</td>
+  ${profitCell(h.profit, h.estimate, h.range)}
+  ${tierCell(h.tier)}`;
+
+export type HitColumn = 'progress' | 'rank' | 'cost' | 'profit' | 'tier';
+
+/** Sort keys of the columns a hit list shares: the progress of the level, the rest of its best place, undefined for a
+ * row without a hit (it goes last). */
+export const hitSortKeys = <R>(
+  level: (r: R) => { invested: number; required: number },
+  hit: (r: R) => SnipeHit | undefined,
+): Record<HitColumn, (r: R) => number | undefined> => ({
+  progress: (r) => {
+    const l = level(r);
+    return progressPercent(l.invested, l.required);
+  },
+  rank: (r) => hit(r)?.place.rank,
+  cost: (r) => hit(r)?.place.cost,
+  profit: (r) => {
+    const h = hit(r);
+    return h && snipeProfitKey(h);
+  },
+  tier: (r) => {
+    const h = hit(r);
+    return h && TIER_ORDER[h.tier];
+  },
+});
+
+/** Widths in px of the columns the snipe list and the investment tables share, so heads show whole: the progress and the
+ * cost only in the two hit lists (the own investments keep a wider progress). */
+export const HIT_COLUMN_WIDTHS = {
+  /** the star head with arrow and level number needs 29 px plus 4 px padding */
+  mark: 34,
+  /** sortable heads fit their word, the arrow and a level number (measured: "Stufe ▾2" 56 px) */
+  level: 56,
+  rank: 56,
+  /** measured: "8.371 / 11.122" 83 px, the head "Fortschritt ▾2" 88 px, room up to "19.999 / 24.000" */
+  progress: 96,
+  /** measured: "Einsatz ▾2" 67 px */
+  cost: 68,
+  /** the best case only, "≈ +12.345" at most; the range is in the tooltip */
+  profit: 64,
+  /** icon heads (tier, status): icon, arrow and level number 29 px */
+  icon: 32,
+};
+
+const w = HIT_COLUMN_WIDTHS;
+
+/** the widths above as CSS; part of `baseCss` */
+export const hitColumnsCss = `
+:is(.snipe-table, .inv-table) .c-mark { width: ${w.mark}px; }
+:is(.snipe-table, .inv-table) .c-level { width: ${w.level}px; }
+:is(.snipe-table, .inv-table) .c-rank { width: ${w.rank}px; }
+:is(.snipe-table, .inv-table) .c-profit { width: ${w.profit}px; }
+:is(.snipe-table, .inv-table) :is(.c-tier, .c-status) { width: ${w.icon}px; }
+:is(.snipe-table, .inv-possible) .c-progress { width: ${w.progress}px; }
+:is(.snipe-table, .inv-possible) .c-cost { width: ${w.cost}px; }
+`;

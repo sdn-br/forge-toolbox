@@ -1,6 +1,4 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
-import { signed, t } from '../../core/texts';
-import { type Activity, playerActivity } from '../../domain/activity';
 import {
   type ConstructionCalc,
   calculateConstruction,
@@ -15,20 +13,12 @@ import { type LevelUpAndFirst, levelUpAndFirst } from '../../domain/gb-strategy'
 import type { GreatBuildingDef } from '../../model/catalog';
 import type { Construction } from '../../model/great-building';
 import type { FoestatsRecord } from '../../stores/foestats';
+import { type ActivityVm, activityVm } from '../../ui/activity';
 import { type FactorButton, factorButtons } from '../../ui/factor-bar';
 import { ignoreWords } from '../../ui/ignore';
 import { type LevelChoice, levelChoice } from '../../ui/level-bar';
-
-/** the owner line: the name with the foestats page, the star and the eye only for a player the store knows */
-export interface OwnerVm {
-  owner: string;
-  /** the owner's page at foestats */
-  ownerUrl: string;
-  /** the player put a star on the owner; missing when the player store does not know the owner */
-  ownerMarked?: boolean;
-  /** the player ignores the owner; missing when the player store does not know the owner */
-  ownerIgnored?: boolean;
-}
+import { type LevelPreview, levelPreview } from '../../ui/level-preview';
+import { type OwnerLookups, type OwnerVm, ownerVm } from '../../ui/owner-line';
 
 export interface GbHeader extends OwnerVm {
   name: string;
@@ -64,18 +54,6 @@ export interface CostCell {
   short: boolean;
 }
 
-/** one line about the owner's activity, a tooltip with its source */
-export interface ActivityVm {
-  text: string;
-  /** change of points and battles over the last days */
-  week?: string;
-  /** several days without an increase */
-  idle: boolean;
-  title: string;
-  /** foestats is being asked right now */
-  loading: boolean;
-}
-
 /** the demand cell: the cost and what to know about the deal */
 export interface DemandCell extends CostCell {
   /** set when the demand is more than can still be paid: what can be paid until the level up */
@@ -92,7 +70,7 @@ export interface PlaceRow {
   holder?: { name: string; fp: number };
   /** only where the place can be had, and in the own row while it is not safe; profit and rate likewise */
   safe?: CostCell;
-  /** the holder cannot be passed anymore: shown instead of a safe cost, in the own row as a check mark */
+  /** the holder cannot be passed anymore: shown instead of a safe cost, in the own row as the circled check */
   secured: boolean;
   /** stays on every place: it is the owner's offer, he makes the place safe himself */
   demand?: DemandCell;
@@ -105,17 +83,7 @@ export interface PlaceRow {
 }
 
 /** the selected later level as if it were open and empty */
-export interface PreviewVm {
-  level: number;
-  next: number;
-  /** Forge points the level needs; undefined without the definition */
-  required?: number;
-  /** the owner has not unlocked the level yet */
-  locked: boolean;
-  /** why there are no places: the definition is not loaded or the reward of the level is unknown */
-  unknown?: 'definition' | 'reward';
-  /** the rewards are computed, off by up to 5 Forge points */
-  estimate: boolean;
+export interface PreviewVm extends LevelPreview {
   places: PlaceRow[];
 }
 
@@ -183,18 +151,12 @@ export type GbCalculatorVm =
     };
 
 /** what the calculator and the snipe list look up about buildings and players */
-export interface GbLookups {
+export interface GbLookups extends OwnerLookups {
   greatBuildingName(def: BuildingDefId): string | undefined;
   /** the owner's name when the rankings or the list do not tell it */
   playerName(id: PlayerId): string | undefined;
-  /** a player's page at foestats */
-  playerUrl(id: PlayerId): string;
   isMarked(owner: PlayerId, entityId: number): boolean;
-  /** whether the owner carries a star; undefined for a player the store does not know */
-  playerMarked(id: PlayerId): boolean | undefined;
   isIgnored(owner: PlayerId, entityId: number): boolean;
-  /** whether the owner is ignored; undefined for a player the store does not know */
-  ownerIgnored(id: PlayerId): boolean | undefined;
   /** the owner's days at foestats; undefined while foestats is off or was not asked yet */
   foestats(id: PlayerId): FoestatsRecord | undefined;
   /** the current foestats day, `YYYY-MM-DD` */
@@ -219,50 +181,6 @@ export interface GbCalculatorInput extends GbLookups {
   /** era and level costs of the building; undefined while its definition is not loaded */
   greatBuilding(def: BuildingDefId): GreatBuildingDef | undefined;
 }
-
-function activityText(a: Activity): string {
-  if (a.daysAgo === 0) return t('foestats.activeToday');
-  if (a.daysAgo === 1) return t('foestats.activeYesterday');
-  if (a.daysAgo !== undefined) return t('foestats.activeDaysAgo', { days: a.daysAgo });
-  const flat = a.flatFor ?? 0;
-  return flat >= 2 ? t('foestats.flatFor', { days: flat }) : t('foestats.noIncrease');
-}
-
-export function activityVm(record: FoestatsRecord | undefined, today: string): ActivityVm | undefined {
-  if (!record) return undefined;
-  const activity = playerActivity(record.days, today);
-  const unreachable = t('foestats.unreachable');
-  const { loading } = record;
-  if (!activity) {
-    const text = loading ? t('foestats.loading') : record.unreachable ? unreachable : t('foestats.noData');
-    return { text, idle: false, title: text, loading };
-  }
-  const newest = record.days.at(-1)?.date ?? '';
-  const { week } = activity;
-  const known = (n: number | undefined) => (n === undefined ? '?' : signed(n));
-  return {
-    text: activityText(activity),
-    ...(week.days > 0 && {
-      week: t('foestats.week', { days: week.days, points: known(week.points), battles: known(week.battles) }),
-    }),
-    idle: activity.idle,
-    loading,
-    title: [t('foestats.source', { date: newest }), record.unreachable && t('foestats.stale')]
-      .filter(Boolean)
-      .join('\n'),
-  };
-}
-
-export const ownerVm = (lookups: GbLookups, id: PlayerId, owner: string): OwnerVm => {
-  const ownerMarked = lookups.playerMarked(id);
-  const ownerIgnored = lookups.ownerIgnored(id);
-  return {
-    owner,
-    ownerUrl: lookups.playerUrl(id),
-    ...(ownerMarked !== undefined && { ownerMarked }),
-    ...(ownerIgnored !== undefined && { ownerIgnored }),
-  };
-};
 
 /** a price only where the place can be had, or for the own place while it is not safe */
 const priced = (p: PlaceCalc) => p.available || (p.mine && !p.secured);
@@ -333,7 +251,7 @@ function previewVm(
   arcBonus: number,
   factor: number,
 ): PreviewVm {
-  const base = { level, next: level + 1, locked: level + 1 > maxLevel, estimate: false, places: [] };
+  const base = { ...levelPreview(level, maxLevel), places: [] };
   if (!gb) return { ...base, unknown: 'definition' };
   const p = previewLevel({ greatBuilding: gb, level, arcBonus, factor });
   if (!p.calc || !p.reward) return { ...base, required: p.required, unknown: 'reward' };
