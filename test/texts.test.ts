@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatPrice, formatWhen } from '../src/content/core/texts';
+import { containsText, formatPrice, formatWhen, sameName, textFilter } from '../src/content/core/texts';
 
 describe('formatWhen', () => {
   const now = new Date(2026, 9, 19, 15, 0).getTime();
@@ -20,5 +20,32 @@ describe('formatPrice', () => {
   });
   it('shows small prices whole', () => {
     expect(formatPrice(2_000)).toBe('2.000');
+  });
+});
+
+describe('containsText', () => {
+  it('finds a part in any case, umlauts too', () => {
+    expect(containsText('Großer Kölner Dom', 'kölner')).toBe(true);
+    expect(containsText('ÄGYPTEN', 'ägy')).toBe(true);
+    expect(containsText('Zeus', 'hera')).toBe(false);
+  });
+
+  it('trims the part and lets an empty one match every text', () => {
+    expect(containsText('Zeus', '  zeu ')).toBe(true);
+    expect(containsText('Zeus', '   ')).toBe(true);
+    expect(containsText('', '')).toBe(true);
+  });
+
+  it('builds one filter that tests many texts', () => {
+    const byName = textFilter(' BER ');
+    expect(['Bert', 'Anna', 'alberta'].filter(byName)).toEqual(['Bert', 'alberta']);
+  });
+});
+
+describe('sameName', () => {
+  it('compares whole names in any case without trimming', () => {
+    expect(sameName('Ärger', 'ärger')).toBe(true);
+    expect(sameName('Bert', 'Berta')).toBe(false);
+    expect(sameName(' Bert', 'Bert')).toBe(false);
   });
 });

@@ -22,7 +22,7 @@ import { ignoreWords } from '../../../ui/ignore';
 import { type LevelChoice, levelChoice } from '../../../ui/level-bar';
 import { type LevelPreview, levelPreview } from '../../../ui/level-preview';
 import { type OwnerVm, ownerVm } from '../../../ui/owner-line';
-import type { GbLookups } from '../lookups';
+import type { GbCalcLookups } from '../lookups';
 
 export interface GbHeader extends OwnerVm {
   name: string;
@@ -154,7 +154,7 @@ export type GbCalculatorVm =
       profitable: PlaceCalc[];
     };
 
-export interface GbCalculatorInput extends GbLookups {
+export interface GbCalculatorInput extends GbCalcLookups {
   /** the foreign construction to show */
   construction?: Construction;
   /** Forge points of the bar; undefined while the resources are not known */

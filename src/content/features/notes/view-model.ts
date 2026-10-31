@@ -1,12 +1,10 @@
 import { foestatsGuildUrl, foestatsPlayerUrl } from '../../../shared/foestats';
 import type { PlayerId, WorldId } from '../../../shared/ids';
 import type { NoteGroup, NotePage, Player, Relations } from '../../../shared/model';
-import { formatWhen, t } from '../../core/texts';
+import { foldCase, formatWhen, t, textFilter } from '../../core/texts';
+import { passesReach, type ReachFilter, reasonsOf } from '../../domain/reach';
 import { PLAYER_GROUP, playerOfPage, playerPageId } from '../../stores/notes';
 import { plainText } from '../../ui/markdown';
-
-export type RelationFilter = 'all' | keyof Relations | 'other';
-export const RELATION_FILTERS: RelationFilter[] = ['all', 'neighbor', 'guildMember', 'friend', 'other'];
 
 /** The state of the box that is not in the store. It is not persisted. */
 export interface NotesUi {
@@ -14,7 +12,8 @@ export interface NotesUi {
   /** the active page; in the player group the page id of a player, whose page may not exist yet */
   page?: string;
   search: string;
-  relation: RelationFilter;
+  /** which relations let a player page through; `none` stands for players without any, also those not known */
+  relation: ReachFilter;
   /** search text of the player picker while it is open */
   picker?: string;
   addingGroup: boolean;
@@ -40,8 +39,8 @@ export interface RowVm {
   when: string;
   active: boolean;
   renaming: boolean;
-  /** relation icons of a player page */
-  icons: string;
+  /** the relations of a player page, drawn as icons; missing for other pages and unknown players */
+  relations?: Relations;
   /** a player page that exists only as the selection, not stored yet */
   draft: boolean;
 }
@@ -52,7 +51,8 @@ export interface PlayerVm {
   /** the player's page at foestats */
   url: string;
   guild?: { name: string; url: string };
-  icons: string;
+  /** drawn as icons; missing for a player the store does not know */
+  relations?: Relations;
 }
 
 export interface PageVm {
@@ -85,7 +85,7 @@ export interface NotesVm {
   /** only while searching */
   results?: ResultVm[];
   playerGroup: boolean;
-  relation: RelationFilter;
+  relation: ReachFilter;
   rows: RowVm[];
   empty?: 'noPages' | 'noPlayerPages' | 'noPlayerMatch';
   page?: PageVm;
@@ -108,27 +108,23 @@ export interface NotesInput {
   now: number;
 }
 
-/** "🏘️🛡️🤝" for neighbour, guild member and friend */
-export function relationIcons(r: Relations | undefined): string {
-  if (!r) return '';
-  return `${r.neighbor ? '🏘️' : ''}${r.guildMember ? '🛡️' : ''}${r.friend ? '🤝' : ''}`;
-}
+const NO_RELATIONS: Relations = { neighbor: false, friend: false, guildMember: false };
 
-/** players without any known relation count as other */
-export function matchesRelation(filter: RelationFilter, r: Relations | undefined): boolean {
-  if (filter === 'all') return true;
-  if (filter === 'other') return !r || (!r.neighbor && !r.guildMember && !r.friend);
-  return r?.[filter] === true;
-}
+/** players without any known relation, also those the store does not know, count as `none` */
+export const matchesRelation = (filter: ReachFilter, r: Relations | undefined): boolean =>
+  passesReach(reasonsOf(r ?? NO_RELATIONS), filter);
 
 /** a short piece of the plain text around the first match, or its start */
 export function snippet(text: string, query: string): string {
   const flat = text.replace(/\s+/g, ' ').trim();
-  const at = query ? flat.toLowerCase().indexOf(query) : -1;
+  const at = query ? foldCase(flat).indexOf(query) : -1;
   const from = at > 30 ? at - 30 : 0;
   const piece = flat.slice(from, from + SNIPPET);
   return `${from > 0 ? '…' : ''}${piece}${from + SNIPPET < flat.length ? '…' : ''}`;
 }
+
+/** `{ relations }` of a known player, for a row or the page head; nothing for an unknown one */
+const relationsOf = (p: Player | undefined) => (p ? { relations: p.relations } : {});
 
 export function notesViewModel(input: NotesInput): NotesVm {
   const { ui, groups, pages, player, now } = input;
@@ -166,7 +162,7 @@ export function notesViewModel(input: NotesInput): NotesVm {
     when: formatWhen(p.updatedAt, now),
     active: false,
     renaming: ui.renaming?.kind === 'page' && ui.renaming.id === p.id,
-    icons: p.player === undefined ? '' : relationIcons(player(p.player)?.relations),
+    ...relationsOf(p.player === undefined ? undefined : player(p.player)),
     draft: false,
   }));
   if (draftPlayer !== undefined) {
@@ -177,7 +173,7 @@ export function notesViewModel(input: NotesInput): NotesVm {
       when: '',
       active: false,
       renaming: false,
-      icons: relationIcons(known?.relations),
+      ...relationsOf(known),
       draft: true,
     });
   }
@@ -199,7 +195,7 @@ export function notesViewModel(input: NotesInput): NotesVm {
     vm.empty = !playerGroup ? 'noPages' : anyPlayerPage ? 'noPlayerMatch' : 'noPlayerPages';
   }
 
-  const query = ui.search.trim().toLowerCase();
+  const query = foldCase(ui.search.trim());
   if (query) vm.results = search(query);
   if (ui.confirm) vm.confirm = confirmQuestion(ui.confirm);
   if (ui.picker !== undefined) vm.picker = picker(ui.picker);
@@ -227,24 +223,25 @@ export function notesViewModel(input: NotesInput): NotesVm {
         ...(known?.guild && {
           guild: { name: known.guild.name, url: foestatsGuildUrl(input.world, known.guild.id) },
         }),
-        icons: relationIcons(known?.relations),
+        ...relationsOf(known),
       },
     };
   }
 
   function search(q: string): ResultVm[] {
+    const matches = textFilter(q);
     const groupName = (id: string) =>
       id === PLAYER_GROUP ? t('notes.players') : (groups.find((g) => g.id === id)?.name ?? '');
     return pages
       .map((p) => ({ p, title: nameOf(p), text: plainText(p.text) }))
-      .filter(({ title, text }) => title.toLowerCase().includes(q) || text.toLowerCase().includes(q))
+      .filter(({ title, text }) => matches(title) || matches(text))
       .sort((a, b) => b.p.updatedAt - a.p.updatedAt)
       .map(({ p, title, text }) => ({
         group: p.group,
         page: p.id,
         groupName: groupName(p.group),
         title,
-        snippet: snippet(text, text.toLowerCase().includes(q) ? q : ''),
+        snippet: snippet(text, matches(text) ? q : ''),
       }));
   }
 
@@ -262,10 +259,10 @@ export function notesViewModel(input: NotesInput): NotesVm {
   }
 
   function picker(text: string): PickerVm {
-    const q = text.trim().toLowerCase();
+    const byName = textFilter(text);
     const withPage = new Set(pages.flatMap((p) => (p.player === undefined ? [] : [p.player])));
     const matches = input.players
-      .filter((p) => p.id !== input.me && (!q || p.name.toLowerCase().includes(q)))
+      .filter((p) => p.id !== input.me && byName(p.name))
       .sort(
         (a, b) =>
           Number(withPage.has(b.id)) - Number(withPage.has(a.id)) ||

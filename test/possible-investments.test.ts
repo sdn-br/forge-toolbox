@@ -67,7 +67,7 @@ const vm = (buildings: KnownGreatBuilding[], filter: Partial<PossibleFilter> = {
     playerName: (id: PlayerId) => names[id],
     relations: (id: PlayerId) => relations[id],
     isMarked: (owner: PlayerId, entityId: number) => markedBuildings.has(`${owner}:${entityId}`),
-    ownerMarked: (id: PlayerId) => markedOwners.has(id),
+    playerMarked: (id: PlayerId) => markedOwners.has(id),
     isIgnored: (owner: PlayerId, entityId: number) => ignoredBuildings.has(`${owner}:${entityId}`),
     ownerIgnored: (id: PlayerId) => (id in relations ? ignoredOwners.has(id) : undefined),
     playerUrl: (id: PlayerId) => `https://foestats.example/${id}`,

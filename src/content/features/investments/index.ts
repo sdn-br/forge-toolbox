@@ -1,4 +1,3 @@
-import { foestatsPlayerUrl } from '../../../shared/foestats';
 import type { PlayerId } from '../../../shared/ids';
 import type { KnownGreatBuilding } from '../../../shared/model';
 import type { Feature } from '../../core/feature';
@@ -14,7 +13,9 @@ import {
 import { rowFit } from '../../ui/fit-rows';
 import { icons } from '../../ui/icons';
 import { nextSort } from '../../ui/sortable';
-import { savedReach, savedToggles } from './filter-model';
+import { prefRecord } from '../../ui/ui-state';
+import { type GbLookups, gbLookups, gbRowActions } from '../shared/gb-lookups';
+import { migrateReach } from './filter-model';
 import { type PossibleActions, possibleView } from './possible-view';
 import {
   DEFAULT_FILTER,
@@ -23,8 +24,6 @@ import {
   type PossibleFilter,
   type PossibleSort,
   possibleViewModel,
-  TIER_TOGGLES,
-  type TierFilter,
 } from './possible-view-model';
 import { investmentsCss } from './styles';
 import { type InvestmentsActions, investmentsView } from './view';
@@ -35,8 +34,6 @@ import {
   type InvestmentsTab,
   investmentsViewModel,
   type MineFilter,
-  STATUS_TOGGLES,
-  type StatusFilter,
 } from './view-model';
 
 /** the menu entry and the settings group show it */
@@ -53,43 +50,11 @@ const FILTER = 'investments.filter';
 /** the filters of the own investments, kept apart from those of the possible ones */
 const MINE_FILTER = 'investments.mineFilter';
 
-/** the saved tier toggles, each one that is missing at its default */
-const savedTier = (f: Partial<PossibleFilter>): TierFilter => savedToggles(TIER_TOGGLES, f.tier, DEFAULT_FILTER.tier);
-
 /** the saved filters, each part that is missing or broken at its default */
-function savedFilter(saved: string | undefined): PossibleFilter {
-  try {
-    const f = JSON.parse(saved ?? '{}') as Partial<PossibleFilter>;
-    return {
-      player: typeof f.player === 'string' ? f.player : DEFAULT_FILTER.player,
-      name: typeof f.name === 'string' ? f.name : DEFAULT_FILTER.name,
-      onlyHits: typeof f.onlyHits === 'boolean' ? f.onlyHits : DEFAULT_FILTER.onlyHits,
-      reach: savedReach(f),
-      tier: savedTier(f),
-      onlyMarked: typeof f.onlyMarked === 'boolean' ? f.onlyMarked : DEFAULT_FILTER.onlyMarked,
-      showIgnored: typeof f.showIgnored === 'boolean' ? f.showIgnored : DEFAULT_FILTER.showIgnored,
-    };
-  } catch {
-    return DEFAULT_FILTER;
-  }
-}
+const savedFilter = (saved: string | undefined): PossibleFilter => prefRecord(DEFAULT_FILTER, saved, migrateReach);
 
 /** the saved filters of the own investments, each part that is missing or broken at its default */
-function savedMineFilter(saved: string | undefined): MineFilter {
-  try {
-    const f = JSON.parse(saved ?? '{}') as Partial<MineFilter>;
-    return {
-      player: typeof f.player === 'string' ? f.player : DEFAULT_MINE_FILTER.player,
-      name: typeof f.name === 'string' ? f.name : DEFAULT_MINE_FILTER.name,
-      reach: savedReach(f),
-      onlyMarked: typeof f.onlyMarked === 'boolean' ? f.onlyMarked : DEFAULT_MINE_FILTER.onlyMarked,
-      status: savedToggles<keyof StatusFilter>(STATUS_TOGGLES, f.status, DEFAULT_MINE_FILTER.status),
-      showIgnored: typeof f.showIgnored === 'boolean' ? f.showIgnored : DEFAULT_MINE_FILTER.showIgnored,
-    };
-  } catch {
-    return DEFAULT_MINE_FILTER;
-  }
-}
+const savedMineFilter = (saved: string | undefined): MineFilter => prefRecord(DEFAULT_MINE_FILTER, saved, migrateReach);
 
 export const investmentsFeature: Feature = {
   id: 'investments',
@@ -124,21 +89,13 @@ export const investmentsFeature: Feature = {
       tab = next;
       ctx.ui.savePref(TAB, next);
     };
-    const mark = (owner: PlayerId, entityId: number, marked: boolean) =>
-      ctx.greatBuildings.setMarked(owner, entityId, marked);
-    const ignore = (owner: PlayerId, entityId: number, ignored: boolean) =>
-      ctx.greatBuildings.setIgnored(owner, entityId, ignored);
-    const ignorePlayer = (owner: PlayerId, ignored: boolean) => ctx.players.setIgnored(owner, ignored);
-    const markPlayer = (owner: PlayerId, marked: boolean) => ctx.players.setMarked(owner, marked);
+    const rowActions = gbRowActions(ctx);
     const actions: InvestmentsActions = {
       tab: (next) => {
         showTab(next);
         box.update();
       },
-      mark,
-      ignore,
-      ignorePlayer,
-      markPlayer,
+      ...rowActions,
       sort: (column, append) => {
         sort = nextSort(sort, column, INVESTMENT_DESC_FIRST, append);
         box.update();
@@ -154,10 +111,7 @@ export const investmentsFeature: Feature = {
     };
     const possibleActions: PossibleActions = {
       tab: actions.tab,
-      mark,
-      ignore,
-      ignorePlayer,
-      markPlayer,
+      ...rowActions,
       sort: (column, append) => {
         possibleSort = nextSort(possibleSort, column, POSSIBLE_DESC_FIRST, append);
         box.update();
@@ -171,9 +125,8 @@ export const investmentsFeature: Feature = {
       scroll: scrollBy,
       measure: fit.measure,
     };
-    const playerName = (id: PlayerId) => ctx.players.get(id)?.name ?? ownerNames.get(id);
-    const playerUrl = (id: PlayerId) => foestatsPlayerUrl(ctx.world, id);
-    const ownerIgnored = (id: PlayerId) => ctx.players.ignored(id);
+    const shared = gbLookups(ctx);
+    const lookups: GbLookups = { ...shared, playerName: (id) => shared.playerName(id) ?? ownerNames.get(id) };
     const ownArc = () => ctx.playerBonuses.arcBonus();
 
     const possible = () => {
@@ -203,14 +156,7 @@ export const investmentsFeature: Feature = {
           visible: fit.rows(),
           scroll: tops.possible,
           now: Date.now(),
-          greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
-          playerName,
-          relations: (id) => ctx.players.get(id)?.relations,
-          isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
-          ownerMarked: (id) => ctx.players.marked(id) === true,
-          isIgnored: (owner, entityId) => ctx.greatBuildings.isIgnored(owner, entityId),
-          ownerIgnored,
-          playerUrl,
+          ...lookups,
         });
         tops.possible = vm.scroll.top;
         return possibleView(vm, possibleActions);
@@ -222,15 +168,8 @@ export const investmentsFeature: Feature = {
         sort,
         visible: fit.rows(),
         scroll: tops.mine,
-        greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
-        playerName,
-        playerUrl,
-        isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
-        ownerMarked: (id) => ctx.players.marked(id) === true,
-        isIgnored: (owner, entityId) => ctx.greatBuildings.isIgnored(owner, entityId),
-        ownerIgnored,
         filter: mineFilter,
-        relations: (id) => ctx.players.get(id)?.relations,
+        ...lookups,
       });
       tops.mine = vm.scroll.top;
       return investmentsView(vm, actions);

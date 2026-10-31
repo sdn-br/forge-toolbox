@@ -1,6 +1,6 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import type { Battle, IncomingAttack, IncomingTotals, Player, Plunder, PlunderTotals } from '../../../shared/model';
-import { formatWhen, t } from '../../core/texts';
+import { formatWhen, t, textFilter } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { measuredArmy } from '../../domain/measured-army';
 import { type BattleDetailsVm, battleDetails } from '../../ui/battle-details';
@@ -80,9 +80,9 @@ export interface PvpVm {
 /** The opponents a filter asks for; undefined means all, an empty list means none matches. */
 export function opponentsFor(filter: PvpFilter, players: Player[]): PlayerId[] | undefined {
   if (filter.opponent !== undefined) return [filter.opponent];
-  const text = filter.text.trim().toLowerCase();
-  if (!text) return undefined;
-  return players.filter((p) => p.name.toLowerCase().includes(text)).map((p) => p.id);
+  if (!filter.text.trim()) return undefined;
+  const matches = textFilter(filter.text);
+  return players.filter((p) => matches(p.name)).map((p) => p.id);
 }
 
 export const pageCount = (total: number) => Math.max(1, Math.ceil(total / PAGE_SIZE));

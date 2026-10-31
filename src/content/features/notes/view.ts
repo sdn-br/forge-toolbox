@@ -1,12 +1,13 @@
 import { html, type TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
 import { t } from '../../core/texts';
+import type { ReachFilter } from '../../domain/reach';
 import { iconButton } from '../../ui/buttons';
 import { headerIcons } from '../../ui/icons';
-import { autofocus, keepKeys } from '../../ui/inputs';
+import { autofocus, keepKeys, searchField } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
-import type { NotesVm, PageVm, PickerVm, RelationFilter, ResultVm, RowVm, TabVm } from './view-model';
-import { RELATION_FILTERS } from './view-model';
+import { relationIcons, relationToggles } from '../../ui/relations';
+import type { NotesVm, PageVm, PickerVm, ResultVm, RowVm, TabVm } from './view-model';
 
 export interface NotesActions {
   search(text: string): void;
@@ -22,7 +23,7 @@ export interface NotesActions {
   renamePage(id: string, title: string): void;
   askDelete(kind: 'group' | 'page', id: string): void;
   confirmDelete(): void;
-  relation(filter: RelationFilter): void;
+  relation(filter: ReachFilter): void;
   openPicker(): void;
   pickerSearch(text: string): void;
   pick(player: PlayerId): void;
@@ -66,17 +67,18 @@ function tab(tab: TabVm, actions: NotesActions) {
     @dragstart=${d.start} @dragover=${d.over} @drop=${d.drop}>${tab.name}</button>`;
 }
 
-const tabs = (vm: NotesVm, actions: NotesActions) => html`<nav class="tabs">
+const tabs = (vm: NotesVm, actions: NotesActions) => html`<div class="tabs">
   ${vm.tabs.map((each) => tab(each, actions))}
   ${
     vm.addingGroup
       ? inlineField('', actions.addGroup, actions.cancel, t('notes.groupName'))
       : html`<button data-tip=${t('notes.addGroup')} aria-label=${t('notes.addGroup')} @click=${actions.startAddGroup}>${headerIcons.plus}</button>`
-  }</nav>`;
+  }</div>`;
 
 function row(r: RowVm, playerGroup: boolean, actions: NotesActions) {
   if (r.renaming) return html`<li>${inlineField(r.title, actions.rename, actions.cancel)}</li>`;
-  const content = html`${r.icons ? html`${r.icons} ` : ''}${r.title}
+  const icons = relationIcons(r.relations);
+  const content = html`${icons.length > 0 ? html`<span class="rel-icons">${icons}</span> ` : ''}${r.title}
     ${r.when ? html`<br /><span class="muted">${r.when}</span>` : ''}`;
   const classes = `${r.active ? 'active' : ''} ${r.draft ? 'muted' : ''}`;
   if (playerGroup) return html`<li class=${classes} @click=${() => actions.page(r.id)}>${content}</li>`;
@@ -88,9 +90,7 @@ function row(r: RowVm, playerGroup: boolean, actions: NotesActions) {
 
 function side(vm: NotesVm, actions: NotesActions) {
   const head = vm.playerGroup
-    ? html`<select @change=${(e: Event) => actions.relation(value(e) as RelationFilter)}>
-          ${RELATION_FILTERS.map((f) => html`<option value=${f} .selected=${vm.relation === f}>${t(`notes.filter.${f}`)}</option>`)}
-        </select>
+    ? html`${relationToggles('notes-relation-filter', vm.relation, (key) => t(`notes.filter.${key}`), actions.relation)}
         ${iconButton(t('notes.addPlayer'), actions.openPicker, headerIcons.personPlus, 'action icon-only')}`
     : html`${iconButton(t('notes.addPage'), actions.addPage, headerIcons.notePlus, 'action icon-only')}`;
   const active = vm.tabs.find((each) => each.active);
@@ -108,7 +108,7 @@ function pageHead(page: PageVm, actions: NotesActions) {
   if (page.player) {
     const p = page.player;
     const guild = p.guild ? html`<br /><span class="muted">[${externalLink(p.guild.name, p.guild.url)}]</span>` : '';
-    return html`<p><b>${externalLink(p.name, p.url)}</b> ${p.icons}${guild}
+    return html`<p><b>${externalLink(p.name, p.url)}</b> <span class="rel-icons">${relationIcons(p.relations)}</span>${guild}
       ${page.when ? html`<br /><span class="muted">${t('notes.changed', { when: page.when })}</span>` : ''}</p>`;
   }
   return html`<p><input class="title" .value=${page.title}
@@ -168,8 +168,7 @@ const picker = (p: PickerVm, actions: NotesActions) => html`<div class="card">
 
 /** `editor` is the note editor of the active page, drawn by the feature, which owns its state */
 export function notesView(vm: NotesVm, editor: TemplateResult | undefined, actions: NotesActions): TemplateResult {
-  const search = html`<p><input type="search" placeholder=${t('notes.search')} .value=${vm.search}
-    @input=${(e: Event) => actions.search(value(e))} @keydown=${keepKeys} @keyup=${keepKeys} /></p>`;
+  const search = html`<p>${searchField(vm.search, t('notes.search'), actions.search)}</p>`;
   const confirm = vm.confirm
     ? html`<p class="warn">${vm.confirm}
         <button class="action" @click=${actions.confirmDelete}>${t('notes.delete')}</button>

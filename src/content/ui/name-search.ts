@@ -3,7 +3,7 @@
 // after which the field is empty again.
 import { html, type TemplateResult } from 'lit-html';
 import { clamp } from '../../shared/math';
-import { compareText } from '../core/texts';
+import { compareText, foldCase, textFilter } from '../core/texts';
 import { keepKeys } from './inputs';
 
 export interface Suggestion {
@@ -19,13 +19,14 @@ const MAX_SUGGESTIONS = 30;
  * come first, then the others, each part alphabetical. An empty query suggests nothing.
  */
 export function suggestNames(names: Iterable<string>, query: string, limit = MAX_SUGGESTIONS): Suggestion[] {
-  const q = query.trim().toLowerCase();
-  if (q === '') return [];
+  if (query.trim() === '') return [];
+  const matches = textFilter(query);
   const counts = new Map<string, number>();
-  for (const name of names) if (name.toLowerCase().includes(q)) counts.set(name, (counts.get(name) ?? 0) + 1);
+  for (const name of names) if (matches(name)) counts.set(name, (counts.get(name) ?? 0) + 1);
+  const q = foldCase(query.trim());
   // names that start with the query rank 0, the others 1
   return [...counts]
-    .map(([name, count]) => ({ name, count, rank: name.toLowerCase().startsWith(q) ? 0 : 1 }))
+    .map(([name, count]) => ({ name, count, rank: foldCase(name).startsWith(q) ? 0 : 1 }))
     .sort((a, b) => a.rank - b.rank || compareText(a.name, b.name))
     .slice(0, limit)
     .map(({ name, count }) => ({ name, count }));

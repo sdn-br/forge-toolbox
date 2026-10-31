@@ -18,6 +18,8 @@ Stand 2026-10-21. Notizen gelten je Welt.
 **Oberfläche:**
 
 - Box „Notizen“ (📝): Reiter der Gruppen, links die Seiten, rechts die Seite. Volltextsuche über Titel und Text aller Notizen der Welt. In der Spielergruppe ein Filter nach Beziehung und eine Spielerauswahl über den PlayerStore.
+- Filter nach Beziehung (2026-10-31, Nutzer): dieselben Icon-Schalter wie in den Investitionen (`ui/relations.ts`), je einer für Nachbarn, Freunde und Gilde und einer für „Andere, ohne Beziehung“ (durchgestrichene Person). Mehrere dürfen an sein, eine Seite bleibt, wenn eine ihrer Beziehungen an ist. Spieler, die der PlayerStore nicht kennt, zählen als „ohne Beziehung“. Am Anfang und nach der Wahl eines Spielers in der Spielerauswahl sind alle an. Bis dahin war es eine Auswahlliste mit genau einem Wert („Alle“, Nachbarn, Gilde, Freunde, Andere). Der Filter wird wie bisher nicht gespeichert, darum braucht der Wechsel keine Übernahme alter Werte.
+- Beziehungen eines Spielers (in der Liste der Seiten und im Kopf seiner Seite) stehen als dieselben SVG-Icons wie in den Investitionen da, in der Reihenfolge Nachbar, Freund, Gilde. Vorher waren es Emoji.
 - Eine Notiz zeigt gerendertes Markdown, ein Klick öffnet den Quelltext in einem Textfeld. Gespeichert wird 800 ms nach dem letzten Tastendruck und beim Verlassen. Solange das Textfeld offen ist, überschreiben Updates aus dem Store die Eingabe nicht.
 - Notizkarte eines Spielers (eine Komponente): in der Box „Besuchte Stadt“ für den besuchten Spieler, in der PvP-Box bei Filter auf einen Spieler. Dort trägt jede Zeile der Kämpfe, Plünderungen und Angriffe auf mich ein 📝 mit der Notiz als Tooltip.
 

@@ -4,6 +4,9 @@ import { t } from '../core/texts';
 import { filterToggle, toggleButton } from './buttons';
 import { headerIcons } from './icons';
 
+/** a row counts as ignored when its building or its owner is; `owner` is undefined for a player the store does not know */
+export const countsIgnored = (building: boolean, owner: boolean | undefined): boolean => building || owner === true;
+
 /**
  * Why a great building counts as ignored, in words, building first: "LG ignoriert", "Spieler ignoriert". Empty when
  * neither is ignored. `owner` is undefined for a player the store does not know.

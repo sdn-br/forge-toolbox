@@ -7,8 +7,9 @@ import { type Setting, saveSetting } from '../../../core/settings';
 import type { Construction } from '../../../model/great-building';
 import type { Box } from '../../../ui/box';
 import { createChime } from '../../../ui/sound';
+import { ignores } from '../../shared/gb-lookups';
 import type { FoldShow } from '../fold-state';
-import { type GbShared, ignores } from '../lookups';
+import type { GbShared } from '../lookups';
 import { type GbCalculatorActions, gbCalculatorView } from './view';
 import { type GbCalculatorVm, gbCalculatorViewModel } from './view-model';
 

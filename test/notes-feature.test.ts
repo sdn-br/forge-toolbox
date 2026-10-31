@@ -58,7 +58,7 @@ describe('notes feature', () => {
     expect(box.text).toContain('Spieler');
     expect(box.text).toContain('Noch keine Spieler-Notizen.');
     expect(box.root.querySelector('[aria-label="Gruppe löschen"]')).toBeNull();
-    root.querySelector('nav button')?.dispatchEvent(new Event('dblclick'));
+    root.querySelector('.tabs button')?.dispatchEvent(new Event('dblclick'));
     expect(root.querySelector('input.inline')).toBeNull();
   });
 
@@ -194,7 +194,8 @@ describe('notes feature', () => {
 
     notes.setPlayerText(playerId(3), 'Nachbarin', 'Berta');
     ctx.players.apply(world, [obs(3, 'Berta Neu')], 'visit');
-    expect(box.text).toContain('🏘️ Berta Neu');
+    const berta = [...root.querySelectorAll('.side li')].find((l) => l.textContent?.includes('Berta Neu'));
+    expect(berta?.querySelectorAll('.rel-icons svg')).toHaveLength(1);
   });
 
   it('removes a deleted player page from the list instead of keeping it as an empty draft', () => {
@@ -215,19 +216,21 @@ describe('notes feature', () => {
     notes.setPlayerText(playerId(2), 'x');
     notes.setPlayerText(playerId(3), 'y');
     notes.setPlayerText(playerId(4), 'z', 'Unbekannt');
-    const filter = (value: string) => {
-      const select = root.querySelector('select') as HTMLSelectElement;
-      select.value = value;
-      select.dispatchEvent(new Event('change'));
-    };
+    const toggle = (word: string) => box.click(word);
     const listed = () => [...root.querySelectorAll('.side li')].map((l) => l.textContent?.trim().split('\n')[0]);
-    expect(listed()).toEqual(['Bert', '🏘️ Berta', 'Unbekannt']);
-    filter('neighbor');
-    expect(listed()).toEqual(['🏘️ Berta']);
-    filter('other');
+    expect(listed()).toEqual(['Bert', 'Berta', 'Unbekannt']);
+    expect(root.querySelectorAll('.side li .rel-icons svg')).toHaveLength(1);
+    toggle('Andere, ohne Beziehung');
+    expect(listed()).toEqual(['Berta']);
+    toggle('Nachbarn');
+    toggle('Andere, ohne Beziehung');
     expect(listed()).toEqual(['Bert', 'Unbekannt']);
-    filter('friend');
+    toggle('Gilde');
+    toggle('Freunde');
+    toggle('Andere, ohne Beziehung');
     expect(box.text).toContain('Keine Spieler-Notizen zu diesem Filter.');
+    toggle('Nachbarn');
+    expect(listed()).toEqual(['Berta']);
   });
 
   it('limits the picker and puts players with a page first', () => {
@@ -254,14 +257,14 @@ describe('notes feature', () => {
     box.click('Gilde');
     notes.addGroup('Andere');
     expect(box.root.querySelector('[aria-label="Gruppe löschen"]')).not.toBeNull();
-    expect(box.root.querySelector('nav button.active')?.textContent).toBe('Gilde');
+    expect(box.root.querySelector('.tabs button.active')?.textContent).toBe('Gilde');
     expect((box.root.querySelector('input.title') as HTMLInputElement).value).toBe('two');
   });
 
   it('moves groups and pages by drag and drop', () => {
     const { box, root, notes, row } = setup();
     const [a] = ['A', 'B', 'C'].map((n) => notes.addGroup(n));
-    const tab = (name: string) => [...root.querySelectorAll('nav button')].find((b) => b.textContent === name);
+    const tab = (name: string) => [...root.querySelectorAll('.tabs button')].find((b) => b.textContent === name);
     tab('C')?.dispatchEvent(new Event('dragstart'));
     tab('A')?.dispatchEvent(new Event('drop'));
     expect(notes.groups().map((g) => g.name)).toEqual(['C', 'A', 'B']);

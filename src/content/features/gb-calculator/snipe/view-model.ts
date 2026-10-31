@@ -3,12 +3,12 @@ import { formatNumber, signed, t } from '../../../core/texts';
 import { bySnipeProfit, type SnipeHit, type SnipeList } from '../../../domain/gb-snipe';
 import { type ActivityVm, activityVm } from '../../../ui/activity';
 import { type ProgressVm, progressVm } from '../../../ui/fp-bar';
-import { ignoreNote, ignoreWords } from '../../../ui/ignore';
+import { countsIgnored, ignoreNote } from '../../../ui/ignore';
 import { type OwnerVm, ownerVm } from '../../../ui/owner-line';
 import { type HitVm, hitSortKeys, hitVm, ownerShareNote, snipeNotes } from '../../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../../ui/sortable';
 import { clampTop, type RowWindow, rowWindow } from '../../../ui/windowed-rows';
-import type { GbLookups } from '../lookups';
+import type { GbCalcLookups } from '../lookups';
 
 export type SnipeColumn = 'order' | 'name' | 'level' | 'progress' | 'rank' | 'cost' | 'profit' | 'tier' | 'mark';
 
@@ -91,7 +91,7 @@ export interface ListedOwner {
   entityIds: Iterable<number>;
 }
 
-export interface SnipeInput extends GbLookups {
+export interface SnipeInput extends GbCalcLookups {
   /** the list shown; missing before the first one */
   list?: ListedOwner;
   result?: SnipeList;
@@ -123,7 +123,7 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
   const name = (h: SnipeHit) => input.greatBuildingName(h.cityEntityId) ?? h.cityEntityId;
   const places = new Map([...list.entityIds].map((id, i) => [id, i + 1]));
   const kept = result.hits.filter(
-    (h) => ignoreWords(input.isIgnored(h.owner, h.entityId), input.ownerIgnored(h.owner)).length === 0,
+    (h) => !countsIgnored(input.isIgnored(h.owner, h.entityId), input.ownerIgnored(h.owner)),
   );
   const built = (input.showIgnored ? result.hits : kept).map((h) => {
     const ignored = input.isIgnored(h.owner, h.entityId);
