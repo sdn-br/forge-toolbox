@@ -409,6 +409,20 @@ describe('Investitionen: long lists', () => {
     expect(box.root.querySelector('.inv-pane > p.gb-me')).not.toBeNull();
   });
 
+  it('filters and sorts again on new data, filters, sort or lookups, not on a scroll', async () => {
+    const { box, texts, all, greatBuildings, bus } = await listed(5);
+    const named = vi.spyOn(greatBuildings, 'isMarked');
+    button(box, 'Nach unten').click();
+    wheel(box, 1);
+    expect(texts()).toEqual(all.slice(2, 7));
+    expect(named).not.toHaveBeenCalled();
+    bus.emit('greatBuilding.marked', { owner: playerId(2005), entityId: 1, marked: true });
+    expect(named).toHaveBeenCalledTimes(12);
+    named.mockClear();
+    (box.root.querySelectorAll('th.sortable')[4] as HTMLElement).click();
+    expect(named).toHaveBeenCalledTimes(12);
+  });
+
   it('shows all rows, greyed buttons and no line, when they fit and when nothing can be measured', async () => {
     const { box, texts, all } = await listed(12);
     expect(texts()).toEqual(all);

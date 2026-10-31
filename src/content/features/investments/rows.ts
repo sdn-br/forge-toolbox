@@ -39,6 +39,20 @@ export interface TabFrame {
   /** rows that fit into the table area */
   visible: number;
   now: number;
+  /** grows with every change of what the lookups tell (names, relations, stars, eyes): the rows are named anew */
+  revision: number;
+}
+
+/**
+ * Keeps the last result while every part of its key is the same object: filtering and sorting run again only when the
+ * data, the filters, the sort or the lookups changed, not on a scroll or a redraw for anything else.
+ */
+export function lastResult<R>() {
+  let last: { key: readonly unknown[]; result: R } | undefined;
+  return (key: readonly unknown[], compute: () => R): R => {
+    if (!last || key.some((k, i) => k !== last?.key[i])) last = { key, result: compute() };
+    return last.result;
+  };
 }
 
 /** what the rows of either tab are narrowed to; a view choice of the viewer, each tab keeps its own */

@@ -54,6 +54,12 @@ export const investmentsFeature: Feature = {
       box.update();
     };
     const lookups = gbLookups(ctx);
+    /** grows with every change the lookups see; the tabs filter and sort anew then */
+    let revision = 0;
+    const relookup = () => {
+      revision++;
+      box.update();
+    };
     const ownArc = () => ctx.playerBonuses.arcBonus();
 
     /** the height the box needs for what always shows, so the table area never gets a second scrollbar: border 4 +
@@ -66,7 +72,7 @@ export const investmentsFeature: Feature = {
     const WIDTH = 850;
 
     const render = () => {
-      const frame = { lookups, visible: fit.rows(), now: Date.now() };
+      const frame = { lookups, visible: fit.rows(), now: Date.now(), revision };
       const content =
         tab === 'possible' ? possible.render(frame, ratings.candidates()) : mine.render(frame, ratings.investments());
       // tabs, filters and the totals or count stay, the rows that fit are drawn and the two buttons scroll them
@@ -154,19 +160,21 @@ export const investmentsFeature: Feature = {
       if (box.isOpen) read();
     });
     // a star put on or taken from a building shows at once, the data stay as read
-    ctx.bus.on('greatBuilding.marked', () => box.update());
-    ctx.bus.on('greatBuilding.ignored', () => box.update());
+    ctx.bus.on('greatBuilding.marked', relookup);
+    ctx.bus.on('greatBuilding.ignored', relookup);
     // every collection in the own city reports a change; only the Arc bonus counts
     ctx.bus.on('city.ownChanged', () => {
       if (ownArc() !== ratings.arc()) rerate();
     });
     // the rewards of a level decide which places pay
     ctx.bus.on('catalog.updated', () => {
+      // and the names of the buildings
+      revision++;
       ratings.rewardsChanged();
       rerate();
     });
     // names and relations, for example a new friend or the social list at the start
-    ctx.bus.on('player.updated', () => box.update());
+    ctx.bus.on('player.updated', relookup);
     ctx.menu.add({
       id: 'investments',
       icon: ICON,

@@ -589,6 +589,16 @@ describe('Investitionen: long lists of possible investments', () => {
     expect(texts()).toEqual(all.slice(1, 5));
   });
 
+  it('rates, filters and sorts nothing again on a scroll', async () => {
+    const { box, texts, all, greatBuildings, catalog } = await listed(4);
+    const named = vi.spyOn(greatBuildings, 'isMarked');
+    const rewards = vi.spyOn(catalog, 'get');
+    button(box, 'Nach unten').click();
+    expect(texts()).toEqual(all.slice(1, 5));
+    expect(named).not.toHaveBeenCalled();
+    expect(rewards).not.toHaveBeenCalled();
+  });
+
   it('clamps the offset when a filter shrinks the list and keeps the window on a sort', async () => {
     const { box, texts, all, input } = await listed(4);
     for (let i = 0; i < 6; i++) button(box, 'Nach unten').click();
