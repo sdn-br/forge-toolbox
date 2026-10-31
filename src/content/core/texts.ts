@@ -18,6 +18,9 @@ export const compareText = new Intl.Collator('de').compare;
 
 /** a gain or loss with its sign, „+310“, „−40“; zero without one */
 export const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatNumber(Math.abs(n))}`;
+
+/** "12,5 %" */
+export const formatPercent = (n: number) => `${formatNumber(n)} %`;
 const millionFormat = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });
 
 /** "45 Mio.", "0,6 Mio." from 100.000 on, below that the whole number */

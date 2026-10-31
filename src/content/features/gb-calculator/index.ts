@@ -1,11 +1,11 @@
 import { html } from 'lit-html';
 import { foestatsDay, foestatsPlayerUrl } from '../../../shared/foestats';
 import type { GbWindowState } from '../../../shared/gb-window-protocol';
-import type { PlayerId } from '../../../shared/ids';
+import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import type { KnownGreatBuilding } from '../../../shared/model';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
-import { listDef, numberDef, type Setting, toggleDef } from '../../core/settings';
+import { listDef, numberDef, saveSetting, toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
 import { type SnipeList, snipeList } from '../../domain/gb-snipe';
 import type { Construction } from '../../model/great-building';
@@ -16,6 +16,7 @@ import { type SnipeActions, snipeView } from './snipe-view';
 import {
   clampScroll,
   DEFAULT_SORT,
+  type ListedOwner,
   SNIPE_DESC_FIRST,
   type SnipeSort,
   type SnipeVm,
@@ -24,7 +25,7 @@ import {
 import { gbCalculatorCss } from './styles';
 import { playTone } from './tone';
 import { type GbCalculatorActions, gbCalculatorView } from './view';
-import { type GbCalculatorVm, gbCalculatorViewModel } from './view-model';
+import { type GbCalculatorVm, type GbLookups, gbCalculatorViewModel, profitable } from './view-model';
 
 /** the menu entry and the settings group show it */
 const ICON = icons.gbCalculator;
@@ -133,7 +134,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
        * list's owner folds it, the window the game shows (gbWindow.changed) too, else the player */
       let expanded = false;
       /** the last list of another player, with the stored state of its buildings */
-      let list: { owner: PlayerId; ownerName?: string; at: number; entityIds: Set<number> } | undefined;
+      let list: (ListedOwner & { entityIds: Set<number> }) | undefined;
       let listed: KnownGreatBuilding[] = [];
       let snipe: SnipeList | undefined;
       let snipeVm: SnipeVm = { kind: 'none' };
@@ -152,60 +153,34 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       const hasSection = () => snipeVm.kind !== 'none';
       /** the calculator shows a building, so the snipe section can fold */
       const hasBuilding = () => vm.kind !== 'none' && vm.kind !== 'noEntity';
-      const calcFold = {
-        get folded() {
-          return calcFolded;
-        },
-        get foldable() {
-          return hasSection();
-        },
-        toggle: () => {
-          calcFolded = !calcFolded;
-          if (calcFolded && !expanded) expanded = true;
-          box.update();
-        },
+      const toggleCalc = () => {
+        calcFolded = !calcFolded;
+        if (calcFolded) expanded = true;
+        box.update();
       };
       let loads = 0;
 
-      const save = <T>(setting: Setting<T>, value: T) =>
-        setting.set(value).catch((error) => logError('saving settings failed', error));
-      /** whether the player store knows the player and has them marked; undefined for an unknown one, who takes no star */
-      const playerMarked = (id: PlayerId) =>
-        ctx.players.get(id)?.marked === true || (ctx.players.get(id) ? false : undefined);
-      /** whether the player ignores the owner; undefined for a player the store does not know */
-      const ownerIgnored = (id: PlayerId) => {
-        const player = ctx.players.get(id);
-        return player && player.ignored === true;
-      };
-      const isIgnored = (owner: PlayerId, entityId: number) => ctx.greatBuildings.isIgnored(owner, entityId);
       /** the building, or its owner, is ignored */
-      const ignores = (owner: PlayerId, entityId: number) => isIgnored(owner, entityId) || ownerIgnored(owner) === true;
-      const ignoreBuilding = (owner: PlayerId, entityId: number, ignored: boolean) =>
-        ctx.greatBuildings
-          .ignore(owner, entityId, ignored)
-          .catch((error) => logError('ignoring a great building failed', error));
-      const markBuilding = (owner: PlayerId, entityId: number, marked: boolean) =>
-        ctx.greatBuildings
-          .mark(owner, entityId, marked)
-          .catch((error) => logError('marking a great building failed', error));
+      const ignores = (owner: PlayerId, entityId: number) =>
+        ctx.greatBuildings.isIgnored(owner, entityId) || ctx.players.ignored(owner) === true;
       const actions: GbCalculatorActions = {
         setFactor: (value) => {
-          save(factor, value);
-          save(factorArc, false);
+          saveSetting(factor, value);
+          saveSetting(factorArc, false);
         },
-        useArc: () => save(factorArc, true),
+        useArc: () => saveSetting(factorArc, true),
         previewLevel: (level) => {
           preview = level;
           refresh();
         },
         toggleMark: (marked) => {
-          if (shown) markBuilding(shown.owner, shown.entityId, marked);
+          if (shown) ctx.greatBuildings.setMarked(shown.owner, shown.entityId, marked);
         },
         toggleOwnerMark: (marked) => {
           if (shown) ctx.players.setMarked(shown.owner, marked);
         },
         toggleIgnore: (ignored) => {
-          if (shown) ignoreBuilding(shown.owner, shown.entityId, ignored);
+          if (shown) ctx.greatBuildings.setIgnored(shown.owner, shown.entityId, ignored);
         },
         toggleOwnerIgnore: (ignored) => {
           if (shown) ctx.players.setIgnored(shown.owner, ignored);
@@ -224,12 +199,12 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         },
         toggle: () => {
           expanded = !expanded;
-          if (!expanded && calcFolded) calcFolded = false;
+          if (!expanded) calcFolded = false;
           box.update();
         },
-        mark: markBuilding,
+        mark: (owner, entityId, marked) => ctx.greatBuildings.setMarked(owner, entityId, marked),
         markPlayer: (player, marked) => ctx.players.setMarked(player, marked),
-        ignore: ignoreBuilding,
+        ignore: (owner, entityId, ignored) => ctx.greatBuildings.setIgnored(owner, entityId, ignored),
         ignorePlayer: (player, ignored) => ctx.players.setIgnored(player, ignored),
         showIgnored: (show) => {
           showIgnored = show;
@@ -248,55 +223,42 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         // 6 table rows, the section and the calculator fit without the body scrolling on a normal window
         maxHeight: 0.92,
         render: () =>
-          html`${snipeView(snipeVm, snipeActions, expanded, hasBuilding())}${gbCalculatorView(vm, actions, calcFold)}`,
+          html`${snipeView(snipeVm, snipeActions, expanded, hasBuilding())}${gbCalculatorView(vm, actions, {
+            folded: calcFolded,
+            foldable: hasSection(),
+            toggle: toggleCalc,
+          })}`,
       });
 
       const refresh = () => {
-        vm = gbCalculatorViewModel({
-          construction: shown,
+        const now = Date.now();
+        const lookups: GbLookups = {
           greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
           playerName: (id) => ctx.players.get(id)?.name,
           playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
           isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
-          playerMarked,
-          isIgnored,
-          ownerIgnored,
+          playerMarked: (id) => ctx.players.marked(id),
+          isIgnored: (owner, entityId) => ctx.greatBuildings.isIgnored(owner, entityId),
+          ownerIgnored: (id) => ctx.players.ignored(id),
+          foestats: (id) => (ctx.settings.of(FOESTATS_SETTING).get() ? ctx.foestats.get(id) : undefined),
+          today: foestatsDay(now),
+        };
+        const greatBuilding = (def: BuildingDefId) => ctx.catalog.get(def)?.greatBuilding;
+        const arcBonus = ctx.playerBonuses.arcBonus();
+        vm = gbCalculatorViewModel({
+          ...lookups,
+          construction: shown,
           fpBar: ctx.resources.known ? ctx.resources.amount(FP) : undefined,
           fpPackages: ctx.inventory.knowsPackages ? ctx.inventory.forgePointPackages() : undefined,
-          arcBonus: ctx.playerBonuses.arcBonus(),
+          arcBonus,
           factor: { value: factor.get(), arc: factorArc.get() },
           factorButtons: factorButtons.get(),
           arcButton: arcButton.get(),
-          foestats: shown && ctx.settings.of(FOESTATS_SETTING).get() ? ctx.foestats.get(shown.owner) : undefined,
-          today: foestatsDay(Date.now()),
           previewLevel: preview,
-          greatBuilding: (def) => ctx.catalog.get(def)?.greatBuilding,
+          greatBuilding,
         });
-        const arc = ctx.playerBonuses.arcBonus();
-        snipe =
-          list &&
-          snipeList({
-            buildings: listed,
-            greatBuilding: (def) => ctx.catalog.get(def)?.greatBuilding,
-            arcBonus: arc,
-          });
-        snipeVm = snipeViewModel({
-          list,
-          result: snipe,
-          greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
-          playerName: (id) => ctx.players.get(id)?.name,
-          playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
-          isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
-          playerMarked,
-          isIgnored,
-          ownerIgnored,
-          showIgnored,
-          foestats: list && ctx.settings.of(FOESTATS_SETTING).get() ? ctx.foestats.get(list.owner) : undefined,
-          today: foestatsDay(Date.now()),
-          now: Date.now(),
-          sort,
-          scroll,
-        });
+        snipe = list && snipeList({ buildings: listed, greatBuilding, arcBonus });
+        snipeVm = snipeViewModel({ ...lookups, list, result: snipe, showIgnored, now, sort, scroll });
         box.update();
       };
 
@@ -324,14 +286,16 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         snipeToned = key;
       };
 
-      /** a tone once per new state of the places that has a profitable one, and once for a level up */
       /** the shown building, or its owner, is ignored */
       const shownIgnored = () => shown !== undefined && ignores(shown.owner, shown.entityId);
 
+      /** a tone once per new state of the places that has a profitable one, and once for a level up */
       const maybeTone = (leveled: boolean) => {
         if (vm.kind !== 'current' || !sound.get() || shownIgnored()) return;
-        const profitable = vm.places.filter((p) => p.status === 'profit' && (p.profit ?? 0) > 0);
-        const places = profitable.map((p) => `${p.rank}:${p.safe?.cost}`).join(',');
+        const places = vm.places
+          .filter(profitable)
+          .map((p) => `${p.rank}:${p.safe?.cost}`)
+          .join(',');
         const key = leveled ? `leveled:${vm.leveled}` : vm.profitable ? `${vm.header.name}:${places}` : undefined;
         if (key === undefined || key === toned) return;
         toned = key;

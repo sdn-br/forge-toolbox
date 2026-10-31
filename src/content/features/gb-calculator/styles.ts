@@ -22,7 +22,7 @@ p.ignore-warning { display: flex; align-items: center; gap: 6px; }
 .snipe-table .c-tier { width: 32px; }
 /* the star head with arrow and level number needs 29 px plus 4 px padding */
 .snipe-table .c-mark { width: 34px; }
-.snipe-table .snipe-tier, .snipe-table th.icon-head:not(.num, .mark-cell) { text-align: center; padding: 0; }
+.snipe-table .snipe-tier, .snipe-table th.tier-head { text-align: center; padding: 0; }
 .snipe-counts .ignored-filter { margin-left: 6px; vertical-align: middle; }
 .gb-progress { margin: 0 0 6px; }
 /* one row per place, coloured by what the place is worth */

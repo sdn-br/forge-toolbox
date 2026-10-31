@@ -9,9 +9,9 @@ import {
   type ListSettingDef,
   type NumberSettingDef,
   parseNumberList,
-  type Setting,
   type SettingDef,
   type Settings,
+  saveSetting,
 } from '../core/settings';
 import type { SettingsControl } from '../core/settings-controls';
 import { type TextKey, t } from '../core/texts';
@@ -37,9 +37,6 @@ p.setting-hint { margin: 0 0 4px 22px; }
 .settings-main h3 { font-size: 12px; margin: 10px 0 4px; color: var(--muted); }
 `;
 
-const save = <T>(setting: Setting<T>, value: T) =>
-  setting.set(value).catch((error) => logError('saving settings failed', error));
-
 type NumberDef = NumberSettingDef | ListSettingDef;
 
 /** a value as the settings box shows it: a factor setting reads 90 as 1,9 */
@@ -49,7 +46,7 @@ const stored = (d: NumberDef, n: number) => (d.asFactor ? percentOf(n) : n);
 /** an empty or broken number keeps the stored value */
 function saveNumber(settings: Settings, d: NumberSettingDef, input: HTMLInputElement) {
   const value = input.valueAsNumber;
-  if (Number.isFinite(value)) save(settings.of(d), stored(d, value));
+  if (Number.isFinite(value)) saveSetting(settings.of(d), stored(d, value));
   else input.value = String(shown(d, settings.of(d).get()));
 }
 
@@ -63,7 +60,7 @@ const listText = (settings: Settings, d: ListSettingDef) =>
 
 /** the stored list is cleaned when read, so an empty field gives the default again */
 function saveList(settings: Settings, d: ListSettingDef, input: HTMLInputElement) {
-  save(
+  saveSetting(
     settings.of(d),
     parseNumberList(input.value).map((n) => stored(d, n)),
   );
@@ -77,7 +74,7 @@ function input(settings: Settings, d: SettingDef) {
   switch (d.kind) {
     case 'text':
       return html`<label>${t(d.label)}<input type="text" .value=${settings.of(d).get()} @keydown=${keepKeys}
-        @change=${(e: Event) => save(settings.of(d), (e.target as HTMLInputElement).value)} /></label>`;
+        @change=${(e: Event) => saveSetting(settings.of(d), (e.target as HTMLInputElement).value)} /></label>`;
     case 'list':
       return html`<label>${t(d.label)}<input type="text" .value=${listText(settings, d)}
         @keydown=${keepKeys} @change=${(e: Event) => saveList(settings, d, e.target as HTMLInputElement)} /></label>`;
@@ -86,12 +83,12 @@ function input(settings: Settings, d: SettingDef) {
         step=${d.asFactor ? FACTOR_STEP : (d.step ?? 1)} .value=${String(shown(d, settings.of(d).get()))}
         @keydown=${keepKeys} @change=${(e: Event) => saveNumber(settings, d, e.target as HTMLInputElement)} /></label>`;
     case 'choice':
-      return html`<label>${t(d.label)}<select @change=${(e: Event) => save(settings.of(d), (e.target as HTMLSelectElement).value)}>
+      return html`<label>${t(d.label)}<select @change=${(e: Event) => saveSetting(settings.of(d), (e.target as HTMLSelectElement).value)}>
         ${d.choices.map((c) => html`<option value=${c.value} .selected=${settings.of(d).get() === c.value}>${t(c.label)}</option>`)}
       </select></label>`;
     case 'toggle':
       return html`<label><input type="checkbox" .checked=${settings.of(d).get()}
-        @change=${(e: Event) => save(settings.of(d), (e.target as HTMLInputElement).checked)} />${t(d.label)}</label>`;
+        @change=${(e: Event) => saveSetting(settings.of(d), (e.target as HTMLInputElement).checked)} />${t(d.label)}</label>`;
   }
 }
 
