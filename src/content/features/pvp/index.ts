@@ -79,6 +79,7 @@ export const pvpFeature: Feature = {
         page,
         filter,
         name: (id) => ctx.players.get(id)?.name,
+        guild: (id) => ctx.players.get(id)?.guild?.name,
         playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
         building: (id) => ctx.catalog.get(id)?.name,
         resourceName: (id) => ctx.catalog.resourceName(id),

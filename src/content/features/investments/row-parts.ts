@@ -51,10 +51,11 @@ type LeadActions = GbRowActions & Pick<RowActions<string, CommonFilter>, 'pickPl
 
 /**
  * The owner: link, then at the right edge the star, the closed eye and the funnel. Star and eye only for a player the
- * store knows. All keep their place in every row, so the mouse can run straight down the column.
+ * store knows. All keep their place in every row, so the mouse can run straight down the column. The tooltip is the name
+ * with the guild over the row's tooltip.
  */
 const ownerCell = (r: CommonRowVm, playerField: string, actions: LeadActions) =>
-  html`<td class="name-cell" data-tip=${r.ownerName}><span class="row-name">${externalLink(r.ownerName, r.ownerUrl)}${ownerMarks(
+  html`<td class="name-cell" data-tip=${[r.ownerTip, rowTip(r)].filter(Boolean).join('\n')}><span class="row-name">${externalLink(r.ownerName, r.ownerUrl)}${ownerMarks(
     r.ownerIgnored === undefined ? {} : { ownerMarked: r.ownerMarked, ownerIgnored: r.ownerIgnored },
     (marked) => actions.markPlayer(r.owner, marked),
     (ignored) => actions.ignorePlayer(r.owner, ignored),

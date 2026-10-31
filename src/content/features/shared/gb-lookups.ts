@@ -1,6 +1,6 @@
 // What the features that list great buildings of other players (GB calculator, snipe helper, investments) look up about
 // buildings and their owners, and the four actions on a row: star and eye of the building and of its owner.
-import { foestatsPlayerUrl } from '../../../shared/foestats';
+import { foestatsGuildUrl, foestatsPlayerUrl } from '../../../shared/foestats';
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import type { Relations } from '../../../shared/model';
 import type { FeatureContext } from '../../core/feature';
@@ -22,6 +22,10 @@ export const gbLookups = (ctx: FeatureContext): GbLookups => ({
   greatBuildingName: (def) => ctx.catalog.greatBuildingName(def),
   playerName: (id) => ctx.players.get(id)?.name,
   playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
+  playerGuild: (id) => {
+    const guild = ctx.players.get(id)?.guild;
+    return guild && { name: guild.name, url: foestatsGuildUrl(ctx.world, guild.id) };
+  },
   relations: (id) => ctx.players.get(id)?.relations,
   isMarked: (owner, entityId) => ctx.greatBuildings.isMarked(owner, entityId),
   playerMarked: (id) => ctx.players.marked(id),

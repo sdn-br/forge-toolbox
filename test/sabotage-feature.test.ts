@@ -191,6 +191,22 @@ describe('sabotage feature', () => {
     expect(ctx.players.get(playerId(1))?.marked).toBeUndefined();
   });
 
+  it('ignores the visited player with the eye after the star and takes it back', async () => {
+    const { ctx, box } = setup();
+    ctx.players.apply(world, [observed(1, { canPlunder: false })], 'visit');
+    ctx.cities.setVisited(city(1));
+    await tick();
+    const eye = () => box.root.querySelector('button.ignore') as HTMLElement;
+    expect(box.root.querySelector('button.star')?.nextElementSibling).toBe(eye());
+    eye().click();
+    await tick();
+    expect(ctx.players.get(playerId(1))?.ignored).toBe(true);
+    expect(eye().getAttribute('aria-pressed')).toBe('true');
+    eye().click();
+    await tick();
+    expect(ctx.players.get(playerId(1))?.ignored).toBeUndefined();
+  });
+
   it('shows no star for a visited player the store does not know', async () => {
     const { ctx, box } = setup();
     ctx.cities.setVisited(city(1));

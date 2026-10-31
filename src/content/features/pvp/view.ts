@@ -23,9 +23,9 @@ export interface PvpActions {
 
 const army = (a: ArmyValues) => `${formatNumber(a.attack)} / ${formatNumber(a.defense)}`;
 
-/** the name filters to the player, the icon beside it opens their page at foestats */
-const opponentLink = (r: { opponent: PlayerId; name: string; url: string }, actions: PvpActions) =>
-  html`<td><a href="#" @click=${(e: Event) => {
+/** the name filters to the player, the icon beside it opens their page at foestats; the name's tooltip adds the guild */
+const opponentLink = (r: { opponent: PlayerId; name: string; nameTip: string; url: string }, actions: PvpActions) =>
+  html`<td><a href="#" data-tip=${r.nameTip} @click=${(e: Event) => {
     e.preventDefault();
     actions.pick(r.opponent);
   }}>${r.name}</a> ${externalIcon(r.url, t('foestats.open'))}</td>`;
@@ -36,7 +36,7 @@ const noteMarker = (opponent: PlayerId, note: string, actions: PvpActions) =>
     aria-label=${t('notes.add')} @click=${() => actions.note(opponent)}>${headerIcons.note}</button></td>`;
 
 const incomingRow = (r: IncomingRow, actions: PvpActions) => html`<tr>
-  ${noteMarker(r.attacker, r.note, actions)}${opponentLink({ opponent: r.attacker, name: r.name, url: r.url }, actions)}
+  ${noteMarker(r.attacker, r.note, actions)}${opponentLink({ ...r, opponent: r.attacker }, actions)}
   <td>${r.when}</td><td>${r.what}</td></tr>`;
 
 /** a click on the row shows its details, a click on its link or note marker does what they do */

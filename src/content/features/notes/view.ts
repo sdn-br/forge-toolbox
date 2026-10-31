@@ -5,7 +5,7 @@ import type { ReachFilter } from '../../domain/reach';
 import { iconButton } from '../../ui/buttons';
 import { headerIcons } from '../../ui/icons';
 import { autofocus, keepKeys, searchField } from '../../ui/inputs';
-import { externalLink } from '../../ui/links';
+import { externalLink, guildTag } from '../../ui/links';
 import { relationIcons, relationToggles } from '../../ui/relations';
 import type { NotesVm, PageVm, PickerVm, ResultVm, RowVm, TabVm } from './view-model';
 
@@ -107,7 +107,7 @@ function side(vm: NotesVm, actions: NotesActions) {
 function pageHead(page: PageVm, actions: NotesActions) {
   if (page.player) {
     const p = page.player;
-    const guild = p.guild ? html`<br /><span class="muted">[${externalLink(p.guild.name, p.guild.url)}]</span>` : '';
+    const guild = p.guild ? html`<br />${guildTag(p.guild)}` : '';
     return html`<p><b>${externalLink(p.name, p.url)}</b> <span class="rel-icons">${relationIcons(p.relations)}</span>${guild}
       ${page.when ? html`<br /><span class="muted">${t('notes.changed', { when: page.when })}</span>` : ''}</p>`;
   }

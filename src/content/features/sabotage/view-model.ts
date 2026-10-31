@@ -73,6 +73,8 @@ export interface SabotageVm {
     era: string;
     /** the player put a star on the player; missing when the store does not know them */
     marked?: boolean;
+    /** the player ignores the player; missing when the store does not know them */
+    ignored?: boolean;
   };
   /** whether and when the visited player can be attacked or plundered */
   attack: AttackStatus;
@@ -154,7 +156,7 @@ export function sabotageViewModel({
         guild: { name: player.guild.name, url: foestatsGuildUrl(city.world, player.guild.id) },
       }),
       era: catalog.eraName(city.era),
-      ...(player && { marked: player.marked === true }),
+      ...(player && { marked: player.marked === true, ignored: player.ignored === true }),
     },
     attack,
     lootable: attack.kind === 'plunderable' || attack.kind === 'attackable',

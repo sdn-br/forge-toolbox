@@ -2,8 +2,8 @@ import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, formatPercent, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { battleDetailsView } from '../../ui/battle-details';
-import { externalLink } from '../../ui/links';
-import { starButton } from '../../ui/star';
+import { externalLink, guildTag } from '../../ui/links';
+import { ownerMarks } from '../../ui/owner-line';
 import type { PlunderItem, SabotageVm } from './view-model';
 
 const armyCells = (army: ArmyValues | undefined) =>
@@ -77,17 +77,13 @@ export function sabotageView(
   note?: TemplateResult,
   marks?: PlunderMarks,
   /** puts the star on the visited player or takes it away */
-  markPlayer?: (marked: boolean) => void,
+  playerMarks?: { mark(marked: boolean): void; ignore(ignored: boolean): void },
 ): TemplateResult {
   if (!vm) return html`<p class="muted">${t('sabotage.noVisit')}</p>`;
   return html`
-    <p><b>${externalLink(vm.player.name, vm.player.url)}</b>${
-      vm.player.marked !== undefined && markPlayer
-        ? html` ${starButton(vm.player.marked, () => markPlayer(!vm.player.marked))}`
-        : ''
-    }${
-      vm.player.guild
-        ? html` <span class="muted">[${externalLink(vm.player.guild.name, vm.player.guild.url)}]</span>`
+    <p><b>${externalLink(vm.player.name, vm.player.url)}</b>${vm.player.guild ? html` ${guildTag(vm.player.guild)}` : ''}${
+      vm.player.marked !== undefined && playerMarks
+        ? html` ${ownerMarks({ ownerMarked: vm.player.marked, ownerIgnored: vm.player.ignored }, playerMarks.mark, playerMarks.ignore)}`
         : ''
     }
       <br /><span class="muted">${t('sabotage.era')}: ${vm.player.era}</span>
