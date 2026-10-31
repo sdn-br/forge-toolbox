@@ -449,7 +449,10 @@ describe('LG-Rechner', () => {
       return env;
     };
     const cells = (row: Element | undefined) =>
-      [...(row?.querySelectorAll('td') ?? [])].map((td) => td.textContent?.trim());
+      [...(row?.querySelectorAll('td') ?? [])].map((td) =>
+        // a safe place shows the circled check, no text
+        td.classList.contains('secured') && td.querySelector('svg') ? 'secured' : td.textContent?.trim(),
+      );
     /** the lines about the own deposit, the second lists the places still to make safe */
     const meLines = (root: HTMLElement) => {
       const me = root.querySelector('.gb-me');
@@ -485,7 +488,7 @@ describe('LG-Rechner', () => {
       expect(rows().map((r) => cells(r)[3])).toEqual(['4.291', '2.151', '714', '176', '39']);
       // place 1: round((3099 + 1970) / 2) = 2535 cannot pass 3099; place 2: round(2449 / 2) = 1225 for 926 profit;
       // place 3: round(1970 / 2) = 985 for -271; place 4 the same 985: dominated
-      expect(cells(rows()[0])?.[2]).toBe('✓');
+      expect(cells(rows()[0])?.[2]).toBe('secured');
       expect(meLines(box.root)).toEqual(['Du: noch nichts eingezahlt', 'P2 sichern: 1.225']);
       expect(best(box.root)).toEqual(['P2 sichern: 1.225']);
     });
@@ -519,10 +522,10 @@ describe('LG-Rechner', () => {
     it('safe on place 1: the line says so and the own row shows a check mark and one rate', () => {
       // me 2800 alone: rest 5404, round(5404 / 2) = 2702 cannot pass me
       const { box, rows } = scenario([2800], 1);
-      expect(meLines(box.root)).toEqual(['Du: 2.800 FP auf P1 · sicher ✓']);
+      expect(meLines(box.root)).toEqual(['Du: 2.800 FP auf P1 · sicher']);
       expect(box.root.querySelector('.gb-me')?.className).toBe('gb-me safe');
       // the own deposit is the cost once it is more than the safe 2702: 2493 - 2800
-      expect(cells(rows()[0])?.slice(0, 5)).toEqual(['1', '2.800', '✓', '2.493', '-307']);
+      expect(cells(rows()[0])?.slice(0, 5)).toEqual(['1', '2.800', 'secured', '2.493', '-307']);
       // 2800 / 1275 = 219.6 %
       expect(cells(rows()[0])?.[6]).toBe('219,6 %');
     });
@@ -530,7 +533,7 @@ describe('LG-Rechner', () => {
     it('leaves out the places above that cannot be had', () => {
       // place 1 holds 4000, me 400 on 2: rest 5404 - 4000 = 1404; round((4000 + 1404) / 2) = 2702 cannot pass it
       const { box, rows } = scenario([4000, 400], 2);
-      expect(cells(rows()[0])?.slice(0, 3)).toEqual(['1', '4.000', '✓']);
+      expect(cells(rows()[0])?.slice(0, 3)).toEqual(['1', '4.000', 'secured']);
       // own place: round(1404 / 2) = 702
       expect(meLines(box.root)).toEqual(['Du: 400 FP auf P2 · nicht sicher', 'P2 sichern: +302']);
     });

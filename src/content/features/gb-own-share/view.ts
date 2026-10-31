@@ -1,4 +1,4 @@
-import { html, type TemplateResult } from 'lit-html';
+import { html, nothing, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import type { OwnPlace } from '../../domain/gb-own-share';
 import { iconButton } from '../../ui/buttons';
@@ -7,8 +7,9 @@ import { type FactorActions, factorBar } from '../../ui/factor-bar';
 import { headerIcons } from '../../ui/icons';
 import { keepKeys } from '../../ui/inputs';
 import { type LevelChoice, levelBar } from '../../ui/level-bar';
+import { previewCost, previewEstimate, previewHeading, previewUnknown } from '../../ui/level-preview';
 import { type FactorLevelActions, factorLevel, placeFactorField } from './factor-state';
-import type { CopyVm, OwnPreviewVm, OwnRow, OwnShareVm } from './view-model';
+import type { CopyVm, OwnRow, OwnShareVm } from './view-model';
 
 export interface OwnShareActions extends FactorActions, FactorLevelActions {
   setExt(rank: number, fp: number): void;
@@ -38,11 +39,10 @@ export function ownShareView(vm: OwnShareVm, actions: OwnShareActions, copied?: 
       return html`<p class="gb-title">${vm.name}</p><p class="muted">${t('gbCalc.unconnected')}</p>`;
     case 'leveled':
       return html`<p class="gb-title">${vm.name}</p><p class="warn">${t('gbCalc.leveled', { level: vm.level })}</p>`;
-    case 'previewUnknown': {
-      const note = vm.preview.unknown === 'definition' ? t('gbCalc.previewNoDefinition') : t('gbCalc.previewNoReward');
-      return html`${head(vm.name, vm.levels, actions)}${previewHeading(vm.preview)}
-        <p class="muted">${note}</p>${previewCost(vm.preview)}`;
-    }
+    case 'previewUnknown':
+      return html`${head(vm.name, vm.levels, actions)}${previewHeading(vm.preview)}${previewUnknown(vm.preview)}${previewCost(
+        vm.preview,
+      )}`;
   }
   const cell: Cell = (n, id) => copyCell(n, id, actions, copied);
   return html`${head(vm.name, vm.levels, actions)}
@@ -83,7 +83,7 @@ export function ownShareView(vm: OwnShareVm, actions: OwnShareActions, copied?: 
       · <b>${t('gbOwn.open', { fp: formatNumber(Math.max(0, vm.open)) })}</b></p>
     ${vm.addedLive > 0 ? html`<p class="warn">${t('gbOwn.addedLive', { fp: formatNumber(vm.addedLive) })}</p>` : ''}
     ${vm.preview ? previewCost(vm.preview) : ''}
-    ${vm.preview?.estimate ? html`<p class="muted">${t('gbCalc.estimate')}</p>` : ''}
+    ${vm.preview ? previewEstimate(vm.preview) : ''}
     ${copyPanel(vm.copy, actions, copied)}`;
 }
 
@@ -91,15 +91,6 @@ export function ownShareView(vm: OwnShareVm, actions: OwnShareActions, copied?: 
 const head = (name: string, l: LevelChoice, actions: OwnShareActions) =>
   html`<p><span class="gb-title">${t('gbCalc.heading', { name, level: l.current, next: l.current + 1 })}</span></p>
     ${levelBar(l, (level) => actions.previewLevel(level))}`;
-
-/** the previewed level, as in the LG-Rechner */
-const previewHeading = (p: OwnPreviewVm) =>
-  html`<p class="warn">${t('gbCalc.previewHeading', { level: p.level, next: p.next })}${
-    p.locked ? html` <span class="muted">· ${t('gbCalc.previewLocked')}</span>` : ''
-  }</p>`;
-
-const previewCost = (p: OwnPreviewVm) =>
-  p.required === undefined ? '' : html`<p>${t('gbCalc.previewCost', { fp: formatNumber(p.required) })}</p>`;
 
 /**
  * The columns with their fixed widths in em, so the box keeps its size whatever the cells hold; a column that has
@@ -123,8 +114,9 @@ const fp = (n: number, cls = 'num') => html`<td class=${cls}>${formatNumber(n)}<
 
 /** a number to pay: a click copies it plain for the deposit field of the game */
 function copyCell(n: number, id: string, actions: OwnShareActions, copied?: string) {
-  return html`<button class="copy-fp" data-tip=${t('gbOwn.copyNumber')}
-    @click=${() => actions.copy(String(n), id)}>${copied === id ? t('gbOwn.copiedShort') : formatNumber(n)}</button>`;
+  const done = copied === id;
+  return html`<button class="copy-fp" data-tip=${t('gbOwn.copyNumber')} aria-label=${done ? t('gbOwn.copied') : nothing}
+    @click=${() => actions.copy(String(n), id)}>${done ? headerIcons.check : formatNumber(n)}</button>`;
 }
 
 /** the own Forge points: what to pay before the next place with the total so far, in the first row also what is paid */

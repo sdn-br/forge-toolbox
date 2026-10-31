@@ -108,7 +108,10 @@ describe('recorded own contribution', () => {
 });
 
 const cells = (row: Element | undefined) =>
-  [...(row?.querySelectorAll('td') ?? [])].map((td) => td.textContent?.trim());
+  [...(row?.querySelectorAll('td') ?? [])].map((td) =>
+    // a safe place shows the circled check, no text
+    td.classList.contains('secured') && td.querySelector('svg') ? 'secured' : td.textContent?.trim(),
+  );
 
 // Basilius-Kathedrale St. 41 of 42 (recorded 2026-10-21): 1543 needed, 986 in (820 on rank 1, owner 166), ranks 2 to 5
 // empty. The own 279 FP went to rank 2; below it nothing can be paid, the own deposit cannot hold a second place.
@@ -134,12 +137,13 @@ describe('recorded contribution to place 2 with empty places below', () => {
       'gb-unavailable',
     ]);
     // rank 1 holds 820, its safe cost round((820 + 557) / 2) = 689 cannot pass it anymore
-    expect(cells(rows()[0]).slice(0, 3)).toEqual(['1', '820', '✓']);
+    expect(cells(rows()[0]).slice(0, 3)).toEqual(['1', '820', 'secured']);
     expect(rows()[0]?.querySelectorAll('td')[2]?.getAttribute('data-tip')).toBe('Platz ist sicher');
     expect([cells(rows()[0])[4], cells(rows()[0])[6]]).toEqual(['–', '–']);
     // rest 557, no successor: round(557 / 2) = 279, already paid: safe, the rate is the own 279 of 205
-    expect(cells(rows()[1])).toEqual(['2', '279', '✓', '205', '-74', '390 (+111)', '136,1 %']);
-    expect(box.root.querySelector('.gb-me')?.textContent?.trim()).toBe('Du: 279 FP auf P2 · sicher ✓');
+    expect(cells(rows()[1])).toEqual(['2', '279', 'secured', '205', '-74', '390 (+111)', '136,1 %']);
+    expect(box.root.querySelector('.gb-me')?.textContent?.trim()).toBe('Du: 279 FP auf P2 · sicher');
+    expect(box.root.querySelector('.gb-me .secured-icon svg')).not.toBeNull();
     expect(box.root.querySelector('.gb-me')?.className).toBe('gb-me safe');
     for (const row of rows().slice(2)) {
       const [, invested, safe, gross, profit, demand, rate] = cells(row);

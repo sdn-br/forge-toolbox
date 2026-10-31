@@ -1,18 +1,14 @@
 import type { PlayerId } from '../../../shared/ids';
 import { formatNumber, signed, t } from '../../core/texts';
-import {
-  bySnipeProfit,
-  type SnipeHit,
-  type SnipeList,
-  type SnipeTier,
-  snipeProfitKey,
-  TIER_ORDER,
-} from '../../domain/gb-snipe';
+import { bySnipeProfit, type SnipeHit, type SnipeList } from '../../domain/gb-snipe';
+import { type ActivityVm, activityVm } from '../../ui/activity';
+import { type ProgressVm, progressVm } from '../../ui/fp-bar';
 import { ignoreNote, ignoreWords } from '../../ui/ignore';
-import { ownerShareNote, snipeNotes, snipeProfit, snipeProfitRange } from '../../ui/snipe-hit';
+import { type OwnerVm, ownerVm } from '../../ui/owner-line';
+import { type HitVm, hitSortKeys, hitVm, ownerShareNote, snipeNotes } from '../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../ui/sortable';
 import { clampTop, type RowWindow, rowWindow } from '../../ui/windowed-rows';
-import { type ActivityVm, activityVm, type GbLookups, type OwnerVm, ownerVm } from './view-model';
+import type { GbLookups } from './view-model';
 
 export type SnipeColumn = 'order' | 'name' | 'level' | 'progress' | 'rank' | 'cost' | 'profit' | 'tier' | 'mark';
 
@@ -38,26 +34,18 @@ export const VISIBLE_ROWS = 6;
 /** the offset kept inside the list, so a shorter list or a stale offset never leaves the table empty */
 export const clampScroll = (top: number, rows: number): number => clampTop(top, rows, VISIBLE_ROWS);
 
-export interface SnipeRowVm {
+/** the progress of the level for its cell */
+export interface SnipeRowVm extends ProgressVm {
   owner: PlayerId;
   entityId: number;
   /** place in the game's list, from 1 */
   order: number;
   name: string;
   level: number;
-  invested: number;
-  required: number;
   /** "300" when the building gained Forge points since its previous sighting on this level */
   growth?: string;
-  rank: number;
-  cost: number;
-  /** "+85" when exact, "+40 … +310" as a range */
-  /** the best case; `profitRange` the range for its tooltip when not exact */
-  profit: string;
-  profitRange?: string;
-  /** the rewards are estimated */
-  estimate: boolean;
-  tier: SnipeTier;
+  /** the best place */
+  hit: HitVm;
   /** the player put a star on the building */
   marked: boolean;
   /** the building itself is ignored, for its eye; the note also names an ignored owner */
@@ -116,15 +104,16 @@ export interface SnipeInput extends GbLookups {
   scroll?: number;
 }
 
-const sortKey: Record<SnipeColumn, (r: SnipeRowVm & { hit: SnipeHit }) => number | string> = {
+type Built = SnipeRowVm & { source: SnipeHit };
+
+const sortKey: Record<SnipeColumn, (r: Built) => number | string | undefined> = {
   order: (r) => r.order,
   name: (r) => r.name,
   level: (r) => r.level,
-  progress: (r) => (r.required > 0 ? r.invested / r.required : 0),
-  rank: (r) => r.rank,
-  cost: (r) => r.cost,
-  profit: (r) => snipeProfitKey(r.hit),
-  tier: (r) => TIER_ORDER[r.tier],
+  ...hitSortKeys<Built>(
+    (r) => r.source,
+    (r) => r.source,
+  ),
   mark: (r) => Number(r.marked),
 };
 
@@ -138,7 +127,6 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
   );
   const built = (input.showIgnored ? result.hits : kept).map((h) => {
     const ignored = input.isIgnored(h.owner, h.entityId);
-    const profitRange = snipeProfitRange(h);
     const ownerShare = ownerShareNote(h.ownerShare, input.now);
     const row: SnipeRowVm = {
       owner: h.owner,
@@ -146,24 +134,18 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
       order: places.get(h.entityId) ?? 0,
       name: name(h),
       level: h.level,
-      invested: h.invested,
-      required: h.required,
+      ...progressVm(h.invested, h.required),
       ...(h.growth !== undefined && { growth: formatNumber(h.growth) }),
-      rank: h.place.rank,
-      cost: h.place.cost,
-      profit: snipeProfit(h),
-      ...(profitRange !== undefined && { profitRange }),
-      estimate: h.estimate,
-      tier: h.tier,
+      hit: hitVm(h),
       marked: input.isMarked(h.owner, h.entityId),
       ignored,
       ...ignoreNote(ignored, input.ownerIgnored(h.owner)),
       notes: snipeNotes(h),
       ...(ownerShare !== undefined && { ownerShare }),
     };
-    return { ...row, hit: h };
+    return { ...row, source: h };
   });
-  const rows = sortRows(built, input.sort, (column) => sortKey[column]).map(({ hit: _, ...row }) => row);
+  const rows = sortRows(built, input.sort, (column) => sortKey[column]).map(({ source: _, ...row }) => row);
   const counts = [
     result.none > 0 && t('snipe.countNone', { count: result.none }),
     result.ownContribution > 0 && t('snipe.countOwn', { count: result.ownContribution }),

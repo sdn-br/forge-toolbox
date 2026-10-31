@@ -12,6 +12,7 @@ import type { Construction } from '../../model/great-building';
 import { FOESTATS_SETTING } from '../../stores/foestats';
 import { icons } from '../../ui/icons';
 import { nextSort } from '../../ui/sortable';
+import { createChime, playTone } from '../../ui/sound';
 import { type SnipeActions, snipeView } from './snipe-view';
 import {
   clampScroll,
@@ -23,7 +24,6 @@ import {
   snipeViewModel,
 } from './snipe-view-model';
 import { gbCalculatorCss } from './styles';
-import { playTone } from './tone';
 import { type GbCalculatorActions, gbCalculatorView } from './view';
 import { type GbCalculatorVm, type GbLookups, gbCalculatorViewModel, profitable } from './view-model';
 
@@ -125,8 +125,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       /** the last foreign construction; an own one opened later leaves it in the box */
       let shown: Construction | undefined;
       let vm: GbCalculatorVm = { kind: 'none' };
-      /** what the last tone was for, so a redraw with the same places stays quiet */
-      let toned: string | undefined;
+      /** keyed by what the tone is for, so a redraw with the same places stays quiet */
+      const chime = createChime(tone);
       /** the later level the box previews; undefined shows the construction */
       let preview: number | undefined;
 
@@ -142,8 +142,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       let showIgnored = ctx.ui.pref(SNIPE_SHOW_IGNORED) === 'true';
       /** index of the first table row in view; a new list starts at the top, redraws of the same list keep it */
       let scroll = 0;
-      /** what the last list tone was for: the same hits stay quiet */
-      let snipeToned: string | undefined;
+      /** keyed by the hits of the list: the same hits stay quiet */
+      const snipeChime = createChime(tone);
       /** the calculator is folded to one line; a new list folds it, opening a building unfolds it, the window the game
        * shows too, else the player */
       let calcFolded = false;
@@ -282,8 +282,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         if (hits.length === 0) return;
         const key = `${list?.owner}|${hits.map((h) => `${h.entityId}:${h.tier}:${h.place.rank}:${h.place.cost}`).join(',')}`;
         if (snipeOpen.get()) box.open();
-        if (snipeSound.get() && key !== snipeToned) tone();
-        snipeToned = key;
+        snipeChime.ring(key, snipeSound.get());
       };
 
       /** the shown building, or its owner, is ignored */
@@ -297,9 +296,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           .map((p) => `${p.rank}:${p.safe?.cost}`)
           .join(',');
         const key = leveled ? `leveled:${vm.leveled}` : vm.profitable ? `${vm.header.name}:${places}` : undefined;
-        if (key === undefined || key === toned) return;
-        toned = key;
-        tone();
+        if (key !== undefined) chime.ring(key);
       };
 
       const follow = () => {
@@ -333,7 +330,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         // shows the building's window: it comes before the building, so the window signal could not fold yet
         if (list?.owner !== owner || shownWindow === 'foreign') expanded = false;
         calcFolded = false;
-        toned = undefined;
+        chime.reset();
         preview = undefined;
         refresh();
         // an ignored building or player does not open the box; by hand it shows with a warning

@@ -1,9 +1,13 @@
 // The look of the UI kit, in each shadow root, so game CSS and toolbox CSS never meet: the colours, the box frame,
 // fields, tables, tabs, the tooltip, the buttons, and the shared UI parts more than one feature uses. What only one
 // feature draws lives next to it and comes in through `BoxOptions.css`.
+import { hitColumnsCss } from './snipe-hit';
+
 export const baseCss = `
 :host { all: initial; --bg: #2b1d10; --ink: #fbf4e4; --accent: #e8861c; --btn: #4a3620; --btn-hover: #6a5030;
-  --field: #1c130a; --line: #8a6a3a; --muted: #b8a27d; --good: #8fd08f; --warn: #f0a050; color-scheme: dark; }
+  --field: #1c130a; --line: #8a6a3a; --muted: #b8a27d; --good: #8fd08f; --warn: #f0a050; --bad: #ff6a50;
+  --row-good: rgba(90, 170, 90, .28); --row-bad: rgba(200, 80, 60, .28); --row-warn: rgba(220, 190, 60, .24);
+  --row-mine: rgba(80, 140, 220, .32); color-scheme: dark; }
 /* the accent parts of an icon */
 .acc { color: var(--accent); }
 * { box-sizing: border-box; }
@@ -155,6 +159,9 @@ button.fold-toggle svg { display: block; flex: none; width: 14px; height: 14px; 
 .win-nav button.icon:hover { color: var(--accent); }
 .win-nav button.icon.off { cursor: default; opacity: .4; color: var(--ink); }
 p.win-hidden { margin: 2px 0; }
+/* a round spinner while something is asked (ui/activity.ts) */
+.spinner { display: inline-block; width: .8em; height: .8em; vertical-align: -.1em; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 /* the star that marks a great building or a player, and the closed eye that ignores one; both look the same */
 :is(button.star, button.ignore) { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 18px; height: 18px; vertical-align: middle; color: var(--ink); opacity: .7; }
 :is(button.star, button.ignore):is(:hover, .on) { color: var(--accent); opacity: 1; }
@@ -169,7 +176,8 @@ th.sortable.multi::after { content: none; }
 th.sortable .sort-level { color: var(--accent); font-size: .75em; }
 th.sortable.desc .sort-level::before { content: ' ▾'; font-size: 1.333em; }
 th.sortable.asc .sort-level::before { content: ' ▴'; font-size: 1.333em; }
-/* the parts the snipe list and the investment tables share */
+/* the parts the snipe list and the investment tables share; the widths of their shared columns (ui/snipe-hit.ts) */
+${hitColumnsCss.trim()}
 :is(.snipe-table, .inv-table) td.name-cell { overflow: hidden; text-overflow: ellipsis; }
 /* the star left; in the snipe list its icon in line with the number of # before it (the button centres a 14 px icon in
    18 px) */
@@ -218,7 +226,7 @@ input.place-factor.arc { color: var(--accent); }
 /* a place no one can take, an estimated cell, a place short of Forge points: in the great building tables */
 tr.gb-unavailable, tr.gb-worse { color: #8a7a60; }
 .gb-table td.estimate { font-style: italic; }
-td.short { color: #ff6a50; font-weight: 600; }
+td.short { color: var(--bad); font-weight: 600; }
 /* the name of the great building on top of its boxes, and the line about the own place or the totals below the table */
 .gb-title { font-size: 15px; font-weight: 600; }
 p.gb-me { margin: 6px 0; padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; background: #3a2814; }

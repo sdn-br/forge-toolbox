@@ -3,8 +3,8 @@ import { t } from '../../core/texts';
 import { filterToggle, toggleGroup } from '../../ui/buttons';
 import { growthTag, progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
-import { buildingCell, ignoredFilter } from '../../ui/ignore';
-import { profitCell, tierCell, tierIcon } from '../../ui/snipe-hit';
+import { buildingCell, ignoredFilter, rowTip } from '../../ui/ignore';
+import { hitCells, tierIcon } from '../../ui/snipe-hit';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { rowsIn, windowedRows } from '../../ui/windowed-rows';
 import { markedFilter, ownerCell, reachCell, reachFilter, text } from './filter-parts';
@@ -52,22 +52,15 @@ const row = (
   r: PossibleRowVm,
   playerField: string,
   actions: PossibleActions,
-) => html`<tr class=${r.reach === 'none' || r.ignoreNote !== undefined ? 'muted' : ''} data-tip=${[r.ignoreNote, ...r.notes].filter(Boolean).join('\n')}>
+) => html`<tr class=${r.reach === 'none' || r.ignoreNote !== undefined ? 'muted' : ''} data-tip=${rowTip(r)}>
   ${markCell(r, actions.mark)}
   ${ownerCell(r, playerField, actions)}
   <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r.reach, r.reasons)}</td>
-  ${buildingCell(r.name, [r.name, r.ignoreNote, ...r.notes].filter(Boolean).join('\n'), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
+  ${buildingCell(r.name, rowTip(r), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
   <td class="num">${r.level}</td>
   ${progressCell(r, growthTag(r.growth, 'investments.possible.growthHint'))}
   <td class=${r.share.stale ? 'num muted' : 'num'} data-tip=${r.share.tip}>${r.share.text}</td>
-  ${
-    r.hit
-      ? html`<td class="num">${t('gb.rank', { rank: r.hit.rank })}</td>
-        <td class="num" data-tip=${t('snipe.costHint')}>${r.hit.cost}</td>
-        ${profitCell(r.hit.profit, r.hit.estimate, r.hit.range)}
-        ${tierCell(r.hit.tier)}`
-      : html`<td></td><td></td><td></td><td></td>`
-  }
+  ${r.hit ? hitCells(r.hit) : html`<td></td><td></td><td></td><td></td>`}
   <td class="num">${r.age}</td>
 </tr>`;
 
@@ -108,7 +101,7 @@ const table = (vm: PossibleVm, actions: PossibleActions) =>
     measure: actions.measure,
     table: html`<table class="gb-table inv-table inv-possible">
     <colgroup><col class="c-mark" /><col class="c-owner" /><col class="c-reach" /><col class="c-name" /><col class="c-level" /><col class="c-progress" /><col class="c-share" />
-      <col class="c-rank" /><col class="c-cost" /><col class="c-gain" /><col class="c-tier" /><col class="c-seen" /></colgroup>
+      <col class="c-rank" /><col class="c-cost" /><col class="c-profit" /><col class="c-tier" /><col class="c-seen" /></colgroup>
     <thead><tr>${sortHeads(columns, vm.sort, actions.sort)}</tr></thead>
     <tbody>${rowsIn(vm.rows, vm.scroll).map((r) => row(r, vm.filter.player, actions))}</tbody>
   </table>`,

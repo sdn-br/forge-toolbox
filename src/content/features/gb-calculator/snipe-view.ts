@@ -1,16 +1,17 @@
 import { html, type TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
-import { formatAge, formatNumber, t } from '../../core/texts';
+import { formatAge, t } from '../../core/texts';
+import { activityLine } from '../../ui/activity';
 import { foldToggle } from '../../ui/fold-toggle';
-import { growthTag, progressCell, progressPercent } from '../../ui/fp-bar';
+import { growthTag, progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
-import { buildingCell, ignoredFilter } from '../../ui/ignore';
-import { profitCell, tierCell } from '../../ui/snipe-hit';
+import { buildingCell, ignoredFilter, rowTip } from '../../ui/ignore';
+import { ownerOf } from '../../ui/owner-line';
+import { hitCells } from '../../ui/snipe-hit';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { starButton } from '../../ui/star';
 import { rowsIn, windowedRows } from '../../ui/windowed-rows';
 import type { SnipeColumn, SnipeRowVm, SnipeVm } from './snipe-view-model';
-import { activityLine, ownerOf } from './view';
 
 export interface SnipeActions {
   sort(column: SnipeColumn, append: boolean): void;
@@ -45,25 +46,13 @@ const columns: SortColumn<SnipeColumn>[] = [
 ];
 
 const row = (r: SnipeRowVm, actions: SnipeActions) =>
-  html`<tr class=${r.ignoreNote === undefined ? '' : 'muted'} data-tip=${[r.ignoreNote, ...r.notes].filter(Boolean).join('\n')}>
+  html`<tr class=${r.ignoreNote === undefined ? '' : 'muted'} data-tip=${rowTip(r)}>
   <td>${r.order}</td>
   <td class="mark-cell">${starButton(r.marked, () => actions.mark(r.owner, r.entityId, !r.marked))}</td>
-  ${buildingCell(r.name, [r.name, r.ignoreNote, ...r.notes].filter(Boolean).join('\n'), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
+  ${buildingCell(r.name, rowTip(r), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
   <td class="num">${r.level}</td>
-  ${progressCell(
-    {
-      invested: formatNumber(r.invested),
-      required: formatNumber(r.required),
-      rest: formatNumber(Math.max(0, r.required - r.invested)),
-      percent: progressPercent(r.invested, r.required),
-    },
-    growthTag(r.growth, 'investments.possible.growthHint'),
-    r.ownerShare === undefined ? [] : [r.ownerShare],
-  )}
-  <td class="num">${t('gb.rank', { rank: r.rank })}</td>
-  <td class="num" data-tip=${t('snipe.costHint')}>${formatNumber(r.cost)}</td>
-  ${profitCell(r.profit, r.estimate, r.profitRange)}
-  ${tierCell(r.tier)}
+  ${progressCell(r, growthTag(r.growth, 'investments.possible.growthHint'), r.ownerShare === undefined ? [] : [r.ownerShare])}
+  ${hitCells(r.hit)}
 </tr>`;
 
 /** the head stays, the body shows six rows; wheel and the two buttons move it by a row */

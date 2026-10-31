@@ -5,7 +5,7 @@ import type { InvestmentStatus } from '../../domain/investments';
 import { toggleGroup } from '../../ui/buttons';
 import { growthTag, progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
-import { buildingCell, ignoredFilter } from '../../ui/ignore';
+import { buildingCell, ignoredFilter, rowTip } from '../../ui/ignore';
 import { type SortColumn, sortHeads } from '../../ui/sortable';
 import { starButton } from '../../ui/star';
 import { rowsIn, windowedRows } from '../../ui/windowed-rows';
@@ -70,11 +70,11 @@ export const markCell = (r: { owner: PlayerId; entityId: number; marked: boolean
 const row = (r: InvestmentRowVm, playerField: string, actions: InvestmentsActions) => {
   const status = t(`investments.status.${r.status}`);
   const muted = r.reach === 'none' || r.ignoreNote !== undefined;
-  return html`<tr class=${[r.growth ? 'grown' : '', muted ? 'muted' : ''].join(' ').trim()} data-tip=${r.ignoreNote ?? ''}>
+  return html`<tr class=${[r.growth ? 'grown' : '', muted ? 'muted' : ''].join(' ').trim()} data-tip=${rowTip(r)}>
   ${markCell(r, actions.mark)}
   ${ownerCell(r, playerField, actions)}
   <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r.reach, r.reasons)}</td>
-  ${buildingCell(r.name, [r.name, r.ignoreNote].filter(Boolean).join('\n'), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
+  ${buildingCell(r.name, rowTip(r), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
   <td class="num">${r.level}</td>
   ${progressCell(r, growthTag(r.growth, 'investments.growthHint'))}
   <td class="num">${t('gb.rank', { rank: r.rank })}</td>

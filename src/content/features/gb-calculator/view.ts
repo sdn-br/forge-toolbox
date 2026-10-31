@@ -1,6 +1,7 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, formatPercent, signed, t } from '../../core/texts';
 import type { LevelUpAndFirst } from '../../domain/gb-strategy';
+import { activityLine } from '../../ui/activity';
 import { emptyCell, estimateCell } from '../../ui/estimate-cell';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
 import { foldToggle } from '../../ui/fold-toggle';
@@ -8,19 +9,11 @@ import { fpBar, progressPercent } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { ignoreButton } from '../../ui/ignore';
 import { levelBar } from '../../ui/level-bar';
+import { previewCost, previewEstimate, previewHeading, previewUnknown } from '../../ui/level-preview';
 import { externalLink } from '../../ui/links';
+import { ownerOf } from '../../ui/owner-line';
 import { starButton } from '../../ui/star';
-import type {
-  ActivityVm,
-  CostCell,
-  DemandCell,
-  GbCalculatorVm,
-  GbHeader,
-  MeVm,
-  OwnerVm,
-  PlaceRow,
-  PreviewVm,
-} from './view-model';
+import type { CostCell, DemandCell, GbCalculatorVm, GbHeader, MeVm, PlaceRow, PreviewVm } from './view-model';
 
 export interface GbCalculatorActions extends FactorActions {
   /** preview a later level; undefined goes back to the current construction */
@@ -34,18 +27,6 @@ export interface GbCalculatorActions extends FactorActions {
   /** ignores the owner of the shown building or releases them */
   toggleOwnerIgnore(ignored: boolean): void;
 }
-
-export const activityLine = (a: ActivityVm) =>
-  html`<br />${t('foestats.label')}:
-    <span class=${a.idle ? 'gb-activity warn' : 'gb-activity muted'} data-tip=${a.title}>${a.text}${
-      a.week ? ` · ${a.week}` : ''
-    }</span>${a.loading ? html` <span class="spinner" data-tip=${t('foestats.loading')}></span>` : ''}`;
-
-/** the owner with a star and the closed eye beside it while the player store knows them */
-export const ownerOf = (o: OwnerVm, toggleMark: (marked: boolean) => void, toggleIgnore: (ignored: boolean) => void) =>
-  html`<span class="gb-owner">${t('gbCalc.ownerLabel')}: ${externalLink(o.owner, o.ownerUrl)}${
-    o.ownerMarked === undefined ? '' : html` ${starButton(o.ownerMarked, () => toggleMark(!o.ownerMarked))}`
-  }${o.ownerIgnored === undefined ? '' : ignoreButton('player', o.ownerIgnored, () => toggleIgnore(!o.ownerIgnored))}</span>`;
 
 /** Above the header while the building or its owner is ignored: what is ignored and the button that lifts it. */
 const ignoreWarning = (h: GbHeader, actions: GbCalculatorActions) => {
@@ -131,7 +112,9 @@ function levelUpLine(l: LevelUpAndFirst) {
 function meLine(me: MeVm) {
   const levelUp = me.levelUp ? html`<br />${levelUpLine(me.levelUp)}` : '';
   const deposit = t('gbCalc.me', { fp: formatNumber(me.fp), rank: me.rank ?? '?' });
-  if (me.secured) return html`<p class="gb-me safe">${deposit} · ${t('gbCalc.meSecured')}${levelUp}</p>`;
+  if (me.secured)
+    return html`<p class="gb-me safe">${deposit} · ${t('gbCalc.meSecured')}
+      <span class="secured-icon" role="img" aria-hidden="true">${headerIcons.checkCircle}</span>${levelUp}</p>`;
   const where =
     me.fp > 0 ? `${deposit}${me.secured === false ? ` · ${t('gbCalc.meUnsafe')}` : ''}` : t('gbCalc.meNone');
   // with nothing paid in yet the total is what to pay, else what to add
@@ -154,9 +137,10 @@ const placeTitle = (p: PlaceRow) =>
     t(`gbCalc.status.${p.status}`),
   ].join(', ');
 
-/** the safe cost; a check mark where the holder is safe, the own place too (the row colour tells which) */
+/** the safe cost; the circled check where the holder is safe, the own place too (the row colour tells which) */
 function safeCell(p: PlaceRow) {
-  if (p.secured && !p.safe) return html`<td class="num" data-tip=${t('gbCalc.securedHint')}>✓</td>`;
+  if (p.secured && !p.safe)
+    return html`<td class="num secured" data-tip=${t('gbCalc.securedHint')} aria-label=${t('gbCalc.securedHint')}>${headerIcons.checkCircle}</td>`;
   return costCell(p.safe);
 }
 
@@ -205,15 +189,11 @@ function overlayText(vm: Extract<GbCalculatorVm, { kind: 'current' }>): string |
   return undefined;
 }
 
-function previewPart(p: PreviewVm) {
-  const note = p.unknown === 'definition' ? t('gbCalc.previewNoDefinition') : t('gbCalc.previewNoReward');
-  return html`<p class="warn">${t('gbCalc.previewHeading', { level: p.level, next: p.next })}${
-    p.locked ? html` <span class="muted">· ${t('gbCalc.previewLocked')}</span>` : ''
-  }</p>
-    ${p.unknown ? html`<p class="muted">${note}</p>` : placesTable(p.places, p.estimate)}
-    ${p.required === undefined ? '' : html`<p>${t('gbCalc.previewCost', { fp: formatNumber(p.required) })}</p>`}
-    ${p.estimate ? html`<p class="muted">${t('gbCalc.estimate')}</p>` : ''}`;
-}
+const previewPart = (p: PreviewVm) =>
+  html`${previewHeading(p)}
+    ${p.unknown ? previewUnknown(p) : placesTable(p.places, p.estimate)}
+    ${previewCost(p)}
+    ${previewEstimate(p)}`;
 
 function calculatorBody(vm: GbCalculatorVm, actions: GbCalculatorActions): TemplateResult {
   switch (vm.kind) {

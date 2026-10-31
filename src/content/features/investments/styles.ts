@@ -1,20 +1,30 @@
 // The look of the investments box, both tabs.
+import { HIT_COLUMN_WIDTHS as hit } from '../../ui/snipe-hit';
+
+/** widths in px of the columns only the investments have; the shared ones are in ui/snipe-hit.ts */
+const REACH = 70;
+const MINE_PROGRESS = 104;
+const DEPOSIT = 90;
+const SHARE = 50;
+const SEEN = 72;
+/** the least room for the names: 122 px for the owner (name, star, eye, funnel), 116 px for the building (name, eye) */
+const NAMES = 122 + 116;
+const MINE_FIXED = hit.mark + REACH + hit.level + MINE_PROGRESS + hit.rank + DEPOSIT + hit.profit + hit.icon;
+const POSSIBLE_FIXED =
+  hit.mark + REACH + hit.level + hit.progress + SHARE + hit.rank + hit.cost + hit.profit + hit.icon + SEEN;
+
 export const investmentsCss = `
 /* investments: fixed columns so heads show whole; owner and building names give way */
 .inv-table { table-layout: fixed; }
-/* the box can be resized: the fixed columns plus at least 122 px for the owner (name, star, eye, funnel) and 116 px for
-   the building (name, eye), "Meine" 506 + 238 px, "Mögliche" 594 + 238 px; narrower, the box scrolls sideways instead of squeezing the
-   names to nothing. debt: the sums are kept by hand. ceiling: a changed column width makes them stale.
-   upgrade: compute them from the column widths once those live in one place */
-.inv-table { min-width: 744px; }
-.inv-table.inv-possible { min-width: 832px; }
-.inv-table .c-mark { width: 34px; }
-.inv-table .c-level, .inv-table .c-rank { width: 56px; }
-.inv-table .c-deposit { width: 90px; }
-.inv-table .c-profit { width: 64px; }
-.inv-table .c-status { width: 32px; }
-.inv-table .c-progress { width: 104px; }
-.inv-table .c-reach { width: 70px; }
+/* the box can be resized: the fixed columns plus the least room for the names; narrower, the box scrolls sideways
+   instead of squeezing the names to nothing */
+.inv-table { min-width: ${MINE_FIXED + NAMES}px; }
+.inv-table.inv-possible { min-width: ${POSSIBLE_FIXED + NAMES}px; }
+.inv-table .c-reach { width: ${REACH}px; }
+.inv-mine .c-progress { width: ${MINE_PROGRESS}px; }
+.inv-table .c-deposit { width: ${DEPOSIT}px; }
+.inv-possible .c-share { width: ${SHARE}px; }
+.inv-possible .c-seen { width: ${SEEN}px; }
 .inv-table :is(.icon-head, .inv-status, .snipe-tier, .mark-cell) { text-align: center; padding: 0; }
 .inv-table .inv-status svg { display: block; width: 14px; height: 14px; margin: auto; }
 .inv-table .icon-head svg { display: inline-block; width: 14px; height: 14px; vertical-align: middle; }
@@ -22,13 +32,7 @@ export const investmentsCss = `
 td.inv-status.safe { color: var(--good); }
 td.inv-status.unsafe { color: var(--warn); }
 td.inv-status.unknown { color: var(--muted); }
-.inv-table tr.grown { background: rgba(220, 190, 60, .24); }
-.inv-possible .c-progress { width: 92px; }
-.inv-possible .c-share { width: 50px; }
-.inv-possible .c-cost { width: 68px; }
-.inv-possible .c-gain { width: 64px; }
-.inv-possible .c-tier { width: 32px; }
-.inv-possible .c-seen { width: 72px; }
+.inv-table tr.grown { background: var(--row-warn); }
 /* the head left, over the icons of the cells */
 .inv-table th.icon-head.inv-reach { text-align: left; padding: 0 0 0 4px; }
 .inv-reach svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px; }
