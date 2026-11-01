@@ -221,6 +221,7 @@ export const de = {
   'pvp.inferred': 'erschlossen',
   'pvp.inferredTip': 'Aus einer Plünderung erschlossen, der Kampf selbst ist nicht aufgezeichnet',
   'pvp.atLatest': 'spätestens {when}',
+  'pvp.approx': '≈ {when}',
   'battle.own': 'Deine Einheiten',
   'battle.opponent': 'Gegner',
   'battle.hp': '{end}/{start} LP',

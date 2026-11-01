@@ -3,7 +3,7 @@
 
 /** widths in px of the fixed columns; opponent and kind take the rest */
 const NOTE = 22;
-const WHEN = 135;
+const WHEN = 96;
 const RESULT = 24;
 const LOOT = 24;
 const BATTLE = 80;

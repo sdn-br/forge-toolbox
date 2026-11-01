@@ -28,7 +28,10 @@ export interface PlunderVm {
 
 export interface PvpRow extends OpponentVm {
   battleId: number;
+  /** an inferred battle's time with "≈" in front, so the column stays narrow */
   when: string;
+  /** an inferred battle: "spätestens <time>" as the tooltip of the time */
+  whenTip?: string;
   /** the word, for the tooltip of the icon */
   result: string;
   outcome: BattleResult;
@@ -119,7 +122,8 @@ export function battlesViewModel(
       if (!isFought(b)) {
         return {
           ...row,
-          when: battleWhen(b, now),
+          when: t('pvp.approx', { when: formatWhen(b.at, now) }),
+          whenTip: battleWhen(b, now),
           battle: t('pvp.inferred'),
           inferred: true,
         };

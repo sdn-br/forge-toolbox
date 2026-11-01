@@ -38,7 +38,7 @@ const cells = (
   r: PvpRow,
   actions: PvpActions,
 ) => html`${noteMarker(r.opponent, r.note, actions)}${opponentCell(r, actions)}
-  <td>${r.when}</td>${resultCell(r)}${lootCell(r)}<td data-tip=${armyTip(r) ?? nothing}>${r.battle}</td>`;
+  <td data-tip=${r.whenTip ?? nothing}>${r.when}</td>${resultCell(r)}${lootCell(r)}<td data-tip=${armyTip(r) ?? nothing}>${r.battle}</td>`;
 
 const row = (r: PvpRow, actions: PvpActions) =>
   html`<tr class=${r.selected ? 'battle-row selected' : 'battle-row'} data-tip=${t(r.selected ? 'pvp.unselect' : 'pvp.select')}

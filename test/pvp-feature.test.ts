@@ -726,7 +726,8 @@ describe('pvp feature', () => {
           plunder: { ...plunder(111), at },
         },
       ]);
-      expect(row(0).textContent).toContain('spätestens');
+      expect(row(0).textContent).toContain('≈');
+      expect(row(0).querySelector('[data-tip^="spätestens"]')).not.toBeNull();
       expect(row(0).textContent).toContain('erschlossen');
       expect(row(0).textContent).not.toContain('%');
       row(0).click();
