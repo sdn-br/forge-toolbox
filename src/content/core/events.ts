@@ -1,13 +1,13 @@
 // Contracts of all domain events. A listener gets exactly this payload and reads the rest from the stores.
 import type { GbWindowState } from '../../shared/gb-window-protocol';
 import type { BuildingDefId, PlayerId } from '../../shared/ids';
-import type { CityKey, PlayerSource, Session } from '../../shared/model';
+import type { CityKey, PlayerSource, PvpMarkKind, Session } from '../../shared/model';
 import { EventBus } from './bus';
 
 export interface ToolboxEvents {
   'session.started': { session: Session };
   /** `source` is where the data came from, or `mark` when the player put a star on a player or took it away */
-  'player.updated': { ids: PlayerId[]; source: PlayerSource | 'mark' | 'ignore' };
+  'player.updated': { ids: PlayerId[]; source: PlayerSource | 'mark' | 'ignore' | PvpMarkKind };
   'city.ownChanged': { buildingIds?: number[]; reset: boolean };
   'city.visited': { owner: PlayerId };
   'city.visitedChanged': { owner: PlayerId; buildingIds: number[] };

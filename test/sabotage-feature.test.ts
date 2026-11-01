@@ -173,45 +173,52 @@ describe('sabotage feature', () => {
     ]);
   });
 
-  it('puts a star on the visited player next to the name and takes it away again', async () => {
+  it('marks the visited player as good to plunder next to the name and takes it away again', async () => {
     const { ctx, box } = setup();
     ctx.players.apply(world, [observed(1, { canPlunder: false })], 'visit');
     ctx.cities.setVisited(city(1));
     await tick();
-    const star = () => box.root.querySelector('button.star') as HTMLElement;
-    expect(star().getAttribute('aria-label')).toBe('Merken');
-    expect(star().closest('p')?.textContent).toContain('P1');
-    star().click();
+    const plunder = () => box.root.querySelector('button.plunder') as HTMLElement;
+    expect(plunder().getAttribute('aria-label')).toBe('Gut zu plündern');
+    expect(plunder().closest('p')?.textContent).toContain('P1');
+    plunder().click();
     await tick();
-    expect(ctx.players.get(playerId(1))?.marked).toBe(true);
-    expect(star().getAttribute('aria-label')).toBe('Nicht mehr merken');
-    expect(star().getAttribute('aria-pressed')).toBe('true');
-    star().click();
-    await tick();
+    expect(ctx.players.get(playerId(1))?.plunderWorthy).toBe(true);
     expect(ctx.players.get(playerId(1))?.marked).toBeUndefined();
+    expect(plunder().getAttribute('aria-label')).toBe('Nicht mehr gut zu plündern');
+    expect(plunder().getAttribute('aria-pressed')).toBe('true');
+    plunder().click();
+    await tick();
+    expect(ctx.players.get(playerId(1))?.plunderWorthy).toBeUndefined();
   });
 
-  it('ignores the visited player with the eye after the star and takes it back', async () => {
+  it('marks the visited player as not to attack after the first mark, which it clears', async () => {
     const { ctx, box } = setup();
     ctx.players.apply(world, [observed(1, { canPlunder: false })], 'visit');
+    ctx.players.setPlunderWorthy(playerId(1), true);
     ctx.cities.setVisited(city(1));
     await tick();
-    const eye = () => box.root.querySelector('button.ignore') as HTMLElement;
-    expect(box.root.querySelector('button.star')?.nextElementSibling).toBe(eye());
-    eye().click();
+    const noAttack = () => box.root.querySelector('button.no-attack') as HTMLElement;
+    expect(box.root.querySelector('button.plunder')?.nextElementSibling).toBe(noAttack());
+    noAttack().click();
     await tick();
-    expect(ctx.players.get(playerId(1))?.ignored).toBe(true);
-    expect(eye().getAttribute('aria-pressed')).toBe('true');
-    eye().click();
+    expect(ctx.players.get(playerId(1))).toMatchObject({ noAttack: true });
+    expect(ctx.players.get(playerId(1))?.plunderWorthy).toBeUndefined();
+    expect(noAttack().getAttribute('aria-pressed')).toBe('true');
+    noAttack().click();
     await tick();
-    expect(ctx.players.get(playerId(1))?.ignored).toBeUndefined();
+    expect(ctx.players.get(playerId(1))?.noAttack).toBeUndefined();
   });
 
-  it('shows no star for a visited player the store does not know', async () => {
+  it('shows neither mark nor the great building marks for a player the store does not know or knows', async () => {
     const { ctx, box } = setup();
     ctx.cities.setVisited(city(1));
     await tick();
-    expect(box.root.querySelector('button.star')).toBeNull();
+    expect(box.root.querySelector('button.plunder, button.no-attack')).toBeNull();
+    ctx.players.apply(world, [observed(1, { canPlunder: false })], 'visit');
+    await tick();
+    expect(box.root.querySelector('button.plunder')).not.toBeNull();
+    expect(box.root.querySelector('button.star, button.ignore')).toBeNull();
   });
 
   describe('arrows from the plunderable rows', () => {

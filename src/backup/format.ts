@@ -47,7 +47,7 @@ export const BACKUP_CHANGES: {
   notePages: 'every',
   cityShields: 'every',
   greatBuildings: ['marksAt', 'ownContribution', 'contribution'],
-  players: ['marksAt'],
+  players: ['marksAt', 'pvpMarksAt'],
 };
 
 /** One profile: a world and the own player id, with its settings and rows. */
@@ -89,9 +89,11 @@ export function referencedPlayers(tables: Partial<Omit<BackupTables, 'players' |
   return keys;
 }
 
-/** Of `players`, the ones `referenced` names and the ones the session player marked or ignored. */
+/** Of `players`, the ones `referenced` names and the ones the session player marked, ignored or marked for PvP. */
 export const playersToKeep = (players: Player[], referenced: Set<string>): Player[] =>
-  players.filter((p) => p.marked || p.ignored || referenced.has(playerKey(p.world, p.id)));
+  players.filter(
+    (p) => p.marked || p.ignored || p.plunderWorthy || p.noAttack || referenced.has(playerKey(p.world, p.id)),
+  );
 
 /** `forge-toolbox-backup-2026-10-26.json.gz`, by the local day */
 export function backupFileName(at: number): string {

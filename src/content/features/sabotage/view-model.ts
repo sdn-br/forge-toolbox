@@ -6,9 +6,9 @@ import { sortByPlunderPriority } from '../../domain/plunder-priority';
 import type { CatalogStore } from '../../stores/catalog';
 import type { VisitedCity } from '../../stores/cities';
 import type { BattleDetailsVm } from '../../ui/battle-details';
-import { type OwnerVm, ownerVm } from '../../ui/owner-line';
+import type { OwnerVm } from '../../ui/owner-line';
 import { battleDetails } from '../shared/battle-details';
-import type { PlayerLookups } from '../shared/player-lookups';
+import type { PvpPlayerLookups } from '../shared/player-lookups';
 import {
   formatIncoming,
   formatIncomingTotals,
@@ -32,8 +32,8 @@ export interface PlunderItem {
 const resourceName = (catalog: CatalogStore) => (id: string) => catalog.resourceName(id);
 
 export interface SabotageVm {
-  /** name and guild with their pages at foestats, star and eye only for a player the store knows */
-  player: OwnerVm & { era: string };
+  /** name and guild with their pages at foestats, the PvP marks only for a player the store knows */
+  player: Omit<OwnerVm, 'ownerMarked' | 'ownerIgnored'> & { era: string; plunderWorthy?: boolean; noAttack?: boolean };
   /** whether and when the visited player can be attacked or plundered */
   attack: AttackStatus;
   lootable: boolean;
@@ -73,7 +73,7 @@ function lastPlunder(p: Plunder, catalog: CatalogStore, now: number) {
 export interface SabotageInput {
   city: VisitedCity;
   player: Player | undefined;
-  lookups: PlayerLookups;
+  lookups: PvpPlayerLookups;
   assessment: CityAssessment;
   catalog: CatalogStore;
   showArmy: boolean;
@@ -104,8 +104,18 @@ export function sabotageViewModel({
     })),
   });
   const measured = showArmy && lastBattle ? measuredArmy(lastBattle) : undefined;
+  const guild = lookups.playerGuild(city.owner);
+  const plunderWorthy = lookups.plunderWorthy(city.owner);
+  const noAttack = lookups.noAttack(city.owner);
   return {
-    player: { ...ownerVm(lookups, city.owner, lookups.playerName(city.owner) ?? ''), era: catalog.eraName(city.era) },
+    player: {
+      owner: lookups.playerName(city.owner) ?? '',
+      ownerUrl: lookups.playerUrl(city.owner),
+      ...(guild && { ownerGuild: guild }),
+      era: catalog.eraName(city.era),
+      ...(plunderWorthy !== undefined && { plunderWorthy }),
+      ...(noAttack !== undefined && { noAttack }),
+    },
     attack,
     lootable: attack.kind === 'plunderable' || attack.kind === 'attackable',
     army: showArmy ? assessment.army : undefined,

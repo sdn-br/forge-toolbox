@@ -574,3 +574,85 @@ describe('PlayerStore: owners of great building lists', () => {
     expect(store.get(playerId(2))).toEqual(lean);
   });
 });
+
+describe('PlayerStore: PvP marks', () => {
+  const row = (over: Partial<Player>): Player => ({
+    ...obs(1),
+    score: 1,
+    rank: 1,
+    world,
+    guild: undefined,
+    relations: { neighbor: false, guildMember: false, friend: false },
+    firstSeenAt: 1,
+    seenAt: 1,
+    source: 'visit',
+    ...over,
+  });
+
+  it('answers undefined for an unknown player and false for a known one without the marks', () => {
+    const { store } = setup();
+    expect(store.plunderWorthy(playerId(1))).toBeUndefined();
+    expect(store.noAttack(playerId(1))).toBeUndefined();
+    expect(store.setPlunderWorthy(playerId(1), true)).toBe(false);
+    expect(store.setNoAttack(playerId(1), true)).toBe(false);
+    store.apply(world, [obs(1)], 'visit');
+    expect(store.plunderWorthy(playerId(1))).toBe(false);
+    expect(store.noAttack(playerId(1))).toBe(false);
+  });
+
+  it('excludes the two marks, keeps the great building marks apart and times them on their own', () => {
+    const { store, events } = setup();
+    store.apply(world, [obs(1)], 'visit');
+    store.setMarked(playerId(1), true);
+    events.length = 0;
+    store.setPlunderWorthy(playerId(1), true);
+    expect(store.get(playerId(1))).toMatchObject({
+      marked: true,
+      marksAt: 1000,
+      plunderWorthy: true,
+      pvpMarksAt: 1000,
+    });
+    store.setNoAttack(playerId(1), true);
+    const p = store.get(playerId(1));
+    expect(p).toMatchObject({ marked: true, noAttack: true });
+    expect(p).not.toHaveProperty('plunderWorthy');
+    // the clearing mark and the new one each announce themselves
+    expect(events.map((e) => (e as { source: string }).source)).toEqual(['plunderWorthy', 'plunderWorthy', 'noAttack']);
+    store.setNoAttack(playerId(1), false);
+    expect(store.get(playerId(1))).not.toHaveProperty('noAttack');
+    expect(store.get(playerId(1))).toMatchObject({ marked: true });
+  });
+
+  it('survive every game source and a list', () => {
+    const { store } = setup();
+    store.apply(world, [obs(1)], 'visit');
+    store.setPlunderWorthy(playerId(1), true);
+    store.applySocialList(world, { neighbor: [], guildMember: [], friend: [] });
+    store.apply(world, [obs(1, 'New')], 'update');
+    store.applyListed(world, [{ id: playerId(1), name: 'Listed' }]);
+    expect(store.get(playerId(1))).toMatchObject({ name: 'Listed', plunderWorthy: true, pvpMarksAt: 1000 });
+  });
+
+  it('come from the database with their time, a mark of this session wins', async () => {
+    const kept = setup([row({ noAttack: true, pvpMarksAt: 500 })]);
+    kept.store.apply(world, [obs(1)], 'visit');
+    await kept.store.load(world);
+    expect(kept.store.get(playerId(1))).toMatchObject({ noAttack: true, pvpMarksAt: 500 });
+    const changed = setup([row({ noAttack: true, pvpMarksAt: 500 })]);
+    changed.store.apply(world, [obs(1)], 'visit');
+    changed.store.setPlunderWorthy(playerId(1), true);
+    await changed.store.load(world);
+    const p = changed.store.get(playerId(1));
+    expect(p).toMatchObject({ plunderWorthy: true, pvpMarksAt: 1000 });
+    expect(p).not.toHaveProperty('noAttack');
+  });
+
+  it('stay with a player known only from a list when the database row arrives', async () => {
+    const { store } = setup([row({ noAttack: true, pvpMarksAt: 5, ignored: true, marksAt: 5 })]);
+    store.applyListed(world, [{ id: playerId(1), name: 'Listed' }]);
+    store.setPlunderWorthy(playerId(1), true);
+    await store.load(world);
+    expect(store.get(playerId(1))).toMatchObject({ name: 'Listed', plunderWorthy: true, ignored: true, marksAt: 5 });
+    expect(store.get(playerId(1))).not.toHaveProperty('noAttack');
+  });
+});

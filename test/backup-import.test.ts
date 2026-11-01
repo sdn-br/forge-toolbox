@@ -136,6 +136,28 @@ describe('merge rules', () => {
     expect(mergeMarked(local, source)).toEqual(player(2, { seenAt: 10, marked: true, marksAt: 1 }));
   });
 
+  it('takes the PvP marks from the newer pvpMarksAt, independent of the great building marks and the game data', () => {
+    const local = player(2, { seenAt: 30, marked: true, marksAt: 50, plunderWorthy: true, pvpMarksAt: 5 });
+    const source = player(2, { seenAt: 20, ignored: true, marksAt: 40, noAttack: true, pvpMarksAt: 9 });
+    expect(mergePlayer(local, source)).toEqual(
+      player(2, { seenAt: 30, marked: true, marksAt: 50, noAttack: true, pvpMarksAt: 9 }),
+    );
+  });
+
+  it('leaves the local PvP marks when the file row has none or older ones', () => {
+    const local = player(2, { seenAt: 10, plunderWorthy: true, pvpMarksAt: 5 });
+    expect(mergePlayer(local, player(2, { seenAt: 20, noAttack: true }))).toEqual(
+      player(2, { seenAt: 20, plunderWorthy: true, pvpMarksAt: 5 }),
+    );
+    expect(mergePlayer(local, player(2, { seenAt: 5, noAttack: true, pvpMarksAt: 4 }))).toBeUndefined();
+  });
+
+  it('counts a local row without pvpMarksAt as oldest and merges only a newer PvP mark', () => {
+    const local = player(2, { seenAt: 10, noAttack: true });
+    const source = player(2, { seenAt: 5, plunderWorthy: true, pvpMarksAt: 1 });
+    expect(mergePlayer(local, source)).toEqual(player(2, { seenAt: 10, plunderWorthy: true, pvpMarksAt: 1 }));
+  });
+
   it('keeps the fields a newer row learned from a list lacks, from the richer older row', () => {
     const rich = player(2, {
       name: 'old',

@@ -167,6 +167,8 @@ describe('collectBackup', () => {
       ...[11, 12, 13, 14, 15, 16].map((id) => player(de20, id)),
       player(de20, 17, { marked: true }),
       player(de20, 18, { ignored: true }),
+      player(de20, 20, { plunderWorthy: true }),
+      player(de20, 21, { noAttack: true }),
       player(de20, 19),
       // the same id in another world is another player
       player(de10, 11),
@@ -175,7 +177,7 @@ describe('collectBackup', () => {
     const profile = await collect(d);
 
     expect(profile.tables.players.map((p) => `${p.world}/${p.id}`).sort()).toEqual(
-      [11, 12, 13, 14, 15, 16, 17, 18].map((id) => `de20/${id}`),
+      [11, 12, 13, 14, 15, 16, 17, 18, 20, 21].map((id) => `de20/${id}`),
     );
   });
 });

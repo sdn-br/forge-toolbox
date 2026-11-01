@@ -58,11 +58,23 @@ export function mergeMarked<T extends Marked>(local: T | undefined, source: T): 
   } as T;
 }
 
+/** the PvP marks of a player come from the row with the newer `pvpMarksAt`, whichever row the game data come from */
+const withPvpMarks = (row: Player, from: Player): Player => {
+  const { plunderWorthy: _, noAttack: __, pvpMarksAt: ___, ...rest } = row;
+  return {
+    ...rest,
+    ...(from.plunderWorthy && { plunderWorthy: true }),
+    ...(from.noAttack && { noAttack: true }),
+    ...(from.pvpMarksAt !== undefined && { pvpMarksAt: from.pvpMarksAt }),
+  };
+};
+
 /** the fields of a player a great building list does not carry */
 const LIST_GAPS = ['avatar', 'cityName', 'era', 'score', 'rank', 'active'] as const;
 
 /**
- * A player: as `mergeMarked`. A row known only from a great building list lacks most game fields; whichever row wins,
+ * A player: as `mergeMarked`, and the two PvP marks from the row with the newer `pvpMarksAt`, independent of the great
+ * building marks. A row known only from a great building list lacks most game fields; whichever row wins,
  * the fields it lacks come from the other row, so a list never wipes what a richer row knows and a richer row of the
  * file fills a row the profile knows only from a list.
  */
@@ -74,8 +86,9 @@ export const mergePlayer: MergeRule<Player> = (local, source) => {
   const filled: Partial<Player> = {};
   for (const key of LIST_GAPS)
     if (base[key] === undefined && other[key] !== undefined) Object.assign(filled, { [key]: other[key] });
-  if (!merged && Object.keys(filled).length === 0) return undefined;
-  return { ...base, ...filled };
+  const pvp = source.pvpMarksAt !== undefined && source.pvpMarksAt > (local.pvpMarksAt ?? Number.NEGATIVE_INFINITY);
+  if (!merged && !pvp && Object.keys(filled).length === 0) return undefined;
+  return withPvpMarks({ ...base, ...filled }, pvp ? source : local);
 };
 
 /**
