@@ -3,6 +3,7 @@ import { formatWhen, t } from '../../core/texts';
 import type { ArmyValues, CityAssessment, Plunderable } from '../../domain/assess-city';
 import { measuredArmy } from '../../domain/measured-army';
 import { sortByPlunderPriority } from '../../domain/plunder-priority';
+import type { AssetStore } from '../../stores/assets';
 import type { CatalogStore } from '../../stores/catalog';
 import type { VisitedCity } from '../../stores/cities';
 import type { BattleDetailsVm } from '../../ui/battle-details';
@@ -78,6 +79,7 @@ function lastBattleVm(
   showArmy: boolean,
   now: number,
   catalog: CatalogStore,
+  assets: Pick<AssetStore, 'url'> | undefined,
 ): NonNullable<SabotageVm['lastBattle']> {
   const result = t(`pvp.${b.result}`);
   if (!isFought(b)) return { when: t('pvp.atLatest', { when: formatWhen(b.at, now) }), result };
@@ -86,7 +88,7 @@ function lastBattleVm(
     result,
     details: battleDetails(b, {
       ...(showArmy && { measured: measuredArmy(b) }),
-      unit: catalogUnits(catalog),
+      unit: catalogUnits(catalog, assets),
     }),
   };
 }
@@ -97,6 +99,8 @@ export interface SabotageInput {
   lookups: PvpPlayerLookups;
   assessment: CityAssessment;
   catalog: CatalogStore;
+  /** the game images; without them the battle details show no unit portraits */
+  assets?: Pick<AssetStore, 'url'>;
   showArmy: boolean;
   now: number;
   record: VisitedRecord;
@@ -108,6 +112,7 @@ export function sabotageViewModel({
   lookups,
   assessment,
   catalog,
+  assets,
   showArmy,
   now,
   record: { lastBattle, lastFought, plunders, incoming, shield },
@@ -143,7 +148,7 @@ export function sabotageViewModel({
     army: showArmy ? assessment.army : undefined,
     measured:
       measured && lastFought ? { defender: measured.defender, when: formatWhen(lastFought.at, now) } : undefined,
-    lastBattle: lastBattle && lastBattleVm(lastBattle, showArmy, now, catalog),
+    lastBattle: lastBattle && lastBattleVm(lastBattle, showArmy, now, catalog, assets),
     plundered: plunders && {
       last: plunders.last && lastPlunder(plunders.last, catalog, now),
       totals: formatPlunderTotals(plunders.totals),

@@ -655,10 +655,8 @@ describe('pvp feature', () => {
       expect(row(0).classList.contains('selected')).toBe(false);
       expect(panel(box)).toContain('222');
       expect(panel(box)).toContain('Deine Einheiten');
-      expect(panel(box)).toContain('rogue');
-      expect(panel(box)).toContain('8/10 LP');
-      expect(panel(box)).toContain('feudal_knight');
-      expect(panel(box)).toContain('gefallen');
+      const tips = [...box.root.querySelectorAll('.side-panel .unit-tile')].map((u) => u.getAttribute('data-tip'));
+      expect(tips).toEqual(['Einheit: rogue\nLP: 8/10', 'Einheit: feudal_knight\nLP: 0/10']);
       expect(panel(box)).toContain('Autokampf, 1 Runde');
       expect(panel(box)).not.toContain('gewonnen');
       const outcome = box.root.querySelector('.side-panel .pvp-outcome');
@@ -676,6 +674,18 @@ describe('pvp feature', () => {
       row(0).click();
       expect(box.root.querySelectorAll('tr.battle-row.selected')).toHaveLength(0);
       expect(box.root.querySelector('.side-drawer')).toBeNull();
+    });
+
+    it('draws the unit portraits in the side panel again once the asset index arrives', async () => {
+      const { box, row, ctx } = await shown();
+      row(0).click();
+      expect(box.root.querySelector('.side-panel img')).toBeNull();
+      ctx.catalog.setUnitTypes([{ id: 'rogue', name: 'Agent' }]);
+      vi.spyOn(ctx.assets, 'url').mockImplementation((path) =>
+        path.endsWith('_rogue.jpg') ? 'https://cdn/rogue.jpg' : undefined,
+      );
+      ctx.bus.emit('assets.loaded', {});
+      expect(box.root.querySelector('.side-panel img')?.getAttribute('src')).toBe('https://cdn/rogue.jpg');
     });
 
     it('shows the tab only while a battle is selected, the tab folds the panel and keeps the selection', async () => {

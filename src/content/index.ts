@@ -22,6 +22,7 @@ import { pageLegacyStore } from './backup/legacy-store';
 import { createBus } from './core/events';
 import { extensionAlive, onExtensionLost, watchExtension } from './core/extension-context';
 import { boxFactory, type Feature, type FeatureContext } from './core/feature';
+import { findForgeScript } from './core/forge-script';
 import { Ingestion } from './core/ingestion';
 import { chromeLocal, profileKv } from './core/kv';
 import { logError } from './core/log';
@@ -145,6 +146,11 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
     stores.notes.load().catch((e) => logError('loading notes failed', e)),
     stores.greatBuildings.load().catch((e) => logError('loading the time of the town hall list failed', e)),
   ]);
+
+  // the game images come from the CDN as the game's script names them; a page without it shows none
+  findForgeScript()
+    .then((script) => (script ? stores.assets.load(script) : undefined))
+    .catch((e) => logError('finding the game script failed', e));
 
   const markers = new Markers(bus, stores.cities, windowMarkerLink);
   watchEngine(bus);

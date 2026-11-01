@@ -109,7 +109,7 @@ export const pvpFeature: Feature = {
         lookups,
         building: (id: BuildingDefId) => ctx.catalog.get(id)?.name,
         resourceName: (id: string) => ctx.catalog.resourceName(id),
-        unit: catalogUnits(ctx.catalog),
+        unit: catalogUnits(ctx.catalog, ctx.assets),
         note: (id: PlayerId) => ctx.notes.playerPage(id)?.text,
         now: Date.now(),
       };
@@ -263,6 +263,8 @@ export const pvpFeature: Feature = {
     ctx.bus.on('player.updated', () => (filtersByPlayers() ? show() : rebuild()));
     // the markers in the rows show the notes
     ctx.bus.on('note.changed', rebuild);
+    // the unit portraits in the side panel are looked up when it is built
+    ctx.bus.on('assets.loaded', rebuild);
     ctx.menu.add({
       id: 'pvp',
       icon: ICON,

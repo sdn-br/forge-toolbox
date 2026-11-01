@@ -6,6 +6,7 @@
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAn5oZ+MqGC90NkbRppJpzDyD4kimjHIzrw21U+/4xnVY1DZ1+nMRotA1S7am5K5Uj5uCl7147l25lVweYH+EaGUG3LYp3JIerPoHK5Y39RUD1/5U1u7e4bgyKO8GqGd7B7QpXMmjw0G8enQ4fxe0MBMxOAUXcLeEL1dtZdnUrnLrszDBaNSf9R2cQdNdObmbShSYdkRvliXpnMVUcg0434i3HVmbHVp/71uoOsoCD4oGqWnXvVjz49UyMZa06rhc9fB80fAh0h/Ual7aLWK4ynNJHsiWQuOUZTaH7wnJIrOsqyZ+LF55WPFZlXvBWOxcP6FGpMPhDO6h4cHeeUBYFPwIDAQAB",
   "minimum_chrome_version": "120",
   "permissions": ["storage", "unlimitedStorage", "alarms"],
+  "host_permissions": ["https://*.innogamescdn.com/*"],
   "background": { "service_worker": "background.js" },
   "options_ui": { "page": "options.html", "open_in_tab": true },
   "content_scripts": [

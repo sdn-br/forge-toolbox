@@ -131,6 +131,7 @@ export const sabotageFeature: Feature = {
         lookups,
         assessment,
         catalog: ctx.catalog,
+        assets: ctx.assets,
         showArmy: showArmy.get(),
         now: Date.now(),
         record: record.current(city.owner),
@@ -177,6 +178,8 @@ export const sabotageFeature: Feature = {
         refresh();
       }
     });
+    // the portraits in the details of the last battle are looked up when the view model is built
+    ctx.bus.on('assets.loaded', refresh);
     // the view model reads this setting only
     showArmy.onChange(refresh);
     ctx.menu.add({
