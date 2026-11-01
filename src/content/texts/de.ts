@@ -197,6 +197,7 @@ export const de = {
   'pvp.defender': 'Verteidiger',
   'pvp.armyHint': 'Angriff / Verteidigung in %',
   'pvp.select': 'Klicken zeigt den Kampf mit Einheiten, Ergebnis und Plünderung im Seitenpanel',
+  'pvp.selectInferred': 'Klicken zeigt die Plünderung im Seitenpanel',
   'pvp.unselect': 'Klicken hebt die Auswahl auf',
   'pvp.panel': 'Kampf',
   'pvp.panelOpen': 'Kampfdetails zeigen',
