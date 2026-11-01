@@ -647,7 +647,7 @@ describe('pvp feature', () => {
       [...box.root.querySelectorAll('.side-panel h2, .side-panel p')].map((e) => e.textContent?.trim());
     /** the plunder part of the panel: heading, date and time, building, loot */
     const plunderLines = (box: TestBox) => lines(box).slice(-4);
-    const WHEN = expect.stringMatching(/^\d\d\.\d\d\., \d\d:\d\d$/);
+    const WHEN = expect.stringMatching(/^heute \d\d:\d\d$/);
 
     it('shows a clicked battle in the side panel with both armies and the result, and clears it on a second click', async () => {
       const { box, row, lists } = await shown();

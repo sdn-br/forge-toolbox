@@ -9,7 +9,7 @@ import {
   type Plunder,
   type PlunderOutcome,
 } from '../../../../shared/model';
-import { formatDateTime, formatWhen, t } from '../../../core/texts';
+import { formatWhen, t } from '../../../core/texts';
 import type { ArmyValues } from '../../../domain/assess-city';
 import { measuredArmy } from '../../../domain/measured-army';
 import type { BattleDetailsVm } from '../../../ui/battle-details';
@@ -19,7 +19,7 @@ import { isFiltered, type ListVm, listVm, type OpponentVm, opponentVm, type View
 
 /** the plunder a battle allowed, as its details show it */
 export interface PlunderVm {
-  /** date and time of the plunder, "01.11., 14:01": when loot was there, worth knowing for the next time */
+  /** time of the plunder like the battle's, "heute 14:01" or "01.11., 14:01": when loot was there, worth knowing */
   when: string;
   outcome: PlunderOutcome;
   /** the catalog name, the game's id for an unknown building, "–" when the game named none */
@@ -86,11 +86,12 @@ export function plunderVm(
   p: Plunder,
   building: (id: BuildingDefId) => string | undefined,
   resourceName: (id: string) => string | undefined,
+  now: number,
   assetUrl: (path: string) => string | undefined = () => undefined,
 ): PlunderVm {
   const icon = p.doubleLoot ? assetUrl(DOUBLE_LOOT_ICON_PATH) : undefined;
   return {
-    when: formatDateTime(p.at),
+    when: formatWhen(p.at, now),
     outcome: p.outcome,
     building: p.cityEntityId === undefined ? '–' : (building(p.cityEntityId) ?? p.cityEntityId),
     loot: p.outcome === 'repelled' ? '' : formatResources(p.resources, resourceName),
@@ -160,6 +161,6 @@ export function battlePanelVm(b: BattleWithPlunder, input: ViewInput): BattlePan
     ...(isFought(b) && {
       details: battleDetails(b, { measured: measuredArmy(b), withResult: false, unit: input.unit }),
     }),
-    ...(b.plunder && { plunder: plunderVm(b.plunder, input.building, input.resourceName, input.assetUrl) }),
+    ...(b.plunder && { plunder: plunderVm(b.plunder, input.building, input.resourceName, input.now, input.assetUrl) }),
   };
 }
