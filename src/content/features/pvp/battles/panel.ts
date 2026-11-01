@@ -16,11 +16,13 @@ const doubleLoot = (p: PlunderVm) => {
     : html` <b>${word}</b>`;
 };
 
-/** a heading, the date and time, then the building in bold with the Double Loot mark, then the loot or that the
- * plunder was repelled */
+/** a heading, the date and time, then the building in bold with the Double Loot mark, then the loot one resource per
+ * line as in the visited city, or that the plunder was repelled */
 const plunderView = (p: PlunderVm) =>
   html`<h2>${t('pvp.plunder.title')}</h2><p class="muted">${p.when}</p><p><b>${p.building}</b>${doubleLoot(p)}</p>${
-    p.outcome === 'repelled' ? html`<p class="muted">${t('pvp.plunder.repelled')}</p>` : html`<p>${p.loot}</p>`
+    p.outcome === 'repelled'
+      ? html`<p class="muted">${t('pvp.plunder.repelled')}</p>`
+      : html`<p>${p.loot.map((line, i) => html`${i ? html`<br />` : nothing}${line}`)}</p>`
   }`;
 
 /** the selected battle */

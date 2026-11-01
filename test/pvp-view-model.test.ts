@@ -155,7 +155,7 @@ describe('pvp view model', () => {
       plunder: {
         outcome: 'plundered',
         building: 'Strohdachhaus',
-        loot: '1.220 Münzen, 5 Forge-Punkte',
+        loot: ['1.220 Münzen', '5 Forge-Punkte'],
         doubleLoot: true,
       },
     });
@@ -169,12 +169,12 @@ describe('pvp view model', () => {
       when: 'heute 14:05',
       outcome: 'plundered',
       building: 'R_Unknown',
-      loot: '1.220 Münzen, 5 Forge-Punkte',
+      loot: ['1.220 Münzen', '5 Forge-Punkte'],
       doubleLoot: false,
     });
     expect(
       plunderOf(plunder(1001, { outcome: 'repelled', resources: {}, entityId: undefined, cityEntityId: undefined })),
-    ).toEqual({ when: 'heute 14:05', outcome: 'repelled', building: '–', loot: '', doubleLoot: false });
+    ).toEqual({ when: 'heute 14:05', outcome: 'repelled', building: '–', loot: [], doubleLoot: false });
   });
 
   it('shows an inferred battle as won at the latest at its time, without armies, in the panel only its plunder', () => {

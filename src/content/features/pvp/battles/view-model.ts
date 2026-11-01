@@ -14,7 +14,7 @@ import type { ArmyValues } from '../../../domain/assess-city';
 import { measuredArmy } from '../../../domain/measured-army';
 import type { BattleDetailsVm } from '../../../ui/battle-details';
 import { battleDetails } from '../../shared/battle-details';
-import { formatBattleSummary, formatResources, formatRounds } from '../../shared/pvp-format';
+import { formatBattleSummary, formatResourceLines, formatRounds } from '../../shared/pvp-format';
 import { isFiltered, type ListVm, listVm, type OpponentVm, opponentVm, type ViewInput } from '../rows';
 
 /** the plunder a battle allowed, as its details show it */
@@ -24,8 +24,8 @@ export interface PlunderVm {
   outcome: PlunderOutcome;
   /** the catalog name, the game's id for an unknown building, "–" when the game named none */
   building: string;
-  /** "1.220 Münzen, 5 Forge-Punkte"; empty when repelled */
-  loot: string;
+  /** one line per resource, "1.220 Münzen"; empty when repelled */
+  loot: string[];
   doubleLoot: boolean;
   /** the game's Double Loot mark, shown beside the building; missing while the index is not known */
   doubleLootIcon?: string;
@@ -94,7 +94,7 @@ export function plunderVm(
     when: formatWhen(p.at, now),
     outcome: p.outcome,
     building: p.cityEntityId === undefined ? '–' : (building(p.cityEntityId) ?? p.cityEntityId),
-    loot: p.outcome === 'repelled' ? '' : formatResources(p.resources, resourceName),
+    loot: p.outcome === 'repelled' ? [] : formatResourceLines(p.resources, resourceName),
     doubleLoot: p.doubleLoot,
     ...(icon && { doubleLootIcon: icon }),
   };

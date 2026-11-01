@@ -18,11 +18,13 @@ export function resourceLabel(id: string, resourceName: ResourceName): string {
   return hasText(key) ? t(key) : (resourceName(id) ?? id);
 }
 
+/** ["1.220 Münzen", "5 Forge-Punkte"], one entry per resource in the game's order */
+export const formatResourceLines = (resources: Record<string, number>, resourceName: ResourceName) =>
+  Object.entries(resources).map(([id, amount]) => `${formatNumber(amount)} ${resourceLabel(id, resourceName)}`);
+
 /** "1.220 Münzen, 5 Forge-Punkte" */
 export const formatResources = (resources: Record<string, number>, resourceName: ResourceName) =>
-  Object.entries(resources)
-    .map(([id, amount]) => `${formatNumber(amount)} ${resourceLabel(id, resourceName)}`)
-    .join(', ');
+  formatResourceLines(resources, resourceName).join(', ');
 
 /** "3 Plünderungen, 2 abgewehrt, 120 FP"; the repelled part only when there are some */
 export const formatPlunderTotals = ({ count, repelled, fp }: PlunderTotals) =>
