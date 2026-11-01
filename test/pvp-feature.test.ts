@@ -770,7 +770,9 @@ describe('pvp feature', () => {
       expect(kind?.getAttribute('data-tip')).toBe(
         'Aus einer Plünderung erschlossen, der Kampf selbst ist nicht aufgezeichnet',
       );
-      expect(row(0).getAttribute('data-tip')).toBe('Klicken zeigt die Plünderung im Seitenpanel');
+      expect(row(0).getAttribute('data-tip')).toBe(
+        'Klicken zeigt den Kampf mit Einheiten, Ergebnis und Plünderung im Seitenpanel',
+      );
       expect(row(0).textContent).not.toContain('%');
       row(0).click();
       expect(box.root.querySelector('.side-panel .battle')).toBeNull();

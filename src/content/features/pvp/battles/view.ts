@@ -41,7 +41,7 @@ const cells = (
   <td data-tip=${r.whenTip ?? nothing}>${r.when}</td>${resultCell(r)}${lootCell(r)}<td data-tip=${r.inferred ? t('pvp.inferredTip') : (armyTip(r) ?? nothing)}>${r.battle}</td>`;
 
 const row = (r: PvpRow, actions: PvpActions) =>
-  html`<tr class=${r.selected ? 'battle-row selected' : 'battle-row'} data-tip=${t(r.selected ? 'pvp.unselect' : r.inferred ? 'pvp.selectInferred' : 'pvp.select')}
+  html`<tr class=${r.selected ? 'battle-row selected' : 'battle-row'} data-tip=${t(r.selected ? 'pvp.unselect' : 'pvp.select')}
     @click=${selectOnClick(r.battleId, actions)}>${cells(r, actions)}</tr>`;
 
 const table = (vm: BattlesVm, window: RowWindow, actions: PvpActions) => {
