@@ -634,20 +634,17 @@ describe('pvp feature', () => {
       expect(box.root.querySelectorAll('tr.battle-row.selected')).toHaveLength(1);
       row(0).click();
       expect(box.root.querySelectorAll('tr.battle-row.selected')).toHaveLength(0);
-      expect(panel(box)).toContain('Ein Klick auf einen Kampf zeigt hier');
+      expect(box.root.querySelector('.side-drawer')).toBeNull();
     });
 
-    it('remembers the panel open or closed and opens it for a selection', async () => {
-      const { box, row, ctx } = await shown();
-      tab(box, 'Kampfdetails zeigen').click();
-      expect(panel(box)).toContain('Ein Klick auf einen Kampf zeigt hier');
-      expect(ctx.ui.pref('pvp.panel')).toBe('open');
-      tab(box, 'Kampfdetails ausblenden').click();
-      expect(box.root.querySelector('.side-panel')).toBeNull();
-      expect(ctx.ui.pref('pvp.panel')).toBe('closed');
+    it('shows the panel only while a battle is selected, closing it ends the selection', async () => {
+      const { box, row } = await shown();
+      expect(box.root.querySelector('.side-drawer')).toBeNull();
       row(0).click();
       expect(panel(box)).toContain('111');
-      expect(ctx.ui.pref('pvp.panel')).toBe('open');
+      tab(box, 'Kampfdetails ausblenden').click();
+      expect(box.root.querySelector('.side-drawer')).toBeNull();
+      expect(row(0).classList.contains('selected')).toBe(false);
     });
 
     it('has no panel on the attacks on the own city', async () => {
@@ -713,7 +710,7 @@ describe('pvp feature', () => {
       type(box, '111');
       await tick();
       expect(box.root.querySelector('tr.battle-row.selected')).toBeNull();
-      expect(panel(box)).toContain('Ein Klick auf einen Kampf zeigt hier');
+      expect(box.root.querySelector('.side-drawer')).toBeNull();
       lists.at(-1)?.resolve([fought(1, 111)]);
       await tick();
       row(0).click();
@@ -746,7 +743,7 @@ describe('pvp feature', () => {
       await tick();
       lists.at(-1)?.resolve([fought(1, 111)]);
       await tick();
-      expect(panel(box)).toContain('Ein Klick auf einen Kampf zeigt hier');
+      expect(box.root.querySelector('.side-drawer')).toBeNull();
     });
 
     it('shows the plunder of a battle when it is recorded after the battle', async () => {

@@ -21,22 +21,22 @@ export interface BattleDetailsVm {
   army?: { own: ArmyValues; opponent: ArmyValues };
 }
 
-const unitCells = (u: UnitVm | undefined) =>
-  u
-    ? html`<td class=${u.dead ? 'muted' : ''}>${u.unit}</td><td class=${u.dead ? 'num muted' : 'num'}>${u.hp}</td>`
-    : html`<td></td><td></td>`;
+/** the unit, its hit points below it, so a narrow column never wraps a line */
+const unitCell = (u: UnitVm | undefined) =>
+  u ? html`<td class=${u.dead ? 'muted' : ''}>${u.unit}<div class="hp">${u.hp}</div></td>` : html`<td></td>`;
 
+/** one column per side; the label of the measured armies on its own line, the values of both sides below it */
 export function battleDetailsView(vm: BattleDetailsVm): TemplateResult {
   const rows = Array.from({ length: Math.max(vm.own.length, vm.opponent.length) }, (_, i) => i);
   return html`<div class="battle">
     <p>${vm.summary}</p>
     <table>
-      <tr><th colspan="2">${t('battle.own')}</th><th colspan="2">${t('battle.opponent')}</th></tr>
-      ${rows.map((i) => html`<tr>${unitCells(vm.own[i])}${unitCells(vm.opponent[i])}</tr>`)}
+      <tr><th>${t('battle.own')}</th><th>${t('battle.opponent')}</th></tr>
+      ${rows.map((i) => html`<tr>${unitCell(vm.own[i])}${unitCell(vm.opponent[i])}</tr>`)}
       ${
         vm.army
-          ? html`<tr><td>${t('battle.army')}</td><td class="num">${formatArmy(vm.army.own)}</td>
-              <td></td><td class="num">${formatArmy(vm.army.opponent)}</td></tr>`
+          ? html`<tr><td colspan="2">${t('battle.army')}</td></tr>
+              <tr><td class="army">${formatArmy(vm.army.own)}</td><td class="army">${formatArmy(vm.army.opponent)}</td></tr>`
           : ''
       }
     </table></div>`;

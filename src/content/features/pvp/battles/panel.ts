@@ -12,9 +12,8 @@ const plunderView = (p: PlunderVm) =>
       : html`<p>${p.loot}${p.doubleLoot ? html` <b>${t('plunder.doubleLoot')}</b>` : ''}</p>`
   }`;
 
-/** the selected battle, or a hint how to select one */
-export function battlePanel(vm: BattlePanelVm | undefined): TemplateResult {
-  if (!vm) return html`<p class="muted">${t('pvp.panelHint')}</p>`;
+/** the selected battle */
+export function battlePanel(vm: BattlePanelVm): TemplateResult {
   return html`<h2 data-tip=${vm.nameTip}>${vm.name}</h2><p class="muted">${vm.when}</p>${
     vm.details ? battleDetailsView(vm.details) : html`<p class="muted">${t('pvp.inferredTip')}</p>`
   }${vm.plunder ? plunderView(vm.plunder) : ''}`;

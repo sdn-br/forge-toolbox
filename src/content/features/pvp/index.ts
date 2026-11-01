@@ -46,8 +46,6 @@ const WIDTH = BATTLES_MIN_WIDTH + 16 + 26 + 20;
 const MIN_HEIGHT = 250;
 /** a window loads this many times the rows that fit, from one window above it, so scrolling reads only now and then */
 const SLICE_WINDOWS = 3;
-/** view choice: the side panel open or closed */
-const PANEL = 'pvp.panel';
 
 export const pvpFeature: Feature = {
   id: 'pvp',
@@ -61,9 +59,8 @@ export const pvpFeature: Feature = {
     let filter: PvpFilter = NO_FILTER;
     /** the index of the first row in view; the window keeps it inside the list */
     let top = 0;
-    /** the battle the side panel shows, as last read */
+    /** the battle the side panel shows, as last read; the panel is open while there is one */
     let selected: BattleWithPlunder | undefined;
-    let panelOpen = ctx.ui.pref(PANEL) === 'open';
     /** the battles of the last load, for a click that selects one */
     let loadedBattles: BattleWithPlunder[] = [];
     /** what the view models of the last load were built with */
@@ -168,19 +165,13 @@ export const pvpFeature: Feature = {
       plunderPlayer: marks.plunderPlayer,
       noAttackPlayer: marks.noAttackPlayer,
       select: (battleId) => {
-        if (selected?.battleId === battleId) selected = undefined;
-        else {
-          selected = loadedBattles.find((b) => b.battleId === battleId);
-          // a selection is to be seen
-          if (selected && !panelOpen) actions.togglePanel();
-        }
+        selected = selected?.battleId === battleId ? undefined : loadedBattles.find((b) => b.battleId === battleId);
         // the battles of the slice are loaded already
         rebuild();
       },
-      togglePanel: () => {
-        panelOpen = !panelOpen;
-        ctx.ui.savePref(PANEL, panelOpen ? 'open' : 'closed');
-        box.update();
+      closePanel: () => {
+        selected = undefined;
+        rebuild();
       },
       note: (opponent) => {
         actions.filter({ name: nameOf(opponent) });
@@ -196,10 +187,7 @@ export const pvpFeature: Feature = {
     const render = () => {
       const picked = filter.name.trim() ? pickedPlayer(filter.name, players()) : undefined;
       const note = picked === undefined ? undefined : card.render(picked, ctx.players.get(picked)?.name);
-      const side = {
-        open: panelOpen,
-        selected: selected && lastInput && battlePanelVm(selected, lastInput),
-      };
+      const side = selected && lastInput && { selected: battlePanelVm(selected, lastInput) };
       if (!vm) return pvpView(tab, filter, undefined, actions, note, side);
       const visible = fit.rows();
       const rows = rowWindow(top, vm.total, visible);

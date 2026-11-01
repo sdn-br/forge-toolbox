@@ -46,22 +46,21 @@ const filterBar = (f: PvpFilter, tab: PvpTab, actions: PvpActions) => html`<p cl
     }
   </p>`;
 
-/** width of the docked side panel in pixels: the units of both sides stand side by side */
+/** width of the docked side panel in pixels: one column per side */
 export const PANEL_WIDTH = 300;
 
-/** the side panel, only on the battles; `selected` is the battle it shows */
+/** the side panel, only on the battles and only while a battle is selected; `selected` is the battle it shows */
 export interface PanelState {
-  open: boolean;
-  selected?: BattlePanelVm;
+  selected: BattlePanelVm;
 }
 
 const panel = (state: PanelState, actions: PvpActions) =>
   sideDrawer({
     cls: 'pvp-drawer',
-    open: state.open,
+    open: true,
     label: t('pvp.panel'),
-    tip: t(state.open ? 'pvp.panelClose' : 'pvp.panelOpen'),
-    toggle: actions.togglePanel,
+    tip: t('pvp.panelClose'),
+    toggle: actions.closePanel,
     panel: battlePanel(state.selected),
     width: PANEL_WIDTH,
   });
