@@ -1,5 +1,6 @@
 import type { EntityTable } from 'dexie';
 import type { Plunder } from '../../shared/model';
+import { FORGE_POINTS } from '../../shared/resources';
 import type { Handlers } from '../../shared/rpc';
 import { playerRows } from '../player-rows';
 import type { PlundersApi } from './contract';
@@ -23,7 +24,7 @@ export function plundersHandlers(db: PlundersTables): Handlers<PlundersApi> {
           return;
         }
         totals.count++;
-        totals.fp += p.resources.strategy_points ?? 0;
+        totals.fp += p.resources[FORGE_POINTS] ?? 0;
       });
       return totals;
     },

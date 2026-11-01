@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { playerActivity } from '../src/content/domain/activity';
-import { activityVm } from '../src/content/ui/activity';
+import { activityVm } from '../src/content/features/shared/activity';
 import { playerId, worldId } from '../src/shared/ids';
 
 /** days from a list of `[date, points, battles]` */

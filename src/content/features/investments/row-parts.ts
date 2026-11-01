@@ -3,13 +3,13 @@
 import { html, type TemplateResult } from 'lit-html';
 import { sameName, type TextKey, t } from '../../core/texts';
 import type { Reach, ReachFilter } from '../../domain/reach';
-import { toggleButton } from '../../ui/buttons';
 import { growthTag, progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { buildingCell, ignoredFilter, rowTip } from '../../ui/ignore';
 import { searchField } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
 import { ownerMarks } from '../../ui/owner-line';
+import { pickButton } from '../../ui/pick';
 import { RELATION_ICONS, relationToggles } from '../../ui/relations';
 import { type Sort, type SortColumn, sortHeads } from '../../ui/sortable';
 import { markCell, markedFilter } from '../../ui/star';
@@ -36,15 +36,6 @@ const reachFilter = (reach: ReachFilter, set: (reach: ReachFilter) => void) =>
 
 /** the player field names this owner exactly, in any case; the field is the only state, a part of a name marks nothing */
 const picks = (field: string, name: string) => sameName(field.trim(), name);
-
-/** shown on row hover or focus (styles), always and in the accent while the player field names this owner; then a click
- * empties the field */
-const pickButton = (name: string, picked: boolean, pick: (name: string) => void) => {
-  const word = t(picked ? 'investments.filter.unpickPlayer' : 'investments.filter.pickPlayer');
-  return toggleButton('inv-pick', picked, word, picked ? headerIcons.funnelFilled : headerIcons.funnel, () =>
-    pick(picked ? '' : name),
-  );
-};
 
 /** what the lead cells do: stars, eyes and the funnel beside the owner */
 type LeadActions = GbRowActions & Pick<RowActions<string, CommonFilter>, 'pickPlayer'>;

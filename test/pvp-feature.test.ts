@@ -4,7 +4,7 @@ import { toggleDef } from '../src/content/core/settings';
 import { OPEN_WITH_ARMY } from '../src/content/features/pvp';
 import { pvpFeature } from '../src/content/features/pvp/index';
 import { KEEP_SETTING } from '../src/content/features/pvp/retention';
-import { PAGE_SIZE } from '../src/content/features/pvp/view-model';
+import { PAGE_SIZE } from '../src/content/features/pvp/rows';
 import { type BattlePersistence, type BattleQuery, BattleStore } from '../src/content/stores/battles';
 import { type IncomingPersistence, IncomingStore } from '../src/content/stores/incoming';
 import { type PlunderPersistence, PlunderStore } from '../src/content/stores/plunders';

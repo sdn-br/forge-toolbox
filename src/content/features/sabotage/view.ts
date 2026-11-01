@@ -73,9 +73,9 @@ export function sabotageView(
 ): TemplateResult {
   if (!vm) return html`<p class="muted">${t('sabotage.noVisit')}</p>`;
   return html`
-    <p><b>${externalLink(vm.player.name, vm.player.url)}</b>${vm.player.guild ? html` ${guildTag(vm.player.guild)}` : ''}${
-      vm.player.marked !== undefined && playerMarks
-        ? html` ${ownerMarks({ ownerMarked: vm.player.marked, ownerIgnored: vm.player.ignored }, playerMarks.mark, playerMarks.ignore)}`
+    <p><b>${externalLink(vm.player.owner, vm.player.ownerUrl)}</b>${vm.player.ownerGuild ? html` ${guildTag(vm.player.ownerGuild)}` : ''}${
+      vm.player.ownerMarked !== undefined && playerMarks
+        ? html` ${ownerMarks(vm.player, playerMarks.mark, playerMarks.ignore)}`
         : ''
     }
       <br /><span class="muted">${t('sabotage.era')}: ${vm.player.era}</span>

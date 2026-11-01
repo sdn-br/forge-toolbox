@@ -209,6 +209,12 @@ td.snipe-tier.possible { color: var(--warn); }
 /* keyboard focus shows them too, a mouse click does not keep them (:focus-within would, until the next click) */
 tr:is(:hover, :has(:focus-visible)) .row-name :is(button.star, button.ignore) { opacity: .7; }
 tr .row-name :is(button.star, button.ignore):is(:hover, :focus-visible), tr .row-name :is(button.star, button.ignore).on { opacity: 1; color: var(--accent); }
+/* the funnel of a row (ui/pick.ts) */
+/* always at the right edge of the column, so the mouse can run straight down it; hidden until the row is hovered */
+button.inv-pick { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 16px; height: 16px; margin-left: auto; opacity: 0; color: var(--ink); }
+tr:is(:hover, :has(:focus-visible)) button.inv-pick { opacity: .7; }
+tr button.inv-pick:is(:hover, :focus-visible), button.inv-pick.on { opacity: 1; color: var(--accent); }
+button.inv-pick svg { display: block; width: 12px; height: 12px; }
 /* the growth beside the bar; in the investments the bar line has one height in every row, so all rows are equally tall and the
    row window counts them right */
 .growth-tag { flex: none; color: var(--accent); font-weight: 600; font-size: 10px; line-height: 1; }

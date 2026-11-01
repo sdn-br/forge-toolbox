@@ -1,15 +1,10 @@
 // The texts the pvp and the sabotage box share for battles, plunders and attacks on the own city.
-import type { BuildingDefId } from '../../shared/ids';
-import type { IncomingAttack, IncomingTotals, PlunderTotals } from '../../shared/model';
-import { formatNumber, formatPercent, type TextKey, t } from '../core/texts';
-import type { ArmyValues } from '../domain/assess-city';
-import { de } from '../texts/de';
+import type { BuildingDefId } from '../../../shared/ids';
+import type { IncomingAttack, IncomingTotals, PlunderTotals } from '../../../shared/model';
+import { formatNumber, hasText, type TextKey, t } from '../../core/texts';
 
 /** The game's name of a resource from the startup data; undefined when unknown. */
 type ResourceName = (id: string) => string | undefined;
-
-/** "368 % / 269 %": attack and defense of an army */
-export const formatArmy = (a: ArmyValues) => `${formatPercent(a.attack)} / ${formatPercent(a.defense)}`;
 
 /** "1 Runde", "3 Runden" */
 export const formatRounds = (rounds: number) => (rounds === 1 ? t('pvp.round') : t('pvp.rounds', { count: rounds }));
@@ -20,7 +15,7 @@ const countText = (n: number, one: TextKey, many: TextKey) => (n === 1 ? t(one) 
 /** Own name of a resource, else the game's name from the startup data, else its id. */
 export function resourceLabel(id: string, resourceName: ResourceName): string {
   const key = `resource.${id}`;
-  return key in de ? t(key as TextKey) : (resourceName(id) ?? id);
+  return hasText(key) ? t(key) : (resourceName(id) ?? id);
 }
 
 /** "1.220 Münzen, 5 Forge-Punkte" */

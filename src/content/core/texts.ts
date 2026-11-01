@@ -3,6 +3,9 @@ import { de, type TextKey } from '../texts/de';
 
 export type { TextKey };
 
+/** whether a text with this key exists, for keys put together at run time */
+export const hasText = (key: string): key is TextKey => key in de;
+
 /** Text by key, `{name}` placeholders filled from params. */
 export function t(key: TextKey, params: Record<string, string | number> = {}): string {
   return de[key].replace(/\{(\w+)\}/g, (_, name: string) => String(params[name] ?? `{${name}}`));

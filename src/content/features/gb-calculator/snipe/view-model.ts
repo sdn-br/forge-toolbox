@@ -1,13 +1,14 @@
 import type { PlayerId } from '../../../../shared/ids';
 import { formatNumber, signed, t } from '../../../core/texts';
 import { bySnipeProfit, type SnipeHit, type SnipeList } from '../../../domain/gb-snipe';
-import { type ActivityVm, activityVm } from '../../../ui/activity';
+import type { ActivityVm } from '../../../ui/activity';
 import { type ProgressVm, progressVm } from '../../../ui/fp-bar';
 import { countsIgnored, ignoreNote } from '../../../ui/ignore';
 import { type OwnerVm, ownerVm } from '../../../ui/owner-line';
 import { type HitVm, hitSortKeys, hitVm, ownerShareNote, snipeNotes } from '../../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../../ui/sortable';
 import { clampTop, type RowWindow, rowWindow } from '../../../ui/windowed-rows';
+import { activityVm } from '../../shared/activity';
 import type { GbCalcLookups } from '../lookups';
 
 export type SnipeColumn = 'order' | 'name' | 'level' | 'progress' | 'rank' | 'cost' | 'profit' | 'tier' | 'mark';

@@ -2,6 +2,7 @@
 // that pays.
 import type { TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../../shared/ids';
+import { FORGE_POINTS } from '../../../../shared/resources';
 import type { FeatureContext } from '../../../core/feature';
 import { type Setting, saveSetting } from '../../../core/settings';
 import type { Construction } from '../../../model/great-building';
@@ -12,8 +13,6 @@ import type { FoldShow } from '../fold-state';
 import type { GbShared } from '../lookups';
 import { type GbCalculatorActions, gbCalculatorView } from './view';
 import { type GbCalculatorVm, gbCalculatorViewModel } from './view-model';
-
-const FP = 'strategy_points';
 
 export interface CalculatorSettings {
   factor: Setting<number>;
@@ -127,7 +126,7 @@ export function createCalculatorSection(
       vm = gbCalculatorViewModel({
         ...lookups,
         construction: shown,
-        fpBar: ctx.resources.known ? ctx.resources.amount(FP) : undefined,
+        fpBar: ctx.resources.known ? ctx.resources.amount(FORGE_POINTS) : undefined,
         fpPackages: ctx.inventory.knowsPackages ? ctx.inventory.forgePointPackages() : undefined,
         arcBonus,
         factor: { value: factor.get(), arc: factorArc.get() },
