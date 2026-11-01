@@ -367,11 +367,11 @@ describe('sabotage feature', () => {
     ctx.cities.setVisited(city(1));
     await vi.waitFor(() => expect(box.text).toContain('1 Plünderung, 4 FP'));
     expect(box.text).toContain('R_IronAge_Residential2: 4 Forge-Punkte');
-    expect(box.text).not.toContain('Double Loot');
+    expect(box.text).not.toContain('Plünderung verdoppelt');
 
     ctx.plunders.record(plunder(1, Date.now() + 1000, { doubleLoot: true, resources: { money: 20 } }));
     await vi.waitFor(() => expect(box.text).toContain('2 Plünderungen, 4 FP'));
-    expect(box.text).toMatch(/20 Münzen\s+Double Loot/);
+    expect(box.text).toMatch(/20 Münzen\s+Plünderung verdoppelt/);
   });
 
   it('tells when the last plunder of the visited player was repelled', async () => {

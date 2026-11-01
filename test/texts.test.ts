@@ -10,6 +10,16 @@ describe('formatWhen', () => {
   it('falls back to date and time', () => {
     expect(formatWhen(new Date(2026, 9, 22, 4, 14).getTime(), now)).toBe('22.10., 04:14');
   });
+  it('adds the year to a date of another year', () => {
+    expect(formatWhen(new Date(2025, 10, 1, 14, 1).getTime(), now)).toBe('01.11.2025, 14:01');
+    expect(formatWhen(new Date(2027, 0, 3, 9, 0).getTime(), now)).toBe('03.01.2027, 09:00');
+    // across New Year: yesterday is last year, tomorrow stays tomorrow
+    const newYear = new Date(2027, 0, 1, 10, 0).getTime();
+    expect(formatWhen(new Date(2026, 11, 31, 22, 0).getTime(), newYear)).toBe('31.12.2026, 22:00');
+    expect(formatWhen(new Date(2027, 0, 1, 9, 0).getTime(), new Date(2026, 11, 31, 20, 0).getTime())).toBe(
+      'morgen 09:00',
+    );
+  });
 });
 
 describe('formatPrice', () => {

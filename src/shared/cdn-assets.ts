@@ -53,5 +53,8 @@ export function assetUrl(origin: string, path: string, hash: string): string {
 export const unitPortraitPath = (name: string): string =>
   `/shared/unit_portraits/armyuniticons_50x50/armyuniticons_50x50_${name}.jpg`;
 
+/** the mark the game sets on a building whose loot Double Loot doubled (the same icon type the plunder handler reads) */
+export const DOUBLE_LOOT_ICON_PATH = '/city/gui/citymap_icons/citymap_icon_plunder_and_pillage.png';
+
 /** the game's icon of a unit class (`light_melee`, `heavy_melee`, `fast`, `short_ranged`, `long_ranged`) */
 export const unitClassIconPath = (unitClass: string): string => `/shared/icons/goods/unit_class_${unitClass}.png`;

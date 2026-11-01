@@ -91,9 +91,11 @@ export const formatAge = (ms: number) => formatDuration(Math.max(MINUTE, ms));
 export const formatAgeShort = (ms: number) =>
   formatAge(ms >= DAY_MS ? Math.floor(ms / DAY_MS) * DAY_MS : ms >= HOUR ? Math.floor(ms / HOUR) * HOUR : ms);
 
-/** "heute 14:05", "morgen 04:14", otherwise date and time. */
+/** "heute 14:05", "morgen 04:14", otherwise date and time; the year only when it is not the current one, so dates
+ * either side of New Year stay apart ("01.11.2025, 14:01") */
 export function formatWhen(epochMs: number, now: number): string {
   if (sameDay(epochMs, now)) return t('time.today', { time: formatTime(epochMs) });
   if (sameDay(epochMs, now + DAY_MS)) return t('time.tomorrow', { time: formatTime(epochMs) });
-  return formatDateTime(epochMs);
+  const otherYear = new Date(epochMs).getFullYear() !== new Date(now).getFullYear();
+  return otherYear ? formatFullDateTime(epochMs) : formatDateTime(epochMs);
 }

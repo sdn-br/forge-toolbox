@@ -66,13 +66,14 @@ const sword = (angle: number, blade = 'var(--btn)') => svg`<g transform="rotate(
     <circle class="acc" cx="12" cy="22.3" r="1.1" fill="currentColor"/>
   </g>`;
 
-/** the menu sword with its blade broken: the stub on the hilt, the tip moved away and turned */
+/** the menu sword with its blade broken: the stub on the hilt, the tip fallen over to the left beside it, pointing down,
+ * so it reads as broken and not as a flame on a candle (chosen from the icon preview, 2026-11-01) */
 const brokenSword = svg`<g transform="rotate(45 12 12)" stroke-width="1.4">
     <path d="M10.6 16.4V9.2l.9-.9.7.8.8-.9.4.4v7.8Z" fill="var(--btn)"/><path d="M12 10v5" stroke-width=".8"/>
     <rect class="acc" x="8.4" y="16.4" width="7.2" height="1.7" rx=".8" fill="currentColor"/>
     <path d="M12 18.4v2.8" stroke-width="1.9"/>
     <circle class="acc" cx="12" cy="22.3" r="1.1" fill="currentColor"/>
-    <g transform="translate(-2.2 -1.2) rotate(-35 12 6)">
+    <g transform="translate(-7.51 2.29) rotate(-110 12 6)">
       <path d="M12 .6l1.4 2.2v4.6l-.5.5-.8-.8-.7.8-.8-.7V2.8Z" fill="var(--btn)"/><path d="M12 4v3" stroke-width=".8"/>
     </g>
   </g>`;
