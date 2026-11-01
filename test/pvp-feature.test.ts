@@ -583,6 +583,28 @@ describe('pvp feature', () => {
       expect(box.text).not.toContain(String(1000 + SLICE));
       expect(lists).toHaveLength(2);
 
+      // at the end of the list the slice is shorter than asked; scrolling back up reads the rows above again
+      /** answers the latest read like the store: the rows from its offset, at most to the end of the list */
+      const answer = () => {
+        const last = lists.at(-1);
+        const { offset = 0, limit = 0 } = last?.query ?? {};
+        const count = Math.max(0, Math.min(limit, 100 - offset));
+        last?.resolve(Array.from({ length: count }, (_, j) => battle(j + 1, 1000 + offset + j)));
+      };
+      const step = async (button: string) => {
+        box.click(button);
+        await tick();
+        answer();
+        await tick();
+      };
+      answer();
+      await tick();
+      for (let i = 0; i < 100; i++) await step('Nach unten');
+      expect(box.text).toContain('1099');
+      for (let i = 0; i < 100; i++) await step('Nach oben');
+      expect(box.text).toContain('1000');
+      expect(box.root.querySelector('.win-hidden')?.textContent).not.toContain('oben');
+
       // a change of filter reads from the top, with the summary
       type(box, 'x');
       await tick();

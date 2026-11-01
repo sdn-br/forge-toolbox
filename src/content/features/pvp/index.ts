@@ -199,14 +199,19 @@ export const pvpFeature: Feature = {
       const rows = rowWindow(top, vm.total, visible);
       top = rows.top;
       // the window left the slice asked for, or less than a window of loaded rows is left before it on either side with
-      // more beyond and nothing on the way: read the next slice around it, without the totals; a slice shorter than
-      // asked holds the end of the list
+      // more beyond: read the next slice around it, without the totals
       const end = requested.offset + requested.limit;
       const loadedEnd = vm.from + vm.rows.length;
-      const settled = requested.offset === vm.from && vm.rows.length === requested.limit;
-      const nearEdge =
-        (top - vm.from < visible && vm.from > 0) || (loadedEnd - (top + visible) < visible && loadedEnd < vm.total);
-      if (vm.total > 0 && (top < requested.offset || (top + visible > end && end < vm.total) || (settled && nearEdge)))
+      // no slice on the way; one shorter than asked holds the end of the list, so below it there is nothing to read,
+      // above it there may be
+      const settled = requested.offset === vm.from;
+      const nearStart = top - vm.from < visible && vm.from > 0;
+      const nearEnd =
+        loadedEnd - (top + visible) < visible && loadedEnd < vm.total && vm.rows.length === requested.limit;
+      if (
+        vm.total > 0 &&
+        (top < requested.offset || (top + visible > end && end < vm.total) || (settled && (nearStart || nearEnd)))
+      )
         show(false);
       return pvpView(tab, filter, { vm, window: rows }, actions, note, side);
     };
