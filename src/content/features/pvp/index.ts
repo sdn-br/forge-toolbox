@@ -7,6 +7,7 @@ import { t } from '../../core/texts';
 import { icons } from '../../ui/icons';
 import { PlayerNoteCard } from '../../ui/note-card';
 import { rowWindow } from '../../ui/windowed-rows';
+import { catalogUnits } from '../shared/battle-details';
 import { playerLookups, playerRowActions } from '../shared/player-lookups';
 import { createBattlesSection } from './battles/section';
 import { prunedBy, reselect } from './battles/selection';
@@ -108,6 +109,7 @@ export const pvpFeature: Feature = {
         lookups,
         building: (id: BuildingDefId) => ctx.catalog.get(id)?.name,
         resourceName: (id: string) => ctx.catalog.resourceName(id),
+        unit: catalogUnits(ctx.catalog),
         note: (id: PlayerId) => ctx.notes.playerPage(id)?.text,
         now: Date.now(),
       };

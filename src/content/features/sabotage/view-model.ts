@@ -7,7 +7,7 @@ import type { CatalogStore } from '../../stores/catalog';
 import type { VisitedCity } from '../../stores/cities';
 import type { BattleDetailsVm } from '../../ui/battle-details';
 import type { OwnerVm } from '../../ui/owner-line';
-import { battleDetails } from '../shared/battle-details';
+import { battleDetails, catalogUnits } from '../shared/battle-details';
 import type { PvpPlayerLookups } from '../shared/player-lookups';
 import {
   formatIncoming,
@@ -73,10 +73,22 @@ function lastPlunder(p: Plunder, catalog: CatalogStore, now: number) {
   };
 }
 
-function lastBattleVm(b: Battle, showArmy: boolean, now: number): NonNullable<SabotageVm['lastBattle']> {
+function lastBattleVm(
+  b: Battle,
+  showArmy: boolean,
+  now: number,
+  catalog: CatalogStore,
+): NonNullable<SabotageVm['lastBattle']> {
   const result = t(`pvp.${b.result}`);
   if (!isFought(b)) return { when: t('pvp.atLatest', { when: formatWhen(b.at, now) }), result };
-  return { when: formatWhen(b.at, now), result, details: battleDetails(b, showArmy ? measuredArmy(b) : undefined) };
+  return {
+    when: formatWhen(b.at, now),
+    result,
+    details: battleDetails(b, {
+      ...(showArmy && { measured: measuredArmy(b) }),
+      unit: catalogUnits(catalog),
+    }),
+  };
 }
 
 export interface SabotageInput {
@@ -131,7 +143,7 @@ export function sabotageViewModel({
     army: showArmy ? assessment.army : undefined,
     measured:
       measured && lastFought ? { defender: measured.defender, when: formatWhen(lastFought.at, now) } : undefined,
-    lastBattle: lastBattle && lastBattleVm(lastBattle, showArmy, now),
+    lastBattle: lastBattle && lastBattleVm(lastBattle, showArmy, now, catalog),
     plundered: plunders && {
       last: plunders.last && lastPlunder(plunders.last, catalog, now),
       totals: formatPlunderTotals(plunders.totals),

@@ -52,7 +52,7 @@ describe('battle details', () => {
   });
 
   it('shows the measured armies unless left out', () => {
-    expect(battleDetails(battle(), measuredArmy(battle())).army).toEqual({
+    expect(battleDetails(battle(), { measured: measuredArmy(battle()) }).army).toEqual({
       own: { attack: 368, defense: 269 },
       opponent: { attack: 406, defense: 443 },
     });
@@ -61,7 +61,7 @@ describe('battle details', () => {
 
   it('draws one column per side, the armies in the heads with their label as tooltip, then the units', () => {
     const root = document.createElement('div');
-    render(battleDetailsView(battleDetails(battle(), measuredArmy(battle()))), root);
+    render(battleDetailsView(battleDetails(battle(), { measured: measuredArmy(battle()) })), root);
     const rows = [...root.querySelectorAll('tr')].map((r) =>
       [...r.querySelectorAll('th, td')].map((c) => c.textContent?.trim()),
     );
@@ -90,5 +90,16 @@ describe('battle details', () => {
     expect(vm.opponent).toHaveLength(8);
     expect(vm.opponent.every((u) => u.dead)).toBe(true);
     expect(vm.summary).toBe('gewonnen, Autokampf, 3 Runden');
+  });
+
+  it('puts era and class of a unit into the tooltip of its cell', () => {
+    const root = document.createElement('div');
+    const unit = (id: string) =>
+      id === 'rogue' ? { name: 'Agent', era: 'Kolonialzeit', unitClass: 'light_melee' } : undefined;
+    render(battleDetailsView(battleDetails(battle(), { unit })), root);
+    const cell = [...root.querySelectorAll('td')].find((td) => td.textContent?.includes('Agent'));
+    expect(cell?.getAttribute('data-tip')).toBe('Zeitalter: Kolonialzeit\nTyp: Leichte Einheit');
+    const other = [...root.querySelectorAll('td')].find((td) => td.textContent?.includes('grenadier'));
+    expect(other?.hasAttribute('data-tip')).toBe(false);
   });
 });

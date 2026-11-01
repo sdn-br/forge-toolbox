@@ -61,6 +61,7 @@ const base: ViewInput = {
   }),
   building: (id) => (id === 'R_IronAge_Residential2' ? 'Strohdachhaus' : undefined),
   resourceName: () => undefined,
+  unit: (id: string) => (id === 'rogue' ? { name: 'Agent', unitClass: 'light_melee' } : undefined),
   note: (id: PlayerId) => (id === 1001 ? '**stark**\n- *Schilde*' : undefined),
   now,
 };
@@ -148,7 +149,7 @@ describe('pvp view model', () => {
       inferred: false,
       details: {
         summary: 'Autokampf, 2 Runden',
-        own: [{ unit: 'rogue', hp: '8/10 LP', dead: false }],
+        own: [{ unit: 'Agent', hp: '8/10 LP', dead: false }],
         army: { own: { attack: 368, defense: 269 }, opponent: { attack: 406, defense: 443 } },
       },
       plunder: {

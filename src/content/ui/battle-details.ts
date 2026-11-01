@@ -1,14 +1,16 @@
 // The details of one stored battle: both armies unit by unit, measured bonuses and result. The same in every box.
-import { html, type TemplateResult } from 'lit-html';
+import { html, nothing, type TemplateResult } from 'lit-html';
 import { t } from '../core/texts';
 import type { ArmyValues } from '../domain/assess-city';
 import { formatArmy } from './army-format';
 
 export interface UnitVm {
-  /** the game's unit type id; there is no catalog of unit names yet */
+  /** the unit's name in the game's language, its type id while the catalog does not know it */
   unit: string;
   /** "8/10 LP" after the battle, "gefallen" when the unit died */
   hp: string;
+  /** era and class of the unit type, for the tooltip of its cell */
+  tip?: string;
   dead: boolean;
 }
 
@@ -23,7 +25,9 @@ export interface BattleDetailsVm {
 
 /** the unit, its hit points below it, so a narrow column never wraps a line */
 const unitCell = (u: UnitVm | undefined) =>
-  u ? html`<td class=${u.dead ? 'muted' : ''}>${u.unit}<div class="hp">${u.hp}</div></td>` : html`<td></td>`;
+  u
+    ? html`<td class=${u.dead ? 'muted' : ''} data-tip=${u.tip ?? nothing}>${u.unit}<div class="hp">${u.hp}</div></td>`
+    : html`<td></td>`;
 
 /** the head of a side: its word, below it the measured army; the label of the values is the tooltip */
 const head = (word: string, army: ArmyValues | undefined) =>

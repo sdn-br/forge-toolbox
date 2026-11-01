@@ -48,6 +48,7 @@ import {
   toResourceBag,
   toSession,
   toShields,
+  toUnitTypes,
   toUnlockedNodes,
   toVisitInfo,
 } from './convert';
@@ -349,6 +350,12 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     if (file.name !== 'grid') return;
     const grid = toCityGrid(file.json);
     if (grid) catalog.setCityGrid(grid);
+  });
+
+  // the unit types with their names, loaded by the game at start (seen 2026-11-01: 188 types, `name` in the game's
+  // language, e.g. `EarlyMiddleAge_champion` → „Held“)
+  ingestion.onMeta('unit_types', (file) => {
+    if (file.name === 'unit_types') catalog.setUnitTypes(toUnitTypes(file.json));
   });
 
   ingestion.onMeta('research_eras', (file) => {

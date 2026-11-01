@@ -1,4 +1,4 @@
-import type { BuildingDefId } from '../../shared/ids';
+import type { BuildingDefId, EraId } from '../../shared/ids';
 import type { Product } from './city';
 
 export interface Boost {
@@ -20,6 +20,18 @@ export interface Rect {
 export interface LevelBonus {
   level: number;
   boosts: BoostsByEra;
+}
+
+/** A unit type of the game. */
+export interface UnitType {
+  /** the game's `unitTypeId` */
+  id: string;
+  /** in the game's language */
+  name: string;
+  /** missing for a unit of every era */
+  era?: EraId;
+  /** the game's class: `light_melee`, `heavy_melee`, `fast`, `short_ranged`, `long_ranged` */
+  unitClass?: string;
 }
 
 export interface BuildingDef {
