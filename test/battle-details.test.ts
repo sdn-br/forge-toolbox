@@ -91,4 +91,15 @@ describe('battle details', () => {
     expect(vm.opponent.every((u) => u.dead)).toBe(true);
     expect(vm.summary).toBe('gewonnen, Autokampf, 3 Runden');
   });
+
+  it('puts era and class of a unit into the tooltip of its cell', () => {
+    const root = document.createElement('div');
+    const unit = (id: string) =>
+      id === 'rogue' ? { name: 'Agent', era: 'Kolonialzeit', unitClass: 'light_melee' } : undefined;
+    render(battleDetailsView(battleDetails(battle(), { unit })), root);
+    const cell = [...root.querySelectorAll('td')].find((td) => td.textContent?.includes('Agent'));
+    expect(cell?.getAttribute('data-tip')).toBe('Zeitalter: Kolonialzeit\nTyp: Leichte Einheit');
+    const other = [...root.querySelectorAll('td')].find((td) => td.textContent?.includes('grenadier'));
+    expect(other?.hasAttribute('data-tip')).toBe(false);
+  });
 });

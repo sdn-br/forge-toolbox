@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Ingestion } from '../src/content/core/ingestion';
-import { battleDetails } from '../src/content/features/shared/battle-details';
+import { battleDetails, catalogUnits } from '../src/content/features/shared/battle-details';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import { eraId, playerId, worldId } from '../src/shared/ids';
 import type { FoughtBattle } from '../src/shared/model';
@@ -13,10 +13,17 @@ function setup() {
   const ingestion = new Ingestion();
   const { bus, stores } = testStores();
   registerGameHandlers(ingestion, { world, bus, now: Date.now, ...stores });
-  return { ingestion, catalog: stores.catalog };
+  const catalog = stores.catalog;
+  catalog.setEras([
+    { id: eraId('EarlyMiddleAge'), name: 'Frühes Mittelalter' },
+    { id: eraId('ArcticFuture'), name: 'Arktische Zukunft' },
+  ]);
+  const types = (json: unknown) =>
+    ingestion.accept({ kind: 'meta', url: unitTypes.url, response: JSON.stringify(json), at: 0 });
+  return { catalog, types };
 }
 
-const battle = (own: string, opponent: string): FoughtBattle => ({
+const battle = (...units: string[]): FoughtBattle => ({
   world,
   battleId: 1,
   at: 0,
@@ -25,36 +32,51 @@ const battle = (own: string, opponent: string): FoughtBattle => ({
   auto: true,
   rounds: 1,
   era: eraId('ColonialAge'),
-  attacker: { bonuses: {}, units: [{ unitTypeId: own, startHp: 10, endHp: 10 }] },
-  defender: { bonuses: {}, units: [{ unitTypeId: opponent, startHp: 10, endHp: 0 }] },
+  attacker: { bonuses: {}, units: units.map((unitTypeId) => ({ unitTypeId, startHp: 10, endHp: 10 })) },
+  defender: { bonuses: {}, units: [] },
 });
 
-describe('unit names', () => {
-  it('reads the names of the unit types from the metadata file of the game start', () => {
-    const { ingestion, catalog } = setup();
-    expect(catalog.unitName('EarlyMiddleAge_champion')).toBeUndefined();
-    ingestion.accept({ kind: 'meta', url: unitTypes.url, response: JSON.stringify(unitTypes.json), at: 0 });
-    expect(catalog.unitName('EarlyMiddleAge_champion')).toBe('Held');
-    expect(catalog.unitName('rogue')).toBe('Agent');
-    expect(catalog.unitName('unknown_unit')).toBeUndefined();
+describe('unit types', () => {
+  it('reads name, era and class of the unit types from the metadata file of the game start', () => {
+    const { catalog, types } = setup();
+    expect(catalog.unitType('EarlyMiddleAge_champion')).toBeUndefined();
+    types(unitTypes.json);
+    expect(catalog.unitType('EarlyMiddleAge_champion')).toEqual({
+      id: 'EarlyMiddleAge_champion',
+      name: 'Held',
+      era: 'EarlyMiddleAge',
+      unitClass: 'fast',
+    });
+    // a unit of every era has none
+    expect(catalog.unitType('rogue')).toEqual({ id: 'rogue', name: 'Agent', unitClass: 'light_melee' });
+    expect(catalog.unitType('unknown_unit')).toBeUndefined();
   });
 
   it('skips entries without an id or a name and a file that is no list', () => {
-    const { ingestion, catalog } = setup();
-    const json = [{ unitTypeId: 'grenadier' }, { name: 'Niemand' }, { unitTypeId: 'clubman', name: 'Unhold' }];
-    ingestion.accept({ kind: 'meta', url: unitTypes.url, response: JSON.stringify(json), at: 0 });
-    ingestion.accept({ kind: 'meta', url: unitTypes.url, response: '{}', at: 0 });
-    expect(catalog.unitName('clubman')).toBe('Unhold');
-    expect(catalog.unitName('grenadier')).toBeUndefined();
+    const { catalog, types } = setup();
+    types([{ unitTypeId: 'grenadier' }, { name: 'Niemand' }, { unitTypeId: 'clubman', name: 'Unhold' }]);
+    types({});
+    expect(catalog.unitType('clubman')).toEqual({ id: 'clubman', name: 'Unhold' });
+    expect(catalog.unitType('grenadier')).toBeUndefined();
   });
 
-  it('shows the name in the battle details, the type id of a unit it does not know', () => {
-    const { ingestion, catalog } = setup();
-    ingestion.accept({ kind: 'meta', url: unitTypes.url, response: JSON.stringify(unitTypes.json), at: 0 });
-    const vm = battleDetails(battle('EarlyMiddleAge_champion', 'unknown_unit'), {
-      unitName: (id) => catalog.unitName(id),
+  it('shows the name in the battle details with era and class as tooltip, the type id of a unit it does not know', () => {
+    const { catalog, types } = setup();
+    types([
+      ...unitTypes.json,
+      { unitTypeId: 'ArcticFuture_champion', name: 'Held', minEra: 'ArcticFuture', unitClass: 'heavy_melee' },
+      { unitTypeId: 'odd_unit', name: 'Sonderling', minEra: 'NoAge', unitClass: 'something_new' },
+    ]);
+    const vm = battleDetails(battle('ArcticFuture_champion', 'rogue', 'odd_unit', 'unknown_unit'), {
+      unit: catalogUnits(catalog),
     });
-    expect(vm.own[0]?.unit).toBe('Held');
-    expect(vm.opponent[0]?.unit).toBe('unknown_unit');
+    expect(vm.own).toEqual([
+      expect.objectContaining({ unit: 'Held', tip: 'Zeitalter: Arktische Zukunft\nTyp: Schwere Einheit' }),
+      expect.objectContaining({ unit: 'Agent', tip: 'Typ: Leichte Einheit' }),
+      expect.objectContaining({ unit: 'Sonderling' }),
+      expect.objectContaining({ unit: 'unknown_unit' }),
+    ]);
+    expect(vm.own[2]?.tip).toBeUndefined();
+    expect(vm.own[3]?.tip).toBeUndefined();
   });
 });

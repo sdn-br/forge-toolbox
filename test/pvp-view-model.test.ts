@@ -61,7 +61,7 @@ const base: ViewInput = {
   }),
   building: (id) => (id === 'R_IronAge_Residential2' ? 'Strohdachhaus' : undefined),
   resourceName: () => undefined,
-  unitName: (id) => (id === 'rogue' ? 'Agent' : undefined),
+  unit: (id: string) => (id === 'rogue' ? { name: 'Agent', unitClass: 'light_melee' } : undefined),
   note: (id: PlayerId) => (id === 1001 ? '**stark**\n- *Schilde*' : undefined),
   now,
 };

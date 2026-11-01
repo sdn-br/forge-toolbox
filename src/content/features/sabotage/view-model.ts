@@ -7,7 +7,7 @@ import type { CatalogStore } from '../../stores/catalog';
 import type { VisitedCity } from '../../stores/cities';
 import type { BattleDetailsVm } from '../../ui/battle-details';
 import type { OwnerVm } from '../../ui/owner-line';
-import { battleDetails } from '../shared/battle-details';
+import { battleDetails, catalogUnits } from '../shared/battle-details';
 import type { PvpPlayerLookups } from '../shared/player-lookups';
 import {
   formatIncoming,
@@ -86,7 +86,7 @@ function lastBattleVm(
     result,
     details: battleDetails(b, {
       ...(showArmy && { measured: measuredArmy(b) }),
-      unitName: (id) => catalog.unitName(id),
+      unit: catalogUnits(catalog),
     }),
   };
 }

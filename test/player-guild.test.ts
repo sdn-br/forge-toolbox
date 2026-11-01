@@ -103,7 +103,7 @@ describe('pvp opponent name', () => {
       }),
       building: () => undefined,
       resourceName: () => undefined,
-      unitName: () => undefined,
+      unit: () => undefined,
       note: () => undefined,
       now: 0,
     });

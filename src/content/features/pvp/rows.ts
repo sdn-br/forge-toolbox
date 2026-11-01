@@ -10,6 +10,7 @@ import { plainText } from '../../ui/markdown';
 import { pickButton } from '../../ui/pick';
 import { pvpMarks } from '../../ui/pvp-marks';
 import { type RowWindow, windowedRows } from '../../ui/windowed-rows';
+import type { UnitInfo } from '../shared/battle-details';
 import type { PvpPlayerLookups, PvpRowActions } from '../shared/player-lookups';
 
 export type PvpTab = 'battles' | 'incoming';
@@ -90,8 +91,8 @@ export interface ViewInput {
   lookups: PvpPlayerLookups;
   building: (id: BuildingDefId) => string | undefined;
   resourceName: (id: string) => string | undefined;
-  /** the name of a unit type, from the catalog */
-  unitName: (id: string) => string | undefined;
+  /** a unit type as the battle details show it, from the catalog */
+  unit: (id: string) => UnitInfo | undefined;
   /** the Markdown note of a player, if any */
   note: (id: PlayerId) => string | undefined;
   now: number;

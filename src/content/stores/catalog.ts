@@ -1,6 +1,6 @@
 import type { BuildingDefId, EraId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
-import type { BuildingDef, CityGrid } from '../model/catalog';
+import type { BuildingDef, CityGrid, UnitType } from '../model/catalog';
 
 /**
  * Definitions the game loaded in this session. The game loads every definition it needs again in each session
@@ -28,15 +28,15 @@ export class CatalogStore {
     return this.names.get(id);
   }
 
-  private unitNames = new Map<string, string>();
+  private units = new Map<string, UnitType>();
 
-  /** Names of unit types in the game's language, from the metadata file `unit_types`. */
-  setUnitNames(names: Record<string, string>): void {
-    for (const [id, name] of Object.entries(names)) this.unitNames.set(id, name);
+  /** Unit types with their names in the game's language, era and class, from the metadata file `unit_types`. */
+  setUnitTypes(types: UnitType[]): void {
+    for (const u of types) this.units.set(u.id, u);
   }
 
-  unitName(id: string): string | undefined {
-    return this.unitNames.get(id);
+  unitType(id: string): UnitType | undefined {
+    return this.units.get(id);
   }
 
   private gbNames = new Map<BuildingDefId, string>();

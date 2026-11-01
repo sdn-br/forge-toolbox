@@ -22,7 +22,7 @@ import type {
   Session,
 } from '../../shared/model';
 import type { LimitedBonus } from '../model/bonus';
-import type { CityGrid } from '../model/catalog';
+import type { CityGrid, UnitType } from '../model/catalog';
 import type {
   Area,
   Building,
@@ -295,13 +295,30 @@ export function toCityGrid(json: unknown): CityGrid | null {
   return { width: grid.width ?? 0, height: grid.height ?? 0, blocks };
 }
 
-/** Unit type id to name from the metadata file `unit_types-<hash>`; entries without both strings are skipped. */
-export function toUnitNames(json: unknown): Record<string, string> {
-  const names: Record<string, string> = {};
-  for (const u of Array.isArray(json) ? (json as { unitTypeId?: unknown; name?: unknown }[]) : []) {
-    if (typeof u?.unitTypeId === 'string' && typeof u.name === 'string') names[u.unitTypeId] = u.name;
-  }
-  return names;
+interface GameUnitType {
+  unitTypeId?: unknown;
+  name?: unknown;
+  minEra?: unknown;
+  unitClass?: unknown;
+}
+
+/**
+ * The unit types of the metadata file `unit_types-<hash>` by their id; entries without id or name are skipped. A unit
+ * of every era (`NoAge`: agent, guild raids, event units, legends) has no era.
+ */
+export function toUnitTypes(json: unknown): UnitType[] {
+  return (Array.isArray(json) ? (json as GameUnitType[]) : []).flatMap((u) =>
+    typeof u?.unitTypeId === 'string' && typeof u.name === 'string'
+      ? [
+          {
+            id: u.unitTypeId,
+            name: u.name,
+            ...(typeof u.minEra === 'string' && u.minEra !== 'NoAge' && { era: eraId(u.minEra) }),
+            ...(typeof u.unitClass === 'string' && { unitClass: u.unitClass }),
+          },
+        ]
+      : [],
+  );
 }
 
 function toGuild(p: GamePlayer): GuildRef | null {
