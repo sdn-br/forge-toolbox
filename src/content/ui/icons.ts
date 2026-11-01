@@ -66,6 +66,17 @@ const sword = (angle: number, blade = 'var(--btn)') => svg`<g transform="rotate(
     <circle class="acc" cx="12" cy="22.3" r="1.1" fill="currentColor"/>
   </g>`;
 
+/** the menu sword with its blade broken: the stub on the hilt, the tip moved away and turned */
+const brokenSword = svg`<g transform="rotate(45 12 12)" stroke-width="1.4">
+    <path d="M10.6 16.4V9.2l.9-.9.7.8.8-.9.4.4v7.8Z" fill="var(--btn)"/><path d="M12 10v5" stroke-width=".8"/>
+    <rect class="acc" x="8.4" y="16.4" width="7.2" height="1.7" rx=".8" fill="currentColor"/>
+    <path d="M12 18.4v2.8" stroke-width="1.9"/>
+    <circle class="acc" cx="12" cy="22.3" r="1.1" fill="currentColor"/>
+    <g transform="translate(-2.2 -1.2) rotate(-35 12 6)">
+      <path d="M12 .6l1.4 2.2v4.6l-.5.5-.8-.8-.7.8-.8-.7V2.8Z" fill="var(--btn)"/><path d="M12 4v3" stroke-width=".8"/>
+    </g>
+  </g>`;
+
 const foldedMap = svg`<path d="M3 6.2 9 4l6 2.2L21 4v13.8L15 20l-6-2.2L3 20Z"/><path d="M9 4v13.8M15 6.2V20"/>`;
 
 // "FoE" set in MedievalSharp (SIL Open Font License), converted to a path so no font has to load
@@ -166,6 +177,16 @@ export const headerIcons = {
   /** a sack with a tie: loot (chosen from the icon preview, 2026-11-01; for the PvP rows) */
   loot: headerIcon(svg`<path d="${SACK}"/><path d="M9.6 7.7h4.8"/>`),
   /** the sack filled, the tie cut out */
+  /** a cup: a battle won (chosen from the icon preview, 2026-11-01) */
+  won: headerIcon(
+    svg`<path d="M7 3.5h10V9a5 5 0 0 1-10 0Z"/><path d="M7 5.5H4.5V7a3 3 0 0 0 3 3M17 5.5h2.5V7a3 3 0 0 1-3 3"/><path d="M12 14v3.5M8 20.5h8M9.5 17.5h5v3h-5Z"/>`,
+  ),
+  /** the menu sword broken: a battle lost (chosen from the icon preview, 2026-11-01) */
+  lost: menuIcon(brokenSword),
+  /** a white flag: a battle given up (chosen from the icon preview, 2026-11-01) */
+  surrendered: headerIcon(
+    svg`<path d="M5 21.5V3"/><path d="M5 4.2c2.6-1.6 4.8 1.4 7.4 0s4.5-1.2 6.6 0v7.2c-2.1-1.2-4-1.4-6.6 0s-4.8-1.6-7.4 0"/>`,
+  ),
   lootFilled: headerIcon(svg`<path d="${SACK}" fill="currentColor"/><path d="M9.6 7.7h4.8" stroke="var(--bg)"/>`),
   /** the reset arrow mirrored, turning clockwise: make it the standard */
   adopt: headerIcon(svg`<path d="${FORWARD}"/><path d="M20 4v4.5h-4.5"/>`),

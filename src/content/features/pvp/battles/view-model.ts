@@ -1,5 +1,6 @@
 import type { BuildingDefId } from '../../../../shared/ids';
 import {
+  type BattleResult,
   type BattleSummary,
   type BattleWithPlunder,
   type FoughtBattle,
@@ -28,7 +29,9 @@ export interface PlunderVm {
 export interface PvpRow extends OpponentVm {
   battleId: number;
   when: string;
+  /** the word, for the tooltip of the icon */
   result: string;
+  outcome: BattleResult;
   battle: string;
   /** an inferred battle: no armies, no units, the time is the latest it took place */
   inferred?: boolean;
@@ -106,6 +109,7 @@ export function battlesViewModel(
         battleId: b.battleId,
         ...opponentVm(input, b.opponent),
         result: t(`pvp.${b.result}`),
+        outcome: b.result,
         ...(b.plunder && { loot: b.plunder.outcome }),
         selected: input.selected === b.battleId,
       };

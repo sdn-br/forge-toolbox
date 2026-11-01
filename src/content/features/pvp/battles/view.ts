@@ -11,6 +11,10 @@ const selectOnClick = (battleId: number, actions: PvpActions) => (e: Event) => {
   if (!(e.target as Element).closest('a, button')) actions.select(battleId);
 };
 
+/** the result as an icon in its colour, the word in tooltip and label */
+const resultCell = (r: PvpRow) =>
+  html`<td class=${`pvp-result ${r.outcome}`}><span role="img" data-tip=${r.result} aria-label=${r.result}>${headerIcons[r.outcome]}</span></td>`;
+
 /** the sack: filled for a plunder, outline for a repelled one, nothing without a plunder */
 const lootCell = (r: PvpRow) => {
   if (!r.loot) return html`<td class="pvp-loot"></td>`;
@@ -34,7 +38,7 @@ const cells = (
   r: PvpRow,
   actions: PvpActions,
 ) => html`${noteMarker(r.opponent, r.note, actions)}${opponentCell(r, actions)}
-  <td>${r.when}</td><td>${r.result}</td>${lootCell(r)}<td data-tip=${armyTip(r) ?? nothing}>${r.battle}</td>`;
+  <td>${r.when}</td>${resultCell(r)}${lootCell(r)}<td data-tip=${armyTip(r) ?? nothing}>${r.battle}</td>`;
 
 const row = (r: PvpRow, actions: PvpActions) =>
   html`<tr class=${r.selected ? 'battle-row selected' : 'battle-row'} data-tip=${t(r.selected ? 'pvp.unselect' : 'pvp.select')}
@@ -42,10 +46,11 @@ const row = (r: PvpRow, actions: PvpActions) =>
 
 const table = (vm: BattlesVm, window: RowWindow, actions: PvpActions) => {
   const loot = t('pvp.lootCol');
+  const result = t('pvp.result');
   return html`<table class="pvp-table pvp-battles">
     <colgroup><col class="c-note" /><col /><col class="c-when" /><col class="c-result" /><col class="c-loot" />
       <col class="c-battle" /></colgroup>
-    <thead><tr><th></th><th>${t('pvp.opponent')}</th><th>${t('pvp.when')}</th><th>${t('pvp.result')}</th>
+    <thead><tr><th></th><th>${t('pvp.opponent')}</th><th>${t('pvp.when')}</th><th class="pvp-result" data-tip=${result} aria-label=${result}>${headerIcons.won}</th>
       <th class="pvp-loot" data-tip=${loot} aria-label=${loot}>${headerIcons.loot}</th><th>${t('pvp.battle')}</th></tr></thead>
     <tbody>${rowsShown(vm.rows, vm.from, vm.total, window).map((r) => row(r, actions))}</tbody>
   </table>`;

@@ -4,7 +4,7 @@
 /** widths in px of the fixed columns; opponent and kind take the rest */
 const NOTE = 22;
 const WHEN = 135;
-const RESULT = 76;
+const RESULT = 24;
 const LOOT = 24;
 const BATTLE = 80;
 const INCOMING_WHEN = 110;
@@ -40,7 +40,12 @@ export const pvpCss = `
 .pvp-table .c-result { width: ${RESULT}px; }
 .pvp-table .c-loot { width: ${LOOT}px; }
 .pvp-table .c-battle { width: ${BATTLE}px; }
-.pvp-table .pvp-loot { text-align: center; padding: 0; }
+.pvp-table .pvp-loot, .pvp-table .pvp-result { text-align: center; padding: 0; }
+.pvp-result svg { display: block; width: 14px; height: 14px; margin: auto; }
+/* the result in the colours of good and bad, a battle given up muted */
+td.pvp-result.won { color: var(--good); }
+td.pvp-result.lost { color: var(--bad); }
+td.pvp-result.surrendered { color: var(--muted); }
 .pvp-loot svg { display: block; width: 14px; height: 14px; margin: auto; }
 .pvp-drawer h2:first-child { margin-top: 2px; }
 .pvp-drawer p { margin: 2px 0; }

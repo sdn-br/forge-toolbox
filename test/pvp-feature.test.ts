@@ -671,6 +671,14 @@ describe('pvp feature', () => {
       expect(box.root.querySelector('tr.battle-row.selected')).toBeNull();
     });
 
+    it('shows the result as an icon in its colour with the word as tooltip', async () => {
+      const { row } = await shown();
+      const cell = row(0).querySelector('td.pvp-result');
+      expect(cell?.classList.contains('won')).toBe(true);
+      expect(cell?.querySelector('[role=img]')?.getAttribute('aria-label')).toBe('gewonnen');
+      expect(cell?.textContent?.trim()).toBe('');
+    });
+
     it('shows the measured armies only in the tooltip of the battle kind, not as columns', async () => {
       const { box, row } = await shown();
       expect(row(1).textContent).not.toContain('%');
