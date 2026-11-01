@@ -3,11 +3,12 @@ import { html, render, type TemplateResult } from 'lit-html';
 import { describe, expect, it } from 'vitest';
 import { leadCells } from '../src/content/features/investments/row-parts';
 import { commonRowVm, rowNames } from '../src/content/features/investments/rows';
+import { plundersViewModel } from '../src/content/features/pvp/plunders/view-model';
 import { pvpView } from '../src/content/features/pvp/view';
-import { pvpViewModel } from '../src/content/features/pvp/view-model';
 import type { GbLookups } from '../src/content/features/shared/gb-lookups';
 import { ownerOf, ownerVm } from '../src/content/ui/owner-line';
 import { buildingDefId, type PlayerId, playerId, worldId } from '../src/shared/ids';
+import { playerLookups } from './helpers/player-lookups';
 
 const GUILD = { name: 'Die Gilde', url: 'https://foestats.com/de/de20/guilds/7' };
 const noop = () => {};
@@ -83,9 +84,7 @@ describe('investments owner cell', () => {
 
 describe('pvp opponent name', () => {
   it('has the name with the guild as tooltip, just the name without a known guild', () => {
-    const vm = pvpViewModel({
-      tab: 'plunders',
-      battles: [],
+    const vm = plundersViewModel({
       plunders: [1001, 1002].map((id) => ({
         world: worldId('de20'),
         at: 0,
@@ -95,19 +94,18 @@ describe('pvp opponent name', () => {
         doubleLoot: false,
         resources: {},
       })),
-      total: 2,
       plunderTotals: { count: 2, repelled: 2, fp: 0 },
-      incoming: [],
-      incomingTotals: { battles: 0, held: 0, plunders: 0 },
       page: 0,
       filter: { text: '' },
-      name: (id: PlayerId) => (id === 1001 ? 'Anna' : 'Bert'),
-      guild: (id: PlayerId) => (id === 1001 ? GUILD.name : undefined),
-      playerUrl: () => '',
+      lookups: playerLookups({
+        playerName: (id: PlayerId) => (id === 1001 ? 'Anna' : 'Bert'),
+        playerGuild: (id: PlayerId) => (id === 1001 ? GUILD : undefined),
+      }),
       building: () => undefined,
       resourceName: () => undefined,
       note: () => undefined,
       now: 0,
+      expanded: new Set(),
     });
     const actions = { tab: noop, search: noop, pick: noop, clearPick: noop, page: noop, expand: noop, note: noop };
     const names = [...draw(pvpView(vm, actions)).querySelectorAll('tr a[href="#"]')];

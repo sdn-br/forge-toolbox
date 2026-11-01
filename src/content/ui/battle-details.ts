@@ -1,10 +1,8 @@
 // The details of one stored battle: both armies unit by unit, measured bonuses and result. The same in every box.
 import { html, type TemplateResult } from 'lit-html';
-import type { Battle, BattleUnit } from '../../shared/model';
-import { formatNumber, t } from '../core/texts';
+import { t } from '../core/texts';
 import type { ArmyValues } from '../domain/assess-city';
-import type { MeasuredArmy } from '../domain/measured-army';
-import { formatArmy, formatRounds } from './pvp-format';
+import { formatArmy } from './army-format';
 
 export interface UnitVm {
   /** the game's unit type id; there is no catalog of unit names yet */
@@ -21,26 +19,6 @@ export interface BattleDetailsVm {
   own: UnitVm[];
   opponent: UnitVm[];
   army?: { own: ArmyValues; opponent: ArmyValues };
-}
-
-const unitVm = (u: BattleUnit): UnitVm => ({
-  unit: u.unitTypeId,
-  hp: u.endHp > 0 ? t('battle.hp', { end: formatNumber(u.endHp), start: formatNumber(u.startHp) }) : t('battle.dead'),
-  dead: u.endHp <= 0,
-});
-
-/** `measured` is the battle's measured army; without it the details leave the armies out, for where the attack and defense values are switched off */
-export function battleDetails(battle: Battle, measured?: MeasuredArmy): BattleDetailsVm {
-  return {
-    summary: [
-      t(`pvp.${battle.result}`),
-      battle.auto ? t('pvp.auto') : t('battle.manual'),
-      formatRounds(battle.rounds),
-    ].join(', '),
-    own: battle.attacker.units.map(unitVm),
-    opponent: battle.defender.units.map(unitVm),
-    army: measured && { own: measured.attacker, opponent: measured.defender },
-  };
 }
 
 const unitCells = (u: UnitVm | undefined) =>

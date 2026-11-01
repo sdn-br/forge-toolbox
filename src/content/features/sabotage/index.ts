@@ -8,6 +8,7 @@ import { footprints } from '../../domain/city-grid';
 import type { VisitedCity } from '../../stores/cities';
 import { icons } from '../../ui/icons';
 import { PlayerNoteCard } from '../../ui/note-card';
+import { playerLookups, playerRowActions } from '../shared/player-lookups';
 import { sabotageCss } from './styles';
 import { type PlunderMarks, sabotageView } from './view';
 import { type SabotageVm, sabotageViewModel } from './view-model';
@@ -41,6 +42,8 @@ export const sabotageFeature: Feature = {
     const showArmy = ctx.settings.register(SHOW_ARMY);
 
     let vm: SabotageVm | undefined;
+    const lookups = playerLookups(ctx);
+    const playerActions = playerRowActions(ctx);
     // the countdowns of the attack line run on while the box is open; the ticker stops with the box
     let ticker: ReturnType<typeof setInterval> | undefined;
     const keepTicking = () => {
@@ -64,8 +67,8 @@ export const sabotageFeature: Feature = {
           owner === undefined
             ? undefined
             : {
-                mark: (marked: boolean) => ctx.players.setMarked(owner, marked),
-                ignore: (ignored: boolean) => ctx.players.setIgnored(owner, ignored),
+                mark: (marked: boolean) => playerActions.markPlayer(owner, marked),
+                ignore: (ignored: boolean) => playerActions.ignorePlayer(owner, ignored),
               };
         // rows set arrows only while the game shows this city; back home the box still shows it, without arrows
         const markable = owner !== undefined && ctx.cities.shown() === owner;
@@ -125,6 +128,7 @@ export const sabotageFeature: Feature = {
       vm = sabotageViewModel({
         city,
         player: ctx.players.get(city.owner),
+        lookups,
         assessment,
         catalog: ctx.catalog,
         showArmy: showArmy.get(),

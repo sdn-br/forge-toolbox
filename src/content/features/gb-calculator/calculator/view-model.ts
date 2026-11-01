@@ -16,12 +16,13 @@ import { ownerRow } from '../../../domain/gb-snipe';
 import { type LevelUpAndFirst, levelUpAndFirst } from '../../../domain/gb-strategy';
 import type { GreatBuildingDef } from '../../../model/catalog';
 import type { Construction } from '../../../model/great-building';
-import { type ActivityVm, activityVm } from '../../../ui/activity';
+import type { ActivityVm } from '../../../ui/activity';
 import { type FactorButton, factorButtons } from '../../../ui/factor-bar';
 import { ignoreWords } from '../../../ui/ignore';
 import { type LevelChoice, levelChoice } from '../../../ui/level-bar';
 import { type LevelPreview, levelPreview } from '../../../ui/level-preview';
 import { type OwnerVm, ownerVm } from '../../../ui/owner-line';
+import { activityVm } from '../../shared/activity';
 import type { GbCalcLookups } from '../lookups';
 
 export interface GbHeader extends OwnerVm {

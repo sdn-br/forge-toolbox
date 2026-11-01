@@ -1,24 +1,19 @@
-import { foestatsPlayerUrl } from '../../../shared/foestats';
-import type { PlayerId } from '../../../shared/ids';
-import type { IncomingTotals, PlunderTotals } from '../../../shared/model';
+import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
 import { icons } from '../../ui/icons';
 import { PlayerNoteCard } from '../../ui/note-card';
+import { playerLookups } from '../shared/player-lookups';
+import { createBattlesSection } from './battles/section';
+import { createIncomingSection } from './incoming/section';
+import { createPlundersSection } from './plunders/section';
 import { KEEP_SETTING, pruneBefore } from './retention';
+import { opponentsFor, type PvpActions, type PvpFilter, type PvpTab, pageCount } from './rows';
 import { pvpCss } from './styles';
-import { type PvpActions, pvpView } from './view';
-import {
-  opponentsFor,
-  PAGE_SIZE,
-  type PvpFilter,
-  type PvpTab,
-  type PvpVm,
-  pageCount,
-  pvpViewModel,
-} from './view-model';
+import type { PvpSection, PvpVm } from './tabs';
+import { pvpView } from './view';
 
 /** the menu entry and the settings group show it */
 const ICON = icons.pvp;
@@ -43,12 +38,17 @@ export const pvpFeature: Feature = {
     let page = 0;
     let query = 0;
     const expanded = new Set<number>();
-    let shown: Parameters<typeof pvpViewModel>[0] | undefined;
+    // builds the view model of the last load again, without reading
+    let shown: (() => PvpVm) | undefined;
     // who the filter matched at the last load; undefined means everybody
     let opponentsShown: PlayerId[] | undefined;
 
-    const noPlunders: PlunderTotals = { count: 0, repelled: 0, fp: 0 };
-    const noIncoming: IncomingTotals = { battles: 0, held: 0, plunders: 0 };
+    const sections: Record<PvpTab, PvpSection> = {
+      battles: createBattlesSection(ctx),
+      plunders: createPlundersSection(ctx),
+      incoming: createIncomingSection(ctx),
+    };
+    const lookups = playerLookups(ctx);
 
     // loads what the active tab shows; the plunder totals also stand above the battles
     const refresh = async () => {
@@ -58,46 +58,24 @@ export const pvpFeature: Feature = {
       const searching = filter.opponent === undefined && filter.text.trim() !== '';
       const opponents = opponentsFor(filter, searching ? ctx.players.list().filter((p) => p.world === ctx.world) : []);
       opponentsShown = opponents;
-      const [plunderTotals, incomingTotals, battleCount] = await Promise.all([
-        tab === 'incoming' ? noPlunders : ctx.plunders.totals(opponents),
-        tab === 'incoming' ? ctx.incoming.totals(opponents) : noIncoming,
-        tab === 'battles' ? ctx.battles.count(opponents) : 0,
-      ]);
-      const total =
-        tab === 'battles'
-          ? battleCount
-          : tab === 'plunders'
-            ? plunderTotals.count + plunderTotals.repelled
-            : incomingTotals.battles + incomingTotals.plunders;
-      page = Math.min(page, pageCount(total) - 1);
-      const onPage = { opponents, limit: PAGE_SIZE, offset: page * PAGE_SIZE };
-      const [battles, plunders, incoming] = await Promise.all([
-        tab === 'battles' ? ctx.battles.list(onPage) : [],
-        tab === 'plunders' ? ctx.plunders.list(onPage) : [],
-        tab === 'incoming' ? ctx.incoming.list(onPage) : [],
-      ]);
+      const build = await sections[tab].load(opponents, (total) => {
+        page = Math.min(page, pageCount(total) - 1);
+        return page;
+      });
       // a newer query started meanwhile and will render
       if (current !== query) return;
-      shown = {
-        tab,
-        battles,
-        plunders,
-        total,
-        plunderTotals,
-        incoming,
-        incomingTotals,
-        page,
+      const input = {
         filter,
-        name: (id) => ctx.players.get(id)?.name,
-        guild: (id) => ctx.players.get(id)?.guild?.name,
-        playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
-        building: (id) => ctx.catalog.get(id)?.name,
-        resourceName: (id) => ctx.catalog.resourceName(id),
-        note: (id) => ctx.notes.playerPage(id)?.text,
+        page,
+        lookups,
+        building: (id: BuildingDefId) => ctx.catalog.get(id)?.name,
+        resourceName: (id: string) => ctx.catalog.resourceName(id),
+        note: (id: PlayerId) => ctx.notes.playerPage(id)?.text,
         now: Date.now(),
         expanded,
       };
-      vm = pvpViewModel(shown);
+      shown = () => build(input);
+      vm = shown();
       box.update();
     };
     // events of one task (a game response often brings several) load once
@@ -112,7 +90,7 @@ export const pvpFeature: Feature = {
     };
     // names, guilds and notes are looked up when the view model is built, so a change of them needs no reading
     const rebuild = () => {
-      if (shown) vm = pvpViewModel(shown);
+      if (shown) vm = shown();
       box.update();
     };
     // a search text matches names, so a changed name can change who matches

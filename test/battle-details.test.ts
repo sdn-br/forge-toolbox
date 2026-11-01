@@ -2,9 +2,10 @@
 import { render } from 'lit-html';
 import { describe, expect, it } from 'vitest';
 import { measuredArmy } from '../src/content/domain/measured-army';
+import { battleDetails } from '../src/content/features/shared/battle-details';
 import { toBattle } from '../src/content/game/convert';
 import type { GameBattle } from '../src/content/game/game-types';
-import { battleDetails, battleDetailsView } from '../src/content/ui/battle-details';
+import { battleDetailsView } from '../src/content/ui/battle-details';
 import { eraId, playerId, worldId } from '../src/shared/ids';
 import type { Battle } from '../src/shared/model';
 import fixture from './fixtures/pvp-battle.json';

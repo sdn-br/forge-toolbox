@@ -8,6 +8,7 @@ import { CatalogStore } from '../src/content/stores/catalog';
 import type { VisitedCity } from '../src/content/stores/cities';
 import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
 import type { Battle, IncomingAttack, Plunder } from '../src/shared/model';
+import { playerLookups } from './helpers/player-lookups';
 
 const city: VisitedCity = {
   world: worldId('de20'),
@@ -27,6 +28,7 @@ const assessment: CityAssessment = {
   boostTotals: {},
 };
 
+const lookups = playerLookups();
 const now = new Date(2026, 9, 19, 15, 0).getTime();
 const battle: Battle = {
   world: city.world,
@@ -48,6 +50,7 @@ const vmOf = (showArmy: boolean, last?: Battle) =>
   sabotageViewModel({
     city,
     player: undefined,
+    lookups,
     assessment,
     catalog: new CatalogStore(createBus()),
     showArmy,
@@ -70,6 +73,7 @@ describe('sabotage view model', () => {
     const vm = sabotageViewModel({
       city,
       player: undefined,
+      lookups,
       assessment: { ...assessment, plunderable: [{ building: 1, name: 'Haus', resources: { money: 20 } }] },
       catalog: new CatalogStore(createBus()),
       showArmy: false,
@@ -86,6 +90,7 @@ describe('sabotage view model', () => {
     const vm = sabotageViewModel({
       city,
       player: undefined,
+      lookups,
       assessment: {
         ...assessment,
         plunderable: [
@@ -133,8 +138,16 @@ describe('sabotage view model', () => {
       doubleLoot: true,
     };
     const vm = (plunders?: VisitedRecord['plunders']) =>
-      sabotageViewModel({ city, player: undefined, assessment, catalog, showArmy: false, now, record: { plunders } })
-        .plundered;
+      sabotageViewModel({
+        city,
+        player: undefined,
+        lookups,
+        assessment,
+        catalog,
+        showArmy: false,
+        now,
+        record: { plunders },
+      }).plundered;
     expect(vm({ last, totals: { count: 3, repelled: 0, fp: 9 } })).toEqual({
       last: { text: 'Zuletzt heute 14:05, Strohdachhaus: 30 Marmor, 2 Forge-Punkte', doubleLoot: true },
       totals: '3 Plünderungen, 9 FP',
@@ -158,6 +171,7 @@ describe('sabotage view model', () => {
     const vm = sabotageViewModel({
       city,
       player: undefined,
+      lookups,
       assessment,
       catalog: new CatalogStore(createBus()),
       showArmy: false,
@@ -172,6 +186,7 @@ describe('sabotage view model', () => {
     const named = sabotageViewModel({
       city,
       player: undefined,
+      lookups,
       assessment,
       catalog: new CatalogStore(createBus()),
       showArmy: false,
@@ -196,8 +211,16 @@ describe('sabotage view model', () => {
       defense: 'broken',
     };
     const vm = (incoming?: VisitedRecord['incoming']) =>
-      sabotageViewModel({ city, player: undefined, assessment, catalog, showArmy: false, now, record: { incoming } })
-        .attackedMe;
+      sabotageViewModel({
+        city,
+        player: undefined,
+        lookups,
+        assessment,
+        catalog,
+        showArmy: false,
+        now,
+        record: { incoming },
+      }).attackedMe;
     expect(vm({ last, totals: { battles: 2, held: 1, plunders: 1 } })).toEqual({
       when: 'heute 14:05',
       what: 'Kampf: durchbrochen',
@@ -212,5 +235,41 @@ describe('sabotage view model', () => {
     expect(vm({ last: plunder, totals: { battles: 0, held: 0, plunders: 1 } })?.what).toBe('Plünderung: Strohdachhaus');
     expect(vm({ totals: { battles: 0, held: 0, plunders: 0 } })).toBeUndefined();
     expect(vm()).toBeUndefined();
+  });
+});
+
+describe('sabotage player head', () => {
+  const head = (change: Parameters<typeof playerLookups>[0]) =>
+    sabotageViewModel({
+      city,
+      player: undefined,
+      lookups: playerLookups(change),
+      assessment,
+      catalog: new CatalogStore(createBus()),
+      showArmy: false,
+      now,
+      record: {},
+    }).player;
+
+  it('names the player with the foestats page, the guild, star and eye', () => {
+    expect(
+      head({
+        playerName: () => 'Anna',
+        playerGuild: () => ({ name: 'Gilde', url: 'https://foestats.com/de/de20/guilds/7' }),
+        playerMarked: () => true,
+        ownerIgnored: () => false,
+      }),
+    ).toEqual({
+      owner: 'Anna',
+      ownerUrl: 'https://foestats.com/de/de20/players/1001',
+      ownerGuild: { name: 'Gilde', url: 'https://foestats.com/de/de20/guilds/7' },
+      ownerMarked: true,
+      ownerIgnored: false,
+      era: 'ColonialAge',
+    });
+  });
+
+  it('has no star, eye or guild for a player the store does not know', () => {
+    expect(head({})).toEqual({ owner: '', ownerUrl: 'https://foestats.com/de/de20/players/1001', era: 'ColonialAge' });
   });
 });

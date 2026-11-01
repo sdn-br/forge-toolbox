@@ -45,12 +45,7 @@ td.inv-status.unknown { color: var(--muted); }
 .inv-count { margin-left: auto; }
 /* the profit icon keeps its own colours, switched on it only turns opaque */
 .inv-hits-filter button.on { color: var(--ink); }
-/* always at the right edge of the column, so the mouse can run straight down it; hidden until the row is hovered */
-button.inv-pick { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 16px; height: 16px; margin-left: auto; opacity: 0; color: var(--ink); }
-tr:is(:hover, :has(:focus-visible)) button.inv-pick { opacity: .7; }
-tr button.inv-pick:is(:hover, :focus-visible), button.inv-pick.on { opacity: 1; color: var(--accent); }
 .inv-ignored-total svg { display: inline-block; }
-button.inv-pick svg { display: block; width: 12px; height: 12px; }
 /* both tabs show a growth beside the bar: the bar line keeps its height without one, so every row is equally tall and
    the row window counts them right */
 .inv-table .fp-line { height: 11px; }
