@@ -42,6 +42,10 @@ export interface ToolboxEvents {
   'army.opened': { battleType: string };
   /** the page module read the opponent of the open pvp army window from the game engine; may never come */
   'army.target': { opponent: PlayerId };
+  /** the army window of the last `army.target` no longer shows, read from the game engine; may never come */
+  'army.closed': Record<string, never>;
+  /** the game started a battle of any type */
+  'battle.started': Record<string, never>;
   /** the page module saw another great building window in the game engine (see core/gb-window.ts); may never come */
   'gbWindow.changed': { state: GbWindowState };
   /** any change of the notes; `player` when it was the note of that player */

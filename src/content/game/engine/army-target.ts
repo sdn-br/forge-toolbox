@@ -10,23 +10,39 @@ import { pageLink } from '../../core/page-link';
 export interface ArmyLink {
   post(command: ArmyCommand): void;
   onTarget(listener: (seq: number, playerId: number) => void): void;
+  onClosed(listener: (seq: number) => void): void;
 }
 
 const link = pageLink<ArmyCommand, ArmyEvent>(parseArmyEvent);
 
 export const windowArmyLink: ArmyLink = {
   post: link.post,
-  onTarget: (listener) => link.on((target) => listener(target.seq, target.playerId)),
+  onTarget: (listener) =>
+    link.on((event) => {
+      if (event.type === 'target') listener(event.seq, event.playerId);
+    }),
+  onClosed: (listener) =>
+    link.on((event) => {
+      if (event.type === 'closed') listener(event.seq);
+    }),
 };
 
 export function watchArmyTarget(bus: ToolboxBus, link: ArmyLink): void {
   let seq = 0;
   /** the ask still open, 0 for none; only the first answer to the latest army window counts */
   let open = 0;
+  /** the ask whose window showed its opponent and has not closed yet, 0 for none */
+  let shown = 0;
   link.onTarget((answered, id) => {
     if (open === 0 || answered !== open) return;
     open = 0;
+    shown = answered;
     bus.emit('army.target', { opponent: playerId(id) });
+  });
+  link.onClosed((closed) => {
+    if (shown === 0 || closed !== shown) return;
+    shown = 0;
+    bus.emit('army.closed', {});
   });
   bus.on('army.opened', ({ battleType }) => {
     if (battleType !== 'pvp') return;

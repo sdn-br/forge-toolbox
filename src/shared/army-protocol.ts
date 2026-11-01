@@ -7,26 +7,34 @@ export const ARMY_TAG = 'forge-toolbox-army';
 /** `seq` numbers the ask; the page echoes it, so a late answer to an older window changes nothing */
 export type ArmyCommand = { tag: typeof ARMY_TAG; from: 'content'; type: 'target'; seq: number };
 
-/** the defender of the pvp battle the open army window prepares; no answer when the page cannot tell */
-export type ArmyEvent = { tag: typeof ARMY_TAG; from: 'page'; type: 'target'; seq: number; playerId: number };
+/**
+ * `target`: the defender of the pvp battle the open army window prepares; no answer when the page cannot tell.
+ * `closed`: that window no longer shows (closed, or the battle started); only after a `target` of the same ask.
+ */
+export type ArmyEvent =
+  | { tag: typeof ARMY_TAG; from: 'page'; type: 'target'; seq: number; playerId: number }
+  | { tag: typeof ARMY_TAG; from: 'page'; type: 'closed'; seq: number };
 
 const isId = (v: unknown): v is number => Number.isSafeInteger(v) && (v as number) >= 0;
 
-const fields = (data: unknown, from: string): Record<string, unknown> | null => {
+const fields = (data: unknown, from: string, types: string[]): Record<string, unknown> | null => {
   if (typeof data !== 'object' || data === null) return null;
   const d = data as Record<string, unknown>;
-  return d.tag === ARMY_TAG && d.from === from && d.type === 'target' && isId(d.seq) ? d : null;
+  return d.tag === ARMY_TAG && d.from === from && types.includes(d.type as string) && isId(d.seq) ? d : null;
 };
 
 /** The command in a posted message, or null when it is none or malformed. */
 export function parseArmyCommand(data: unknown): ArmyCommand | null {
-  const d = fields(data, 'content');
+  const d = fields(data, 'content', ['target']);
   return d ? { tag: ARMY_TAG, from: 'content', type: 'target', seq: d.seq as number } : null;
 }
 
 /** The event in a posted message, or null when it is none or malformed. */
 export function parseArmyEvent(data: unknown): ArmyEvent | null {
-  const d = fields(data, 'page');
-  if (!d || !isId(d.playerId) || d.playerId === 0) return null;
-  return { tag: ARMY_TAG, from: 'page', type: 'target', seq: d.seq as number, playerId: d.playerId };
+  const d = fields(data, 'page', ['target', 'closed']);
+  if (!d) return null;
+  const seq = d.seq as number;
+  if (d.type === 'closed') return { tag: ARMY_TAG, from: 'page', type: 'closed', seq };
+  if (!isId(d.playerId) || d.playerId === 0) return null;
+  return { tag: ARMY_TAG, from: 'page', type: 'target', seq, playerId: d.playerId };
 }
