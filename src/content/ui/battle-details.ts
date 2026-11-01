@@ -25,20 +25,19 @@ export interface BattleDetailsVm {
 const unitCell = (u: UnitVm | undefined) =>
   u ? html`<td class=${u.dead ? 'muted' : ''}>${u.unit}<div class="hp">${u.hp}</div></td>` : html`<td></td>`;
 
-/** one column per side; under the heads the measured armies (the label on its own line, the values of both sides below
- * it), then the units */
+/** the head of a side: its word, below it the measured army; the label of the values is the tooltip */
+const head = (word: string, army: ArmyValues | undefined) =>
+  army
+    ? html`<th data-tip=${t('battle.army')}>${word}<div class="army">${formatArmy(army)}</div></th>`
+    : html`<th>${word}</th>`;
+
+/** one column per side, the measured armies in the heads, then the units */
 export function battleDetailsView(vm: BattleDetailsVm): TemplateResult {
   const rows = Array.from({ length: Math.max(vm.own.length, vm.opponent.length) }, (_, i) => i);
   return html`<div class="battle">
     <p>${vm.summary}</p>
     <table>
-      <tr><th>${t('battle.own')}</th><th>${t('battle.opponent')}</th></tr>
-      ${
-        vm.army
-          ? html`<tr><th class="army-label" colspan="2">${t('battle.army')}</th></tr>
-              <tr><td class="army">${formatArmy(vm.army.own)}</td><td class="army">${formatArmy(vm.army.opponent)}</td></tr>`
-          : ''
-      }
+      <tr>${head(t('battle.own'), vm.army?.own)}${head(t('battle.opponent'), vm.army?.opponent)}</tr>
       ${rows.map((i) => html`<tr>${unitCell(vm.own[i])}${unitCell(vm.opponent[i])}</tr>`)}
     </table></div>`;
 }

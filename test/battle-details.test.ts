@@ -59,16 +59,14 @@ describe('battle details', () => {
     expect(battleDetails(battle()).army).toBeUndefined();
   });
 
-  it('draws one column per side, the armies under the heads with their label on its own line, then the units', () => {
+  it('draws one column per side, the armies in the heads with their label as tooltip, then the units', () => {
     const root = document.createElement('div');
     render(battleDetailsView(battleDetails(battle(), measuredArmy(battle()))), root);
     const rows = [...root.querySelectorAll('tr')].map((r) =>
       [...r.querySelectorAll('th, td')].map((c) => c.textContent?.trim()),
     );
     expect(rows).toEqual([
-      ['Deine Einheiten', 'Gegner'],
-      ['Angriff / Verteidigung'],
-      ['368 % / 269 %', '406 % / 443 %'],
+      ['Deine Einheiten368 % / 269 %', 'Gegner406 % / 443 %'],
       ['rogue8/10 LP', 'feudal_knightgefallen'],
       ['grenadiergefallen', ''],
     ]);
