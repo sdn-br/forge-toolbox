@@ -107,7 +107,7 @@ export const pvpFeature: Feature = {
       const input = {
         filter,
         lookups,
-        building: (id: BuildingDefId) => ctx.catalog.get(id)?.name,
+        building: (id: BuildingDefId) => ctx.catalog.buildingName(id),
         resourceName: (id: string) => ctx.catalog.resourceName(id),
         unit: catalogUnits(ctx.catalog, ctx.assets),
         assetUrl: (path: string) => ctx.assets.url(path),
@@ -266,6 +266,8 @@ export const pvpFeature: Feature = {
     ctx.bus.on('note.changed', rebuild);
     // the unit portraits in the side panel are looked up when it is built
     ctx.bus.on('assets.loaded', rebuild);
+    // building names the game had not loaded come from the CDN after the rows are built
+    ctx.bus.on('catalog.updated', rebuild);
     ctx.menu.add({
       id: 'pvp',
       icon: ICON,

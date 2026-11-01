@@ -12,6 +12,8 @@ export interface GameMessage {
 }
 
 export interface MetaFile {
+  /** where the game loaded it from */
+  url: string;
   name: string;
   hash: string;
   json: unknown;
@@ -102,7 +104,7 @@ export class Ingestion {
     } catch {
       return;
     }
-    for (const { handler } of handlers) this.run(id.name, () => handler({ ...id, json, raw: response }));
+    for (const { handler } of handlers) this.run(id.name, () => handler({ ...id, url, json, raw: response }));
   }
 
   private run(what: string, work: () => void) {

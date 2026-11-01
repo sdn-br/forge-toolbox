@@ -63,7 +63,7 @@ export interface SabotageVm {
 /** The last own plunder in this city as one line. A plunder without a known building reads like a repelled one. */
 function lastPlunder(p: Plunder, catalog: CatalogStore, now: number) {
   const when = formatWhen(p.at, now);
-  const building = p.cityEntityId && (catalog.get(p.cityEntityId)?.name ?? p.cityEntityId);
+  const building = p.cityEntityId && (catalog.buildingName(p.cityEntityId) ?? p.cityEntityId);
   if (p.outcome === 'repelled' || !building) {
     const text = building ? t('sabotage.lastRepelledAt', { when, building }) : t('sabotage.lastRepelled', { when });
     return { text, doubleLoot: false };
@@ -155,7 +155,7 @@ export function sabotageViewModel({
     },
     attackedMe: incoming?.last && {
       when: formatWhen(incoming.last.at, now),
-      what: formatIncoming(incoming.last, (id) => catalog.get(id)?.name),
+      what: formatIncoming(incoming.last, (id) => catalog.buildingName(id)),
       totals: formatIncomingTotals(incoming.totals),
     },
     plunderRepel: assessment.plunderRepel,

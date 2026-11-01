@@ -1,6 +1,6 @@
 // Building definitions from the game metadata → own BuildingDef. Two formats exist:
 // classic definitions (`abilities`, `boostHintEraMap`) and GenericCityEntity (`components` per era).
-import { buildingDefId } from '../../shared/ids';
+import { type BuildingDefId, buildingDefId } from '../../shared/ids';
 import type { Boost, BoostsByEra, BuildingDef, GreatBuildingDef, LevelBonus, Rect } from '../model/catalog';
 import type { Product } from '../model/city';
 
@@ -197,4 +197,21 @@ export function toBuildingDef(json: unknown): BuildingDef | null {
     chain,
     ...(greatBuilding && { greatBuilding }),
   };
+}
+
+const FILE_PREFIX = 'building_entity_';
+
+/**
+ * Where each definition's file lies, from the metadata file `building_entity_lookup` the game loads at start: an array
+ * of `{ identifier: 'building_entity_<id>', url, __class__: 'StaticData' }` (seen 2026-11-01, the URL carries the
+ * file's hash). Entries in another shape are skipped.
+ */
+export function toBuildingFiles(json: unknown): Map<BuildingDefId, string> {
+  const files = new Map<BuildingDefId, string>();
+  for (const e of list(json)) {
+    const { identifier, url } = e;
+    if (typeof identifier === 'string' && identifier.startsWith(FILE_PREFIX) && typeof url === 'string')
+      files.set(identifier.slice(FILE_PREFIX.length) as BuildingDefId, url);
+  }
+  return files;
 }

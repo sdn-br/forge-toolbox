@@ -3,6 +3,7 @@
 import type { AssetsApi } from '../persistence/assets/contract';
 import type { BackupApi } from '../persistence/backup/contract';
 import type { BattlesApi } from '../persistence/battles/contract';
+import type { BuildingDefsApi } from '../persistence/building-defs/contract';
 import type { FoestatsApi } from '../persistence/foestats/contract';
 import type { GreatBuildingsApi } from '../persistence/great-buildings/contract';
 import type { IncomingApi } from '../persistence/incoming/contract';
@@ -22,7 +23,8 @@ export interface BackgroundApi
     GreatBuildingsApi,
     FoestatsApi,
     BackupApi,
-    AssetsApi {}
+    AssetsApi,
+    BuildingDefsApi {}
 
 export type Method = keyof BackgroundApi;
 export type Arg<M extends Method> = BackgroundApi[M]['arg'];
