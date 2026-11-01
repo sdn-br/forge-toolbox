@@ -2,7 +2,15 @@
 // so a row of the old data counts as known when a stored row of the same player, kind and outcome lies about two
 // minutes from it. Each stored row stands for one old row only. Rows of an earlier import match the same way, so
 // importing twice adds nothing.
-import type { Battle, IncomingAttack, NoteGroup, NotePage, Player, Plunder } from '../../shared/model';
+import {
+  type Battle,
+  type IncomingAttack,
+  isFought,
+  type NoteGroup,
+  type NotePage,
+  type Player,
+  type Plunder,
+} from '../../shared/model';
 import type { BackupTables } from '../format';
 
 /** how far apart the old and the new toolbox may have stamped the same event */
@@ -32,10 +40,11 @@ function unmatched<T>(source: T[], local: T[], group: (row: T) => string, same: 
 
 const near = (a: { at: number }, b: { at: number }) => Math.abs(a.at - b.at) <= SAME_EVENT_MS;
 
+// an inferred battle stands at the time of its plunder, not of a battle, so it never matches an old one
 const battles = (source: Battle[], local: Battle[]) =>
   unmatched(
     source,
-    local,
+    local.filter(isFought),
     (b) => `${b.opponent}|${b.result}`,
     (a, b) => a.battleId === b.battleId || near(a, b),
   );

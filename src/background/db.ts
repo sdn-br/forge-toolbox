@@ -6,7 +6,10 @@ import type { IncomingTables } from '../persistence/incoming/worker';
 import type { NotesTables } from '../persistence/notes/worker';
 import type { PlayersTables } from '../persistence/players/worker';
 import type { PlundersTables } from '../persistence/plunders/worker';
+import { relinkRows } from '../persistence/pvp-link';
 import type { ShieldsTables } from '../persistence/shields/worker';
+import type { PlayerId, WorldId } from '../shared/ids';
+import type { Battle, Plunder } from '../shared/model';
 
 export type ToolboxDb = Dexie &
   PlayersTables &
@@ -68,5 +71,18 @@ export function openDb(name = 'forge-toolbox'): ToolboxDb {
   db.version(12).stores({
     greatBuildingLists: 'world',
   });
+  // a plunder belongs to the latest won battle against its opponent in the 24 h before it; battles carry the time of
+  // their plunder, and a plunder without a stored battle gets an inferred one. The schema stays, the upgrade links what
+  // is stored; a database without plunders stays as it is
+  db.version(13)
+    .stores({
+      battles: '[world+battleId], [world+at], [world+opponent+at], at',
+      plunders: '[world+opponent+at], [world+at], at',
+    })
+    .upgrade(async (tx) => {
+      const plunders = tx.table<Plunder, [WorldId, PlayerId, number]>('plunders');
+      const battles = tx.table<Battle, [WorldId, number]>('battles');
+      await relinkRows({ battles, plunders }, await plunders.toArray());
+    });
   return db;
 }

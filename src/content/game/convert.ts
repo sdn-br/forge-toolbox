@@ -12,10 +12,10 @@ import {
 } from '../../shared/ids';
 import type {
   AttackTimer,
-  Battle,
   BattleResult,
   BattleSide,
   CityShield,
+  FoughtBattle,
   GuildRef,
   IncomingAttack,
   Plunder,
@@ -422,7 +422,7 @@ export function isBattleState(data: unknown): data is GameBattleState {
  * A finished PvP battle the session player attacked in; anything else is null. Without `end` the start must carry
  * the result (auto battle). With `end`, the final state of a manual battle, the result comes from there.
  */
-export function toBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: GameBattleState): Battle | null {
+export function toBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: GameBattleState): FoughtBattle | null {
   if (!isOwnPvpBattle(b, me) || !b.state) return null;
   const final = end ?? b.state;
   const result = resultOf(final);

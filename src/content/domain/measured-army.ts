@@ -1,5 +1,5 @@
 // Army values as the game applied them in a battle, derived from the raw unit bonuses of each side.
-import type { Battle } from '../../shared/model';
+import type { FoughtBattle } from '../../shared/model';
 import { type ArmyValues, GREAT_BUILDING_SIDES, type Side } from './assess-city';
 
 /** the great building boost types that count on a side */
@@ -26,7 +26,7 @@ export interface MeasuredArmy {
   defender: ArmyValues;
 }
 
-export function measuredArmy(battle: Battle): MeasuredArmy {
+export function measuredArmy(battle: FoughtBattle): MeasuredArmy {
   const side = (bonuses: Record<string, number>, types: { attack: string[]; defense: string[] }): ArmyValues => ({
     attack: sum(bonuses, types.attack),
     defense: sum(bonuses, types.defense),

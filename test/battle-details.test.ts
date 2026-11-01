@@ -7,10 +7,10 @@ import { toBattle } from '../src/content/game/convert';
 import type { GameBattle } from '../src/content/game/game-types';
 import { battleDetailsView } from '../src/content/ui/battle-details';
 import { eraId, playerId, worldId } from '../src/shared/ids';
-import type { Battle } from '../src/shared/model';
+import type { FoughtBattle } from '../src/shared/model';
 import fixture from './fixtures/pvp-battle.json';
 
-const battle = (change: Partial<Battle> = {}): Battle => ({
+const battle = (change: Partial<FoughtBattle> = {}): FoughtBattle => ({
   world: worldId('de20'),
   battleId: 1,
   at: 0,
@@ -76,7 +76,7 @@ describe('battle details', () => {
 
   it('shows the units of a recorded battle', () => {
     const start = fixture.batch.find((e) => e.requestMethod === 'startByBattleType')?.responseData as GameBattle;
-    const recorded = toBattle(worldId('de20'), start, playerId(fixture.me)) as Battle;
+    const recorded = toBattle(worldId('de20'), start, playerId(fixture.me)) as FoughtBattle;
     const vm = battleDetails(recorded);
     expect(vm.own.map((u) => `${u.unit} ${u.hp}`)).toEqual([
       'grenadier 4/10 LP',

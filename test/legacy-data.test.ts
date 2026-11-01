@@ -9,6 +9,7 @@ import { memoryLegacyStore } from '../src/content/backup/legacy-store';
 import { memoryKv } from '../src/content/core/kv';
 import { Settings } from '../src/content/core/settings';
 import { backupPersistence } from '../src/persistence/backup/client';
+import { isFought } from '../src/shared/model';
 import v2 from './fixtures/legacy-toolbox2.json';
 import { battle, copyOf, de20, me, tables } from './helpers/backup';
 import { testDb } from './helpers/battle-db';
@@ -160,7 +161,9 @@ describe('taking found data', () => {
     await env.foundData.take(offers.reverse().map((offer) => ({ offer, areas: new Set(['pvp' as const]) })));
     const battles = await env.db.db.battles.toArray();
     expect(battles.filter((b) => b.opponent === 2001).map((b) => b.battleId)).toEqual([900]);
-    expect(battles).toHaveLength(3);
+    // three fought battles and the inferred ones of the two plunders after a lost or surrendered battle
+    expect(battles.filter(isFought)).toHaveLength(3);
+    expect(battles).toHaveLength(5);
     expect(env.reloads).toBe(1);
   });
 

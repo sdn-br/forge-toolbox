@@ -96,6 +96,24 @@ describe('withoutKnown', () => {
     expect(withoutKnown(source, stored).battles.map((b) => b.at)).toEqual([T + MIN]);
   });
 
+  it('never takes an inferred battle for an old battle near it, it stands at the time of the plunder', () => {
+    const source = tables({ battles: [legacyBattle(T)] });
+    const stored = local({
+      battles: [
+        {
+          world: de20,
+          battleId: -(T + MIN),
+          at: T + MIN,
+          opponent: playerId(2),
+          result: 'won',
+          inferred: true,
+          plunderAt: T + MIN,
+        },
+      ],
+    });
+    expect(withoutKnown(source, stored).battles.map((b) => b.at)).toEqual([T]);
+  });
+
   it('drops what an earlier import of the old data brought, so a second import adds nothing', () => {
     const source = tables({
       battles: [legacyBattle(T)],

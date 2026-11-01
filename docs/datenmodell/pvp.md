@@ -2,12 +2,14 @@
 
 ## Battle (PvP-Angriffe)
 
-Stand 2026-10-19. Grundlage: ein aufgenommener Autokampf auf de20 (`BattlefieldService.startByBattleType`, Testfall `test/fixtures/pvp-battle.json`) und ein manueller Kampf (ein Zug von Hand, dann Autokampf; `startByBattleType` und `submitMove`, Testfall `test/fixtures/pvp-manual-battle.json`).
+Stand 2026-11-01. Grundlage: ein aufgenommener Autokampf auf de20 (`BattlefieldService.startByBattleType`, Testfall `test/fixtures/pvp-battle.json`) und ein manueller Kampf (ein Zug von Hand, dann Autokampf; `startByBattleType` und `submitMove`, Testfall `test/fixtures/pvp-manual-battle.json`), dazu ein Autokampf mit der Plünderung zehn Sekunden danach auf de20 (Testfall `test/fixtures/pvp-battle-plunder.json`).
 
 ```ts
 type BattleResult = 'won' | 'lost' | 'surrendered';
 
-interface Battle {
+type Battle = FoughtBattle | InferredBattle;   // unterschieden mit isFought(battle)
+
+interface FoughtBattle {
   world: WorldId;
   battleId: number;
   at: number;                   // Kampfbeginn in ms
@@ -18,6 +20,17 @@ interface Battle {
   era: EraId;                   // Zeitalter des Kampfes
   attacker: BattleSide;         // die eigene Armee
   defender: BattleSide;
+  plunderAt?: number;           // at der Plünderung, die dieser Sieg erlaubt hat
+}
+
+interface InferredBattle {      // „erschlossen“
+  world: WorldId;
+  battleId: number;             // -at
+  at: number;                   // = plunderAt, der späteste Zeitpunkt des Kampfes
+  opponent: PlayerId;
+  result: 'won';
+  inferred: true;
+  plunderAt: number;
 }
 
 interface BattleSide {
@@ -41,6 +54,16 @@ interface BattleSide {
 - Derselbe Kampf zweimal gesehen wird einmal gespeichert (Schlüssel `[world+battleId]`).
 - Kämpfe aus der alten Toolbox haben keine Kampf-ID und bekommen die negative Zeit (siehe [Altdaten-Import](../features/sicherung.md#altdaten-import)).
 
+**Kampf und Plünderung** (Nutzer, 2026-11-01): Das Spiel sagt nicht, welcher Kampf eine Plünderung erlaubt hat. Ein Spieler lässt sich einmal in 24 Stunden angreifen, und geplündert werden kann bis 24 Stunden nach einem gewonnenen Kampf. Daraus folgt die Zuordnung:
+
+- Eine Plünderung gehört zum letzten gewonnenen Kampf gegen denselben Gegner in den 24 Stunden vor ihr (`plünderung.at - 24 h <= kampf.at <= plünderung.at`, genau 24 Stunden zählen noch). Verlorene und aufgegebene Kämpfe, Kämpfe gegen andere Gegner und Kämpfe nach der Plünderung zählen nie. Eine abgewehrte Plünderung braucht genauso einen gewonnenen Kampf.
+- Die Plünderungen werden der Zeit nach zugeordnet, die älteste zuerst. Ein Kampf, den eine frühere Plünderung schon hat, ist vergeben. Jede Plünderung hat genau einen Kampf, jeder Kampf höchstens eine Plünderung.
+- Der Kampf trägt die Zeit seiner Plünderung (`plunderAt`), der Schlüssel der Plünderung ist `[world, opponent, plunderAt]`.
+- **Erschlossener Kampf:** Findet eine Plünderung keinen gespeicherten Kampf (alte Daten, Kampf vor Beginn der Aufzeichnung), wird ein erschlossener Kampf gespeichert: gewonnen, sicher stattgefunden, Zeit ist die der Plünderung als obere Grenze („spätestens <Zeit>“), ohne Einheiten und Werte. Die Kampf-ID ist die negative Zeit wie bei den Kämpfen der alten Toolbox. Kommt später ein passender Kampf, ersetzt er ihn. Andere erschlossene Kämpfe gibt es nicht.
+- Im Zweifel entsteht ein erschlossener Kampf, nie eine Zuordnung außerhalb der Regel.
+- Die Regel steht nur in der reinen Funktion `linkedBattles` (`src/persistence/pvp-link.ts`). `relink(tables, world, opponents)` liest je Gegner beide Tabellen, wendet sie an und schreibt nur, was sich ändert. Ein zweiter Lauf schreibt nichts. Es läuft in der Transaktion des Aufrufers: beim Schreiben von Kämpfen und Plünderungen, beim Import und im Upgrade auf Dexie Version 13. Die Reihenfolge, in der Kampf und Plünderung ankommen, ändert das Ergebnis nicht. Ein Kampf, den das Spiel noch einmal schickt, behält seine Plünderung.
+- Anzeige: Im Reiter „Kämpfe“ ist ein erschlossener Kampf eine Zeile mit Gegner, „spätestens <Zeit>“, „gewonnen“ und „erschlossen“ statt Runden, ohne Armeewerte und nicht aufklappbar. In der Box „Besuchte Stadt“ kann der letzte Kampf ein erschlossener sein, dann ohne Details. Die gemessene verteidigende Armee kommt immer vom letzten geführten Kampf (`latestFought`), ein erschlossener verdeckt sie nie.
+
 **Gemessene Werte** rechnet eine reine Funktion `measuredArmy(battle)` aus den Rohwerten:
 
 | Seite | Angriff | Verteidigung |
@@ -52,13 +75,13 @@ Geprüft am 2026-10-19 an der Aufnahme: Beim Angreifer ist `attack_boost` 233 un
 
 Ein Kampf misst nur die verteidigende Armee des Gegners. Seine angreifende Armee zeigt er nie. Die Box „Besuchte Stadt“ zeigt deshalb den gemessenen Wert nur in der Zeile der verteidigenden Armee.
 
-**Abfragen:** `latest(opponent)`, `list({ opponents?, limit, offset })` neueste zuerst, `count(opponents?)`. Die Abfragen laufen über RPC im Service Worker. Der Store hält keine Kämpfe im Speicher, er wartet vor jeder Abfrage nur die eigenen offenen Schreibvorgänge ab.
+**Abfragen:** `latest(opponent)` (auch ein erschlossener), `latestFought(opponent)` (nur geführte Kämpfe), `list({ opponents?, withPlunder?, limit, offset })` neueste zuerst, auch über mehrere Gegner geblättert, jeder Kampf mit seiner Plünderung (`plunder`, über den Schlüssel gelesen); `withPlunder` nur Kämpfe mit Plünderung. `summary({ opponents?, withPlunder? })` ergibt `{ battles, won, plunders, repelled, fp }` über genau die Kämpfe, durch die `list` mit demselben Filter blättert: erschlossene zählen als gewonnen, `plunders` sind die erfolgreichen, `fp` die Forge-Punkte der erfolgreichen (wie `plunders.totals`). Der Reiter „Kämpfe“ nimmt die Seitenzahl aus `summary.battles`. `withPlunder` und `summary` lesen ohne Index auf `plunderAt` (bekannte Schuld: erst wenn das Öffnen des Reiters messbar über eine Sekunde braucht, ein Index in einer späteren Dexie-Version). Die Abfragen laufen über RPC im Service Worker. Der Store hält keine Kämpfe im Speicher, er wartet vor jeder Abfrage nur die eigenen offenen Schreibvorgänge ab.
 
-**Events:** `battle.recorded { opponents: PlayerId[] }`, einmal je Schreibvorgang, nach dem Schreiben.
+**Events:** `battle.recorded { opponents: PlayerId[] }`, einmal je Schreibvorgang, nach dem Schreiben. Eine Plünderung kann erschlossene Kämpfe anlegen oder löschen, darum laden der Reiter „Kämpfe“ und der letzte Kampf der Box „Besuchte Stadt“ auch bei `plunder.recorded` neu.
 
-**Persistenz:** Tabelle `battles` (Dexie Version 2), Schlüssel `[world+battleId]`, Indizes `[world+at]`, `[world+opponent+at]` und `at`. Neue Kämpfe einer Spielantwort gehen gesammelt in einem Schreibvorgang an den Service Worker.
+**Persistenz:** Tabelle `battles` (Dexie Version 2), Schlüssel `[world+battleId]`, Indizes `[world+at]`, `[world+opponent+at]` und `at`. Neue Kämpfe einer Spielantwort gehen gesammelt in einem Schreibvorgang an den Service Worker. `battles.put` und `plunders.put` schreiben ihre Zeilen und ordnen die berührten Gegner neu zu, in einer `rw`-Transaktion über beide Tabellen. Dexie Version 13 behält das Schema von `battles` und `plunders` und ordnet im Upgrade jeden Gegner jeder Welt mit Plünderungen zu. Eine Datenbank ohne Plünderungen bleibt unverändert.
 
-**Aufbewahrung:** Einstellung „Kämpfe aufbewahren“: unbegrenzt (Standard), 30, 90, 180 oder 365 Tage. Ältere Kämpfe aller Welten löscht der Service Worker (`battles.prune`) einmal beim Start der Session und sobald sich die Einstellung ändert.
+**Aufbewahrung:** Einstellung „Kämpfe aufbewahren“: unbegrenzt (Standard), 30, 90, 180 oder 365 Tage. Ältere Kämpfe aller Welten löscht der Service Worker (`battles.prune`) einmal beim Start der Session und sobald sich die Einstellung ändert. Ein älterer Kampf bleibt, solange seine Plünderung bleibt (`plunderAt` nicht älter als die Grenze). Plünderungen werden mit derselben Grenze gelöscht, so behält jede verbleibende Plünderung ihren Kampf.
 
 **Spieler:** Ein Kampf verweist auf `opponent`. Eine Bereinigung der Spieler gibt es noch nicht. Kommt sie, muss sie Spieler behalten, auf die ein Kampf verweist. Den Namen des Gegners liefert meist das `OtherPlayerService.updatePlayer`, das in derselben Antwort wie der Kampf kommt.
 

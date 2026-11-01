@@ -6,6 +6,9 @@
 # keeps the first PvP battle that starts without a result and the BattlefieldService response that ends it.
 # Plunder: python3 -I scripts/make-fixture.py plunder <recording.json> <world> <out.json> [<date>]
 # keeps the plunder entries of the first batch with a plunderById, with fake ids and names. Also for a repelled one.
+# Battle and plunder: python3 -I scripts/make-fixture.py battle-plunder <recording.json> <out.json>
+# keeps the first PvP battle (as the battle mode) and the next batch with a plunderById (as the plunder mode), with the
+# same fake opponent in both, and the time the plunder came in (`plunderAt`), which the game does not send.
 # Events: python3 -I scripts/make-fixture.py events <list-recording.json> <live-recording.json> <out.json>
 # keeps the getEventsPaginated page with the first battle event (the battle and one event of each other kind) and the
 # first websocket newEvent, with fake ids and names.
@@ -130,6 +133,23 @@ def plunder_fixture(rec,world,out,date='2026-10-19'):
     what='Plunder' if result=='success' else f'Plunder ({result})'
     fixture={'note':f'{what} recorded on {world} {date} with the response batch it came in, players anonymized (me 1000, opponent 1001), unrelated entries dropped.',
       'me':ME,'batch':[entry(e) for e in batch if e.get('requestMethod') in KEEP]}
+    json.dump(fixture,open(out,'w'),indent=1)
+
+def battle_plunder_fixture(rec,out):
+    import os,tempfile
+    rec=[r for r in rec if r['kind']=='json']
+    def batch(r):
+        b=json.loads(r['response'])
+        return b if isinstance(b,list) else []
+    first=next(i for i,r in enumerate(rec) if any(e.get('requestMethod')=='startByBattleType' and e['responseData'].get('battleType',{}).get('type')=='pvp' for e in batch(r)))
+    after=next(r for r in rec[first+1:] if any(e.get('requestMethod')=='plunderById' for e in batch(r)))
+    # both modes write their file; they map the opponent to the same fake id
+    with tempfile.TemporaryDirectory() as tmp:
+        b,p=os.path.join(tmp,'b.json'),os.path.join(tmp,'p.json')
+        battle_fixture(rec[first:first+1],b); plunder_fixture([after],'de20',p,'2026-11-01')
+        battle,plunder=json.load(open(b)),json.load(open(p))
+    fixture={'note':'PvP battle and the plunder after it, recorded on de20 2026-11-01 with the response batches they came in, players anonymized (me 1000, opponent 1001), unrelated entries and fields dropped. plunderAt is the time the plunder response came in.',
+      'me':battle['me'],'battle':battle['batch'],'plunder':plunder['batch'],'plunderAt':after['at']}
     json.dump(fixture,open(out,'w'),indent=1)
 
 def events_fixture(listed,live,out):
@@ -504,6 +524,8 @@ if sys.argv[1]=='events':
     events_fixture(json.load(open(sys.argv[2])),json.load(open(sys.argv[3])),sys.argv[4]); sys.exit()
 if sys.argv[1]=='plunder':
     plunder_fixture(json.load(open(sys.argv[2])),sys.argv[3],sys.argv[4],*sys.argv[5:6]); sys.exit()
+if sys.argv[1]=='battle-plunder':
+    battle_plunder_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
 if sys.argv[1]=='battle':
     battle_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
 if sys.argv[1]=='manual-battle':

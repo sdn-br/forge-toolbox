@@ -7,7 +7,7 @@ import type { BuildingDef } from '../src/content/model/catalog';
 import { CatalogStore } from '../src/content/stores/catalog';
 import type { VisitedCity } from '../src/content/stores/cities';
 import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
-import type { Battle, IncomingAttack, Plunder } from '../src/shared/model';
+import { type Battle, type FoughtBattle, type IncomingAttack, isFought, type Plunder } from '../src/shared/model';
 import { playerLookups } from './helpers/player-lookups';
 
 const city: VisitedCity = {
@@ -30,7 +30,7 @@ const assessment: CityAssessment = {
 
 const lookups = playerLookups();
 const now = new Date(2026, 9, 19, 15, 0).getTime();
-const battle: Battle = {
+const battle: FoughtBattle = {
   world: city.world,
   battleId: 1,
   at: new Date(2026, 9, 19, 13, 49).getTime(),
@@ -46,7 +46,11 @@ const battle: Battle = {
   },
 };
 
-const vmOf = (showArmy: boolean, last?: Battle) =>
+const vmOf = (
+  showArmy: boolean,
+  last?: Battle,
+  lastFought: FoughtBattle | undefined = last && isFought(last) ? last : undefined,
+) =>
   sabotageViewModel({
     city,
     player: undefined,
@@ -55,13 +59,39 @@ const vmOf = (showArmy: boolean, last?: Battle) =>
     catalog: new CatalogStore(createBus()),
     showArmy,
     now,
-    record: { lastBattle: last },
+    record: { lastBattle: last, lastFought },
   });
 
 describe('sabotage view model', () => {
   it('shows the measured defending army with the time of the battle', () => {
     expect(vmOf(true, battle).measured).toEqual({ defender: { attack: 406, defense: 443 }, when: 'heute 13:49' });
     expect(vmOf(true, battle).army).toEqual(assessment.army);
+  });
+
+  it('shows an inferred last battle as won at the latest at its time, without details', () => {
+    const inferred: Battle = {
+      world: city.world,
+      battleId: -now,
+      at: new Date(2026, 9, 19, 14, 30).getTime(),
+      opponent: city.owner,
+      result: 'won',
+      inferred: true,
+      plunderAt: new Date(2026, 9, 19, 14, 30).getTime(),
+    };
+    expect(vmOf(true, inferred).lastBattle).toEqual({ when: 'spätestens heute 14:30', result: 'gewonnen' });
+    // the measured army comes from the last fought battle, which the inferred one does not hide
+    expect(vmOf(true, inferred, battle).measured).toEqual({
+      defender: { attack: 406, defense: 443 },
+      when: 'heute 13:49',
+    });
+    expect(vmOf(true, inferred).measured).toBeUndefined();
+  });
+
+  it('shows a fought last battle with its details', () => {
+    const last = vmOf(true, battle).lastBattle;
+    expect(last).toMatchObject({ when: 'heute 13:49', result: 'gewonnen' });
+    expect(last?.details?.army).toBeDefined();
+    expect(vmOf(false, battle).lastBattle?.details?.army).toBeUndefined();
   });
 
   it('has no measured values without a battle or when army values are hidden', () => {

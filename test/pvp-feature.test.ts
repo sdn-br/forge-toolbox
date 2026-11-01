@@ -9,11 +9,11 @@ import { type BattlePersistence, type BattleQuery, BattleStore } from '../src/co
 import { type IncomingPersistence, IncomingStore } from '../src/content/stores/incoming';
 import { type PlunderPersistence, PlunderStore } from '../src/content/stores/plunders';
 import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
-import type { Battle, IncomingAttack, Plunder } from '../src/shared/model';
+import type { Battle, FoughtBattle, IncomingAttack, Plunder } from '../src/shared/model';
 import { featureContext } from './helpers/feature-context';
 import type { TestStoresOptions } from './helpers/stores';
 
-const battle = (battleId: number, opponent: number): Battle => ({
+const battle = (battleId: number, opponent: number): FoughtBattle => ({
   world: worldId('de20'),
   battleId,
   at: Date.now(),
@@ -53,7 +53,8 @@ function controlled(total = 1) {
     put: async () => {},
     latest: async () => undefined,
     list: (_world, query) => new Promise((resolve) => lists.push({ query, resolve })),
-    count: async () => state.total,
+    latestFought: async () => undefined,
+    summary: async () => ({ battles: state.total, won: state.total, plunders: 0, repelled: 0, fp: 0 }),
     prune: vi.fn(async () => 0),
   };
   const plunders: PlunderPersistence = {
@@ -470,7 +471,7 @@ describe('pvp feature', () => {
   });
 
   describe('battle details', () => {
-    const fought = (battleId: number, opponent: number): Battle => ({
+    const fought = (battleId: number, opponent: number): FoughtBattle => ({
       ...battle(battleId, opponent),
       attacker: { bonuses: { attack_boost: 50 }, units: [{ unitTypeId: 'rogue', startHp: 10, endHp: 8 }] },
       defender: { bonuses: { defense_boost: 70 }, units: [{ unitTypeId: 'feudal_knight', startHp: 10, endHp: 0 }] },
@@ -513,6 +514,31 @@ describe('pvp feature', () => {
       (box.root.querySelector('button.marker') as HTMLElement).click();
       box.follow('222');
       expect(box.root.querySelector('.battle')).toBeNull();
+    });
+
+    it('shows an inferred battle as a row without armies that does not expand', async () => {
+      const env = setup();
+      await tick();
+      const at = Date.now();
+      env.lists[0]?.resolve([
+        {
+          world: worldId('de20'),
+          battleId: -at,
+          at,
+          opponent: playerId(111),
+          result: 'won',
+          inferred: true,
+          plunderAt: at,
+        },
+      ]);
+      await tick();
+      expect(env.box.root.querySelectorAll('tr.battle-row')).toHaveLength(0);
+      const row = env.box.root.querySelectorAll('tr')[1] as HTMLElement;
+      expect(row.textContent).toContain('spätestens');
+      expect(row.textContent).toContain('erschlossen');
+      expect(row.textContent).not.toContain('%');
+      row.click();
+      expect(env.box.root.querySelector('.battle')).toBeNull();
     });
 
     it('links each opponent to foestats in a new tab beside the name that filters', async () => {

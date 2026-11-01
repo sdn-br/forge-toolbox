@@ -5,13 +5,13 @@ import { plundersViewModel } from '../src/content/features/pvp/plunders/view-mod
 import { pruneBefore } from '../src/content/features/pvp/retention';
 import { opponentsFor, pageCount, type ViewInput } from '../src/content/features/pvp/rows';
 import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
-import type { Battle, IncomingAttack, IncomingTotals, Player, Plunder } from '../src/shared/model';
+import type { Battle, FoughtBattle, IncomingAttack, IncomingTotals, Player, Plunder } from '../src/shared/model';
 import { playerLookups } from './helpers/player-lookups';
 
 const now = new Date(2026, 9, 19, 15, 0).getTime();
 const DAY = 86_400_000;
 
-const battle = (battleId: number, opponent: number, change: Partial<Battle> = {}): Battle => ({
+const battle = (battleId: number, opponent: number, change: Partial<FoughtBattle> = {}): FoughtBattle => ({
   world: worldId('de20'),
   battleId,
   at: new Date(2026, 9, 19, 13, 49).getTime(),
@@ -98,6 +98,32 @@ describe('pvp view model', () => {
       note: '',
     });
     expect(vm).toMatchObject({ tab: 'battles', page: 0, pages: 1, empty: undefined, picked: undefined });
+  });
+
+  it('shows an inferred battle as won at the latest at its time, without armies and details', () => {
+    const at = new Date(2026, 9, 19, 14, 5).getTime();
+    const inferred: Battle = {
+      world: worldId('de20'),
+      battleId: -at,
+      at,
+      opponent: playerId(1001),
+      result: 'won',
+      inferred: true,
+      plunderAt: at,
+    };
+    const vm = battlesOf([inferred], { expanded: new Set([-at]) });
+    expect(vm.rows[0]).toEqual({
+      battleId: -at,
+      opponent: 1001,
+      name: 'Testgegner',
+      nameTip: 'Testgegner [Testgilde]',
+      url: 'https://foestats.com/de/de20/players/1001',
+      when: 'spätestens heute 14:05',
+      result: 'gewonnen',
+      battle: 'erschlossen',
+      inferred: true,
+      note: 'stark\n• Schilde',
+    });
   });
 
   it('names one round in singular', () => {

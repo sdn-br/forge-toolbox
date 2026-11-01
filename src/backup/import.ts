@@ -2,6 +2,7 @@
 // merging the chosen rows into the profile databases or replacing the chosen areas with them. Only the current version
 // of the file is read.
 import type { ToolboxDb } from '../background/db';
+import { relinkRows } from '../persistence/pvp-link';
 import { playerId, type WorldId } from '../shared/ids';
 import type { Player } from '../shared/model';
 import { type Profile, profileDbName, profileStorageKey, sameProfile } from '../shared/profile';
@@ -272,7 +273,10 @@ const AREA_TABLES = {
   greatBuildings: ['greatBuildings'],
 } as const satisfies Record<(typeof DATA_AREAS)[number], (keyof BackupTables)[]>;
 
-/** Empties the tables of the areas in `empty` for `world`, then merges `t`; all in one transaction. */
+/**
+ * Empties the tables of the areas in `empty` for `world`, then merges `t` and links the battles and plunders of every
+ * opponent `t` names; all in one transaction.
+ */
 async function mergeTables(
   db: ToolboxDb,
   t: BackupTables,
@@ -306,6 +310,8 @@ async function mergeTables(
       merge(db.incoming, t.incoming, (r) => [r.world, r.kind, r.key], addMissing),
       merge(db.cityShields, t.cityShields, (r) => [r.world, r.player], longerShield),
     ]);
+    // the file may link differently or bring inferred battles a fought one of this profile replaces
+    await relinkRows(db, [...t.battles, ...t.plunders]);
     const notes = await Promise.all([
       merge(db.noteGroups, t.noteGroups, (r) => [r.world, r.id], addMissing),
       merge(db.notePages, t.notePages, (r) => [r.world, r.id], newerPage),

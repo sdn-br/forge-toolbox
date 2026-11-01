@@ -1,5 +1,5 @@
 import type { PlayerId } from '../../../../shared/ids';
-import type { Battle, PlunderTotals } from '../../../../shared/model';
+import { type Battle, type FoughtBattle, isFought, type PlunderTotals } from '../../../../shared/model';
 import { formatWhen, t } from '../../../core/texts';
 import type { ArmyValues } from '../../../domain/assess-city';
 import { measuredArmy } from '../../../domain/measured-army';
@@ -14,8 +14,11 @@ export interface PvpRow extends OpponentVm {
   when: string;
   result: string;
   battle: string;
-  attacker: ArmyValues;
-  defender: ArmyValues;
+  /** an inferred battle: no armies, no details, the time is the latest it took place */
+  inferred?: boolean;
+  /** missing for an inferred battle */
+  attacker?: ArmyValues;
+  defender?: ArmyValues;
   /** units, measured armies and result; only for an expanded row */
   details?: BattleDetailsVm;
 }
@@ -26,7 +29,7 @@ export interface BattlesVm extends ListVm {
   rows: PvpRow[];
 }
 
-function battleKind(b: Battle): string {
+function battleKind(b: FoughtBattle): string {
   if (b.auto) return t('pvp.auto');
   return formatRounds(b.rounds);
 }
@@ -43,14 +46,25 @@ export function battlesViewModel(
   return {
     ...listVm(input, input.total, formatPlunderTotals(input.plunderTotals)),
     tab: 'battles',
-    rows: battles.map((b) => {
-      const army = measuredArmy(b);
-      return {
+    rows: battles.map((b): PvpRow => {
+      const row = {
         battleId: b.battleId,
         opponent: b.opponent,
         ...opponentVm(input, b.opponent),
-        when: formatWhen(b.at, now),
         result: t(`pvp.${b.result}`),
+      };
+      if (!isFought(b)) {
+        return {
+          ...row,
+          when: t('pvp.atLatest', { when: formatWhen(b.at, now) }),
+          battle: t('pvp.inferred'),
+          inferred: true,
+        };
+      }
+      const army = measuredArmy(b);
+      return {
+        ...row,
+        when: formatWhen(b.at, now),
         battle: battleKind(b),
         attacker: army.attacker,
         defender: army.defender,

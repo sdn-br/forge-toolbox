@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { BackupProfile, BackupTables } from '../src/backup/format';
 import { backupPersistence } from '../src/persistence/backup/client';
 import { eraId, playerId, worldId } from '../src/shared/ids';
-import type { Battle, Player } from '../src/shared/model';
+import type { FoughtBattle, Player } from '../src/shared/model';
 import { testDb } from './helpers/battle-db';
 
 const de20 = worldId('de20');
@@ -23,7 +23,7 @@ const player = (id: number, change: Partial<Player> = {}): Player => ({
   source: 'socialList',
   ...change,
 });
-const battle = (battleId: number, opponent: number): Battle => ({
+const battle = (battleId: number, opponent: number): FoughtBattle => ({
   world: de20,
   battleId,
   at: 1,
