@@ -331,6 +331,7 @@ async function answerArmyTarget(seq: number) {
     if (playerId !== undefined) {
       const event: ArmyEvent = { tag: ARMY_TAG, from: 'page', type: 'target', seq, playerId };
       window.postMessage(event, location.origin);
+      raf(() => watchArmyClose(engine.stage, seq));
     } else if (++frames < ARMY_FRAMES) raf(look);
     else if (!armyFailureLogged) {
       armyFailureLogged = true;
@@ -340,11 +341,29 @@ async function answerArmyTarget(seq: number) {
   look();
 }
 
+/**
+ * Looks every frame whether the army window of ask `seq` still shows and reports once when it no longer does: closed,
+ * or the battle started. A newer ask ends the watch, its own watch takes over.
+ */
+function watchArmyClose(stage: Parameters<typeof armyTarget>[0], seq: number) {
+  if (seq !== armySeq) return;
+  if (armyTarget(stage) !== undefined) {
+    raf(() => watchArmyClose(stage, seq));
+    return;
+  }
+  const event: ArmyEvent = { tag: ARMY_TAG, from: 'page', type: 'closed', seq };
+  window.postMessage(event, location.origin);
+}
+
+/** the latest ask of the content script */
+let armySeq = 0;
+
 window.addEventListener('message', (event: MessageEvent) => {
   if (event.source !== window) return;
   const command = parseArmyCommand(event.data);
-  if (command)
-    answerArmyTarget(command.seq).catch((error) => logError('army window: reading the opponent failed', error));
+  if (!command) return;
+  armySeq = command.seq;
+  answerArmyTarget(command.seq).catch((error) => logError('army window: reading the opponent failed', error));
 });
 
 let gbWatching = false;

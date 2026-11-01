@@ -61,7 +61,7 @@ Spielseite (MAIN world)          Content Script (isolated world)               S
 
 - Der Proxy liefert jede Spielantwort als Nachricht `(service, method, payload, request)`.
 - Welche Spielantwort welchen Store füttert, steht an einer Stelle (`game/handlers.ts`). Die Handler übersetzen das Spielformat mit einem gemeinsamen Konvertermodul (`game/convert.ts`) in das eigene Datenmodell und geben es an den zuständigen Store. Eine Antwort kann mehrere Handler haben, etwa `updatePlayer` (Spieler und Plünderung) oder `CityMapService.reset` (Plünderung und eigener Stadtplan). Features sehen das Spielformat nie.
-- Zweite Eingabe neben dem Spielverkehr sind die Leser der Engine (`game/engine/`). Was nur die Engine weiß, liest das Marker-Modul im Seitenkontext, und die Leser machen daraus Events auf dem Bus: `army.target` nennt den Gegner im Armeefenster vor einem PvP-Kampf (siehe PvP-Angriffe), `gbWindow.changed` sagt, welches LG-Fenster das Spiel zeigt (siehe [LG-Rechner](features/lg-rechner.md)). Wie `army.opened` gehen sie ohne Store direkt auf den Bus, denn sie sind flüchtig und haben keinen Zustand. Kommt keine Antwort, etwa nach einem Spiel-Update, fehlt nur diese Ergänzung, alles andere läuft weiter.
+- Zweite Eingabe neben dem Spielverkehr sind die Leser der Engine (`game/engine/`). Was nur die Engine weiß, liest das Marker-Modul im Seitenkontext, und die Leser machen daraus Events auf dem Bus: `army.target` nennt den Gegner im Armeefenster vor einem PvP-Kampf (siehe PvP-Angriffe), `army.closed` meldet, dass dieses Fenster nicht mehr zu sehen ist (siehe [Angriffswarnung](features/angriffswarnung.md)), `gbWindow.changed` sagt, welches LG-Fenster das Spiel zeigt (siehe [LG-Rechner](features/lg-rechner.md)). Wie `army.opened` gehen sie ohne Store direkt auf den Bus, denn sie sind flüchtig und haben keinen Zustand. Kommt keine Antwort, etwa nach einem Spiel-Update, fehlt nur diese Ergänzung, alles andere läuft weiter.
 - Pufferung wie bei FoEproxy: Antworten vor dem Start (etwa `StartupService.getData`) gehen nicht verloren.
 - Der Request kommt als `ArrayBuffer` mit JSON. Der Proxy dekodiert ihn, und jeder Handler bekommt die `requestData` des passenden Requests (etwa `plunderById` mit `[Spieler-ID, Gebäude-ID]`).
 - Was das Spiel auf mehrere Einträge einer Antwort verteilt (eine Plünderung: Beute, Gebäude, Double-Loot-Symbol), sammeln die Handler und werten es am Ende der Antwort aus (`onBatchEnd`). Die Reihenfolge der Einträge ist nicht fest.
@@ -235,6 +235,7 @@ Je Feature eine Datei mit Umfang, Entscheidungen und Annahmen. Neue Features bek
 - [Powerleveln](features/powerleveln.md): Eigenanteil über mehrere Stufen eines eigenen LGs
 - [Snipehilfe](features/snipehilfe.md): lohnende Plätze aus der LG-Liste eines Spielers
 - [Investitionen](features/investitionen.md): eigene Einzahlungen, Suche über alle bekannten fremden LGs, gemerkte LGs und Spieler
+- [Angriffswarnung](features/angriffswarnung.md): Leiste über den Knöpfen des Armeefensters vor einem Angriff auf einen Spieler auf „nicht angreifen“
 - [foestats](features/foestats.md): Links, täglicher Verlauf, Aktivität
 - [Sicherung, Export und Import](features/sicherung.md): Export, Import, Sicherungskopie auf der Spielseite, Sicherung in einen Ordner, Altdaten-Import
 

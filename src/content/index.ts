@@ -37,6 +37,7 @@ import { SettingsControls } from './core/settings-controls';
 import { createShell } from './core/shell';
 import { startupGate } from './core/startup-gate';
 import { t } from './core/texts';
+import { attackWarningFeature } from './features/attack-warning';
 import { backupCopyFeature } from './features/backup-copy';
 import { buildingSearchFeature } from './features/building-search';
 import { cityMapFeature } from './features/city-map';
@@ -62,6 +63,7 @@ import { UiState } from './ui/ui-state';
 const features = (copy: ProfileCopy): Feature[] => [
   sabotageFeature,
   pvpFeature,
+  attackWarningFeature,
   notesFeature,
   cityMapFeature,
   buildingSearchFeature,

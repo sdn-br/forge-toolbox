@@ -9,16 +9,29 @@ function setup() {
   const bus = createBus();
   const posted: ArmyCommand[] = [];
   let answer: (seq: number, id: number) => void = () => {};
+  let close: (seq: number) => void = () => {};
   const link: ArmyLink = {
     post: (command) => posted.push(command),
     onTarget: (listener) => {
       answer = listener;
     },
+    onClosed: (listener) => {
+      close = listener;
+    },
   };
   watchArmyTarget(bus, link);
   const targets = vi.fn();
   bus.on('army.target', targets);
-  return { bus, posted, answer: (seq: number, id: number) => answer(seq, id), targets };
+  const closed = vi.fn();
+  bus.on('army.closed', closed);
+  return {
+    bus,
+    posted,
+    answer: (seq: number, id: number) => answer(seq, id),
+    close: (seq: number) => close(seq),
+    targets,
+    closed,
+  };
 }
 
 describe('watchArmyTarget', () => {
@@ -59,6 +72,30 @@ describe('watchArmyTarget', () => {
     answer(0, 111);
     answer(1, 111);
     expect(targets).not.toHaveBeenCalled();
+  });
+});
+
+describe('army window closed', () => {
+  it('passes on the close of the window that showed its opponent, once', () => {
+    const { bus, answer, close, closed } = setup();
+    bus.emit('army.opened', { battleType: 'pvp' });
+    answer(1, 111);
+    close(1);
+    close(1);
+    expect(closed).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores the close of an older window and of a window without an opponent', () => {
+    const { bus, answer, close, closed } = setup();
+    close(1);
+    bus.emit('army.opened', { battleType: 'pvp' });
+    answer(1, 111);
+    bus.emit('army.opened', { battleType: 'pvp' });
+    answer(2, 222);
+    close(1);
+    expect(closed).not.toHaveBeenCalled();
+    close(2);
+    expect(closed).toHaveBeenCalledTimes(1);
   });
 });
 

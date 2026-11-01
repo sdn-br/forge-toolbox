@@ -195,6 +195,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   // battle state (seen: submitMove). Only the latest start counts, it is the battle on screen.
   let running: GameBattle | null = null;
   ingestion.on('BattlefieldService', 'startByBattleType', ({ data }) => {
+    bus.emit('battle.started', {});
     running = null;
     const me = session.current?.playerId;
     if (me === undefined) return;

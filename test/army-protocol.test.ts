@@ -26,6 +26,7 @@ describe('parseArmyCommand (content to page)', () => {
     ['another tag', ask({ tag: 'forge-toolbox-marker' })],
     ['the page side', ask({ from: 'page' })],
     ['another type', ask({ type: 'show' })],
+    ['a close', ask({ type: 'closed' })],
     ['no seq', ask({ seq: undefined })],
     ['a negative seq', ask({ seq: -1 })],
   ])('refuses %s', (_name, data) => {
@@ -36,6 +37,13 @@ describe('parseArmyCommand (content to page)', () => {
 describe('parseArmyEvent (page to content)', () => {
   it('takes the answer and copies only its fields', () => {
     expect(parseArmyEvent({ ...answer(), extra: 1 })).toEqual(answer());
+  });
+
+  it('takes the close of a window without a player', () => {
+    const closed = { tag: ARMY_TAG, from: 'page', type: 'closed', seq: 3 };
+    expect(parseArmyEvent({ ...closed, playerId: 5 })).toEqual(closed);
+    expect(parseArmyEvent({ ...closed, seq: -1 })).toBeNull();
+    expect(parseArmyEvent({ ...closed, from: 'content' })).toBeNull();
   });
 
   it.each([
