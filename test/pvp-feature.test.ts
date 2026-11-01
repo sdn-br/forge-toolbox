@@ -637,14 +637,23 @@ describe('pvp feature', () => {
       expect(box.root.querySelector('.side-drawer')).toBeNull();
     });
 
-    it('shows the panel only while a battle is selected, closing it ends the selection', async () => {
+    it('shows the tab only while a battle is selected, the tab folds the panel and keeps the selection', async () => {
       const { box, row } = await shown();
       expect(box.root.querySelector('.side-drawer')).toBeNull();
       row(0).click();
       expect(panel(box)).toContain('111');
       tab(box, 'Kampfdetails ausblenden').click();
+      expect(box.root.querySelector('.side-panel')).toBeNull();
+      expect(box.root.querySelector('.side-tab')).not.toBeNull();
+      expect(row(0).classList.contains('selected')).toBe(true);
+      tab(box, 'Kampfdetails zeigen').click();
+      expect(panel(box)).toContain('111');
+      // folded in, a new selection opens it again
+      tab(box, 'Kampfdetails ausblenden').click();
+      row(1).click();
+      expect(panel(box)).toContain('222');
+      row(1).click();
       expect(box.root.querySelector('.side-drawer')).toBeNull();
-      expect(row(0).classList.contains('selected')).toBe(false);
     });
 
     it('has no panel on the attacks on the own city', async () => {

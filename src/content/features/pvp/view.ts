@@ -51,16 +51,17 @@ export const PANEL_WIDTH = 300;
 
 /** the side panel, only on the battles and only while a battle is selected; `selected` is the battle it shows */
 export interface PanelState {
+  open: boolean;
   selected: BattlePanelVm;
 }
 
 const panel = (state: PanelState, actions: PvpActions) =>
   sideDrawer({
     cls: 'pvp-drawer',
-    open: true,
+    open: state.open,
     label: t('pvp.panel'),
-    tip: t('pvp.panelClose'),
-    toggle: actions.closePanel,
+    tip: t(state.open ? 'pvp.panelClose' : 'pvp.panelOpen'),
+    toggle: actions.togglePanel,
     panel: battlePanel(state.selected),
     width: PANEL_WIDTH,
   });

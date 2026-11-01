@@ -59,8 +59,10 @@ export const pvpFeature: Feature = {
     let filter: PvpFilter = NO_FILTER;
     /** the index of the first row in view; the window keeps it inside the list */
     let top = 0;
-    /** the battle the side panel shows, as last read; the panel is open while there is one */
+    /** the battle the side panel shows, as last read; its tab stands while there is one */
     let selected: BattleWithPlunder | undefined;
+    /** the tab folds the panel in and out, a new selection opens it */
+    let panelOpen = true;
     /** the battles of the last load, for a click that selects one */
     let loadedBattles: BattleWithPlunder[] = [];
     /** what the view models of the last load were built with */
@@ -166,12 +168,13 @@ export const pvpFeature: Feature = {
       noAttackPlayer: marks.noAttackPlayer,
       select: (battleId) => {
         selected = selected?.battleId === battleId ? undefined : loadedBattles.find((b) => b.battleId === battleId);
+        if (selected) panelOpen = true;
         // the battles of the slice are loaded already
         rebuild();
       },
-      closePanel: () => {
-        selected = undefined;
-        rebuild();
+      togglePanel: () => {
+        panelOpen = !panelOpen;
+        box.update();
       },
       note: (opponent) => {
         actions.filter({ name: nameOf(opponent) });
@@ -187,7 +190,7 @@ export const pvpFeature: Feature = {
     const render = () => {
       const picked = filter.name.trim() ? pickedPlayer(filter.name, players()) : undefined;
       const note = picked === undefined ? undefined : card.render(picked, ctx.players.get(picked)?.name);
-      const side = selected && lastInput && { selected: battlePanelVm(selected, lastInput) };
+      const side = selected && lastInput && { open: panelOpen, selected: battlePanelVm(selected, lastInput) };
       if (!vm) return pvpView(tab, filter, undefined, actions, note, side);
       const visible = fit.rows();
       const rows = rowWindow(top, vm.total, visible);

@@ -76,8 +76,8 @@ export interface PvpActions extends Pick<PvpRowActions, 'plunderPlayer' | 'noAtt
   pickPlayer(name: string): void;
   /** selects a battle for the side panel, or clears the selection when it is the selected one */
   select(battleId: number): void;
-  /** closes the side panel, which ends the selection */
-  closePanel(): void;
+  /** folds the side panel of the selected battle in or out */
+  togglePanel(): void;
   /** puts this player's name into the field and opens their note for typing */
   note(opponent: PlayerId): void;
   /** moves the row window by rows, down for positive */

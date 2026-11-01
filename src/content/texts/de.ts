@@ -199,6 +199,7 @@ export const de = {
   'pvp.select': 'Klicken zeigt den Kampf mit Einheiten, Ergebnis und Plünderung im Seitenpanel',
   'pvp.unselect': 'Klicken hebt die Auswahl auf',
   'pvp.panel': 'Kampf',
+  'pvp.panelOpen': 'Kampfdetails zeigen',
   'pvp.panelClose': 'Kampfdetails ausblenden',
   'pvp.lootCol': 'Plünderung',
   'pvp.lootMark.plundered': 'Geplündert',

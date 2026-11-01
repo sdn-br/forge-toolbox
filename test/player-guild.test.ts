@@ -113,7 +113,7 @@ describe('pvp opponent name', () => {
       plunderPlayer: noop,
       noAttackPlayer: noop,
       select: noop,
-      closePanel: noop,
+      togglePanel: noop,
       note: noop,
       scroll: noop,
       measure: noop,
