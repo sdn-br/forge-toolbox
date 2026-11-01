@@ -11,7 +11,7 @@ export function createIncomingSection(ctx: FeatureContext): PvpSection {
         ctx.incoming.totals(opponents),
         ctx.incoming.list({ opponents, limit, offset }),
       ]);
-      return (input) => incomingViewModel({ ...input, incoming, incomingTotals, from: offset });
+      return { build: (input) => incomingViewModel({ ...input, incoming, incomingTotals, from: offset }), battles: [] };
     },
   };
 }

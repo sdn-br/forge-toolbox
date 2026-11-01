@@ -1,7 +1,7 @@
 import { html, type TemplateResult } from 'lit-html';
-import { ref } from 'lit-html/directives/ref.js';
 import { formatNumber, formatPrice, t } from '../../core/texts';
 import { swatch } from '../../ui/city-map';
+import { sideDrawer } from '../../ui/side-drawer';
 import type { Offer, OwnStatsVm } from './stats';
 import type { OwnMapUi, OwnMapVm } from './view-model';
 
@@ -12,22 +12,11 @@ export interface CityMapActions {
   toggleStats(): void;
 }
 
-/** width of the docked panel in pixels, as in the styles */
+/** width of the docked panel in pixels */
 const PANEL_WIDTH = 250;
 
 const toggle = (ui: OwnMapUi, mark: MapMark, actions: CityMapActions, label = t(`cityMap.${mark as 'free'}`)) =>
   html`<label><input type="checkbox" .checked=${ui[mark]} @change=${() => actions.toggle(mark)} />${label}</label>`;
-
-/**
- * Docked, the panel hangs out of the left side of the box, where the box usually has room (it opens at the right
- * edge of the screen). A box near the left edge gets it on its right side instead. Checked on every render.
- */
-function placeDrawer(el: Element | undefined) {
-  const drawer = el as HTMLElement | undefined;
-  const box = drawer?.closest('.box');
-  if (!drawer || !box) return;
-  drawer.dataset.side = box.getBoundingClientRect().left < PANEL_WIDTH + 30 ? 'right' : 'left';
-}
 
 const percent = (n: number) => formatNumber(Math.round(n * 10) / 10);
 
@@ -138,10 +127,14 @@ export function cityMapView(
       ${vm.incomplete ? html`<p class="warn">${t('cityMap.incomplete')}</p>` : ''}
       ${map ?? ''}
     </div>
-    <aside class=${ui.stats ? 'stats-drawer open' : 'stats-drawer'} ${ref((el) => placeDrawer(el))}>
-      <button class="action stats-tab" data-tip=${t(ui.stats ? 'cityMap.statsClose' : 'cityMap.statsOpen')}
-        @click=${() => actions.toggleStats()}>${t('cityMap.stats')}</button>
-      ${ui.stats && stats ? statsPanel(stats) : ''}
-    </aside>
+    ${sideDrawer({
+      cls: 'stats-drawer',
+      open: ui.stats,
+      label: t('cityMap.stats'),
+      tip: t(ui.stats ? 'cityMap.statsClose' : 'cityMap.statsOpen'),
+      toggle: actions.toggleStats,
+      panel: stats ? statsPanel(stats) : html``,
+      width: PANEL_WIDTH,
+    })}
   </div>`;
 }

@@ -1,4 +1,5 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
+import type { BattleWithPlunder } from '../../../shared/model';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { toggleDef } from '../../core/settings';
@@ -6,15 +7,25 @@ import { t } from '../../core/texts';
 import { rowFit } from '../../ui/fit-rows';
 import { icons } from '../../ui/icons';
 import { PlayerNoteCard } from '../../ui/note-card';
+import { rowWindow } from '../../ui/windowed-rows';
 import { playerLookups, playerRowActions } from '../shared/player-lookups';
 import { createBattlesSection } from './battles/section';
+import { prunedBy, reselect } from './battles/selection';
+import { battlePanelVm } from './battles/view-model';
 import { createIncomingSection } from './incoming/section';
 import { KEEP_SETTING, pruneBefore } from './retention';
-import { NO_FILTER, opponentsFor, type PvpActions, type PvpFilter, type PvpTab, pickedPlayer } from './rows';
+import {
+  NO_FILTER,
+  opponentsFor,
+  type PvpActions,
+  type PvpFilter,
+  type PvpTab,
+  pickedPlayer,
+  type ViewInput,
+} from './rows';
 import { BATTLES_MIN_WIDTH, pvpCss } from './styles';
 import type { PvpSection, PvpVm } from './tabs';
 import { pvpView } from './view';
-import { fitWindow } from './window';
 
 /** the menu entry and the settings group show it */
 const ICON = icons.pvp;
@@ -35,6 +46,8 @@ const WIDTH = BATTLES_MIN_WIDTH + 16 + 26 + 20;
 const MIN_HEIGHT = 250;
 /** a window loads this many times the rows that fit, from one window above it, so scrolling reads only now and then */
 const SLICE_WINDOWS = 3;
+/** view choice: the side panel open or closed */
+const PANEL = 'pvp.panel';
 
 export const pvpFeature: Feature = {
   id: 'pvp',
@@ -48,14 +61,16 @@ export const pvpFeature: Feature = {
     let filter: PvpFilter = NO_FILTER;
     /** the index of the first row in view; the window keeps it inside the list */
     let top = 0;
-    /** the battle unfolded last: the window keeps it and its details whole in view until the next scroll */
-    let focus: number | undefined;
+    /** the battle the side panel shows, as last read */
+    let selected: BattleWithPlunder | undefined;
+    let panelOpen = ctx.ui.pref(PANEL) === 'open';
+    /** the battles of the last load, for a click that selects one */
+    let loadedBattles: BattleWithPlunder[] = [];
+    /** what the view models of the last load were built with */
+    let lastInput: ViewInput | undefined;
     /** the slice the last load asked for; the window loads again once it leaves it */
     let requested = { offset: 0, limit: 0 };
     let query = 0;
-    const expanded = new Set<number>();
-    /** the room the details of an unfolded battle take, in row heights, as last measured */
-    const slots = new Map<number, number>();
     // builds the view model of the last load again, without reading
     let shown: (() => PvpVm) | undefined;
     // who the filter matched at the last load; undefined means everybody
@@ -69,8 +84,8 @@ export const pvpFeature: Feature = {
     const players = () => ctx.players.list().filter((p) => p.world === ctx.world);
     /** the name a row shows for the player, so the field names them */
     const nameOf = (id: PlayerId) => ctx.players.get(id)?.name || String(id);
-    /** how many rows fit into the table area, details rows not counted; a change redraws */
-    const fit = rowFit(() => box.update(), 'tbody tr:not(.details)');
+    /** how many rows fit into the table area; a change redraws */
+    const fit = rowFit(() => box.update());
 
     // loads the totals of the active tab and a slice of its rows around the window
     const refresh = async () => {
@@ -80,7 +95,7 @@ export const pvpFeature: Feature = {
       opponentsShown = opponents;
       const visible = fit.rows();
       requested = { offset: Math.max(0, top - visible), limit: SLICE_WINDOWS * visible };
-      const build = await sections[tab].load(
+      const { build, battles } = await sections[tab].load(
         { opponents, withPlunder: filter.withPlunder },
         requested.offset,
         requested.limit,
@@ -94,10 +109,17 @@ export const pvpFeature: Feature = {
         resourceName: (id: string) => ctx.catalog.resourceName(id),
         note: (id: PlayerId) => ctx.notes.playerPage(id)?.text,
         now: Date.now(),
-        expanded,
       };
-      shown = () => build(input);
+      lastInput = input;
+      loadedBattles = battles;
+      // the selection changes without reading, the row follows it
+      shown = () => build({ ...input, selected: selected?.battleId });
       vm = shown();
+      if (selected) {
+        const before = selected;
+        selected = reselect(selected, battles, requested.offset, vm.total);
+        if (selected?.battleId !== before.battleId) vm = shown();
+      }
       box.update();
     };
     // events of one task (a game response often brings several) load once
@@ -126,8 +148,9 @@ export const pvpFeature: Feature = {
     const setFilter = (next: PvpFilter) => {
       filter = next;
       top = 0;
-      focus = undefined;
-      box.update();
+      // the selected battle may not be in the new list, and the list is not read whole to find out
+      selected = undefined;
+      rebuild();
       show();
     };
     const marks = playerRowActions(ctx);
@@ -136,22 +159,28 @@ export const pvpFeature: Feature = {
       tab: (next) => {
         tab = next;
         top = 0;
-        focus = undefined;
+        selected = undefined;
+        rebuild();
         show();
       },
       filter: (patch) => setFilter({ ...filter, ...patch }),
       pickPlayer: (name) => actions.filter({ name }),
       plunderPlayer: marks.plunderPlayer,
       noAttackPlayer: marks.noAttackPlayer,
-      expand: (battleId) => {
-        if (expanded.delete(battleId)) {
-          if (focus === battleId) focus = undefined;
-        } else {
-          expanded.add(battleId);
-          focus = battleId;
+      select: (battleId) => {
+        if (selected?.battleId === battleId) selected = undefined;
+        else {
+          selected = loadedBattles.find((b) => b.battleId === battleId);
+          // a selection is to be seen
+          if (selected && !panelOpen) actions.togglePanel();
         }
         // the battles of the slice are loaded already
         rebuild();
+      },
+      togglePanel: () => {
+        panelOpen = !panelOpen;
+        ctx.ui.savePref(PANEL, panelOpen ? 'open' : 'closed');
+        box.update();
       },
       note: (opponent) => {
         actions.filter({ name: nameOf(opponent) });
@@ -159,46 +188,26 @@ export const pvpFeature: Feature = {
       },
       scroll: (rows) => {
         top += rows;
-        focus = undefined;
         box.update();
       },
       measure: fit.measure,
-      details: (battleId, row) => {
-        // the details row follows its battle row, whose height is one row
-        const details = row as HTMLElement | undefined;
-        const rowHeight = (details?.previousElementSibling as HTMLElement | null)?.offsetHeight ?? 0;
-        if (!details || rowHeight <= 0) return;
-        const taken = Math.ceil(details.offsetHeight / rowHeight);
-        if (slots.get(battleId) === taken) return;
-        slots.set(battleId, taken);
-        // measured while drawing: the window is worked out again after this draw
-        queueMicrotask(() => box.update());
-      },
-    };
-
-    /** the room row `index` of the list takes besides its own row: its details, while unfolded */
-    const extra = (current: PvpVm) => (index: number) => {
-      if (current.tab !== 'battles') return 0;
-      const row = current.rows[index - current.from];
-      return row?.expanded ? (slots.get(row.battleId) ?? 0) : 0;
-    };
-    const focusIndex = (current: PvpVm) => {
-      if (focus === undefined || current.tab !== 'battles') return undefined;
-      const i = current.rows.findIndex((r) => r.battleId === focus);
-      return i < 0 ? undefined : current.from + i;
     };
 
     const render = () => {
       const picked = filter.name.trim() ? pickedPlayer(filter.name, players()) : undefined;
       const note = picked === undefined ? undefined : card.render(picked, ctx.players.get(picked)?.name);
-      if (!vm) return pvpView(tab, filter, undefined, actions, note);
+      const side = {
+        open: panelOpen,
+        selected: selected && lastInput && battlePanelVm(selected, lastInput),
+      };
+      if (!vm) return pvpView(tab, filter, undefined, actions, note, side);
       const visible = fit.rows();
-      const rows = fitWindow(top, vm.total, visible, extra(vm), focusIndex(vm));
+      const rows = rowWindow(top, vm.total, visible);
       top = rows.top;
       // the window left the slice asked for: load the slice around it; a list shorter than asked ends there
       const end = requested.offset + requested.limit;
       if (vm.total > 0 && (top < requested.offset || (top + visible > end && end < vm.total))) show();
-      return pvpView(tab, filter, { vm, window: rows }, actions, note);
+      return pvpView(tab, filter, { vm, window: rows }, actions, note, side);
     };
 
     const box = ctx.createBox({
@@ -222,6 +231,10 @@ export const pvpFeature: Feature = {
       if (before === undefined) return;
       Promise.all([ctx.battles.prune(before), ctx.plunders.prune(before), ctx.incoming.prune(before)])
         .then((deleted) => {
+          if (selected && prunedBy(selected, before)) {
+            selected = undefined;
+            rebuild();
+          }
           if (deleted.some((n) => n > 0)) show();
         })
         .catch((error) => logError('pruning battles, plunders and attacks failed', error));

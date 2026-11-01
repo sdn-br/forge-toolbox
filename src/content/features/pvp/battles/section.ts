@@ -12,7 +12,7 @@ export function createBattlesSection(ctx: FeatureContext): PvpSection {
         ctx.battles.summary(filter),
         ctx.battles.list({ ...filter, limit, offset }),
       ]);
-      return (input) => battlesViewModel({ ...input, battles, summary, from: offset });
+      return { build: (input) => battlesViewModel({ ...input, battles, summary, from: offset }), battles };
     },
   };
 }

@@ -601,37 +601,68 @@ describe('pvp feature', () => {
       return { ...env, row };
     }
 
-    it('expands a clicked row with both armies and the result, and collapses it again', async () => {
+    /** the tab of the side panel, by its tooltip */
+    const tab = (box: TestBox, tip: string) =>
+      box.root.querySelector(`button.side-tab[data-tip="${tip}"]`) as HTMLElement;
+    const panel = (box: TestBox) => box.root.querySelector('.side-panel')?.textContent ?? '';
+
+    it('shows a clicked battle in the side panel with both armies and the result, and clears it on a second click', async () => {
       const { box, row, lists } = await shown();
-      expect(box.text).not.toContain('Deine Einheiten');
+      expect(box.root.querySelector('.side-panel')).toBeNull();
 
       row(1).click();
-      expect(box.text).toContain('Deine Einheiten');
-      expect(box.text).toContain('rogue');
-      expect(box.text).toContain('8/10 LP');
-      expect(box.text).toContain('feudal_knight');
-      expect(box.text).toContain('gefallen');
-      expect(box.text).toContain('gewonnen, Autokampf, 1 Runde');
-      expect(box.text).toContain('50 % / 0 %');
-      expect(box.text).toContain('0 % / 70 %');
-      expect(box.root.querySelectorAll('.battle')).toHaveLength(1);
-      // the details come from the loaded slice, no new query
+      expect(row(1).classList.contains('selected')).toBe(true);
+      expect(row(0).classList.contains('selected')).toBe(false);
+      expect(panel(box)).toContain('222');
+      expect(panel(box)).toContain('Deine Einheiten');
+      expect(panel(box)).toContain('rogue');
+      expect(panel(box)).toContain('8/10 LP');
+      expect(panel(box)).toContain('feudal_knight');
+      expect(panel(box)).toContain('gefallen');
+      expect(panel(box)).toContain('gewonnen, Autokampf, 1 Runde');
+      expect(panel(box)).toContain('50 % / 0 %');
+      expect(panel(box)).toContain('0 % / 70 %');
+      // the battle comes from the loaded slice, no new query; all rows keep one height
       expect(lists).toHaveLength(1);
+      expect(box.root.querySelectorAll('tbody tr')).toHaveLength(2);
 
       row(0).click();
-      expect(box.root.querySelectorAll('.battle')).toHaveLength(2);
-      row(1).click();
-      expect(box.root.querySelectorAll('.battle')).toHaveLength(1);
+      expect(panel(box)).toContain('111');
+      expect(box.root.querySelectorAll('tr.battle-row.selected')).toHaveLength(1);
+      row(0).click();
+      expect(box.root.querySelectorAll('tr.battle-row.selected')).toHaveLength(0);
+      expect(panel(box)).toContain('Ein Klick auf einen Kampf zeigt hier');
     });
 
-    it('does not expand a row when its buttons are clicked', async () => {
+    it('remembers the panel open or closed and opens it for a selection', async () => {
+      const { box, row, ctx } = await shown();
+      tab(box, 'Kampfdetails zeigen').click();
+      expect(panel(box)).toContain('Ein Klick auf einen Kampf zeigt hier');
+      expect(ctx.ui.pref('pvp.panel')).toBe('open');
+      tab(box, 'Kampfdetails ausblenden').click();
+      expect(box.root.querySelector('.side-panel')).toBeNull();
+      expect(ctx.ui.pref('pvp.panel')).toBe('closed');
+      row(0).click();
+      expect(panel(box)).toContain('111');
+      expect(ctx.ui.pref('pvp.panel')).toBe('open');
+    });
+
+    it('has no panel on the attacks on the own city', async () => {
+      const { box, row } = await shown();
+      row(0).click();
+      box.click('Angriffe auf mich');
+      await tick();
+      expect(box.root.querySelector('.side-drawer')).toBeNull();
+    });
+
+    it('does not select a row when its buttons are clicked', async () => {
       const { box } = await shown();
       (box.root.querySelector('button.marker') as HTMLElement).click();
       funnel(box, '222').click();
-      expect(box.root.querySelector('.battle')).toBeNull();
+      expect(box.root.querySelector('tr.battle-row.selected')).toBeNull();
     });
 
-    it('marks a battle with its plunder by the sack and shows the plunder in the details', async () => {
+    it('marks a battle with its plunder by the sack and shows the plunder in the panel', async () => {
       const { box, row } = await shown([
         { ...fought(1, 111), plunder: plunder(111) },
         { ...fought(2, 222), plunder: { ...plunder(222), outcome: 'repelled', resources: {}, doubleLoot: false } },
@@ -645,12 +676,12 @@ describe('pvp feature', () => {
       ]);
 
       row(0).click();
-      expect(box.text).toContain('Plünderung: R_IronAge_Residential2 · 12 Forge-Punkte Double Loot');
+      expect(panel(box)).toContain('Plünderung: R_IronAge_Residential2 · 12 Forge-Punkte Double Loot');
       row(1).click();
-      expect(box.text).toContain('Plünderung abgewehrt: R_IronAge_Residential2');
+      expect(panel(box)).toContain('Plünderung abgewehrt: R_IronAge_Residential2');
     });
 
-    it('expands an inferred battle to its plunder and a line that the battle was not recorded', async () => {
+    it('shows an inferred battle in the panel with its plunder and a line that the battle was not recorded', async () => {
       const at = Date.now();
       const { box, row } = await shown([
         {
@@ -668,10 +699,51 @@ describe('pvp feature', () => {
       expect(row(0).textContent).toContain('erschlossen');
       expect(row(0).textContent).not.toContain('%');
       row(0).click();
-      expect(box.root.querySelector('.battle')).toBeNull();
-      const details = box.root.querySelector('tr.details') as HTMLElement;
-      expect(details.textContent).toContain('der Kampf selbst ist nicht aufgezeichnet');
-      expect(details.textContent).toContain('Plünderung: R_IronAge_Residential2 · 12 Forge-Punkte');
+      expect(box.root.querySelector('.side-panel .battle')).toBeNull();
+      expect(panel(box)).toContain('der Kampf selbst ist nicht aufgezeichnet');
+      expect(panel(box)).toContain('Plünderung: R_IronAge_Residential2 · 12 Forge-Punkte');
+    });
+
+    it('clears the selection on a change of filter, and the window fills again when the filter goes', async () => {
+      const { box, row, lists, state } = await shown([fought(1, 111), fought(2, 222)]);
+      row(0).click();
+      type(box, '111');
+      await tick();
+      expect(box.root.querySelector('tr.battle-row.selected')).toBeNull();
+      expect(panel(box)).toContain('Ein Klick auf einen Kampf zeigt hier');
+      lists.at(-1)?.resolve([fought(1, 111)]);
+      await tick();
+      row(0).click();
+      expect(panel(box)).toContain('111');
+
+      state.total = 100;
+      type(box, '');
+      await tick();
+      lists.at(-1)?.resolve(Array.from({ length: SLICE }, (_, i) => fought(i + 1, 1000 + i)));
+      await tick();
+      expect(box.root.querySelectorAll('tr.battle-row')).toHaveLength(VISIBLE);
+      expect(box.text).toContain('noch 80 weitere unten');
+      expect(box.root.querySelector('tr.battle-row.selected')).toBeNull();
+    });
+
+    it('keeps the selection on scroll and live updates while the battle is still listed', async () => {
+      const { box, row, lists, ctx, state } = await shown([fought(1, 111), fought(2, 222)]);
+      row(1).click();
+      box.click('Nach unten');
+      ctx.bus.emit('plunder.recorded', { opponents: [playerId(222)] });
+      await tick();
+      lists.at(-1)?.resolve([fought(1, 111), { ...fought(2, 222), plunder: plunder(222) }]);
+      await tick();
+      expect(row(1).classList.contains('selected')).toBe(true);
+      expect(panel(box)).toContain('Plünderung: R_IronAge_Residential2');
+
+      // read again without it, the slice spans the whole list: it was replaced or deleted
+      state.total = 1;
+      ctx.bus.emit('battle.recorded', { opponents: [playerId(222)] });
+      await tick();
+      lists.at(-1)?.resolve([fought(1, 111)]);
+      await tick();
+      expect(panel(box)).toContain('Ein Klick auf einen Kampf zeigt hier');
     });
 
     it('shows the plunder of a battle when it is recorded after the battle', async () => {

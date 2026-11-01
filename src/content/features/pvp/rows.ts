@@ -1,7 +1,6 @@
 // What both tabs of the PvP box share: the filter, the lead cells of a row (note marker and opponent with the PvP marks
 // and the funnel) and the list around the table (totals, empty text, row window).
 import { html, type TemplateResult } from 'lit-html';
-import { ref } from 'lit-html/directives/ref.js';
 import { type BuildingDefId, type PlayerId, playerId } from '../../../shared/ids';
 import type { Player } from '../../../shared/model';
 import { sameName, type TextKey, t, textFilter } from '../../core/texts';
@@ -10,9 +9,8 @@ import { externalLink, nameWithGuild } from '../../ui/links';
 import { plainText } from '../../ui/markdown';
 import { pickButton } from '../../ui/pick';
 import { pvpMarks } from '../../ui/pvp-marks';
-import { windowedRows } from '../../ui/windowed-rows';
+import { type RowWindow, windowedRows } from '../../ui/windowed-rows';
 import type { PvpPlayerLookups, PvpRowActions } from '../shared/player-lookups';
-import type { PvpWindow } from './window';
 
 export type PvpTab = 'battles' | 'incoming';
 
@@ -76,16 +74,16 @@ export interface PvpActions extends Pick<PvpRowActions, 'plunderPlayer' | 'noAtt
   filter(patch: Partial<PvpFilter>): void;
   /** the funnel: puts the name into the name field, as if typed; an empty name clears it */
   pickPlayer(name: string): void;
-  /** shows or hides the details of a battle row */
-  expand(battleId: number): void;
+  /** selects a battle for the side panel, or clears the selection when it is the selected one */
+  select(battleId: number): void;
+  /** opens or closes the side panel */
+  togglePanel(): void;
   /** puts this player's name into the field and opens their note for typing */
   note(opponent: PlayerId): void;
   /** moves the row window by rows, down for positive */
   scroll(rows: number): void;
   /** gets the table area on every render, to measure how many rows fit */
   measure(area: Element | undefined): void;
-  /** gets the details row of an unfolded battle on every render, to measure the room it takes */
-  details(battleId: number, row: Element | undefined): void;
 }
 
 /** what a tab turns into its view model besides the rows it loaded */
@@ -97,8 +95,8 @@ export interface ViewInput {
   /** the Markdown note of a player, if any */
   note: (id: PlayerId) => string | undefined;
   now: number;
-  /** battle ids whose rows show their details */
-  expanded: ReadonlySet<number>;
+  /** the battle the side panel shows */
+  selected?: number;
 }
 
 /** what every tab shows around its rows */
@@ -169,14 +167,18 @@ export const noteMarker = (opponent: PlayerId, note: string, actions: PvpActions
   html`<td><button class=${note ? 'marker' : 'marker dim'} data-tip=${note || t('notes.add')}
     aria-label=${t('notes.add')} @click=${() => actions.note(opponent)}>${headerIcons.note}</button></td>`;
 
-/** the ref of a details row, measured on every render */
-export const detailsRef = (battleId: number, actions: PvpActions) => ref((row) => actions.details(battleId, row));
+/** the loaded rows the window draws; `from` is the index of the first loaded row in the list, `total` the rows of
+ * the list */
+export const rowsShown = <R>(rows: R[], from: number, total: number, { top, below }: RowWindow): R[] => {
+  const start = top - from;
+  return rows.slice(Math.max(0, start), Math.max(0, start + total - top - below));
+};
 
 /** the totals, then the rows of the window with the two buttons, or the text for an empty list; `empty` has one text
  * per case */
 export function listView(
   vm: ListVm,
-  window: PvpWindow,
+  window: RowWindow,
   actions: PvpActions,
   empty: { none: TextKey; noMatch: TextKey },
   table: TemplateResult,

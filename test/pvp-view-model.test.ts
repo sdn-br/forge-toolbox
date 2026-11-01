@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { battlesViewModel } from '../src/content/features/pvp/battles/view-model';
+import { prunedBy, reselect } from '../src/content/features/pvp/battles/selection';
+import { battlePanelVm, battlesViewModel } from '../src/content/features/pvp/battles/view-model';
 import { incomingViewModel } from '../src/content/features/pvp/incoming/view-model';
 import { pruneBefore } from '../src/content/features/pvp/retention';
-import { NO_FILTER, opponentsFor, pickedPlayer, type ViewInput } from '../src/content/features/pvp/rows';
-import { fitWindow, rowsShown } from '../src/content/features/pvp/window';
+import { NO_FILTER, opponentsFor, pickedPlayer, rowsShown, type ViewInput } from '../src/content/features/pvp/rows';
 import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type {
   BattleSummary,
@@ -63,7 +63,6 @@ const base: ViewInput = {
   resourceName: () => undefined,
   note: (id: PlayerId) => (id === 1001 ? '**stark**\n- *Schilde*' : undefined),
   now,
-  expanded: new Set(),
 };
 const summaryOf = (battles: BattleWithPlunder[]): BattleSummary => ({
   battles: battles.length,
@@ -76,19 +75,9 @@ const battlesOf = (battles: BattleWithPlunder[], change: Partial<ViewInput> = {}
   battlesViewModel({ ...base, ...change, battles, summary, from: 0 });
 
 describe('pvp view model', () => {
-  it('adds the details to the expanded rows only', () => {
-    const units = { units: [{ unitTypeId: 'rogue', startHp: 10, endHp: 8 }] };
-    const first = battle(1, 1001);
-    const vm = battlesOf([{ ...first, attacker: { ...first.attacker, ...units } }, battle(2, 1002)], {
-      expanded: new Set([1]),
-    });
-    expect(vm.rows[0]?.details).toBeDefined();
-    expect(vm.rows[0]?.details).toMatchObject({
-      summary: 'gewonnen, Autokampf, 2 Runden',
-      own: [{ unit: 'rogue', hp: '8/10 LP', dead: false }],
-      army: { own: { attack: 368, defense: 269 }, opponent: { attack: 406, defense: 443 } },
-    });
-    expect(vm.rows[1]?.details).toBeUndefined();
+  it('marks the selected row only', () => {
+    const vm = battlesOf([battle(1, 1001), battle(2, 1002)], { selected: 2 });
+    expect(vm.rows.map((r) => r.selected)).toEqual([false, true]);
   });
 
   it('shows one row per battle with name, marks, time, result and measured armies', () => {
@@ -107,7 +96,7 @@ describe('pvp view model', () => {
       battle: 'Autokampf',
       attacker: { attack: 368, defense: 269 },
       defender: { attack: 406, defense: 443 },
-      expanded: false,
+      selected: false,
       note: 'stark\n• Schilde',
     });
     expect(vm.rows[1]).toMatchObject({
@@ -140,31 +129,49 @@ describe('pvp view model', () => {
       battle(3, 1001),
     ]).rows;
     expect(rows.map((r) => r.loot)).toEqual(['plundered', 'repelled', undefined]);
-    // collapsed rows carry no plunder details
-    expect(rows.map((r) => r.plunder)).toEqual([undefined, undefined, undefined]);
   });
 
-  it('shows the plunder in the details of an expanded battle: building, loot with names and Double Loot', () => {
-    const rows = battlesOf(
-      [
-        { ...battle(1, 1001), plunder: plunder(1001, { doubleLoot: true }) },
-        { ...battle(2, 1001), plunder: plunder(1001, { cityEntityId: buildingDefId('R_Unknown') }) },
-        {
-          ...battle(3, 1001),
-          plunder: plunder(1001, { outcome: 'repelled', resources: {}, entityId: undefined, cityEntityId: undefined }),
-        },
-      ],
-      { expanded: new Set([1, 2, 3]) },
-    ).rows;
-    expect(rows.map((r) => r.plunder)).toEqual([
-      { outcome: 'plundered', building: 'Strohdachhaus', loot: '1.220 Münzen, 5 Forge-Punkte', doubleLoot: true },
-      { outcome: 'plundered', building: 'R_Unknown', loot: '1.220 Münzen, 5 Forge-Punkte', doubleLoot: false },
-      { outcome: 'repelled', building: '–', loot: '', doubleLoot: false },
-    ]);
-    expect(rows[0]?.details).toBeDefined();
+  it('shows a fought battle in the side panel with units, armies and result, then its plunder', () => {
+    const units = { units: [{ unitTypeId: 'rogue', startHp: 10, endHp: 8 }] };
+    const first = battle(1, 1001);
+    const vm = battlePanelVm(
+      { ...first, attacker: { ...first.attacker, ...units }, plunder: plunder(1001, { doubleLoot: true }) },
+      base,
+    );
+    expect(vm).toMatchObject({
+      name: 'Testgegner',
+      nameTip: 'Testgegner [Testgilde]',
+      when: 'heute 13:49',
+      inferred: false,
+      details: {
+        summary: 'gewonnen, Autokampf, 2 Runden',
+        own: [{ unit: 'rogue', hp: '8/10 LP', dead: false }],
+        army: { own: { attack: 368, defense: 269 }, opponent: { attack: 406, defense: 443 } },
+      },
+      plunder: {
+        outcome: 'plundered',
+        building: 'Strohdachhaus',
+        loot: '1.220 Münzen, 5 Forge-Punkte',
+        doubleLoot: true,
+      },
+    });
+    expect(battlePanelVm(battle(2, 1002), base).plunder).toBeUndefined();
   });
 
-  it('shows an inferred battle as won at the latest at its time, without armies, expandable to its plunder only', () => {
+  it('names the building of the plunder in the panel, unknown by its id, none by a dash', () => {
+    const plunderOf = (p: Plunder) => battlePanelVm({ ...battle(1, 1001), plunder: p }, base).plunder;
+    expect(plunderOf(plunder(1001, { cityEntityId: buildingDefId('R_Unknown') }))).toEqual({
+      outcome: 'plundered',
+      building: 'R_Unknown',
+      loot: '1.220 Münzen, 5 Forge-Punkte',
+      doubleLoot: false,
+    });
+    expect(
+      plunderOf(plunder(1001, { outcome: 'repelled', resources: {}, entityId: undefined, cityEntityId: undefined })),
+    ).toEqual({ outcome: 'repelled', building: '–', loot: '', doubleLoot: false });
+  });
+
+  it('shows an inferred battle as won at the latest at its time, without armies, in the panel only its plunder', () => {
     const at = new Date(2026, 9, 19, 14, 5).getTime();
     const inferred: BattleWithPlunder = {
       world: worldId('de20'),
@@ -190,13 +197,16 @@ describe('pvp view model', () => {
       battle: 'erschlossen',
       inferred: true,
       loot: 'plundered',
-      expanded: false,
+      selected: false,
       note: 'stark\n• Schilde',
     });
-    const open = battlesOf([inferred], { expanded: new Set([-at]) }).rows[0];
-    expect(open).toMatchObject({ expanded: true, plunder: { building: 'Strohdachhaus' } });
-    expect(open?.details).toBeUndefined();
-    expect(open?.attacker).toBeUndefined();
+    const panel = battlePanelVm(inferred, base);
+    expect(panel).toMatchObject({
+      inferred: true,
+      when: 'spätestens heute 14:05',
+      plunder: { building: 'Strohdachhaus' },
+    });
+    expect(panel.details).toBeUndefined();
   });
 
   it('names one round in singular', () => {
@@ -353,33 +363,38 @@ describe('pvp filter', () => {
 });
 
 describe('pvp row window', () => {
-  const none = () => 0;
-
-  it('draws as many rows as fit and keeps the offset inside the list', () => {
-    expect(fitWindow(0, 100, 20, none)).toEqual({ top: 0, count: 20, below: 80 });
-    expect(fitWindow(95, 100, 20, none)).toEqual({ top: 80, count: 20, below: 0 });
-    expect(fitWindow(-3, 5, 20, none)).toEqual({ top: 0, count: 5, below: 0 });
-    expect(fitWindow(4, 0, 20, none)).toEqual({ top: 0, count: 0, below: 0 });
-  });
-
-  it('draws fewer rows while an expanded row takes room for its details', () => {
-    const details = (i: number) => (i === 2 ? 5 : 0);
-    expect(fitWindow(0, 100, 20, details)).toEqual({ top: 0, count: 15, below: 85 });
-    // details taller than the area: the row still shows, alone
-    expect(fitWindow(2, 100, 4, details)).toEqual({ top: 2, count: 1, below: 97 });
-  });
-
-  it('moves down until the row just expanded shows whole with its details', () => {
-    const details = (i: number) => (i === 9 ? 4 : 0);
-    expect(fitWindow(0, 100, 10, details, 9)).toEqual({ top: 4, count: 6, below: 90 });
-    // a row already whole in view stays where it is
-    expect(fitWindow(0, 100, 10, (i) => (i === 2 ? 4 : 0), 2)).toEqual({ top: 0, count: 6, below: 94 });
-  });
-
   it('picks the drawn rows out of the loaded slice', () => {
     const loaded = Array.from({ length: 60 }, (_, i) => 20 + i);
-    expect(rowsShown(loaded, 20, { top: 41, count: 3, below: 0 })).toEqual([41, 42, 43]);
-    expect(rowsShown(loaded, 20, { top: 18, count: 4, below: 0 })).toEqual([20, 21]);
+    expect(rowsShown(loaded, 20, 100, { top: 41, below: 56 })).toEqual([41, 42, 43]);
+    expect(rowsShown(loaded, 20, 100, { top: 18, below: 78 })).toEqual([20, 21]);
+  });
+});
+
+describe('pvp selection', () => {
+  const at = (battleId: number, time: number) => ({ ...battle(battleId, 1001), at: time });
+  const selected = at(5, 500);
+
+  it('keeps the selected battle as read again, with a plunder that came meanwhile', () => {
+    const again = { ...selected, plunder: plunder(1001) };
+    expect(reselect(selected, [at(6, 600), again], 0, 2)).toBe(again);
+  });
+
+  it('clears the selection when the slice spans its time but no longer has it', () => {
+    expect(reselect(selected, [at(6, 600), at(4, 400)], 10, 30)).toBeUndefined();
+    expect(reselect(selected, [], 0, 0)).toBeUndefined();
+    // the slice reaches the end of the list
+    expect(reselect(selected, [at(6, 600)], 0, 1)).toBeUndefined();
+  });
+
+  it('keeps the selection when the slice does not reach its time', () => {
+    expect(reselect(selected, [at(9, 900), at(8, 800)], 0, 50)).toBe(selected);
+    expect(reselect(selected, [at(3, 300), at(2, 200)], 20, 50)).toBe(selected);
+  });
+
+  it('knows when pruning deletes the battle: it stays while it or its plunder is newer', () => {
+    expect(prunedBy(selected, 501)).toBe(true);
+    expect(prunedBy(selected, 500)).toBe(false);
+    expect(prunedBy({ ...selected, plunderAt: 700 }, 600)).toBe(false);
   });
 });
 

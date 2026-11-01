@@ -37,11 +37,20 @@ export interface PvpRow extends OpponentVm {
   defender?: ArmyValues;
   /** the sack mark: the battle allowed a plunder, which succeeded or was repelled; missing without a plunder */
   loot?: PlunderOutcome;
-  /** the row shows its details */
-  expanded: boolean;
-  /** units, measured armies and result; only for an expanded fought battle */
+  /** the side panel shows this battle */
+  selected: boolean;
+}
+
+/** what the side panel shows of the selected battle */
+export interface BattlePanelVm {
+  name: string;
+  /** the name with the guild */
+  nameTip: string;
+  when: string;
+  /** an inferred battle has no units and armies, only its plunder */
+  inferred: boolean;
+  /** units, measured armies and result of a fought battle */
   details?: BattleDetailsVm;
-  /** only for an expanded row with a plunder */
   plunder?: PlunderVm;
 }
 
@@ -51,6 +60,10 @@ export interface BattlesVm extends ListVm {
   /** the loaded rows, the first at `from` */
   rows: PvpRow[];
 }
+
+/** the time of a battle; an inferred one took place by then at the latest */
+const battleWhen = (b: BattleWithPlunder, now: number) =>
+  isFought(b) ? formatWhen(b.at, now) : t('pvp.atLatest', { when: formatWhen(b.at, now) });
 
 function battleKind(b: FoughtBattle): string {
   if (b.auto) return t('pvp.auto');
@@ -89,19 +102,17 @@ export function battlesViewModel(
     }),
     tab: 'battles',
     rows: battles.map((b): PvpRow => {
-      const expanded = input.expanded.has(b.battleId);
       const row = {
         battleId: b.battleId,
         ...opponentVm(input, b.opponent),
         result: t(`pvp.${b.result}`),
         ...(b.plunder && { loot: b.plunder.outcome }),
-        expanded,
-        ...(expanded && b.plunder && { plunder: plunderVm(b.plunder, input.building, input.resourceName) }),
+        selected: input.selected === b.battleId,
       };
       if (!isFought(b)) {
         return {
           ...row,
-          when: t('pvp.atLatest', { when: formatWhen(b.at, now) }),
+          when: battleWhen(b, now),
           battle: t('pvp.inferred'),
           inferred: true,
         };
@@ -109,12 +120,24 @@ export function battlesViewModel(
       const army = measuredArmy(b);
       return {
         ...row,
-        when: formatWhen(b.at, now),
+        when: battleWhen(b, now),
         battle: battleKind(b),
         attacker: army.attacker,
         defender: army.defender,
-        ...(expanded && { details: battleDetails(b, army) }),
       };
     }),
+  };
+}
+
+/** the selected battle for the side panel: units, armies and result of a fought battle, then its plunder */
+export function battlePanelVm(b: BattleWithPlunder, input: ViewInput): BattlePanelVm {
+  const { name, nameTip } = opponentVm(input, b.opponent);
+  return {
+    name,
+    nameTip,
+    when: battleWhen(b, input.now),
+    inferred: !isFought(b),
+    ...(isFought(b) && { details: battleDetails(b, measuredArmy(b)) }),
+    ...(b.plunder && { plunder: plunderVm(b.plunder, input.building, input.resourceName) }),
   };
 }

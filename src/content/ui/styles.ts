@@ -148,6 +148,20 @@ button.fold-toggle { all: unset; cursor: pointer; display: flex; align-items: ce
 button.fold-toggle:hover { color: var(--accent); }
 button.fold-toggle:focus-visible { outline: 1px solid var(--accent); }
 button.fold-toggle svg { display: block; flex: none; width: 14px; height: 14px; }
+/* the side drawer of a box (ui/side-drawer.ts). Docked it hangs out of the side of the box and leaves the content
+   whole; the body's overflow does not clip it because its containing block is the box itself. The panel sits flush
+   against the box and the tab on its outer edge, so the tab moves out with the panel. The panel has the frame of a box */
+.side-drawer { position: absolute; top: 34px; right: 100%; display: flex; flex-direction: row; align-items: flex-start; }
+.side-drawer[data-side=right] { right: auto; left: 100%; flex-direction: row-reverse; }
+button.side-tab { margin: 0; writing-mode: vertical-rl; padding: 8px 2px; border-width: 2px; border-right: 0; border-radius: 6px 0 0 6px; }
+.side-drawer[data-side=right] .side-tab { border-width: 2px; border-left: 0; border-radius: 0 6px 6px 0; }
+.side-drawer.open .side-tab { color: var(--accent); }
+.side-panel { width: var(--side-width); max-height: 70vh; overflow: auto; padding: 4px 8px; background: var(--bg); border: 2px solid var(--line);
+  border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.5); }
+/* popped out: no room beside the window, so the panel takes a column beside the content */
+.box.popped .side-drawer { position: static; flex: 0 0 auto; flex-direction: row-reverse; }
+.box.popped .side-tab { border: 2px solid var(--line); border-radius: 6px; }
+.box.popped .side-panel { max-height: none; align-self: stretch; box-shadow: none; }
 /* windowed rows (ui/windowed-rows.ts): the table area, the two buttons beside it, the line of what is hidden */
 .win-scroll { display: flex; align-items: stretch; gap: 4px; }
 .win-area { flex: 1 1 auto; min-width: 0; }

@@ -105,7 +105,6 @@ describe('pvp opponent name', () => {
       resourceName: () => undefined,
       note: () => undefined,
       now: 0,
-      expanded: new Set(),
     });
     const actions = {
       tab: noop,
@@ -113,13 +112,13 @@ describe('pvp opponent name', () => {
       pickPlayer: noop,
       plunderPlayer: noop,
       noAttackPlayer: noop,
-      expand: noop,
+      select: noop,
+      togglePanel: noop,
       note: noop,
       scroll: noop,
       measure: noop,
-      details: noop,
     };
-    const window = { top: 0, count: 2, below: 0 };
+    const window = { top: 0, below: 0 };
     const cells = [...draw(pvpView('incoming', NO_FILTER, { vm, window }, actions)).querySelectorAll('td.name-cell')];
     expect(cells.map((td) => [td.querySelector('a')?.textContent, td.getAttribute('data-tip')])).toEqual([
       ['Anna', 'Anna [Die Gilde]'],
