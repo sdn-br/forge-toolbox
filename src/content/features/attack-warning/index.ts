@@ -18,7 +18,7 @@ const css = `
   display: flex; align-items: center; gap: 8px; padding: 0 8px; background: var(--bg); color: var(--ink);
   border: 2px solid var(--bad); border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.5);
   font: 12px/1.4 system-ui, sans-serif; }
-.cover svg { flex: 0 0 auto; width: 20px; height: 20px; color: var(--bad); }
+.cover svg { flex: 0 0 auto; width: 20px; height: 20px; }
 .cover p { flex: 1 1 auto; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cover button.action { flex: 0 0 auto; margin: 0; }
 `;
@@ -36,7 +36,7 @@ export const attackWarningFeature: Feature = {
       render(
         html`<style>${baseCss}${css}</style>
           <div class="cover" role="alert">
-            ${headerIcons.noAttackOn}
+            ${headerIcons.attackWarning}
             <p>${text}</p>
             <button class="action" @click=${hide}>${t('attackWarning.fightAnyway')}</button>
           </div>`,

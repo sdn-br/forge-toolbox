@@ -175,6 +175,9 @@ export const headerIcons = {
     svg`<g transform="translate(-1.1 -1.1) scale(.82)"><path d="${WARNING}" fill="currentColor"/><path d="${WARNING_MARK}" stroke="var(--bg)"/></g>
     <g class="acc"><g transform="translate(8.5 8.5) scale(.64)">${sword(45, 'currentColor')}${sword(-45, 'currentColor')}</g></g>`,
   ),
+  /** a warning triangle with a red edge and the mark in the text colour: the bar over the army window's buttons
+   * (W3, chosen from the icon preview, 2026-11-01) */
+  attackWarning: headerIcon(svg`<path d="${WARNING}" stroke="var(--bad)"/><path d="${WARNING_MARK}"/>`),
   /** a sack with a tie: loot (chosen from the icon preview, 2026-11-01; for the PvP rows) */
   loot: headerIcon(svg`<path d="${SACK}"/><path d="M9.6 7.7h4.8"/>`),
   /** the sack filled, the tie cut out */
