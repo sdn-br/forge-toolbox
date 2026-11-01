@@ -41,6 +41,9 @@ export type PlayerSource =
 /** what the session player may put on a player or a great building: a star, or an ignore */
 export type MarkKind = 'marked' | 'ignored';
 
+/** what the session player may put on a player for PvP, separate from the great building marks: good to plunder, or not to attack */
+export type PvpMarkKind = 'plunderWorthy' | 'noAttack';
+
 /** When the session player may attack or plunder this player again, as the game last reported it. */
 export interface AttackTimer {
   /** a won battle that is not plundered yet (the game's `canSabotage`) */
@@ -74,6 +77,12 @@ export interface Player {
    * a row without it counts as oldest
    */
   marksAt?: number;
+  /** the session player finds the player good to plunder; separate from `marked`, excludes `noAttack` */
+  plunderWorthy?: boolean;
+  /** the session player does not want to attack the player (the defense is too strong); excludes `plunderWorthy` */
+  noAttack?: boolean;
+  /** like `marksAt`, for the two PvP marks only; the import picks them independently of the great building marks */
+  pvpMarksAt?: number;
   /** missing until a source that carries the timers reported the player */
   attack?: AttackTimer;
   firstSeenAt: number;

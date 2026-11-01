@@ -1,6 +1,6 @@
 import type { EraId, PlayerId, WorldId } from '../../shared/ids';
-import type { AttackTimer, GuildRef, MarkKind, Player, PlayerSource, Relations } from '../../shared/model';
-import type { ToolboxBus } from '../core/events';
+import type { AttackTimer, GuildRef, Player, PlayerSource, Relations } from '../../shared/model';
+import type { ToolboxBus, ToolboxEvents } from '../core/events';
 import { logError } from '../core/log';
 
 /** What one game response tells about a player. `guild: null` means "no guild", not "unknown". */
@@ -34,8 +34,28 @@ export interface PlayerPersistence {
 
 const NO_RELATIONS: Relations = { neighbor: false, guildMember: false, friend: false };
 
+/** The two pairs of flags that exclude each other, each with the time of its last change and its change event. */
+const PAIRS = {
+  marked: { other: 'ignored', at: 'marksAt', source: 'mark' },
+  ignored: { other: 'marked', at: 'marksAt', source: 'ignore' },
+  plunderWorthy: { other: 'noAttack', at: 'pvpMarksAt', source: 'plunderWorthy' },
+  noAttack: { other: 'plunderWorthy', at: 'pvpMarksAt', source: 'noAttack' },
+} as const;
+
+type FlagKind = keyof typeof PAIRS;
+const PAIR_GROUPS = [
+  ['marked', 'ignored', 'marksAt'],
+  ['plunderWorthy', 'noAttack', 'pvpMarksAt'],
+] as const;
+const MARK_FIELDS = ['marked', 'ignored', 'marksAt', 'plunderWorthy', 'noAttack', 'pvpMarksAt'] as const;
+type MarkField = (typeof MARK_FIELDS)[number];
+
+/** the marks of a player, the part no game source reports */
+const marksOf = (p: Player | undefined): Pick<Player, MarkField> =>
+  Object.fromEntries(MARK_FIELDS.filter((k) => p?.[k] !== undefined).map((k) => [k, p?.[k]]));
+
 /** A known player seen in a list: the name follows the newest sighting, an empty avatar keeps the known one. */
-const listedOnto = <T extends Omit<Player, 'marked' | 'ignored' | 'marksAt'>>(
+const listedOnto = <T extends Omit<Player, MarkField>>(
   old: T,
   l: Pick<ListedPlayer, 'name' | 'avatar'>,
   seenAt: number,
@@ -68,30 +88,27 @@ export class PlayerStore {
       }
       if (live.source === 'list') {
         // known this session only from a list: the database knows more, the list adds only the name and the sighting
-        const { marked: _, ignored: __, marksAt: ___, ...data } = row;
-        const { marked, ignored, marksAt } = live;
-        live = {
-          ...listedOnto(data, live, live.seenAt),
-          ...(marked && { marked }),
-          ...(ignored && { ignored }),
-          ...(marksAt !== undefined && { marksAt }),
-        };
+        const data = { ...row };
+        for (const k of MARK_FIELDS) delete data[k];
+        live = { ...listedOnto(data, live, live.seenAt), ...marksOf(live) };
         this.players.set(row.id, live);
         this.dirty.add(row.id);
         this.scheduleFlush();
       }
-      // the star and the ignore are the player's own and the game never reports them, so what the database holds stays
-      // (a flag the player set this session wins over the other one of the database, the two exclude each other)
-      const flag = (row.marked && !live.marked && !live.ignored) || (row.ignored && !live.ignored && !live.marked);
-      // their time goes with them; a change this session is newer than any in the database
-      const time = live.marksAt === undefined && row.marksAt !== undefined;
-      if (flag || time) {
-        this.players.set(row.id, {
-          ...live,
-          ...(flag && row.marked && { marked: true }),
-          ...(flag && row.ignored && { ignored: true }),
-          ...(time && { marksAt: row.marksAt }),
-        });
+      // the marks are the player's own and the game never reports them, so what the database holds stays
+      // (a flag the player set this session wins over the other one of the database, the two exclude each other;
+      // their time goes with them, a change this session is newer than any in the database)
+      const patch: Partial<Player> = {};
+      for (const [a, b, at] of PAIR_GROUPS) {
+        for (const [kind, other] of [
+          [a, b],
+          [b, a],
+        ] as const)
+          if (row[kind] && !live[kind] && !live[other]) patch[kind] = true;
+        if (live[at] === undefined && row[at] !== undefined) patch[at] = row[at];
+      }
+      if (Object.keys(patch).length > 0) {
+        this.players.set(row.id, { ...live, ...patch });
         this.dirty.add(row.id);
         this.scheduleFlush();
       }
@@ -114,6 +131,18 @@ export class PlayerStore {
     return p && p.ignored === true;
   }
 
+  /** whether the player is good to plunder; undefined for a player the store does not know */
+  plunderWorthy(id: PlayerId): boolean | undefined {
+    const p = this.players.get(id);
+    return p && p.plunderWorthy === true;
+  }
+
+  /** whether the player is not to be attacked; undefined for a player the store does not know */
+  noAttack(id: PlayerId): boolean | undefined {
+    const p = this.players.get(id);
+    return p && p.noAttack === true;
+  }
+
   list(filter: { relation?: keyof Relations } = {}): Player[] {
     const all = [...this.players.values()];
     return filter.relation ? all.filter((p) => p.relations[filter.relation as keyof Relations]) : all;
@@ -122,25 +151,36 @@ export class PlayerStore {
   /** Puts a star on a player or takes it away. Only a player the store knows can be marked; false for any other.
    * A star clears the ignore, the two exclude each other. */
   setMarked(id: PlayerId, marked: boolean): boolean {
-    return this.setFlag(id, 'marked', marked, 'mark');
+    return this.setFlag(id, 'marked', marked);
   }
 
   /** Ignores a player or releases them, with the same rules as the star. Ignoring clears the star. */
   setIgnored(id: PlayerId, ignored: boolean): boolean {
-    return this.setFlag(id, 'ignored', ignored, 'ignore');
+    return this.setFlag(id, 'ignored', ignored);
   }
 
-  private setFlag(id: PlayerId, kind: MarkKind, value: boolean, source: 'mark' | 'ignore'): boolean {
+  /** Marks a player as good to plunder or takes it away, with the rules of the star but its own time. It clears
+   * `noAttack`. The great building marks are not touched. */
+  setPlunderWorthy(id: PlayerId, value: boolean): boolean {
+    return this.setFlag(id, 'plunderWorthy', value);
+  }
+
+  /** Marks a player as not to attack, with the same rules. It clears `plunderWorthy`. */
+  setNoAttack(id: PlayerId, value: boolean): boolean {
+    return this.setFlag(id, 'noAttack', value);
+  }
+
+  private setFlag(id: PlayerId, kind: FlagKind, value: boolean): boolean {
     const p = this.players.get(id);
     if (!p) return false;
     if ((p[kind] === true) !== value) {
-      const other = kind === 'marked' ? 'ignored' : 'marked';
+      const { other, at, source } = PAIRS[kind];
       const clears = value && p[other] === true;
       // releasing never meets the other flag set, the two exclude each other
       const { [kind]: _, [other]: __, ...rest } = p;
-      const marksAt = this.now();
-      this.players.set(id, value ? { ...rest, [kind]: true, marksAt } : { ...rest, marksAt });
-      if (clears) this.changed(new Set([id]), source === 'mark' ? 'ignore' : 'mark');
+      const time = { [at]: this.now() };
+      this.players.set(id, value ? { ...rest, [kind]: true, ...time } : { ...rest, ...time });
+      if (clears) this.changed(new Set([id]), PAIRS[other].source);
       this.changed(new Set([id]), source);
     }
     return true;
@@ -239,9 +279,7 @@ export class PlayerStore {
       guild: guild ?? undefined,
       relations: relations ?? old?.relations ?? NO_RELATIONS,
       ...(known && { attack: known }),
-      ...(old?.marked && { marked: true }),
-      ...(old?.ignored && { ignored: true }),
-      ...(old?.marksAt !== undefined && { marksAt: old.marksAt }),
+      ...marksOf(old),
       firstSeenAt: old?.firstSeenAt ?? now,
       seenAt: now,
       source,
@@ -249,7 +287,7 @@ export class PlayerStore {
     touched.add(o.id);
   }
 
-  private changed(ids: Set<PlayerId>, source: PlayerSource | 'mark' | 'ignore') {
+  private changed(ids: Set<PlayerId>, source: ToolboxEvents['player.updated']['source']) {
     if (ids.size === 0) return;
     for (const id of ids) this.dirty.add(id);
     this.scheduleFlush();

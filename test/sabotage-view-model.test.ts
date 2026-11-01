@@ -251,25 +251,28 @@ describe('sabotage player head', () => {
       record: {},
     }).player;
 
-  it('names the player with the foestats page, the guild, star and eye', () => {
+  it('names the player with the foestats page, the guild and the PvP marks', () => {
     expect(
       head({
         playerName: () => 'Anna',
         playerGuild: () => ({ name: 'Gilde', url: 'https://foestats.com/de/de20/guilds/7' }),
+        plunderWorthy: () => true,
+        noAttack: () => false,
+        // the great building marks do not belong in the sabotage box
         playerMarked: () => true,
-        ownerIgnored: () => false,
+        ownerIgnored: () => true,
       }),
     ).toEqual({
       owner: 'Anna',
       ownerUrl: 'https://foestats.com/de/de20/players/1001',
       ownerGuild: { name: 'Gilde', url: 'https://foestats.com/de/de20/guilds/7' },
-      ownerMarked: true,
-      ownerIgnored: false,
+      plunderWorthy: true,
+      noAttack: false,
       era: 'ColonialAge',
     });
   });
 
-  it('has no star, eye or guild for a player the store does not know', () => {
+  it('has no marks or guild for a player the store does not know', () => {
     expect(head({})).toEqual({ owner: '', ownerUrl: 'https://foestats.com/de/de20/players/1001', era: 'ColonialAge' });
   });
 });

@@ -58,8 +58,8 @@ const scroll20 = svg`<g transform="translate(-2.2 1.6) rotate(-20 12 12) transla
     <path d="M5.5 20.5a2.5 2.5 0 0 1 0-5H8"/>
     <path d="M10.8 11h4M10.8 14h2"/></g>`;
 
-const sword = (angle: number) => svg`<g transform="rotate(${angle} 12 12)" stroke-width="1.4">
-    <path d="M12 .6l1.4 2.2v13.6h-2.8V2.8Z" fill="var(--btn)"/>
+const sword = (angle: number, blade = 'var(--btn)') => svg`<g transform="rotate(${angle} 12 12)" stroke-width="1.4">
+    <path d="M12 .6l1.4 2.2v13.6h-2.8V2.8Z" fill=${blade}/>
     <path d="M12 4v11" stroke-width=".8"/>
     <rect class="acc" x="8.4" y="16.4" width="7.2" height="1.7" rx=".8" fill="currentColor"/>
     <path d="M12 18.4v2.8" stroke-width="1.9"/>
@@ -111,6 +111,10 @@ export const icons = {
 
 const FORWARD = 'M20 12a8 8 0 1 1-2.3-5.6';
 const FUNNEL = 'M3.5 4.5h17l-6.5 8v6l-4 2v-8Z';
+const SACK = 'M9 4.5h6l-1.6 3.2c3.6 1.6 6.1 5 6.1 8.6 0 2.9-2.3 4.2-7.5 4.2s-7.5-1.3-7.5-4.2c0-3.6 2.5-7 6.1-8.6Z';
+const SMALL_STAR = 'M10 3l2.1 4.3 4.8.7-3.4 3.3.8 4.7L10 13.8 5.7 16l.8-4.7L3.1 8l4.8-.7Z';
+const WARNING = 'M12 3.5 21.5 20h-19Z';
+const WARNING_MARK = 'M12 10v4.4M12 17.2v.3';
 const STAR = 'M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9Z';
 
 /** the icons of the box header */
@@ -141,6 +145,28 @@ export const headerIcons = {
   star: headerIcon(svg`<path d="${STAR}"/>`),
   /** the star filled: remembered */
   starFilled: headerIcon(svg`<path d="${STAR}" fill="currentColor"/>`),
+  /** a small star with a small sack in the accent: good to plunder (chosen from the icon preview, 2026-11-01) */
+  plunderStar: headerIcon(
+    svg`<path d="${SMALL_STAR}"/><g class="acc" stroke-width="5"><path transform="translate(11.2 10.6) scale(.52)" d="${SACK}"/></g>`,
+  ),
+  /** the small star filled and the sack filled: good to plunder, on (chosen from the icon preview, 2026-11-01) */
+  plunderStarFilled: headerIcon(
+    svg`<path d="${SMALL_STAR}" fill="currentColor"/><g class="acc" fill="currentColor" stroke-width="3.5"><path transform="translate(11.2 10.6) scale(.52)" d="${SACK}"/></g>`,
+  ),
+  /** a warning triangle with small crossed swords in the accent: do not attack (chosen from the icon preview, 2026-11-01) */
+  noAttack: headerIcon(
+    svg`<g transform="translate(-1.1 -1.1) scale(.82)"><path d="${WARNING}"/><path d="${WARNING_MARK}"/></g>
+    <g class="acc"><g transform="translate(8.5 8.5) scale(.64)">${sword(45)}${sword(-45)}</g></g>`,
+  ),
+  /** the same with a filled triangle and filled blades: do not attack, on (chosen from the icon preview, 2026-11-01) */
+  noAttackOn: headerIcon(
+    svg`<g transform="translate(-1.1 -1.1) scale(.82)"><path d="${WARNING}" fill="currentColor"/><path d="${WARNING_MARK}" stroke="var(--bg)"/></g>
+    <g class="acc"><g transform="translate(8.5 8.5) scale(.64)">${sword(45, 'currentColor')}${sword(-45, 'currentColor')}</g></g>`,
+  ),
+  /** a sack with a tie: loot (chosen from the icon preview, 2026-11-01; for the PvP rows) */
+  loot: headerIcon(svg`<path d="${SACK}"/><path d="M9.6 7.7h4.8"/>`),
+  /** the sack filled, the tie cut out */
+  lootFilled: headerIcon(svg`<path d="${SACK}" fill="currentColor"/><path d="M9.6 7.7h4.8" stroke="var(--bg)"/>`),
   /** the reset arrow mirrored, turning clockwise: make it the standard */
   adopt: headerIcon(svg`<path d="${FORWARD}"/><path d="M20 4v4.5h-4.5"/>`),
   /** the same arrow with an accent check inside: the standard applies */

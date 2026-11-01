@@ -3,7 +3,7 @@ import { formatNumber, formatPercent, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { battleDetailsView } from '../../ui/battle-details';
 import { externalLink, guildTag } from '../../ui/links';
-import { ownerMarks } from '../../ui/owner-line';
+import { pvpMarks } from '../../ui/pvp-marks';
 import type { PlunderItem, SabotageVm } from './view-model';
 
 const armyCells = (army: ArmyValues | undefined) =>
@@ -68,15 +68,13 @@ export function sabotageView(
   vm: SabotageVm | undefined,
   note?: TemplateResult,
   marks?: PlunderMarks,
-  /** puts the star on the visited player or takes it away */
-  playerMarks?: { mark(marked: boolean): void; ignore(ignored: boolean): void },
+  /** sets the PvP marks of the visited player or takes them away */
+  playerMarks?: { plunder(value: boolean): void; noAttack(value: boolean): void },
 ): TemplateResult {
   if (!vm) return html`<p class="muted">${t('sabotage.noVisit')}</p>`;
   return html`
     <p><b>${externalLink(vm.player.owner, vm.player.ownerUrl)}</b>${vm.player.ownerGuild ? html` ${guildTag(vm.player.ownerGuild)}` : ''}${
-      vm.player.ownerMarked !== undefined && playerMarks
-        ? html` ${ownerMarks(vm.player, playerMarks.mark, playerMarks.ignore)}`
-        : ''
+      playerMarks ? html` ${pvpMarks(vm.player, playerMarks.plunder, playerMarks.noAttack)}` : ''
     }
       <br /><span class="muted">${t('sabotage.era')}: ${vm.player.era}</span>
       <br />${vm.attack.kind === 'plunderable' ? html`<b>${vm.attack.text}</b>` : vm.attack.text}</p>

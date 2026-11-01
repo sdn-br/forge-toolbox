@@ -67,8 +67,8 @@ export const sabotageFeature: Feature = {
           owner === undefined
             ? undefined
             : {
-                mark: (marked: boolean) => playerActions.markPlayer(owner, marked),
-                ignore: (ignored: boolean) => playerActions.ignorePlayer(owner, ignored),
+                plunder: (value: boolean) => playerActions.plunderPlayer(owner, value),
+                noAttack: (value: boolean) => playerActions.noAttackPlayer(owner, value),
               };
         // rows set arrows only while the game shows this city; back home the box still shows it, without arrows
         const markable = owner !== undefined && ctx.cities.shown() === owner;

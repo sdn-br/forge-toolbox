@@ -162,10 +162,10 @@ p.win-hidden { margin: 2px 0; }
 /* a round spinner while something is asked (ui/activity.ts) */
 .spinner { display: inline-block; width: .8em; height: .8em; vertical-align: -.1em; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-/* the star that marks a great building or a player, and the closed eye that ignores one; both look the same */
-:is(button.star, button.ignore) { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 18px; height: 18px; vertical-align: middle; color: var(--ink); opacity: .7; }
-:is(button.star, button.ignore):is(:hover, .on) { color: var(--accent); opacity: 1; }
-:is(button.star, button.ignore) svg { display: block; width: 14px; height: 14px; }
+/* the star that marks a great building or a player, the closed eye that ignores one, and the two PvP marks; all look the same */
+:is(button.star, button.ignore, button.plunder, button.no-attack) { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 18px; height: 18px; vertical-align: middle; color: var(--ink); opacity: .7; }
+:is(button.star, button.ignore, button.plunder, button.no-attack):is(:hover, .on) { color: var(--accent); opacity: 1; }
+:is(button.star, button.ignore, button.plunder, button.no-attack) svg { display: block; width: 14px; height: 14px; }
 /* a column head that sorts on a click (snipe helper, investments); an icon head marks the direction by its colour */
 th.sortable { cursor: pointer; user-select: none; }
 th.sortable:hover { color: var(--accent); }
