@@ -754,7 +754,11 @@ describe('pvp feature', () => {
       ]);
 
       row(0).click();
-      expect(lines(box).slice(-3)).toEqual(['Plünderung', 'R_IronAge_Residential2 Double Loot', '12 Forge-Punkte']);
+      expect(lines(box).slice(-3)).toEqual([
+        'Plünderung',
+        'R_IronAge_Residential2 Plünderung verdoppelt',
+        '12 Forge-Punkte',
+      ]);
       expect(box.root.querySelector('.side-panel p b')?.textContent).toBe('R_IronAge_Residential2');
       // with the index the game's Double Loot mark stands beside the building
       vi.spyOn(ctx.assets, 'url').mockImplementation((path) =>
@@ -763,7 +767,7 @@ describe('pvp feature', () => {
       ctx.bus.emit('assets.loaded', {});
       const mark = box.root.querySelector('.side-panel img.double-loot');
       expect(mark?.getAttribute('src')).toBe('https://cdn/double-loot.png');
-      expect(mark?.getAttribute('data-tip')).toBe('Double Loot');
+      expect(mark?.getAttribute('data-tip')).toBe('Plünderung verdoppelt');
       expect(lines(box).slice(-3)).toEqual(['Plünderung', 'R_IronAge_Residential2', '12 Forge-Punkte']);
       row(1).click();
       expect(lines(box).slice(-3)).toEqual(['Plünderung', 'R_IronAge_Residential2', 'abgewehrt']);
@@ -797,7 +801,11 @@ describe('pvp feature', () => {
       row(0).click();
       expect(box.root.querySelector('.side-panel .battle')).toBeNull();
       expect(panel(box)).toContain('der Kampf selbst ist nicht aufgezeichnet');
-      expect(lines(box).slice(-3)).toEqual(['Plünderung', 'R_IronAge_Residential2 Double Loot', '12 Forge-Punkte']);
+      expect(lines(box).slice(-3)).toEqual([
+        'Plünderung',
+        'R_IronAge_Residential2 Plünderung verdoppelt',
+        '12 Forge-Punkte',
+      ]);
     });
 
     it('clears the selection on a change of filter, and the window fills again when the filter goes', async () => {

@@ -160,7 +160,7 @@ export const de = {
   'attack.friend': 'Freund, nicht angreifbar',
   'attack.guildMember': 'Gildenmitglied, nicht angreifbar',
   'attack.notNeighbor': 'Kein Nachbar, nicht angreifbar',
-  'plunder.doubleLoot': 'Double Loot',
+  'plunder.doubleLoot': 'Plünderung verdoppelt',
   'plunder.count': '{count} Plünderungen',
   'plunder.countOne': '1 Plünderung',
   'plunder.repelledCount': '{count} abgewehrt',
