@@ -93,8 +93,6 @@ input.num, input[type=number] { text-align: right; }
 .note p, .note ul, .note ol { margin: 2px 0; }
 .note ul, .note ol { padding-left: 18px; }
 .note a, a { color: var(--accent); }
-a.ext-link { text-decoration: none; opacity: .6; }
-a.ext-link:hover { opacity: 1; }
 .tip { position: fixed; z-index: 2147483647; max-width: 260px; padding: 3px 6px; background: #000d; color: var(--ink);
   font: 12px/1.4 system-ui, sans-serif; border: 1px solid var(--line); border-radius: 4px; pointer-events: none;
   white-space: pre-line; }
@@ -102,6 +100,7 @@ a.ext-link:hover { opacity: 1; }
 header button svg { display: block; width: 16px; height: 16px; }
 textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
 .battle p { margin: 2px 0 4px; }
+.battle .army { white-space: nowrap; font-weight: normal; }
 details { margin: 6px 0; }
 summary { cursor: pointer; color: var(--accent); }
 .name-search { position: relative; display: inline-block; vertical-align: middle; }
@@ -150,6 +149,20 @@ button.fold-toggle { all: unset; cursor: pointer; display: flex; align-items: ce
 button.fold-toggle:hover { color: var(--accent); }
 button.fold-toggle:focus-visible { outline: 1px solid var(--accent); }
 button.fold-toggle svg { display: block; flex: none; width: 14px; height: 14px; }
+/* the side drawer of a box (ui/side-drawer.ts). Docked it hangs out of the side of the box and leaves the content
+   whole; the body's overflow does not clip it because its containing block is the box itself. The panel sits flush
+   against the box and the tab on its outer edge, so the tab moves out with the panel. The panel has the frame of a box */
+.side-drawer { position: absolute; top: 34px; right: 100%; display: flex; flex-direction: row; align-items: flex-start; }
+.side-drawer[data-side=right] { right: auto; left: 100%; flex-direction: row-reverse; }
+button.side-tab { margin: 0; writing-mode: vertical-rl; padding: 8px 2px; border-width: 2px; border-right: 0; border-radius: 6px 0 0 6px; }
+.side-drawer[data-side=right] .side-tab { border-width: 2px; border-left: 0; border-radius: 0 6px 6px 0; }
+.side-drawer.open .side-tab { color: var(--accent); }
+.side-panel { width: var(--side-width); max-height: 70vh; overflow: auto; padding: 4px 8px; background: var(--bg); border: 2px solid var(--line);
+  border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.5); }
+/* popped out: no room beside the window, so the panel takes a column beside the content */
+.box.popped .side-drawer { position: static; flex: 0 0 auto; flex-direction: row-reverse; }
+.box.popped .side-tab { border: 2px solid var(--line); border-radius: 6px; }
+.box.popped .side-panel { max-height: none; align-self: stretch; box-shadow: none; }
 /* windowed rows (ui/windowed-rows.ts): the table area, the two buttons beside it, the line of what is hidden */
 .win-scroll { display: flex; align-items: stretch; gap: 4px; }
 .win-area { flex: 1 1 auto; min-width: 0; }
@@ -200,15 +213,16 @@ td.snipe-tier.possible { color: var(--warn); }
 .icon-toggles button svg { display: block; width: 14px; height: 14px; }
 .row-name { display: flex; align-items: center; }
 .row-name a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-/* the star and the eye in a row: 16 px at the right edge like the funnel (which then follows them), faint on row hover or
+/* the star and the eye in a row, in the PvP box the two PvP marks: 16 px at the right edge like the funnel (which then follows them), faint on row hover or
    focus while off, always in the accent while on. Name cells keep the name's ellipsis and give them their 16 px */
 .row-name .row-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.row-name :is(button.star, button.ignore) { flex: none; width: 16px; height: 16px; margin-left: auto; opacity: 0; }
-.row-name :is(button.star, button.ignore) svg { width: 12px; height: 12px; }
-.row-name :is(button.star, button.ignore) + :is(button.ignore, button.inv-pick) { margin-left: 0; }
+.row-name :is(button.star, button.ignore, button.plunder, button.no-attack) { flex: none; width: 16px; height: 16px; margin-left: auto; opacity: 0; }
+.row-name :is(button.star, button.ignore, button.plunder, button.no-attack) svg { width: 12px; height: 12px; }
+.row-name :is(button.star, button.ignore, button.plunder, button.no-attack) + :is(button.ignore, button.no-attack, button.inv-pick) { margin-left: 0; }
 /* keyboard focus shows them too, a mouse click does not keep them (:focus-within would, until the next click) */
-tr:is(:hover, :has(:focus-visible)) .row-name :is(button.star, button.ignore) { opacity: .7; }
-tr .row-name :is(button.star, button.ignore):is(:hover, :focus-visible), tr .row-name :is(button.star, button.ignore).on { opacity: 1; color: var(--accent); }
+tr:is(:hover, :has(:focus-visible)) .row-name :is(button.star, button.ignore, button.plunder, button.no-attack) { opacity: .7; }
+tr .row-name :is(button.star, button.ignore, button.plunder, button.no-attack):is(:hover, :focus-visible),
+tr .row-name :is(button.star, button.ignore, button.plunder, button.no-attack).on { opacity: 1; color: var(--accent); }
 /* the funnel of a row (ui/pick.ts) */
 /* always at the right edge of the column, so the mouse can run straight down it; hidden until the row is hovered */
 button.inv-pick { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 16px; height: 16px; margin-left: auto; opacity: 0; color: var(--ink); }

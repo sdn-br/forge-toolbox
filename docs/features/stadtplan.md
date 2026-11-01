@@ -23,7 +23,7 @@ Stand 2026-10-25.
 
 Freie Felder: Felder der freigeschalteten Gebiete, die kein Gebäude und keine Straße belegt.
 
-**Statistik (Seitenpanel der Box „Stadtplan“):** ein Reiter „Statistik“ am Rand der Box klappt ein Panel aus, offen oder zu wird je Betrachter gemerkt. Angedockt hängt es links aus der Box heraus (rechts, wenn die Box am linken Bildschirmrand steht) und lässt die Karte ganz frei. Entscheidung: herausklappen statt die Box zu verbreitern oder die Karte zu überdecken, denn die Box steht standardmäßig am rechten Rand, und die Karte bleibt so groß wie ohne Panel. Im Pop-out-Fenster ist daneben kein Platz, dort bekommt das Panel eine eigene Spalte neben der Karte. Inhalt:
+**Statistik (Seitenpanel der Box „Stadtplan“):** ein Reiter „Statistik“ am Rand der Box klappt ein Panel aus, offen oder zu wird je Betrachter gemerkt. Angedockt hängt es links aus der Box heraus (rechts, wenn die Box am linken Bildschirmrand steht) und lässt die Karte ganz frei. Entscheidung: herausklappen statt die Box zu verbreitern oder die Karte zu überdecken, denn die Box steht standardmäßig am rechten Rand, und die Karte bleibt so groß wie ohne Panel. Im Pop-out-Fenster ist daneben kein Platz, dort bekommt das Panel eine eigene Spalte neben der Karte. Reiter und Panel sind seit 2026-11-01 ein Baustein des UI-Kits (`ui/side-drawer.ts`), die PvP-Box nutzt ihn auch. Inhalt:
 
 - Fläche: freie von allen freigeschalteten Feldern.
 - Gebäude je Gruppe: Anzahl, Anteil, belegte Felder, nach Anzahl sortiert, mit der Farbe der Legende. Solange das Panel offen ist, zeigt die Legende unter der Karte nur noch die Markierungen.

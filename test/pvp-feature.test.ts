@@ -2,14 +2,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { toggleDef } from '../src/content/core/settings';
 import { OPEN_WITH_ARMY } from '../src/content/features/pvp';
-import { pvpFeature } from '../src/content/features/pvp/index';
+import { pvpFeature, VISIBLE_ROWS } from '../src/content/features/pvp/index';
 import { KEEP_SETTING } from '../src/content/features/pvp/retention';
-import { PAGE_SIZE } from '../src/content/features/pvp/rows';
 import { type BattlePersistence, type BattleQuery, BattleStore } from '../src/content/stores/battles';
 import { type IncomingPersistence, IncomingStore } from '../src/content/stores/incoming';
+import type { PlayerObservation } from '../src/content/stores/players';
 import { type PlunderPersistence, PlunderStore } from '../src/content/stores/plunders';
 import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
-import type { Battle, FoughtBattle, IncomingAttack, Plunder } from '../src/shared/model';
+import type { BattleWithPlunder, FoughtBattle, IncomingAttack, Plunder } from '../src/shared/model';
 import { featureContext } from './helpers/feature-context';
 import type { TestStoresOptions } from './helpers/stores';
 
@@ -48,13 +48,13 @@ const attack = (attacker: number): IncomingAttack => ({
 
 /** Persistence whose list calls stay open until the test resolves them. */
 function controlled(total = 1) {
-  const lists: { query: BattleQuery; resolve: (rows: Battle[]) => void }[] = [];
+  const lists: { query: BattleQuery; resolve: (rows: BattleWithPlunder[]) => void }[] = [];
   const persistence: BattlePersistence = {
     put: async () => {},
     latest: async () => undefined,
     list: (_world, query) => new Promise((resolve) => lists.push({ query, resolve })),
     latestFought: async () => undefined,
-    summary: async () => ({ battles: state.total, won: state.total, plunders: 0, repelled: 0, fp: 0 }),
+    summary: vi.fn(async () => ({ battles: state.total, won: state.total, plunders: 0, repelled: 0, fp: 0 })),
     prune: vi.fn(async () => 0),
   };
   const plunders: PlunderPersistence = {
@@ -90,7 +90,7 @@ const stubbed =
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-function setup(total = 1, open = true) {
+function setup(total = 3, open = true) {
   const stub = controlled(total);
   const env = featureContext({
     overrides: stubbed({ battles: stub.persistence, plunders: stub.plunders, incoming: stub.incoming }),
@@ -103,6 +103,38 @@ function setup(total = 1, open = true) {
 afterEach(() => vi.useRealTimers());
 
 const OTHER = toggleDef({ key: 'other.setting', group: 'pvp.title', label: 'pvp.title', default: false });
+
+/** the fixed number of rows the window draws */
+const VISIBLE = VISIBLE_ROWS;
+/** what a load asks for: two windows above and below the one in view */
+const SLICE = 5 * VISIBLE;
+
+const seen = (id: number, name: string): PlayerObservation => ({
+  id: playerId(id),
+  name,
+  avatar: '',
+  cityName: '',
+  era: eraId('ColonialAge'),
+  score: 0,
+  rank: 0,
+  active: true,
+  guild: null,
+});
+
+type TestBox = ReturnType<typeof setup>['box'];
+
+/** the name cell of the row of this player */
+const nameCell = (box: TestBox, name: string) => {
+  const cell = [...box.root.querySelectorAll('td.name-cell')].find((td) => td.querySelector('a')?.textContent === name);
+  if (!cell) throw new Error(`no row of "${name}"`);
+  return cell;
+};
+const funnel = (box: TestBox, name: string) => nameCell(box, name).querySelector('button.inv-pick') as HTMLElement;
+const field = (box: TestBox) => box.root.querySelector('input[type=search]') as HTMLInputElement;
+const type = (box: TestBox, text: string) => {
+  field(box).value = text;
+  field(box).dispatchEvent(new Event('input'));
+};
 
 describe('pvp feature', () => {
   it('shows only the newest query when an older one resolves last', async () => {
@@ -123,29 +155,10 @@ describe('pvp feature', () => {
     expect(box.updates.length - updatesBefore).toBe(1);
   });
 
-  it('clamps the page when the total shrinks below it', async () => {
-    const { ctx, box, lists, state } = setup(PAGE_SIZE * 3 - 5);
-    await tick();
-    lists[0]?.resolve([battle(1, 111)]);
-    await tick();
-    box.click('Weiter');
-    await tick();
-    lists[1]?.resolve([battle(2, 111)]);
-    await tick();
-    box.click('Weiter');
-    await tick();
-    expect(lists[2]?.query.offset).toBe(PAGE_SIZE * 2);
-    lists[2]?.resolve([battle(3, 111)]);
-    await tick();
-    expect(box.text).toContain('Seite 3 von 3');
-
-    state.total = 5;
-    ctx.bus.emit('battle.recorded', { opponents: [playerId(111)] });
-    await tick();
-    expect(lists[3]?.query.offset).toBe(0);
-    lists[3]?.resolve([battle(4, 111)]);
-    await tick();
-    expect(box.text).toContain('111');
+  it('has a fixed size without the resize handle and leaves out the paging', () => {
+    const { box } = setup();
+    expect(box.options.resizable).toBeFalsy();
+    expect(box.options.fill).toBeFalsy();
     expect(box.text).not.toContain('Seite');
   });
 
@@ -189,42 +202,6 @@ describe('pvp feature', () => {
     expect(lists.length).toBe(loads + 1);
   });
 
-  it('switches to the plunder list and shows the plunder totals of the filter', async () => {
-    const { box, lists, plunders } = setup();
-    await tick();
-    lists[0]?.resolve([battle(1, 111)]);
-    await tick();
-    expect(box.text).toContain('1 Plünderung, 12 FP');
-    expect(box.text).toContain('111');
-    expect(plunders.list).not.toHaveBeenCalled();
-
-    box.click('Plünderungen');
-    await tick();
-    expect(plunders.list).toHaveBeenCalledWith(worldId('de20'), { limit: PAGE_SIZE, offset: 0 });
-    expect(box.text).toContain('333');
-    expect(box.text).toContain('12 Forge-Punkte Double Loot');
-    expect(box.text).not.toContain('111');
-    expect(lists).toHaveLength(1);
-  });
-
-  it('lists repelled plunders and pages over plunders and repelled ones together', async () => {
-    const stub = controlled();
-    const env = featureContext({ overrides: stubbed({ battles: stub.persistence }) });
-    pvpFeature.setup(env.ctx);
-    env.menu('pvp');
-    const box = env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>>;
-    const at = Date.now();
-    env.ctx.plunders.record({ ...plunder(333), at: at - PAGE_SIZE - 1 });
-    for (let i = 0; i < PAGE_SIZE; i++) {
-      env.ctx.plunders.record({ ...plunder(444), at: at - i, outcome: 'repelled', resources: {}, doubleLoot: false });
-    }
-    box.click('Plünderungen');
-    await vi.waitFor(() => expect(box.text).toContain('1 Plünderung, 20 abgewehrt, 12 FP'));
-    expect(box.text).toContain('Seite 1 von 2');
-    expect(box.text).toContain('abgewehrt');
-    expect(box.text).not.toContain('333');
-  });
-
   it('prunes plunders with the battle retention and reloads when that deleted something', async () => {
     const { ctx, plunders, lists } = setup();
     await tick();
@@ -236,7 +213,14 @@ describe('pvp feature', () => {
     expect(lists.length).toBe(loads + 1);
   });
 
-  it('switches to the attacks on the own city with their totals and pages over them', async () => {
+  it('has the tabs battles and attacks on the own city, no plunders tab', async () => {
+    const { box } = setup();
+    await tick();
+    const tabs = [...box.root.querySelectorAll('.tabs button')].map((b) => b.textContent?.trim());
+    expect(tabs).toEqual(['Kämpfe', 'Angriffe auf mich']);
+  });
+
+  it('switches to the attacks on the own city with their totals', async () => {
     const { box, incoming, lists } = setup();
     await tick();
     lists[0]?.resolve([battle(1, 111)]);
@@ -245,15 +229,20 @@ describe('pvp feature', () => {
 
     box.click('Angriffe auf mich');
     await tick();
-    expect(incoming.list).toHaveBeenCalledWith(worldId('de20'), { limit: PAGE_SIZE, offset: 0 });
+    expect(incoming.list).toHaveBeenCalledWith(worldId('de20'), { limit: SLICE, offset: 0 });
     expect(box.text).toContain('1 Angriff, 0 Plünderungen');
     expect(box.text).toContain('555');
     expect(box.text).toContain('Kampf: durchbrochen');
+    // a cut kind shows whole in its tooltip
+    expect(box.root.querySelector('td[data-tip="Kampf: durchbrochen"]')).not.toBeNull();
     expect(box.text).not.toContain('111');
     expect(box.text).not.toContain('FP');
+    // the sack filter belongs to the battles
+    expect(box.root.querySelector('[aria-label="nur Kämpfe mit Plünderung"]')).toBeNull();
+    expect(box.root.querySelector('[aria-label="nur gut zu plündern"]')).not.toBeNull();
   });
 
-  it('filters attacks on the own city by the picked player and follows new ones', async () => {
+  it('filters attacks on the own city with the funnel and follows new ones', async () => {
     const stub = controlled();
     const env = featureContext({ overrides: stubbed({ battles: stub.persistence, plunders: stub.plunders }) });
     pvpFeature.setup(env.ctx);
@@ -272,10 +261,18 @@ describe('pvp feature', () => {
     await vi.waitFor(() => expect(box.text).toContain('1 Angriff, 1 Plünderung'));
     expect(box.text).toContain('Plünderung: R_X');
 
-    box.follow('666');
-    await vi.waitFor(() => expect(box.text).toContain('Nur 666'));
-    expect(box.text).toContain('0 Angriffe, 1 Plünderung');
+    funnel(box, '666').click();
+    expect(field(box).value).toBe('666');
+    await vi.waitFor(() => expect(box.text).toContain('0 Angriffe, 1 Plünderung'));
     expect(box.text).not.toContain('Kampf: durchbrochen');
+    expect(funnel(box, '666').getAttribute('aria-pressed')).toBe('true');
+
+    env.ctx.incoming.record({ ...attack(666), key: 3, defense: 'held' });
+    await vi.waitFor(() => expect(box.text).toContain('1 Angriff, 1 abgewehrt, 1 Plünderung'));
+
+    funnel(box, '666').click();
+    expect(field(box).value).toBe('');
+    await vi.waitFor(() => expect(box.text).toContain('Kampf: durchbrochen'));
   });
 
   it('prunes attacks on the own city with the battle retention and reloads when that deleted something', async () => {
@@ -303,6 +300,7 @@ describe('pvp feature', () => {
     expect(box.text).not.toContain('Notiz zu diesem Spieler');
 
     (markers()[1] as HTMLElement).click();
+    expect(field(box).value).toBe('222');
     const textarea = box.root.querySelector('textarea') as HTMLTextAreaElement;
     expect(textarea).not.toBeNull();
     textarea.value = 'neu';
@@ -313,8 +311,19 @@ describe('pvp feature', () => {
     expect(lists.at(-1)?.query.opponents).toEqual([playerId(222)]);
     lists.at(-1)?.resolve([battle(2, 222)]);
     await tick();
-    expect(box.text).toContain('Nur 222');
     expect(markers().map((m) => m.getAttribute('data-tip'))).toEqual(['neu']);
+  });
+
+  it('shows the note card while the field names one known player exactly', async () => {
+    const env = featureContext();
+    pvpFeature.setup(env.ctx);
+    env.ctx.players.apply(worldId('de20'), [seen(111, 'Alpha'), seen(222, 'Alphabet')], 'visit');
+    env.menu('pvp');
+    const box = env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>>;
+    type(box, 'alp');
+    expect(box.root.querySelector('section.card')).toBeNull();
+    type(box, 'alpha');
+    expect(box.root.querySelector('section.card')).not.toBeNull();
   });
 
   it('marks the attackers on the own city with their note', async () => {
@@ -338,21 +347,21 @@ describe('pvp feature', () => {
     });
 
     it('only switches an open box to the battles tab', async () => {
-      const { ctx, box, lists, plunders } = setup();
+      const { ctx, box, lists, incoming } = setup();
       await tick();
       lists[0]?.resolve([battle(1, 111)]);
       await tick();
-      box.click('Plünderungen');
+      box.click('Angriffe auf mich');
       await tick();
-      expect(box.text).toContain('333');
+      expect(box.text).toContain('555');
       ctx.bus.emit('army.opened', { battleType: 'pvp' });
       await tick();
       lists.at(-1)?.resolve([battle(1, 111)]);
       await tick();
       expect(box.box.isOpen).toBe(true);
       expect(box.text).toContain('111');
-      expect(box.text).not.toContain('333');
-      expect(plunders.list).toHaveBeenCalledOnce();
+      expect(box.text).not.toContain('555');
+      expect(incoming.list).toHaveBeenCalledOnce();
     });
 
     it.each(['gvg', 'guild_expedition', 'campaign', 'pvp_arena'])('stays closed for a %s battle', (battleType) => {
@@ -361,12 +370,13 @@ describe('pvp feature', () => {
       expect(box.box.isOpen).toBe(false);
     });
 
-    it('picks the opponent the page module read from the army window', async () => {
+    it('writes the opponent the page module read from the army window into the name field', async () => {
       const { ctx, box, lists } = setup(1, false);
       ctx.bus.emit('army.opened', { battleType: 'pvp' });
       ctx.bus.emit('army.target', { opponent: playerId(222) });
       await tick();
       expect(lists.at(-1)?.query.opponents).toEqual([playerId(222)]);
+      expect(field(box).value).toBe('222');
       expect(box.box.isOpen).toBe(true);
     });
 
@@ -402,19 +412,7 @@ describe('pvp feature', () => {
     });
   });
 
-  describe('name search', () => {
-    const seen = (id: number, name: string) => ({
-      id: playerId(id),
-      name,
-      avatar: '',
-      cityName: '',
-      era: eraId('ColonialAge'),
-      score: 0,
-      rank: 0,
-      active: true,
-      guild: null,
-    });
-
+  describe('filters', () => {
     it('lists only battles against players whose name contains the text', async () => {
       const env = featureContext();
       pvpFeature.setup(env.ctx);
@@ -424,11 +422,71 @@ describe('pvp feature', () => {
       env.menu('pvp');
       const box = env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>>;
       await vi.waitFor(() => expect(box.text).toContain('Beta'));
-      const input = box.root.querySelector('input[type=search]') as HTMLInputElement;
-      input.value = 'ALP';
-      input.dispatchEvent(new Event('input'));
+      type(box, 'ALP');
       await vi.waitFor(() => expect(box.text).not.toContain('Beta'));
       expect(box.text).toContain('Alpha');
+    });
+
+    it('writes the exact name with the funnel, which filters to that player alone; the name links to foestats', async () => {
+      const { ctx, box, lists } = setup();
+      ctx.players.apply(worldId('de20'), [seen(111, 'Ann'), seen(222, 'Anna')], 'visit');
+      await tick();
+      lists[0]?.resolve([battle(1, 111), battle(2, 222)]);
+      await tick();
+      const link = nameCell(box, 'Ann').querySelector('a') as HTMLAnchorElement;
+      expect(link.getAttribute('href')).toBe('https://foestats.com/de/de20/players/111');
+      expect(link.target).toBe('_blank');
+      expect(link.rel).toBe('noopener noreferrer');
+
+      funnel(box, 'Ann').click();
+      expect(field(box).value).toBe('Ann');
+      await tick();
+      expect(lists.at(-1)?.query).toMatchObject({ opponents: [playerId(111)], offset: 0 });
+    });
+
+    it('asks the store for the players with the star or warning mark, combined with the name', async () => {
+      const { ctx, box, lists } = setup();
+      ctx.players.apply(worldId('de20'), [seen(111, 'Alpha'), seen(222, 'Alpine'), seen(333, 'Beta')], 'visit');
+      ctx.players.setPlunderWorthy(playerId(111), true);
+      ctx.players.setPlunderWorthy(playerId(333), true);
+      ctx.players.setNoAttack(playerId(222), true);
+      await tick();
+      box.click('nur gut zu plündern');
+      await tick();
+      expect(lists.at(-1)?.query.opponents).toEqual([playerId(111), playerId(333)]);
+      type(box, 'alp');
+      await tick();
+      expect(lists.at(-1)?.query.opponents).toEqual([playerId(111)]);
+      box.click('nur gut zu plündern');
+      box.click('nur nicht angreifen');
+      await tick();
+      expect(lists.at(-1)?.query.opponents).toEqual([playerId(222)]);
+    });
+
+    it('asks for battles with a plunder only, summary and list alike', async () => {
+      const { box, lists, persistence } = setup();
+      await tick();
+      box.click('nur Kämpfe mit Plünderung');
+      await tick();
+      expect(lists.at(-1)?.query).toMatchObject({ withPlunder: true, offset: 0, limit: SLICE });
+      expect(persistence.summary).toHaveBeenLastCalledWith(worldId('de20'), { withPlunder: true });
+      box.click('nur Kämpfe mit Plünderung');
+      await tick();
+      expect(lists.at(-1)?.query.withPlunder).toBeUndefined();
+    });
+
+    it('sums up what the filter matches', async () => {
+      const env = featureContext();
+      pvpFeature.setup(env.ctx);
+      const at = Date.now() - 60_000;
+      env.ctx.battles.record({ ...battle(1, 111), at });
+      env.ctx.battles.record({ ...battle(2, 111), at: at - 2 * 86_400_000 });
+      env.ctx.plunders.record({ ...plunder(111), at: at + 1000 });
+      env.menu('pvp');
+      const box = env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>>;
+      await vi.waitFor(() => expect(box.text).toContain('2 Kämpfe, 2 gewonnen · 1 Plünderung, 12 FP'));
+      box.click('nur Kämpfe mit Plünderung');
+      await vi.waitFor(() => expect(box.text).toContain('1 Kampf, 1 gewonnen · 1 Plünderung, 12 FP'));
     });
 
     it('keeps the field while the list turns empty, so it keeps its focus', async () => {
@@ -436,29 +494,27 @@ describe('pvp feature', () => {
       await tick();
       lists[0]?.resolve([battle(1, 111)]);
       await tick();
-      const input = box.root.querySelector('input[type=search]') as HTMLInputElement;
+      const input = field(box);
       state.total = 0;
-      input.value = 'xyz';
-      input.dispatchEvent(new Event('input'));
+      type(box, 'xyz');
       await tick();
       lists.at(-1)?.resolve([]);
       await tick();
       expect(box.text).toContain('Keine Kämpfe zu diesem Filter.');
-      expect(box.root.querySelector('input[type=search]')).toBe(input);
+      expect(field(box)).toBe(input);
       state.total = 1;
-      input.value = '';
-      input.dispatchEvent(new Event('input'));
+      type(box, '');
       await tick();
       lists.at(-1)?.resolve([battle(1, 111)]);
       await tick();
       expect(box.text).toContain('111');
-      expect(box.root.querySelector('input[type=search]')).toBe(input);
+      expect(field(box)).toBe(input);
     });
 
     it('keeps typed keys from the game', async () => {
       const { box } = setup();
       await tick();
-      const input = box.root.querySelector('input[type=search]') as HTMLInputElement;
+      const input = field(box);
       const game = vi.fn();
       box.root.addEventListener('keydown', game);
       box.root.addEventListener('keyup', game);
@@ -470,6 +526,102 @@ describe('pvp feature', () => {
     });
   });
 
+  describe('PvP marks in the rows', () => {
+    it('toggles the marks of a known player and shows the warning mark of a player not to attack', async () => {
+      const { ctx, box, lists } = setup();
+      ctx.players.apply(worldId('de20'), [seen(111, 'Alpha')], 'visit');
+      ctx.players.setNoAttack(playerId(111), true);
+      await tick();
+      lists[0]?.resolve([battle(1, 111), battle(2, 222)]);
+      await tick();
+      const known = nameCell(box, 'Alpha');
+      expect(known.querySelector('button.no-attack')?.getAttribute('aria-pressed')).toBe('true');
+      expect(known.querySelector('button.plunder')?.getAttribute('aria-pressed')).toBe('false');
+      // a player the store does not know cannot be marked
+      expect(nameCell(box, '222').querySelector('button.plunder, button.no-attack')).toBeNull();
+
+      (known.querySelector('button.plunder') as HTMLElement).click();
+      expect(ctx.players.plunderWorthy(playerId(111))).toBe(true);
+      expect(ctx.players.noAttack(playerId(111))).toBe(false);
+      await tick();
+      expect(nameCell(box, 'Alpha').querySelector('button.plunder')?.getAttribute('aria-pressed')).toBe('true');
+      // no new read without a filter on the marks
+      expect(lists).toHaveLength(1);
+    });
+  });
+
+  describe('row window', () => {
+    it('loads the slice around the window as it scrolls, and from the top again on a change of filter', async () => {
+      const { box, lists, persistence } = setup(100);
+      await tick();
+      expect(lists[0]?.query).toMatchObject({ offset: 0, limit: SLICE });
+      lists[0]?.resolve(Array.from({ length: SLICE }, (_, i) => battle(i + 1, 1000 + i)));
+      await tick();
+      expect(box.text).toContain(`noch ${100 - VISIBLE} weitere unten`);
+      expect(box.root.querySelectorAll('tr.battle-row')).toHaveLength(VISIBLE);
+
+      // while more than a window of loaded rows is left below the one in view, the window reads nothing
+      const early = SLICE - 2 * VISIBLE;
+      for (let i = 0; i < early; i++) box.click('Nach unten');
+      await tick();
+      expect(lists).toHaveLength(1);
+      expect(box.text).toContain(String(1000 + early));
+
+      // one step further it reads the next slice ahead, without the summary, which stays as read
+      const summaries = vi.mocked(persistence.summary).mock.calls.length;
+      box.click('Nach unten');
+      await tick();
+      expect(lists).toHaveLength(2);
+      expect(lists[1]?.query).toMatchObject({ offset: early + 1 - 2 * VISIBLE, limit: SLICE });
+      expect(persistence.summary).toHaveBeenCalledTimes(summaries);
+
+      // a fast wheel waits at the edge of the loaded rows until the slice is there, it never draws fewer rows
+      for (let i = 0; i < 2 * VISIBLE; i++) box.click('Nach unten');
+      await tick();
+      expect(box.root.querySelectorAll('tr.battle-row')).toHaveLength(VISIBLE);
+      expect(box.text).toContain(String(999 + SLICE));
+      expect(box.text).not.toContain(String(1000 + SLICE));
+      expect(lists).toHaveLength(2);
+
+      // at the end of the list the slice is shorter than asked; scrolling back up reads the rows above again
+      /** answers the latest read like the store: the rows from its offset, at most to the end of the list */
+      const answer = () => {
+        const last = lists.at(-1);
+        const { offset = 0, limit = 0 } = last?.query ?? {};
+        const count = Math.max(0, Math.min(limit, 100 - offset));
+        last?.resolve(Array.from({ length: count }, (_, j) => battle(j + 1, 1000 + offset + j)));
+      };
+      const step = async (button: string) => {
+        box.click(button);
+        await tick();
+        answer();
+        await tick();
+      };
+      answer();
+      await tick();
+      for (let i = 0; i < 100; i++) await step('Nach unten');
+      expect(box.text).toContain('1099');
+      for (let i = 0; i < 100; i++) await step('Nach oben');
+      expect(box.text).toContain('1000');
+      expect(box.root.querySelector('.win-hidden')?.textContent).not.toContain('oben');
+
+      // a change of filter reads from the top, with the summary
+      type(box, 'x');
+      await tick();
+      expect(lists.at(-1)?.query).toMatchObject({ offset: 0 });
+      expect(persistence.summary).toHaveBeenCalledTimes(summaries + 1);
+    });
+
+    it('reads the attacks on the own city in slices too', async () => {
+      const { box, incoming } = setup();
+      await tick();
+      vi.mocked(incoming.list).mockClear();
+      box.click('Angriffe auf mich');
+      await tick();
+      expect(incoming.list).toHaveBeenCalledWith(worldId('de20'), { limit: SLICE, offset: 0 });
+    });
+  });
+
   describe('battle details', () => {
     const fought = (battleId: number, opponent: number): FoughtBattle => ({
       ...battle(battleId, opponent),
@@ -477,50 +629,129 @@ describe('pvp feature', () => {
       defender: { bonuses: { defense_boost: 70 }, units: [{ unitTypeId: 'feudal_knight', startHp: 10, endHp: 0 }] },
     });
 
-    async function shown() {
+    async function shown(rows: BattleWithPlunder[] = [fought(1, 111), fought(2, 222)]) {
       const env = setup();
       await tick();
-      env.lists[0]?.resolve([fought(1, 111), fought(2, 222)]);
+      env.lists[0]?.resolve(rows);
       await tick();
       const row = (n: number) => env.box.root.querySelectorAll('tr.battle-row')[n] as HTMLElement;
       return { ...env, row };
     }
 
-    it('expands a clicked row with both armies and the result, and collapses it again', async () => {
+    /** the tab of the side panel, by its tooltip */
+    const tab = (box: TestBox, tip: string) =>
+      box.root.querySelector(`button.side-tab[data-tip="${tip}"]`) as HTMLElement;
+    const panel = (box: TestBox) => box.root.querySelector('.side-panel')?.textContent ?? '';
+    /** the headings and lines of the panel, one entry each */
+    const lines = (box: TestBox) =>
+      [...box.root.querySelectorAll('.side-panel h2, .side-panel p')].map((e) => e.textContent?.trim());
+
+    it('shows a clicked battle in the side panel with both armies and the result, and clears it on a second click', async () => {
       const { box, row, lists } = await shown();
-      expect(box.text).not.toContain('Deine Einheiten');
+      expect(box.root.querySelector('.side-panel')).toBeNull();
 
       row(1).click();
-      expect(box.text).toContain('Deine Einheiten');
-      expect(box.text).toContain('rogue');
-      expect(box.text).toContain('8/10 LP');
-      expect(box.text).toContain('feudal_knight');
-      expect(box.text).toContain('gefallen');
-      expect(box.text).toContain('gewonnen, Autokampf, 1 Runde');
-      expect(box.text).toContain('50 % / 0 %');
-      expect(box.text).toContain('0 % / 70 %');
-      expect(box.root.querySelectorAll('.battle')).toHaveLength(1);
-      // the details come from the loaded page, no new query
+      expect(row(1).classList.contains('selected')).toBe(true);
+      expect(row(0).classList.contains('selected')).toBe(false);
+      expect(panel(box)).toContain('222');
+      expect(panel(box)).toContain('Deine Einheiten');
+      expect(panel(box)).toContain('rogue');
+      expect(panel(box)).toContain('8/10 LP');
+      expect(panel(box)).toContain('feudal_knight');
+      expect(panel(box)).toContain('gefallen');
+      expect(panel(box)).toContain('Autokampf, 1 Runde');
+      expect(panel(box)).not.toContain('gewonnen');
+      const outcome = box.root.querySelector('.side-panel .pvp-outcome');
+      expect(outcome?.classList.contains('won')).toBe(true);
+      expect(outcome?.getAttribute('aria-label')).toBe('gewonnen');
+      expect(panel(box)).toContain('50 % / 0 %');
+      expect(panel(box)).toContain('0 % / 70 %');
+      // the battle comes from the loaded slice, no new query; all rows keep one height
       expect(lists).toHaveLength(1);
+      expect(box.root.querySelectorAll('tbody tr')).toHaveLength(2);
 
       row(0).click();
-      expect(box.root.querySelectorAll('.battle')).toHaveLength(2);
-      row(1).click();
-      expect(box.root.querySelectorAll('.battle')).toHaveLength(1);
+      expect(panel(box)).toContain('111');
+      expect(box.root.querySelectorAll('tr.battle-row.selected')).toHaveLength(1);
+      row(0).click();
+      expect(box.root.querySelectorAll('tr.battle-row.selected')).toHaveLength(0);
+      expect(box.root.querySelector('.side-drawer')).toBeNull();
     });
 
-    it('does not expand a row when its player link or note marker is clicked', async () => {
+    it('shows the tab only while a battle is selected, the tab folds the panel and keeps the selection', async () => {
+      const { box, row } = await shown();
+      expect(box.root.querySelector('.side-drawer')).toBeNull();
+      row(0).click();
+      expect(panel(box)).toContain('111');
+      tab(box, 'Kampfdetails ausblenden').click();
+      expect(box.root.querySelector('.side-panel')).toBeNull();
+      expect(box.root.querySelector('.side-tab')).not.toBeNull();
+      expect(row(0).classList.contains('selected')).toBe(true);
+      tab(box, 'Kampfdetails zeigen').click();
+      expect(panel(box)).toContain('111');
+      // folded in, a new selection opens it again
+      tab(box, 'Kampfdetails ausblenden').click();
+      row(1).click();
+      expect(panel(box)).toContain('222');
+      row(1).click();
+      expect(box.root.querySelector('.side-drawer')).toBeNull();
+    });
+
+    it('has no panel on the attacks on the own city', async () => {
+      const { box, row } = await shown();
+      row(0).click();
+      box.click('Angriffe auf mich');
+      await tick();
+      expect(box.root.querySelector('.side-drawer')).toBeNull();
+    });
+
+    it('does not select a row when its buttons are clicked', async () => {
       const { box } = await shown();
       (box.root.querySelector('button.marker') as HTMLElement).click();
-      box.follow('222');
-      expect(box.root.querySelector('.battle')).toBeNull();
+      funnel(box, '222').click();
+      expect(box.root.querySelector('tr.battle-row.selected')).toBeNull();
     });
 
-    it('shows an inferred battle as a row without armies that does not expand', async () => {
-      const env = setup();
-      await tick();
+    it('shows the result as an icon in its colour with the word as tooltip', async () => {
+      const { row } = await shown();
+      const cell = row(0).querySelector('td.pvp-result');
+      expect(cell?.classList.contains('won')).toBe(true);
+      expect(cell?.querySelector('[role=img]')?.getAttribute('aria-label')).toBe('gewonnen');
+      expect(cell?.textContent?.trim()).toBe('');
+    });
+
+    it('shows the measured armies only in the tooltip of the battle kind, not as columns', async () => {
+      const { box, row } = await shown();
+      expect(row(1).textContent).not.toContain('%');
+      const kind = [...row(1).querySelectorAll('td')].find((td) => td.textContent?.includes('Autokampf'));
+      expect(kind?.getAttribute('data-tip')).toBe(
+        'Angriff / Verteidigung in %\nAngreifer: 50 % / 0 %\nVerteidiger: 0 % / 70 %',
+      );
+      expect(box.root.querySelector('thead')?.textContent).not.toContain('Verteidiger');
+    });
+
+    it('marks a battle with its plunder by the sack and shows the plunder in the panel', async () => {
+      const { box, row } = await shown([
+        { ...fought(1, 111), plunder: plunder(111) },
+        { ...fought(2, 222), plunder: { ...plunder(222), outcome: 'repelled', resources: {}, doubleLoot: false } },
+        fought(3, 333),
+      ]);
+      const sacks = [...box.root.querySelectorAll('td.pvp-loot')].map((td) => td.querySelector('[role=img]'));
+      expect(sacks.map((s) => s?.getAttribute('aria-label'))).toEqual([
+        'Geplündert',
+        'Plünderung abgewehrt',
+        undefined,
+      ]);
+
+      row(0).click();
+      expect(lines(box).slice(-3)).toEqual(['Plünderung', 'R_IronAge_Residential2', '12 Forge-Punkte Double Loot']);
+      row(1).click();
+      expect(lines(box).slice(-3)).toEqual(['Plünderung', 'R_IronAge_Residential2', 'abgewehrt']);
+    });
+
+    it('shows an inferred battle in the panel with its plunder and a line that the battle was not recorded', async () => {
       const at = Date.now();
-      env.lists[0]?.resolve([
+      const { box, row } = await shown([
         {
           world: worldId('de20'),
           battleId: -at,
@@ -529,27 +760,81 @@ describe('pvp feature', () => {
           result: 'won',
           inferred: true,
           plunderAt: at,
+          plunder: { ...plunder(111), at },
         },
       ]);
-      await tick();
-      expect(env.box.root.querySelectorAll('tr.battle-row')).toHaveLength(0);
-      const row = env.box.root.querySelectorAll('tr')[1] as HTMLElement;
-      expect(row.textContent).toContain('spätestens');
-      expect(row.textContent).toContain('erschlossen');
-      expect(row.textContent).not.toContain('%');
-      row.click();
-      expect(env.box.root.querySelector('.battle')).toBeNull();
+      expect(row(0).textContent).toContain('≈');
+      expect(row(0).textContent).toContain('erschlossen');
+      const kind = [...row(0).querySelectorAll('td')].find((td) => td.textContent?.trim() === 'erschlossen');
+      expect(kind?.getAttribute('data-tip')).toBe(
+        'Aus einer Plünderung erschlossen, der Kampf selbst ist nicht aufgezeichnet',
+      );
+      expect(row(0).getAttribute('data-tip')).toBe(
+        'Klicken zeigt den Kampf mit Einheiten, Ergebnis und Plünderung im Seitenpanel',
+      );
+      expect(row(0).textContent).not.toContain('%');
+      row(0).click();
+      expect(box.root.querySelector('.side-panel .battle')).toBeNull();
+      expect(panel(box)).toContain('der Kampf selbst ist nicht aufgezeichnet');
+      expect(lines(box).slice(-3)).toEqual(['Plünderung', 'R_IronAge_Residential2', '12 Forge-Punkte Double Loot']);
     });
 
-    it('links each opponent to foestats in a new tab beside the name that filters', async () => {
-      const { box } = await shown();
-      const links = [...box.root.querySelectorAll('a.ext-link')] as HTMLAnchorElement[];
-      expect(links.map((a) => a.getAttribute('href'))).toEqual([
-        'https://foestats.com/de/de20/players/111',
-        'https://foestats.com/de/de20/players/222',
-      ]);
-      expect(links[0]?.target).toBe('_blank');
-      expect(links[0]?.rel).toBe('noopener noreferrer');
+    it('clears the selection on a change of filter, and the window fills again when the filter goes', async () => {
+      const { box, row, lists, state } = await shown([fought(1, 111), fought(2, 222)]);
+      row(0).click();
+      type(box, '111');
+      await tick();
+      expect(box.root.querySelector('tr.battle-row.selected')).toBeNull();
+      expect(box.root.querySelector('.side-drawer')).toBeNull();
+      lists.at(-1)?.resolve([fought(1, 111)]);
+      await tick();
+      row(0).click();
+      expect(panel(box)).toContain('111');
+
+      state.total = 100;
+      type(box, '');
+      await tick();
+      lists.at(-1)?.resolve(Array.from({ length: SLICE }, (_, i) => fought(i + 1, 1000 + i)));
+      await tick();
+      expect(box.root.querySelectorAll('tr.battle-row')).toHaveLength(VISIBLE);
+      expect(box.text).toContain(`noch ${100 - VISIBLE} weitere unten`);
+      expect(box.root.querySelector('tr.battle-row.selected')).toBeNull();
+    });
+
+    it('keeps the selection on scroll and live updates while the battle is still listed', async () => {
+      const { box, row, lists, ctx, state } = await shown([fought(1, 111), fought(2, 222)]);
+      row(1).click();
+      box.click('Nach unten');
+      ctx.bus.emit('plunder.recorded', { opponents: [playerId(222)] });
+      await tick();
+      lists.at(-1)?.resolve([fought(1, 111), { ...fought(2, 222), plunder: plunder(222) }]);
+      await tick();
+      expect(row(1).classList.contains('selected')).toBe(true);
+      expect(lines(box)).toContain('Plünderung');
+
+      // read again without it, the slice spans the whole list: it was replaced or deleted
+      state.total = 1;
+      ctx.bus.emit('battle.recorded', { opponents: [playerId(222)] });
+      await tick();
+      lists.at(-1)?.resolve([fought(1, 111)]);
+      await tick();
+      expect(box.root.querySelector('.side-drawer')).toBeNull();
+    });
+
+    it('shows the plunder of a battle when it is recorded after the battle', async () => {
+      const env = featureContext();
+      pvpFeature.setup(env.ctx);
+      env.menu('pvp');
+      const box = env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>>;
+      const at = Date.now() - 60_000;
+      env.ctx.battles.record({ ...battle(1, 111), at });
+      await vi.waitFor(() => expect(box.root.querySelectorAll('tr.battle-row')).toHaveLength(1));
+      expect(box.root.querySelector('td.pvp-loot [role=img]')).toBeNull();
+      env.ctx.plunders.record({ ...plunder(111), at: at + 1000 });
+      await vi.waitFor(() =>
+        expect(box.root.querySelector('td.pvp-loot [role=img]')?.getAttribute('aria-label')).toBe('Geplündert'),
+      );
+      expect(box.root.querySelectorAll('tr.battle-row')).toHaveLength(1);
     });
   });
 });
@@ -566,9 +851,8 @@ describe('pvp feature loading', () => {
     expect(lists.length).toBe(loads + 1);
   });
 
-  it('reads no attack totals on the battles tab and no plunder totals on the attacks tab', async () => {
+  it('reads no attack totals on the battles tab and no battle summary on the attacks tab', async () => {
     const stub = controlled();
-    const totals = vi.spyOn(stub.plunders, 'totals');
     const incomingTotals = vi.spyOn(stub.incoming, 'totals');
     const env = featureContext({
       overrides: stubbed({ battles: stub.persistence, plunders: stub.plunders, incoming: stub.incoming }),
@@ -577,16 +861,16 @@ describe('pvp feature loading', () => {
     env.menu('pvp');
     const box = env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>>;
     await tick();
-    expect(totals).toHaveBeenCalledTimes(1);
+    expect(stub.persistence.summary).toHaveBeenCalledTimes(1);
     expect(incomingTotals).not.toHaveBeenCalled();
     box.click('Angriffe auf mich');
     await tick();
-    expect(totals).toHaveBeenCalledTimes(1);
+    expect(stub.persistence.summary).toHaveBeenCalledTimes(1);
     expect(incomingTotals).toHaveBeenCalledTimes(1);
   });
 
-  it('ignores records of players the filter does not show, and rebuilds without reading on player and note changes', async () => {
-    const { ctx, box, lists } = setup();
+  it('ignores records of players the filter does not show', async () => {
+    const { ctx, lists } = setup();
     await tick();
     ctx.bus.emit('army.target', { opponent: playerId(111) });
     await tick();
@@ -597,12 +881,28 @@ describe('pvp feature loading', () => {
     ctx.bus.emit('battle.recorded', { opponents: [playerId(222), playerId(111)] });
     await tick();
     expect(lists.length).toBe(loads + 1);
+  });
 
+  it('rebuilds without reading on player and note changes while no filter goes by the players', async () => {
+    const { ctx, box, lists } = setup();
+    await tick();
+    const loads = lists.length;
     const updates = box.updates.length;
     ctx.bus.emit('player.updated', { ids: [playerId(111)], source: 'update' });
     ctx.bus.emit('note.changed', {});
     await tick();
-    expect(lists.length).toBe(loads + 1);
+    expect(lists.length).toBe(loads);
     expect(box.updates.length).toBe(updates + 2);
+  });
+
+  it('reads again on a player change while the name field or a mark filter goes by the players', async () => {
+    const { ctx, box, lists } = setup();
+    await tick();
+    box.click('nur nicht angreifen');
+    await tick();
+    const loads = lists.length;
+    ctx.bus.emit('player.updated', { ids: [playerId(111)], source: 'noAttack' });
+    await tick();
+    expect(lists.length).toBe(loads + 1);
   });
 });
