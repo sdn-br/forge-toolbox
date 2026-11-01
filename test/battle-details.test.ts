@@ -37,10 +37,10 @@ describe('battle details', () => {
   it('shows both sides unit by unit with their hit points before and after', () => {
     const vm = battleDetails(battle());
     expect(vm.own).toEqual([
-      { unit: 'rogue', hp: '8/10 LP', dead: false },
-      { unit: 'grenadier', hp: 'gefallen', dead: true },
+      { unit: 'rogue', tip: 'rogue\nLP: 8 / 10', health: 0.8, dead: false },
+      { unit: 'grenadier', tip: 'grenadier\nLP: 0 / 10', health: 0, dead: true },
     ]);
-    expect(vm.opponent).toEqual([{ unit: 'feudal_knight', hp: 'gefallen', dead: true }]);
+    expect(vm.opponent).toEqual([{ unit: 'feudal_knight', tip: 'feudal_knight\nLP: 0 / 10', health: 0, dead: true }]);
   });
 
   it('sums up result, kind and rounds', () => {
@@ -59,47 +59,53 @@ describe('battle details', () => {
     expect(battleDetails(battle()).army).toBeUndefined();
   });
 
-  it('draws one column per side, the armies in the heads with their label as tooltip, then the units', () => {
+  it('draws one column per side, the armies in the heads with their label as tooltip, then the units as tiles', () => {
     const root = document.createElement('div');
     render(battleDetailsView(battleDetails(battle(), { measured: measuredArmy(battle()) })), root);
-    const rows = [...root.querySelectorAll('tr')].map((r) =>
-      [...r.querySelectorAll('th, td')].map((c) => c.textContent?.trim()),
+    const heads = [...root.querySelectorAll('th')].map((c) => c.textContent?.trim());
+    expect(heads).toEqual(['Deine Einheiten368 % / 269 %', 'Gegner406 % / 443 %']);
+    const sides = [...root.querySelectorAll('td')].map((td) =>
+      [...td.querySelectorAll('.unit-tile')].map((tile) => tile.getAttribute('data-tip')),
     );
-    expect(rows).toEqual([
-      ['Deine Einheiten368 % / 269 %', 'Gegner406 % / 443 %'],
-      ['rogue8/10 LP', 'feudal_knightgefallen'],
-      ['grenadiergefallen', ''],
-    ]);
+    expect(sides).toEqual([['rogue\nLP: 8 / 10', 'grenadier\nLP: 0 / 10'], ['feudal_knight\nLP: 0 / 10']]);
     expect(root.textContent).toContain('gewonnen, Autokampf, 3 Runden');
+  });
+
+  it('draws the health bar by the hit points left, a fallen unit muted', () => {
+    const root = document.createElement('div');
+    render(battleDetailsView(battleDetails(battle())), root);
+    const tiles = [...root.querySelectorAll('.unit-tile')];
+    const bar = (i: number) => tiles[i]?.querySelector<HTMLElement>('.unit-health > span')?.style.width;
+    expect([bar(0), bar(1), bar(2)]).toEqual(['80%', '0%', '0%']);
+    expect(tiles.map((tile) => tile.classList.contains('dead'))).toEqual([false, true, true]);
   });
 
   it('shows the units of a recorded battle', () => {
     const start = fixture.batch.find((e) => e.requestMethod === 'startByBattleType')?.responseData as GameBattle;
     const recorded = toBattle(worldId('de20'), start, playerId(fixture.me)) as FoughtBattle;
     const vm = battleDetails(recorded);
-    expect(vm.own.map((u) => `${u.unit} ${u.hp}`)).toEqual([
-      'grenadier 4/10 LP',
-      'grenadier 10/10 LP',
-      'rogue 10/10 LP',
-      'rogue 8/10 LP',
-      'rogue 10/10 LP',
-      'rogue 10/10 LP',
-      'rogue 10/10 LP',
-      'rogue 10/10 LP',
+    expect(vm.own.map((u) => `${u.unit} ${u.tip.split('\n').at(-1)}`)).toEqual([
+      'grenadier LP: 4 / 10',
+      'grenadier LP: 10 / 10',
+      'rogue LP: 10 / 10',
+      'rogue LP: 8 / 10',
+      'rogue LP: 10 / 10',
+      'rogue LP: 10 / 10',
+      'rogue LP: 10 / 10',
+      'rogue LP: 10 / 10',
     ]);
     expect(vm.opponent).toHaveLength(8);
     expect(vm.opponent.every((u) => u.dead)).toBe(true);
     expect(vm.summary).toBe('gewonnen, Autokampf, 3 Runden');
   });
 
-  it('puts era and class of a unit into the tooltip of its cell', () => {
+  it('puts name, era, class and hit points into the tooltip of a unit', () => {
     const root = document.createElement('div');
     const unit = (id: string) =>
       id === 'rogue' ? { name: 'Agent', era: 'Kolonialzeit', unitClass: 'light_melee' } : undefined;
     render(battleDetailsView(battleDetails(battle(), { unit })), root);
-    const cell = [...root.querySelectorAll('td')].find((td) => td.textContent?.includes('Agent'));
-    expect(cell?.getAttribute('data-tip')).toBe('Zeitalter: Kolonialzeit\nTyp: Leichte Einheit');
-    const other = [...root.querySelectorAll('td')].find((td) => td.textContent?.includes('grenadier'));
-    expect(other?.hasAttribute('data-tip')).toBe(false);
+    const tips = [...root.querySelectorAll('.unit-tile')].map((tile) => tile.getAttribute('data-tip'));
+    expect(tips[0]).toBe('Agent (Kolonialzeit)\nTyp: Leichte Einheit\nLP: 8 / 10');
+    expect(tips[1]).toBe('grenadier\nLP: 0 / 10');
   });
 });

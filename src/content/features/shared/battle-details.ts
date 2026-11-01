@@ -1,5 +1,5 @@
 // The view model of the details of one stored battle, drawn by ui/battle-details.ts.
-import { unitPortraitPath } from '../../../shared/cdn-assets';
+import { unitClassIconPath, unitPortraitPath } from '../../../shared/cdn-assets';
 import type { BattleUnit, FoughtBattle } from '../../../shared/model';
 import { formatNumber, type TextKey, t } from '../../core/texts';
 import type { MeasuredArmy } from '../../domain/measured-army';
@@ -8,68 +8,58 @@ import type { CatalogStore } from '../../stores/catalog';
 import type { BattleDetailsVm, UnitVm } from '../../ui/battle-details';
 import { formatRounds } from './pvp-format';
 
-/** what the details show of a unit type, as display text */
+/** what the details show of a unit type, as display text and image URLs; every part only when known */
 export interface UnitInfo {
-  name: string;
+  /** in the game's language */
+  name?: string;
   /** the era's name; missing for a unit of every era */
   era?: string;
   /** the game's class, `light_melee` and so on */
   unitClass?: string;
   /** the full URL of the unit's portrait on the Inno CDN */
   image?: string;
+  /** the full URL of the game's icon of the unit's class on the Inno CDN */
+  classIcon?: string;
 }
-
-/**
- * The URL of a unit's portrait. The game names it by the unit's asset name or by its type id, which one is not known,
- * so the asset name is tried first, then the type id; undefined when the index has neither.
- */
-export function unitPortrait(
-  assets: Pick<AssetStore, 'url'>,
-  typeId: string,
-  assetName: string | undefined,
-): string | undefined {
-  return (assetName && assets.url(unitPortraitPath(assetName))) || assets.url(unitPortraitPath(typeId));
-}
-
-/** the unit types of the catalog as the details show them, with the era's name and, once known, the portrait */
-export const catalogUnits =
-  (catalog: Pick<CatalogStore, 'unitType' | 'eraName'>, assets?: Pick<AssetStore, 'url'>) =>
-  (id: string): UnitInfo | undefined => {
-    const u = catalog.unitType(id);
-    const image = assets && unitPortrait(assets, id, u?.assetName);
-    return (
-      u && {
-        name: u.name,
-        ...(u.era && { era: catalog.eraName(u.era) }),
-        ...(u.unitClass && { unitClass: u.unitClass }),
-        ...(image && { image }),
-      }
-    );
-  };
 
 const CLASSES = new Set(['light_melee', 'heavy_melee', 'fast', 'short_ranged', 'long_ranged']);
 
-/** "Zeitalter: Arktische Zukunft", "Typ: Schwere Einheit", each line only when known */
-const unitTip = (info: UnitInfo | undefined): string | undefined => {
-  if (!info) return undefined;
-  const lines = [
-    ...(info.era ? [t('unit.era', { era: info.era })] : []),
-    ...(info.unitClass && CLASSES.has(info.unitClass)
-      ? [t('unit.class', { name: t(`unit.class.${info.unitClass}` as TextKey) })]
-      : []),
-  ];
-  return lines.length ? lines.join('\n') : undefined;
-};
+/** the unit types of the catalog as the details show them, with the era's name and, once the index is known, the
+ * portrait (named by the type id, checked in the game's index 2026-11-01) and the icon of the class */
+export const catalogUnits =
+  (catalog: Pick<CatalogStore, 'unitType' | 'eraName'>, assets?: Pick<AssetStore, 'url'>) =>
+  (id: string): UnitInfo => {
+    const u = catalog.unitType(id);
+    const unitClass = u?.unitClass && CLASSES.has(u.unitClass) ? u.unitClass : undefined;
+    const image = assets?.url(unitPortraitPath(id));
+    const classIcon = unitClass && assets?.url(unitClassIconPath(unitClass));
+    return {
+      ...(u && { name: u.name }),
+      ...(u?.era && { era: catalog.eraName(u.era) }),
+      ...(unitClass && { unitClass }),
+      ...(image && { image }),
+      ...(classIcon && { classIcon }),
+    };
+  };
 
-/** the unit's name in the game's language, its type id while the unit types are not loaded */
+/** "Ronin-Bot (Virtuelle Zukunft)", "Typ: Schwere Einheit", "LP: 9 / 10"; era and class only when known */
+const unitTip = (name: string, info: UnitInfo, u: BattleUnit): string =>
+  [
+    info.era ? `${name} (${info.era})` : name,
+    ...(info.unitClass ? [t('unit.class', { name: t(`unit.class.${info.unitClass}` as TextKey) })] : []),
+    t('battle.hp', { end: formatNumber(u.endHp), start: formatNumber(u.startHp) }),
+  ].join('\n');
+
+/** a tile: portrait, class icon and health bar; the name and the rest in its tooltip */
 const unitVm = (u: BattleUnit, unit: (id: string) => UnitInfo | undefined): UnitVm => {
-  const info = unit(u.unitTypeId);
-  const tip = unitTip(info);
+  const info = unit(u.unitTypeId) ?? {};
+  const name = info.name ?? u.unitTypeId;
   return {
-    unit: info?.name ?? u.unitTypeId,
-    ...(tip && { tip }),
-    ...(info?.image && { image: info.image }),
-    hp: u.endHp > 0 ? t('battle.hp', { end: formatNumber(u.endHp), start: formatNumber(u.startHp) }) : t('battle.dead'),
+    unit: name,
+    tip: unitTip(name, info, u),
+    ...(info.image && { image: info.image }),
+    ...(info.classIcon && { classIcon: info.classIcon }),
+    health: u.startHp > 0 ? Math.max(0, Math.min(1, u.endHp / u.startHp)) : 0,
     dead: u.endHp <= 0,
   };
 };

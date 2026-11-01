@@ -3,19 +3,26 @@ import { render } from 'lit-html';
 import { describe, expect, it, vi } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import { findForgeScript } from '../src/content/core/forge-script';
-import { battleDetails, catalogUnits, unitPortrait } from '../src/content/features/shared/battle-details';
+import { battleDetails, catalogUnits } from '../src/content/features/shared/battle-details';
 import { AssetStore } from '../src/content/stores/assets';
 import { CatalogStore } from '../src/content/stores/catalog';
 import { battleDetailsView } from '../src/content/ui/battle-details';
 import { assetPersistence } from '../src/persistence/assets/client';
-import { type AssetIndex, assetUrl, isCdnUrl, parseAssetIndex, unitPortraitPath } from '../src/shared/cdn-assets';
+import {
+  type AssetIndex,
+  assetUrl,
+  isCdnUrl,
+  parseAssetIndex,
+  unitClassIconPath,
+  unitPortraitPath,
+} from '../src/shared/cdn-assets';
 import { eraId, playerId, worldId } from '../src/shared/ids';
 import type { FoughtBattle } from '../src/shared/model';
 import { testDb } from './helpers/battle-db';
 
 const SCRIPT = 'https://foede.innogamescdn.com/cache/ForgeHX-0a1b2c.js';
 const ROGUE = unitPortraitPath('rogue');
-const CHAMPION = unitPortraitPath('bronzeage_champion');
+const CHAMPION = unitPortraitPath('EarlyMiddleAge_champion');
 
 /** a few lines in the shape of the game's script, the index after `baseUrl,` */
 const source = (index: AssetIndex) => `var a=function(){};x.init(this.baseUrl,${JSON.stringify(index)});var b={c:1};`;
@@ -181,48 +188,45 @@ describe('unit portraits in the battle details', () => {
     url: (path: string) => (paths.includes(path) ? `https://cdn${path}` : undefined),
   });
 
-  it('takes the portrait of the asset name first, then of the type id, else none', () => {
-    expect(
-      unitPortrait(
-        assets(CHAMPION, unitPortraitPath('EarlyMiddleAge_champion')),
-        'EarlyMiddleAge_champion',
-        'bronzeage_champion',
-      ),
-    ).toBe(`https://cdn${CHAMPION}`);
-    expect(unitPortrait(assets(ROGUE), 'rogue', 'agent')).toBe(`https://cdn${ROGUE}`);
-    expect(unitPortrait(assets(ROGUE), 'rogue', undefined)).toBe(`https://cdn${ROGUE}`);
-    expect(unitPortrait(assets(), 'rogue', 'rogue')).toBeUndefined();
-  });
-
-  it('gives the units of the catalog their portrait', () => {
+  it('gives the units their portrait by type id and the icon of their class, once the index knows them', () => {
     const catalog = new CatalogStore(createBus());
     catalog.setUnitTypes([
-      { id: 'EarlyMiddleAge_champion', assetName: 'bronzeage_champion', name: 'Held' },
-      { id: 'rogue', assetName: 'rogue', name: 'Agent' },
+      { id: 'EarlyMiddleAge_champion', name: 'Held', unitClass: 'fast' },
+      { id: 'rogue', name: 'Agent', unitClass: 'light_melee' },
     ]);
+    const known = assets(CHAMPION, unitClassIconPath('fast'));
     const vm = battleDetails(battle(['EarlyMiddleAge_champion', 10], ['rogue', 0], ['unknown_unit', 5]), {
-      unit: catalogUnits(catalog, assets(CHAMPION)),
+      unit: catalogUnits(catalog, known),
     });
-    expect(vm.own.map((u) => u.image)).toEqual([`https://cdn${CHAMPION}`, undefined, undefined]);
+    expect(vm.own.map((u) => [u.image, u.classIcon])).toEqual([
+      [`https://cdn${CHAMPION}`, `https://cdn${unitClassIconPath('fast')}`],
+      [undefined, undefined],
+      [undefined, undefined],
+    ]);
+    // the portrait does not wait for the catalog
+    expect(catalogUnits(new CatalogStore(createBus()), assets(ROGUE))('rogue').image).toBe(`https://cdn${ROGUE}`);
   });
 
-  it('draws the portrait beside the name, a fallen unit muted, and none while unknown', () => {
+  it('draws the portrait with the class icon on its badge, the name in place of a portrait it does not know', () => {
     const root = document.createElement('div');
-    const unit = (id: string) => (id === 'unknown_unit' ? undefined : { name: id, image: `https://cdn/${id}.jpg` });
+    const unit = (id: string) =>
+      id === 'unknown_unit'
+        ? undefined
+        : { name: id, image: `https://cdn/${id}.jpg`, classIcon: 'https://cdn/fast.png' };
     render(
       battleDetailsView(battleDetails(battle(['rogue', 8], ['grenadier', 0], ['unknown_unit', 5]), { unit })),
       root,
     );
-    const cells = [...root.querySelectorAll('td')];
-    const img = (i: number) => cells[i * 2]?.querySelector('img');
-    expect(img(0)?.getAttribute('src')).toBe('https://cdn/rogue.jpg');
-    expect(img(0)?.getAttribute('alt')).toBe('');
-    expect(img(0)?.getAttribute('loading')).toBe('lazy');
-    expect(cells[0]?.classList.contains('muted')).toBe(false);
-    expect(img(1)?.getAttribute('src')).toBe('https://cdn/grenadier.jpg');
-    expect(cells[2]?.classList.contains('muted')).toBe(true);
-    expect(img(2)).toBeNull();
-    expect(cells[0]?.textContent?.trim()).toBe('rogue8/10 LP');
+    const tiles = [...root.querySelectorAll('.unit-tile')];
+    const portrait = (i: number) => tiles[i]?.querySelector('img.unit-img');
+    expect(portrait(0)?.getAttribute('src')).toBe('https://cdn/rogue.jpg');
+    expect(portrait(0)?.getAttribute('alt')).toBe('');
+    expect(portrait(0)?.getAttribute('loading')).toBe('lazy');
+    expect(tiles[0]?.querySelector('.unit-class img')?.getAttribute('src')).toBe('https://cdn/fast.png');
+    expect(tiles[1]?.classList.contains('dead')).toBe(true);
+    expect(portrait(2)).toBeNull();
+    expect(tiles[2]?.querySelector('.unit-name')?.textContent).toBe('unknown_unit');
+    expect(tiles[2]?.querySelector('.unit-class')).toBeNull();
   });
 
   it('hides a portrait that does not load', () => {

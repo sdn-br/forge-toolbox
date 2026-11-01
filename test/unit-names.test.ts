@@ -43,7 +43,6 @@ describe('unit types', () => {
     types(unitTypes.json);
     expect(catalog.unitType('EarlyMiddleAge_champion')).toEqual({
       id: 'EarlyMiddleAge_champion',
-      assetName: 'bronzeage_champion',
       name: 'Held',
       era: 'EarlyMiddleAge',
       unitClass: 'fast',
@@ -51,7 +50,6 @@ describe('unit types', () => {
     // a unit of every era has none
     expect(catalog.unitType('rogue')).toEqual({
       id: 'rogue',
-      assetName: 'rogue',
       name: 'Agent',
       unitClass: 'light_melee',
     });
@@ -66,7 +64,7 @@ describe('unit types', () => {
     expect(catalog.unitType('grenadier')).toBeUndefined();
   });
 
-  it('shows the name in the battle details with era and class as tooltip, the type id of a unit it does not know', () => {
+  it('puts name, era, class and hit points into the tooltip of a unit, the type id of a unit it does not know', () => {
     const { catalog, types } = setup();
     types([
       ...unitTypes.json,
@@ -76,13 +74,11 @@ describe('unit types', () => {
     const vm = battleDetails(battle('ArcticFuture_champion', 'rogue', 'odd_unit', 'unknown_unit'), {
       unit: catalogUnits(catalog),
     });
-    expect(vm.own).toEqual([
-      expect.objectContaining({ unit: 'Held', tip: 'Zeitalter: Arktische Zukunft\nTyp: Schwere Einheit' }),
-      expect.objectContaining({ unit: 'Agent', tip: 'Typ: Leichte Einheit' }),
-      expect.objectContaining({ unit: 'Sonderling' }),
-      expect.objectContaining({ unit: 'unknown_unit' }),
+    expect(vm.own.map((u) => [u.unit, u.tip])).toEqual([
+      ['Held', 'Held (Arktische Zukunft)\nTyp: Schwere Einheit\nLP: 10 / 10'],
+      ['Agent', 'Agent\nTyp: Leichte Einheit\nLP: 10 / 10'],
+      ['Sonderling', 'Sonderling\nLP: 10 / 10'],
+      ['unknown_unit', 'unknown_unit\nLP: 10 / 10'],
     ]);
-    expect(vm.own[2]?.tip).toBeUndefined();
-    expect(vm.own[3]?.tip).toBeUndefined();
   });
 });

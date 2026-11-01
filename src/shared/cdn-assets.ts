@@ -49,6 +49,9 @@ export function assetUrl(origin: string, path: string, hash: string): string {
   return `${origin}/assets${stem}-${hash}${ext}`;
 }
 
-/** the 50x50 portrait of a unit; the game names it by the unit's asset name or type id, the index tells which exists */
+/** the 50x50 portrait of a unit, named by its type id (checked in the game's index 2026-11-01) */
 export const unitPortraitPath = (name: string): string =>
   `/shared/unit_portraits/armyuniticons_50x50/armyuniticons_50x50_${name}.jpg`;
+
+/** the game's icon of a unit class (`light_melee`, `heavy_melee`, `fast`, `short_ranged`, `long_ranged`) */
+export const unitClassIconPath = (unitClass: string): string => `/shared/icons/goods/unit_class_${unitClass}.png`;

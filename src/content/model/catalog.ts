@@ -26,8 +26,6 @@ export interface LevelBonus {
 export interface UnitType {
   /** the game's `unitTypeId` */
   id: string;
-  /** the game's `unitAssetName`, may name the unit's portrait instead of the id */
-  assetName?: string;
   /** in the game's language */
   name: string;
   /** missing for a unit of every era */

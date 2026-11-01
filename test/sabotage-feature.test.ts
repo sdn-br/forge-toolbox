@@ -458,21 +458,20 @@ describe('sabotage feature', () => {
     expect(details.open).toBe(false);
     expect(details.querySelector('summary')?.textContent).toMatch(/Letzter Kampf heute \d\d:\d\d: verloren/);
     expect(details.textContent).toContain('verloren, manuell, 4 Runden');
-    expect(details.textContent).toContain('feudal_knight');
-    expect(details.textContent).toContain('3/10 LP');
+    expect(details.querySelector('[data-tip="feudal_knight\nLP: 3 / 10"]')).not.toBeNull();
     expect(details.textContent).toContain('0 % / 111 %');
 
     details.open = true;
     await ctx.settings.of(SHOW_ARMY).set(false);
     expect(box.root.querySelector('details')).toBe(details);
     expect(details.open).toBe(true);
-    expect(details.textContent).toContain('feudal_knight');
+    expect(details.querySelector('.unit-tile')).not.toBeNull();
     expect(details.textContent).not.toContain('Angriff / Verteidigung');
   });
 
   it('draws the unit portraits of the last battle once the asset index arrives', async () => {
     const { ctx, box, latest } = setup({ [unitPortraitPath('rogue')]: 'abc' });
-    ctx.catalog.setUnitTypes([{ id: 'rogue', assetName: 'rogue', name: 'Agent' }]);
+    ctx.catalog.setUnitTypes([{ id: 'rogue', name: 'Agent' }]);
     ctx.cities.setVisited(city(1));
     await tick();
     latest.get(playerId(1))?.({
