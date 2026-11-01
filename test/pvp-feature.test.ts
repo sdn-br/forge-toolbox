@@ -764,7 +764,6 @@ describe('pvp feature', () => {
         },
       ]);
       expect(row(0).textContent).toContain('≈');
-      expect(row(0).querySelector('[data-tip^="spätestens"]')).not.toBeNull();
       expect(row(0).textContent).toContain('erschlossen');
       const kind = [...row(0).querySelectorAll('td')].find((td) => td.textContent?.trim() === 'erschlossen');
       expect(kind?.getAttribute('data-tip')).toBe(

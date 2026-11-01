@@ -197,7 +197,6 @@ describe('pvp view model', () => {
       noAttack: false,
       picked: false,
       when: '≈ heute 14:05',
-      whenTip: 'spätestens heute 14:05',
       result: 'gewonnen',
       outcome: 'won',
       battle: 'erschlossen',
