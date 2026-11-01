@@ -1,7 +1,9 @@
 // The view model of the details of one stored battle, drawn by ui/battle-details.ts.
+import { unitPortraitPath } from '../../../shared/cdn-assets';
 import type { BattleUnit, FoughtBattle } from '../../../shared/model';
 import { formatNumber, type TextKey, t } from '../../core/texts';
 import type { MeasuredArmy } from '../../domain/measured-army';
+import type { AssetStore } from '../../stores/assets';
 import type { CatalogStore } from '../../stores/catalog';
 import type { BattleDetailsVm, UnitVm } from '../../ui/battle-details';
 import { formatRounds } from './pvp-format';
@@ -13,18 +15,34 @@ export interface UnitInfo {
   era?: string;
   /** the game's class, `light_melee` and so on */
   unitClass?: string;
+  /** the full URL of the unit's portrait on the Inno CDN */
+  image?: string;
 }
 
-/** the unit types of the catalog as the details show them, with the era's name */
+/**
+ * The URL of a unit's portrait. The game names it by the unit's asset name or by its type id, which one is not known,
+ * so the asset name is tried first, then the type id; undefined when the index has neither.
+ */
+export function unitPortrait(
+  assets: Pick<AssetStore, 'url'>,
+  typeId: string,
+  assetName: string | undefined,
+): string | undefined {
+  return (assetName && assets.url(unitPortraitPath(assetName))) || assets.url(unitPortraitPath(typeId));
+}
+
+/** the unit types of the catalog as the details show them, with the era's name and, once known, the portrait */
 export const catalogUnits =
-  (catalog: Pick<CatalogStore, 'unitType' | 'eraName'>) =>
+  (catalog: Pick<CatalogStore, 'unitType' | 'eraName'>, assets?: Pick<AssetStore, 'url'>) =>
   (id: string): UnitInfo | undefined => {
     const u = catalog.unitType(id);
+    const image = assets && unitPortrait(assets, id, u?.assetName);
     return (
       u && {
         name: u.name,
         ...(u.era && { era: catalog.eraName(u.era) }),
         ...(u.unitClass && { unitClass: u.unitClass }),
+        ...(image && { image }),
       }
     );
   };
@@ -50,6 +68,7 @@ const unitVm = (u: BattleUnit, unit: (id: string) => UnitInfo | undefined): Unit
   return {
     unit: info?.name ?? u.unitTypeId,
     ...(tip && { tip }),
+    ...(info?.image && { image: info.image }),
     hp: u.endHp > 0 ? t('battle.hp', { end: formatNumber(u.endHp), start: formatNumber(u.startHp) }) : t('battle.dead'),
     dead: u.endHp <= 0,
   };

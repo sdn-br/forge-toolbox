@@ -1,4 +1,5 @@
 // All stores of one world, built in one place: a new store touches this file and nothing else in the wiring.
+import { assetPersistence } from '../../persistence/assets/client';
 import { battlePersistence } from '../../persistence/battles/client';
 import { foestatsPersistence } from '../../persistence/foestats/client';
 import { greatBuildingPersistence } from '../../persistence/great-buildings/client';
@@ -12,6 +13,7 @@ import type { WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import type { Call } from '../core/rpc';
 import type { Settings } from '../core/settings';
+import { AssetStore } from './assets';
 import { BattleStore } from './battles';
 import { CatalogStore } from './catalog';
 import { CityStore } from './cities';
@@ -35,6 +37,8 @@ export interface Stores {
   players: PlayerStore;
   cities: CityStore;
   catalog: CatalogStore;
+  /** game images on the Inno CDN */
+  assets: AssetStore;
   resources: ResourceStore;
   inventory: InventoryStore;
   research: ResearchStore;
@@ -69,6 +73,7 @@ export function createStores(
     players: new PlayerStore(bus, playerPersistence(call), now),
     cities,
     catalog: new CatalogStore(bus),
+    assets: new AssetStore(bus, assetPersistence(call)),
     resources: new ResourceStore(bus),
     inventory: new InventoryStore(bus),
     research: new ResearchStore(bus),

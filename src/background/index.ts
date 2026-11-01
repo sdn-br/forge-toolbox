@@ -62,7 +62,15 @@ const dispatch = profileDispatch({
   open: openDb,
   prepare: (profile, db) => adoptLegacy(profile, db, storage),
   watch: (profile, db) => watchBackupTables(db, () => signal.rowsChanged(profile)),
-  deps: { now: Date.now },
+  deps: {
+    now: Date.now,
+    // the host permission for the Inno CDN lets the service worker read the game's script past CORS
+    fetchText: async (url) => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`${url} answered ${res.status}`);
+      return res.text();
+    },
+  },
   logError,
 });
 

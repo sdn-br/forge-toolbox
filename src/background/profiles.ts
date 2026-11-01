@@ -1,9 +1,8 @@
 // The service worker serves every profile from its own database: opened on the first call of the profile, then kept.
-import type { FoestatsDeps } from '../persistence/foestats/worker';
 import { isProfile, type Profile, profileDbName } from '../shared/profile';
 import type { BackgroundApi, Handlers, Method, RpcRequest, RpcResponse } from '../shared/rpc';
 import type { ToolboxDb } from './db';
-import { createHandlers } from './handlers';
+import { createHandlers, type HandlerDeps } from './handlers';
 
 export interface ProfileEnv {
   open: (name: string) => ToolboxDb;
@@ -11,7 +10,7 @@ export interface ProfileEnv {
   prepare: (profile: Profile, db: ToolboxDb) => Promise<void>;
   /** runs once per database after the takeover, before its first handler: the hooks of the persisted signal */
   watch: (profile: Profile, db: ToolboxDb) => void;
-  deps: FoestatsDeps;
+  deps: HandlerDeps;
   logError: (what: string, error: unknown) => void;
 }
 

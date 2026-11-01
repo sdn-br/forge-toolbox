@@ -4,9 +4,11 @@ import { AUTO_OPEN, SHOW_ARMY } from '../src/content/features/sabotage';
 import { sabotageFeature } from '../src/content/features/sabotage/index';
 import type { BuildingDef } from '../src/content/model/catalog';
 import type { Building } from '../src/content/model/city';
+import { AssetStore } from '../src/content/stores/assets';
 import { type BattlePersistence, BattleStore } from '../src/content/stores/battles';
 import type { VisitedCity } from '../src/content/stores/cities';
 import type { PlayerObservation } from '../src/content/stores/players';
+import { type AssetIndex, unitPortraitPath } from '../src/shared/cdn-assets';
 import { buildingDefId, eraId, guildId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { AttackTimer, FoughtBattle, IncomingAttack, Plunder } from '../src/shared/model';
 import { featureContext } from './helpers/feature-context';
@@ -48,7 +50,7 @@ const plunder = (opponent: number, at: number, change: Partial<Plunder> = {}): P
   ...change,
 });
 
-function setup() {
+function setup(assetIndex?: AssetIndex) {
   // both lookups of a player wait for the same answer: the last battle and the last fought one
   const waiting = new Map<PlayerId, ((battle: FoughtBattle) => void)[]>();
   const wait = (opponent: PlayerId) =>
@@ -68,7 +70,10 @@ function setup() {
     prune: async () => 0,
   };
   const env = featureContext({
-    overrides: ({ bus, world }) => ({ battles: new BattleStore(bus, world, persistence) }),
+    overrides: ({ bus, world }) => ({
+      battles: new BattleStore(bus, world, persistence),
+      ...(assetIndex && { assets: new AssetStore(bus, { index: async () => assetIndex }) }),
+    }),
   });
   sabotageFeature.setup(env.ctx);
   boxesOfTest.push(...env.boxes.values());
@@ -463,6 +468,23 @@ describe('sabotage feature', () => {
     expect(details.open).toBe(true);
     expect(details.textContent).toContain('feudal_knight');
     expect(details.textContent).not.toContain('Angriff / Verteidigung');
+  });
+
+  it('draws the unit portraits of the last battle once the asset index arrives', async () => {
+    const { ctx, box, latest } = setup({ [unitPortraitPath('rogue')]: 'abc' });
+    ctx.catalog.setUnitTypes([{ id: 'rogue', assetName: 'rogue', name: 'Agent' }]);
+    ctx.cities.setVisited(city(1));
+    await tick();
+    latest.get(playerId(1))?.({
+      ...battle(1, 111),
+      attacker: { bonuses: {}, units: [{ unitTypeId: 'rogue', startHp: 10, endHp: 10 }] },
+    });
+    await tick();
+    expect(box.root.querySelector('details img')).toBeNull();
+    await ctx.assets.load('https://foede.innogamescdn.com/cache/ForgeHX-1.js');
+    expect(box.root.querySelector('details img')?.getAttribute('src')).toBe(
+      'https://foede.innogamescdn.com/assets/shared/unit_portraits/armyuniticons_50x50/armyuniticons_50x50_rogue-abc.jpg',
+    );
   });
 
   it('shows the attack line of the visited player and follows player updates and shields', async () => {

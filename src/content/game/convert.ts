@@ -297,6 +297,7 @@ export function toCityGrid(json: unknown): CityGrid | null {
 
 interface GameUnitType {
   unitTypeId?: unknown;
+  unitAssetName?: unknown;
   name?: unknown;
   minEra?: unknown;
   unitClass?: unknown;
@@ -313,6 +314,7 @@ export function toUnitTypes(json: unknown): UnitType[] {
           {
             id: u.unitTypeId,
             name: u.name,
+            ...(typeof u.unitAssetName === 'string' && u.unitAssetName && { assetName: u.unitAssetName }),
             ...(typeof u.minEra === 'string' && u.minEra !== 'NoAge' && { era: eraId(u.minEra) }),
             ...(typeof u.unitClass === 'string' && { unitClass: u.unitClass }),
           },

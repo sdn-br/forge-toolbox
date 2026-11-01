@@ -43,12 +43,18 @@ describe('unit types', () => {
     types(unitTypes.json);
     expect(catalog.unitType('EarlyMiddleAge_champion')).toEqual({
       id: 'EarlyMiddleAge_champion',
+      assetName: 'bronzeage_champion',
       name: 'Held',
       era: 'EarlyMiddleAge',
       unitClass: 'fast',
     });
     // a unit of every era has none
-    expect(catalog.unitType('rogue')).toEqual({ id: 'rogue', name: 'Agent', unitClass: 'light_melee' });
+    expect(catalog.unitType('rogue')).toEqual({
+      id: 'rogue',
+      assetName: 'rogue',
+      name: 'Agent',
+      unitClass: 'light_melee',
+    });
     expect(catalog.unitType('unknown_unit')).toBeUndefined();
   });
 

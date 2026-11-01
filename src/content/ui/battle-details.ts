@@ -11,6 +11,8 @@ export interface UnitVm {
   hp: string;
   /** era and class of the unit type, for the tooltip of its cell */
   tip?: string;
+  /** the full URL of the unit's portrait on the Inno CDN; missing while unknown */
+  image?: string;
   dead: boolean;
 }
 
@@ -23,10 +25,22 @@ export interface BattleDetailsVm {
   army?: { own: ArmyValues; opponent: ArmyValues };
 }
 
-/** the unit, its hit points below it, so a narrow column never wraps a line */
+/** a portrait that does not load leaves no broken image behind */
+const hideBroken = (e: Event) => {
+  (e.target as HTMLElement).hidden = true;
+};
+
+/** the game's portrait beside the name; the name says what it shows, so it has no alt text */
+const portrait = (url: string | undefined) =>
+  url
+    ? html`<img class="unit-img" src=${url} alt="" width="24" height="24" loading="lazy" referrerpolicy="no-referrer"
+        @error=${hideBroken} />`
+    : nothing;
+
+/** the unit with its portrait, its hit points below it, so a narrow column never wraps a line */
 const unitCell = (u: UnitVm | undefined) =>
   u
-    ? html`<td class=${u.dead ? 'muted' : ''} data-tip=${u.tip ?? nothing}>${u.unit}<div class="hp">${u.hp}</div></td>`
+    ? html`<td class=${u.dead ? 'muted' : ''} data-tip=${u.tip ?? nothing}><div class="unit">${portrait(u.image)}<div>${u.unit}<div class="hp">${u.hp}</div></div></div></td>`
     : html`<td></td>`;
 
 /** the head of a side: its word, below it the measured army; the label of the values is the tooltip */

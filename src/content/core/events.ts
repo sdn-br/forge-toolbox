@@ -18,6 +18,8 @@ export interface ToolboxEvents {
   /** the selection of buildings in the own city changed */
   'selection.changed': Record<string, never>;
   'catalog.updated': { defs: BuildingDefId[] };
+  /** the asset index of the game arrived; boxes with game images draw again */
+  'assets.loaded': Record<string, never>;
   /** the main city grid arrived */
   'catalog.grid': Record<string, never>;
   /** the resources of the player changed */

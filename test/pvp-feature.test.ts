@@ -678,6 +678,18 @@ describe('pvp feature', () => {
       expect(box.root.querySelector('.side-drawer')).toBeNull();
     });
 
+    it('draws the unit portraits in the side panel again once the asset index arrives', async () => {
+      const { box, row, ctx } = await shown();
+      row(0).click();
+      expect(box.root.querySelector('.side-panel img')).toBeNull();
+      ctx.catalog.setUnitTypes([{ id: 'rogue', assetName: 'rogue', name: 'Agent' }]);
+      vi.spyOn(ctx.assets, 'url').mockImplementation((path) =>
+        path.endsWith('_rogue.jpg') ? 'https://cdn/rogue.jpg' : undefined,
+      );
+      ctx.bus.emit('assets.loaded', {});
+      expect(box.root.querySelector('.side-panel img')?.getAttribute('src')).toBe('https://cdn/rogue.jpg');
+    });
+
     it('shows the tab only while a battle is selected, the tab folds the panel and keeps the selection', async () => {
       const { box, row } = await shown();
       expect(box.root.querySelector('.side-drawer')).toBeNull();

@@ -101,6 +101,11 @@ header button svg { display: block; width: 16px; height: 16px; }
 textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
 .battle p { margin: 2px 0 4px; }
 .battle .army { white-space: nowrap; font-weight: normal; }
+/* the portrait spans the name and the hit points below it; a fallen unit's fades like its text */
+.battle .unit { display: flex; align-items: center; gap: 4px; }
+.battle .unit-img { flex: none; width: 24px; height: 24px; border-radius: 3px; }
+.battle .unit-img[hidden] { display: none; }
+.battle .muted .unit-img { opacity: .45; filter: grayscale(1); }
 details { margin: 6px 0; }
 summary { cursor: pointer; color: var(--accent); }
 .name-search { position: relative; display: inline-block; vertical-align: middle; }
