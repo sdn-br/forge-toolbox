@@ -36,8 +36,10 @@ export const OPEN_WITH_ARMY = toggleDef({
   default: true,
 });
 
+/** room beyond the least widths, for longer names and, on the attacks on the own city, the kind (Nutzer, 2026-11-01) */
+const NAME_ROOM = 120;
 /** the battles table, the body padding 16, the two scroll buttons with their gap 26 and 20 for the cell padding */
-const WIDTH = BATTLES_MIN_WIDTH + 16 + 26 + 20;
+const WIDTH = BATTLES_MIN_WIDTH + 16 + 26 + 20 + NAME_ROOM;
 /** rows in view: the box has a fixed size, its height follows from them (Nutzer, 2026-11-01) */
 export const VISIBLE_ROWS = 12;
 /** a window loads this many times the rows that fit, from one window above it, so scrolling reads only now and then */

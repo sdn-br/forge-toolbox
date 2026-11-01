@@ -233,6 +233,8 @@ describe('pvp feature', () => {
     expect(box.text).toContain('1 Angriff, 0 Plünderungen');
     expect(box.text).toContain('555');
     expect(box.text).toContain('Kampf: durchbrochen');
+    // a cut kind shows whole in its tooltip
+    expect(box.root.querySelector('td[data-tip="Kampf: durchbrochen"]')).not.toBeNull();
     expect(box.text).not.toContain('111');
     expect(box.text).not.toContain('FP');
     // the sack filter belongs to the battles

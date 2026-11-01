@@ -5,7 +5,7 @@ import { listView, noteMarker, opponentCell, type PvpActions, rowsShown } from '
 import type { IncomingRow, IncomingVm } from './view-model';
 
 const row = (r: IncomingRow, actions: PvpActions) => html`<tr>
-  ${noteMarker(r.opponent, r.note, actions)}${opponentCell(r, actions)}<td>${r.when}</td><td>${r.what}</td></tr>`;
+  ${noteMarker(r.opponent, r.note, actions)}${opponentCell(r, actions)}<td>${r.when}</td><td data-tip=${r.what}>${r.what}</td></tr>`;
 
 const table = (vm: IncomingVm, window: RowWindow, actions: PvpActions) => html`<table class="pvp-table pvp-incoming">
     <colgroup><col class="c-note" /><col /><col class="c-when" /><col /></colgroup>
