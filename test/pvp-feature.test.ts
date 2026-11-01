@@ -2,13 +2,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { toggleDef } from '../src/content/core/settings';
 import { OPEN_WITH_ARMY } from '../src/content/features/pvp';
-import { pvpFeature } from '../src/content/features/pvp/index';
+import { pvpFeature, VISIBLE_ROWS } from '../src/content/features/pvp/index';
 import { KEEP_SETTING } from '../src/content/features/pvp/retention';
 import { type BattlePersistence, type BattleQuery, BattleStore } from '../src/content/stores/battles';
 import { type IncomingPersistence, IncomingStore } from '../src/content/stores/incoming';
 import type { PlayerObservation } from '../src/content/stores/players';
 import { type PlunderPersistence, PlunderStore } from '../src/content/stores/plunders';
-import { FALLBACK_ROWS } from '../src/content/ui/fit-rows';
 import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
 import type { BattleWithPlunder, FoughtBattle, IncomingAttack, Plunder } from '../src/shared/model';
 import { featureContext } from './helpers/feature-context';
@@ -105,8 +104,8 @@ afterEach(() => vi.useRealTimers());
 
 const OTHER = toggleDef({ key: 'other.setting', group: 'pvp.title', label: 'pvp.title', default: false });
 
-/** the visible rows the window draws without a measured area (ui/fit-rows.ts) */
-const VISIBLE = FALLBACK_ROWS;
+/** the fixed number of rows the window draws */
+const VISIBLE = VISIBLE_ROWS;
 /** what a load asks for: a window above and below the one in view */
 const SLICE = 3 * VISIBLE;
 
@@ -156,9 +155,10 @@ describe('pvp feature', () => {
     expect(box.updates.length - updatesBefore).toBe(1);
   });
 
-  it('fills the box and leaves out the paging', () => {
+  it('has a fixed size without the resize handle and leaves out the paging', () => {
     const { box } = setup();
-    expect(box.options).toMatchObject({ fill: true, resizable: true });
+    expect(box.options.resizable).toBeFalsy();
+    expect(box.options.fill).toBeFalsy();
     expect(box.text).not.toContain('Seite');
   });
 
@@ -555,20 +555,21 @@ describe('pvp feature', () => {
       expect(lists[0]?.query).toMatchObject({ offset: 0, limit: SLICE });
       lists[0]?.resolve(Array.from({ length: SLICE }, (_, i) => battle(i + 1, 1000 + i)));
       await tick();
-      expect(box.text).toContain('noch 80 weitere unten');
+      expect(box.text).toContain(`noch ${100 - VISIBLE} weitere unten`);
       expect(box.root.querySelectorAll('tr.battle-row')).toHaveLength(VISIBLE);
 
       // inside the loaded slice the window reads nothing
-      for (let i = 0; i < 40; i++) box.click('Nach unten');
+      const last = SLICE - VISIBLE;
+      for (let i = 0; i < last; i++) box.click('Nach unten');
       await tick();
       expect(lists).toHaveLength(1);
-      expect(box.text).toContain('1040');
-      expect(box.text).not.toContain('1039');
+      expect(box.text).toContain(String(1000 + last));
+      expect(box.text).not.toContain(String(999 + last));
 
       box.click('Nach unten');
       await tick();
       expect(lists).toHaveLength(2);
-      expect(lists[1]?.query).toMatchObject({ offset: 41 - VISIBLE, limit: SLICE });
+      expect(lists[1]?.query).toMatchObject({ offset: last + 1 - VISIBLE, limit: SLICE });
 
       type(box, 'x');
       await tick();
@@ -754,7 +755,7 @@ describe('pvp feature', () => {
       lists.at(-1)?.resolve(Array.from({ length: SLICE }, (_, i) => fought(i + 1, 1000 + i)));
       await tick();
       expect(box.root.querySelectorAll('tr.battle-row')).toHaveLength(VISIBLE);
-      expect(box.text).toContain('noch 80 weitere unten');
+      expect(box.text).toContain(`noch ${100 - VISIBLE} weitere unten`);
       expect(box.root.querySelector('tr.battle-row.selected')).toBeNull();
     });
 

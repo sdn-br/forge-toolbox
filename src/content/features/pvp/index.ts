@@ -4,7 +4,6 @@ import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
-import { rowFit } from '../../ui/fit-rows';
 import { icons } from '../../ui/icons';
 import { PlayerNoteCard } from '../../ui/note-card';
 import { rowWindow } from '../../ui/windowed-rows';
@@ -39,11 +38,8 @@ export const OPEN_WITH_ARMY = toggleDef({
 
 /** the battles table, the body padding 16, the two scroll buttons with their gap 26 and 20 for the cell padding */
 const WIDTH = BATTLES_MIN_WIDTH + 16 + 26 + 20;
-/** the height the box needs for what always shows, so the table area keeps room for rows: border 4 + header 29 + body
- * padding 12 + tabs 32 + filter row 46 + totals line 31 + head row 22 + two rows 2 x 23 + the line of hidden rows 21 =
- * 243, rounded up. Worked out from the styles like the investments, not measured.
- * debt: kept by hand. ceiling: a wrapping filter row or the note card take more; the area then holds fewer rows */
-const MIN_HEIGHT = 250;
+/** rows in view: the box has a fixed size, its height follows from them (Nutzer, 2026-11-01) */
+export const VISIBLE_ROWS = 12;
 /** a window loads this many times the rows that fit, from one window above it, so scrolling reads only now and then */
 const SLICE_WINDOWS = 3;
 
@@ -83,8 +79,6 @@ export const pvpFeature: Feature = {
     const players = () => ctx.players.list().filter((p) => p.world === ctx.world);
     /** the name a row shows for the player, so the field names them */
     const nameOf = (id: PlayerId) => ctx.players.get(id)?.name || String(id);
-    /** how many rows fit into the table area; a change redraws */
-    const fit = rowFit(() => box.update());
 
     // loads the totals of the active tab and a slice of its rows around the window
     const refresh = async () => {
@@ -92,7 +86,7 @@ export const pvpFeature: Feature = {
       const current = ++query;
       const opponents = opponentsFor(filter, players());
       opponentsShown = opponents;
-      const visible = fit.rows();
+      const visible = VISIBLE_ROWS;
       requested = { offset: Math.max(0, top - visible), limit: SLICE_WINDOWS * visible };
       const { build, battles } = await sections[tab].load(
         { opponents, withPlunder: filter.withPlunder },
@@ -184,7 +178,6 @@ export const pvpFeature: Feature = {
         top += rows;
         box.update();
       },
-      measure: fit.measure,
     };
 
     const render = () => {
@@ -192,7 +185,7 @@ export const pvpFeature: Feature = {
       const note = picked === undefined ? undefined : card.render(picked, ctx.players.get(picked)?.name);
       const side = selected && lastInput && { open: panelOpen, selected: battlePanelVm(selected, lastInput) };
       if (!vm) return pvpView(tab, filter, undefined, actions, note, side);
-      const visible = fit.rows();
+      const visible = VISIBLE_ROWS;
       const rows = rowWindow(top, vm.total, visible);
       top = rows.top;
       // the window left the slice asked for: load the slice around it; a list shorter than asked ends there
@@ -207,12 +200,7 @@ export const pvpFeature: Feature = {
       settings: 'pvp.title',
       title: () => t('pvp.title'),
       width: WIDTH,
-      // the lists grow with every battle; the height is the viewer's. It starts tall, since the rows that fit are
-      // counted in the height the box gives the table
-      resizable: true,
-      fill: true,
-      defaultSize: (win) => ({ width: WIDTH, height: Math.min(win.height * 0.7, 600) }),
-      minHeight: MIN_HEIGHT,
+      // a fixed size: the width of the table, the height of a fixed number of rows; resizing would add nothing
       render,
     });
     const card = new PlayerNoteCard(ctx.notes, () => box.update());

@@ -19,9 +19,8 @@ export const BATTLES_MIN_WIDTH = NOTE + NAME + WHEN + RESULT + LOOT + BATTLE;
 export const pvpCss = `
 /* the list and, popped out, the side panel in a row; docked the panel hangs out of the box (ui/side-drawer.ts) */
 .pvp-layout { display: flex; align-items: stretch; gap: 6px; }
-/* the pane fills the body (BoxOptions.fill): tabs, filters, note card and totals stay, the table area holds as many
-   rows as fit (ui/fit-rows.ts), the two buttons beside it scroll them, sideways the area scrolls when the box is
-   narrower than the table */
+/* tabs, filters, note card and totals, then the table area with a fixed number of rows (VISIBLE_ROWS); the two
+   buttons beside it scroll them */
 .pvp-pane { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 .pvp-pane > :not(.pvp-win) { flex: none; }
 .pvp-win { flex: 1 1 auto; min-height: 0; }

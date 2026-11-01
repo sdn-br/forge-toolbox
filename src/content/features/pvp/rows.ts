@@ -82,8 +82,6 @@ export interface PvpActions extends Pick<PvpRowActions, 'plunderPlayer' | 'noAtt
   note(opponent: PlayerId): void;
   /** moves the row window by rows, down for positive */
   scroll(rows: number): void;
-  /** gets the table area on every render, to measure how many rows fit */
-  measure(area: Element | undefined): void;
 }
 
 /** what a tab turns into its view model besides the rows it loaded */
@@ -185,5 +183,5 @@ export function listView(
 ) {
   const totals = html`<p class="pvp-totals">${vm.totals}</p>`;
   if (vm.empty) return html`${totals}<p class="muted">${t(empty[vm.empty])}</p>`;
-  return html`${totals}${windowedRows({ cls: 'pvp-win', table, window, scroll: actions.scroll, measure: actions.measure })}`;
+  return html`${totals}${windowedRows({ cls: 'pvp-win', table, window, scroll: actions.scroll })}`;
 }
