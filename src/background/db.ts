@@ -1,6 +1,7 @@
 import Dexie from 'dexie';
 import type { AssetsTables } from '../persistence/assets/worker';
 import type { BattlesTables } from '../persistence/battles/worker';
+import type { BuildingDefsTables } from '../persistence/building-defs/worker';
 import type { FoestatsTables } from '../persistence/foestats/worker';
 import type { GreatBuildingsTables } from '../persistence/great-buildings/worker';
 import type { IncomingTables } from '../persistence/incoming/worker';
@@ -21,7 +22,8 @@ export type ToolboxDb = Dexie &
   ShieldsTables &
   GreatBuildingsTables &
   FoestatsTables &
-  AssetsTables;
+  AssetsTables &
+  BuildingDefsTables;
 
 /** The whole version history lives here; the domains in src/persistence only bring their tables. */
 export function openDb(name = 'forge-toolbox'): ToolboxDb {
@@ -89,6 +91,10 @@ export function openDb(name = 'forge-toolbox'): ToolboxDb {
   // the asset index of the game's script by its URL, only the newest; no world, not in the backup
   db.version(14).stores({
     assetIndexes: 'script',
+  });
+  // the metadata files of building definitions the toolbox loaded itself, one per id; no world, not in the backup
+  db.version(15).stores({
+    buildingDefFiles: 'id',
   });
   return db;
 }

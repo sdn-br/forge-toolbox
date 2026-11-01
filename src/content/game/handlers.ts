@@ -8,7 +8,7 @@ import type { Building } from '../model/city';
 import type { GreatBuildingEntity, RankingRow } from '../model/great-building';
 import type { Stores } from '../stores';
 import type { PlayerObservation } from '../stores/players';
-import { toBuildingDef } from './building-defs';
+import { toBuildingDef, toBuildingFiles } from './building-defs';
 import {
   armyBattleType,
   greatBuildingOf,
@@ -324,7 +324,10 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     updateBuildings({ data: (data as { updatedEntities?: unknown } | null)?.updatedEntities });
   });
   ingestion.onMeta('building_entity_', (file) => {
-    if (file.name === 'building_entity_lookup') return;
+    if (file.name === 'building_entity_lookup') {
+      catalog.setBuildingFiles(toBuildingFiles(file.json));
+      return;
+    }
     const def = toBuildingDef(file.json);
     if (def) catalog.add(def);
   });

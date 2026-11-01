@@ -1,6 +1,7 @@
 // All stores of one world, built in one place: a new store touches this file and nothing else in the wiring.
 import { assetPersistence } from '../../persistence/assets/client';
 import { battlePersistence } from '../../persistence/battles/client';
+import { buildingDefLoader } from '../../persistence/building-defs/client';
 import { foestatsPersistence } from '../../persistence/foestats/client';
 import { greatBuildingPersistence } from '../../persistence/great-buildings/client';
 import { incomingPersistence } from '../../persistence/incoming/client';
@@ -72,7 +73,7 @@ export function createStores(
     session: new SessionStore(bus),
     players: new PlayerStore(bus, playerPersistence(call), now),
     cities,
-    catalog: new CatalogStore(bus),
+    catalog: new CatalogStore(bus, buildingDefLoader(call)),
     assets: new AssetStore(bus, assetPersistence(call)),
     resources: new ResourceStore(bus),
     inventory: new InventoryStore(bus),

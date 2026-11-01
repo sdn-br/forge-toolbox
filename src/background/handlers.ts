@@ -1,6 +1,7 @@
 import { type AssetsDeps, assetsHandlers } from '../persistence/assets/worker';
 import { backupHandlers } from '../persistence/backup/worker';
 import { battlesHandlers } from '../persistence/battles/worker';
+import { buildingDefsHandlers } from '../persistence/building-defs/worker';
 import { type FoestatsDeps, foestatsHandlers } from '../persistence/foestats/worker';
 import { greatBuildingsHandlers } from '../persistence/great-buildings/worker';
 import { incomingHandlers } from '../persistence/incoming/worker';
@@ -27,5 +28,6 @@ export function createHandlers(db: ToolboxDb, deps: HandlerDeps): Handlers<Backg
     ...foestatsHandlers(db, deps),
     ...backupHandlers(db, deps),
     ...assetsHandlers(db, deps),
+    ...buildingDefsHandlers(db, deps),
   };
 }
