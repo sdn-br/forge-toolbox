@@ -37,10 +37,12 @@ describe('battle details', () => {
   it('shows both sides unit by unit with their hit points before and after', () => {
     const vm = battleDetails(battle());
     expect(vm.own).toEqual([
-      { unit: 'rogue', tip: 'rogue\nLP: 8 / 10', health: 0.8, dead: false },
-      { unit: 'grenadier', tip: 'grenadier\nLP: 0 / 10', health: 0, dead: true },
+      { unit: 'rogue', tip: 'Einheit: rogue\nLP: 8/10', health: 0.8, dead: false },
+      { unit: 'grenadier', tip: 'Einheit: grenadier\nLP: 0/10', health: 0, dead: true },
     ]);
-    expect(vm.opponent).toEqual([{ unit: 'feudal_knight', tip: 'feudal_knight\nLP: 0 / 10', health: 0, dead: true }]);
+    expect(vm.opponent).toEqual([
+      { unit: 'feudal_knight', tip: 'Einheit: feudal_knight\nLP: 0/10', health: 0, dead: true },
+    ]);
   });
 
   it('sums up result, kind and rounds', () => {
@@ -67,7 +69,10 @@ describe('battle details', () => {
     const sides = [...root.querySelectorAll('td')].map((td) =>
       [...td.querySelectorAll('.unit-tile')].map((tile) => tile.getAttribute('data-tip')),
     );
-    expect(sides).toEqual([['rogue\nLP: 8 / 10', 'grenadier\nLP: 0 / 10'], ['feudal_knight\nLP: 0 / 10']]);
+    expect(sides).toEqual([
+      ['Einheit: rogue\nLP: 8/10', 'Einheit: grenadier\nLP: 0/10'],
+      ['Einheit: feudal_knight\nLP: 0/10'],
+    ]);
     expect(root.textContent).toContain('gewonnen, Autokampf, 3 Runden');
   });
 
@@ -85,14 +90,14 @@ describe('battle details', () => {
     const recorded = toBattle(worldId('de20'), start, playerId(fixture.me)) as FoughtBattle;
     const vm = battleDetails(recorded);
     expect(vm.own.map((u) => `${u.unit} ${u.tip.split('\n').at(-1)}`)).toEqual([
-      'grenadier LP: 4 / 10',
-      'grenadier LP: 10 / 10',
-      'rogue LP: 10 / 10',
-      'rogue LP: 8 / 10',
-      'rogue LP: 10 / 10',
-      'rogue LP: 10 / 10',
-      'rogue LP: 10 / 10',
-      'rogue LP: 10 / 10',
+      'grenadier LP: 4/10',
+      'grenadier LP: 10/10',
+      'rogue LP: 10/10',
+      'rogue LP: 8/10',
+      'rogue LP: 10/10',
+      'rogue LP: 10/10',
+      'rogue LP: 10/10',
+      'rogue LP: 10/10',
     ]);
     expect(vm.opponent).toHaveLength(8);
     expect(vm.opponent.every((u) => u.dead)).toBe(true);
@@ -105,7 +110,7 @@ describe('battle details', () => {
       id === 'rogue' ? { name: 'Agent', era: 'Kolonialzeit', unitClass: 'light_melee' } : undefined;
     render(battleDetailsView(battleDetails(battle(), { unit })), root);
     const tips = [...root.querySelectorAll('.unit-tile')].map((tile) => tile.getAttribute('data-tip'));
-    expect(tips[0]).toBe('Agent (Kolonialzeit)\nTyp: Leichte Einheit\nLP: 8 / 10');
-    expect(tips[1]).toBe('grenadier\nLP: 0 / 10');
+    expect(tips[0]).toBe('Einheit: Agent\nZeitalter: Kolonialzeit\nTyp: Leichte Einheit\nLP: 8/10');
+    expect(tips[1]).toBe('Einheit: grenadier\nLP: 0/10');
   });
 });

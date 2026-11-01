@@ -75,10 +75,10 @@ describe('unit types', () => {
       unit: catalogUnits(catalog),
     });
     expect(vm.own.map((u) => [u.unit, u.tip])).toEqual([
-      ['Held', 'Held (Arktische Zukunft)\nTyp: Schwere Einheit\nLP: 10 / 10'],
-      ['Agent', 'Agent\nTyp: Leichte Einheit\nLP: 10 / 10'],
-      ['Sonderling', 'Sonderling\nLP: 10 / 10'],
-      ['unknown_unit', 'unknown_unit\nLP: 10 / 10'],
+      ['Held', 'Einheit: Held\nZeitalter: Arktische Zukunft\nTyp: Schwere Einheit\nLP: 10/10'],
+      ['Agent', 'Einheit: Agent\nTyp: Leichte Einheit\nLP: 10/10'],
+      ['Sonderling', 'Einheit: Sonderling\nLP: 10/10'],
+      ['unknown_unit', 'Einheit: unknown_unit\nLP: 10/10'],
     ]);
   });
 });

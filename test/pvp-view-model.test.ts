@@ -149,7 +149,7 @@ describe('pvp view model', () => {
       inferred: false,
       details: {
         summary: 'Autokampf, 2 Runden',
-        own: [{ unit: 'Agent', tip: 'Agent\nTyp: Leichte Einheit\nLP: 8 / 10', health: 0.8, dead: false }],
+        own: [{ unit: 'Agent', tip: 'Einheit: Agent\nTyp: Leichte Einheit\nLP: 8/10', health: 0.8, dead: false }],
         army: { own: { attack: 368, defense: 269 }, opponent: { attack: 406, defense: 443 } },
       },
       plunder: {

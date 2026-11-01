@@ -42,10 +42,12 @@ export const catalogUnits =
     };
   };
 
-/** "Ronin-Bot (Virtuelle Zukunft)", "Typ: Schwere Einheit", "LP: 9 / 10"; era and class only when known */
+/** "Einheit: Ninja", "Zeitalter: Arktische Zukunft", "Typ: Schnelle Einheit", "LP: 10/10"; era and class only when
+ * known */
 const unitTip = (name: string, info: UnitInfo, u: BattleUnit): string =>
   [
-    info.era ? `${name} (${info.era})` : name,
+    t('unit.name', { name }),
+    ...(info.era ? [t('unit.era', { era: info.era })] : []),
     ...(info.unitClass ? [t('unit.class', { name: t(`unit.class.${info.unitClass}` as TextKey) })] : []),
     t('battle.hp', { end: formatNumber(u.endHp), start: formatNumber(u.startHp) }),
   ].join('\n');

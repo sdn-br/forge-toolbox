@@ -656,7 +656,7 @@ describe('pvp feature', () => {
       expect(panel(box)).toContain('222');
       expect(panel(box)).toContain('Deine Einheiten');
       const tips = [...box.root.querySelectorAll('.side-panel .unit-tile')].map((u) => u.getAttribute('data-tip'));
-      expect(tips).toEqual(['rogue\nLP: 8 / 10', 'feudal_knight\nLP: 0 / 10']);
+      expect(tips).toEqual(['Einheit: rogue\nLP: 8/10', 'Einheit: feudal_knight\nLP: 0/10']);
       expect(panel(box)).toContain('Autokampf, 1 Runde');
       expect(panel(box)).not.toContain('gewonnen');
       const outcome = box.root.querySelector('.side-panel .pvp-outcome');

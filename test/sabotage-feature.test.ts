@@ -458,7 +458,7 @@ describe('sabotage feature', () => {
     expect(details.open).toBe(false);
     expect(details.querySelector('summary')?.textContent).toMatch(/Letzter Kampf heute \d\d:\d\d: verloren/);
     expect(details.textContent).toContain('verloren, manuell, 4 Runden');
-    expect(details.querySelector('[data-tip="feudal_knight\nLP: 3 / 10"]')).not.toBeNull();
+    expect(details.querySelector('[data-tip="Einheit: feudal_knight\nLP: 3/10"]')).not.toBeNull();
     expect(details.textContent).toContain('0 % / 111 %');
 
     details.open = true;
