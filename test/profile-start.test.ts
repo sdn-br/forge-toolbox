@@ -119,6 +119,6 @@ describe('background call', () => {
 
   it('turns an error answer into a rejection', async () => {
     vi.stubGlobal('chrome', { runtime: { id: 'x', sendMessage: async () => ({ ok: false, error: 'nope' }) } });
-    await expect(backgroundCall(profile)('battles.count', { world: de20 })).rejects.toThrow('nope');
+    await expect(backgroundCall(profile)('battles.summary', { world: de20 })).rejects.toThrow('nope');
   });
 });

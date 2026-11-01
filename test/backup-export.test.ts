@@ -5,7 +5,7 @@ import { type BackupSource, closeBackupSources, collectBackup, openBackupSources
 import { BACKUP_FORMAT, BACKUP_VERSION, backupFileName } from '../src/backup/format';
 import { gzipJson } from '../src/backup/gzip';
 import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
-import type { Battle, KnownGreatBuilding, NotePage, Player } from '../src/shared/model';
+import type { FoughtBattle, KnownGreatBuilding, NotePage, Player } from '../src/shared/model';
 
 const de20 = worldId('de20');
 const de10 = worldId('de10');
@@ -35,7 +35,7 @@ const player = (world: typeof de20, id: number, change: Partial<Player> = {}): P
   source: 'socialList',
   ...change,
 });
-const battle = (world: typeof de20, battleId: number, opponent: number): Battle => ({
+const battle = (world: typeof de20, battleId: number, opponent: number): FoughtBattle => ({
   world,
   battleId,
   at: 1,

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { visitedRecord } from '../src/content/features/sabotage/visited-record';
 import type { VisitedCity } from '../src/content/stores/cities';
 import { type ShieldPersistence, ShieldStore } from '../src/content/stores/shields';
@@ -116,5 +116,28 @@ describe('record of the visited player', () => {
     }
     expect(errors).toEqual([]);
     expect(record.current(playerId(1)).shield).toEqual(shield(1));
+  });
+
+  it('reloads the last battle after a plunder, which may bring an inferred one, but not the last fought one', async () => {
+    const { ctx, record } = setup();
+    ctx.cities.setVisited(city(1));
+    await tick();
+    expect(record.current(playerId(1)).lastBattle).toBeUndefined();
+    const fought = vi.spyOn(ctx.battles, 'latestFought');
+
+    ctx.plunders.record({
+      world,
+      at: 5000,
+      opponent: playerId(1),
+      outcome: 'repelled',
+      resources: {},
+      doubleLoot: false,
+    });
+    await ctx.plunders.latest(playerId(1));
+    await tick();
+    await tick();
+    expect(record.current(playerId(1)).lastBattle).toMatchObject({ inferred: true, at: 5000 });
+    expect(record.current(playerId(1)).lastFought).toBeUndefined();
+    expect(fought).not.toHaveBeenCalled();
   });
 });

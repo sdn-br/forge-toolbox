@@ -5,9 +5,13 @@ import { playerRowsClient } from '../player-rows-client';
 
 /** Persistence through the service worker, which owns the database. */
 export function battlePersistence(call: Call): BattlePersistence {
+  const rows = playerRowsClient<Battle>(call, 'battles');
   return {
-    ...playerRowsClient<Battle>(call, 'battles'),
+    latest: rows.latest,
+    prune: rows.prune,
     put: (rows) => call('battles.put', { rows }),
-    count: (world, opponents) => call('battles.count', { world, opponents }),
+    list: (world, query) => call('battles.list', { world, ...query }),
+    summary: (world, filter) => call('battles.summary', { world, ...filter }),
+    latestFought: async (world, opponent) => (await call('battles.latestFought', { world, opponent })) ?? undefined,
   };
 }

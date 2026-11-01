@@ -8,7 +8,7 @@ import type { GameBattle, GameBattleState } from '../src/content/game/game-types
 import { registerGameHandlers } from '../src/content/game/handlers';
 import { BattleStore } from '../src/content/stores/battles';
 import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
-import type { Battle } from '../src/shared/model';
+import type { FoughtBattle } from '../src/shared/model';
 import fixture from './fixtures/pvp-battle.json';
 import manual from './fixtures/pvp-manual-battle.json';
 import { testStores } from './helpers/stores';
@@ -43,7 +43,7 @@ const batchWith = (change: Partial<GameBattle>, state: NonNullable<GameBattle['s
 };
 
 const side = (bonuses: Record<string, number> = {}) => ({ bonuses, units: [] });
-const battle = (battleId: number, at: number, opp = 1001, w = world): Battle => ({
+const battle = (battleId: number, at: number, opp = 1001, w = world): FoughtBattle => ({
   world: w,
   battleId,
   at,
@@ -60,7 +60,7 @@ describe('recording battles', () => {
   it('records a PvP battle the session player attacked in', async () => {
     const { battles, players, recorded, send } = setup();
     send(fixture.batch);
-    const b = await battles.latest(opponent);
+    const b = await battles.latestFought(opponent);
     expect(b).toMatchObject({
       world,
       battleId: 5001,
@@ -90,7 +90,7 @@ describe('recording battles', () => {
   it('derives the measured army values from the raw bonuses', async () => {
     const { battles, send } = setup();
     send(fixture.batch);
-    const b = await battles.latest(opponent);
+    const b = await battles.latestFought(opponent);
     expect(b && measuredArmy(b)).toEqual({
       attacker: { attack: 368, defense: 269 },
       defender: { attack: 406, defense: 443 },
@@ -100,35 +100,35 @@ describe('recording battles', () => {
   it('ignores battles that are not PvP', async () => {
     const { battles, recorded, send } = setup();
     send(batchWith({ battleType: { type: 'guild_expedition', era: 'ColonialAge' } }));
-    expect(await battles.count()).toBe(0);
+    expect((await battles.summary()).battles).toBe(0);
     expect(recorded).toEqual([]);
   });
 
   it('ignores battles where the session player is not the attacker', async () => {
     const other = setup(1001);
     other.send(fixture.batch);
-    expect(await other.battles.count()).toBe(0);
+    expect((await other.battles.summary()).battles).toBe(0);
     const noSession = setup(null);
     noSession.send(fixture.batch);
-    expect(await noSession.battles.count()).toBe(0);
+    expect((await noSession.battles.summary()).battles).toBe(0);
   });
 
   it('stores a battle seen twice once', async () => {
     const { battles, persistence, recorded, send } = setup();
     send(fixture.batch);
     send(fixture.batch);
-    expect(await battles.count()).toBe(1);
+    expect((await battles.summary()).battles).toBe(1);
     expect(recorded).toHaveLength(1);
     // a later session sees the same battle again
     const later = new BattleStore(createBus(), world, persistence);
-    later.record((await battles.latest(opponent)) as Battle);
-    expect(await later.count()).toBe(1);
+    later.record((await battles.latestFought(opponent)) as FoughtBattle);
+    expect((await later.summary()).battles).toBe(1);
   });
 
   it('counts a battle that ended in the first round, where the game omits the round, as one round', async () => {
     const { battles, send } = setup();
     send(batchWith({ battleId: 4 }, { surrenderBit: 1, winnerBit: undefined, round: undefined }));
-    expect((await battles.list({ limit: 1, offset: 0 }))[0]?.rounds).toBe(1);
+    expect(((await battles.list({ limit: 1, offset: 0 }))[0] as FoughtBattle | undefined)?.rounds).toBe(1);
   });
 
   it('maps lost and surrendered battles and skips battles without a result', async () => {
@@ -155,11 +155,11 @@ describe('recording manual battles', () => {
   it('records a manual battle once it ends, with auto false', async () => {
     const { battles, recorded, send } = setup(manual.me);
     send(manual.start);
-    expect(await battles.count()).toBe(0);
+    expect((await battles.summary()).battles).toBe(0);
     send(manual.end);
     send(manual.end);
-    expect(await battles.count()).toBe(1);
-    const b = await battles.latest(opponent);
+    expect((await battles.summary()).battles).toBe(1);
+    const b = await battles.latestFought(opponent);
     expect(b).toMatchObject({
       battleId: 5002,
       at: 1_792_438_262_000,
@@ -185,7 +185,7 @@ describe('recording manual battles', () => {
     const fromStart = setup(manual.me);
     fromStart.send(start);
     fromStart.send(manual.end);
-    expect((await fromStart.battles.latest(opponent))?.attacker.bonuses).toEqual({ attack_boost: 7 });
+    expect((await fromStart.battles.latestFought(opponent))?.attacker.bonuses).toEqual({ attack_boost: 7 });
 
     for (const u of startUnits) u.bonuses = [];
     const end = endWith({});
@@ -194,22 +194,22 @@ describe('recording manual battles', () => {
     const fromEnd = setup(manual.me);
     fromEnd.send(start);
     fromEnd.send(end);
-    expect((await fromEnd.battles.latest(opponent))?.attacker.bonuses).toEqual({ attack_boost: 9 });
+    expect((await fromEnd.battles.latestFought(opponent))?.attacker.bonuses).toEqual({ attack_boost: 9 });
   });
 
   it('keeps the battle pending while moves come without a result', async () => {
     const { battles, send } = setup(manual.me);
     send(manual.start);
     send(endWith({ winnerBit: undefined }));
-    expect(await battles.count()).toBe(0);
+    expect((await battles.summary()).battles).toBe(0);
     send(manual.end);
-    expect(await battles.count()).toBe(1);
+    expect((await battles.summary()).battles).toBe(1);
   });
 
   it('ignores a move without a pending battle', async () => {
     const { battles, send } = setup(manual.me);
     send(manual.end);
-    expect(await battles.count()).toBe(0);
+    expect((await battles.summary()).battles).toBe(0);
   });
 
   it('ignores a pending battle that is not PvP or not attacked by the session player', async () => {
@@ -218,11 +218,11 @@ describe('recording manual battles', () => {
     const a = setup(manual.me);
     a.send(pve);
     a.send(manual.end);
-    expect(await a.battles.count()).toBe(0);
+    expect((await a.battles.summary()).battles).toBe(0);
     const b = setup(1001);
     b.send(manual.start);
     b.send(manual.end);
-    expect(await b.battles.count()).toBe(0);
+    expect((await b.battles.summary()).battles).toBe(0);
   });
 
   it('replaces the pending battle with the next start', async () => {
@@ -242,7 +242,7 @@ describe('recording manual battles', () => {
     if (pve[0]) pve[0].responseData.battleType.type = 'guild_expedition';
     send(pve);
     send(manual.end);
-    expect(await battles.count()).toBe(0);
+    expect((await battles.summary()).battles).toBe(0);
   });
 });
 
@@ -264,8 +264,8 @@ describe('battle queries', () => {
     expect(await ids({ limit: 2, offset: 1 })).toEqual([3, 1]);
     expect(await ids({ opponents: [opponent], limit: 10, offset: 0 })).toEqual([3, 1]);
     expect(await ids({ opponents: [], limit: 10, offset: 0 })).toEqual([]);
-    expect(await battles.count()).toBe(3);
-    expect(await battles.count([playerId(1002)])).toBe(1);
+    expect((await battles.summary()).battles).toBe(3);
+    expect((await battles.summary({ opponents: [playerId(1002)] })).battles).toBe(1);
   });
 
   it('merges the battles of several opponents newest first and pages over the merge', async () => {
@@ -277,7 +277,7 @@ describe('battle queries', () => {
     expect(await ids([1001, 1002], 10, 0)).toEqual([2, 3, 1]);
     expect(await ids([1001, 1002, 1003, 1001], 2, 1)).toEqual([4, 3]);
     expect(await ids([1001, 1002], 1, 2)).toEqual([1]);
-    expect(await battles.count([playerId(1001), playerId(1002), playerId(1001)])).toBe(3);
+    expect((await battles.summary({ opponents: [playerId(1001), playerId(1002), playerId(1001)] })).battles).toBe(3);
   });
 
   it('announces recorded battles once per write, after it, with every opponent of it once', async () => {

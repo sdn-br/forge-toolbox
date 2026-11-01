@@ -166,7 +166,8 @@ describe('old toolbox data in the dialog', () => {
     const { env, dialog } = await setup({ legacy, data: true });
     dialog()?.click('Übernehmen');
     await settle();
-    expect(await env.db.db.battles.count()).toBe(4);
+    // with the inferred battles of the two plunders after a lost or surrendered battle
+    expect(await env.db.db.battles.count()).toBe(6);
     expect(await env.db.db.notePages.count()).toBe(5);
     expect(env.reloads).toBe(1);
   });

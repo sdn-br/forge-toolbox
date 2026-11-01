@@ -3,13 +3,13 @@ import { gzipJson } from '../../src/backup/gzip';
 import { areaCounts } from '../../src/backup/import';
 import type { CopyEntry } from '../../src/content/backup/backup-store';
 import { eraId, playerId, worldId } from '../../src/shared/ids';
-import type { Battle } from '../../src/shared/model';
+import type { FoughtBattle } from '../../src/shared/model';
 
 export const de20 = worldId('de20');
 /** the profile of the tests: de20 and player 1 */
 export const me = { world: de20, player: playerId(1) };
 
-export const battle = (battleId: number, opponent = 2): Battle => ({
+export const battle = (battleId: number, opponent = 2): FoughtBattle => ({
   world: de20,
   battleId,
   at: 1,

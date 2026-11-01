@@ -16,7 +16,8 @@ import {
   selectTables,
 } from '../src/backup/merge';
 import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
-import type { Battle, KnownGreatBuilding, NotePage, Player } from '../src/shared/model';
+import type { Battle, FoughtBattle, KnownGreatBuilding, NotePage, Player, Plunder } from '../src/shared/model';
+import { DAY_MS } from '../src/shared/time';
 
 const de20 = worldId('de20');
 const me = playerId(1);
@@ -37,7 +38,7 @@ const player = (id: number, change: Partial<Player> = {}): Player => ({
   source: 'socialList',
   ...change,
 });
-const battle = (battleId: number, opponent: number, change: Partial<Battle> = {}): Battle => ({
+const battle = (battleId: number, opponent: number, change: Partial<FoughtBattle> = {}): FoughtBattle => ({
   world: de20,
   battleId,
   at: 1,
@@ -322,7 +323,7 @@ describe('importBackup', () => {
 
     expect(counts).toEqual({ profiles: 1, pvp: 1, notes: 1, greatBuildings: 0, players: 1, settings: 0 });
     const after = openDb('forge-toolbox:de20:1');
-    expect((await after.battles.get([de20, 1]))?.rounds).toBe(7);
+    expect(((await after.battles.get([de20, 1])) as FoughtBattle | undefined)?.rounds).toBe(7);
     expect(await after.battles.count()).toBe(2);
     expect((await after.notePages.toArray()).map((p) => p.text)).toEqual(['local', 'file']);
     expect(await after.players.get([de20, playerId(11)])).toMatchObject({ name: 'local', marked: true, marksAt: 3 });
@@ -330,6 +331,49 @@ describe('importBackup', () => {
     // the settings were not chosen, the name was missing
     expect(env.values['settings:de20:1']).toEqual({ old: true });
     expect(env.values['profile:de20:1']).toEqual({ name: 'Ich', seenAt: 500 });
+  });
+
+  it('links the merged battles and plunders and drops an inferred battle a stored fought one replaces', async () => {
+    const T = 1_800_000_000_000;
+    const db = openDb('forge-toolbox:de20:1');
+    // fought here before the plunder was known, so it has no plunderAt yet
+    await db.battles.put(battle(1, 11, { at: T - 100 }));
+    db.close();
+    const plundered: Plunder = {
+      world: de20,
+      at: T,
+      opponent: playerId(11),
+      outcome: 'plundered',
+      resources: {},
+      doubleLoot: false,
+    };
+    const later: Plunder = { ...plundered, at: T + 2 * DAY_MS, opponent: playerId(12) };
+    const inferred = (p: Plunder): Battle => ({
+      world: de20,
+      battleId: -p.at,
+      at: p.at,
+      opponent: p.opponent,
+      result: 'won',
+      inferred: true,
+      plunderAt: p.at,
+    });
+    // a file of another computer that knew the plunder but not the battle; one of the time before the link has none
+    const entry: BackupProfile = {
+      world: de20,
+      player: me,
+      tables: tables({ battles: [inferred(plundered)], plunders: [plundered] }),
+    };
+    const old: BackupProfile = { world: de20, player: me, tables: tables({ plunders: [later] }) };
+
+    await importBackup([{ profile: entry, areas: areas('pvp') }], 500, storage());
+    await importBackup([{ profile: old, areas: areas('pvp') }], 500, storage());
+
+    const after = openDb('forge-toolbox:de20:1');
+    expect(await after.battles.get([de20, -T])).toBeUndefined();
+    expect((await after.battles.get([de20, 1]))?.plunderAt).toBe(T);
+    expect(await after.battles.get([de20, -(T + 2 * DAY_MS)])).toEqual(inferred(later));
+    expect(await after.battles.count()).toBe(2);
+    after.close();
   });
 
   it('creates the database of a profile new here and replaces the chosen settings', async () => {
@@ -475,7 +519,7 @@ describe('importBackup replacing', () => {
 
   it('keeps the old rows when filling fails', async () => {
     await stored();
-    const broken = { ...battle(2, 11), battleId: undefined } as unknown as Battle;
+    const broken = { ...battle(2, 11), battleId: undefined } as unknown as FoughtBattle;
     const file = entry({ battles: [broken] });
 
     await expect(importBackup([{ profile: file, areas: areas('pvp') }], 500, env(), 'replace')).rejects.toThrow();

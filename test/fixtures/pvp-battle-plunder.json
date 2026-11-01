@@ -1,0 +1,404 @@
+{
+  "note": "PvP battle and the plunder after it, recorded on de20 2026-11-01 with the response batches they came in, players anonymized (me 1000, opponent 1001), unrelated entries and fields dropped. plunderAt is the time the plunder response came in.",
+  "me": 1000,
+  "battle": [
+    {
+      "requestClass": "OtherPlayerService",
+      "requestMethod": "updatePlayer",
+      "responseData": [
+        {
+          "player_id": 1001,
+          "name": "Testgegner",
+          "avatar": "",
+          "city_name": "Gegnerstadt",
+          "era": "VirtualFuture",
+          "score": 1,
+          "rank": 1,
+          "is_neighbor": true,
+          "is_active": true,
+          "clan_id": 1,
+          "clan": {
+            "id": 1,
+            "name": "Testgilde"
+          },
+          "__class__": "Player"
+        }
+      ]
+    },
+    {
+      "requestClass": "BattlefieldService",
+      "requestMethod": "startByBattleType",
+      "responseData": {
+        "battleId": 5001,
+        "battleType": {
+          "attackerPlayerId": 1000,
+          "defenderPlayerId": 1001,
+          "era": "VirtualFuture",
+          "type": "pvp",
+          "__class__": "PvpBattleType"
+        },
+        "attackerPlayerId": 1000,
+        "defenderPlayerId": 1001,
+        "startTime": 1793529247,
+        "isAutoBattle": true,
+        "state": {
+          "winnerBit": 1,
+          "round": 1,
+          "__class__": "BattleRealmState",
+          "unitsOrder": [
+            {
+              "ownerId": 1001,
+              "teamFlag": 2,
+              "unitTypeId": "javeliner",
+              "startHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "defense_boost",
+                  "value": 62,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "defender_attack_boost",
+                  "value": 43,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1001,
+              "teamFlag": 2,
+              "unitTypeId": "javeliner",
+              "startHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "defense_boost",
+                  "value": 62,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "defender_attack_boost",
+                  "value": 43,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "ronin_bot",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 204.5,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "advanced_tactics",
+                  "value": 55.5,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 1249,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 768,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "ronin_bot",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 204.5,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "advanced_tactics",
+                  "value": 55.5,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 1249,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 768,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "rogue",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 204.5,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "advanced_tactics",
+                  "value": 55.5,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 1249,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 768,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "rogue",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 204.5,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "advanced_tactics",
+                  "value": 55.5,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 1249,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 768,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "rogue",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 204.5,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "advanced_tactics",
+                  "value": 55.5,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 1249,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 768,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "rogue",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 204.5,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "advanced_tactics",
+                  "value": 55.5,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 1249,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 768,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "rogue",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 204.5,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "advanced_tactics",
+                  "value": 55.5,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 1249,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 768,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "rogue",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 204.5,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "advanced_tactics",
+                  "value": 55.5,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 1249,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 768,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            }
+          ]
+        },
+        "__class__": "BattleRealm"
+      }
+    }
+  ],
+  "plunder": [
+    {
+      "requestClass": "OtherPlayerService",
+      "requestMethod": "rewardPlunder",
+      "responseData": [
+        {
+          "name": "money",
+          "production_time": 14400,
+          "asset_name": "production_icon_money",
+          "product": {
+            "resources": {
+              "money": 7000
+            },
+            "__class__": "Resources"
+          },
+          "__class__": "CityEntityProductionProduct"
+        }
+      ]
+    },
+    {
+      "requestClass": "OtherPlayerService",
+      "requestMethod": "updatePlayer",
+      "responseData": [
+        {
+          "player_id": 1001,
+          "name": "Testgegner",
+          "avatar": "",
+          "city_name": "Gegnerstadt",
+          "era": "VirtualFuture",
+          "score": 1,
+          "rank": 1,
+          "is_neighbor": true,
+          "is_active": true,
+          "__class__": "Player"
+        }
+      ]
+    },
+    {
+      "requestClass": "CityMapService",
+      "requestMethod": "reset",
+      "responseData": [
+        {
+          "id": 2831,
+          "player_id": 1001,
+          "cityentity_id": "R_FutureEra_Residential1",
+          "type": "residential",
+          "x": 14,
+          "y": 27,
+          "connected": 2,
+          "state": {
+            "next_state_transition_in": 2147483647,
+            "next_state_transition_at": 2147483647,
+            "__class__": "PlunderedState"
+          },
+          "bonuses": [],
+          "__class__": "CityMapEntity"
+        }
+      ]
+    },
+    {
+      "requestClass": "OtherPlayerService",
+      "requestMethod": "plunderById",
+      "responseData": {
+        "result": "success",
+        "product": {
+          "name": "money",
+          "production_time": 14400,
+          "asset_name": "production_icon_money",
+          "product": {
+            "resources": {
+              "money": 7000
+            },
+            "__class__": "Resources"
+          },
+          "__class__": "CityEntityProductionProduct"
+        },
+        "__class__": "PlunderResult"
+      }
+    }
+  ],
+  "plunderAt": 1793529257439
+}

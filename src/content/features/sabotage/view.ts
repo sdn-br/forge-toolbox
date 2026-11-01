@@ -63,6 +63,12 @@ function plunderedPart({ last, totals }: NonNullable<SabotageVm['plundered']>) {
   return html`<p>${last.text}${last.doubleLoot ? html` <b>${t('plunder.doubleLoot')}</b>` : ''}<br />${totals}</p>`;
 }
 
+function lastBattlePart({ when, result, details }: NonNullable<SabotageVm['lastBattle']>) {
+  const line = t('sabotage.lastBattle', { when, result });
+  if (!details) return html`<p>${line}</p>`;
+  return html`<details><summary>${line}</summary>${battleDetailsView(details)}</details>`;
+}
+
 /** `note` is the note card of the visited player; `marks` points at plunderable buildings in the game */
 export function sabotageView(
   vm: SabotageVm | undefined,
@@ -87,12 +93,7 @@ export function sabotageView(
         : ''
     }
     ${vm.army ? armyTable(vm.army, vm.plunderRepel, vm.measured) : ''}
-    ${
-      vm.lastBattle
-        ? html`<details><summary>${t('sabotage.lastBattle', { when: vm.lastBattle.when, result: vm.lastBattle.result })}</summary>
-            ${battleDetailsView(vm.lastBattle.details)}</details>`
-        : ''
-    }
+    ${vm.lastBattle ? lastBattlePart(vm.lastBattle) : ''}
     ${vm.plundered ? html`<h2>${t('sabotage.plundered')}</h2>${plunderedPart(vm.plundered)}` : ''}
     <h2>${t('sabotage.plunderable')}</h2>
     ${

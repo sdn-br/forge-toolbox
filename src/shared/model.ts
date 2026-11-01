@@ -104,8 +104,8 @@ export interface BattleSide {
   units: BattleUnit[];
 }
 
-/** A PvP battle the session player started as the attacker. */
-export interface Battle {
+/** A PvP battle the session player fought as the attacker. */
+export interface FoughtBattle {
   world: WorldId;
   battleId: number;
   at: number;
@@ -116,6 +116,51 @@ export interface Battle {
   era: EraId;
   attacker: BattleSide;
   defender: BattleSide;
+  /** the `at` of the plunder this won battle allowed; the plunder's key is `[world, opponent, plunderAt]` */
+  plunderAt?: number;
+}
+
+/**
+ * A won battle a plunder proves when no fought battle is stored for it (old data, a battle before the recording
+ * started). It took place by the time of the plunder at the latest, so `at` is the plunder's time; units and values
+ * are unknown. The battle id is the negative time, like the battles of the old toolbox.
+ */
+export interface InferredBattle {
+  world: WorldId;
+  battleId: number;
+  at: number;
+  opponent: PlayerId;
+  result: 'won';
+  inferred: true;
+  plunderAt: number;
+}
+
+/** A PvP battle of the session player as the attacker, fought or inferred from a plunder. */
+export type Battle = FoughtBattle | InferredBattle;
+
+export const isFought = (battle: Battle): battle is FoughtBattle => !('inferred' in battle);
+
+/** a battle as the battle list returns it, with its plunder when it has one */
+export type BattleWithPlunder = Battle & { plunder?: Plunder };
+
+/** which battles a battle list or its summary covers */
+export interface BattleFilter {
+  /** only battles against these players; missing means all */
+  opponents?: PlayerId[];
+  /** only battles with a plunder */
+  withPlunder?: boolean;
+}
+
+/** what the battle list counts over all its pages */
+export interface BattleSummary {
+  battles: number;
+  /** inferred battles count as won */
+  won: number;
+  /** successful plunders */
+  plunders: number;
+  repelled: number;
+  /** Forge points of the successful plunders */
+  fp: number;
 }
 
 export type PlunderOutcome = 'plundered' | 'repelled';

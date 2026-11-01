@@ -1,5 +1,5 @@
 // The view model of the details of one stored battle, drawn by ui/battle-details.ts.
-import type { Battle, BattleUnit } from '../../../shared/model';
+import type { BattleUnit, FoughtBattle } from '../../../shared/model';
 import { formatNumber, t } from '../../core/texts';
 import type { MeasuredArmy } from '../../domain/measured-army';
 import type { BattleDetailsVm, UnitVm } from '../../ui/battle-details';
@@ -12,7 +12,7 @@ const unitVm = (u: BattleUnit): UnitVm => ({
 });
 
 /** `measured` is the battle's measured army; without it the details leave the armies out, for where the attack and defense values are switched off */
-export function battleDetails(battle: Battle, measured?: MeasuredArmy): BattleDetailsVm {
+export function battleDetails(battle: FoughtBattle, measured?: MeasuredArmy): BattleDetailsVm {
   return {
     summary: [
       t(`pvp.${battle.result}`),

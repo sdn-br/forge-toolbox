@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { mapToolbox1, mapToolbox2 } from '../src/backup/legacy/mapper';
 import type { LegacyDump } from '../src/backup/legacy/types';
 import { buildingDefId, eraId, guildId, playerId, worldId } from '../src/shared/ids';
+import { isFought } from '../src/shared/model';
 import v1 from './fixtures/legacy-toolbox1.json';
 import v2 from './fixtures/legacy-toolbox2.json';
 
@@ -183,7 +184,7 @@ describe('mapToolbox2', () => {
 describe('mapToolbox1', () => {
   it('maps battles, plunders and attacks on the own city; 1.x had no notes', () => {
     const { tables, unmapped } = mapToolbox1(dump1, profile, NOW);
-    expect(tables.battles.map((b) => [b.opponent, b.result, b.rounds, b.era])).toEqual([
+    expect(tables.battles.filter(isFought).map((b) => [b.opponent, b.result, b.rounds, b.era])).toEqual([
       [3001, 'won', 2, 'IndustrialAge'],
     ]);
     expect(tables.plunders.map((p) => [p.opponent, p.outcome, p.resources])).toEqual([

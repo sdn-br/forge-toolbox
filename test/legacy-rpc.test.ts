@@ -36,11 +36,15 @@ describe('old toolbox data through the service worker', () => {
     await db.db.battles.put({ ...battle(900, 2001), at: Date.parse('2026-10-18T08:21:10.000Z') });
     const backup = backupPersistence(db.call);
     expect(await backup.mergeLegacy(entry(), ['pvp'])).toEqual({ pvp: 7, notes: 0, greatBuildings: 0, players: 4 });
+    // the plunders after the lost and the surrendered battle get inferred battles, the first one links the known one
     expect((await db.db.battles.toArray()).map((b) => b.battleId).sort((a, b) => a - b)).toEqual([
+      -Date.parse('2026-10-21T07:15:00.000Z'),
       -Date.parse('2026-10-20T12:00:00.000Z'),
+      -Date.parse('2026-10-19T10:00:00.000Z'),
       -Date.parse('2026-10-19T09:58:00.000Z'),
       900,
     ]);
+    expect((await db.db.battles.get([de20, 900]))?.plunderAt).toBe(Date.parse('2026-10-18T08:31:54.508Z'));
     expect(await db.db.notePages.count()).toBe(0);
     expect((await db.db.players.toArray()).map((p) => p.id).sort()).toEqual([2001, 2002, 2003, 2006]);
 

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { openDb, type ToolboxDb } from '../src/background/db';
 import { adoptLegacy, type LocalStorage, SEEN_KEY } from '../src/background/legacy';
 import { eraId, playerId, worldId } from '../src/shared/ids';
-import type { Battle, Player } from '../src/shared/model';
+import type { FoughtBattle, Player } from '../src/shared/model';
 import { type Profile, profileDbName } from '../src/shared/profile';
 
 const de20 = worldId('de20');
@@ -12,7 +12,7 @@ const first: Profile = { world: de20, player: playerId(1) };
 const second: Profile = { world: de20, player: playerId(2) };
 const onDe10: Profile = { world: de10, player: playerId(3) };
 
-const battle = (world: typeof de20, battleId: number): Battle => ({
+const battle = (world: typeof de20, battleId: number): FoughtBattle => ({
   world,
   battleId,
   at: 1,

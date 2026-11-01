@@ -8,7 +8,7 @@ import { type BattlePersistence, BattleStore } from '../src/content/stores/battl
 import type { VisitedCity } from '../src/content/stores/cities';
 import type { PlayerObservation } from '../src/content/stores/players';
 import { buildingDefId, eraId, guildId, type PlayerId, playerId, worldId } from '../src/shared/ids';
-import type { AttackTimer, Battle, IncomingAttack, Plunder } from '../src/shared/model';
+import type { AttackTimer, FoughtBattle, IncomingAttack, Plunder } from '../src/shared/model';
 import { featureContext } from './helpers/feature-context';
 
 const world = worldId('de20');
@@ -23,7 +23,7 @@ const city = (owner: number): VisitedCity => ({
 });
 
 /** A battle whose measured defense shows as `defense` percent. */
-const battle = (opponent: number, defense: number): Battle => ({
+const battle = (opponent: number, defense: number): FoughtBattle => ({
   world,
   battleId: opponent,
   at: Date.now(),
@@ -49,12 +49,22 @@ const plunder = (opponent: number, at: number, change: Partial<Plunder> = {}): P
 });
 
 function setup() {
-  const latest = new Map<PlayerId, (battle: Battle) => void>();
+  // both lookups of a player wait for the same answer: the last battle and the last fought one
+  const waiting = new Map<PlayerId, ((battle: FoughtBattle) => void)[]>();
+  const wait = (opponent: PlayerId) =>
+    new Promise<FoughtBattle>((resolve) => waiting.set(opponent, [...(waiting.get(opponent) ?? []), resolve]));
+  const latest = {
+    get: (opponent: PlayerId) => (battle: FoughtBattle) => {
+      for (const resolve of waiting.get(opponent) ?? []) resolve(battle);
+      waiting.delete(opponent);
+    },
+  };
   const persistence: BattlePersistence = {
     put: async () => {},
-    latest: (_world, opponent) => new Promise((resolve) => latest.set(opponent, resolve)),
+    latest: (_world, opponent) => wait(opponent),
+    latestFought: (_world, opponent) => wait(opponent),
     list: async () => [],
-    count: async () => 0,
+    summary: async () => ({ battles: 0, won: 0, plunders: 0, repelled: 0, fp: 0 }),
     prune: async () => 0,
   };
   const env = featureContext({
@@ -145,10 +155,10 @@ describe('sabotage feature', () => {
     ctx.cities.setVisited(city(1));
     ctx.cities.setVisited(city(2));
     await tick();
-    const results: Record<number, Battle> = { 1: battle(1, 111), 2: battle(2, 222) };
+    const results: Record<number, FoughtBattle> = { 1: battle(1, 111), 2: battle(2, 222) };
 
     for (const owner of order) {
-      latest.get(playerId(owner))?.(results[owner] as Battle);
+      latest.get(playerId(owner))?.(results[owner] as FoughtBattle);
       await tick();
     }
 

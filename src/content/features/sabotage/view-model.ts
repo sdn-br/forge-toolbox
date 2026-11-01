@@ -1,4 +1,4 @@
-import type { Player, Plunder } from '../../../shared/model';
+import { type Battle, isFought, type Player, type Plunder } from '../../../shared/model';
 import { formatWhen, t } from '../../core/texts';
 import type { ArmyValues, CityAssessment, Plunderable } from '../../domain/assess-city';
 import { measuredArmy } from '../../domain/measured-army';
@@ -40,8 +40,11 @@ export interface SabotageVm {
   army?: CityAssessment['army'];
   /** the defending army as the last own attack on this player met it; a battle never shows their attacking army */
   measured?: { defender: ArmyValues; when: string };
-  /** the last own attack on this player; the measured armies in it only when the army values are shown */
-  lastBattle?: { when: string; result: string; details: BattleDetailsVm };
+  /**
+   * the last own attack on this player; the measured armies in it only when the army values are shown. An inferred
+   * battle has no details and its time is the latest it took place.
+   */
+  lastBattle?: { when: string; result: string; details?: BattleDetailsVm };
   /** own plunders in this city */
   plundered?: {
     /** the last plunder as one line, with whether to mark it as double loot */
@@ -70,6 +73,12 @@ function lastPlunder(p: Plunder, catalog: CatalogStore, now: number) {
   };
 }
 
+function lastBattleVm(b: Battle, showArmy: boolean, now: number): NonNullable<SabotageVm['lastBattle']> {
+  const result = t(`pvp.${b.result}`);
+  if (!isFought(b)) return { when: t('pvp.atLatest', { when: formatWhen(b.at, now) }), result };
+  return { when: formatWhen(b.at, now), result, details: battleDetails(b, showArmy ? measuredArmy(b) : undefined) };
+}
+
 export interface SabotageInput {
   city: VisitedCity;
   player: Player | undefined;
@@ -89,7 +98,7 @@ export function sabotageViewModel({
   catalog,
   showArmy,
   now,
-  record: { lastBattle, plunders, incoming, shield },
+  record: { lastBattle, lastFought, plunders, incoming, shield },
 }: SabotageInput): SabotageVm {
   const friend = city.visit.friend || player?.relations.friend === true;
   const guildMember = city.visit.guildMember || player?.relations.guildMember === true;
@@ -103,7 +112,8 @@ export function sabotageViewModel({
       amount,
     })),
   });
-  const measured = showArmy && lastBattle ? measuredArmy(lastBattle) : undefined;
+  // an inferred battle measured nothing, so the values come from the last fought one
+  const measured = showArmy && lastFought ? measuredArmy(lastFought) : undefined;
   const guild = lookups.playerGuild(city.owner);
   const plunderWorthy = lookups.plunderWorthy(city.owner);
   const noAttack = lookups.noAttack(city.owner);
@@ -120,12 +130,8 @@ export function sabotageViewModel({
     lootable: attack.kind === 'plunderable' || attack.kind === 'attackable',
     army: showArmy ? assessment.army : undefined,
     measured:
-      measured && lastBattle ? { defender: measured.defender, when: formatWhen(lastBattle.at, now) } : undefined,
-    lastBattle: lastBattle && {
-      when: formatWhen(lastBattle.at, now),
-      result: t(`pvp.${lastBattle.result}`),
-      details: battleDetails(lastBattle, measured),
-    },
+      measured && lastFought ? { defender: measured.defender, when: formatWhen(lastFought.at, now) } : undefined,
+    lastBattle: lastBattle && lastBattleVm(lastBattle, showArmy, now),
     plundered: plunders && {
       last: plunders.last && lastPlunder(plunders.last, catalog, now),
       totals: formatPlunderTotals(plunders.totals),
