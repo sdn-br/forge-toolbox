@@ -9,7 +9,7 @@ import {
   type Plunder,
   type PlunderOutcome,
 } from '../../../../shared/model';
-import { formatWhen, t } from '../../../core/texts';
+import { formatDateTime, formatWhen, t } from '../../../core/texts';
 import type { ArmyValues } from '../../../domain/assess-city';
 import { measuredArmy } from '../../../domain/measured-army';
 import type { BattleDetailsVm } from '../../../ui/battle-details';
@@ -19,6 +19,8 @@ import { isFiltered, type ListVm, listVm, type OpponentVm, opponentVm, type View
 
 /** the plunder a battle allowed, as its details show it */
 export interface PlunderVm {
+  /** date and time of the plunder, "01.11., 14:01": when loot was there, worth knowing for the next time */
+  when: string;
   outcome: PlunderOutcome;
   /** the catalog name, the game's id for an unknown building, "–" when the game named none */
   building: string;
@@ -88,6 +90,7 @@ export function plunderVm(
 ): PlunderVm {
   const icon = p.doubleLoot ? assetUrl(DOUBLE_LOOT_ICON_PATH) : undefined;
   return {
+    when: formatDateTime(p.at),
     outcome: p.outcome,
     building: p.cityEntityId === undefined ? '–' : (building(p.cityEntityId) ?? p.cityEntityId),
     loot: p.outcome === 'repelled' ? '' : formatResources(p.resources, resourceName),

@@ -645,6 +645,9 @@ describe('pvp feature', () => {
     /** the headings and lines of the panel, one entry each */
     const lines = (box: TestBox) =>
       [...box.root.querySelectorAll('.side-panel h2, .side-panel p')].map((e) => e.textContent?.trim());
+    /** the plunder part of the panel: heading, date and time, building, loot */
+    const plunderLines = (box: TestBox) => lines(box).slice(-4);
+    const WHEN = expect.stringMatching(/^\d\d\.\d\d\., \d\d:\d\d$/);
 
     it('shows a clicked battle in the side panel with both armies and the result, and clears it on a second click', async () => {
       const { box, row, lists } = await shown();
@@ -754,8 +757,9 @@ describe('pvp feature', () => {
       ]);
 
       row(0).click();
-      expect(lines(box).slice(-3)).toEqual([
+      expect(plunderLines(box)).toEqual([
         'Plünderung',
+        WHEN,
         'R_IronAge_Residential2 Plünderung verdoppelt',
         '12 Forge-Punkte',
       ]);
@@ -768,9 +772,9 @@ describe('pvp feature', () => {
       const mark = box.root.querySelector('.side-panel img.double-loot');
       expect(mark?.getAttribute('src')).toBe('https://cdn/double-loot.png');
       expect(mark?.getAttribute('data-tip')).toBe('Plünderung verdoppelt');
-      expect(lines(box).slice(-3)).toEqual(['Plünderung', 'R_IronAge_Residential2', '12 Forge-Punkte']);
+      expect(plunderLines(box)).toEqual(['Plünderung', WHEN, 'R_IronAge_Residential2', '12 Forge-Punkte']);
       row(1).click();
-      expect(lines(box).slice(-3)).toEqual(['Plünderung', 'R_IronAge_Residential2', 'abgewehrt']);
+      expect(plunderLines(box)).toEqual(['Plünderung', WHEN, 'R_IronAge_Residential2', 'abgewehrt']);
       expect(box.root.querySelector('.side-panel img.double-loot')).toBeNull();
     });
 
@@ -801,8 +805,9 @@ describe('pvp feature', () => {
       row(0).click();
       expect(box.root.querySelector('.side-panel .battle')).toBeNull();
       expect(panel(box)).toContain('der Kampf selbst ist nicht aufgezeichnet');
-      expect(lines(box).slice(-3)).toEqual([
+      expect(plunderLines(box)).toEqual([
         'Plünderung',
+        WHEN,
         'R_IronAge_Residential2 Plünderung verdoppelt',
         '12 Forge-Punkte',
       ]);
