@@ -4,9 +4,16 @@ import { Ingestion } from '../src/content/core/ingestion';
 import { toBuildingDef, toBuildingFiles } from '../src/content/game/building-defs';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import type { BuildingDef } from '../src/content/model/catalog';
-import { type BuildingDefLoader, CatalogStore, LOAD_DELAY } from '../src/content/stores/catalog';
+import {
+  type BuildingDefLoader,
+  CatalogStore,
+  LOAD_DELAY,
+  PARALLEL_DOWNLOADS,
+  PREFETCH_DELAY,
+} from '../src/content/stores/catalog';
 import { buildingDefLoader } from '../src/persistence/building-defs/client';
-import { buildingDefId } from '../src/shared/ids';
+import { type BuildingDefId, buildingDefId, playerId, worldId } from '../src/shared/ids';
+import type { IncomingAttack, Plunder } from '../src/shared/model';
 import { testDb } from './helpers/battle-db';
 import { testStores } from './helpers/stores';
 
@@ -49,7 +56,7 @@ describe('building lookup', () => {
 
 describe('building names from the cache and the CDN', () => {
   type Fn = ReturnType<typeof vi.fn>;
-  let loader: BuildingDefLoader & { all: Fn; load: Fn; save: Fn };
+  let loader: BuildingDefLoader & { all: Fn; load: Fn; missing: Fn; save: Fn };
   let catalog: CatalogStore;
   let updated: string[][];
   const OTHER = buildingDefId('P_MultiAge_SummerBonus18');
@@ -64,6 +71,7 @@ describe('building names from the cache and the CDN', () => {
     loader = {
       all: vi.fn(async () => []),
       load: vi.fn(async (id: string) => def(id, `Name of ${id}`)),
+      missing: vi.fn(async () => []),
       save: vi.fn(async () => {}),
     };
     const bus = createBus();
@@ -153,6 +161,39 @@ describe('building names from the cache and the CDN', () => {
     expect(updated).toEqual([]);
   });
 
+  it('downloads the buildings of stored rows the cache lacks in the background, a few at a time', async () => {
+    const many = Array.from({ length: 10 }, (_, i) => buildingDefId(`R_Old${i}`));
+    const lookupOf = toBuildingFiles(lookup(Object.fromEntries(many.map((id) => [id, url(id, 'h')]))));
+    loader.missing.mockResolvedValue([...many, buildingDefId('Not_Listed')]);
+    let open = 0;
+    let most = 0;
+    loader.load.mockImplementation(async (id: string) => {
+      most = Math.max(most, ++open);
+      await new Promise((r) => setTimeout(r, 10));
+      open--;
+      return def(id, `Name of ${id}`);
+    });
+    await catalog.loadCache();
+    catalog.setBuildingFiles(lookupOf);
+    await vi.advanceTimersByTimeAsync(PREFETCH_DELAY - 100);
+    expect(loader.missing).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(100 + 200);
+    expect(loader.missing).toHaveBeenCalledTimes(1);
+    expect(loader.load).toHaveBeenCalledTimes(10);
+    expect(most).toBe(PARALLEL_DOWNLOADS);
+    expect(catalog.buildingName(many[9] as BuildingDefId)).toBe('Name of R_Old9');
+  });
+
+  it('prefetches once per session and not before the cache was read', async () => {
+    catalog.setBuildingFiles(files());
+    await vi.advanceTimersByTimeAsync(PREFETCH_DELAY + BATCH);
+    expect(loader.missing).not.toHaveBeenCalled();
+    await catalog.loadCache();
+    catalog.setBuildingFiles(files());
+    await vi.advanceTimersByTimeAsync(PREFETCH_DELAY + BATCH);
+    expect(loader.missing).toHaveBeenCalledTimes(1);
+  });
+
   it('waits for the lookup when a name is asked for before it came', async () => {
     catalog.buildingName(HERO);
     await vi.advanceTimersByTimeAsync(LOAD_DELAY + BATCH);
@@ -197,6 +238,26 @@ describe('building definition files in the service worker', () => {
     // a cached file needs no download
     expect((await loader.load(HERO, url(HERO, 'abc')))?.name).toBe('Hero');
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('lists the buildings of stored plunders and attacks whose file the cache lacks', async () => {
+    const { loader, db } = setup(async () => '{}');
+    const world = worldId('de10');
+    const opponent = playerId(7);
+    await db.plunders.bulkPut([
+      { world, opponent, at: 1, cityEntityId: HERO } as Plunder,
+      { world, opponent, at: 2, cityEntityId: buildingDefId('P_Cached') } as Plunder,
+      { world, opponent, at: 3 } as Plunder,
+    ]);
+    await db.incoming.put({
+      world,
+      kind: 'plunder',
+      key: 1,
+      at: 4,
+      cityEntityId: buildingDefId('G_Own'),
+    } as IncomingAttack);
+    await loader.save([{ id: buildingDefId('P_Cached'), url: url('P_Cached', 'c'), json: file('P_Cached', 'C') }]);
+    expect((await loader.missing()).sort()).toEqual(['G_Own', HERO]);
   });
 
   it('refuses a URL off the Inno CDN without downloading it', async () => {

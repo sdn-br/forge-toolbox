@@ -2,6 +2,8 @@ import type { Table } from 'dexie';
 import { isCdnUrl } from '../../shared/cdn-assets';
 import type { Handlers } from '../../shared/rpc';
 import type { AssetsDeps } from '../assets/worker';
+import type { IncomingTables } from '../incoming/worker';
+import type { PlundersTables } from '../plunders/worker';
 import type { BuildingDefsApi } from './contract';
 
 /** the metadata file of one building definition, keyed by the definition's id */
@@ -21,7 +23,7 @@ export type BuildingDefsTables = { buildingDefFiles: Table<BuildingDefFileRow, s
  * and is tried again on the next call.
  */
 export function buildingDefsHandlers(
-  db: BuildingDefsTables,
+  db: BuildingDefsTables & PlundersTables & IncomingTables,
   { now, fetchText }: AssetsDeps,
 ): Handlers<BuildingDefsApi> {
   /** downloads on the way, so two calls for the same file read it once */
@@ -42,6 +44,13 @@ export function buildingDefsHandlers(
     'buildingDefs.all': async () => ({
       files: (await db.buildingDefFiles.toArray()).map(({ id, url, json }) => ({ id, url, json })),
     }),
+    'buildingDefs.missing': async () => {
+      const ids = new Set<string>();
+      await db.plunders.each((p) => p.cityEntityId && ids.add(p.cityEntityId));
+      await db.incoming.each((a) => a.cityEntityId && ids.add(a.cityEntityId));
+      const cached = new Set(await db.buildingDefFiles.toCollection().primaryKeys());
+      return { ids: [...ids].filter((id) => !cached.has(id)) };
+    },
     'buildingDefs.put': async ({ files }) => {
       const at = now();
       await db.buildingDefFiles.bulkPut(files.filter((f) => isCdnUrl(f.url)).map((f) => ({ ...f, at })));
