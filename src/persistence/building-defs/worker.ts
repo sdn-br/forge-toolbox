@@ -39,10 +39,11 @@ export function buildingDefsHandlers(
   };
 
   return {
-    'buildingDefs.file': async ({ id, url }) => {
+    'buildingDefs.file': async ({ id, url, cachedOnly }) => {
       if (!isCdnUrl(url)) throw new Error(`not a file on the Inno CDN: ${url}`);
       const stored = await db.buildingDefFiles.get(id);
       if (stored?.url === url) return { json: stored.json };
+      if (cachedOnly) return {};
       let pending = reading.get(url);
       if (!pending) {
         pending = read(id, url).finally(() => reading.delete(url));
