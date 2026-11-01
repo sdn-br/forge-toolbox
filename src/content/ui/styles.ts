@@ -101,6 +101,8 @@ header button svg { display: block; width: 16px; height: 16px; }
 textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
 .battle p { margin: 2px 0 4px; }
 .battle .army { white-space: nowrap; }
+/* the label holds for both sides, so it stands over both columns */
+.battle .army-label { text-align: center; font-weight: bold; }
 details { margin: 6px 0; }
 summary { cursor: pointer; color: var(--accent); }
 .name-search { position: relative; display: inline-block; vertical-align: middle; }
