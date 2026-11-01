@@ -39,11 +39,18 @@ export function buildingDefsHandlers(
   };
 
   return {
-    'buildingDefs.file': async ({ id, url, cachedOnly }) => {
+    'buildingDefs.all': async () => ({
+      files: (await db.buildingDefFiles.toArray()).map(({ id, url, json }) => ({ id, url, json })),
+    }),
+    'buildingDefs.put': async ({ files }) => {
+      const at = now();
+      await db.buildingDefFiles.bulkPut(files.filter((f) => isCdnUrl(f.url)).map((f) => ({ ...f, at })));
+      return {};
+    },
+    'buildingDefs.file': async ({ id, url }) => {
       if (!isCdnUrl(url)) throw new Error(`not a file on the Inno CDN: ${url}`);
       const stored = await db.buildingDefFiles.get(id);
       if (stored?.url === url) return { json: stored.json };
-      if (cachedOnly) return {};
       let pending = reading.get(url);
       if (!pending) {
         pending = read(id, url).finally(() => reading.delete(url));

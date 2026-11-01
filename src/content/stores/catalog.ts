@@ -3,20 +3,32 @@ import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
 import type { BuildingDef, CityGrid, UnitType } from '../model/catalog';
 
-/** reads the metadata file of a definition from the CDN through the service worker, with its cache */
+/** the metadata file of one building definition on the CDN; the URL carries the file's hash */
+export interface BuildingDefFile {
+  id: BuildingDefId;
+  url: string;
+  json: unknown;
+}
+
+/** the cache of definition files in the service worker, and the CDN behind it */
 export interface BuildingDefLoader {
-  /** from the cache only, without a download; undefined when it is not there */
-  cached(id: BuildingDefId, url: string): Promise<BuildingDef | undefined>;
+  /** every cached definition with the URL it was read from */
+  all(): Promise<{ def: BuildingDef; url: string }[]>;
   /** from the cache, else downloaded; undefined when the file cannot be read or holds no definition */
   load(id: BuildingDefId, url: string): Promise<BuildingDef | undefined>;
+  /** keeps files the game loaded itself, each in place of an older file of its id */
+  save(files: BuildingDefFile[]): Promise<void>;
 }
 
 /** the game often loads the definition of a building it shows itself; this long the catalog waits before a download */
 export const LOAD_DELAY = 1000;
 
+/** files the game loaded are written to the cache together, once per this many ms */
+const SAVE_DELAY = 50;
+
 /**
- * Definitions the game loaded in this session. The game loads every definition it needs again in each session
- * (seen 2026-10-19: ~110 at start, the missing ones on each city visit), so nothing is persisted.
+ * Definitions of this session: the cache in the service worker at start, then what the game loads (seen 2026-10-19:
+ * ~110 at start, the missing ones on each city visit), and what a box asks for by name, downloaded from the CDN.
  */
 export class CatalogStore {
   private defs = new Map<BuildingDefId, BuildingDef>();
@@ -31,58 +43,79 @@ export class CatalogStore {
   ) {}
 
   /** where each definition's file lies on the CDN, from the game's `building_entity_lookup` */
-  private files = new Map<BuildingDefId, string>();
-  /** asked for by `buildingName` before the lookup came */
-  private wanted = new Set<BuildingDefId>();
-  /** not in the cache, to be downloaded after the pause */
+  private files?: Map<BuildingDefId, string>;
+  /** the URL of each file in the cache; a file of the game with the same URL needs no write */
+  private cachedUrls = new Map<BuildingDefId, string>();
+  /** read from the cache and not yet checked against the lookup */
+  private unchecked = new Set<BuildingDefId>();
+  /** asked for by `buildingName`, downloaded after the pause */
   private downloads = new Set<BuildingDefId>();
-  /** read or on the way in this session, each id once */
+  /** downloaded or on the way in this session, each id once */
   private asked = new Set<BuildingDefId>();
   private downloadQueued = false;
+  private saves = new Map<BuildingDefId, BuildingDefFile>();
+  private saveQueued = false;
+
+  /** reads the cache of definition files, before the game's traffic comes in */
+  async loadCache(): Promise<void> {
+    if (!this.loader) return;
+    const cached = await this.loader.all();
+    for (const { def, url } of cached) {
+      // the game may have been quicker
+      if (this.defs.has(def.id)) continue;
+      this.cachedUrls.set(def.id, url);
+      this.unchecked.add(def.id);
+      this.add(def);
+    }
+    // a lookup that came first finds the stale ones now
+    if (this.files) this.dropStale(this.files);
+  }
 
   setBuildingFiles(files: Map<BuildingDefId, string>): void {
     this.files = files;
-    for (const id of this.wanted) {
-      const url = files.get(id);
-      // an id the lookup lacks waits for the next one, so for the next session
-      if (!url) continue;
-      this.wanted.delete(id);
-      this.fromCache(id, url);
-    }
+    this.dropStale(files);
+    if (this.downloads.size) this.queueDownload();
   }
 
   /**
-   * The name of a building definition. One the game has not loaded comes from the cache in the service worker at once,
-   * else from the CDN after a pause: undefined for now, `catalog.updated` once it is there.
+   * A cached definition whose file has a new URL (an update of the game changed it) or is no longer listed leaves the
+   * catalog; the game or `buildingName` loads the current one.
+   */
+  private dropStale(files: Map<BuildingDefId, string>): void {
+    for (const id of this.unchecked) {
+      if (files.get(id) !== this.cachedUrls.get(id)) this.defs.delete(id);
+    }
+    this.unchecked.clear();
+  }
+
+  /** a definition the game loaded; its file goes to the cache unless it is there already */
+  addFromGame(def: BuildingDef, file: BuildingDefFile): void {
+    this.unchecked.delete(def.id);
+    this.add(def);
+    if (!this.loader || this.cachedUrls.get(def.id) === file.url) return;
+    this.cachedUrls.set(def.id, file.url);
+    this.saves.set(def.id, file);
+    if (this.saveQueued) return;
+    this.saveQueued = true;
+    setTimeout(() => {
+      this.saveQueued = false;
+      const files = [...this.saves.values()];
+      this.saves.clear();
+      this.loader?.save(files).catch((error) => logError('caching building definitions failed', error));
+    }, SAVE_DELAY);
+  }
+
+  /**
+   * The name of a building definition. One the game has not loaded and the cache lacks comes from the CDN after a
+   * pause: undefined for now, `catalog.updated` once it is there.
    */
   buildingName(id: BuildingDefId): string | undefined {
     const name = this.defs.get(id)?.name;
-    if (name === undefined && this.loader && !this.asked.has(id)) {
-      const url = this.files.get(id);
-      if (url) this.fromCache(id, url);
-      else this.wanted.add(id);
+    if (name === undefined && this.loader && !this.asked.has(id) && !this.downloads.has(id)) {
+      this.downloads.add(id);
+      this.queueDownload();
     }
     return name;
-  }
-
-  private fromCache(id: BuildingDefId, url: string): void {
-    if (!this.loader) return;
-    this.asked.add(id);
-    this.loader
-      .cached(id, url)
-      .then((def) => {
-        if (def) this.take(def);
-        else {
-          this.downloads.add(id);
-          this.queueDownload();
-        }
-      })
-      .catch((error) => logError(`reading the building definition ${id} failed`, error));
-  }
-
-  /** the game may have loaded it meanwhile */
-  private take(def: BuildingDef): void {
-    if (!this.defs.has(def.id)) this.add(def);
   }
 
   private queueDownload(): void {
@@ -97,13 +130,24 @@ export class CatalogStore {
   // debt: a file that fails is not asked for again in this session. ceiling: a name stays raw after a failed
   // download until reload. upgrade: retry with a pause if failed downloads are seen in the game.
   private download(): void {
+    // the lookup comes at start; until then the ids wait for it
+    if (!this.files || !this.loader) return;
     for (const id of this.downloads) {
-      this.downloads.delete(id);
       const url = this.files.get(id);
-      if (this.defs.has(id) || !url || !this.loader) continue;
+      // an id the lookup lacks waits for the next one, so for the next session
+      if (!url) continue;
+      this.downloads.delete(id);
+      if (this.defs.has(id)) continue;
+      this.asked.add(id);
       this.loader
         .load(id, url)
-        .then((def) => def && this.take(def))
+        .then((def) => {
+          if (!def) return;
+          // the service worker cached it
+          this.cachedUrls.set(id, url);
+          // the game may have loaded it meanwhile
+          if (!this.defs.has(id)) this.add(def);
+        })
         .catch((error) => logError(`loading the building definition ${id} failed`, error));
     }
   }

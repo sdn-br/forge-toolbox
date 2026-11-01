@@ -47,20 +47,24 @@ describe('building lookup', () => {
   });
 });
 
-describe('building names from the CDN', () => {
+describe('building names from the cache and the CDN', () => {
   type Fn = ReturnType<typeof vi.fn>;
-  let loader: BuildingDefLoader & { cached: Fn; load: Fn };
+  let loader: BuildingDefLoader & { all: Fn; load: Fn; save: Fn };
   let catalog: CatalogStore;
   let updated: string[][];
-  const files = () => toBuildingFiles(lookup({ [HERO]: url(HERO, 'abc') }));
+  const OTHER = buildingDefId('P_MultiAge_SummerBonus18');
+  const files = (hash = 'abc') => toBuildingFiles(lookup({ [HERO]: url(HERO, hash), [OTHER]: url(OTHER, 'o') }));
+  const fromGame = (id: string, hash: string, name = 'From the game') =>
+    catalog.addFromGame(def(id, name), { id: buildingDefId(id), url: url(id, hash), json: file(id, name) });
   /** the catalog tells the boxes once per batch, 50 ms after a definition came */
   const BATCH = 60;
 
   beforeEach(() => {
     vi.useFakeTimers();
     loader = {
-      cached: vi.fn(async () => undefined),
+      all: vi.fn(async () => []),
       load: vi.fn(async (id: string) => def(id, `Name of ${id}`)),
+      save: vi.fn(async () => {}),
     };
     const bus = createBus();
     catalog = new CatalogStore(bus, loader);
@@ -69,20 +73,57 @@ describe('building names from the CDN', () => {
   });
   afterEach(() => vi.useRealTimers());
 
-  it('takes a cached name at once, without a pause and without a download', async () => {
-    loader.cached.mockImplementation(async (id: string) => def(id, 'Cached'));
+  it('knows the cached names from the start, without asking the service worker per name', async () => {
+    loader.all.mockResolvedValue([{ def: def(HERO, 'Cached'), url: url(HERO, 'abc') }]);
+    await catalog.loadCache();
     catalog.setBuildingFiles(files());
-    expect(catalog.buildingName(HERO)).toBeUndefined();
-    await vi.advanceTimersByTimeAsync(BATCH);
-    expect(loader.cached).toHaveBeenCalledWith(HERO, url(HERO, 'abc'));
-    expect(updated).toEqual([[HERO]]);
     expect(catalog.buildingName(HERO)).toBe('Cached');
+    await vi.advanceTimersByTimeAsync(LOAD_DELAY + BATCH);
     expect(loader.load).not.toHaveBeenCalled();
   });
 
-  it('downloads a name the cache lacks after a pause and tells the boxes', async () => {
+  it('drops a cached definition whose file has a new URL and downloads the current one when asked', async () => {
+    loader.all.mockResolvedValue([{ def: def(HERO, 'Old'), url: url(HERO, 'old') }]);
+    await catalog.loadCache();
+    catalog.setBuildingFiles(files('new'));
+    expect(catalog.buildingName(HERO)).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(LOAD_DELAY + BATCH);
+    expect(loader.load).toHaveBeenCalledWith(HERO, url(HERO, 'new'));
+    expect(catalog.buildingName(HERO)).toBe(`Name of ${HERO}`);
+  });
+
+  it('checks the cache against a lookup that came before it', async () => {
+    catalog.setBuildingFiles(files('new'));
+    loader.all.mockResolvedValue([{ def: def(HERO, 'Old'), url: url(HERO, 'old') }]);
+    await catalog.loadCache();
+    expect(catalog.get(HERO)).toBeUndefined();
+  });
+
+  it('keeps what the game loaded over a stale cached definition', async () => {
+    loader.all.mockResolvedValue([{ def: def(HERO, 'Old'), url: url(HERO, 'old') }]);
+    await catalog.loadCache();
+    fromGame(HERO, 'new');
+    catalog.setBuildingFiles(files('new'));
+    expect(catalog.buildingName(HERO)).toBe('From the game');
+  });
+
+  it('caches the files the game loads, together, and only new or changed ones', async () => {
+    loader.all.mockResolvedValue([{ def: def(HERO, 'Cached'), url: url(HERO, 'abc') }]);
+    await catalog.loadCache();
+    fromGame(HERO, 'abc');
+    fromGame(OTHER, 'o');
+    fromGame('W_New', 'w');
+    await vi.advanceTimersByTimeAsync(BATCH);
+    expect(loader.save).toHaveBeenCalledTimes(1);
+    expect(loader.save.mock.calls[0]?.[0].map((f: { id: string }) => f.id)).toEqual([OTHER, 'W_New']);
+    fromGame(OTHER, 'o');
+    await vi.advanceTimersByTimeAsync(BATCH);
+    expect(loader.save).toHaveBeenCalledTimes(1);
+  });
+
+  it('downloads a name it lacks after a pause and tells the boxes', async () => {
     catalog.setBuildingFiles(files());
-    catalog.buildingName(HERO);
+    expect(catalog.buildingName(HERO)).toBeUndefined();
     await vi.advanceTimersByTimeAsync(LOAD_DELAY - 100);
     expect(loader.load).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(100 + BATCH);
@@ -94,8 +135,7 @@ describe('building names from the CDN', () => {
   it('does not download what the game loads itself during the pause', async () => {
     catalog.setBuildingFiles(files());
     catalog.buildingName(HERO);
-    await vi.advanceTimersByTimeAsync(0);
-    catalog.add(def(HERO, 'From the game'));
+    fromGame(HERO, 'abc');
     await vi.advanceTimersByTimeAsync(LOAD_DELAY + BATCH);
     expect(loader.load).not.toHaveBeenCalled();
     expect(catalog.buildingName(HERO)).toBe('From the game');
@@ -109,7 +149,6 @@ describe('building names from the CDN', () => {
     await vi.advanceTimersByTimeAsync(LOAD_DELAY + BATCH);
     catalog.buildingName(HERO);
     await vi.advanceTimersByTimeAsync(LOAD_DELAY + BATCH);
-    expect(loader.cached).toHaveBeenCalledTimes(1);
     expect(loader.load).toHaveBeenCalledTimes(1);
     expect(updated).toEqual([]);
   });
@@ -117,9 +156,8 @@ describe('building names from the CDN', () => {
   it('waits for the lookup when a name is asked for before it came', async () => {
     catalog.buildingName(HERO);
     await vi.advanceTimersByTimeAsync(LOAD_DELAY + BATCH);
-    expect(loader.cached).not.toHaveBeenCalled();
+    expect(loader.load).not.toHaveBeenCalled();
     catalog.setBuildingFiles(files());
-    expect(loader.cached).toHaveBeenCalledWith(HERO, url(HERO, 'abc'));
     await vi.advanceTimersByTimeAsync(LOAD_DELAY + BATCH);
     expect(loader.load).toHaveBeenCalledWith(HERO, url(HERO, 'abc'));
   });
@@ -148,13 +186,17 @@ describe('building definition files in the service worker', () => {
     expect((await db.buildingDefFiles.toArray()).map((r) => r.url)).toEqual([url(HERO, 'new')]);
   });
 
-  it('answers from the cache only without downloading, also when the hash changed', async () => {
-    const { fetch, loader } = setup(async (u) => JSON.stringify(file(HERO, u.endsWith('new') ? 'New' : 'Old')));
-    expect(await loader.cached(HERO, url(HERO, 'old'))).toBeUndefined();
-    await loader.load(HERO, url(HERO, 'old'));
-    expect((await loader.cached(HERO, url(HERO, 'old')))?.name).toBe('Old');
-    expect(await loader.cached(HERO, url(HERO, 'new'))).toBeUndefined();
-    expect(fetch).toHaveBeenCalledTimes(1);
+  it('keeps the files the game loaded, skips files off the CDN and hands them all back', async () => {
+    const { fetch, loader, db } = setup(async () => '{}');
+    await loader.save([
+      { id: HERO, url: url(HERO, 'abc'), json: file(HERO, 'Hero') },
+      { id: buildingDefId('X'), url: 'https://example.com/metadata?id=x-1', json: file('X', 'X') },
+    ]);
+    expect(await db.buildingDefFiles.count()).toBe(1);
+    expect(await loader.all()).toEqual([{ def: def(HERO, 'Hero'), url: url(HERO, 'abc') }]);
+    // a cached file needs no download
+    expect((await loader.load(HERO, url(HERO, 'abc')))?.name).toBe('Hero');
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('refuses a URL off the Inno CDN without downloading it', async () => {

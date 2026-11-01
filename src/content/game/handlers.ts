@@ -329,7 +329,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
       return;
     }
     const def = toBuildingDef(file.json);
-    if (def) catalog.add(def);
+    if (def) catalog.addFromGame(def, { id: def.id, url: file.url, json: file.json });
   });
 
   // The resource bag comes with the startup data: `{ type: PlayerMain, resources: { resources: { … } } }` (seen

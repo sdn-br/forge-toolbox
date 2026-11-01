@@ -145,6 +145,7 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
     stores.players.load(world).catch((e) => logError('loading players failed', e)),
     stores.notes.load().catch((e) => logError('loading notes failed', e)),
     stores.greatBuildings.load().catch((e) => logError('loading the time of the town hall list failed', e)),
+    stores.catalog.loadCache().catch((e) => logError('reading the cached building definitions failed', e)),
   ]);
 
   // the game images come from the CDN as the game's script names them; a page without it shows none
