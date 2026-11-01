@@ -108,6 +108,7 @@ export const pvpFeature: Feature = {
         lookups,
         building: (id: BuildingDefId) => ctx.catalog.get(id)?.name,
         resourceName: (id: string) => ctx.catalog.resourceName(id),
+        unitName: (id: string) => ctx.catalog.unitName(id),
         note: (id: PlayerId) => ctx.notes.playerPage(id)?.text,
         now: Date.now(),
       };

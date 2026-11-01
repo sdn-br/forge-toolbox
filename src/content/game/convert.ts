@@ -295,6 +295,15 @@ export function toCityGrid(json: unknown): CityGrid | null {
   return { width: grid.width ?? 0, height: grid.height ?? 0, blocks };
 }
 
+/** Unit type id to name from the metadata file `unit_types-<hash>`; entries without both strings are skipped. */
+export function toUnitNames(json: unknown): Record<string, string> {
+  const names: Record<string, string> = {};
+  for (const u of Array.isArray(json) ? (json as { unitTypeId?: unknown; name?: unknown }[]) : []) {
+    if (typeof u?.unitTypeId === 'string' && typeof u.name === 'string') names[u.unitTypeId] = u.name;
+  }
+  return names;
+}
+
 function toGuild(p: GamePlayer): GuildRef | null {
   const id = p.clan?.id ?? p.clan_id;
   if (!id) return null;

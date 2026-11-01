@@ -90,6 +90,8 @@ export interface ViewInput {
   lookups: PvpPlayerLookups;
   building: (id: BuildingDefId) => string | undefined;
   resourceName: (id: string) => string | undefined;
+  /** the name of a unit type, from the catalog */
+  unitName: (id: string) => string | undefined;
   /** the Markdown note of a player, if any */
   note: (id: PlayerId) => string | undefined;
   now: number;

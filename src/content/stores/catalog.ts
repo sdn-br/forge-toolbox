@@ -28,6 +28,17 @@ export class CatalogStore {
     return this.names.get(id);
   }
 
+  private unitNames = new Map<string, string>();
+
+  /** Names of unit types in the game's language, from the metadata file `unit_types`. */
+  setUnitNames(names: Record<string, string>): void {
+    for (const [id, name] of Object.entries(names)) this.unitNames.set(id, name);
+  }
+
+  unitName(id: string): string | undefined {
+    return this.unitNames.get(id);
+  }
+
   private gbNames = new Map<BuildingDefId, string>();
 
   /** Display names of great buildings, from the game's lists of them; the definitions may not be loaded. */

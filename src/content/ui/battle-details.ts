@@ -5,7 +5,7 @@ import type { ArmyValues } from '../domain/assess-city';
 import { formatArmy } from './army-format';
 
 export interface UnitVm {
-  /** the game's unit type id; there is no catalog of unit names yet */
+  /** the unit's name in the game's language, its type id while the catalog does not know it */
   unit: string;
   /** "8/10 LP" after the battle, "gefallen" when the unit died */
   hp: string;

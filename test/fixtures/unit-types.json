@@ -1,0 +1,30 @@
+{
+  "_source": "unit_types metadata of the game start, de20, 2026-11-01; four of 188 entries, trimmed to id, asset, class and name",
+  "url": "https://foede.innogamescdn.com/start/metadata?id=unit_types-6e16bf66",
+  "json": [
+    {
+      "unitTypeId": "clubman",
+      "unitAssetName": "axehammerwarrior",
+      "unitClass": "light_melee",
+      "name": "Unhold"
+    },
+    {
+      "unitTypeId": "grenadier",
+      "unitAssetName": "grenadier",
+      "unitClass": "heavy_melee",
+      "name": "Grenadier"
+    },
+    {
+      "unitTypeId": "rogue",
+      "unitAssetName": "rogue",
+      "unitClass": "light_melee",
+      "name": "Agent"
+    },
+    {
+      "unitTypeId": "EarlyMiddleAge_champion",
+      "unitAssetName": "bronzeage_champion",
+      "unitClass": "fast",
+      "name": "Held"
+    }
+  ]
+}

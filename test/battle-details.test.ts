@@ -52,7 +52,7 @@ describe('battle details', () => {
   });
 
   it('shows the measured armies unless left out', () => {
-    expect(battleDetails(battle(), measuredArmy(battle())).army).toEqual({
+    expect(battleDetails(battle(), { measured: measuredArmy(battle()) }).army).toEqual({
       own: { attack: 368, defense: 269 },
       opponent: { attack: 406, defense: 443 },
     });
@@ -61,7 +61,7 @@ describe('battle details', () => {
 
   it('draws one column per side, the armies in the heads with their label as tooltip, then the units', () => {
     const root = document.createElement('div');
-    render(battleDetailsView(battleDetails(battle(), measuredArmy(battle()))), root);
+    render(battleDetailsView(battleDetails(battle(), { measured: measuredArmy(battle()) })), root);
     const rows = [...root.querySelectorAll('tr')].map((r) =>
       [...r.querySelectorAll('th, td')].map((c) => c.textContent?.trim()),
     );

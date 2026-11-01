@@ -148,7 +148,9 @@ export function battlePanelVm(b: BattleWithPlunder, input: ViewInput): BattlePan
     outcome: b.result,
     result: t(`pvp.${b.result}`),
     inferred: !isFought(b),
-    ...(isFought(b) && { details: battleDetails(b, measuredArmy(b), false) }),
+    ...(isFought(b) && {
+      details: battleDetails(b, { measured: measuredArmy(b), withResult: false, unitName: input.unitName }),
+    }),
     ...(b.plunder && { plunder: plunderVm(b.plunder, input.building, input.resourceName) }),
   };
 }
