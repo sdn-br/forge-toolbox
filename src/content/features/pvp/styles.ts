@@ -49,6 +49,7 @@ export const pvpCss = `
 .pvp-loot svg { display: block; width: 14px; height: 14px; margin: auto; }
 .pvp-drawer h2:first-child { margin-top: 2px; }
 .pvp-drawer p { margin: 2px 0; }
+.pvp-drawer .double-loot { width: 16px; height: 16px; vertical-align: -3px; }
 button.marker { all: unset; cursor: pointer; }
 button.marker svg { display: block; width: 14px; height: 14px; }
 tr.battle-row { cursor: pointer; }

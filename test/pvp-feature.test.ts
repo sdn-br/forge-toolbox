@@ -741,7 +741,7 @@ describe('pvp feature', () => {
     });
 
     it('marks a battle with its plunder by the sack and shows the plunder in the panel', async () => {
-      const { box, row } = await shown([
+      const { box, row, ctx } = await shown([
         { ...fought(1, 111), plunder: plunder(111) },
         { ...fought(2, 222), plunder: { ...plunder(222), outcome: 'repelled', resources: {}, doubleLoot: false } },
         fought(3, 333),
@@ -754,9 +754,20 @@ describe('pvp feature', () => {
       ]);
 
       row(0).click();
-      expect(lines(box).slice(-3)).toEqual(['Plünderung', 'R_IronAge_Residential2', '12 Forge-Punkte Double Loot']);
+      expect(lines(box).slice(-3)).toEqual(['Plünderung', 'R_IronAge_Residential2 Double Loot', '12 Forge-Punkte']);
+      expect(box.root.querySelector('.side-panel p b')?.textContent).toBe('R_IronAge_Residential2');
+      // with the index the game's Double Loot mark stands beside the building
+      vi.spyOn(ctx.assets, 'url').mockImplementation((path) =>
+        path.endsWith('citymap_icon_plunder_and_pillage.png') ? 'https://cdn/double-loot.png' : undefined,
+      );
+      ctx.bus.emit('assets.loaded', {});
+      const mark = box.root.querySelector('.side-panel img.double-loot');
+      expect(mark?.getAttribute('src')).toBe('https://cdn/double-loot.png');
+      expect(mark?.getAttribute('data-tip')).toBe('Double Loot');
+      expect(lines(box).slice(-3)).toEqual(['Plünderung', 'R_IronAge_Residential2', '12 Forge-Punkte']);
       row(1).click();
       expect(lines(box).slice(-3)).toEqual(['Plünderung', 'R_IronAge_Residential2', 'abgewehrt']);
+      expect(box.root.querySelector('.side-panel img.double-loot')).toBeNull();
     });
 
     it('shows an inferred battle in the panel with its plunder and a line that the battle was not recorded', async () => {
@@ -786,7 +797,7 @@ describe('pvp feature', () => {
       row(0).click();
       expect(box.root.querySelector('.side-panel .battle')).toBeNull();
       expect(panel(box)).toContain('der Kampf selbst ist nicht aufgezeichnet');
-      expect(lines(box).slice(-3)).toEqual(['Plünderung', 'R_IronAge_Residential2', '12 Forge-Punkte Double Loot']);
+      expect(lines(box).slice(-3)).toEqual(['Plünderung', 'R_IronAge_Residential2 Double Loot', '12 Forge-Punkte']);
     });
 
     it('clears the selection on a change of filter, and the window fills again when the filter goes', async () => {

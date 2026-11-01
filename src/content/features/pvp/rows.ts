@@ -93,6 +93,8 @@ export interface ViewInput {
   resourceName: (id: string) => string | undefined;
   /** a unit type as the battle details show it, from the catalog */
   unit: (id: string) => UnitInfo | undefined;
+  /** the URL of a game image on the Inno CDN, once the index is known */
+  assetUrl?: (path: string) => string | undefined;
   /** the Markdown note of a player, if any */
   note: (id: PlayerId) => string | undefined;
   now: number;

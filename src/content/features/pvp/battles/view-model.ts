@@ -1,3 +1,4 @@
+import { DOUBLE_LOOT_ICON_PATH } from '../../../../shared/cdn-assets';
 import type { BuildingDefId } from '../../../../shared/ids';
 import {
   type BattleResult,
@@ -24,6 +25,8 @@ export interface PlunderVm {
   /** "1.220 Münzen, 5 Forge-Punkte"; empty when repelled */
   loot: string;
   doubleLoot: boolean;
+  /** the game's Double Loot mark, shown beside the building; missing while the index is not known */
+  doubleLootIcon?: string;
 }
 
 export interface PvpRow extends OpponentVm {
@@ -81,12 +84,15 @@ export function plunderVm(
   p: Plunder,
   building: (id: BuildingDefId) => string | undefined,
   resourceName: (id: string) => string | undefined,
+  assetUrl: (path: string) => string | undefined = () => undefined,
 ): PlunderVm {
+  const icon = p.doubleLoot ? assetUrl(DOUBLE_LOOT_ICON_PATH) : undefined;
   return {
     outcome: p.outcome,
     building: p.cityEntityId === undefined ? '–' : (building(p.cityEntityId) ?? p.cityEntityId),
     loot: p.outcome === 'repelled' ? '' : formatResources(p.resources, resourceName),
     doubleLoot: p.doubleLoot,
+    ...(icon && { doubleLootIcon: icon }),
   };
 }
 
@@ -151,6 +157,6 @@ export function battlePanelVm(b: BattleWithPlunder, input: ViewInput): BattlePan
     ...(isFought(b) && {
       details: battleDetails(b, { measured: measuredArmy(b), withResult: false, unit: input.unit }),
     }),
-    ...(b.plunder && { plunder: plunderVm(b.plunder, input.building, input.resourceName) }),
+    ...(b.plunder && { plunder: plunderVm(b.plunder, input.building, input.resourceName, input.assetUrl) }),
   };
 }

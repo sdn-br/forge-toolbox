@@ -110,6 +110,7 @@ export const pvpFeature: Feature = {
         building: (id: BuildingDefId) => ctx.catalog.get(id)?.name,
         resourceName: (id: string) => ctx.catalog.resourceName(id),
         unit: catalogUnits(ctx.catalog, ctx.assets),
+        assetUrl: (path: string) => ctx.assets.url(path),
         note: (id: PlayerId) => ctx.notes.playerPage(id)?.text,
         now: Date.now(),
       };
