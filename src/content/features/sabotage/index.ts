@@ -3,8 +3,9 @@ import { logError } from '../../core/log';
 import { spotOf } from '../../core/markers';
 import { toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
-import { assessCity } from '../../domain/assess-city';
+import { assessCity, type CityAssessment } from '../../domain/assess-city';
 import { footprints } from '../../domain/city-grid';
+import type { VisitedCity } from '../../stores/cities';
 import { icons } from '../../ui/icons';
 import { PlayerNoteCard } from '../../ui/note-card';
 import { sabotageCss } from './styles';
@@ -19,7 +20,7 @@ const TICK = 30_000;
 
 const ID = 'sabotage';
 
-const AUTO_OPEN = toggleDef({
+export const AUTO_OPEN = toggleDef({
   key: 'sabotage.autoOpen',
   group: 'sabotage.title',
   label: 'sabotage.autoOpen',
@@ -100,13 +101,27 @@ export const sabotageFeature: Feature = {
       if (ctx.markers.has(ID, opponent, entityId)) ctx.markers.clear(ID);
     });
 
+    // The assessment depends on the city and the catalog only, so ticks and arriving parts of the record reuse it. The
+    // city object is edited in place and the catalog grows, so those events drop it.
+    let assessed: { city: VisitedCity; assessment: CityAssessment } | undefined;
+    const assess = (city: VisitedCity) => {
+      if (assessed?.city !== city) {
+        assessed = {
+          city,
+          assessment: assessCity(city, {
+            def: (id) => ctx.catalog.get(id),
+            eraByLevel: (l) => ctx.catalog.eraByLevel(l),
+          }),
+        };
+      }
+      return assessed.assessment;
+    };
+
+    // a closed box draws nothing; it builds the view model when it opens
     const refresh = () => {
       const city = ctx.cities.visited();
-      if (!city) return;
-      const assessment = assessCity(city, {
-        def: (id) => ctx.catalog.get(id),
-        eraByLevel: (l) => ctx.catalog.eraByLevel(l),
-      });
+      if (!city || !box.isOpen) return;
+      const assessment = assess(city);
       vm = sabotageViewModel({
         city,
         player: ctx.players.get(city.owner),
@@ -119,14 +134,22 @@ export const sabotageFeature: Feature = {
       box.update();
     };
     // what is recorded about the visited player; redraws whenever a part of it arrives
-    const record = visitedRecord(ctx, refresh);
+    const record = visitedRecord(ctx, refresh, () => box.isOpen);
+
+    const open = () => {
+      const owner = ctx.cities.visited()?.owner;
+      box.open();
+      if (owner !== undefined) record.sync(owner);
+      refresh();
+    };
 
     ctx.bus.on('city.visited', ({ owner }) => {
       // the arrow belongs to the city it was set in; the rows now show another city
       const marked = ctx.markers.of(ID);
       if (marked && marked.city !== owner) ctx.markers.clear(ID);
-      refresh();
-      if (autoOpen.get()) box.open();
+      assessed = undefined;
+      if (autoOpen.get() && !box.isOpen) open();
+      else refresh();
     });
     // the attack timers come with updatePlayer, for example after a battle or a plunder
     ctx.bus.on('player.updated', ({ ids }) => {
@@ -136,15 +159,27 @@ export const sabotageFeature: Feature = {
     ctx.bus.on('session.started', () => {
       ctx.shields.prune().catch((error) => logError('pruning city shields failed', error));
     });
-    ctx.bus.on('city.visitedChanged', refresh);
+    ctx.bus.on('city.visitedChanged', () => {
+      assessed = undefined;
+      refresh();
+    });
     ctx.bus.on('note.changed', ({ player }) => {
       if (player === undefined || player === ctx.cities.visited()?.owner) box.update();
     });
     ctx.bus.on('catalog.updated', ({ defs }) => {
       const city = ctx.cities.visited();
-      if (city && [...city.buildings.values()].some((b) => defs.includes(b.def))) refresh();
+      if (city && [...city.buildings.values()].some((b) => defs.includes(b.def))) {
+        assessed = undefined;
+        refresh();
+      }
     });
-    ctx.settings.onChange(refresh);
-    ctx.menu.add({ id: ID, icon: ICON, label: () => t('sabotage.menu'), action: () => box.toggle() });
+    // the view model reads this setting only
+    showArmy.onChange(refresh);
+    ctx.menu.add({
+      id: ID,
+      icon: ICON,
+      label: () => t('sabotage.menu'),
+      action: () => (box.isOpen ? box.close() : open()),
+    });
   },
 };

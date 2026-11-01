@@ -11,6 +11,8 @@ export class WriteBehind<Row, Key> {
     private keyOf: (row: Row) => Key,
     private write: (rows: Row[]) => Promise<void>,
     private errorText: string,
+    /** called once per flush, with the rows, after the write succeeded */
+    private stored?: (rows: Row[]) => void,
   ) {}
 
   /** Queues the row for writing; false if a row with this key was queued before. */
@@ -36,7 +38,10 @@ export class WriteBehind<Row, Key> {
       this.flushQueued = false;
       const rows = [...this.pending.values()];
       this.pending.clear();
-      return this.write(rows).catch((error) => logError(this.errorText, error));
+      return this.write(rows).then(
+        () => this.stored?.(rows),
+        (error) => logError(this.errorText, error),
+      );
     });
   }
 }

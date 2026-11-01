@@ -39,7 +39,11 @@ function setup() {
     overrides: ({ bus, world }) => ({ shields: new ShieldStore(bus, world, persistence) }),
   });
   let changes = 0;
-  const record = visitedRecord(ctx, () => changes++);
+  const record = visitedRecord(
+    ctx,
+    () => changes++,
+    () => true,
+  );
   return { ctx, record, answers, asked, changes: () => changes };
 }
 
@@ -92,9 +96,13 @@ describe('record of the visited player', () => {
   it('logs a failing redraw instead of leaving it unhandled', async () => {
     const { ctx, answers } = setup();
     const errors: unknown[] = [];
-    const record = visitedRecord(ctx, () => {
-      throw new Error('redraw failed');
-    });
+    const record = visitedRecord(
+      ctx,
+      () => {
+        throw new Error('redraw failed');
+      },
+      () => true,
+    );
     const onUnhandled = (e: unknown) => errors.push(e);
     process.on('unhandledRejection', onUnhandled);
     try {

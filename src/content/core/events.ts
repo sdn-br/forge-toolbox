@@ -26,11 +26,14 @@ export interface ToolboxEvents {
   'inventory.changed': Record<string, never>;
   /** the research metadata or the research progress of the player arrived */
   'research.changed': Record<string, never>;
-  'battle.recorded': { opponent: PlayerId };
-  'plunder.recorded': { opponent: PlayerId };
+  /** the store wrote battles against these players to the database, once per write */
+  'battle.recorded': { opponents: PlayerId[] };
+  /** the store wrote plunders of these players to the database, once per write */
+  'plunder.recorded': { opponents: PlayerId[] };
   /** the player plundered or tried to plunder this building, whether it worked or was repelled */
   'plunder.attempted': { opponent: PlayerId; entityId: number };
-  'incoming.recorded': { attacker: PlayerId };
+  /** the store wrote attacks of these players on the own city to the database, once per write */
+  'incoming.recorded': { opponents: PlayerId[] };
   /** new city shields of these players */
   'shield.recorded': { players: PlayerId[] };
   /** the game opened the army window before a battle; the opponent is not known yet */

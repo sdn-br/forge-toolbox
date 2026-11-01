@@ -22,7 +22,7 @@ function setup(me: number | null = fixture.me) {
   const { plunders, cities } = stores;
   const plunderDb = db.plunders;
   const recorded: PlayerId[] = [];
-  bus.on('plunder.recorded', (e) => recorded.push(e.opponent));
+  bus.on('plunder.recorded', (e) => recorded.push(...e.opponents));
   const attempted: { opponent: PlayerId; entityId: number }[] = [];
   bus.on('plunder.attempted', (e) => attempted.push(e));
   const send = (entries: unknown[], request: unknown[] | null = null) =>

@@ -1,4 +1,6 @@
 import { foestatsPlayerUrl } from '../../../shared/foestats';
+import type { PlayerId } from '../../../shared/ids';
+import type { IncomingTotals, PlunderTotals } from '../../../shared/model';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { toggleDef } from '../../core/settings';
@@ -42,28 +44,38 @@ export const pvpFeature: Feature = {
     let query = 0;
     const expanded = new Set<number>();
     let shown: Parameters<typeof pvpViewModel>[0] | undefined;
+    // who the filter matched at the last load; undefined means everybody
+    let opponentsShown: PlayerId[] | undefined;
 
+    const noPlunders: PlunderTotals = { count: 0, repelled: 0, fp: 0 };
+    const noIncoming: IncomingTotals = { battles: 0, held: 0, plunders: 0 };
+
+    // loads what the active tab shows; the plunder totals also stand above the battles
     const refresh = async () => {
       if (!box.isOpen) return;
       const current = ++query;
-      const opponents = opponentsFor(
-        filter,
-        ctx.players.list().filter((p) => p.world === ctx.world),
-      );
-      const plunderTotals = await ctx.plunders.totals(opponents);
-      const incomingTotals = await ctx.incoming.totals(opponents);
+      // the player list is needed only to turn a search text into opponents
+      const searching = filter.opponent === undefined && filter.text.trim() !== '';
+      const opponents = opponentsFor(filter, searching ? ctx.players.list().filter((p) => p.world === ctx.world) : []);
+      opponentsShown = opponents;
+      const [plunderTotals, incomingTotals, battleCount] = await Promise.all([
+        tab === 'incoming' ? noPlunders : ctx.plunders.totals(opponents),
+        tab === 'incoming' ? ctx.incoming.totals(opponents) : noIncoming,
+        tab === 'battles' ? ctx.battles.count(opponents) : 0,
+      ]);
       const total =
         tab === 'battles'
-          ? await ctx.battles.count(opponents)
+          ? battleCount
           : tab === 'plunders'
             ? plunderTotals.count + plunderTotals.repelled
             : incomingTotals.battles + incomingTotals.plunders;
       page = Math.min(page, pageCount(total) - 1);
       const onPage = { opponents, limit: PAGE_SIZE, offset: page * PAGE_SIZE };
-      const battles = tab === 'battles' ? await ctx.battles.list(onPage) : [];
-      const plunders = tab === 'plunders' ? await ctx.plunders.list(onPage) : [];
-      const incoming =
-        tab === 'incoming' ? await ctx.incoming.list({ opponents, limit: PAGE_SIZE, offset: onPage.offset }) : [];
+      const [battles, plunders, incoming] = await Promise.all([
+        tab === 'battles' ? ctx.battles.list(onPage) : [],
+        tab === 'plunders' ? ctx.plunders.list(onPage) : [],
+        tab === 'incoming' ? ctx.incoming.list(onPage) : [],
+      ]);
       // a newer query started meanwhile and will render
       if (current !== query) return;
       shown = {
@@ -88,7 +100,28 @@ export const pvpFeature: Feature = {
       vm = pvpViewModel(shown);
       box.update();
     };
-    const show = () => refresh().catch((error) => logError('loading battles failed', error));
+    // events of one task (a game response often brings several) load once
+    let queued = false;
+    const show = () => {
+      if (queued) return;
+      queued = true;
+      queueMicrotask(() => {
+        queued = false;
+        refresh().catch((error) => logError('loading battles failed', error));
+      });
+    };
+    // names, guilds and notes are looked up when the view model is built, so a change of them needs no reading
+    const rebuild = () => {
+      if (shown) vm = pvpViewModel(shown);
+      box.update();
+    };
+    // a search text matches names, so a changed name can change who matches
+    const matchesByName = () => filter.opponent === undefined && filter.text.trim() !== '';
+    const touches = (opponents: PlayerId[]) =>
+      opponentsShown === undefined || opponents.some((o) => opponentsShown?.includes(o));
+    const onRecorded = ({ opponents }: { opponents: PlayerId[] }) => {
+      if (touches(opponents)) show();
+    };
 
     const actions: PvpActions = {
       tab: (next) => {
@@ -114,8 +147,7 @@ export const pvpFeature: Feature = {
       expand: (battleId) => {
         if (!expanded.delete(battleId)) expanded.add(battleId);
         // the battles of the page are loaded already
-        if (shown) vm = pvpViewModel(shown);
-        box.update();
+        rebuild();
       },
       note: (opponent) => {
         actions.pick(opponent);
@@ -161,12 +193,12 @@ export const pvpFeature: Feature = {
       if (!box.isOpen || !openWithArmy.get()) return;
       actions.pick(opponent);
     });
-    ctx.bus.on('battle.recorded', show);
-    ctx.bus.on('plunder.recorded', show);
-    ctx.bus.on('incoming.recorded', show);
-    ctx.bus.on('player.updated', show);
+    ctx.bus.on('battle.recorded', onRecorded);
+    ctx.bus.on('plunder.recorded', onRecorded);
+    ctx.bus.on('incoming.recorded', onRecorded);
+    ctx.bus.on('player.updated', () => (matchesByName() ? show() : rebuild()));
     // the markers in the rows show the notes
-    ctx.bus.on('note.changed', show);
+    ctx.bus.on('note.changed', rebuild);
     ctx.menu.add({
       id: 'pvp',
       icon: ICON,

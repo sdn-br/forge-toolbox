@@ -21,7 +21,7 @@ function setup(me: number | null = fixture.me) {
   registerGameHandlers(ingestion, { world, bus, now: () => now, ...stores });
   const { incoming } = stores;
   const recorded: PlayerId[] = [];
-  bus.on('incoming.recorded', (e) => recorded.push(e.attacker));
+  bus.on('incoming.recorded', (e) => recorded.push(...e.opponents));
   const page = (entries: unknown[]) =>
     ingestion.accept({ kind: 'json', url: '/game/json?h=1', request: null, response: JSON.stringify(entries), at: 0 });
   const live = (entries: unknown[]) => ingestion.accept({ kind: 'ws', data: JSON.stringify(entries), at: 0 });

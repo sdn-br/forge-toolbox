@@ -54,7 +54,7 @@ Ein Kampf misst nur die verteidigende Armee des Gegners. Seine angreifende Armee
 
 **Abfragen:** `latest(opponent)`, `list({ opponents?, limit, offset })` neueste zuerst, `count(opponents?)`. Die Abfragen laufen über RPC im Service Worker. Der Store hält keine Kämpfe im Speicher, er wartet vor jeder Abfrage nur die eigenen offenen Schreibvorgänge ab.
 
-**Events:** `battle.recorded { opponent: PlayerId }`, einmal je neuem Kampf.
+**Events:** `battle.recorded { opponents: PlayerId[] }`, einmal je Schreibvorgang, nach dem Schreiben.
 
 **Persistenz:** Tabelle `battles` (Dexie Version 2), Schlüssel `[world+battleId]`, Indizes `[world+at]`, `[world+opponent+at]` und `at`. Neue Kämpfe einer Spielantwort gehen gesammelt in einem Schreibvorgang an den Service Worker.
 

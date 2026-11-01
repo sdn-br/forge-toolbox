@@ -15,7 +15,7 @@ export function battlesHandlers(db: BattlesTables): Handlers<BattlesApi> {
     },
     'battles.latest': ({ world, opponent }) => rows.latest(world, opponent),
     'battles.list': ({ world, opponents, limit, offset }) => rows.list(world, opponents, limit, offset),
-    'battles.count': ({ world, opponents }) => rows.newestFirst(world, opponents).count(),
+    'battles.count': ({ world, opponents }) => rows.count(world, opponents),
     'battles.prune': ({ before }) => rows.prune(before),
   };
 }
