@@ -167,6 +167,13 @@ export const noteMarker = (opponent: PlayerId, note: string, actions: PvpActions
 
 /** the loaded rows the window draws; `from` is the index of the first loaded row in the list, `total` the rows of
  * the list */
+/**
+ * Where a scroll may move the window: only over rows already loaded, so it never draws fewer rows and the box keeps its
+ * height. A fast wheel (touchpad) waits at the edge of the loaded rows until the next slice is there.
+ */
+export const keepInLoaded = (top: number, visible: number, from: number, loaded: number): number =>
+  Math.min(Math.max(top, from), Math.max(from, from + loaded - visible));
+
 export const rowsShown = <R>(rows: R[], from: number, total: number, { top, below }: RowWindow): R[] => {
   const start = top - from;
   return rows.slice(Math.max(0, start), Math.max(0, start + total - top - below));

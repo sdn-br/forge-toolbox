@@ -562,16 +562,22 @@ describe('pvp feature', () => {
 
       // inside the loaded slice the window reads nothing
       const last = SLICE - VISIBLE;
-      for (let i = 0; i < last; i++) box.click('Nach unten');
+      for (let i = 0; i < last - 1; i++) box.click('Nach unten');
       await tick();
       expect(lists).toHaveLength(1);
-      expect(box.text).toContain(String(1000 + last));
-      expect(box.text).not.toContain(String(999 + last));
+      expect(box.text).toContain(String(999 + last));
 
+      // at the edge of the loaded rows it reads the next slice and waits there, so it never draws fewer rows
       box.click('Nach unten');
       await tick();
       expect(lists).toHaveLength(2);
-      expect(lists[1]?.query).toMatchObject({ offset: last + 1 - VISIBLE, limit: SLICE });
+      expect(lists[1]?.query).toMatchObject({ offset: last - VISIBLE, limit: SLICE });
+      for (let i = 0; i < 5; i++) box.click('Nach unten');
+      await tick();
+      expect(box.root.querySelectorAll('tr.battle-row')).toHaveLength(VISIBLE);
+      expect(box.text).toContain(String(1000 + last));
+      expect(box.text).not.toContain(String(1000 + SLICE));
+      expect(lists).toHaveLength(2);
 
       type(box, 'x');
       await tick();

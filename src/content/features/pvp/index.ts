@@ -14,6 +14,7 @@ import { battlePanelVm } from './battles/view-model';
 import { createIncomingSection } from './incoming/section';
 import { KEEP_SETTING, pruneBefore } from './retention';
 import {
+  keepInLoaded,
   NO_FILTER,
   opponentsFor,
   type PvpActions,
@@ -177,7 +178,7 @@ export const pvpFeature: Feature = {
         card.edit(opponent);
       },
       scroll: (rows) => {
-        top += rows;
+        top = vm ? keepInLoaded(top + rows, VISIBLE_ROWS, vm.from, vm.rows.length) : top + rows;
         box.update();
       },
     };
@@ -190,9 +191,15 @@ export const pvpFeature: Feature = {
       const visible = VISIBLE_ROWS;
       const rows = rowWindow(top, vm.total, visible);
       top = rows.top;
-      // the window left the slice asked for: load the slice around it; a list shorter than asked ends there
+      // the window left the slice asked for, or stands at the edge of the loaded rows with more beyond and nothing on
+      // the way: load the slice around it; a list shorter than asked ends there
       const end = requested.offset + requested.limit;
-      if (vm.total > 0 && (top < requested.offset || (top + visible > end && end < vm.total))) show();
+      const loadedEnd = vm.from + vm.rows.length;
+      // a slice shorter than asked holds the end of the list
+      const settled = requested.offset === vm.from && vm.rows.length === requested.limit;
+      const atEdge = (top <= vm.from && vm.from > 0) || (top + visible >= loadedEnd && loadedEnd < vm.total);
+      if (vm.total > 0 && (top < requested.offset || (top + visible > end && end < vm.total) || (settled && atEdge)))
+        show();
       return pvpView(tab, filter, { vm, window: rows }, actions, note, side);
     };
 
