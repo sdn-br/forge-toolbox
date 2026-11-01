@@ -24,7 +24,7 @@ import {
   type ViewInput,
 } from './rows';
 import { BATTLES_MIN_WIDTH, pvpCss } from './styles';
-import type { PvpSection, PvpVm } from './tabs';
+import type { PvpSection, PvpVm, Totals } from './tabs';
 import { pvpView } from './view';
 
 /** the menu entry and the settings group show it */
@@ -43,8 +43,9 @@ const NAME_ROOM = 120;
 const WIDTH = BATTLES_MIN_WIDTH + 16 + 26 + 20 + NAME_ROOM;
 /** rows in view: the box has a fixed size, its height follows from them (Nutzer, 2026-11-01) */
 export const VISIBLE_ROWS = 12;
-/** a window loads this many times the rows that fit, from one window above it, so scrolling reads only now and then */
-const SLICE_WINDOWS = 3;
+/** a slice holds this many windows of rows above and below the one in view, so scrolling reads only now and then */
+const AHEAD = 2;
+const SLICE_WINDOWS = 2 * AHEAD + 1;
 
 export const pvpFeature: Feature = {
   id: 'pvp',
@@ -68,6 +69,8 @@ export const pvpFeature: Feature = {
     let lastInput: ViewInput | undefined;
     /** the slice the last load asked for; the window loads again once it leaves it */
     let requested = { offset: 0, limit: 0 };
+    /** the totals of the current query and tab, for slices read while scrolling; a change of either or new data drops them */
+    let knownTotals: Totals | undefined;
     let query = 0;
     // builds the view model of the last load again, without reading
     let shown: (() => PvpVm) | undefined;
@@ -90,14 +93,16 @@ export const pvpFeature: Feature = {
       const opponents = opponentsFor(filter, players());
       opponentsShown = opponents;
       const visible = VISIBLE_ROWS;
-      requested = { offset: Math.max(0, top - visible), limit: SLICE_WINDOWS * visible };
-      const { build, battles } = await sections[tab].load(
+      requested = { offset: Math.max(0, top - AHEAD * visible), limit: SLICE_WINDOWS * visible };
+      const { build, battles, totals } = await sections[tab].load(
         { opponents, withPlunder: filter.withPlunder },
         requested.offset,
         requested.limit,
+        knownTotals,
       );
       // a newer query started meanwhile and will render
       if (current !== query) return;
+      knownTotals = totals;
       const input = {
         filter,
         lookups,
@@ -120,7 +125,9 @@ export const pvpFeature: Feature = {
     };
     // events of one task (a game response often brings several) load once
     let queued = false;
-    const show = () => {
+    // `totals` false: only a further slice of the same query, while scrolling; its totals stay
+    const show = (totals = true) => {
+      if (totals) knownTotals = undefined;
       if (queued) return;
       queued = true;
       queueMicrotask(() => {
@@ -191,15 +198,16 @@ export const pvpFeature: Feature = {
       const visible = VISIBLE_ROWS;
       const rows = rowWindow(top, vm.total, visible);
       top = rows.top;
-      // the window left the slice asked for, or stands at the edge of the loaded rows with more beyond and nothing on
-      // the way: load the slice around it; a list shorter than asked ends there
+      // the window left the slice asked for, or less than a window of loaded rows is left before it on either side with
+      // more beyond and nothing on the way: read the next slice around it, without the totals; a slice shorter than
+      // asked holds the end of the list
       const end = requested.offset + requested.limit;
       const loadedEnd = vm.from + vm.rows.length;
-      // a slice shorter than asked holds the end of the list
       const settled = requested.offset === vm.from && vm.rows.length === requested.limit;
-      const atEdge = (top <= vm.from && vm.from > 0) || (top + visible >= loadedEnd && loadedEnd < vm.total);
-      if (vm.total > 0 && (top < requested.offset || (top + visible > end && end < vm.total) || (settled && atEdge)))
-        show();
+      const nearEdge =
+        (top - vm.from < visible && vm.from > 0) || (loadedEnd - (top + visible) < visible && loadedEnd < vm.total);
+      if (vm.total > 0 && (top < requested.offset || (top + visible > end && end < vm.total) || (settled && nearEdge)))
+        show(false);
       return pvpView(tab, filter, { vm, window: rows }, actions, note, side);
     };
 

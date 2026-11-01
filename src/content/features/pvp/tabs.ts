@@ -1,6 +1,6 @@
 // What the box needs of each tab: the tabs in order, the view model each builds and how a tab loads a slice of its rows.
 import type { PlayerId } from '../../../shared/ids';
-import type { BattleWithPlunder } from '../../../shared/model';
+import type { BattleSummary, BattleWithPlunder, IncomingTotals } from '../../../shared/model';
 import type { BattlesVm } from './battles/view-model';
 import type { IncomingVm } from './incoming/view-model';
 import type { PvpTab, ViewInput } from './rows';
@@ -20,14 +20,22 @@ export interface PvpQuery {
   withPlunder: boolean;
 }
 
+/** the totals of a tab, which also give its number of rows */
+export type Totals = BattleSummary | IncomingTotals;
+
 /** what a tab read */
 export interface Loaded {
   build: BuildVm;
+  /** the totals the slice was built with, read or handed in */
+  totals: Totals;
   /** the battles read, for the side panel; none on the attacks on the own city */
   battles: BattleWithPlunder[];
 }
 
 export interface PvpSection {
-  /** Reads what the tab shows: its totals, which also give the number of rows, and `limit` rows from `offset`. */
-  load(query: PvpQuery, offset: number, limit: number): Promise<Loaded>;
+  /**
+   * Reads what the tab shows: `limit` rows from `offset` and its totals, which also give the number of rows. `totals`
+   * of the same query and tab are used instead of reading them again, for a slice read while scrolling.
+   */
+  load(query: PvpQuery, offset: number, limit: number, totals?: Totals): Promise<Loaded>;
 }

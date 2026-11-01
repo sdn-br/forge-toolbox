@@ -106,8 +106,8 @@ const OTHER = toggleDef({ key: 'other.setting', group: 'pvp.title', label: 'pvp.
 
 /** the fixed number of rows the window draws */
 const VISIBLE = VISIBLE_ROWS;
-/** what a load asks for: a window above and below the one in view */
-const SLICE = 3 * VISIBLE;
+/** what a load asks for: two windows above and below the one in view */
+const SLICE = 5 * VISIBLE;
 
 const seen = (id: number, name: string): PlayerObservation => ({
   id: playerId(id),
@@ -552,7 +552,7 @@ describe('pvp feature', () => {
 
   describe('row window', () => {
     it('loads the slice around the window as it scrolls, and from the top again on a change of filter', async () => {
-      const { box, lists } = setup(100);
+      const { box, lists, persistence } = setup(100);
       await tick();
       expect(lists[0]?.query).toMatchObject({ offset: 0, limit: SLICE });
       lists[0]?.resolve(Array.from({ length: SLICE }, (_, i) => battle(i + 1, 1000 + i)));
@@ -560,28 +560,34 @@ describe('pvp feature', () => {
       expect(box.text).toContain(`noch ${100 - VISIBLE} weitere unten`);
       expect(box.root.querySelectorAll('tr.battle-row')).toHaveLength(VISIBLE);
 
-      // inside the loaded slice the window reads nothing
-      const last = SLICE - VISIBLE;
-      for (let i = 0; i < last - 1; i++) box.click('Nach unten');
+      // while more than a window of loaded rows is left below the one in view, the window reads nothing
+      const early = SLICE - 2 * VISIBLE;
+      for (let i = 0; i < early; i++) box.click('Nach unten');
       await tick();
       expect(lists).toHaveLength(1);
-      expect(box.text).toContain(String(999 + last));
+      expect(box.text).toContain(String(1000 + early));
 
-      // at the edge of the loaded rows it reads the next slice and waits there, so it never draws fewer rows
+      // one step further it reads the next slice ahead, without the summary, which stays as read
+      const summaries = vi.mocked(persistence.summary).mock.calls.length;
       box.click('Nach unten');
       await tick();
       expect(lists).toHaveLength(2);
-      expect(lists[1]?.query).toMatchObject({ offset: last - VISIBLE, limit: SLICE });
-      for (let i = 0; i < 5; i++) box.click('Nach unten');
+      expect(lists[1]?.query).toMatchObject({ offset: early + 1 - 2 * VISIBLE, limit: SLICE });
+      expect(persistence.summary).toHaveBeenCalledTimes(summaries);
+
+      // a fast wheel waits at the edge of the loaded rows until the slice is there, it never draws fewer rows
+      for (let i = 0; i < 2 * VISIBLE; i++) box.click('Nach unten');
       await tick();
       expect(box.root.querySelectorAll('tr.battle-row')).toHaveLength(VISIBLE);
-      expect(box.text).toContain(String(1000 + last));
+      expect(box.text).toContain(String(999 + SLICE));
       expect(box.text).not.toContain(String(1000 + SLICE));
       expect(lists).toHaveLength(2);
 
+      // a change of filter reads from the top, with the summary
       type(box, 'x');
       await tick();
       expect(lists.at(-1)?.query).toMatchObject({ offset: 0 });
+      expect(persistence.summary).toHaveBeenCalledTimes(summaries + 1);
     });
 
     it('reads the attacks on the own city in slices too', async () => {
