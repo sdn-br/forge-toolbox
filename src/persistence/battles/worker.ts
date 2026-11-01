@@ -29,11 +29,13 @@ async function putBattles(db: BattlesTables & PlundersTables & Dexie, rows: Foug
 
 export function battlesHandlers(db: BattlesTables & PlundersTables & Dexie): Handlers<BattlesApi> {
   const all = playerRows(db.battles, 'opponent');
-  // debt: withPlunder and summary scan without an index on plunderAt. ceiling: tens of thousands of battles per world
+  // debt: the plunder filter and summary scan without an index on plunderAt. ceiling: tens of thousands of battles per world
   // make the battles tab slow. upgrade: measured open time over a second, then an index in a later Dexie version.
   const linked = playerRows(db.battles, 'opponent', (b) => b.plunderAt !== undefined);
+  const unlinked = playerRows(db.battles, 'opponent', (b) => b.plunderAt === undefined);
   const fought = playerRows(db.battles, 'opponent', isFought);
-  const rowsOf = (filter: BattleFilter) => (filter.withPlunder ? linked : all);
+  const rowsOf = (filter: BattleFilter) =>
+    filter.plunder === 'with' ? linked : filter.plunder === 'without' ? unlinked : all;
 
   const plundersOf = (battles: Battle[]) =>
     db.plunders.bulkGet(
@@ -50,7 +52,7 @@ export function battlesHandlers(db: BattlesTables & PlundersTables & Dexie): Han
       return battle && isFought(battle) ? battle : null;
     },
     'battles.list': async (filter) => {
-      const battles = await rowsOf(filter).list(filter.world, filter.opponents, filter.limit, filter.offset);
+      const battles = await rowsOf(filter).list(filter.world, filter, filter.limit, filter.offset);
       const plunders = new Map((await plundersOf(battles)).flatMap((p) => (p ? [[`${p.opponent}|${p.at}`, p]] : [])));
       return battles.map((b) => {
         const plunder = b.plunderAt === undefined ? undefined : plunders.get(`${b.opponent}|${b.plunderAt}`);
@@ -60,7 +62,7 @@ export function battlesHandlers(db: BattlesTables & PlundersTables & Dexie): Han
     'battles.summary': async (filter) => {
       const summary: BattleSummary = { battles: 0, won: 0, plunders: 0, repelled: 0, fp: 0 };
       const battles: Battle[] = [];
-      await rowsOf(filter).forEach(filter.world, filter.opponents, (b) => {
+      await rowsOf(filter).forEach(filter.world, filter, (b) => {
         summary.battles++;
         if (b.result === 'won') summary.won++;
         if (b.plunderAt !== undefined) battles.push(b);

@@ -3,7 +3,15 @@ import { prunedBy, reselect } from '../src/content/features/pvp/battles/selectio
 import { battlePanelVm, battlesViewModel } from '../src/content/features/pvp/battles/view-model';
 import { incomingViewModel } from '../src/content/features/pvp/incoming/view-model';
 import { pruneBefore } from '../src/content/features/pvp/retention';
-import { NO_FILTER, opponentsFor, pickedPlayer, rowsShown, type ViewInput } from '../src/content/features/pvp/rows';
+import {
+  isFiltered,
+  type MarkFilter,
+  NO_FILTER,
+  opponentsFor,
+  pickedPlayer,
+  rowsShown,
+  type ViewInput,
+} from '../src/content/features/pvp/rows';
 import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type {
   BattleSummary,
@@ -223,7 +231,16 @@ describe('pvp view model', () => {
 
   it('tells no battles from no match, each filter counting', () => {
     expect(battlesOf([]).empty).toBe('none');
-    for (const change of [{ name: 'xy' }, { onlyPlunder: true }, { onlyNoAttack: true }, { withPlunder: true }]) {
+    const marks = NO_FILTER.marks;
+    const loot = NO_FILTER.loot;
+    for (const change of [
+      { name: 'xy' },
+      { marks: { ...marks, plunder: false } },
+      { marks: { ...marks, noAttack: false } },
+      { marks: { ...marks, none: false } },
+      { loot: { ...loot, with: false } },
+      { loot: { ...loot, without: false } },
+    ]) {
       expect(battlesOf([], { filter: { ...NO_FILTER, ...change } }).empty).toBe('noMatch');
     }
     // the sack filter does not apply to the attacks on the own city
@@ -235,8 +252,8 @@ describe('pvp view model', () => {
         incomingTotals: { battles: 0, held: 0, plunders: 0 },
         from: 0,
       });
-    expect(incoming({ ...NO_FILTER, withPlunder: true }).empty).toBe('none');
-    expect(incoming({ ...NO_FILTER, onlyNoAttack: true }).empty).toBe('noMatch');
+    expect(incoming({ ...NO_FILTER, loot: { with: true, without: false } }).empty).toBe('none');
+    expect(incoming({ ...NO_FILTER, marks: { ...NO_FILTER.marks, noAttack: false } }).empty).toBe('noMatch');
   });
 
   it('sums up the battles and their plunders the filter matches', () => {
@@ -330,12 +347,17 @@ describe('pvp filter', () => {
     player(3, 'Bert', { plunderWorthy: true }),
     player(4, 'Ann'),
   ];
-  const filter = (change: Partial<typeof NO_FILTER>) => opponentsFor({ ...NO_FILTER, ...change }, players);
+  const scope = (change: Partial<typeof NO_FILTER>, known = players) =>
+    opponentsFor({ ...NO_FILTER, ...change }, known);
+  const filter = (change: Partial<typeof NO_FILTER>) => scope(change).opponents;
+  const marks = (change: Partial<MarkFilter>): Partial<typeof NO_FILTER> => ({
+    marks: { plunder: false, noAttack: false, none: false, ...change },
+  });
 
   it('matches names by text, ignoring case', () => {
     expect(filter({ name: ' NN' })).toEqual([1, 2, 4]);
     expect(filter({ name: 'zz' })).toEqual([]);
-    expect(filter({ name: ' ' })).toBeUndefined();
+    expect(scope({ name: ' ' })).toEqual({});
   });
 
   it('takes the exact name of a known player alone, as the funnel writes it', () => {
@@ -347,17 +369,45 @@ describe('pvp filter', () => {
     expect(filter({ name: '222' })).toEqual([222]);
   });
 
-  it('keeps only players with the PvP mark of the star or warning filter, together with the name', () => {
-    expect(filter({ onlyPlunder: true })).toEqual([1, 3]);
-    expect(filter({ onlyNoAttack: true })).toEqual([2]);
-    expect(filter({ onlyPlunder: true, name: 'an' })).toEqual([1]);
-    expect(filter({ onlyNoAttack: true, name: 'Anna' })).toEqual([]);
-    // the two marks exclude each other
-    expect(filter({ onlyPlunder: true, onlyNoAttack: true })).toEqual([]);
+  it('shows every player with all mark toggles on', () => {
+    expect(scope({})).toEqual({});
   });
 
-  it('leaves the sack filter to the store', () => {
-    expect(filter({ withPlunder: true })).toBeUndefined();
+  it('keeps the players of the mark toggles that are on, together with the name', () => {
+    expect(filter(marks({ plunder: true }))).toEqual([1, 3]);
+    expect(filter(marks({ noAttack: true }))).toEqual([2]);
+    expect(filter(marks({ plunder: true, noAttack: true }))).toEqual([1, 2, 3]);
+    expect(filter({ ...marks({ plunder: true }), name: 'an' })).toEqual([1]);
+    expect(filter({ ...marks({ noAttack: true }), name: 'Anna' })).toEqual([]);
+    expect(filter(marks({}))).toEqual([]);
+  });
+
+  it('shows the players without a mark with "ohne Markierung", the unknown ones too', () => {
+    // a known player without a mark is named, the unknown ones pass because the scope leaves out instead
+    expect(scope(marks({ none: true }))).toEqual({ exceptOpponents: [1, 2, 3] });
+    expect(scope(marks({ none: true, plunder: true }))).toEqual({ exceptOpponents: [2] });
+    expect(filter({ ...marks({ none: true }), name: 'an' })).toEqual([4]);
+    // the id of an unknown player in the field
+    expect(filter({ ...marks({ none: true }), name: '222' })).toEqual([222]);
+    expect(filter({ ...marks({ plunder: true }), name: '222' })).toEqual([]);
+  });
+
+  it('shows a player with both marks while either of its toggles is on', () => {
+    const both = [player(5, 'Doppelt', { plunderWorthy: true, noAttack: true })];
+    expect(scope(marks({ plunder: true }), both).opponents).toEqual([5]);
+    expect(scope(marks({ noAttack: true }), both).opponents).toEqual([5]);
+    expect(scope(marks({ none: true }), both)).toEqual({ exceptOpponents: [5] });
+  });
+
+  it('leaves the sack toggles to the store', () => {
+    expect(scope({ loot: { with: true, without: false } })).toEqual({});
+  });
+
+  it('counts as filtered when any toggle is off', () => {
+    expect(isFiltered(NO_FILTER, 'battles')).toBe(false);
+    expect(isFiltered({ ...NO_FILTER, marks: { ...NO_FILTER.marks, none: false } }, 'incoming')).toBe(true);
+    expect(isFiltered({ ...NO_FILTER, loot: { with: false, without: true } }, 'battles')).toBe(true);
+    expect(isFiltered({ ...NO_FILTER, loot: { with: false, without: true } }, 'incoming')).toBe(false);
   });
 
   it('picks the one player the field names exactly, for the note card', () => {

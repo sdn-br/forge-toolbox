@@ -21,10 +21,10 @@ export function incomingHandlers(db: IncomingTables & Dexie): Handlers<IncomingA
         return undefined;
       }),
     'incoming.latest': ({ world, opponent }) => rows.latest(world, opponent),
-    'incoming.list': ({ world, opponents, limit, offset }) => rows.list(world, opponents, limit, offset),
-    'incoming.totals': async ({ world, opponents }) => {
+    'incoming.list': ({ world, limit, offset, ...scope }) => rows.list(world, scope, limit, offset),
+    'incoming.totals': async ({ world, ...scope }) => {
       const totals = { battles: 0, held: 0, plunders: 0 };
-      await rows.forEach(world, opponents, (a) => {
+      await rows.forEach(world, scope, (a) => {
         if (a.kind === 'plunder') totals.plunders++;
         else totals.battles++;
         if (a.defense === 'held') totals.held++;

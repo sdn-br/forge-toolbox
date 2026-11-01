@@ -168,12 +168,14 @@ describe('queries of attacks on the own city', () => {
     expect(await keys({ limit: 2, offset: 2 })).toEqual([9, 1]);
     expect(await keys({ opponents: [attacker], limit: 10, offset: 0 })).toEqual([3, 9, 1]);
     expect(await keys({ opponents: [], limit: 10, offset: 0 })).toEqual([]);
+    expect(await keys({ exceptOpponents: [attacker], limit: 10, offset: 0 })).toEqual([2]);
   });
 
   it('counts battles, held ones and plunders', async () => {
     const { incoming } = await filled();
     expect(await incoming.totals()).toEqual({ battles: 3, held: 2, plunders: 1 });
-    expect(await incoming.totals([attacker])).toEqual({ battles: 2, held: 1, plunders: 1 });
+    expect(await incoming.totals({ opponents: [attacker] })).toEqual({ battles: 2, held: 1, plunders: 1 });
+    expect(await incoming.totals({ exceptOpponents: [attacker] })).toEqual({ battles: 1, held: 1, plunders: 0 });
   });
 
   it('finds the latest attack of a player', async () => {

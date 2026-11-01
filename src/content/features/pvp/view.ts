@@ -1,6 +1,6 @@
 import { html, type TemplateResult } from 'lit-html';
 import { t } from '../../core/texts';
-import { filterToggle } from '../../ui/buttons';
+import { toggleGroup } from '../../ui/buttons';
 import { headerIcons } from '../../ui/icons';
 import { searchField } from '../../ui/inputs';
 import { sideDrawer } from '../../ui/side-drawer';
@@ -10,37 +10,39 @@ import { battlePanel } from './battles/panel';
 import { battlesView } from './battles/view';
 import type { BattlePanelVm } from './battles/view-model';
 import { incomingView } from './incoming/view';
-import type { PvpActions, PvpFilter, PvpTab } from './rows';
+import { LOOT_TOGGLES, MARK_TOGGLES, type PvpActions, type PvpFilter, type PvpTab } from './rows';
 import { type PvpVm, TABS } from './tabs';
 
 const list = (vm: PvpVm, window: RowWindow, actions: PvpActions) =>
   vm.tab === 'battles' ? battlesView(vm, window, actions) : incomingView(vm, window, actions);
 
-/** one row: the name field, the star and the warning filter, on the battles the sack filter */
+const MARK_ICONS = {
+  plunder: headerIcons.plunderStarFilled,
+  noAttack: headerIcons.noAttackOn,
+  none: headerIcons.noPvpMark,
+};
+const LOOT_ICONS = { with: headerIcons.lootFilled, without: headerIcons.noLoot };
+
+/** one row: the name field, the mark toggles, on the battles the sack toggles; each toggle shows its rows while on */
 const filterBar = (f: PvpFilter, tab: PvpTab, actions: PvpActions) => html`<p class="pvp-filter">
     ${searchField(f.name, t('pvp.search'), (name) => actions.filter({ name }))}
-    ${filterToggle(
-      'pvp-plunder-filter',
-      f.onlyPlunder,
-      t('pvp.filter.onlyPlunder'),
-      headerIcons.plunderStarFilled,
-      (onlyPlunder) => actions.filter({ onlyPlunder }),
-    )}
-    ${filterToggle(
-      'pvp-no-attack-filter',
-      f.onlyNoAttack,
-      t('pvp.filter.onlyNoAttack'),
-      headerIcons.noAttackOn,
-      (onlyNoAttack) => actions.filter({ onlyNoAttack }),
+    ${toggleGroup(
+      'pvp-mark-filter',
+      MARK_TOGGLES,
+      f.marks,
+      (key) => t(`pvp.filter.marks.${key}`),
+      (key) => MARK_ICONS[key],
+      (marks) => actions.filter({ marks }),
     )}
     ${
       tab === 'battles'
-        ? filterToggle(
+        ? toggleGroup(
             'pvp-loot-filter',
-            f.withPlunder,
-            t('pvp.filter.withPlunder'),
-            headerIcons.lootFilled,
-            (withPlunder) => actions.filter({ withPlunder }),
+            LOOT_TOGGLES,
+            f.loot,
+            (key) => t(`pvp.filter.loot.${key}`),
+            (key) => LOOT_ICONS[key],
+            (loot) => actions.filter({ loot }),
           )
         : ''
     }

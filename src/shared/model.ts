@@ -143,12 +143,18 @@ export const isFought = (battle: Battle): battle is FoughtBattle => !('inferred'
 /** a battle as the battle list returns it, with its plunder when it has one */
 export type BattleWithPlunder = Battle & { plunder?: Plunder };
 
-/** which battles a battle list or its summary covers */
-export interface BattleFilter {
-  /** only battles against these players; missing means all */
+/** whose rows a read of per-player rows covers */
+export interface OpponentScope {
+  /** only rows of these players; missing means all */
   opponents?: PlayerId[];
-  /** only battles with a plunder */
-  withPlunder?: boolean;
+  /** only read while `opponents` is missing: every row but those of these players */
+  exceptOpponents?: PlayerId[];
+}
+
+/** which battles a battle list or its summary covers */
+export interface BattleFilter extends OpponentScope {
+  /** only battles with a plunder (`with`) or only those without one (`without`); missing means both */
+  plunder?: 'with' | 'without';
 }
 
 /** what the battle list counts over all its pages */
