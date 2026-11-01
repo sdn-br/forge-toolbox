@@ -104,7 +104,7 @@ textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
 /* the portrait spans the name and the hit points below it; a fallen unit's fades like its text */
 .battle td { vertical-align: top; }
 /* units as the game draws them: portrait, class icon on a dark round badge inside its lower right corner and clear of the health bar, the bar below */
-.unit-tiles { display: flex; flex-wrap: wrap; gap: 6px; }
+.unit-tiles { display: grid; grid-template-columns: repeat(2, 40px); gap: 6px; }
 .unit-tile { position: relative; width: 40px; }
 .unit-tile .unit-img { display: block; width: 40px; height: 40px; border-radius: 3px; }
 .unit-tile .unit-img[hidden] { display: none; }
