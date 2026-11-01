@@ -66,7 +66,7 @@ describe('battle details', () => {
       [...r.querySelectorAll('th, td')].map((c) => c.textContent?.trim()),
     );
     expect(rows).toEqual([
-      ['Deine Einheiten', '', 'Gegner', ''],
+      ['Deine Einheiten', 'Gegner'],
       ['rogue', '8/10 LP', 'feudal_knight', 'gefallen'],
       ['grenadier', 'gefallen', '', ''],
       ['Angriff / Verteidigung', '368 % / 269 %', '', '406 % / 443 %'],

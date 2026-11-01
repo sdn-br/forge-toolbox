@@ -605,6 +605,9 @@ describe('pvp feature', () => {
     const tab = (box: TestBox, tip: string) =>
       box.root.querySelector(`button.side-tab[data-tip="${tip}"]`) as HTMLElement;
     const panel = (box: TestBox) => box.root.querySelector('.side-panel')?.textContent ?? '';
+    /** the headings and lines of the panel, one entry each */
+    const lines = (box: TestBox) =>
+      [...box.root.querySelectorAll('.side-panel h2, .side-panel p')].map((e) => e.textContent?.trim());
 
     it('shows a clicked battle in the side panel with both armies and the result, and clears it on a second click', async () => {
       const { box, row, lists } = await shown();
@@ -676,9 +679,9 @@ describe('pvp feature', () => {
       ]);
 
       row(0).click();
-      expect(panel(box)).toContain('Plünderung: R_IronAge_Residential2 · 12 Forge-Punkte Double Loot');
+      expect(lines(box).slice(-3)).toEqual(['Plünderung', 'R_IronAge_Residential2', '12 Forge-Punkte Double Loot']);
       row(1).click();
-      expect(panel(box)).toContain('Plünderung abgewehrt: R_IronAge_Residential2');
+      expect(lines(box).slice(-3)).toEqual(['Plünderung', 'R_IronAge_Residential2', 'abgewehrt']);
     });
 
     it('shows an inferred battle in the panel with its plunder and a line that the battle was not recorded', async () => {
@@ -701,7 +704,7 @@ describe('pvp feature', () => {
       row(0).click();
       expect(box.root.querySelector('.side-panel .battle')).toBeNull();
       expect(panel(box)).toContain('der Kampf selbst ist nicht aufgezeichnet');
-      expect(panel(box)).toContain('Plünderung: R_IronAge_Residential2 · 12 Forge-Punkte');
+      expect(lines(box).slice(-3)).toEqual(['Plünderung', 'R_IronAge_Residential2', '12 Forge-Punkte Double Loot']);
     });
 
     it('clears the selection on a change of filter, and the window fills again when the filter goes', async () => {
@@ -735,7 +738,7 @@ describe('pvp feature', () => {
       lists.at(-1)?.resolve([fought(1, 111), { ...fought(2, 222), plunder: plunder(222) }]);
       await tick();
       expect(row(1).classList.contains('selected')).toBe(true);
-      expect(panel(box)).toContain('Plünderung: R_IronAge_Residential2');
+      expect(lines(box)).toContain('Plünderung');
 
       // read again without it, the slice spans the whole list: it was replaced or deleted
       state.total = 1;

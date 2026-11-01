@@ -31,7 +31,7 @@ export function battleDetailsView(vm: BattleDetailsVm): TemplateResult {
   return html`<div class="battle">
     <p>${vm.summary}</p>
     <table>
-      <tr><th>${t('battle.own')}</th><th></th><th>${t('battle.opponent')}</th><th></th></tr>
+      <tr><th colspan="2">${t('battle.own')}</th><th colspan="2">${t('battle.opponent')}</th></tr>
       ${rows.map((i) => html`<tr>${unitCells(vm.own[i])}${unitCells(vm.opponent[i])}</tr>`)}
       ${
         vm.army

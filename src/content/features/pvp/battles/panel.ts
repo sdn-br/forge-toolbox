@@ -4,11 +4,13 @@ import { t } from '../../../core/texts';
 import { battleDetailsView } from '../../../ui/battle-details';
 import type { BattlePanelVm, PlunderVm } from './view-model';
 
-/** "Plünderung: Strohdachhaus · 1.220 Münzen Double Loot", "Plünderung abgewehrt: –" */
+/** a heading, then the building, then the loot with Double Loot or that the plunder was repelled */
 const plunderView = (p: PlunderVm) =>
-  html`<p class="pvp-plunder">${t(`pvp.plunder.${p.outcome}`, { building: p.building })}${p.loot ? ` · ${p.loot}` : ''}${
-    p.doubleLoot ? html` <b>${t('plunder.doubleLoot')}</b>` : ''
-  }</p>`;
+  html`<h2>${t('pvp.plunder.title')}</h2><p>${p.building}</p>${
+    p.outcome === 'repelled'
+      ? html`<p class="muted">${t('pvp.plunder.repelled')}</p>`
+      : html`<p>${p.loot}${p.doubleLoot ? html` <b>${t('plunder.doubleLoot')}</b>` : ''}</p>`
+  }`;
 
 /** the selected battle, or a hint how to select one */
 export function battlePanel(vm: BattlePanelVm | undefined): TemplateResult {
