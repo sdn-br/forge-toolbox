@@ -1,20 +1,15 @@
-import Dexie, { type Table } from 'dexie';
-import type { PlayerId, WorldId } from '../../shared/ids';
+import type Dexie from 'dexie';
+import type { Table } from 'dexie';
+import type { WorldId } from '../../shared/ids';
 import type { IncomingAttack, IncomingKind } from '../../shared/model';
 import type { Handlers } from '../../shared/rpc';
+import { playerRows } from '../player-rows';
 import type { IncomingApi } from './contract';
 
 export type IncomingTables = { incoming: Table<IncomingAttack, [WorldId, IncomingKind, number]> };
 
 export function incomingHandlers(db: IncomingTables & Dexie): Handlers<IncomingApi> {
-  const byAttacker = (world: WorldId, attacker: PlayerId) =>
-    db.incoming.where('[world+attacker+at]').between([world, attacker, Dexie.minKey], [world, attacker, Dexie.maxKey]);
-  const newestFirst = (world: WorldId, attackers?: PlayerId[]) => {
-    const all = db.incoming.where('[world+at]').between([world, Dexie.minKey], [world, Dexie.maxKey]).reverse();
-    if (!attackers) return all;
-    const wanted = new Set<number>(attackers);
-    return all.filter((a) => wanted.has(a.attacker));
-  };
+  const rows = playerRows(db.incoming, 'attacker');
 
   return {
     'incoming.add': ({ rows }) =>
@@ -25,18 +20,17 @@ export function incomingHandlers(db: IncomingTables & Dexie): Handlers<IncomingA
         await db.incoming.bulkAdd(rows.filter((_, i) => !known[i]));
         return undefined;
       }),
-    'incoming.latest': async ({ world, attacker }) => (await byAttacker(world, attacker).last()) ?? null,
-    'incoming.list': ({ world, attackers, limit, offset }) =>
-      newestFirst(world, attackers).offset(offset).limit(limit).toArray(),
-    'incoming.totals': async ({ world, attackers }) => {
+    'incoming.latest': ({ world, opponent }) => rows.latest(world, opponent),
+    'incoming.list': ({ world, opponents, limit, offset }) => rows.list(world, opponents, limit, offset),
+    'incoming.totals': async ({ world, opponents }) => {
       const totals = { battles: 0, held: 0, plunders: 0 };
-      await newestFirst(world, attackers).each((a) => {
+      await rows.newestFirst(world, opponents).each((a) => {
         if (a.kind === 'plunder') totals.plunders++;
         else totals.battles++;
         if (a.defense === 'held') totals.held++;
       });
       return totals;
     },
-    'incoming.prune': ({ before }) => db.incoming.where('at').below(before).delete(),
+    'incoming.prune': ({ before }) => rows.prune(before),
   };
 }

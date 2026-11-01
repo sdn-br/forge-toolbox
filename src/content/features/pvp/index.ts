@@ -63,9 +63,7 @@ export const pvpFeature: Feature = {
       const battles = tab === 'battles' ? await ctx.battles.list(onPage) : [];
       const plunders = tab === 'plunders' ? await ctx.plunders.list(onPage) : [];
       const incoming =
-        tab === 'incoming'
-          ? await ctx.incoming.list({ attackers: opponents, limit: PAGE_SIZE, offset: onPage.offset })
-          : [];
+        tab === 'incoming' ? await ctx.incoming.list({ opponents, limit: PAGE_SIZE, offset: onPage.offset }) : [];
       // a newer query started meanwhile and will render
       if (current !== query) return;
       shown = {
