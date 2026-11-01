@@ -2,6 +2,7 @@
 import { html, type TemplateResult } from 'lit-html';
 import { t } from '../../../core/texts';
 import { battleDetailsView } from '../../../ui/battle-details';
+import { guildTag } from '../../../ui/links';
 import type { BattlePanelVm, PlunderVm } from './view-model';
 
 /** a heading, then the building, then the loot with Double Loot or that the plunder was repelled */
@@ -14,7 +15,7 @@ const plunderView = (p: PlunderVm) =>
 
 /** the selected battle */
 export function battlePanel(vm: BattlePanelVm): TemplateResult {
-  return html`<h2 data-tip=${vm.nameTip}>${vm.name}</h2><p class="muted">${vm.when}</p>${
+  return html`<h2>${vm.name}${vm.guild ? html` ${guildTag(vm.guild)}` : ''}</h2><p class="muted">${vm.when}</p>${
     vm.details ? battleDetailsView(vm.details) : html`<p class="muted">${t('pvp.inferredTip')}</p>`
   }${vm.plunder ? plunderView(vm.plunder) : ''}`;
 }

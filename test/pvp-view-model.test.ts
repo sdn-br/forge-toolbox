@@ -140,7 +140,7 @@ describe('pvp view model', () => {
     );
     expect(vm).toMatchObject({
       name: 'Testgegner',
-      nameTip: 'Testgegner [Testgilde]',
+      guild: { name: 'Testgilde', url: '' },
       when: 'heute 13:49',
       inferred: false,
       details: {
@@ -156,6 +156,7 @@ describe('pvp view model', () => {
       },
     });
     expect(battlePanelVm(battle(2, 1002), base).plunder).toBeUndefined();
+    expect(battlePanelVm(battle(2, 1002), base).guild).toBeUndefined();
   });
 
   it('names the building of the plunder in the panel, unknown by its id, none by a dash', () => {

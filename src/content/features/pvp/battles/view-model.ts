@@ -44,8 +44,8 @@ export interface PvpRow extends OpponentVm {
 /** what the side panel shows of the selected battle */
 export interface BattlePanelVm {
   name: string;
-  /** the name with the guild */
-  nameTip: string;
+  /** the opponent's guild with its page at foestats; missing when the player store knows none */
+  guild?: { name: string; url: string };
   when: string;
   /** an inferred battle has no units and armies, only its plunder */
   inferred: boolean;
@@ -131,10 +131,11 @@ export function battlesViewModel(
 
 /** the selected battle for the side panel: units, armies and result of a fought battle, then its plunder */
 export function battlePanelVm(b: BattleWithPlunder, input: ViewInput): BattlePanelVm {
-  const { name, nameTip } = opponentVm(input, b.opponent);
+  const { name } = opponentVm(input, b.opponent);
+  const guild = input.lookups.playerGuild(b.opponent);
   return {
     name,
-    nameTip,
+    ...(guild && { guild }),
     when: battleWhen(b, input.now),
     inferred: !isFought(b),
     ...(isFought(b) && { details: battleDetails(b, measuredArmy(b)) }),
