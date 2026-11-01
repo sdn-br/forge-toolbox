@@ -60,15 +60,7 @@ const plunderTable = (items: PlunderItem[], marks?: PlunderMarks) =>
 
 function plunderedPart({ last, totals }: NonNullable<SabotageVm['plundered']>) {
   if (!last) return html`<p class="muted">${t('sabotage.neverPlundered')}</p>`;
-  if (last.repelled) {
-    const text = last.building
-      ? t('sabotage.lastRepelledAt', { when: last.when, building: last.building })
-      : t('sabotage.lastRepelled', { when: last.when });
-    return html`<p>${text}<br />${totals}</p>`;
-  }
-  return html`<p>${t('sabotage.lastPlunder', { when: last.when, building: last.building })}: ${last.loot}
-      ${last.doubleLoot ? html`<b>${t('plunder.doubleLoot')}</b>` : ''}
-    <br />${totals}</p>`;
+  return html`<p>${last.text}${last.doubleLoot ? html` <b>${t('plunder.doubleLoot')}</b>` : ''}<br />${totals}</p>`;
 }
 
 /** `note` is the note card of the visited player; `marks` points at plunderable buildings in the game */

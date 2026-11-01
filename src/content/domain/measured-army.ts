@@ -21,11 +21,18 @@ const DEFENDER = {
 const sum = (bonuses: Record<string, number>, types: string[]) =>
   types.reduce((total, type) => total + (bonuses[type] ?? 0), 0);
 
-export function measuredArmy(battle: Battle): { attacker: ArmyValues; defender: ArmyValues } {
-  const a = battle.attacker.bonuses;
-  const d = battle.defender.bonuses;
+export interface MeasuredArmy {
+  attacker: ArmyValues;
+  defender: ArmyValues;
+}
+
+export function measuredArmy(battle: Battle): MeasuredArmy {
+  const side = (bonuses: Record<string, number>, types: { attack: string[]; defense: string[] }): ArmyValues => ({
+    attack: sum(bonuses, types.attack),
+    defense: sum(bonuses, types.defense),
+  });
   return {
-    attacker: { attack: sum(a, ATTACKER.attack), defense: sum(a, ATTACKER.defense) },
-    defender: { attack: sum(d, DEFENDER.attack), defense: sum(d, DEFENDER.defense) },
+    attacker: side(battle.attacker.bonuses, ATTACKER),
+    defender: side(battle.defender.bonuses, DEFENDER),
   };
 }

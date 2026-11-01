@@ -3,7 +3,8 @@ import { html, type TemplateResult } from 'lit-html';
 import type { Battle, BattleUnit } from '../../shared/model';
 import { formatNumber, t } from '../core/texts';
 import type { ArmyValues } from '../domain/assess-city';
-import { measuredArmy } from '../domain/measured-army';
+import type { MeasuredArmy } from '../domain/measured-army';
+import { formatArmy, formatRounds } from './pvp-format';
 
 export interface UnitVm {
   /** the game's unit type id; there is no catalog of unit names yet */
@@ -28,15 +29,17 @@ const unitVm = (u: BattleUnit): UnitVm => ({
   dead: u.endHp <= 0,
 });
 
-/** `army: false` leaves out the measured armies, for where the attack and defense values are switched off */
-export function battleDetails(battle: Battle, options: { army: boolean } = { army: true }): BattleDetailsVm {
-  const rounds = battle.rounds === 1 ? t('pvp.round') : t('pvp.rounds', { count: battle.rounds });
-  const measured = measuredArmy(battle);
+/** `measured` is the battle's measured army; without it the details leave the armies out, for where the attack and defense values are switched off */
+export function battleDetails(battle: Battle, measured?: MeasuredArmy): BattleDetailsVm {
   return {
-    summary: [t(`pvp.${battle.result}`), battle.auto ? t('pvp.auto') : t('battle.manual'), rounds].join(', '),
+    summary: [
+      t(`pvp.${battle.result}`),
+      battle.auto ? t('pvp.auto') : t('battle.manual'),
+      formatRounds(battle.rounds),
+    ].join(', '),
     own: battle.attacker.units.map(unitVm),
     opponent: battle.defender.units.map(unitVm),
-    army: options.army ? { own: measured.attacker, opponent: measured.defender } : undefined,
+    army: measured && { own: measured.attacker, opponent: measured.defender },
   };
 }
 
@@ -44,8 +47,6 @@ const unitCells = (u: UnitVm | undefined) =>
   u
     ? html`<td class=${u.dead ? 'muted' : ''}>${u.unit}</td><td class=${u.dead ? 'num muted' : 'num'}>${u.hp}</td>`
     : html`<td></td><td></td>`;
-
-const army = (a: ArmyValues) => `${formatNumber(a.attack)} % / ${formatNumber(a.defense)} %`;
 
 export function battleDetailsView(vm: BattleDetailsVm): TemplateResult {
   const rows = Array.from({ length: Math.max(vm.own.length, vm.opponent.length) }, (_, i) => i);
@@ -56,8 +57,8 @@ export function battleDetailsView(vm: BattleDetailsVm): TemplateResult {
       ${rows.map((i) => html`<tr>${unitCells(vm.own[i])}${unitCells(vm.opponent[i])}</tr>`)}
       ${
         vm.army
-          ? html`<tr><td>${t('battle.army')}</td><td class="num">${army(vm.army.own)}</td>
-              <td></td><td class="num">${army(vm.army.opponent)}</td></tr>`
+          ? html`<tr><td>${t('battle.army')}</td><td class="num">${formatArmy(vm.army.own)}</td>
+              <td></td><td class="num">${formatArmy(vm.army.opponent)}</td></tr>`
           : ''
       }
     </table></div>`;

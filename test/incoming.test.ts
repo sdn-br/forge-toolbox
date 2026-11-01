@@ -166,8 +166,8 @@ describe('queries of attacks on the own city', () => {
     const keys = async (q: Parameters<IncomingStore['list']>[0]) => (await incoming.list(q)).map((a) => a.key);
     expect(await keys({ limit: 10, offset: 0 })).toEqual([2, 3, 9, 1]);
     expect(await keys({ limit: 2, offset: 2 })).toEqual([9, 1]);
-    expect(await keys({ attackers: [attacker], limit: 10, offset: 0 })).toEqual([3, 9, 1]);
-    expect(await keys({ attackers: [], limit: 10, offset: 0 })).toEqual([]);
+    expect(await keys({ opponents: [attacker], limit: 10, offset: 0 })).toEqual([3, 9, 1]);
+    expect(await keys({ opponents: [], limit: 10, offset: 0 })).toEqual([]);
   });
 
   it('counts battles, held ones and plunders', async () => {

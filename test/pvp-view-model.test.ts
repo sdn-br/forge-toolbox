@@ -69,13 +69,12 @@ describe('pvp view model', () => {
       ...battlesTab,
       now,
     });
-    expect(vm.rows[0]).toMatchObject({ expanded: true });
+    expect(vm.rows[0]?.details).toBeDefined();
     expect(vm.rows[0]?.details).toMatchObject({
       summary: 'gewonnen, Autokampf, 2 Runden',
       own: [{ unit: 'rogue', hp: '8/10 LP', dead: false }],
       army: { own: { attack: 368, defense: 269 }, opponent: { attack: 406, defense: 443 } },
     });
-    expect(vm.rows[1]).toMatchObject({ expanded: false });
     expect(vm.rows[1]?.details).toBeUndefined();
   });
 
@@ -100,7 +99,6 @@ describe('pvp view model', () => {
       attacker: { attack: 368, defense: 269 },
       defender: { attack: 406, defense: 443 },
       note: 'stark\n• Schilde',
-      expanded: false,
     });
     expect(vm.rows[1]).toMatchObject({
       name: '1002',

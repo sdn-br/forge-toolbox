@@ -1,8 +1,16 @@
 // What is recorded about the visited player, loaded from the stores whenever the visit or the records change.
 import type { PlayerId } from '../../../shared/ids';
+import type { Battle, CityShield, IncomingAttack, IncomingTotals, Plunder, PlunderTotals } from '../../../shared/model';
 import type { FeatureContext } from '../../core/feature';
 import { logError } from '../../core/log';
-import type { VisitedRecord } from './view-model';
+
+/** What is recorded about the visited player; each part only once it is loaded for this player. */
+export interface VisitedRecord {
+  lastBattle?: Battle;
+  plunders?: { last?: Plunder; totals: PlunderTotals };
+  incoming?: { last?: IncomingAttack; totals: IncomingTotals };
+  shield?: CityShield;
+}
 
 type Part = keyof VisitedRecord;
 
@@ -15,10 +23,17 @@ interface Loader<K extends Part> {
 
 type Loaders = { [K in Part]: Loader<K> };
 
+/** The record of one visited player, with how many loads of each part were started for them. */
+interface Visit {
+  owner: PlayerId;
+  record: VisitedRecord;
+  requests: { [K in Part]?: number };
+}
+
 /**
- * Keeps each part tagged with the player it was loaded for, so a part of a player who is no longer visited never
- * shows, not even when its response comes in after the next visit. Each part also counts its loads: a response
- * older than the last one applied is dropped, so a slow older answer never overwrites a newer one.
+ * Keeps the parts of the player who is visited now, so a part of a player who is no longer visited never shows, not
+ * even when its response comes in after the next visit. Each part counts its loads: a response older than the last
+ * one applied is dropped, so a slow older answer never overwrites a newer one.
  */
 export function visitedRecord(ctx: FeatureContext, onChange: () => void): { current(owner: PlayerId): VisitedRecord } {
   const loaders: Loaders = {
@@ -49,22 +64,20 @@ export function visitedRecord(ctx: FeatureContext, onChange: () => void): { curr
       onRecorded: (reload) => ctx.bus.on('shield.recorded', ({ players }) => reload(players)),
     },
   };
-  // each part with the player it was loaded for
-  const loaded: VisitedRecord = {};
-  const loadedFor: { [K in Part]?: PlayerId } = {};
-  const asked: { [K in Part]?: number } = {};
+  let visit: Visit | undefined;
   const visitedOwner = () => ctx.cities.visited()?.owner;
 
   const load = <K extends Part>(key: K, owner: PlayerId) => {
     const loader: Loader<K> = loaders[key];
-    const nr = (asked[key] ?? 0) + 1;
-    asked[key] = nr;
+    if (visit?.owner !== owner) visit = { owner, record: {}, requests: {} };
+    const started = visit;
+    const nr = (started.requests[key] ?? 0) + 1;
+    started.requests[key] = nr;
     return loader
       .load(owner)
       .then((value) => {
-        if (visitedOwner() !== owner || asked[key] !== nr) return;
-        loaded[key] = value;
-        loadedFor[key] = owner;
+        if (visit !== started || visitedOwner() !== owner || started.requests[key] !== nr) return;
+        started.record[key] = value;
         onChange();
       })
       .catch((error) => logError(loader.failed, error));
@@ -82,10 +95,6 @@ export function visitedRecord(ctx: FeatureContext, onChange: () => void): { curr
   }
 
   return {
-    current(owner) {
-      const record: VisitedRecord = {};
-      for (const key of keys) if (loadedFor[key] === owner) Object.assign(record, { [key]: loaded[key] });
-      return record;
-    },
+    current: (owner) => (visit?.owner === owner ? { ...visit.record } : {}),
   };
 }

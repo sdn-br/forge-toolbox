@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import type { CityAssessment } from '../src/content/domain/assess-city';
-import { sabotageViewModel, type VisitedRecord } from '../src/content/features/sabotage/view-model';
+import { sabotageViewModel } from '../src/content/features/sabotage/view-model';
+import type { VisitedRecord } from '../src/content/features/sabotage/visited-record';
 import type { BuildingDef } from '../src/content/model/catalog';
 import { CatalogStore } from '../src/content/stores/catalog';
 import type { VisitedCity } from '../src/content/stores/cities';
@@ -135,13 +136,7 @@ describe('sabotage view model', () => {
       sabotageViewModel({ city, player: undefined, assessment, catalog, showArmy: false, now, record: { plunders } })
         .plundered;
     expect(vm({ last, totals: { count: 3, repelled: 0, fp: 9 } })).toEqual({
-      last: {
-        when: 'heute 14:05',
-        repelled: false,
-        building: 'Strohdachhaus',
-        loot: '30 Marmor, 2 Forge-Punkte',
-        doubleLoot: true,
-      },
+      last: { text: 'Zuletzt heute 14:05, Strohdachhaus: 30 Marmor, 2 Forge-Punkte', doubleLoot: true },
       totals: '3 Plünderungen, 9 FP',
     });
     expect(vm({ totals: { count: 0, repelled: 0, fp: 0 } })).toEqual({
@@ -170,7 +165,7 @@ describe('sabotage view model', () => {
       record: { plunders: { last, totals: { count: 5, repelled: 2, fp: 120 } } },
     });
     expect(vm.plundered).toEqual({
-      last: { when: 'heute 14:05', repelled: true },
+      last: { text: 'Zuletzt heute 14:05: abgewehrt', doubleLoot: false },
       totals: '5 Plünderungen, 2 abgewehrt, 120 FP',
     });
     const at = { ...last, entityId: 904, cityEntityId: buildingDefId('R_MultiAge_PatrickBonusSet20b') };
@@ -184,9 +179,8 @@ describe('sabotage view model', () => {
       record: { plunders: { last: at, totals: { count: 0, repelled: 1, fp: 0 } } },
     });
     expect(named.plundered?.last).toEqual({
-      when: 'heute 14:05',
-      repelled: true,
-      building: 'R_MultiAge_PatrickBonusSet20b',
+      text: 'Zuletzt heute 14:05, R_MultiAge_PatrickBonusSet20b: abgewehrt',
+      doubleLoot: false,
     });
   });
 

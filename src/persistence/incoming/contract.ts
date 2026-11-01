@@ -1,14 +1,9 @@
 import type { PlayerId, WorldId } from '../../shared/ids';
 import type { IncomingAttack, IncomingTotals } from '../../shared/model';
+import type { PlayerRowsApi } from '../player-rows-contract';
 
-export interface IncomingApi {
+export interface IncomingApi extends PlayerRowsApi<'incoming', IncomingAttack> {
   /** adds rows whose key is new; a known attack keeps its first stored time */
   'incoming.add': { arg: { rows: IncomingAttack[] }; result: undefined };
-  'incoming.latest': { arg: { world: WorldId; attacker: PlayerId }; result: IncomingAttack | null };
-  'incoming.list': {
-    arg: { world: WorldId; attackers?: PlayerId[]; limit: number; offset: number };
-    result: IncomingAttack[];
-  };
-  'incoming.totals': { arg: { world: WorldId; attackers?: PlayerId[] }; result: IncomingTotals };
-  'incoming.prune': { arg: { before: number }; result: number };
+  'incoming.totals': { arg: { world: WorldId; opponents?: PlayerId[] }; result: IncomingTotals };
 }

@@ -1,14 +1,7 @@
 import type { AttackTimer, CityShield } from '../../../shared/model';
 import { formatDateTime, formatDuration, formatWhen, t } from '../../core/texts';
 
-export type AttackKind =
-  | 'plunderable'
-  | 'shielded'
-  | 'waiting'
-  | 'attackable'
-  | 'friend'
-  | 'guildMember'
-  | 'notNeighbor';
+type AttackKind = 'plunderable' | 'shielded' | 'waiting' | 'attackable' | 'friend' | 'guildMember' | 'notNeighbor';
 
 export interface AttackStatus {
   kind: AttackKind;

@@ -1,13 +1,5 @@
 import { foestatsGuildUrl, foestatsPlayerUrl } from '../../../shared/foestats';
-import type {
-  Battle,
-  CityShield,
-  IncomingAttack,
-  IncomingTotals,
-  Player,
-  Plunder,
-  PlunderTotals,
-} from '../../../shared/model';
+import type { Player, Plunder } from '../../../shared/model';
 import { formatWhen, t } from '../../core/texts';
 import type { ArmyValues, CityAssessment, Plunderable } from '../../domain/assess-city';
 import { measuredArmy } from '../../domain/measured-army';
@@ -22,6 +14,7 @@ import {
   resourceLabel,
 } from '../../ui/pvp-format';
 import { type AttackStatus, attackStatus } from './attack-status';
+import type { VisitedRecord } from './visited-record';
 
 export interface PlunderItem {
   /** the building in the city, to point at it in the game */
@@ -33,6 +26,9 @@ export interface PlunderItem {
 }
 
 const FP = 'strategy_points';
+
+/** the catalog's resource names as the formatters take them */
+const resourceName = (catalog: CatalogStore) => (id: string) => catalog.resourceName(id);
 const MINOR = new Set(['money', 'supplies']);
 
 /** Forge points, the other loot besides coins and supplies, and coins plus supplies. */
@@ -48,19 +44,20 @@ function lootWeights(resources: Record<string, number>) {
   return { fp, other, minor, important: fp + other > 0 };
 }
 
+type Weighted = { plunderable: Plunderable; weights: ReturnType<typeof lootWeights> };
+
 /**
  * Important plunders first, then Forge points, the other loot and coins plus supplies, each descending, then the name.
  * Compared in that order, so 4 FP beat 500 goods and 500 goods beat 20,000 coins.
  */
-export function byPlunderPriority(a: Plunderable, b: Plunderable): number {
-  const wa = lootWeights(a.resources);
-  const wb = lootWeights(b.resources);
+function byPlunderPriority(a: Weighted, b: Weighted): number {
+  const [wa, wb] = [a.weights, b.weights];
   return (
     Number(wb.important) - Number(wa.important) ||
     wb.fp - wa.fp ||
     wb.other - wa.other ||
     wb.minor - wa.minor ||
-    a.name.localeCompare(b.name, 'de')
+    a.plunderable.name.localeCompare(b.plunderable.name, 'de')
   );
 }
 
@@ -86,9 +83,8 @@ export interface SabotageVm {
   lastBattle?: { when: string; result: string; details: BattleDetailsVm };
   /** own plunders in this city */
   plundered?: {
-    last?:
-      | { when: string; repelled: false; building: string; loot: string; doubleLoot: boolean }
-      | { when: string; repelled: true; building?: string };
+    /** the last plunder as one line, with whether to mark it as double loot */
+    last?: { text: string; doubleLoot: boolean };
     /** count and Forge points of all plunders here */
     totals: string;
   };
@@ -99,25 +95,18 @@ export interface SabotageVm {
   incomplete: boolean;
 }
 
-function lastPlunder(p: Plunder, catalog: CatalogStore, now: number): NonNullable<SabotageVm['plundered']>['last'] {
+/** The last own plunder in this city as one line. A plunder without a known building reads like a repelled one. */
+function lastPlunder(p: Plunder, catalog: CatalogStore, now: number) {
   const when = formatWhen(p.at, now);
   const building = p.cityEntityId && (catalog.get(p.cityEntityId)?.name ?? p.cityEntityId);
-  if (p.outcome === 'repelled' || !building) return { when, repelled: true, ...(building && { building }) };
+  if (p.outcome === 'repelled' || !building) {
+    const text = building ? t('sabotage.lastRepelledAt', { when, building }) : t('sabotage.lastRepelled', { when });
+    return { text, doubleLoot: false };
+  }
   return {
-    when,
-    repelled: false,
-    building,
-    loot: formatResources(p.resources, catalog),
+    text: `${t('sabotage.lastPlunder', { when, building })}: ${formatResources(p.resources, resourceName(catalog))}`,
     doubleLoot: p.doubleLoot,
   };
-}
-
-/** What is recorded about the visited player; each part only once it is loaded for this player. */
-export interface VisitedRecord {
-  lastBattle?: Battle;
-  plunders?: { last?: Plunder; totals: PlunderTotals };
-  incoming?: { last?: IncomingAttack; totals: IncomingTotals };
-  shield?: CityShield;
 }
 
 export interface SabotageInput {
@@ -142,33 +131,34 @@ export function sabotageViewModel({
   const friend = city.visit.friend || player?.relations.friend === true;
   const guildMember = city.visit.guildMember || player?.relations.guildMember === true;
   const attack = attackStatus({ neighbor: city.visit.neighbor, friend, guildMember }, player?.attack, shield, now);
-  const item = (p: Plunderable): PlunderItem => ({
+  const item = ({ plunderable: p, weights }: Weighted): PlunderItem => ({
     building: p.building,
     name: p.name,
-    important: lootWeights(p.resources).important,
-    items: Object.entries(p.resources).map(([id, amount]) => ({ label: resourceLabel(id, catalog), amount })),
+    important: weights.important,
+    items: Object.entries(p.resources).map(([id, amount]) => ({
+      label: resourceLabel(id, resourceName(catalog)),
+      amount,
+    })),
   });
+  const measured = showArmy && lastBattle ? measuredArmy(lastBattle) : undefined;
   return {
     player: {
       name: player?.name ?? '',
       url: foestatsPlayerUrl(city.world, city.owner),
-      ...(player?.guild && {
-        guild: { name: player.guild.name, url: foestatsGuildUrl(city.world, player.guild.id) },
-      }),
+      guild: player?.guild && { name: player.guild.name, url: foestatsGuildUrl(city.world, player.guild.id) },
       era: catalog.eraName(city.era),
-      ...(player && { marked: player.marked === true, ignored: player.ignored === true }),
+      marked: player && player.marked === true,
+      ignored: player && player.ignored === true,
     },
     attack,
     lootable: attack.kind === 'plunderable' || attack.kind === 'attackable',
     army: showArmy ? assessment.army : undefined,
     measured:
-      showArmy && lastBattle
-        ? { defender: measuredArmy(lastBattle).defender, when: formatWhen(lastBattle.at, now) }
-        : undefined,
+      measured && lastBattle ? { defender: measured.defender, when: formatWhen(lastBattle.at, now) } : undefined,
     lastBattle: lastBattle && {
       when: formatWhen(lastBattle.at, now),
       result: t(`pvp.${lastBattle.result}`),
-      details: battleDetails(lastBattle, { army: showArmy }),
+      details: battleDetails(lastBattle, measured),
     },
     plundered: plunders && {
       last: plunders.last && lastPlunder(plunders.last, catalog, now),
@@ -180,7 +170,10 @@ export function sabotageViewModel({
       totals: formatIncomingTotals(incoming.totals),
     },
     plunderRepel: assessment.plunderRepel,
-    plunderable: [...assessment.plunderable].sort(byPlunderPriority).map(item),
+    plunderable: assessment.plunderable
+      .map((plunderable): Weighted => ({ plunderable, weights: lootWeights(plunderable.resources) }))
+      .sort(byPlunderPriority)
+      .map(item),
     incomplete: assessment.missingDefs.length > 0,
   };
 }
