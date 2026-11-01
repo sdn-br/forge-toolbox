@@ -1,11 +1,11 @@
 import { html, type TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../shared/ids';
-import { formatNumber, t } from '../../core/texts';
-import type { ArmyValues } from '../../domain/assess-city';
+import { t } from '../../core/texts';
 import { battleDetailsView } from '../../ui/battle-details';
 import { headerIcons } from '../../ui/icons';
 import { searchField } from '../../ui/inputs';
 import { externalIcon } from '../../ui/links';
+import { formatArmy } from '../../ui/pvp-format';
 import { tabBar } from '../../ui/tabs';
 import type { IncomingRow, PlunderRow, PvpRow, PvpTab, PvpVm } from './view-model';
 
@@ -20,8 +20,6 @@ export interface PvpActions {
   /** filters to this player and opens their note for typing */
   note(opponent: PlayerId): void;
 }
-
-const army = (a: ArmyValues) => `${formatNumber(a.attack)} / ${formatNumber(a.defense)}`;
 
 /** the name filters to the player, the icon beside it opens their page at foestats; the name's tooltip adds the guild */
 const opponentLink = (r: { opponent: PlayerId; name: string; nameTip: string; url: string }, actions: PvpActions) =>
@@ -44,11 +42,11 @@ const expandOnClick = (battleId: number, actions: PvpActions) => (e: Event) => {
   if (!(e.target as Element).closest('a, button')) actions.expand(battleId);
 };
 
-const row = (r: PvpRow, actions: PvpActions) => html`<tr class=${r.expanded ? 'battle-row expanded' : 'battle-row'}
+const row = (r: PvpRow, actions: PvpActions) => html`<tr class=${r.details ? 'battle-row expanded' : 'battle-row'}
     data-tip=${t('pvp.details')} @click=${expandOnClick(r.battleId, actions)}>
   ${noteMarker(r.opponent, r.note, actions)}${opponentLink(r, actions)}
   <td>${r.when}</td><td>${r.result}</td><td>${r.battle}</td>
-  <td class="num">${army(r.attacker)}</td><td class="num">${army(r.defender)}</td></tr>
+  <td class="num">${formatArmy(r.attacker)}</td><td class="num">${formatArmy(r.defender)}</td></tr>
   ${r.details ? html`<tr class="details"><td colspan="7">${battleDetailsView(r.details)}</td></tr>` : ''}`;
 
 const plunderRow = (r: PlunderRow, actions: PvpActions) => html`<tr>

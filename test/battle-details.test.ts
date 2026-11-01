@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { render } from 'lit-html';
 import { describe, expect, it } from 'vitest';
+import { measuredArmy } from '../src/content/domain/measured-army';
 import { toBattle } from '../src/content/game/convert';
 import type { GameBattle } from '../src/content/game/game-types';
 import { battleDetails, battleDetailsView } from '../src/content/ui/battle-details';
@@ -50,16 +51,16 @@ describe('battle details', () => {
   });
 
   it('shows the measured armies unless left out', () => {
-    expect(battleDetails(battle()).army).toEqual({
+    expect(battleDetails(battle(), measuredArmy(battle())).army).toEqual({
       own: { attack: 368, defense: 269 },
       opponent: { attack: 406, defense: 443 },
     });
-    expect(battleDetails(battle(), { army: false }).army).toBeUndefined();
+    expect(battleDetails(battle()).army).toBeUndefined();
   });
 
   it('draws both sides next to each other', () => {
     const root = document.createElement('div');
-    render(battleDetailsView(battleDetails(battle())), root);
+    render(battleDetailsView(battleDetails(battle(), measuredArmy(battle()))), root);
     const rows = [...root.querySelectorAll('tr')].map((r) =>
       [...r.querySelectorAll('th, td')].map((c) => c.textContent?.trim()),
     );

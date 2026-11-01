@@ -19,7 +19,7 @@ const TICK = 30_000;
 
 const ID = 'sabotage';
 
-export const AUTO_OPEN = toggleDef({
+const AUTO_OPEN = toggleDef({
   key: 'sabotage.autoOpen',
   group: 'sabotage.title',
   label: 'sabotage.autoOpen',
@@ -50,7 +50,7 @@ export const sabotageFeature: Feature = {
       }, TICK);
     };
     const box = ctx.createBox({
-      id: 'sabotage',
+      id: ID,
       css: sabotageCss,
       settings: 'sabotage.title',
       title: () => t('sabotage.title'),
@@ -145,6 +145,6 @@ export const sabotageFeature: Feature = {
       if (city && [...city.buildings.values()].some((b) => defs.includes(b.def))) refresh();
     });
     ctx.settings.onChange(refresh);
-    ctx.menu.add({ id: 'sabotage', icon: ICON, label: () => t('sabotage.menu'), action: () => box.toggle() });
+    ctx.menu.add({ id: ID, icon: ICON, label: () => t('sabotage.menu'), action: () => box.toggle() });
   },
 };

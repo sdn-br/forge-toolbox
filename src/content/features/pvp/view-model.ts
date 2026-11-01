@@ -6,7 +6,13 @@ import { measuredArmy } from '../../domain/measured-army';
 import { type BattleDetailsVm, battleDetails } from '../../ui/battle-details';
 import { nameWithGuild } from '../../ui/links';
 import { plainText } from '../../ui/markdown';
-import { formatIncoming, formatIncomingTotals, formatPlunderTotals, formatResources } from '../../ui/pvp-format';
+import {
+  formatIncoming,
+  formatIncomingTotals,
+  formatPlunderTotals,
+  formatResources,
+  formatRounds,
+} from '../../ui/pvp-format';
 
 export const PAGE_SIZE = 20;
 
@@ -31,7 +37,6 @@ export interface PvpRow {
   defender: ArmyValues;
   /** the opponent's note as plain text, empty when there is none */
   note: string;
-  expanded: boolean;
   /** units, measured armies and result; only for an expanded row */
   details?: BattleDetailsVm;
 }
@@ -94,7 +99,7 @@ export const pageCount = (total: number) => Math.max(1, Math.ceil(total / PAGE_S
 
 function battleKind(b: Battle): string {
   if (b.auto) return t('pvp.auto');
-  return b.rounds === 1 ? t('pvp.round') : t('pvp.rounds', { count: b.rounds });
+  return formatRounds(b.rounds);
 }
 
 export function pvpViewModel(input: {
@@ -130,7 +135,6 @@ export function pvpViewModel(input: {
     tab,
     rows: battles.map((b) => {
       const army = measuredArmy(b);
-      const expanded = input.expanded?.has(b.battleId) === true;
       return {
         battleId: b.battleId,
         opponent: b.opponent,
@@ -143,8 +147,7 @@ export function pvpViewModel(input: {
         attacker: army.attacker,
         defender: army.defender,
         note: noteOf(b.opponent),
-        expanded,
-        ...(expanded && { details: battleDetails(b) }),
+        details: input.expanded?.has(b.battleId) ? battleDetails(b, army) : undefined,
       };
     }),
     plunders: plunders.map((p) => ({
@@ -154,7 +157,7 @@ export function pvpViewModel(input: {
       url: input.playerUrl(p.opponent),
       when: formatWhen(p.at, now),
       building: p.cityEntityId === undefined ? '–' : (building(p.cityEntityId) ?? p.cityEntityId),
-      loot: p.outcome === 'repelled' ? t('plunder.repelled') : formatResources(p.resources, { resourceName }),
+      loot: p.outcome === 'repelled' ? t('plunder.repelled') : formatResources(p.resources, resourceName),
       doubleLoot: p.doubleLoot,
       note: noteOf(p.opponent),
     })),

@@ -7,7 +7,7 @@ export const baseCss = `
 :host { all: initial; --bg: #2b1d10; --ink: #fbf4e4; --accent: #e8861c; --btn: #4a3620; --btn-hover: #6a5030;
   --field: #1c130a; --line: #8a6a3a; --muted: #b8a27d; --good: #8fd08f; --warn: #f0a050; --bad: #ff6a50;
   --row-good: rgba(90, 170, 90, .28); --row-bad: rgba(200, 80, 60, .28); --row-warn: rgba(220, 190, 60, .24);
-  --row-mine: rgba(80, 140, 220, .32); color-scheme: dark; }
+  --row-mine: rgba(80, 140, 220, .32); --row-selected: #3a2a16; color-scheme: dark; }
 /* the accent parts of an icon */
 .acc { color: var(--accent); }
 * { box-sizing: border-box; }

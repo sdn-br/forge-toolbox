@@ -28,18 +28,20 @@ function ownText(a: Activity): string {
   return t('foestats.noIncrease');
 }
 
+/** why there is no activity to tell */
+function emptyText(record: FoestatsRecord): string {
+  if (record.loading) return t('foestats.loading');
+  if (record.unknown) return t('foestats.unknown');
+  if (record.unreachable) return t('foestats.unreachable');
+  return t('foestats.noData');
+}
+
 export function activityVm(record: FoestatsRecord | undefined, today: string): ActivityVm | undefined {
   if (!record) return undefined;
   const activity = playerActivity(record.days, today);
   const { loading } = record;
   if (!activity) {
-    const text = loading
-      ? t('foestats.loading')
-      : record.unknown
-        ? t('foestats.unknown')
-        : record.unreachable
-          ? t('foestats.unreachable')
-          : t('foestats.noData');
+    const text = emptyText(record);
     return { text, idle: false, title: text, loading };
   }
   const newest = record.days.at(-1)?.date ?? '';
@@ -48,7 +50,7 @@ export function activityVm(record: FoestatsRecord | undefined, today: string): A
   const change = { days: week.days, points: known(week.points), battles: known(week.battles) };
   return {
     text: ownText(activity),
-    ...(week.days > 0 && { week: t(week.days === 1 ? 'foestats.oneDay' : 'foestats.week', change) }),
+    week: week.days > 0 ? t(week.days === 1 ? 'foestats.oneDay' : 'foestats.week', change) : undefined,
     idle: activity.idle,
     loading,
     title: [t('foestats.source', { date: newest }), record.unreachable && t('foestats.stale')]

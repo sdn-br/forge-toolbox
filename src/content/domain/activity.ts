@@ -61,12 +61,10 @@ export function playerActivity(history: ActivityDay[], today: string): Activity 
   const points = change(base.points, newest.points);
   const battles = change(base.battles, newest.battles);
   return {
-    ...(lastActive === undefined ? { flatFor: quiet } : { lastActive, daysAgo: quiet }),
+    lastActive,
+    daysAgo: lastActive === undefined ? undefined : quiet,
+    flatFor: lastActive === undefined ? quiet : undefined,
     idle: quiet >= IDLE_DAYS,
-    week: {
-      ...(points !== undefined && { points }),
-      ...(battles !== undefined && { battles }),
-      days: daysBetween(base.date, newest.date),
-    },
+    week: { points, battles, days: daysBetween(base.date, newest.date) },
   };
 }
