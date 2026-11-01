@@ -59,7 +59,7 @@ describe('battle details', () => {
     expect(battleDetails(battle()).army).toBeUndefined();
   });
 
-  it('draws one column per side, hit points below the unit, the army label on its own line', () => {
+  it('draws one column per side, the armies under the heads with their label on its own line, then the units', () => {
     const root = document.createElement('div');
     render(battleDetailsView(battleDetails(battle(), measuredArmy(battle()))), root);
     const rows = [...root.querySelectorAll('tr')].map((r) =>
@@ -67,10 +67,10 @@ describe('battle details', () => {
     );
     expect(rows).toEqual([
       ['Deine Einheiten', 'Gegner'],
-      ['rogue8/10 LP', 'feudal_knightgefallen'],
-      ['grenadiergefallen', ''],
       ['Angriff / Verteidigung'],
       ['368 % / 269 %', '406 % / 443 %'],
+      ['rogue8/10 LP', 'feudal_knightgefallen'],
+      ['grenadiergefallen', ''],
     ]);
     expect(root.textContent).toContain('gewonnen, Autokampf, 3 Runden');
   });
