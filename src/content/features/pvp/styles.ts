@@ -7,7 +7,6 @@ const WHEN = 135;
 const RESULT = 76;
 const LOOT = 24;
 const BATTLE = 80;
-const ARMY = 80;
 const INCOMING_WHEN = 110;
 /** the least room for the opponent: name, two PvP marks, funnel */
 const NAME = 130;
@@ -15,7 +14,7 @@ const NAME = 130;
 const KIND = 150;
 
 /** the least width of the battles table; the box is that wide plus its padding and the two scroll buttons */
-export const BATTLES_MIN_WIDTH = NOTE + NAME + WHEN + RESULT + LOOT + BATTLE + 2 * ARMY;
+export const BATTLES_MIN_WIDTH = NOTE + NAME + WHEN + RESULT + LOOT + BATTLE;
 
 export const pvpCss = `
 /* the list and, popped out, the side panel in a row; docked the panel hangs out of the box (ui/side-drawer.ts) */
@@ -41,7 +40,6 @@ export const pvpCss = `
 .pvp-table .c-result { width: ${RESULT}px; }
 .pvp-table .c-loot { width: ${LOOT}px; }
 .pvp-table .c-battle { width: ${BATTLE}px; }
-.pvp-table .c-army { width: ${ARMY}px; }
 .pvp-table .pvp-loot { text-align: center; padding: 0; }
 .pvp-loot svg { display: block; width: 14px; height: 14px; margin: auto; }
 .pvp-drawer h2:first-child { margin-top: 2px; }

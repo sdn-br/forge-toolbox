@@ -671,6 +671,16 @@ describe('pvp feature', () => {
       expect(box.root.querySelector('tr.battle-row.selected')).toBeNull();
     });
 
+    it('shows the measured armies only in the tooltip of the battle kind, not as columns', async () => {
+      const { box, row } = await shown();
+      expect(row(1).textContent).not.toContain('%');
+      const kind = [...row(1).querySelectorAll('td')].find((td) => td.textContent?.includes('Autokampf'));
+      expect(kind?.getAttribute('data-tip')).toBe(
+        'Angriff / Verteidigung in %\nAngreifer: 50 % / 0 %\nVerteidiger: 0 % / 70 %',
+      );
+      expect(box.root.querySelector('thead')?.textContent).not.toContain('Verteidiger');
+    });
+
     it('marks a battle with its plunder by the sack and shows the plunder in the panel', async () => {
       const { box, row } = await shown([
         { ...fought(1, 111), plunder: plunder(111) },

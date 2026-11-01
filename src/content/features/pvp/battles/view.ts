@@ -1,4 +1,4 @@
-import { html } from 'lit-html';
+import { html, nothing } from 'lit-html';
 import { t } from '../../../core/texts';
 import { formatArmy } from '../../../ui/army-format';
 import { headerIcons } from '../../../ui/icons';
@@ -20,12 +20,21 @@ const lootCell = (r: PvpRow) => {
   }</span></td>`;
 };
 
+/** the measured armies of a fought battle, as the tooltip of its kind; an inferred battle has none */
+const armyTip = (r: PvpRow) =>
+  r.attacker && r.defender
+    ? [
+        t('pvp.armyHint'),
+        `${t('pvp.attacker')}: ${formatArmy(r.attacker)}`,
+        `${t('pvp.defender')}: ${formatArmy(r.defender)}`,
+      ].join('\n')
+    : undefined;
+
 const cells = (
   r: PvpRow,
   actions: PvpActions,
 ) => html`${noteMarker(r.opponent, r.note, actions)}${opponentCell(r, actions)}
-  <td>${r.when}</td><td>${r.result}</td>${lootCell(r)}<td>${r.battle}</td>
-  <td class="num">${r.attacker ? formatArmy(r.attacker) : ''}</td><td class="num">${r.defender ? formatArmy(r.defender) : ''}</td>`;
+  <td>${r.when}</td><td>${r.result}</td>${lootCell(r)}<td data-tip=${armyTip(r) ?? nothing}>${r.battle}</td>`;
 
 const row = (r: PvpRow, actions: PvpActions) =>
   html`<tr class=${r.selected ? 'battle-row selected' : 'battle-row'} data-tip=${t(r.selected ? 'pvp.unselect' : 'pvp.select')}
@@ -33,14 +42,11 @@ const row = (r: PvpRow, actions: PvpActions) =>
 
 const table = (vm: BattlesVm, window: RowWindow, actions: PvpActions) => {
   const loot = t('pvp.lootCol');
-  // the values stand without their unit, the heads explain them
-  const hint = t('pvp.armyHint');
   return html`<table class="pvp-table pvp-battles">
     <colgroup><col class="c-note" /><col /><col class="c-when" /><col class="c-result" /><col class="c-loot" />
-      <col class="c-battle" /><col class="c-army" /><col class="c-army" /></colgroup>
+      <col class="c-battle" /></colgroup>
     <thead><tr><th></th><th>${t('pvp.opponent')}</th><th>${t('pvp.when')}</th><th>${t('pvp.result')}</th>
-      <th class="pvp-loot" data-tip=${loot} aria-label=${loot}>${headerIcons.loot}</th><th>${t('pvp.battle')}</th>
-      <th class="num" data-tip=${hint}>${t('pvp.attacker')}</th><th class="num" data-tip=${hint}>${t('pvp.defender')}</th></tr></thead>
+      <th class="pvp-loot" data-tip=${loot} aria-label=${loot}>${headerIcons.loot}</th><th>${t('pvp.battle')}</th></tr></thead>
     <tbody>${rowsShown(vm.rows, vm.from, vm.total, window).map((r) => row(r, actions))}</tbody>
   </table>`;
 };
