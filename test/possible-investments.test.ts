@@ -19,6 +19,9 @@ const DEF_ID = buildingDefId('X_HighMiddleAge_Landmark1');
 const OTHER_DEF = buildingDefId('X_Unknown_Landmark1');
 const ME = playerId(1);
 const EVERY = { neighbor: true, friend: true, guildMember: true, none: true };
+/** both profit toggles on: rows with and without profit */
+const BOTH = { with: true, without: true };
+const ONLY_MARKED = { marked: true, notMarked: false };
 const HOUR = 3_600_000;
 const NOW = 100 * HOUR;
 
@@ -112,7 +115,7 @@ describe('possibleViewModel', () => {
   it('builds the cells of the rows in view only, the count still over all', () => {
     const urls: number[] = [];
     const v = possibleViewModel({
-      ...vmInput([possible, none, safe, unknown], { onlyHits: false }),
+      ...vmInput([possible, none, safe, unknown], { profit: BOTH }),
       visible: 2,
       scroll: 1,
       playerUrl: (id: PlayerId) => {
@@ -150,39 +153,53 @@ describe('possibleViewModel', () => {
     expect(row?.notes).toContain('eventuell gesperrt');
   });
 
-  it('without "nur mit Gewinn" shows the rows without a place, empty and last', () => {
-    const v = vm([none, safe, possible], { onlyHits: false });
+  it('with "ohne Gewinn" on as well shows the rows without a place, empty and last', () => {
+    const v = vm([none, safe, possible], { profit: BOTH });
     expect(v.rows.map((r) => r.entityId)).toEqual([1, 2, 3]);
     expect(v.rows[2]?.hit).toBeUndefined();
     // last also in the other direction
-    const up = vm([none, safe, possible], { onlyHits: false }, [{ column: 'profit', desc: false }]);
+    const up = vm([none, safe, possible], { profit: BOTH }, [{ column: 'profit', desc: false }]);
     expect(up.rows.map((r) => r.entityId)).toEqual([2, 1, 3]);
+  });
+
+  it('shows only the rows with profit by default; each profit toggle shows its rows', () => {
+    expect(DEFAULT_FILTER.profit).toEqual({ with: true, without: false });
+    const ids = (profit: PossibleFilter['profit']) =>
+      vm([none, safe, possible, unknown], { profit }).rows.map((r) => r.entityId);
+    expect(ids(DEFAULT_FILTER.profit)).toEqual([1, 2]);
+    expect(ids({ with: false, without: true })).toEqual([3, 4]);
+    expect(ids(BOTH)).toEqual([1, 2, 3, 4]);
+    expect(ids({ with: false, without: false })).toEqual([]);
+    // the count stays the same whatever the profit toggles show
+    expect(vm([none, safe, possible, unknown], { profit: { with: false, without: true } }).count).toBe(
+      '2 mit Gewinn von 4 LGs',
+    );
   });
 
   it('filters by the tier: a row passes when its tier is on, rows without a tier are not touched, the count follows', () => {
     const all = [safe, possible, none, unknown];
-    const tiers = (tier: Partial<PossibleFilter['tier']>, onlyHits = true) =>
-      vm(all, { onlyHits, tier: { exact: true, safe: true, possible: true, ...tier } });
+    const tiers = (tier: Partial<PossibleFilter['tier']>, profit = DEFAULT_FILTER.profit) =>
+      vm(all, { profit, tier: { exact: true, safe: true, possible: true, ...tier } });
     expect(tiers({}).rows.map((r) => r.entityId)).toEqual([1, 2]);
     expect(tiers({ safe: false }).rows.map((r) => r.entityId)).toEqual([2]);
     expect(tiers({ possible: false }).rows.map((r) => r.entityId)).toEqual([1]);
     expect(tiers({ safe: false, possible: false }).rows).toEqual([]);
     expect(tiers({ safe: false }).count).toBe('1 mit Gewinn von 3 LGs');
     // the rows without a place stay, whatever the tiers say
-    expect(tiers({ safe: false, possible: false }, false).rows.map((r) => r.entityId)).toEqual([3, 4]);
+    expect(tiers({ safe: false, possible: false }, BOTH).rows.map((r) => r.entityId)).toEqual([3, 4]);
   });
 
   it('filters by a part of the owner and of the building name, ignoring case; the count follows', () => {
     const all = [safe, possible, none, unknown];
-    expect(vm(all, { player: 'ber', onlyHits: false }).rows.map((r) => r.entityId)).toEqual([2]);
-    expect(vm(all, { name: ' leucht', onlyHits: false }).rows.map((r) => r.entityId)).toEqual([4]);
+    expect(vm(all, { player: 'ber', profit: BOTH }).rows.map((r) => r.entityId)).toEqual([2]);
+    expect(vm(all, { name: ' leucht', profit: BOTH }).rows.map((r) => r.entityId)).toEqual([4]);
     expect(vm(all, { player: 'carla' }).count).toBe('0 mit Gewinn von 2 LGs');
   });
 
   it('sorts by a clicked column, names from the top, numbers from the largest', () => {
     const owner = nextSort(DEFAULT_POSSIBLE_SORT, 'owner', POSSIBLE_DESC_FIRST);
     expect(owner).toEqual([{ column: 'owner', desc: false }]);
-    expect(vm([possible, none, safe], { onlyHits: false }, owner).rows.map((r) => r.ownerName)).toEqual([
+    expect(vm([possible, none, safe], { profit: BOTH }, owner).rows.map((r) => r.ownerName)).toEqual([
       'Anna',
       'Bert',
       'Carla',
@@ -255,7 +272,7 @@ describe('possibleViewModel', () => {
     relations[1002] = NONE;
     expect(vm([safe, possible, none]).count).toBe('1 mit Gewinn von 2 LGs');
     expect(vm([safe, possible, none], { reach: EVERY }).count).toBe('2 mit Gewinn von 3 LGs');
-    expect(vm([safe, possible, none], { onlyHits: false }).count).toBe('1 mit Gewinn von 2 LGs');
+    expect(vm([safe, possible, none], { profit: BOTH }).count).toBe('1 mit Gewinn von 2 LGs');
   });
 
   it('sorts by reach: the reachable first, unknown before those out of reach', () => {
@@ -263,7 +280,7 @@ describe('possibleViewModel', () => {
     delete relations[1002];
     const sort = nextSort(DEFAULT_POSSIBLE_SORT, 'reach', POSSIBLE_DESC_FIRST);
     expect(sort).toEqual([{ column: 'reach', desc: false }]);
-    const v = vm([safe, possible, none], { onlyHits: false, reach: EVERY }, sort);
+    const v = vm([safe, possible, none], { profit: BOTH, reach: EVERY }, sort);
     expect(v.rows.map((r) => r.reasons[0])).toEqual(['friend', 'unknown', 'none']);
   });
 });
@@ -271,33 +288,36 @@ describe('possibleViewModel', () => {
 describe('marks', () => {
   it('carries the star of each building and sorts the marked ones first', () => {
     markedBuildings.add('1002:2');
-    const v = vm([safe, possible], { onlyHits: false, reach: EVERY });
+    const v = vm([safe, possible], { profit: BOTH, reach: EVERY });
     expect(v.rows.map((r) => [r.entityId, r.marked])).toEqual([
       [1, false],
       [2, true],
     ]);
     const sort = nextSort(DEFAULT_POSSIBLE_SORT, 'mark', POSSIBLE_DESC_FIRST);
     expect(sort).toEqual([{ column: 'mark', desc: true }]);
-    expect(vm([safe, possible], { onlyHits: false, reach: EVERY }, sort).rows.map((r) => r.entityId)).toEqual([2, 1]);
+    expect(vm([safe, possible], { profit: BOTH, reach: EVERY }, sort).rows.map((r) => r.entityId)).toEqual([2, 1]);
   });
 
-  it('shows every row by default and only the marked ones with "nur gemerkte"', () => {
-    expect(DEFAULT_FILTER.onlyMarked).toBe(false);
+  it('shows every row by default, the marked ones with "markiert", the rest with "nicht markiert"', () => {
+    expect(DEFAULT_FILTER.mark).toEqual({ marked: true, notMarked: true });
     markedBuildings.add('1001:1');
     const all = [safe, possible, none];
-    expect(vm(all, { onlyHits: false }).rows).toHaveLength(3);
-    expect(vm(all, { onlyHits: false, onlyMarked: true }).rows.map((r) => r.entityId)).toEqual([1]);
+    const ids = (mark: PossibleFilter['mark']) => vm(all, { profit: BOTH, mark }).rows.map((r) => r.entityId);
+    expect(ids(DEFAULT_FILTER.mark)).toEqual([1, 2, 3]);
+    expect(ids(ONLY_MARKED)).toEqual([1]);
+    expect(ids({ marked: false, notMarked: true })).toEqual([2, 3]);
+    expect(ids({ marked: false, notMarked: false })).toEqual([]);
   });
 
   it('lets a marked owner pass with all of its buildings', () => {
     markedOwners.add(1003);
     const all = [safe, none, unknown];
-    expect(vm(all, { onlyHits: false, onlyMarked: true }).rows.map((r) => r.entityId)).toEqual([3, 4]);
+    expect(vm(all, { profit: BOTH, mark: ONLY_MARKED }).rows.map((r) => r.entityId)).toEqual([3, 4]);
   });
 
   it('tells per row whether the owner is marked, for the star beside the name', () => {
     markedOwners.add(1003);
-    const rows = vm([safe, none], { onlyHits: false }).rows;
+    const rows = vm([safe, none], { profit: BOTH }).rows;
     expect(rows.map((r) => [r.entityId, r.ownerMarked])).toEqual([
       [1, false],
       [3, true],
@@ -307,12 +327,12 @@ describe('marks', () => {
   it('passes a building that is marked and has a marked owner once', () => {
     markedBuildings.add('1003:3');
     markedOwners.add(1003);
-    expect(vm([none], { onlyHits: false, onlyMarked: true }).rows).toHaveLength(1);
+    expect(vm([none], { profit: BOTH, mark: ONLY_MARKED }).rows).toHaveLength(1);
   });
 
   it('counts among the buildings the marks filter leaves', () => {
     markedBuildings.add('1001:1');
-    expect(vm([safe, possible, none], { onlyMarked: true }).count).toBe('1 mit Gewinn von 1 LGs');
+    expect(vm([safe, possible, none], { mark: ONLY_MARKED }).count).toBe('1 mit Gewinn von 1 LGs');
   });
 });
 
@@ -331,7 +351,7 @@ describe('possibleViewModel, the owner share (EA)', () => {
   const current = building({ entityId: 1, invested: 400, ...ranked(320, 80) });
   const stale = building({ owner: playerId(1002), entityId: 2, invested: 500, ...ranked(100, 300) });
   const unknown = building({ owner: playerId(1003), entityId: 3, invested: 400 });
-  const all = { onlyHits: false, reach: EVERY };
+  const all = { profit: BOTH, reach: EVERY };
 
   it('shows the share plain when current, muted with the age when stale, and "?" when unknown', () => {
     const v = vm([current, stale, unknown], all);

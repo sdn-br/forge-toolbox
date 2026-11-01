@@ -25,14 +25,30 @@ export const reachTip = (reasons: Reach[]) => {
   return reasons.map((r) => t(`investments.reach.${r}`)).join(', ');
 };
 
+/** which rows the star toggles show: those marked (the building or its owner) and those not */
+export interface MarkFilter {
+  marked: boolean;
+  notMarked: boolean;
+}
+
+/** both on: every row, whether marked or not */
+export const ALL_MARKS: MarkFilter = { marked: true, notMarked: true };
+
+/** a saved record field, or none when it is missing or not a record */
+export const savedRecord = (value: unknown) => (typeof value === 'object' && value !== null ? value : {});
+
 /** the former checkbox "only reachable": on was the default, off let all four through; reasons saved since then win */
 export const migrateReach = (saved: Record<string, unknown>): Record<string, unknown> =>
-  saved.onlyReachable === false
-    ? {
-        ...saved,
-        reach: { ...ALL_REACH, ...(typeof saved.reach === 'object' && saved.reach !== null ? saved.reach : {}) },
-      }
+  saved.onlyReachable === false ? { ...saved, reach: { ...ALL_REACH, ...savedRecord(saved.reach) } } : saved;
+
+/** the former toggle "only marked": on showed the marked rows alone, off all; toggles saved since then win */
+export const migrateMarked = (saved: Record<string, unknown>): Record<string, unknown> =>
+  saved.onlyMarked === true
+    ? { ...saved, mark: { marked: true, notMarked: false, ...savedRecord(saved.mark) } }
     : saved;
+
+/** every older shape of the filters both tabs share */
+export const migrateCommon = (saved: Record<string, unknown>) => migrateMarked(migrateReach(saved));
 
 /** what the box gives a tab for each draw */
 export interface TabFrame {
@@ -64,8 +80,8 @@ export interface CommonFilter {
   name: string;
   /** which reasons let a row through; owners the player store does not know always pass */
   reach: ReachFilter;
-  /** only buildings the player marked and buildings of marked owners */
-  onlyMarked: boolean;
+  /** which rows the star toggles show; a row counts as marked when the building or its owner is */
+  mark: MarkFilter;
   /** also the rows of ignored buildings and owners, drawn muted */
   showIgnored: boolean;
 }
@@ -115,7 +131,7 @@ export const passesCommon = (filter: CommonFilter) => {
     byPlayer(r.ownerName) &&
     byName(r.name) &&
     passesReach(r.reasons, filter.reach) &&
-    (!filter.onlyMarked || r.marked || r.ownerMarked);
+    (r.marked || r.ownerMarked ? filter.mark.marked : filter.mark.notMarked);
 };
 
 /** the columns both tabs sort by the names of a row */
@@ -197,17 +213,25 @@ export interface TabChoices<C extends string, F extends CommonFilter> {
 
 /**
  * Sort, filters and first row in view of a tab, with the actions on them; each action redraws the box. The filters are
- * saved under `prefKey`, each part that is missing or broken at its default. Returns the draw of the tab: `vm` gets the
+ * saved under `prefKey`, each part that is missing or broken at its default, older shapes migrated. Returns the draw of the tab: `vm` gets the
  * choices, the first row in view it keeps comes back through its window.
  */
 export function createTabState<C extends string, F extends CommonFilter>(
   ctx: FeatureContext,
   box: Box,
   measure: (area: Element | undefined) => void,
-  options: { prefKey: string; defaults: F; defaultSort: Sort<C>; descFirst: ReadonlySet<C> },
+  options: {
+    prefKey: string;
+    defaults: F;
+    defaultSort: Sort<C>;
+    descFirst: ReadonlySet<C>;
+    /** turns older shapes of the tab's own filters into the current one, after those both tabs share */
+    migrate?: (saved: Record<string, unknown>) => Record<string, unknown>;
+  },
 ) {
   let sort = options.defaultSort;
-  let filter = prefRecord(options.defaults, ctx.ui.pref(options.prefKey), migrateReach);
+  const own = options.migrate ?? ((saved: Record<string, unknown>) => saved);
+  let filter = prefRecord(options.defaults, ctx.ui.pref(options.prefKey), (saved) => own(migrateCommon(saved)));
   let scroll = 0;
 
   const actions: RowActions<C, F> = {

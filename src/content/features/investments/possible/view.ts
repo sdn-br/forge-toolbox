@@ -1,6 +1,6 @@
 import { html, type TemplateResult } from 'lit-html';
 import { t } from '../../../core/texts';
-import { filterToggle, toggleGroup } from '../../../ui/buttons';
+import { toggleGroup } from '../../../ui/buttons';
 import { headerIcons } from '../../../ui/icons';
 import { rowTip } from '../../../ui/ignore';
 import { hitCells, tierIcon } from '../../../ui/snipe-hit';
@@ -12,6 +12,7 @@ import {
   type PossibleFilter,
   type PossibleRowVm,
   type PossibleVm,
+  PROFIT_TOGGLES,
   TIER_TOGGLES,
 } from './view-model';
 
@@ -39,10 +40,18 @@ const row = (
   <td class="num">${r.age}</td>
 </tr>`;
 
-/** a toggle with the profit icon: only rows with a profitable place */
+const PROFIT_ICONS = { with: headerIcons.profit, without: headerIcons.noProfit };
+
+/** two toggles, the profit icon for rows with a profitable place and its hollow pieces for the rest; each shows its
+ * rows while on */
 const hitsFilter = (f: PossibleFilter, actions: PossibleActions) =>
-  filterToggle('inv-hits-filter', f.onlyHits, t('investments.possible.onlyHits'), headerIcons.profit, (onlyHits) =>
-    actions.filter({ onlyHits }),
+  toggleGroup(
+    'inv-hits-filter',
+    PROFIT_TOGGLES,
+    f.profit,
+    (key) => t(`investments.possible.profit.${key}`),
+    (key) => PROFIT_ICONS[key],
+    (profit) => actions.filter({ profit }),
   );
 
 /** one toggle per tier, with the icons of the column "Sicherheit"; any switched on lets a row with that tier through */

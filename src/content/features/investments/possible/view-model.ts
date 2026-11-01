@@ -7,6 +7,7 @@ import { type Sort, sortRows } from '../../../ui/sortable';
 import { type RowWindow, rowsIn, rowWindow } from '../../../ui/windowed-rows';
 import type { GbLookups } from '../../shared/gb-lookups';
 import {
+  ALL_MARKS,
   type CommonFilter,
   type CommonRowVm,
   commonRowVm,
@@ -15,6 +16,7 @@ import {
   passesCommon,
   type RowNames,
   rowNames,
+  savedRecord,
 } from '../rows';
 
 export type PossibleColumn =
@@ -51,11 +53,29 @@ export const POSSIBLE_DESC_FIRST: ReadonlySet<PossibleColumn> = new Set([
 
 /** what the rows are narrowed to; a view choice of the viewer */
 export interface PossibleFilter extends CommonFilter {
-  /** only rows with a worthwhile place */
-  onlyHits: boolean;
+  /** which rows the profit toggles show: those with a worthwhile place and those without */
+  profit: ProfitFilter;
   /** which tiers let a row through; rows without a tier always pass */
   tier: TierFilter;
 }
+
+/** the profit toggles: rows with a worthwhile place, rows without one (none pays, or the reward is unknown) */
+export interface ProfitFilter {
+  with: boolean;
+  without: boolean;
+}
+
+/** the profit toggles in their order */
+export const PROFIT_TOGGLES: (keyof ProfitFilter)[] = ['with', 'without'];
+
+/** the former toggle "only with profit": on was the default, off showed every row; toggles saved since then win */
+export const migrateProfit = (saved: Record<string, unknown>): Record<string, unknown> =>
+  saved.onlyHits === false
+    ? {
+        ...saved,
+        profit: { with: true, without: true, ...savedRecord(saved.profit) },
+      }
+    : saved;
 
 /** a switch per tier of the rating */
 export type TierFilter = Record<SnipeTier, boolean>;
@@ -66,10 +86,11 @@ export const TIER_TOGGLES: SnipeTier[] = ['exact', 'safe', 'possible'];
 export const DEFAULT_FILTER: PossibleFilter = {
   player: '',
   name: '',
-  onlyHits: true,
+  // only the rows with profit, as the former "only with profit" (Nutzer, 2026-11-01)
+  profit: { with: true, without: false },
   reach: DEFAULT_REACH,
   tier: { exact: true, safe: true, possible: true },
-  onlyMarked: false,
+  mark: ALL_MARKS,
   showIgnored: false,
 };
 
@@ -145,7 +166,7 @@ export function possibleRows(input: PossibleRowsInput): PossibleRows {
   const counted = named.filter((r) => !countsIgnored(r.ignored, r.ownerIgnored));
   const hits = counted.filter((r) => r.hit).length;
   const visible = filter.showIgnored ? named : counted;
-  const shown = filter.onlyHits ? visible.filter((r) => r.hit) : visible;
+  const shown = visible.filter((r) => (r.hit ? filter.profit.with : filter.profit.without));
   sortRows(shown, sort, (column) => sortKey[column]);
   return {
     empty: input.candidates.length === 0,

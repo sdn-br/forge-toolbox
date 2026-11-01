@@ -352,9 +352,11 @@ export const de = {
   'investments.filter.name': 'LG',
   'investments.filter.unpickPlayer': 'Spielerfilter entfernen',
   'investments.filter.pickPlayer': 'Nur diesen Spieler zeigen',
-  'investments.filter.onlyMarked': 'nur gemerkte',
+  'investments.filter.mark.marked': 'Markierte zeigen',
+  'investments.filter.mark.notMarked': 'Nicht markierte zeigen',
   'investments.filter.noRow': 'Kein LG passt zum Filter.',
-  'investments.possible.onlyHits': 'nur mit Gewinn',
+  'investments.possible.profit.with': 'Mit Gewinn zeigen',
+  'investments.possible.profit.without': 'Ohne Gewinn zeigen',
   'investments.possible.none':
     'Noch keine fremden LGs bekannt. Der Reiter füllt sich, sobald LG-Listen anderer Spieler geöffnet werden.',
   'investments.possible.count': '{hits} mit Gewinn von {count} LGs',

@@ -345,8 +345,10 @@ describe('relation and filters of the own investments', () => {
     expect(names3(vm({ name: 'ETA' }))).toEqual(['Bert']);
   });
 
-  it('filters the marked buildings and those of marked owners', () => {
-    expect(names3(vm({ onlyMarked: true }))).toEqual(['Bert', 'Carla']);
+  it('shows the marked buildings and those of marked owners with "markiert", the rest with "nicht markiert"', () => {
+    expect(names3(vm({ mark: { marked: true, notMarked: false } }))).toEqual(['Bert', 'Carla']);
+    expect(names3(vm({ mark: { marked: false, notMarked: true } }))).toEqual(['Anna']);
+    expect(names3(vm({ mark: { marked: false, notMarked: false } }))).toEqual([]);
   });
 
   it('filters by the status, each toggle on lets its rows through', () => {

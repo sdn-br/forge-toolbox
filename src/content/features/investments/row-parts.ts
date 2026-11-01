@@ -118,7 +118,7 @@ export const filterBar = (
     ${own.beforeReach ?? ''}
     ${reachFilter(f.reach, (reach) => set({ reach }))}
     ${own.afterReach}
-    ${markedFilter(f.onlyMarked, (onlyMarked) => set({ onlyMarked }))}
+    ${markedFilter(f.mark, (mark) => set({ mark }))}
     ${ignoredFilter(f.showIgnored, (showIgnored) => set({ showIgnored }))}
     <span class="inv-count muted">${count}</span>
   </p>`;

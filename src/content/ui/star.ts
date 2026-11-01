@@ -2,7 +2,7 @@
 import { html } from 'lit-html';
 import type { PlayerId } from '../../shared/ids';
 import { t } from '../core/texts';
-import { filterToggle, toggleButton } from './buttons';
+import { toggleButton, toggleGroup } from './buttons';
 import { headerIcons } from './icons';
 
 /** a toggle button; the word is in the tooltip and the label, `aria-pressed` tells the state */
@@ -17,6 +17,19 @@ export const markCell = (
   mark: (owner: PlayerId, entityId: number, marked: boolean) => void,
 ) => html`<td class="mark-cell">${starButton(r.marked, () => mark(r.owner, r.entityId, !r.marked))}</td>`;
 
-/** a toggle with the filled star: only marked buildings and buildings of marked owners */
-export const markedFilter = (onlyMarked: boolean, set: (onlyMarked: boolean) => void) =>
-  filterToggle('inv-marked-filter', onlyMarked, t('investments.filter.onlyMarked'), headerIcons.starFilled, set);
+type MarkKey = 'marked' | 'notMarked';
+
+const MARK_KEYS: MarkKey[] = ['marked', 'notMarked'];
+const MARK_ICONS = { marked: headerIcons.starFilled, notMarked: headerIcons.notMarked };
+
+/** two toggles, the filled star for the marked rows (a marked building or owner) and its outline for the rest; each
+ * shows its rows while on */
+export const markedFilter = (mark: Record<MarkKey, boolean>, set: (mark: Record<MarkKey, boolean>) => void) =>
+  toggleGroup(
+    'inv-marked-filter',
+    MARK_KEYS,
+    mark,
+    (key) => t(`investments.filter.mark.${key}`),
+    (key) => MARK_ICONS[key],
+    set,
+  );
