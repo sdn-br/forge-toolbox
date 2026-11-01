@@ -622,7 +622,11 @@ describe('pvp feature', () => {
       expect(panel(box)).toContain('8/10 LP');
       expect(panel(box)).toContain('feudal_knight');
       expect(panel(box)).toContain('gefallen');
-      expect(panel(box)).toContain('gewonnen, Autokampf, 1 Runde');
+      expect(panel(box)).toContain('Autokampf, 1 Runde');
+      expect(panel(box)).not.toContain('gewonnen');
+      const outcome = box.root.querySelector('.side-panel .pvp-outcome');
+      expect(outcome?.classList.contains('won')).toBe(true);
+      expect(outcome?.getAttribute('aria-label')).toBe('gewonnen');
       expect(panel(box)).toContain('50 % / 0 %');
       expect(panel(box)).toContain('0 % / 70 %');
       // the battle comes from the loaded slice, no new query; all rows keep one height

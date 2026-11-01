@@ -50,6 +50,9 @@ export interface BattlePanelVm {
   /** the opponent's guild with its page at foestats; missing when the player store knows none */
   guild?: { name: string; url: string };
   when: string;
+  /** the result, shown as its icon beside the time; `result` is the word for its tooltip */
+  outcome: BattleResult;
+  result: string;
   /** an inferred battle has no units and armies, only its plunder */
   inferred: boolean;
   /** units, measured armies and result of a fought battle */
@@ -141,8 +144,10 @@ export function battlePanelVm(b: BattleWithPlunder, input: ViewInput): BattlePan
     name,
     ...(guild && { guild }),
     when: battleWhen(b, input.now),
+    outcome: b.result,
+    result: t(`pvp.${b.result}`),
     inferred: !isFought(b),
-    ...(isFought(b) && { details: battleDetails(b, measuredArmy(b)) }),
+    ...(isFought(b) && { details: battleDetails(b, measuredArmy(b), false) }),
     ...(b.plunder && { plunder: plunderVm(b.plunder, input.building, input.resourceName) }),
   };
 }

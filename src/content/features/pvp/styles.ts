@@ -43,9 +43,10 @@ export const pvpCss = `
 .pvp-table .pvp-loot, .pvp-table .pvp-result { text-align: center; padding: 0; }
 .pvp-result svg { display: block; width: 14px; height: 14px; margin: auto; }
 /* the result in the colours of good and bad, a battle given up muted */
-td.pvp-result.won { color: var(--good); }
-td.pvp-result.lost { color: var(--bad); }
-td.pvp-result.surrendered { color: var(--muted); }
+:is(td.pvp-result, .pvp-outcome).won { color: var(--good); }
+:is(td.pvp-result, .pvp-outcome).lost { color: var(--bad); }
+:is(td.pvp-result, .pvp-outcome).surrendered { color: var(--muted); }
+.pvp-outcome svg { width: 14px; height: 14px; vertical-align: -2px; }
 .pvp-loot svg { display: block; width: 14px; height: 14px; margin: auto; }
 .pvp-drawer h2:first-child { margin-top: 2px; }
 .pvp-drawer p { margin: 2px 0; }

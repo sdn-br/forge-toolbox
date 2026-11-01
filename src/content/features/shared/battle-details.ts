@@ -11,11 +11,14 @@ const unitVm = (u: BattleUnit): UnitVm => ({
   dead: u.endHp <= 0,
 });
 
-/** `measured` is the battle's measured army; without it the details leave the armies out, for where the attack and defense values are switched off */
-export function battleDetails(battle: FoughtBattle, measured?: MeasuredArmy): BattleDetailsVm {
+/**
+ * `measured` is the battle's measured army; without it the details leave the armies out, for where the attack and
+ * defense values are switched off. `withResult` false leaves the result word out, for where an icon shows it.
+ */
+export function battleDetails(battle: FoughtBattle, measured?: MeasuredArmy, withResult = true): BattleDetailsVm {
   return {
     summary: [
-      t(`pvp.${battle.result}`),
+      ...(withResult ? [t(`pvp.${battle.result}`)] : []),
       battle.auto ? t('pvp.auto') : t('battle.manual'),
       formatRounds(battle.rounds),
     ].join(', '),

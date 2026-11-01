@@ -143,9 +143,11 @@ describe('pvp view model', () => {
       name: 'Testgegner',
       guild: { name: 'Testgilde', url: '' },
       when: 'heute 13:49',
+      outcome: 'won',
+      result: 'gewonnen',
       inferred: false,
       details: {
-        summary: 'gewonnen, Autokampf, 2 Runden',
+        summary: 'Autokampf, 2 Runden',
         own: [{ unit: 'rogue', hp: '8/10 LP', dead: false }],
         army: { own: { attack: 368, defense: 269 }, opponent: { attack: 406, defense: 443 } },
       },

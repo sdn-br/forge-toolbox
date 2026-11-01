@@ -2,6 +2,7 @@
 import { html, type TemplateResult } from 'lit-html';
 import { t } from '../../../core/texts';
 import { battleDetailsView } from '../../../ui/battle-details';
+import { headerIcons } from '../../../ui/icons';
 import { guildTag } from '../../../ui/links';
 import type { BattlePanelVm, PlunderVm } from './view-model';
 
@@ -15,7 +16,8 @@ const plunderView = (p: PlunderVm) =>
 
 /** the selected battle */
 export function battlePanel(vm: BattlePanelVm): TemplateResult {
-  return html`<h2>${vm.name}${vm.guild ? html` ${guildTag(vm.guild)}` : ''}</h2><p class="muted">${vm.when}</p>${
-    vm.details ? battleDetailsView(vm.details) : html`<p class="muted">${t('pvp.inferredTip')}</p>`
-  }${vm.plunder ? plunderView(vm.plunder) : ''}`;
+  return html`<h2>${vm.name}${vm.guild ? html` ${guildTag(vm.guild)}` : ''}</h2><p><span class="muted">${vm.when}</span> <span class=${`pvp-outcome ${vm.outcome}`} role="img" data-tip=${vm.result}
+    aria-label=${vm.result}>${headerIcons[vm.outcome]}</span></p>${
+      vm.details ? battleDetailsView(vm.details) : html`<p class="muted">${t('pvp.inferredTip')}</p>`
+    }${vm.plunder ? plunderView(vm.plunder) : ''}`;
 }
