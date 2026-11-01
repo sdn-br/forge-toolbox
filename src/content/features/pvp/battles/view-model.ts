@@ -1,31 +1,54 @@
-import type { PlayerId } from '../../../../shared/ids';
-import { type Battle, type FoughtBattle, isFought, type PlunderTotals } from '../../../../shared/model';
+import type { BuildingDefId } from '../../../../shared/ids';
+import {
+  type BattleSummary,
+  type BattleWithPlunder,
+  type FoughtBattle,
+  isFought,
+  type Plunder,
+  type PlunderOutcome,
+} from '../../../../shared/model';
 import { formatWhen, t } from '../../../core/texts';
 import type { ArmyValues } from '../../../domain/assess-city';
 import { measuredArmy } from '../../../domain/measured-army';
 import type { BattleDetailsVm } from '../../../ui/battle-details';
 import { battleDetails } from '../../shared/battle-details';
-import { formatPlunderTotals, formatRounds } from '../../shared/pvp-format';
-import { type ListVm, listVm, type OpponentVm, opponentVm, type ViewInput } from '../rows';
+import { formatBattleSummary, formatResources, formatRounds } from '../../shared/pvp-format';
+import { isFiltered, type ListVm, listVm, type OpponentVm, opponentVm, type ViewInput } from '../rows';
+
+/** the plunder a battle allowed, as its details show it */
+export interface PlunderVm {
+  outcome: PlunderOutcome;
+  /** the catalog name, the game's id for an unknown building, "–" when the game named none */
+  building: string;
+  /** "1.220 Münzen, 5 Forge-Punkte"; empty when repelled */
+  loot: string;
+  doubleLoot: boolean;
+}
 
 export interface PvpRow extends OpponentVm {
   battleId: number;
-  opponent: PlayerId;
   when: string;
   result: string;
   battle: string;
-  /** an inferred battle: no armies, no details, the time is the latest it took place */
+  /** an inferred battle: no armies, no units, the time is the latest it took place */
   inferred?: boolean;
   /** missing for an inferred battle */
   attacker?: ArmyValues;
   defender?: ArmyValues;
-  /** units, measured armies and result; only for an expanded row */
+  /** the sack mark: the battle allowed a plunder, which succeeded or was repelled; missing without a plunder */
+  loot?: PlunderOutcome;
+  /** the row shows its details */
+  expanded: boolean;
+  /** units, measured armies and result; only for an expanded fought battle */
   details?: BattleDetailsVm;
+  /** only for an expanded row with a plunder */
+  plunder?: PlunderVm;
 }
 
-/** `totals` are the plunder totals, they stand above the battles too */
+/** `totals` are the battles and their plunders the filter matches */
 export interface BattlesVm extends ListVm {
   tab: 'battles';
+  /** the loaded rows, the first at `from` */
   rows: PvpRow[];
 }
 
@@ -34,24 +57,46 @@ function battleKind(b: FoughtBattle): string {
   return formatRounds(b.rounds);
 }
 
+export function plunderVm(
+  p: Plunder,
+  building: (id: BuildingDefId) => string | undefined,
+  resourceName: (id: string) => string | undefined,
+): PlunderVm {
+  return {
+    outcome: p.outcome,
+    building: p.cityEntityId === undefined ? '–' : (building(p.cityEntityId) ?? p.cityEntityId),
+    loot: p.outcome === 'repelled' ? '' : formatResources(p.resources, resourceName),
+    doubleLoot: p.doubleLoot,
+  };
+}
+
 export function battlesViewModel(
   input: ViewInput & {
-    battles: Battle[];
-    /** number of battles over all pages */
-    total: number;
-    plunderTotals: PlunderTotals;
+    battles: BattleWithPlunder[];
+    /** over all battles the filter matches */
+    summary: BattleSummary;
+    /** the index of the first loaded battle in the list */
+    from: number;
   },
 ): BattlesVm {
-  const { battles, now } = input;
+  const { battles, now, summary } = input;
   return {
-    ...listVm(input, input.total, formatPlunderTotals(input.plunderTotals)),
+    ...listVm({
+      total: summary.battles,
+      from: input.from,
+      totals: formatBattleSummary(summary),
+      filtered: isFiltered(input.filter, 'battles'),
+    }),
     tab: 'battles',
     rows: battles.map((b): PvpRow => {
+      const expanded = input.expanded.has(b.battleId);
       const row = {
         battleId: b.battleId,
-        opponent: b.opponent,
         ...opponentVm(input, b.opponent),
         result: t(`pvp.${b.result}`),
+        ...(b.plunder && { loot: b.plunder.outcome }),
+        expanded,
+        ...(expanded && b.plunder && { plunder: plunderVm(b.plunder, input.building, input.resourceName) }),
       };
       if (!isFought(b)) {
         return {
@@ -68,7 +113,7 @@ export function battlesViewModel(
         battle: battleKind(b),
         attacker: army.attacker,
         defender: army.defender,
-        details: input.expanded.has(b.battleId) ? battleDetails(b, army) : undefined,
+        ...(expanded && { details: battleDetails(b, army) }),
       };
     }),
   };

@@ -93,8 +93,6 @@ input.num, input[type=number] { text-align: right; }
 .note p, .note ul, .note ol { margin: 2px 0; }
 .note ul, .note ol { padding-left: 18px; }
 .note a, a { color: var(--accent); }
-a.ext-link { text-decoration: none; opacity: .6; }
-a.ext-link:hover { opacity: 1; }
 .tip { position: fixed; z-index: 2147483647; max-width: 260px; padding: 3px 6px; background: #000d; color: var(--ink);
   font: 12px/1.4 system-ui, sans-serif; border: 1px solid var(--line); border-radius: 4px; pointer-events: none;
   white-space: pre-line; }
@@ -200,15 +198,16 @@ td.snipe-tier.possible { color: var(--warn); }
 .icon-toggles button svg { display: block; width: 14px; height: 14px; }
 .row-name { display: flex; align-items: center; }
 .row-name a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-/* the star and the eye in a row: 16 px at the right edge like the funnel (which then follows them), faint on row hover or
+/* the star and the eye in a row, in the PvP box the two PvP marks: 16 px at the right edge like the funnel (which then follows them), faint on row hover or
    focus while off, always in the accent while on. Name cells keep the name's ellipsis and give them their 16 px */
 .row-name .row-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.row-name :is(button.star, button.ignore) { flex: none; width: 16px; height: 16px; margin-left: auto; opacity: 0; }
-.row-name :is(button.star, button.ignore) svg { width: 12px; height: 12px; }
-.row-name :is(button.star, button.ignore) + :is(button.ignore, button.inv-pick) { margin-left: 0; }
+.row-name :is(button.star, button.ignore, button.plunder, button.no-attack) { flex: none; width: 16px; height: 16px; margin-left: auto; opacity: 0; }
+.row-name :is(button.star, button.ignore, button.plunder, button.no-attack) svg { width: 12px; height: 12px; }
+.row-name :is(button.star, button.ignore, button.plunder, button.no-attack) + :is(button.ignore, button.no-attack, button.inv-pick) { margin-left: 0; }
 /* keyboard focus shows them too, a mouse click does not keep them (:focus-within would, until the next click) */
-tr:is(:hover, :has(:focus-visible)) .row-name :is(button.star, button.ignore) { opacity: .7; }
-tr .row-name :is(button.star, button.ignore):is(:hover, :focus-visible), tr .row-name :is(button.star, button.ignore).on { opacity: 1; color: var(--accent); }
+tr:is(:hover, :has(:focus-visible)) .row-name :is(button.star, button.ignore, button.plunder, button.no-attack) { opacity: .7; }
+tr .row-name :is(button.star, button.ignore, button.plunder, button.no-attack):is(:hover, :focus-visible),
+tr .row-name :is(button.star, button.ignore, button.plunder, button.no-attack).on { opacity: 1; color: var(--accent); }
 /* the funnel of a row (ui/pick.ts) */
 /* always at the right edge of the column, so the mouse can run straight down it; hidden until the row is hovered */
 button.inv-pick { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 16px; height: 16px; margin-left: auto; opacity: 0; color: var(--ink); }

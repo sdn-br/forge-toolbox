@@ -1,6 +1,6 @@
 // The texts the pvp and the sabotage box share for battles, plunders and attacks on the own city.
 import type { BuildingDefId } from '../../../shared/ids';
-import type { IncomingAttack, IncomingTotals, PlunderTotals } from '../../../shared/model';
+import type { BattleSummary, IncomingAttack, IncomingTotals, PlunderTotals } from '../../../shared/model';
 import { formatNumber, hasText, type TextKey, t } from '../../core/texts';
 
 /** The game's name of a resource from the startup data; undefined when unknown. */
@@ -51,3 +51,9 @@ export function formatIncoming(a: IncomingAttack, building: (id: BuildingDefId) 
   const id = a.cityEntityId;
   return t('incoming.plunder', { building: id === undefined ? '–' : (building(id) ?? id) });
 }
+
+/** "9 Kämpfe, 8 gewonnen · 3 Plünderungen, 2 abgewehrt, 2 FP": the battles, then their plunders as `formatPlunderTotals` */
+export const formatBattleSummary = ({ battles, won, plunders, repelled, fp }: BattleSummary) =>
+  `${countText(battles, 'pvp.battleCountOne', 'pvp.battleCount')}, ${t('pvp.wonCount', { count: formatNumber(won) })} · ${formatPlunderTotals(
+    { count: plunders, repelled, fp },
+  )}`;

@@ -13,16 +13,17 @@ export function rowsFitting(areaHeight: number, headHeight: number, rowHeight: n
 /** Follows the table area: `measure` is called with the area element on every render (see `windowedRows`), watches its
  * size and calls `onChange` when the count of rows that fit changes. The row height is the tallest rendered row, so a
  * taller row (a growth line) never gets cut off. It is read when the area is attached or resized, not when rows change
- * inside an area of the same size. */
-export function rowFit(onChange: () => void) {
+ * inside an area of the same size. `rows` selects the rows that count, for a table whose rows can unfold extra rows that
+ * are not row high (the PvP box leaves out its details rows). */
+export function rowFit(onChange: () => void, rows = 'tbody tr') {
   let count: number | undefined;
   let area: HTMLElement | undefined;
   let observer: ResizeObserver | undefined;
   const read = () => {
     if (!area) return;
     const head = area.querySelector<HTMLElement>('thead')?.offsetHeight ?? 0;
-    const rows = [...area.querySelectorAll<HTMLElement>('tbody tr')];
-    const fits = rowsFitting(area.clientHeight, head, Math.max(0, ...rows.map((r) => r.offsetHeight)));
+    const drawn = [...area.querySelectorAll<HTMLElement>(rows)];
+    const fits = rowsFitting(area.clientHeight, head, Math.max(0, ...drawn.map((r) => r.offsetHeight)));
     if (fits === undefined || fits === count) return;
     count = fits;
     onChange();

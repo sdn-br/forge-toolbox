@@ -1,11 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { battlesViewModel } from '../src/content/features/pvp/battles/view-model';
 import { incomingViewModel } from '../src/content/features/pvp/incoming/view-model';
-import { plundersViewModel } from '../src/content/features/pvp/plunders/view-model';
 import { pruneBefore } from '../src/content/features/pvp/retention';
-import { opponentsFor, pageCount, type ViewInput } from '../src/content/features/pvp/rows';
+import { NO_FILTER, opponentsFor, pickedPlayer, type ViewInput } from '../src/content/features/pvp/rows';
+import { fitWindow, rowsShown } from '../src/content/features/pvp/window';
 import { buildingDefId, eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
-import type { Battle, FoughtBattle, IncomingAttack, IncomingTotals, Player, Plunder } from '../src/shared/model';
+import type {
+  BattleSummary,
+  BattleWithPlunder,
+  FoughtBattle,
+  IncomingAttack,
+  IncomingTotals,
+  Player,
+  Plunder,
+} from '../src/shared/model';
 import { playerLookups } from './helpers/player-lookups';
 
 const now = new Date(2026, 9, 19, 15, 0).getTime();
@@ -40,14 +48,16 @@ const plunder = (opponent: number, change: Partial<Plunder> = {}): Plunder => ({
   ...change,
 });
 
-const player = (id: number, name: string) => ({ id: playerId(id), name }) as Player;
+const player = (id: number, name: string, marks: Partial<Player> = {}) =>
+  ({ id: playerId(id), name, ...marks }) as Player;
 const names: Record<number, string> = { 1001: 'Testgegner' };
 const base: ViewInput = {
-  filter: { text: '' },
-  page: 0,
+  filter: NO_FILTER,
   lookups: playerLookups({
     playerName: (id: PlayerId) => names[id],
     playerGuild: (id: PlayerId) => (id === 1001 ? { name: 'Testgilde', url: '' } : undefined),
+    plunderWorthy: (id: PlayerId) => (id === 1001 ? true : undefined),
+    noAttack: (id: PlayerId) => (id === 1001 ? false : undefined),
   }),
   building: (id) => (id === 'R_IronAge_Residential2' ? 'Strohdachhaus' : undefined),
   resourceName: () => undefined,
@@ -55,9 +65,15 @@ const base: ViewInput = {
   now,
   expanded: new Set(),
 };
-const noPlunderTotals = { count: 0, repelled: 0, fp: 0 };
-const battlesOf = (battles: Battle[], change: Partial<ViewInput> = {}, plunderTotals = noPlunderTotals) =>
-  battlesViewModel({ ...base, ...change, battles, total: battles.length, plunderTotals });
+const summaryOf = (battles: BattleWithPlunder[]): BattleSummary => ({
+  battles: battles.length,
+  won: battles.filter((b) => b.result === 'won').length,
+  plunders: 0,
+  repelled: 0,
+  fp: 0,
+});
+const battlesOf = (battles: BattleWithPlunder[], change: Partial<ViewInput> = {}, summary = summaryOf(battles)) =>
+  battlesViewModel({ ...base, ...change, battles, summary, from: 0 });
 
 describe('pvp view model', () => {
   it('adds the details to the expanded rows only', () => {
@@ -75,7 +91,7 @@ describe('pvp view model', () => {
     expect(vm.rows[1]?.details).toBeUndefined();
   });
 
-  it('shows one row per battle with name, time, result and measured armies', () => {
+  it('shows one row per battle with name, marks, time, result and measured armies', () => {
     const vm = battlesOf([battle(1, 1001), battle(2, 1002, { result: 'surrendered', auto: false, rounds: 5 })]);
     expect(vm.rows[0]).toEqual({
       battleId: 1,
@@ -83,11 +99,15 @@ describe('pvp view model', () => {
       name: 'Testgegner',
       nameTip: 'Testgegner [Testgilde]',
       url: 'https://foestats.com/de/de20/players/1001',
+      plunderWorthy: true,
+      noAttack: false,
+      picked: false,
       when: 'heute 13:49',
       result: 'gewonnen',
       battle: 'Autokampf',
       attacker: { attack: 368, defense: 269 },
       defender: { attack: 406, defense: 443 },
+      expanded: false,
       note: 'stark\n• Schilde',
     });
     expect(vm.rows[1]).toMatchObject({
@@ -96,13 +116,57 @@ describe('pvp view model', () => {
       result: 'aufgegeben',
       battle: '5 Runden',
       note: '',
+      picked: false,
     });
-    expect(vm).toMatchObject({ tab: 'battles', page: 0, pages: 1, empty: undefined, picked: undefined });
+    // a player the store does not know has no marks to toggle
+    expect(vm.rows[1]?.plunderWorthy).toBeUndefined();
+    expect(vm.rows[1]?.noAttack).toBeUndefined();
+    expect(vm).toMatchObject({ tab: 'battles', total: 2, from: 0, empty: undefined });
   });
 
-  it('shows an inferred battle as won at the latest at its time, without armies and details', () => {
+  it('fills the funnel of the rows whose name the field names exactly, in any case', () => {
+    const rows = battlesOf([battle(1, 1001), battle(2, 1002)], { filter: { ...NO_FILTER, name: ' testGEGNER ' } }).rows;
+    expect(rows.map((r) => r.picked)).toEqual([true, false]);
+    const part = battlesOf([battle(1, 1001)], { filter: { ...NO_FILTER, name: 'Test' } }).rows;
+    expect(part[0]?.picked).toBe(false);
+    const byId = battlesOf([battle(2, 1002)], { filter: { ...NO_FILTER, name: '1002' } }).rows;
+    expect(byId[0]?.picked).toBe(true);
+  });
+
+  it('marks a battle with its plunder by the sack, plundered or repelled, and none without', () => {
+    const rows = battlesOf([
+      { ...battle(1, 1001), plunder: plunder(1001) },
+      { ...battle(2, 1001), plunder: plunder(1001, { outcome: 'repelled', resources: {} }) },
+      battle(3, 1001),
+    ]).rows;
+    expect(rows.map((r) => r.loot)).toEqual(['plundered', 'repelled', undefined]);
+    // collapsed rows carry no plunder details
+    expect(rows.map((r) => r.plunder)).toEqual([undefined, undefined, undefined]);
+  });
+
+  it('shows the plunder in the details of an expanded battle: building, loot with names and Double Loot', () => {
+    const rows = battlesOf(
+      [
+        { ...battle(1, 1001), plunder: plunder(1001, { doubleLoot: true }) },
+        { ...battle(2, 1001), plunder: plunder(1001, { cityEntityId: buildingDefId('R_Unknown') }) },
+        {
+          ...battle(3, 1001),
+          plunder: plunder(1001, { outcome: 'repelled', resources: {}, entityId: undefined, cityEntityId: undefined }),
+        },
+      ],
+      { expanded: new Set([1, 2, 3]) },
+    ).rows;
+    expect(rows.map((r) => r.plunder)).toEqual([
+      { outcome: 'plundered', building: 'Strohdachhaus', loot: '1.220 Münzen, 5 Forge-Punkte', doubleLoot: true },
+      { outcome: 'plundered', building: 'R_Unknown', loot: '1.220 Münzen, 5 Forge-Punkte', doubleLoot: false },
+      { outcome: 'repelled', building: '–', loot: '', doubleLoot: false },
+    ]);
+    expect(rows[0]?.details).toBeDefined();
+  });
+
+  it('shows an inferred battle as won at the latest at its time, without armies, expandable to its plunder only', () => {
     const at = new Date(2026, 9, 19, 14, 5).getTime();
-    const inferred: Battle = {
+    const inferred: BattleWithPlunder = {
       world: worldId('de20'),
       battleId: -at,
       at,
@@ -110,20 +174,29 @@ describe('pvp view model', () => {
       result: 'won',
       inferred: true,
       plunderAt: at,
+      plunder: plunder(1001, { at }),
     };
-    const vm = battlesOf([inferred], { expanded: new Set([-at]) });
-    expect(vm.rows[0]).toEqual({
+    expect(battlesOf([inferred]).rows[0]).toEqual({
       battleId: -at,
       opponent: 1001,
       name: 'Testgegner',
       nameTip: 'Testgegner [Testgilde]',
       url: 'https://foestats.com/de/de20/players/1001',
+      plunderWorthy: true,
+      noAttack: false,
+      picked: false,
       when: 'spätestens heute 14:05',
       result: 'gewonnen',
       battle: 'erschlossen',
       inferred: true,
+      loot: 'plundered',
+      expanded: false,
       note: 'stark\n• Schilde',
     });
+    const open = battlesOf([inferred], { expanded: new Set([-at]) }).rows[0];
+    expect(open).toMatchObject({ expanded: true, plunder: { building: 'Strohdachhaus' } });
+    expect(open?.details).toBeUndefined();
+    expect(open?.attacker).toBeUndefined();
   });
 
   it('names one round in singular', () => {
@@ -131,70 +204,45 @@ describe('pvp view model', () => {
     expect(vm.rows.map((r) => r.battle)).toEqual(['1 Runde', '4 Runden']);
   });
 
-  it('tells no battles from no match and names the picked player', () => {
+  it('tells no battles from no match, each filter counting', () => {
     expect(battlesOf([]).empty).toBe('none');
-    expect(battlesOf([], { filter: { text: 'xy' } }).empty).toBe('noMatch');
-    const picked = battlesOf([], { filter: { text: '', opponent: playerId(1001) } });
-    expect(picked).toMatchObject({ empty: 'noMatch', picked: 'Testgegner' });
+    for (const change of [{ name: 'xy' }, { onlyPlunder: true }, { onlyNoAttack: true }, { withPlunder: true }]) {
+      expect(battlesOf([], { filter: { ...NO_FILTER, ...change } }).empty).toBe('noMatch');
+    }
+    // the sack filter does not apply to the attacks on the own city
+    const incoming = (filter = NO_FILTER) =>
+      incomingViewModel({
+        ...base,
+        filter,
+        incoming: [],
+        incomingTotals: { battles: 0, held: 0, plunders: 0 },
+        from: 0,
+      });
+    expect(incoming({ ...NO_FILTER, withPlunder: true }).empty).toBe('none');
+    expect(incoming({ ...NO_FILTER, onlyNoAttack: true }).empty).toBe('noMatch');
   });
 
-  it('shows one row per plunder with building, loot and Double Loot, and the plunder totals', () => {
-    const vm = plundersViewModel({
+  it('sums up the battles and their plunders the filter matches', () => {
+    const totals = (summary: BattleSummary) => battlesOf([], {}, summary).totals;
+    expect(totals({ battles: 9, won: 8, plunders: 3, repelled: 2, fp: 2 })).toBe(
+      '9 Kämpfe, 8 gewonnen · 3 Plünderungen, 2 abgewehrt, 2 FP',
+    );
+    expect(totals({ battles: 1, won: 1, plunders: 1, repelled: 0, fp: 1234 })).toBe(
+      '1 Kampf, 1 gewonnen · 1 Plünderung, 1.234 FP',
+    );
+    expect(totals({ battles: 0, won: 0, plunders: 0, repelled: 0, fp: 0 })).toBe(
+      '0 Kämpfe, 0 gewonnen · 0 Plünderungen, 0 FP',
+    );
+  });
+
+  it('keeps the index of the first loaded row and the total over the whole list', () => {
+    const vm = battlesViewModel({
       ...base,
-      plunders: [plunder(1001, { doubleLoot: true }), plunder(1002, { cityEntityId: buildingDefId('R_Unknown') })],
-      plunderTotals: { count: 2, repelled: 0, fp: 10 },
+      battles: [battle(1, 1001)],
+      summary: { ...summaryOf([]), battles: 90 },
+      from: 40,
     });
-    expect(vm.rows).toEqual([
-      {
-        opponent: 1001,
-        name: 'Testgegner',
-        nameTip: 'Testgegner [Testgilde]',
-        url: 'https://foestats.com/de/de20/players/1001',
-        when: 'heute 14:05',
-        building: 'Strohdachhaus',
-        loot: '1.220 Münzen, 5 Forge-Punkte',
-        doubleLoot: true,
-        note: 'stark\n• Schilde',
-      },
-      expect.objectContaining({ name: '1002', building: 'R_Unknown', doubleLoot: false, note: '' }),
-    ]);
-    expect(vm).toMatchObject({ tab: 'plunders', totals: '2 Plünderungen, 10 FP', pages: 1 });
-  });
-
-  it('shows a repelled plunder without building and loot, and counts repelled ones in the totals', () => {
-    const vm = plundersViewModel({
-      ...base,
-      plunders: [
-        {
-          world: worldId('de20'),
-          at: plunder(1001).at,
-          opponent: playerId(1001),
-          outcome: 'repelled',
-          resources: {},
-          doubleLoot: false,
-        },
-      ],
-      plunderTotals: { count: 5, repelled: 2, fp: 120 },
-    });
-    expect(vm.rows).toEqual([
-      {
-        opponent: 1001,
-        name: 'Testgegner',
-        nameTip: 'Testgegner [Testgilde]',
-        url: 'https://foestats.com/de/de20/players/1001',
-        when: 'heute 14:05',
-        building: '–',
-        loot: 'abgewehrt',
-        doubleLoot: false,
-        note: 'stark\n• Schilde',
-      },
-    ]);
-    expect(vm.totals).toBe('5 Plünderungen, 2 abgewehrt, 120 FP');
-  });
-
-  it('names one plunder in singular, also above the battles', () => {
-    expect(battlesOf([]).totals).toBe('0 Plünderungen, 0 FP');
-    expect(battlesOf([], {}, { count: 1, repelled: 0, fp: 1234 }).totals).toBe('1 Plünderung, 1.234 FP');
+    expect(vm).toMatchObject({ total: 90, from: 40 });
   });
 
   it('shows one row per attack on the own city and the totals of those attacks', () => {
@@ -218,22 +266,27 @@ describe('pvp view model', () => {
         attack(5, {}),
       ],
       incomingTotals: { battles: 3, held: 1, plunders: 2 },
+      from: 0,
     });
     expect(vm.rows).toEqual([
       {
-        attacker: 1001,
+        opponent: 1001,
         name: 'Testgegner',
         nameTip: 'Testgegner [Testgilde]',
         url: 'https://foestats.com/de/de20/players/1001',
+        plunderWorthy: true,
+        noAttack: false,
+        picked: false,
         when: 'heute 14:05',
         what: 'Kampf: durchbrochen',
         note: 'stark\n• Schilde',
       },
       {
-        attacker: 1002,
+        opponent: 1002,
         name: '1002',
         nameTip: '1002',
         url: 'https://foestats.com/de/de20/players/1002',
+        picked: false,
         when: '16.10., 14:05',
         what: 'Kampf: gehalten',
         note: '',
@@ -242,32 +295,91 @@ describe('pvp view model', () => {
       expect.objectContaining({ what: 'Plünderung: R_Unknown' }),
       expect.objectContaining({ what: 'Kampf' }),
     ]);
-    expect(vm).toMatchObject({ tab: 'incoming', totals: '3 Angriffe, 1 abgewehrt, 2 Plünderungen' });
+    expect(vm).toMatchObject({ tab: 'incoming', totals: '3 Angriffe, 1 abgewehrt, 2 Plünderungen', total: 5 });
   });
 
   it('names one attack and one plunder in singular and leaves out held ones when there are none', () => {
     const totals = (incomingTotals: IncomingTotals) =>
-      incomingViewModel({ ...base, incoming: [], incomingTotals }).totals;
+      incomingViewModel({ ...base, incoming: [], incomingTotals, from: 0 }).totals;
     expect(totals({ battles: 1, held: 0, plunders: 1 })).toBe('1 Angriff, 1 Plünderung');
     expect(totals({ battles: 0, held: 0, plunders: 0 })).toBe('0 Angriffe, 0 Plünderungen');
-  });
-
-  it('counts pages of 20', () => {
-    expect([0, 20, 21, 41].map(pageCount)).toEqual([1, 1, 2, 3]);
   });
 });
 
 describe('pvp filter', () => {
-  const players = [player(1, 'Anna'), player(2, 'Hannes'), player(3, 'Bert')];
+  const players = [
+    player(1, 'Anna', { plunderWorthy: true }),
+    player(2, 'Hannes', { noAttack: true }),
+    player(3, 'Bert', { plunderWorthy: true }),
+    player(4, 'Ann'),
+  ];
+  const filter = (change: Partial<typeof NO_FILTER>) => opponentsFor({ ...NO_FILTER, ...change }, players);
 
   it('matches names by text, ignoring case', () => {
-    expect(opponentsFor({ text: ' ann' }, players)).toEqual([1, 2]);
-    expect(opponentsFor({ text: 'zz' }, players)).toEqual([]);
-    expect(opponentsFor({ text: ' ' }, players)).toBeUndefined();
+    expect(filter({ name: ' NN' })).toEqual([1, 2, 4]);
+    expect(filter({ name: 'zz' })).toEqual([]);
+    expect(filter({ name: ' ' })).toBeUndefined();
   });
 
-  it('prefers a picked player over the text', () => {
-    expect(opponentsFor({ text: 'ann', opponent: playerId(3) }, players)).toEqual([3]);
+  it('takes the exact name of a known player alone, as the funnel writes it', () => {
+    expect(filter({ name: 'ann ' })).toEqual([4]);
+    expect(filter({ name: 'Bert' })).toEqual([3]);
+  });
+
+  it('takes the id a row shows for a player the store does not know', () => {
+    expect(filter({ name: '222' })).toEqual([222]);
+  });
+
+  it('keeps only players with the PvP mark of the star or warning filter, together with the name', () => {
+    expect(filter({ onlyPlunder: true })).toEqual([1, 3]);
+    expect(filter({ onlyNoAttack: true })).toEqual([2]);
+    expect(filter({ onlyPlunder: true, name: 'an' })).toEqual([1]);
+    expect(filter({ onlyNoAttack: true, name: 'Anna' })).toEqual([]);
+    // the two marks exclude each other
+    expect(filter({ onlyPlunder: true, onlyNoAttack: true })).toEqual([]);
+  });
+
+  it('leaves the sack filter to the store', () => {
+    expect(filter({ withPlunder: true })).toBeUndefined();
+  });
+
+  it('picks the one player the field names exactly, for the note card', () => {
+    expect(pickedPlayer('ANNA', players)).toBe(1);
+    expect(pickedPlayer('An', players)).toBeUndefined();
+    expect(pickedPlayer('', players)).toBeUndefined();
+    expect(pickedPlayer('555', players)).toBe(555);
+    expect(pickedPlayer('X', [player(1, 'X'), player(2, 'x')])).toBeUndefined();
+  });
+});
+
+describe('pvp row window', () => {
+  const none = () => 0;
+
+  it('draws as many rows as fit and keeps the offset inside the list', () => {
+    expect(fitWindow(0, 100, 20, none)).toEqual({ top: 0, count: 20, below: 80 });
+    expect(fitWindow(95, 100, 20, none)).toEqual({ top: 80, count: 20, below: 0 });
+    expect(fitWindow(-3, 5, 20, none)).toEqual({ top: 0, count: 5, below: 0 });
+    expect(fitWindow(4, 0, 20, none)).toEqual({ top: 0, count: 0, below: 0 });
+  });
+
+  it('draws fewer rows while an expanded row takes room for its details', () => {
+    const details = (i: number) => (i === 2 ? 5 : 0);
+    expect(fitWindow(0, 100, 20, details)).toEqual({ top: 0, count: 15, below: 85 });
+    // details taller than the area: the row still shows, alone
+    expect(fitWindow(2, 100, 4, details)).toEqual({ top: 2, count: 1, below: 97 });
+  });
+
+  it('moves down until the row just expanded shows whole with its details', () => {
+    const details = (i: number) => (i === 9 ? 4 : 0);
+    expect(fitWindow(0, 100, 10, details, 9)).toEqual({ top: 4, count: 6, below: 90 });
+    // a row already whole in view stays where it is
+    expect(fitWindow(0, 100, 10, (i) => (i === 2 ? 4 : 0), 2)).toEqual({ top: 0, count: 6, below: 94 });
+  });
+
+  it('picks the drawn rows out of the loaded slice', () => {
+    const loaded = Array.from({ length: 60 }, (_, i) => 20 + i);
+    expect(rowsShown(loaded, 20, { top: 41, count: 3, below: 0 })).toEqual([41, 42, 43]);
+    expect(rowsShown(loaded, 20, { top: 18, count: 4, below: 0 })).toEqual([20, 21]);
   });
 });
 

@@ -1,5 +1,5 @@
 // Windowing of a long table: only a slice of the rows is drawn, a wheel step or one of two buttons moves it by a row.
-// Shared by the snipe helper (a fixed count of rows) and the investments box (as many as fit).
+// Shared by the snipe helper (a fixed count of rows), the investments and the PvP box (as many as fit).
 import { html, type TemplateResult } from 'lit-html';
 import { ref } from 'lit-html/directives/ref.js';
 import { clamp } from '../../shared/math';

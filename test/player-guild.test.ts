@@ -3,7 +3,8 @@ import { html, render, type TemplateResult } from 'lit-html';
 import { describe, expect, it } from 'vitest';
 import { leadCells } from '../src/content/features/investments/row-parts';
 import { commonRowVm, rowNames } from '../src/content/features/investments/rows';
-import { plundersViewModel } from '../src/content/features/pvp/plunders/view-model';
+import { incomingViewModel } from '../src/content/features/pvp/incoming/view-model';
+import { NO_FILTER } from '../src/content/features/pvp/rows';
 import { pvpView } from '../src/content/features/pvp/view';
 import type { GbLookups } from '../src/content/features/shared/gb-lookups';
 import { ownerOf, ownerVm } from '../src/content/ui/owner-line';
@@ -84,19 +85,18 @@ describe('investments owner cell', () => {
 
 describe('pvp opponent name', () => {
   it('has the name with the guild as tooltip, just the name without a known guild', () => {
-    const vm = plundersViewModel({
-      plunders: [1001, 1002].map((id) => ({
+    const vm = incomingViewModel({
+      incoming: [1001, 1002].map((id) => ({
         world: worldId('de20'),
+        kind: 'plunder' as const,
+        key: id,
         at: 0,
-        opponent: playerId(id),
-        outcome: 'repelled' as const,
-        entityId: 1,
-        doubleLoot: false,
-        resources: {},
+        attacker: playerId(id),
+        cityEntityId: buildingDefId('R_X'),
       })),
-      plunderTotals: { count: 2, repelled: 2, fp: 0 },
-      page: 0,
-      filter: { text: '' },
+      incomingTotals: { battles: 0, held: 0, plunders: 2 },
+      from: 0,
+      filter: NO_FILTER,
       lookups: playerLookups({
         playerName: (id: PlayerId) => (id === 1001 ? 'Anna' : 'Bert'),
         playerGuild: (id: PlayerId) => (id === 1001 ? GUILD : undefined),
@@ -107,9 +107,21 @@ describe('pvp opponent name', () => {
       now: 0,
       expanded: new Set(),
     });
-    const actions = { tab: noop, search: noop, pick: noop, clearPick: noop, page: noop, expand: noop, note: noop };
-    const names = [...draw(pvpView(vm, actions)).querySelectorAll('tr a[href="#"]')];
-    expect(names.map((a) => [a.textContent, a.getAttribute('data-tip')])).toEqual([
+    const actions = {
+      tab: noop,
+      filter: noop,
+      pickPlayer: noop,
+      plunderPlayer: noop,
+      noAttackPlayer: noop,
+      expand: noop,
+      note: noop,
+      scroll: noop,
+      measure: noop,
+      details: noop,
+    };
+    const window = { top: 0, count: 2, below: 0 };
+    const cells = [...draw(pvpView('incoming', NO_FILTER, { vm, window }, actions)).querySelectorAll('td.name-cell')];
+    expect(cells.map((td) => [td.querySelector('a')?.textContent, td.getAttribute('data-tip')])).toEqual([
       ['Anna', 'Anna [Die Gilde]'],
       ['Bert', 'Bert'],
     ]);
