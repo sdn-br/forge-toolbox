@@ -23,14 +23,14 @@ function setup(me: number | null = fixture.me) {
   const { battles, players } = stores;
   const persistence = db.persistence;
   const recorded: PlayerId[] = [];
-  bus.on('battle.recorded', (e) => recorded.push(e.opponent));
+  bus.on('battle.recorded', (e) => recorded.push(...e.opponents));
   const send = (entries: unknown[]) =>
     ingestion.accept({ kind: 'json', url: '/game/json?h=1', request: null, response: JSON.stringify(entries), at: 0 });
   if (me !== null)
     send([
       { requestClass: 'StartupService', requestMethod: 'getData', responseData: { user_data: { player_id: me } } },
     ]);
-  return { db: db.db, persistence, battles, players, recorded, send };
+  return { db: db.db, persistence, battles, players, recorded, send, bus };
 }
 
 /** the fixture batch with the battle response changed */
@@ -266,6 +266,30 @@ describe('battle queries', () => {
     expect(await ids({ opponents: [], limit: 10, offset: 0 })).toEqual([]);
     expect(await battles.count()).toBe(3);
     expect(await battles.count([playerId(1002)])).toBe(1);
+  });
+
+  it('merges the battles of several opponents newest first and pages over the merge', async () => {
+    const { battles } = setup(null);
+    const rows = [battle(1, 100, 1001), battle(2, 500, 1002), battle(3, 300, 1001), battle(4, 400, 1003)];
+    for (const b of rows) battles.record(b);
+    const ids = async (opponents: number[], limit: number, offset: number) =>
+      (await battles.list({ opponents: opponents.map(playerId), limit, offset })).map((b) => b.battleId);
+    expect(await ids([1001, 1002], 10, 0)).toEqual([2, 3, 1]);
+    expect(await ids([1001, 1002, 1003, 1001], 2, 1)).toEqual([4, 3]);
+    expect(await ids([1001, 1002], 1, 2)).toEqual([1]);
+    expect(await battles.count([playerId(1001), playerId(1002), playerId(1001)])).toBe(3);
+  });
+
+  it('announces recorded battles once per write, after it, with every opponent of it once', async () => {
+    const { battles, bus } = setup(null);
+    const seen: PlayerId[][] = [];
+    bus.on('battle.recorded', (e) => seen.push(e.opponents));
+    battles.record(battle(1, 100, 1001));
+    battles.record(battle(2, 200, 1002));
+    battles.record(battle(3, 300, 1001));
+    expect(seen).toEqual([]);
+    await battles.latest(opponent);
+    expect(seen).toEqual([[playerId(1001), playerId(1002)]]);
   });
 
   it('finds the latest battle against a player', async () => {

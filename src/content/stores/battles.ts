@@ -24,13 +24,13 @@ export class BattleStore {
       (b) => b.battleId,
       (rows) => persistence.put(rows),
       'saving battles failed',
+      (rows) => this.bus.emit('battle.recorded', { opponents: [...new Set(rows.map((r) => r.opponent))] }),
     );
   }
 
-  /** A battle seen twice is stored and announced once. */
+  /** A battle seen twice is stored once, announced after the write. */
   record(battle: Battle): void {
-    if (battle.world !== this.world || !this.writes.put(battle)) return;
-    this.bus.emit('battle.recorded', { opponent: battle.opponent });
+    if (battle.world === this.world) this.writes.put(battle);
   }
 
   latest(opponent: PlayerId): Promise<Battle | undefined> {

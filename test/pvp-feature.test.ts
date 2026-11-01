@@ -106,7 +106,8 @@ const OTHER = toggleDef({ key: 'other.setting', group: 'pvp.title', label: 'pvp.
 describe('pvp feature', () => {
   it('shows only the newest query when an older one resolves last', async () => {
     const { ctx, box, lists } = setup();
-    ctx.bus.emit('player.updated', { ids: [], source: 'update' });
+    await tick();
+    ctx.bus.emit('battle.recorded', { opponents: [playerId(111)] });
     await tick();
     expect(lists).toHaveLength(2);
     const updatesBefore = box.updates.length;
@@ -138,7 +139,7 @@ describe('pvp feature', () => {
     expect(box.text).toContain('Seite 3 von 3');
 
     state.total = 5;
-    ctx.bus.emit('player.updated', { ids: [], source: 'update' });
+    ctx.bus.emit('battle.recorded', { opponents: [playerId(111)] });
     await tick();
     expect(lists[3]?.query.offset).toBe(0);
     lists[3]?.resolve([battle(4, 111)]);
@@ -524,5 +525,58 @@ describe('pvp feature', () => {
       expect(links[0]?.target).toBe('_blank');
       expect(links[0]?.rel).toBe('noopener noreferrer');
     });
+  });
+});
+
+describe('pvp feature loading', () => {
+  it('loads once for several events of one task', async () => {
+    const { ctx, lists } = setup();
+    await tick();
+    const loads = lists.length;
+    ctx.bus.emit('battle.recorded', { opponents: [playerId(1)] });
+    ctx.bus.emit('plunder.recorded', { opponents: [playerId(1)] });
+    ctx.bus.emit('incoming.recorded', { opponents: [playerId(1)] });
+    await tick();
+    expect(lists.length).toBe(loads + 1);
+  });
+
+  it('reads no attack totals on the battles tab and no plunder totals on the attacks tab', async () => {
+    const stub = controlled();
+    const totals = vi.spyOn(stub.plunders, 'totals');
+    const incomingTotals = vi.spyOn(stub.incoming, 'totals');
+    const env = featureContext({
+      overrides: stubbed({ battles: stub.persistence, plunders: stub.plunders, incoming: stub.incoming }),
+    });
+    pvpFeature.setup(env.ctx);
+    env.menu('pvp');
+    const box = env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>>;
+    await tick();
+    expect(totals).toHaveBeenCalledTimes(1);
+    expect(incomingTotals).not.toHaveBeenCalled();
+    box.click('Angriffe auf mich');
+    await tick();
+    expect(totals).toHaveBeenCalledTimes(1);
+    expect(incomingTotals).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores records of players the filter does not show, and rebuilds without reading on player and note changes', async () => {
+    const { ctx, box, lists } = setup();
+    await tick();
+    ctx.bus.emit('army.target', { opponent: playerId(111) });
+    await tick();
+    const loads = lists.length;
+    ctx.bus.emit('battle.recorded', { opponents: [playerId(222)] });
+    await tick();
+    expect(lists.length).toBe(loads);
+    ctx.bus.emit('battle.recorded', { opponents: [playerId(222), playerId(111)] });
+    await tick();
+    expect(lists.length).toBe(loads + 1);
+
+    const updates = box.updates.length;
+    ctx.bus.emit('player.updated', { ids: [playerId(111)], source: 'update' });
+    ctx.bus.emit('note.changed', {});
+    await tick();
+    expect(lists.length).toBe(loads + 1);
+    expect(box.updates.length).toBe(updates + 2);
   });
 });

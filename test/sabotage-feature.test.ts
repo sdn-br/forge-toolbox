@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { SHOW_ARMY } from '../src/content/features/sabotage';
+import { AUTO_OPEN, SHOW_ARMY } from '../src/content/features/sabotage';
 import { sabotageFeature } from '../src/content/features/sabotage/index';
 import type { BuildingDef } from '../src/content/model/catalog';
 import type { Building } from '../src/content/model/city';
@@ -497,5 +497,44 @@ describe('sabotage feature', () => {
     vi.advanceTimersByTime(90 * 60_000);
     await vi.waitFor(() => expect(box.text).not.toContain('Wieder angreifbar'));
     expect(box.text).toContain('angreifbar');
+  });
+
+  it('loads the record only while the box is open, and when it opens for the visited city', async () => {
+    const { ctx, box, latest, menu } = setup();
+    await ctx.settings.of(AUTO_OPEN).set(false);
+    const latestBattle = vi.spyOn(ctx.battles, 'latest');
+    ctx.cities.setVisited(city(1));
+    await tick();
+    expect(latestBattle).not.toHaveBeenCalled();
+    ctx.bus.emit('battle.recorded', { opponents: [playerId(1)] });
+    await tick();
+    expect(latestBattle).not.toHaveBeenCalled();
+
+    menu('sabotage');
+    await tick();
+    expect(latestBattle).toHaveBeenCalledTimes(1);
+    latest.get(playerId(1))?.(battle(1, 111));
+    await tick();
+    expect(box.text).toContain('111');
+  });
+
+  it('assesses the city once for ticks and arriving parts, and again after the city changed', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+    const { ctx, box, latest } = setup();
+    ctx.catalog.add(houseDef('Coins', 'Münzhaus'));
+    const def = vi.spyOn(ctx.catalog, 'get');
+    ctx.cities.setVisited(coinsAndPoints(1));
+    await tick();
+    const first = def.mock.calls.length;
+    expect(first).toBeGreaterThan(0);
+
+    vi.advanceTimersByTime(31_000);
+    latest.get(playerId(1))?.(battle(1, 111));
+    await tick();
+    expect(box.text).toContain('111');
+    expect(def.mock.calls.length).toBe(first);
+
+    ctx.bus.emit('city.visitedChanged', { owner: playerId(1), buildingIds: [5] });
+    expect(def.mock.calls.length).toBeGreaterThan(first);
   });
 });

@@ -24,7 +24,7 @@ export function incomingHandlers(db: IncomingTables & Dexie): Handlers<IncomingA
     'incoming.list': ({ world, opponents, limit, offset }) => rows.list(world, opponents, limit, offset),
     'incoming.totals': async ({ world, opponents }) => {
       const totals = { battles: 0, held: 0, plunders: 0 };
-      await rows.newestFirst(world, opponents).each((a) => {
+      await rows.forEach(world, opponents, (a) => {
         if (a.kind === 'plunder') totals.plunders++;
         else totals.battles++;
         if (a.defense === 'held') totals.held++;

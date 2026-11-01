@@ -25,13 +25,13 @@ export class IncomingStore {
       (a) => `${a.kind}:${a.key}`,
       (rows) => persistence.add(rows),
       'saving attacks on the city failed',
+      (rows) => this.bus.emit('incoming.recorded', { opponents: [...new Set(rows.map((r) => r.attacker))] }),
     );
   }
 
-  /** An attack seen twice, live and later in the event history, is stored and announced once with its first time. */
+  /** An attack seen twice, live and later in the event history, is stored once, announced after the write with its first time. */
   record(attack: IncomingAttack): void {
-    if (attack.world !== this.world || !this.writes.put(attack)) return;
-    this.bus.emit('incoming.recorded', { attacker: attack.attacker });
+    if (attack.world === this.world) this.writes.put(attack);
   }
 
   latest(opponent: PlayerId): Promise<IncomingAttack | undefined> {

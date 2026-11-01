@@ -24,13 +24,13 @@ export class PlunderStore {
       (p) => `${p.opponent}:${p.at}`,
       (rows) => persistence.put(rows),
       'saving plunders failed',
+      (rows) => this.bus.emit('plunder.recorded', { opponents: [...new Set(rows.map((r) => r.opponent))] }),
     );
   }
 
-  /** A plunder seen twice is stored and announced once. */
+  /** A plunder seen twice is stored once, announced after the write. */
   record(plunder: Plunder): void {
-    if (plunder.world !== this.world || !this.writes.put(plunder)) return;
-    this.bus.emit('plunder.recorded', { opponent: plunder.opponent });
+    if (plunder.world === this.world) this.writes.put(plunder);
   }
 
   latest(opponent: PlayerId): Promise<Plunder | undefined> {
