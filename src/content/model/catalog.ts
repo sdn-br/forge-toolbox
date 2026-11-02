@@ -37,6 +37,8 @@ export interface UnitType {
 export interface BuildingDef {
   id: BuildingDefId;
   name: string;
+  /** the game's `asset_id`, which names the building's images; mostly the id itself, not for event levels */
+  assetId?: string;
   generic: boolean;
   type?: string;
   size: { width: number; length: number };

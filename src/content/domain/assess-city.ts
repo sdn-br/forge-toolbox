@@ -12,6 +12,8 @@ export interface ArmyValues {
 /** a finished production in a city; the game hides when the others are ready, so only finished ones count */
 export interface Plunderable {
   building: number;
+  /** the game's `asset_id` of its definition, which names its image */
+  assetId?: string;
   name: string;
   resources: Record<string, number>;
 }
@@ -79,7 +81,7 @@ function plunderableOf(b: Building, def: BuildingDef): Plunderable | null {
   // Medals do not protect: a Mondtor (R_MultiAge_PatrickBonusSet20b) St. 6 was plundered with its 17 medals
   // (2026-10-20). Some buildings with medals seem protected, by a property not found yet.
   if (Object.keys(resources).length === 0) return null;
-  return { building: b.id, name: def.name, resources };
+  return { building: b.id, name: def.name, ...(def.assetId && { assetId: def.assetId }), resources };
 }
 
 /**

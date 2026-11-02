@@ -1,5 +1,5 @@
-// Runs in the page (MAIN world). Draws golden arrows over the game canvas above given city buildings and moves them
-// with the game camera every frame. The content script says which buildings to mark, or to hide them; the page tells
+// Runs in the page (MAIN world). Draws golden pins (named arrows in the code) over the game canvas above given city
+// buildings and moves them with the game camera every frame. The content script says which buildings to mark, or to hide them; the page tells
 // it which arrows went away (dismissed by the viewer, another city view, or no engine). It also tells the content script
 // the opponent of the open army window (./army.ts) and which great building window shows (./gb-window.ts), since this is
 // the one module in the page that holds the engine.
@@ -162,14 +162,16 @@ const STYLE = `
 .clear svg { display: block; width: 18px; height: 18px; }
 `;
 
-// a golden arrow pointing down, its tip at the bottom middle; drawn on 46 × 54 and shown twice that size
+// a golden pin, its tip at the bottom middle like the arrow it replaced (2026-11-02), so the geometry stays; drawn on
+// 46 × 54 and shown twice that size
 const ARROW_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="${ARROW.width}" height="${ARROW.height}" viewBox="0 0 46 54">
 <defs><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
 <stop offset="0" stop-color="#fff3b0"/><stop offset=".45" stop-color="#f5c932"/><stop offset="1" stop-color="#b87a04"/>
 </linearGradient></defs>
-<path d="M16 2.5h14v24h11.5L23 51.5 4.5 26.5H16z" fill="url(#gold)" stroke="#5c3a00" stroke-width="2.4"
-  stroke-linejoin="round"/>
-<path d="M19 6h3v21h-3z" fill="#fffbe0" opacity=".55"/>
+<path d="M23 51.5C23 51.5 9 35 9 18.5a14 14 0 0 1 28 0C37 35 23 51.5 23 51.5Z" fill="url(#gold)" stroke="#5c3a00"
+  stroke-width="2.4" stroke-linejoin="round"/>
+<circle cx="23" cy="18.5" r="5.4" fill="#fff3b0" stroke="#5c3a00" stroke-width="2.4"/>
+<path d="M14 14a9.5 9.5 0 0 1 6-6" stroke="#fffbe0" stroke-width="2.4" stroke-linecap="round" opacity=".6" fill="none"/>
 </svg>`;
 
 // a cross on the 24 grid of the toolbox icons (content ui/icons.ts, `close`)

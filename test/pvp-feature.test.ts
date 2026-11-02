@@ -823,12 +823,12 @@ describe('pvp feature', () => {
       row(0).click();
       expect(plunderLines(box)).toEqual([
         'Plünderung',
-        WHEN,
-        'R_IronAge_Residential2 Plünderung verdoppelt',
+        expect.stringMatching(/^heute \d\d:\d\d\s*Plünderung verdoppelt$/),
+        'R_IronAge_Residential2',
         '12 Forge-Punkte',
       ]);
-      expect(box.root.querySelector('.side-panel p b')?.textContent).toBe('R_IronAge_Residential2');
-      // with the index the game's Double Loot mark stands beside the building
+      expect(box.root.querySelector('.side-panel .plunder-card p b')?.textContent).toBe('R_IronAge_Residential2');
+      // with the index the game's Double Loot mark stands after the time
       vi.spyOn(ctx.assets, 'url').mockImplementation((path) =>
         path.endsWith('citymap_icon_plunder_and_pillage.png') ? 'https://cdn/double-loot.png' : undefined,
       );
@@ -871,8 +871,8 @@ describe('pvp feature', () => {
       expect(panel(box)).toContain('der Kampf selbst ist nicht aufgezeichnet');
       expect(plunderLines(box)).toEqual([
         'Plünderung',
-        WHEN,
-        'R_IronAge_Residential2 Plünderung verdoppelt',
+        expect.stringMatching(/^heute \d\d:\d\d\s*Plünderung verdoppelt$/),
+        'R_IronAge_Residential2',
         '12 Forge-Punkte',
       ]);
     });

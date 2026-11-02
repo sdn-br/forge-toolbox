@@ -141,6 +141,8 @@ export interface ViewInput {
   unit: (id: string) => UnitInfo | undefined;
   /** the URL of a game image on the Inno CDN, once the index is known */
   assetUrl?: (path: string) => string | undefined;
+  /** the URL of a building's image on the Inno CDN, once the catalog and the index know it */
+  buildingImage?: (id: BuildingDefId) => string | undefined;
   /** the Markdown note of a player, if any */
   note: (id: PlayerId) => string | undefined;
   now: number;

@@ -196,7 +196,7 @@ describe('building search feature', () => {
       type(box, 'schrein');
       pick(box, shrine);
       expect(entries(mapBox(env))).toEqual([`${shrine} 25/25`]);
-      expect(legend(env)).toContain('Ausgewählt (Pfeil im Spiel)');
+      expect(legend(env)).toContain('Ausgewählt (Stecknadel im Spiel)');
 
       type(mapBox(env), 'rathaus');
       pick(mapBox(env), 'Rathaus');

@@ -115,6 +115,15 @@ textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
 .unit-class img { display: block; width: 13px; height: 13px; }
 .unit-health { display: block; height: 4px; margin-top: 3px; background: var(--bad); }
 .unit-health > span { display: block; height: 100%; background: var(--good); }
+/* a plunder with its building's image on the left (ui/plunder.ts), 6px below its time */
+.plunder-when, .plunder-card { --plunder-img: 96px; --plunder-gap: 24px; }
+.plunder-card { display: flex; gap: var(--plunder-gap); align-items: flex-start; margin-top: 6px; }
+.plunder-card .building-img { flex: 0 0 auto; display: block; width: var(--plunder-img); height: auto; }
+.plunder-card p { margin: 2px 0; }
+/* the Double Loot mark after the time, in line with the building's name beside the image; a longer time pushes it on */
+.plunder-when { display: flex; align-items: center; gap: 4px; }
+.plunder-when.with-image > span { min-width: calc(var(--plunder-img) + var(--plunder-gap) - 4px); }
+.plunder-when .double-loot { display: block; width: 16px; height: 16px; }
 details { margin: 6px 0; }
 summary { cursor: pointer; color: var(--accent); }
 .name-search { position: relative; display: inline-block; vertical-align: middle; }

@@ -115,6 +115,50 @@ describe('sabotage view model', () => {
     ]);
   });
 
+  it('gives the plunderable buildings and the last plunder the image of their building once it is known', () => {
+    const catalog = new CatalogStore(createBus());
+    catalog.add({
+      id: buildingDefId('W_AllAge_CupBonus1'),
+      name: 'Siegesturm',
+      assetId: 'L_AllAge_CupBonus1',
+    } as BuildingDef);
+    const assets = {
+      url: (path: string) => (path.includes('L_SS_AllAge_CupBonus1') ? `https://cdn${path}` : undefined),
+    };
+    const image = 'https://cdn/city/buildings/L_SS_AllAge_CupBonus1.png';
+    const last: Plunder = {
+      world: city.world,
+      at: now,
+      opponent: city.owner,
+      outcome: 'plundered',
+      entityId: 7,
+      cityEntityId: buildingDefId('W_AllAge_CupBonus1'),
+      resources: { strategy_points: 5 },
+      doubleLoot: false,
+    };
+    const vm = sabotageViewModel({
+      city,
+      player: undefined,
+      lookups,
+      assessment: {
+        ...assessment,
+        plunderable: [
+          { building: 1, name: 'Siegesturm', assetId: 'L_AllAge_CupBonus1', resources: { money: 20 } },
+          { building: 2, name: 'Haus', resources: { money: 20 } },
+        ],
+      },
+      catalog,
+      assets,
+      showArmy: false,
+      now,
+      record: { plunders: { last, totals: { count: 1, repelled: 0, fp: 5 } } },
+    });
+    const byName = (name: string) => vm.plunderable.find((p) => p.name === name);
+    expect(byName('Siegesturm')?.image).toBe(image);
+    expect(byName('Haus')).not.toHaveProperty('image');
+    expect(vm.plundered?.last?.image).toBe(image);
+  });
+
   it('lists important plunders first, by Forge points, then other loot, then coins and supplies, then by name', () => {
     const p = (building: number, name: string, resources: Record<string, number>) => ({ building, name, resources });
     const vm = sabotageViewModel({
@@ -179,7 +223,13 @@ describe('sabotage view model', () => {
         record: { plunders },
       }).plundered;
     expect(vm({ last, totals: { count: 3, repelled: 0, fp: 9 } })).toEqual({
-      last: { text: 'Zuletzt heute 14:05, Strohdachhaus: 30 Marmor, 2 Forge-Punkte', doubleLoot: true },
+      last: {
+        when: 'heute 14:05',
+        outcome: 'plundered',
+        building: 'Strohdachhaus',
+        loot: ['30 Marmor', '2 Forge-Punkte'],
+        doubleLoot: true,
+      },
       totals: '3 Plünderungen, 9 FP',
     });
     expect(vm({ totals: { count: 0, repelled: 0, fp: 0 } })).toEqual({
@@ -209,7 +259,7 @@ describe('sabotage view model', () => {
       record: { plunders: { last, totals: { count: 5, repelled: 2, fp: 120 } } },
     });
     expect(vm.plundered).toEqual({
-      last: { text: 'Zuletzt heute 14:05: abgewehrt', doubleLoot: false },
+      last: { when: 'heute 14:05', outcome: 'repelled', building: '–', loot: [], doubleLoot: false },
       totals: '5 Plünderungen, 2 abgewehrt, 120 FP',
     });
     const at = { ...last, entityId: 904, cityEntityId: buildingDefId('R_MultiAge_PatrickBonusSet20b') };
@@ -223,10 +273,7 @@ describe('sabotage view model', () => {
       now,
       record: { plunders: { last: at, totals: { count: 0, repelled: 1, fp: 0 } } },
     });
-    expect(named.plundered?.last).toEqual({
-      text: 'Zuletzt heute 14:05, R_MultiAge_PatrickBonusSet20b: abgewehrt',
-      doubleLoot: false,
-    });
+    expect(named.plundered?.last).toMatchObject({ outcome: 'repelled', building: 'R_MultiAge_PatrickBonusSet20b' });
   });
 
   it('tells when this player last attacked the own city, with the totals of their attacks', () => {

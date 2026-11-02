@@ -181,6 +181,7 @@ export function toBuildingDef(json: unknown): BuildingDef | null {
   return {
     id: buildingDefId(json.id),
     name: typeof json.name === 'string' ? json.name : json.id,
+    ...(typeof json.asset_id === 'string' && { assetId: json.asset_id }),
     generic,
     type,
     flags: {

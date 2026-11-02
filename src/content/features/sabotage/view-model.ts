@@ -1,4 +1,4 @@
-import { type Battle, isFought, type Player, type Plunder } from '../../../shared/model';
+import { type Battle, isFought, type Player } from '../../../shared/model';
 import { formatWhen, t } from '../../core/texts';
 import type { ArmyValues, CityAssessment, Plunderable } from '../../domain/assess-city';
 import { measuredArmy } from '../../domain/measured-army';
@@ -9,14 +9,10 @@ import type { VisitedCity } from '../../stores/cities';
 import type { BattleDetailsVm } from '../../ui/battle-details';
 import type { OwnerVm } from '../../ui/owner-line';
 import { battleDetails, catalogUnits } from '../shared/battle-details';
+import { assetImage, buildingImage } from '../shared/building-image';
 import type { PvpPlayerLookups } from '../shared/player-lookups';
-import {
-  formatIncoming,
-  formatIncomingTotals,
-  formatPlunderTotals,
-  formatResources,
-  resourceLabel,
-} from '../shared/pvp-format';
+import { type PlunderVm, plunderVm } from '../shared/plunder';
+import { formatIncoming, formatIncomingTotals, formatPlunderTotals, resourceLabel } from '../shared/pvp-format';
 import { type AttackStatus, attackStatus } from './attack-status';
 import type { VisitedRecord } from './visited-record';
 
@@ -24,6 +20,8 @@ export interface PlunderItem {
   /** the building in the city, to point at it in the game */
   building: number;
   name: string;
+  /** the building's image, shown on the left; missing while the catalog or the index lacks it */
+  image?: string;
   /** loot beyond coins and supplies; the others show muted */
   important: boolean;
   items: { label: string; amount: number }[];
@@ -48,8 +46,8 @@ export interface SabotageVm {
   lastBattle?: { when: string; result: string; details?: BattleDetailsVm };
   /** own plunders in this city */
   plundered?: {
-    /** the last plunder as one line, with whether to mark it as double loot */
-    last?: { text: string; doubleLoot: boolean };
+    /** the last plunder as the PvP side panel shows it */
+    last?: PlunderVm;
     /** count and Forge points of all plunders here */
     totals: string;
   };
@@ -58,20 +56,6 @@ export interface SabotageVm {
   plunderRepel: number;
   plunderable: PlunderItem[];
   incomplete: boolean;
-}
-
-/** The last own plunder in this city as one line. A plunder without a known building reads like a repelled one. */
-function lastPlunder(p: Plunder, catalog: CatalogStore, now: number) {
-  const when = formatWhen(p.at, now);
-  const building = p.cityEntityId && (catalog.buildingName(p.cityEntityId) ?? p.cityEntityId);
-  if (p.outcome === 'repelled' || !building) {
-    const text = building ? t('sabotage.lastRepelledAt', { when, building }) : t('sabotage.lastRepelled', { when });
-    return { text, doubleLoot: false };
-  }
-  return {
-    text: `${t('sabotage.lastPlunder', { when, building })}: ${formatResources(p.resources, resourceName(catalog))}`,
-    doubleLoot: p.doubleLoot,
-  };
 }
 
 function lastBattleVm(
@@ -120,15 +104,19 @@ export function sabotageViewModel({
   const friend = city.visit.friend || player?.relations.friend === true;
   const guildMember = city.visit.guildMember || player?.relations.guildMember === true;
   const attack = attackStatus({ neighbor: city.visit.neighbor, friend, guildMember }, player?.attack, shield, now);
-  const item = ({ plunderable: p, important }: { plunderable: Plunderable; important: boolean }): PlunderItem => ({
-    building: p.building,
-    name: p.name,
-    important,
-    items: Object.entries(p.resources).map(([id, amount]) => ({
-      label: resourceLabel(id, resourceName(catalog)),
-      amount,
-    })),
-  });
+  const item = ({ plunderable: p, important }: { plunderable: Plunderable; important: boolean }): PlunderItem => {
+    const url = assetImage(assets, p.assetId);
+    return {
+      building: p.building,
+      name: p.name,
+      ...(url && { image: url }),
+      important,
+      items: Object.entries(p.resources).map(([id, amount]) => ({
+        label: resourceLabel(id, resourceName(catalog)),
+        amount,
+      })),
+    };
+  };
   // an inferred battle measured nothing, so the values come from the last fought one
   const measured = showArmy && lastFought ? measuredArmy(lastFought) : undefined;
   const guild = lookups.playerGuild(city.owner);
@@ -150,7 +138,15 @@ export function sabotageViewModel({
       measured && lastFought ? { defender: measured.defender, when: formatWhen(lastFought.at, now) } : undefined,
     lastBattle: lastBattle && lastBattleVm(lastBattle, showArmy, now, catalog, assets),
     plundered: plunders && {
-      last: plunders.last && lastPlunder(plunders.last, catalog, now),
+      last:
+        plunders.last &&
+        plunderVm(plunders.last, {
+          building: (id) => catalog.buildingName(id),
+          resourceName: resourceName(catalog),
+          assetUrl: (path) => assets?.url(path),
+          buildingImage: (id) => buildingImage(catalog, assets, id),
+          now,
+        }),
       totals: formatPlunderTotals(plunders.totals),
     },
     attackedMe: incoming?.last && {

@@ -185,6 +185,13 @@ describe('pvp view model', () => {
     ).toEqual({ when: 'heute 14:05', outcome: 'repelled', building: '–', loot: [], doubleLoot: false });
   });
 
+  it('gives the plunder in the panel the image of its building once it is known', () => {
+    const images = { ...base, buildingImage: (id: string) => (id === 'R_Unknown' ? 'https://cdn/r.png' : undefined) };
+    const plunderOf = (p: Plunder) => battlePanelVm({ ...battle(1, 1001), plunder: p }, images).plunder;
+    expect(plunderOf(plunder(1001, { cityEntityId: buildingDefId('R_Unknown') }))?.image).toBe('https://cdn/r.png');
+    expect(plunderOf(plunder(1001))).not.toHaveProperty('image');
+  });
+
   it('shows an inferred battle as won at the latest at its time, without armies, in the panel only its plunder', () => {
     const at = new Date(2026, 9, 19, 14, 5).getTime();
     const inferred: BattleWithPlunder = {
