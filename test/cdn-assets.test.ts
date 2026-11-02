@@ -244,10 +244,11 @@ describe('unit portraits in the battle details', () => {
 });
 
 describe('building images', () => {
-  it('looks for the sprite sheet with SS_ after the first letter first, then for the plain asset id', () => {
-    expect(buildingImagePaths('G_ArcticFuture_Goods3')).toEqual([
-      '/city/buildings/G_SS_ArcticFuture_Goods3.png',
-      '/city/buildings/G_ArcticFuture_Goods3.png',
+  it('looks for the sprite sheet with SS_ after the first letter, then the plain asset id, then the first view', () => {
+    expect(buildingImagePaths('W_StellarAgeDiscovery_Residential1')).toEqual([
+      '/city/buildings/W_SS_StellarAgeDiscovery_Residential1.png',
+      '/city/buildings/W_StellarAgeDiscovery_Residential1.png',
+      '/city/buildings/W_SS_StellarAgeDiscovery_Residential1a.png',
     ]);
   });
 

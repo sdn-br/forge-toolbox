@@ -62,12 +62,13 @@ export const unitClassIconPath = (unitClass: string): string => `/shared/icons/g
 /**
  * Where the image of a building may lie, by its `asset_id`, the likelier first. The game draws the sprite sheet
  * `spriteSheets.idle` of its iso entity table, whose name is the asset id with `SS_` after the first letter
- * (`G_ArcticFuture_Goods3` → `G_SS_ArcticFuture_Goods3`); some buildings have only an image under the plain id.
+ * (`G_ArcticFuture_Goods3` → `G_SS_ArcticFuture_Goods3`); some buildings have only an image under the plain id, and
+ * the houses of an event take the first of two views with `a` at the end (`W_SS_StellarAgeDiscovery_Residential1a`).
  */
-// debt: the rule, not the game's tables. ceiling: 2 of 2274 buildings with an image in the table name it otherwise
-// (checked 2026-11-02), they show none. upgrade: read the tables `getIsoEntityData`/`getIsoSpriteData` from the
-// game's script if missing images are seen.
-export const buildingImagePaths = (assetId: string): string[] => [
-  `/city/buildings/${assetId.replace(/^([A-Z])_/, '$1_SS_')}.png`,
-  `/city/buildings/${assetId}.png`,
-];
+// debt: the rule, not the game's tables. ceiling: a building whose sheet the table names otherwise shows none (none
+// left among the 2274 with an image in the table, checked 2026-11-02). upgrade: read the tables
+// `getIsoEntityData`/`getIsoSpriteData` from the game's script if missing images are seen.
+export function buildingImagePaths(assetId: string): string[] {
+  const sheet = assetId.replace(/^([A-Z])_/, '$1_SS_');
+  return [`/city/buildings/${sheet}.png`, `/city/buildings/${assetId}.png`, `/city/buildings/${sheet}a.png`];
+}
