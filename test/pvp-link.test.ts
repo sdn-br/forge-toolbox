@@ -228,23 +228,50 @@ describe('battle queries over plunders', () => {
     const { persistence } = await filled();
     const opponents = [playerId(1001), playerId(1002), playerId(1003)];
     const ids = async (limit: number, offset: number) =>
-      (await persistence.list(world, { opponents, withPlunder: true, limit, offset })).map((b) => b.battleId);
+      (await persistence.list(world, { opponents, plunder: 'with' as const, limit, offset })).map((b) => b.battleId);
     expect(await ids(10, 0)).toEqual([-(T + 5 * DAY_MS), 3, 1]);
     expect(await ids(1, 1)).toEqual([3]);
     expect(await ids(2, 2)).toEqual([1]);
-    const [first] = await persistence.list(world, { withPlunder: true, limit: 1, offset: 2 });
+    const [first] = await persistence.list(world, { plunder: 'with' as const, limit: 1, offset: 2 });
     expect(first?.plunder).toEqual({ ...plunder(T, 'plundered', 1001), resources: { strategy_points: 7 } });
     const all = await persistence.list(world, { limit: 10, offset: 0 });
     expect(all.find((b) => b.battleId === 2)?.plunder).toBeUndefined();
+  });
+
+  it('lists only battles without a plunder, newest first, paging across opponents', async () => {
+    const { persistence } = await filled();
+    const ids = async (filter: object, limit = 10, offset = 0) =>
+      (await persistence.list(world, { ...filter, plunder: 'without', limit, offset })).map((b) => b.battleId);
+    expect(await ids({})).toEqual([5, 4, 2]);
+    expect(await ids({}, 1, 1)).toEqual([4]);
+    expect(await ids({ opponents: [playerId(1001), playerId(1003)] })).toEqual([5, 2]);
+    expect(await ids({ exceptOpponents: [playerId(1002)] })).toEqual([5, 2]);
+  });
+
+  it('leaves out the battles of the players in exceptOpponents, in the list and the summary', async () => {
+    const { persistence } = await filled();
+    const listed = await persistence.list(world, { exceptOpponents: [playerId(1001)], limit: 10, offset: 0 });
+    expect(listed.map((b) => b.battleId)).toEqual([-(T + 5 * DAY_MS), 5, 4, 3]);
+    expect(await persistence.summary(world, { exceptOpponents: [playerId(1001)] })).toEqual({
+      battles: 4,
+      won: 3,
+      plunders: 1,
+      repelled: 1,
+      fp: 2,
+    });
+    expect((await persistence.list(world, { exceptOpponents: [], limit: 10, offset: 0 })).length).toBe(6);
   });
 
   it('sums exactly the battles the list pages through', async () => {
     const { persistence } = await filled();
     const filters = [
       {},
-      { withPlunder: true },
+      { plunder: 'with' as const },
       { opponents: [playerId(1002)] },
-      { opponents: [playerId(1001)], withPlunder: true },
+      { opponents: [playerId(1001)], plunder: 'with' as const },
+      { plunder: 'without' as const },
+      { opponents: [playerId(1002)], plunder: 'without' as const },
+      { exceptOpponents: [playerId(1003)], plunder: 'without' as const },
     ];
     for (const filter of filters) {
       const listed = await persistence.list(world, { ...filter, limit: 100, offset: 0 });

@@ -1,8 +1,7 @@
 import type { PlayerId, WorldId } from '../../shared/ids';
+import type { OpponentScope } from '../../shared/model';
 
-export interface PlayerRowQuery {
-  /** only rows of these players; missing means all */
-  opponents?: PlayerId[];
+export interface PlayerRowQuery extends OpponentScope {
   limit: number;
   offset: number;
 }

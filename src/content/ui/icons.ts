@@ -128,6 +128,51 @@ const SMALL_STAR = 'M10 3l2.1 4.3 4.8.7-3.4 3.3.8 4.7L10 13.8 5.7 16l.8-4.7L3.1 
 const WARNING = 'M12 3.5 21.5 20h-19Z';
 const WARNING_MARK = 'M12 10v4.4M12 17.2v.3';
 const STAR = 'M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9Z';
+const PROFIT_ARROWS =
+  'M11.6 21V16H10.8L12.6 13.2L14.4 16H13.6V21Z M15.6 21V12.4H14.8L16.6 9.6L18.4 12.4H17.6V21Z M19.6 21V8.4H18.8L20.6 5.6L22.4 8.4H21.6V21Z';
+
+// "Without" in the filter toggles (shown when on): the partner's motif drawn as a band cut into hollow pieces, each
+// piece closed by a thin edge (chosen from the icon preview, 2026-11-01)
+
+/** a ring of n hollow pieces around cx cy: radius r, band width w, gap between pieces in radians */
+const hollowRing = (cx: number, cy: number, r: number, w: number, n: number, gap: number) => {
+  const ri = r - w / 2;
+  const ro = r + w / 2;
+  const step = (2 * Math.PI) / n;
+  const pt = (rad: number, a: number) =>
+    `${(cx + rad * Math.sin(a)).toFixed(2)} ${(cy - rad * Math.cos(a)).toFixed(2)}`;
+  let d = '';
+  for (let i = 0; i < n; i++) {
+    const a0 = i * step + gap / 2;
+    const a1 = (i + 1) * step - gap / 2;
+    d += `M${pt(ro, a0)}A${ro} ${ro} 0 0 1 ${pt(ro, a1)}L${pt(ri, a1)}A${ri} ${ri} 0 0 0 ${pt(ri, a0)}Z`;
+  }
+  return d;
+};
+
+/**
+ * Any path as a dashed band of hollow pieces: a mask keeps a wide dashed stroke and cuts out a narrower one whose dashes
+ * are shorter by the edge width at both ends, so each piece is closed. `k` is the scale of `transform`, the widths and
+ * lengths are given at full size. The mask id must be unique per icon; copies of the same icon in one shadow root share
+ * it with identical content, which is harmless.
+ */
+const hollowDash = (
+  id: string,
+  d: string,
+  band: number,
+  edge: number,
+  dash: number,
+  gap: number,
+  transform = '',
+  k = 1,
+) => {
+  const [b, e, l, g] = [band / k, edge / k, dash / k, gap / k];
+  return svg`<mask id=${id} maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24"><g transform=${transform}>
+      <path d=${d} fill="none" stroke="#fff" stroke-width=${b + e} stroke-dasharray="${l} ${g}" stroke-linecap="butt"/>
+      <path d=${d} fill="none" stroke="#000" stroke-width=${b - e} stroke-dasharray="${l - 2 * e} ${g + 2 * e}"
+        stroke-dashoffset=${-e} stroke-linecap="butt"/></g></mask>
+    <rect width="24" height="24" fill="currentColor" stroke="none" mask="url(#${id})"/>`;
+};
 
 /** the icons of the box header */
 export const headerIcons = {
@@ -337,5 +382,20 @@ export const headerIcons = {
   /** an open eye: show what is ignored */
   eye: headerIcon(
     svg`<path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.8"/>`,
+  ),
+  /** the filter toggle beside the filled star: not marked, the star as an outline (A1, chosen 2026-11-01) */
+  notMarked: headerIcon(svg`<path d="${STAR}"/>`),
+  /** the profit icon in hollow pieces: no profit (B8, chosen from the icon preview, 2026-11-01) */
+  noProfit: headerIcon(svg`<path d=${hollowRing(8.6, 9.6, 6.4, 1.5, 8, 0.3)} stroke-width=".45"/>
+    <path d=${hollowRing(8.6, 9.6, 2.56, 1.1, 4, 0.55)} stroke-width=".38"/>
+    <path class="acc" d=${PROFIT_ARROWS} stroke-width=".8" stroke-linejoin="miter" stroke-dasharray="1.2 1.4"/>`),
+  /** the small star and the warning triangle in hollow pieces: a player with neither PvP mark (C6, chosen from the
+   * icon preview, 2026-11-01) */
+  noPvpMark: headerIcon(
+    svg`${hollowDash('ft-no-pvp-mark-star', SMALL_STAR, 1.5, 0.45, 3.6, 1.8, 'translate(-1.4 -1.4) scale(.8)', 0.8)}${hollowDash('ft-no-pvp-mark-warning', WARNING, 1.5, 0.45, 4.6, 1.8, 'translate(9 9) scale(.62)', 0.62)}`,
+  ),
+  /** the sack in hollow pieces: a battle without a plunder (D5, chosen from the icon preview, 2026-11-01) */
+  noLoot: headerIcon(
+    svg`${hollowDash('ft-no-loot-sack', SACK, 1.6, 0.45, 3.8, 1.8)}${hollowDash('ft-no-loot-tie', 'M9.6 7.7h4.8', 1.6, 0.45, 4.8, 9)}`,
   ),
 };

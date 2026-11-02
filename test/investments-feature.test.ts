@@ -699,21 +699,24 @@ describe('Investitionen: Filter in Meine Investitionen', () => {
     expect(rows()).toHaveLength(12);
   });
 
-  it('filters by "nur gemerkte", off by default', async () => {
+  it('filters by the star toggles "markiert" and "nicht markiert", both on by default', async () => {
     const { box, send, rows, cells, ui } = setup();
     send(contributions.contributions as Entry);
     await tick();
-    const marked = box.root.querySelector('.inv-marked-filter button') as HTMLButtonElement;
-    expect(marked.getAttribute('aria-label')).toBe('nur gemerkte');
-    expect(marked.getAttribute('aria-pressed')).toBe('false');
+    const toggles = [...box.root.querySelectorAll('.inv-marked-filter button')] as HTMLButtonElement[];
+    expect(toggles.map((b) => [b.getAttribute('aria-label'), b.getAttribute('aria-pressed')])).toEqual([
+      ['Markierte zeigen', 'true'],
+      ['Nicht markierte zeigen', 'true'],
+    ]);
+    const notMarked = toggles[1] as HTMLButtonElement;
     const last = rows()[rows().length - 1] as Element;
     const name = cells(last)[3];
     (last.querySelector('button.star') as HTMLElement).click();
     await tick();
-    marked.click();
+    notMarked.click();
     await tick();
     expect(rows().map((r) => cells(r)[3])).toEqual([name]);
-    expect(JSON.parse(ui.pref(KEY) ?? '{}')).toMatchObject({ onlyMarked: true });
+    expect(JSON.parse(ui.pref(KEY) ?? '{}')).toMatchObject({ mark: { marked: true, notMarked: false } });
   });
 
   it('opens with the remembered filters, each missing part at its default, a broken value as all defaults', async () => {
@@ -735,7 +738,8 @@ describe('Investitionen: Filter in Meine Investitionen', () => {
       [...root.querySelectorAll(`${sel} button`)].map((b) => b.getAttribute('aria-pressed'));
     expect(pressed('.inv-status-filter')).toEqual(['false', 'true', 'true']);
     expect(pressed('.inv-reach-filter')).toEqual(['true', 'true', 'true', 'true']);
-    expect(pressed('.inv-marked-filter')).toEqual(['true']);
+    // the former "nur gemerkte" on: only the marked ones
+    expect(pressed('.inv-marked-filter')).toEqual(['true', 'false']);
     const broken = open('{nope');
     await tick();
     expect(

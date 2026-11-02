@@ -23,10 +23,10 @@ export function plundersHandlers(db: PlundersTables & BattlesTables & Dexie): Ha
         return undefined;
       }),
     'plunders.latest': ({ world, opponent }) => rows.latest(world, opponent),
-    'plunders.list': ({ world, opponents, limit, offset }) => rows.list(world, opponents, limit, offset),
+    'plunders.list': ({ world, limit, offset, ...scope }) => rows.list(world, scope, limit, offset),
     'plunders.totals': async ({ world, opponents }) => {
       const totals = { count: 0, repelled: 0, fp: 0 };
-      await rows.forEach(world, opponents, (p) => {
+      await rows.forEach(world, { opponents }, (p) => {
         if (p.outcome === 'repelled') {
           totals.repelled++;
           return;

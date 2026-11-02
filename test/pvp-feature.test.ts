@@ -238,8 +238,9 @@ describe('pvp feature', () => {
     expect(box.text).not.toContain('111');
     expect(box.text).not.toContain('FP');
     // the sack filter belongs to the battles
-    expect(box.root.querySelector('[aria-label="nur Kämpfe mit Plünderung"]')).toBeNull();
-    expect(box.root.querySelector('[aria-label="nur gut zu plündern"]')).not.toBeNull();
+    expect(box.root.querySelector('[aria-label="Kämpfe mit Plünderung zeigen"]')).toBeNull();
+    expect(box.root.querySelector('[aria-label="Kämpfe ohne Plünderung zeigen"]')).toBeNull();
+    expect(box.root.querySelector('[aria-label="Zum Plündern markierte zeigen"]')).not.toBeNull();
   });
 
   it('filters attacks on the own city with the funnel and follows new ones', async () => {
@@ -380,6 +381,22 @@ describe('pvp feature', () => {
       expect(box.box.isOpen).toBe(true);
     });
 
+    it('writes the name and turns all toggles back on, so the opponent always shows', async () => {
+      const { ctx, box, lists } = setup(1, false);
+      ctx.bus.emit('army.opened', { battleType: 'pvp' });
+      await tick();
+      box.click('Kämpfe ohne Plünderung zeigen');
+      ctx.bus.emit('army.target', { opponent: playerId(222) });
+      await tick();
+      expect(field(box).value).toBe('222');
+      expect(lists.at(-1)?.query.opponents).toEqual([playerId(222)]);
+      expect(lists.at(-1)?.query.plunder).toBeUndefined();
+      const pressed = [...box.root.querySelectorAll('.pvp-mark-filter button, .pvp-loot-filter button')].map((b) =>
+        b.getAttribute('aria-pressed'),
+      );
+      expect(pressed).toEqual(['true', 'true', 'true', 'true', 'true']);
+    });
+
     it('stays on all battles without the opponent', async () => {
       const { ctx, lists } = setup(1, false);
       ctx.bus.emit('army.opened', { battleType: 'pvp' });
@@ -444,35 +461,79 @@ describe('pvp feature', () => {
       expect(lists.at(-1)?.query).toMatchObject({ opponents: [playerId(111)], offset: 0 });
     });
 
-    it('asks the store for the players with the star or warning mark, combined with the name', async () => {
+    it('shows three mark toggles and two sack toggles, all on', async () => {
+      const { box } = setup();
+      await tick();
+      const pressed = (cls: string) =>
+        [...box.root.querySelectorAll(`.${cls} button`)].map((b) => [
+          b.getAttribute('aria-label'),
+          b.getAttribute('aria-pressed'),
+        ]);
+      expect(pressed('pvp-mark-filter')).toEqual([
+        ['Zum Plündern markierte zeigen', 'true'],
+        ['Als nicht angreifen markierte zeigen', 'true'],
+        ['Spieler ohne Markierung zeigen', 'true'],
+      ]);
+      expect(pressed('pvp-loot-filter')).toEqual([
+        ['Kämpfe mit Plünderung zeigen', 'true'],
+        ['Kämpfe ohne Plünderung zeigen', 'true'],
+      ]);
+    });
+
+    it('asks the store for the players the mark toggles show, combined with the name', async () => {
       const { ctx, box, lists } = setup();
-      ctx.players.apply(worldId('de20'), [seen(111, 'Alpha'), seen(222, 'Alpine'), seen(333, 'Beta')], 'visit');
+      ctx.players.apply(
+        worldId('de20'),
+        [seen(111, 'Alpha'), seen(222, 'Alpine'), seen(333, 'Beta'), seen(444, 'Gamma')],
+        'visit',
+      );
       ctx.players.setPlunderWorthy(playerId(111), true);
       ctx.players.setPlunderWorthy(playerId(333), true);
       ctx.players.setNoAttack(playerId(222), true);
       await tick();
-      box.click('nur gut zu plündern');
+      // only "zum Plündern" on: the former "nur gut zu plündern"
+      box.click('Als nicht angreifen markierte zeigen');
+      box.click('Spieler ohne Markierung zeigen');
       await tick();
       expect(lists.at(-1)?.query.opponents).toEqual([playerId(111), playerId(333)]);
       type(box, 'alp');
       await tick();
       expect(lists.at(-1)?.query.opponents).toEqual([playerId(111)]);
-      box.click('nur gut zu plündern');
-      box.click('nur nicht angreifen');
+      box.click('Zum Plündern markierte zeigen');
+      box.click('Als nicht angreifen markierte zeigen');
       await tick();
       expect(lists.at(-1)?.query.opponents).toEqual([playerId(222)]);
+      // all on but "nicht angreifen": every player but those it hides, also the unknown ones
+      type(box, '');
+      box.click('Zum Plündern markierte zeigen');
+      box.click('Als nicht angreifen markierte zeigen');
+      box.click('Spieler ohne Markierung zeigen');
+      await tick();
+      expect(lists.at(-1)?.query.opponents).toBeUndefined();
+      expect(lists.at(-1)?.query.exceptOpponents).toEqual([playerId(222)]);
     });
 
-    it('asks for battles with a plunder only, summary and list alike', async () => {
+    it('asks for battles with or without a plunder, summary and list alike; both off show none', async () => {
       const { box, lists, persistence } = setup();
       await tick();
-      box.click('nur Kämpfe mit Plünderung');
+      box.click('Kämpfe ohne Plünderung zeigen');
       await tick();
-      expect(lists.at(-1)?.query).toMatchObject({ withPlunder: true, offset: 0, limit: SLICE });
-      expect(persistence.summary).toHaveBeenLastCalledWith(worldId('de20'), { withPlunder: true });
-      box.click('nur Kämpfe mit Plünderung');
+      expect(lists.at(-1)?.query).toMatchObject({ plunder: 'with', offset: 0, limit: SLICE });
+      expect(persistence.summary).toHaveBeenLastCalledWith(worldId('de20'), { plunder: 'with' });
+      box.click('Kämpfe ohne Plünderung zeigen');
+      box.click('Kämpfe mit Plünderung zeigen');
       await tick();
-      expect(lists.at(-1)?.query.withPlunder).toBeUndefined();
+      expect(lists.at(-1)?.query).toMatchObject({ plunder: 'without', offset: 0, limit: SLICE });
+      expect(persistence.summary).toHaveBeenLastCalledWith(worldId('de20'), { plunder: 'without' });
+      box.click('Kämpfe ohne Plünderung zeigen');
+      await tick();
+      expect(lists.at(-1)?.query).toMatchObject({ opponents: [] });
+      expect(persistence.summary).toHaveBeenLastCalledWith(worldId('de20'), { opponents: [] });
+      box.click('Kämpfe mit Plünderung zeigen');
+      box.click('Kämpfe ohne Plünderung zeigen');
+      await tick();
+      expect(lists.at(-1)?.query.plunder).toBeUndefined();
+      expect(lists.at(-1)?.query.opponents).toBeUndefined();
     });
 
     it('sums up what the filter matches', async () => {
@@ -485,8 +546,11 @@ describe('pvp feature', () => {
       env.menu('pvp');
       const box = env.boxes.get('pvp') as NonNullable<ReturnType<typeof env.boxes.get>>;
       await vi.waitFor(() => expect(box.text).toContain('2 Kämpfe, 2 gewonnen · 1 Plünderung, 12 FP'));
-      box.click('nur Kämpfe mit Plünderung');
+      box.click('Kämpfe ohne Plünderung zeigen');
       await vi.waitFor(() => expect(box.text).toContain('1 Kampf, 1 gewonnen · 1 Plünderung, 12 FP'));
+      box.click('Kämpfe ohne Plünderung zeigen');
+      box.click('Kämpfe mit Plünderung zeigen');
+      await vi.waitFor(() => expect(box.text).toContain('1 Kampf, 1 gewonnen · 0 Plünderungen, 0 FP'));
     });
 
     it('keeps the field while the list turns empty, so it keeps its focus', async () => {
@@ -917,6 +981,22 @@ describe('pvp feature loading', () => {
     expect(lists.length).toBe(loads + 1);
   });
 
+  it('ignores records of players the mark toggles leave out, and reads for unknown ones', async () => {
+    const { ctx, box, lists } = setup();
+    ctx.players.apply(worldId('de20'), [seen(111, 'Alpha')], 'visit');
+    ctx.players.setNoAttack(playerId(111), true);
+    await tick();
+    box.click('Als nicht angreifen markierte zeigen');
+    await tick();
+    const loads = lists.length;
+    ctx.bus.emit('battle.recorded', { opponents: [playerId(111)] });
+    await tick();
+    expect(lists.length).toBe(loads);
+    ctx.bus.emit('battle.recorded', { opponents: [playerId(999)] });
+    await tick();
+    expect(lists.length).toBe(loads + 1);
+  });
+
   it('rebuilds without reading on player and note changes while no filter goes by the players', async () => {
     const { ctx, box, lists } = setup();
     await tick();
@@ -932,7 +1012,7 @@ describe('pvp feature loading', () => {
   it('reads again on a player change while the name field or a mark filter goes by the players', async () => {
     const { ctx, box, lists } = setup();
     await tick();
-    box.click('nur nicht angreifen');
+    box.click('Als nicht angreifen markierte zeigen');
     await tick();
     const loads = lists.length;
     ctx.bus.emit('player.updated', { ids: [playerId(111)], source: 'noAttack' });

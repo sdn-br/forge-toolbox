@@ -158,15 +158,17 @@ describe('Investitionen: Mögliche Investitionen', () => {
     expect(box.text).toContain('2 mit Gewinn von 3 LGs');
   });
 
-  it('shows the rows without a place when "nur mit Gewinn" is off, and remembers the filters and the tab', async () => {
+  it('shows the rows without a place when "ohne Gewinn" is on, and remembers the filters and the tab', async () => {
     const { box, list, rows, cells, showPossible, input, ui } = setup();
     list([hitZeus(), lighthouse, hitOracle()]);
     await tick();
     await showPossible();
-    const only = box.root.querySelector('.inv-hits-filter button') as HTMLButtonElement;
-    expect(only.getAttribute('aria-pressed')).toBe('true');
-    expect(only.getAttribute('aria-label')).toBe('nur mit Gewinn');
-    only.click();
+    const profit = [...box.root.querySelectorAll('.inv-hits-filter button')] as HTMLButtonElement[];
+    expect(profit.map((b) => [b.getAttribute('aria-label'), b.getAttribute('aria-pressed')])).toEqual([
+      ['Mit Gewinn zeigen', 'true'],
+      ['Ohne Gewinn zeigen', 'false'],
+    ]);
+    (profit[1] as HTMLButtonElement).click();
     await tick();
     expect(rows()).toHaveLength(3);
     expect(cells(rows()[2]).slice(3, 11)).toEqual(['Leuchtturm von Alexandria', '9', '10 / 550', '?', '', '', '', '']);
@@ -180,10 +182,10 @@ describe('Investitionen: Mögliche Investitionen', () => {
     expect(JSON.parse(ui.pref('investments.filter') ?? '{}')).toEqual({
       player: '',
       name: 'zeus',
-      onlyHits: false,
+      profit: { with: true, without: true },
       reach: { neighbor: true, friend: true, guildMember: true, none: true },
       tier: { exact: true, safe: true, possible: true },
-      onlyMarked: false,
+      mark: { marked: true, notMarked: true },
       showIgnored: false,
     });
   });
@@ -200,7 +202,28 @@ describe('Investitionen: Mögliche Investitionen', () => {
     const root = env.boxes.get('investments')?.root as HTMLElement;
     expect(root.querySelector('.tabs button.active')?.textContent).toBe('Mögliche Investitionen');
     expect((root.querySelector('input[aria-label="Spieler"]') as HTMLInputElement).value).toBe('Anna');
-    expect(root.querySelector('.inv-hits-filter button')?.getAttribute('aria-pressed')).toBe('false');
+    // the former "only with profit" off: both profit toggles on
+    const pressed = [...root.querySelectorAll('.inv-hits-filter button')].map((b) => b.getAttribute('aria-pressed'));
+    expect(pressed).toEqual(['true', 'true']);
+  });
+
+  it.each([
+    [{ onlyHits: true }, ['true', 'false']],
+    [{ onlyHits: false }, ['true', 'true']],
+    [{ onlyHits: false, profit: { with: false, without: true } }, ['false', 'true']],
+    [{}, ['true', 'false']],
+  ])('reads the stored filter %j as the profit toggles %j', async (stored, pressed) => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const env = featureContext({ now: () => Date.now() });
+    env.ctx.ui.savePref('investments.tab', 'possible');
+    env.ctx.ui.savePref('investments.filter', JSON.stringify(stored));
+    investmentsFeature.setup(env.ctx);
+    drain = () => env.ctx.greatBuildings.known();
+    env.menu('investments');
+    await tick();
+    const root = env.boxes.get('investments')?.root as HTMLElement;
+    const buttons = [...root.querySelectorAll('.inv-hits-filter button')];
+    expect(buttons.map((b) => b.getAttribute('aria-pressed'))).toEqual(pressed);
   });
 
   it.each([
@@ -685,24 +708,32 @@ describe('Investitionen: Merken', () => {
     expect(rows().map((r) => star(r)?.getAttribute('aria-pressed'))).toEqual(['false', 'false']);
   });
 
-  it('shows only the marked buildings with "nur gemerkte", which is off by default and remembered', async () => {
+  it('shows the marked and the not marked buildings with two star toggles, both on by default and remembered', async () => {
     const { box, list, rows, cells, showPossible, ui, greatBuildings } = setup();
     list([hitZeus(), hitOracle()]);
     await tick();
     await greatBuildings.mark(playerId(1001), zeus.entity_id, true);
     await showPossible();
-    const marked = box.root.querySelector('.inv-marked-filter button') as HTMLButtonElement;
-    expect(marked.getAttribute('aria-label')).toBe('nur gemerkte');
-    expect(marked.getAttribute('aria-pressed')).toBe('false');
+    const toggles = () => [...box.root.querySelectorAll('.inv-marked-filter button')] as HTMLButtonElement[];
+    expect(toggles().map((b) => [b.getAttribute('aria-label'), b.getAttribute('aria-pressed')])).toEqual([
+      ['Markierte zeigen', 'true'],
+      ['Nicht markierte zeigen', 'true'],
+    ]);
     expect(rows()).toHaveLength(2);
-    marked.click();
+    (toggles()[1] as HTMLButtonElement).click();
     await tick();
     expect(rows().map((r) => cells(r)[3])).toEqual(['Zeusstatue']);
     expect(box.text).toContain('1 mit Gewinn von 1 LGs');
-    expect(JSON.parse(ui.pref('investments.filter') ?? '{}')).toMatchObject({ onlyMarked: true });
+    expect(JSON.parse(ui.pref('investments.filter') ?? '{}')).toMatchObject({
+      mark: { marked: true, notMarked: false },
+    });
+    (toggles()[0] as HTMLButtonElement).click();
+    (toggles()[1] as HTMLButtonElement).click();
+    await tick();
+    expect(rows().map((r) => cells(r)[3])).toEqual(['Orakel von Delphi']);
   });
 
-  it('opens with the remembered "nur gemerkte"', async () => {
+  it('opens with the former "nur gemerkte" as only the marked ones shown', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     const env = featureContext({ now: () => Date.now() });
     env.ctx.ui.savePref('investments.tab', 'possible');
@@ -712,10 +743,11 @@ describe('Investitionen: Merken', () => {
     env.menu('investments');
     await tick();
     const root = env.boxes.get('investments')?.root as HTMLElement;
-    expect(root.querySelector('.inv-marked-filter button')?.getAttribute('aria-pressed')).toBe('true');
+    const pressed = [...root.querySelectorAll('.inv-marked-filter button')].map((b) => b.getAttribute('aria-pressed'));
+    expect(pressed).toEqual(['true', 'false']);
   });
 
-  it('lets the buildings of a marked owner pass "nur gemerkte"', async () => {
+  it('shows the buildings of a marked owner as marked', async () => {
     const { box, send, list, rows, cells, showPossible, players } = setup();
     send({
       requestClass: 'OtherPlayerService',
@@ -742,7 +774,8 @@ describe('Investitionen: Merken', () => {
     const byName = (name: string) => rows().find((r) => cells(r)[3] === name);
     expect(ownerStar(byName('Orakel von Delphi'))?.getAttribute('aria-label')).toBe('Nicht mehr merken');
     expect(ownerStar(byName('Zeusstatue'))?.getAttribute('aria-label')).toBe('Merken');
-    (box.root.querySelector('.inv-marked-filter button') as HTMLButtonElement).click();
+    // "nicht markiert" off: only the marked ones
+    (box.root.querySelectorAll('.inv-marked-filter button')[1] as HTMLButtonElement).click();
     await tick();
     expect(rows().map((r) => cells(r)[3])).toEqual(['Orakel von Delphi']);
     // the mark comes live: marking the other owner shows its building too

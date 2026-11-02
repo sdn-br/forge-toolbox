@@ -2,7 +2,7 @@
 // and the funnel) and the list around the table (totals, empty text, row window).
 import { html, type TemplateResult } from 'lit-html';
 import { type BuildingDefId, type PlayerId, playerId } from '../../../shared/ids';
-import type { Player } from '../../../shared/model';
+import type { OpponentScope, Player } from '../../../shared/model';
 import { sameName, type TextKey, t, textFilter } from '../../core/texts';
 import { headerIcons } from '../../ui/icons';
 import { externalLink, nameWithGuild } from '../../ui/links';
@@ -15,19 +15,56 @@ import type { PvpPlayerLookups, PvpRowActions } from '../shared/player-lookups';
 
 export type PvpTab = 'battles' | 'incoming';
 
-/** what the rows are narrowed to; the name field is the only state of the player filter */
+/** which players the mark toggles show, by their PvP marks; a player with neither mark, or one the player store does
+ * not know, counts as `none`. A player with both marks shows while either of them is on. */
+export interface MarkFilter {
+  plunder: boolean;
+  noAttack: boolean;
+  none: boolean;
+}
+
+/** the mark toggles in their order */
+export const MARK_TOGGLES: (keyof MarkFilter)[] = ['plunder', 'noAttack', 'none'];
+
+/** which battles the sack toggles show: those with a plunder, those without one */
+export interface LootFilter {
+  with: boolean;
+  without: boolean;
+}
+
+/** the sack toggles in their order */
+export const LOOT_TOGGLES: (keyof LootFilter)[] = ['with', 'without'];
+
+/** What the rows are narrowed to; the name field is the only state of the player filter. Each toggle shows its rows
+ * while on. */
 export interface PvpFilter {
   /** a name typed or written by the funnel; the exact name of a known player means that player alone */
   name: string;
-  /** only players marked good to plunder */
-  onlyPlunder: boolean;
-  /** only players marked not to attack */
-  onlyNoAttack: boolean;
-  /** only battles with a plunder; the attacks on the own city have no such filter */
-  withPlunder: boolean;
+  marks: MarkFilter;
+  /** the battles only; the attacks on the own city have no such filter */
+  loot: LootFilter;
 }
 
-export const NO_FILTER: PvpFilter = { name: '', onlyPlunder: false, onlyNoAttack: false, withPlunder: false };
+/** an empty name and every toggle on: every row */
+export const NO_FILTER: PvpFilter = {
+  name: '',
+  marks: { plunder: true, noAttack: true, none: true },
+  loot: { with: true, without: true },
+};
+
+const allOn = (toggles: object) => Object.values(toggles).every(Boolean);
+
+/** whether the mark toggles show this player; undefined for a player the store does not know */
+const showsMarks = (marks: MarkFilter, player: Player | undefined) => {
+  const plunder = player?.plunderWorthy === true;
+  const noAttack = player?.noAttack === true;
+  if (!plunder && !noAttack) return marks.none;
+  return (plunder && marks.plunder) || (noAttack && marks.noAttack);
+};
+
+/** whether rows of this opponent are in the scope */
+export const inScope = ({ opponents, exceptOpponents }: OpponentScope, id: PlayerId) =>
+  opponents ? opponents.includes(id) : !exceptOpponents?.includes(id);
 
 /** a row of a player the store does not know shows the id as the name, so that text names the player too */
 const idOf = (text: string) => (/^\d+$/.test(text) ? playerId(Number(text)) : undefined);
@@ -44,15 +81,21 @@ function named(name: string, players: Player[]): PlayerId[] | undefined {
   return id === undefined || ids.includes(id) ? ids : [...ids, id];
 }
 
-/** The opponents a filter asks for; undefined means all, an empty list means none matches. The star and the warning
- * filter keep only players with that PvP mark, together with the name. */
-export function opponentsFor(filter: PvpFilter, players: Player[]): PlayerId[] | undefined {
+/**
+ * The opponents a filter asks for, together with the name: no field means all, an empty list none. With a mark toggle
+ * off and "ohne Markierung" on, the players the store does not know still show, so the scope leaves out the known
+ * players the toggles hide instead of naming those they show.
+ */
+export function opponentsFor(filter: PvpFilter, players: Player[]): OpponentScope {
   const byName = named(filter.name, players);
-  if (!filter.onlyPlunder && !filter.onlyNoAttack) return byName;
-  const marked = players
-    .filter((p) => (!filter.onlyPlunder || p.plunderWorthy === true) && (!filter.onlyNoAttack || p.noAttack === true))
-    .map((p) => p.id);
-  return byName === undefined ? marked : marked.filter((id) => byName.includes(id));
+  const { marks } = filter;
+  if (allOn(marks)) return byName === undefined ? {} : { opponents: byName };
+  if (byName !== undefined) {
+    const known = new Map(players.map((p) => [p.id, p]));
+    return { opponents: byName.filter((id) => showsMarks(marks, known.get(id))) };
+  }
+  if (marks.none) return { exceptOpponents: players.filter((p) => !showsMarks(marks, p)).map((p) => p.id) };
+  return { opponents: players.filter((p) => showsMarks(marks, p)).map((p) => p.id) };
 }
 
 /** The one player the name field names exactly, for the note card: a known player by name, else the id a row shows for a
@@ -65,9 +108,12 @@ export function pickedPlayer(name: string, players: Player[]): PlayerId | undefi
   return exact.length === 0 ? idOf(text) : undefined;
 }
 
-/** whether the filter leaves rows out, for the text of an empty list */
+/** whether the name field or the mark toggles narrow the players, which the player store then turns into opponents */
+export const filtersPlayers = (filter: PvpFilter) => filter.name.trim() !== '' || !allOn(filter.marks);
+
+/** whether the filter leaves rows out, for the text of an empty list: a name, or a toggle off */
 export const isFiltered = (filter: PvpFilter, tab: PvpTab) =>
-  filter.name.trim() !== '' || filter.onlyPlunder || filter.onlyNoAttack || (tab === 'battles' && filter.withPlunder);
+  filtersPlayers(filter) || (tab === 'battles' && !allOn(filter.loot));
 
 /** what the box does on a click; the tabs add nothing of their own */
 export interface PvpActions extends Pick<PvpRowActions, 'plunderPlayer' | 'noAttackPlayer'> {

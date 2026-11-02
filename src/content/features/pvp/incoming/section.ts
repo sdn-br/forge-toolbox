@@ -7,11 +7,11 @@ import { incomingViewModel } from './view-model';
 
 export function createIncomingSection(ctx: FeatureContext): PvpSection {
   return {
-    async load({ opponents }, offset, limit, totals) {
+    async load({ scope }, offset, limit, totals) {
       // the box hands in the totals it read for this query
       const [incomingTotals, incoming] = await Promise.all([
-        (totals as IncomingTotals | undefined) ?? ctx.incoming.totals(opponents),
-        ctx.incoming.list({ opponents, limit, offset }),
+        (totals as IncomingTotals | undefined) ?? ctx.incoming.totals(scope),
+        ctx.incoming.list({ ...scope, limit, offset }),
       ]);
       return {
         build: (input) => incomingViewModel({ ...input, incoming, incomingTotals, from: offset }),

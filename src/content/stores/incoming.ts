@@ -1,5 +1,5 @@
 import type { PlayerId, WorldId } from '../../shared/ids';
-import type { IncomingAttack, IncomingTotals } from '../../shared/model';
+import type { IncomingAttack, IncomingTotals, OpponentScope } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
 import type { PlayerRowQuery, PlayerRowsPersistence } from './player-rows';
 import { WriteBehind } from './write-behind';
@@ -9,7 +9,7 @@ export type IncomingQuery = PlayerRowQuery;
 export interface IncomingPersistence extends PlayerRowsPersistence<IncomingAttack> {
   /** adds attacks with a new key and leaves known ones as they are */
   add(rows: IncomingAttack[]): Promise<void>;
-  totals(world: WorldId, opponents?: PlayerId[]): Promise<IncomingTotals>;
+  totals(world: WorldId, scope?: OpponentScope): Promise<IncomingTotals>;
 }
 
 /** Attacks on the session player's city. Lives in the database, queries ask it after pending writes. */
@@ -43,8 +43,9 @@ export class IncomingStore {
     return this.writes.afterWrites(() => this.persistence.list(this.world, query));
   }
 
-  totals(opponents?: PlayerId[]): Promise<IncomingTotals> {
-    return this.writes.afterWrites(() => this.persistence.totals(this.world, opponents));
+  /** over the attacks of the scope, all by default */
+  totals(scope: OpponentScope = {}): Promise<IncomingTotals> {
+    return this.writes.afterWrites(() => this.persistence.totals(this.world, scope));
   }
 
   prune(before: number): Promise<number> {

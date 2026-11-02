@@ -79,7 +79,10 @@ export function visitedRecord(
     },
     incoming: {
       load: async (owner) => {
-        const [last, totals] = await Promise.all([ctx.incoming.latest(owner), ctx.incoming.totals([owner])]);
+        const [last, totals] = await Promise.all([
+          ctx.incoming.latest(owner),
+          ctx.incoming.totals({ opponents: [owner] }),
+        ]);
         return { last, totals };
       },
       failed: 'loading attacks on the own city failed',

@@ -222,7 +222,7 @@ td.snipe-tier.safe { color: #5a9a4a; }
 td.snipe-tier.possible { color: var(--warn); }
 /* icon toggles (ui/buttons.ts): faint while off, in the accent while on */
 .icon-toggles { display: inline-flex; gap: 2px; }
-.icon-toggles button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .45; }
+.icon-toggles button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--ink); opacity: .25; }
 .icon-toggles button.on { color: var(--accent); opacity: 1; }
 .icon-toggles button svg { display: block; width: 14px; height: 14px; }
 .row-name { display: flex; align-items: center; }

@@ -8,6 +8,7 @@ import { type PossibleActions, possibleView } from './view';
 import {
   DEFAULT_FILTER,
   DEFAULT_POSSIBLE_SORT,
+  migrateProfit,
   POSSIBLE_DESC_FIRST,
   type PossibleRows,
   possibleRows,
@@ -28,6 +29,7 @@ export function createPossibleSection(
     defaults: DEFAULT_FILTER,
     defaultSort: DEFAULT_POSSIBLE_SORT,
     descFirst: POSSIBLE_DESC_FIRST,
+    migrate: migrateProfit,
   });
   const rows = lastResult<PossibleRows>();
   return {

@@ -1,5 +1,5 @@
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
-import type { BattleWithPlunder } from '../../../shared/model';
+import type { BattleWithPlunder, OpponentScope } from '../../../shared/model';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { toggleDef } from '../../core/settings';
@@ -15,6 +15,8 @@ import { battlePanelVm } from './battles/view-model';
 import { createIncomingSection } from './incoming/section';
 import { KEEP_SETTING, pruneBefore } from './retention';
 import {
+  filtersPlayers,
+  inScope,
   keepInLoaded,
   NO_FILTER,
   opponentsFor,
@@ -75,8 +77,8 @@ export const pvpFeature: Feature = {
     let query = 0;
     // builds the view model of the last load again, without reading
     let shown: (() => PvpVm) | undefined;
-    // who the filter matched at the last load; undefined means everybody
-    let opponentsShown: PlayerId[] | undefined;
+    // who the filter matched at the last load
+    let scopeShown: OpponentScope = {};
 
     const sections: Record<PvpTab, PvpSection> = {
       battles: createBattlesSection(ctx),
@@ -91,12 +93,12 @@ export const pvpFeature: Feature = {
     const refresh = async () => {
       if (!box.isOpen) return;
       const current = ++query;
-      const opponents = opponentsFor(filter, players());
-      opponentsShown = opponents;
+      const scope = opponentsFor(filter, players());
+      scopeShown = scope;
       const visible = VISIBLE_ROWS;
       requested = { offset: Math.max(0, top - AHEAD * visible), limit: SLICE_WINDOWS * visible };
       const { build, battles, totals } = await sections[tab].load(
-        { opponents, withPlunder: filter.withPlunder },
+        { scope, loot: filter.loot },
         requested.offset,
         requested.limit,
         knownTotals,
@@ -143,10 +145,7 @@ export const pvpFeature: Feature = {
       if (shown) vm = shown();
       box.update();
     };
-    // the name field and the star and warning filters turn into opponents by the player store
-    const filtersByPlayers = () => filter.name.trim() !== '' || filter.onlyPlunder || filter.onlyNoAttack;
-    const touches = (opponents: PlayerId[]) =>
-      opponentsShown === undefined || opponents.some((o) => opponentsShown?.includes(o));
+    const touches = (opponents: PlayerId[]) => opponents.some((o) => inScope(scopeShown, o));
     const onRecorded = ({ opponents }: { opponents: PlayerId[] }) => {
       if (touches(opponents)) show();
     };
@@ -255,13 +254,15 @@ export const pvpFeature: Feature = {
     });
     ctx.bus.on('army.target', ({ opponent }) => {
       if (!box.isOpen || !openWithArmy.get()) return;
+      // all toggles back on, so the opponent shows whatever its marks and battles
       setFilter({ ...NO_FILTER, name: nameOf(opponent) });
     });
     ctx.bus.on('battle.recorded', onRecorded);
     ctx.bus.on('plunder.recorded', onRecorded);
     ctx.bus.on('incoming.recorded', onRecorded);
     // a changed name or PvP mark can change who the filter matches
-    ctx.bus.on('player.updated', () => (filtersByPlayers() ? show() : rebuild()));
+    // the name field and the mark toggles turn into opponents by the player store
+    ctx.bus.on('player.updated', () => (filtersPlayers(filter) ? show() : rebuild()));
     // the markers in the rows show the notes
     ctx.bus.on('note.changed', rebuild);
     // the unit portraits in the side panel are looked up when it is built

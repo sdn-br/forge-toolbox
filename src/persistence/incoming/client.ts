@@ -8,6 +8,6 @@ export function incomingPersistence(call: Call): IncomingPersistence {
   return {
     ...playerRowsClient<IncomingAttack>(call, 'incoming'),
     add: (rows) => call('incoming.add', { rows }),
-    totals: (world, opponents) => call('incoming.totals', { world, opponents }),
+    totals: (world, scope = {}) => call('incoming.totals', { world, ...scope }),
   };
 }

@@ -11,6 +11,7 @@ import { type Sort, sortRows } from '../../../ui/sortable';
 import { type RowWindow, rowsIn, rowWindow } from '../../../ui/windowed-rows';
 import type { GbLookups } from '../../shared/gb-lookups';
 import {
+  ALL_MARKS,
   type CommonFilter,
   type CommonRowVm,
   commonRowVm,
@@ -48,7 +49,7 @@ export const DEFAULT_MINE_FILTER: MineFilter = {
   player: '',
   name: '',
   reach: DEFAULT_REACH,
-  onlyMarked: false,
+  mark: ALL_MARKS,
   status: { safe: true, unsafe: true, unknown: true },
   showIgnored: false,
 };
