@@ -15,31 +15,31 @@ const card = (change: Partial<PlunderVm>) => {
     doubleLootIcon: 'https://cdn/double-loot.png',
     ...change,
   };
-  render(plunderCard(vm), root);
+  render(plunderCard(vm, vm.when), root);
   return root;
 };
 
 describe('plunder card', () => {
-  it('puts the Double Loot mark on a badge of the building image, not after the name', () => {
+  it('puts the Double Loot mark after the time, in line with the name beside the image, not after the name', () => {
     const root = card({ image: 'https://cdn/building.png' });
-    expect(root.querySelector('.building-img > img')?.getAttribute('src')).toBe('https://cdn/building.png');
-    expect(root.querySelector('.building-img .double-loot-badge img.double-loot')?.getAttribute('src')).toBe(
-      'https://cdn/double-loot.png',
-    );
-    expect(root.querySelector('p .double-loot')).toBeNull();
+    const when = root.querySelector('p.plunder-when');
+    expect(when?.classList.contains('with-image')).toBe(true);
+    expect(when?.textContent).toContain('heute 06:46');
+    expect(when?.querySelector('img.double-loot')?.getAttribute('src')).toBe('https://cdn/double-loot.png');
+    expect(root.querySelector('.plunder-card .double-loot')).toBeNull();
+    expect(root.querySelector('.plunder-card img.building-img')?.getAttribute('src')).toBe('https://cdn/building.png');
   });
 
-  it('keeps the mark after the name without a building image, and the word while the mark image is not known', () => {
+  it('keeps the mark after the time without a building image, and the word while the mark image is not known', () => {
     const plain = card({});
-    expect(plain.querySelector('.double-loot-badge')).toBeNull();
-    expect(plain.querySelector('p img.double-loot')).not.toBeNull();
-    const word = card({ image: 'https://cdn/building.png', doubleLootIcon: undefined });
-    expect(word.querySelector('.double-loot-badge')).toBeNull();
-    expect(word.querySelector('p')?.textContent).toContain('Plünderung verdoppelt');
+    expect(plain.querySelector('p.plunder-when')?.classList.contains('with-image')).toBe(false);
+    expect(plain.querySelector('p.plunder-when img.double-loot')).not.toBeNull();
+    const word = card({ doubleLootIcon: undefined });
+    expect(word.querySelector('p.plunder-when')?.textContent).toContain('Plünderung verdoppelt');
   });
 
   it('shows no mark without Double Loot', () => {
     const root = card({ image: 'https://cdn/building.png', doubleLoot: false });
-    expect(root.querySelector('.double-loot, .double-loot-badge')).toBeNull();
+    expect(root.querySelector('.double-loot')).toBeNull();
   });
 });

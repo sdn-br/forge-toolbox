@@ -69,7 +69,7 @@ const plunderTable = (items: PlunderItem[], marks?: PlunderMarks) => {
 
 function plunderedPart({ last, totals }: NonNullable<SabotageVm['plundered']>) {
   if (!last) return html`<p class="muted">${t('sabotage.neverPlundered')}</p>`;
-  return html`<p class="muted">${t('sabotage.lastPlunder', { when: last.when })}</p>${plunderCard(last)}<p>${totals}</p>`;
+  return html`${plunderCard(last, t('sabotage.lastPlunder', { when: last.when }))}<p>${totals}</p>`;
 }
 
 function lastBattlePart({ when, result, details }: NonNullable<SabotageVm['lastBattle']>) {

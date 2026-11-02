@@ -12,22 +12,23 @@ const doubleLootMark = (p: PlunderVm) => {
     : html`<b>${word}</b>`;
 };
 
-/** the building's image with the Double Loot mark on a badge in its lower right corner, like the class of a unit */
-const image = (p: PlunderVm, url: string) =>
-  html`<span class="building-img"><img src=${url} alt="" loading="lazy" referrerpolicy="no-referrer" />${
-    p.doubleLoot && p.doubleLootIcon ? html`<span class="double-loot-badge">${doubleLootMark(p)}</span>` : nothing
-  }</span>`;
-
-/** the building in bold, then the loot one resource per line, or that it was repelled; the building's image on the
- * left once it is known. The Double Loot mark sits on the image, so a long name cannot push it onto a line of its
- * own; without the image, or while the mark's image is not known, it follows the name. */
-export function plunderCard(p: PlunderVm): TemplateResult {
-  const onImage = p.image !== undefined && p.doubleLootIcon !== undefined;
-  const mark = p.doubleLoot && !onImage ? html` ${doubleLootMark(p)}` : nothing;
-  const text = html`<div><p><b>${p.building}</b>${mark}</p>${
+/**
+ * The time of the plunder above it, given by the caller ("heute 06:46", "Zuletzt heute 06:46"), then the building's
+ * image on the left once it is known, the building in bold beside it and the loot one resource per line below, or that
+ * it was repelled. The Double Loot mark follows the time, in line with the building's name, so a long name cannot push
+ * it onto a line of its own.
+ */
+export function plunderCard(p: PlunderVm, when: string): TemplateResult {
+  const text = html`<div><p><b>${p.building}</b></p>${
     p.outcome === 'repelled'
       ? html`<p class="muted">${t('pvp.plunder.repelled')}</p>`
       : html`<p>${p.loot.map((line, i) => html`${i ? html`<br />` : nothing}${line}`)}</p>`
   }</div>`;
-  return html`<div class="plunder-card">${p.image ? image(p, p.image) : nothing}${text}</div>`;
+  return html`<p class=${`plunder-when muted${p.image ? ' with-image' : ''}`}><span>${when}</span>${
+    p.doubleLoot ? doubleLootMark(p) : nothing
+  }</p><div class="plunder-card">${
+    p.image
+      ? html`<img class="building-img" src=${p.image} alt="" loading="lazy" referrerpolicy="no-referrer" />`
+      : nothing
+  }${text}</div>`;
 }

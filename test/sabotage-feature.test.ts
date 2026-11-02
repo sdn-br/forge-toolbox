@@ -373,7 +373,7 @@ describe('sabotage feature', () => {
 
     ctx.plunders.record(plunder(1, Date.now() + 1000, { doubleLoot: true, resources: { money: 20 } }));
     await vi.waitFor(() => expect(box.text).toContain('2 Plünderungen, 4 FP'));
-    expect(box.text).toMatch(/Plünderung verdoppelt\s*20 Münzen/);
+    expect(box.text).toMatch(/Zuletzt heute \d\d:\d\dPlünderung verdoppelt\s*R_IronAge_Residential2\s*20 Münzen/);
   });
 
   it('tells when the last plunder of the visited player was repelled', async () => {

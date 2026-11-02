@@ -116,16 +116,14 @@ textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
 .unit-health { display: block; height: 4px; margin-top: 3px; background: var(--bad); }
 .unit-health > span { display: block; height: 100%; background: var(--good); }
 /* a plunder with its building's image on the left (ui/plunder.ts), 6px below its time */
-.plunder-card { display: flex; gap: 24px; align-items: flex-start; margin-top: 6px; }
-.plunder-card .building-img { flex: 0 0 auto; position: relative; width: 96px; }
-.plunder-card .building-img > img { display: block; width: 96px; height: auto; }
+.plunder-when, .plunder-card { --plunder-img: 96px; --plunder-gap: 24px; }
+.plunder-card { display: flex; gap: var(--plunder-gap); align-items: flex-start; margin-top: 6px; }
+.plunder-card .building-img { flex: 0 0 auto; display: block; width: var(--plunder-img); height: auto; }
 .plunder-card p { margin: 2px 0; }
-.plunder-card .double-loot { width: 16px; height: 16px; vertical-align: -3px; }
-/* the Double Loot mark on the image like the class icon on a unit tile: a dark round badge in the lower right corner */
-.plunder-card .double-loot-badge { position: absolute; right: 2px; bottom: 2px; width: 22px; height: 22px;
-  box-sizing: border-box; border-radius: 50%; background: rgba(0, 0, 0, .75); border: 1px solid var(--line);
-  display: grid; place-items: center; }
-.plunder-card .double-loot-badge .double-loot { display: block; vertical-align: 0; }
+/* the Double Loot mark after the time, in line with the building's name beside the image; a longer time pushes it on */
+.plunder-when { display: flex; align-items: center; gap: 4px; }
+.plunder-when.with-image > span { min-width: calc(var(--plunder-img) + var(--plunder-gap) - 4px); }
+.plunder-when .double-loot { display: block; width: 16px; height: 16px; }
 details { margin: 6px 0; }
 summary { cursor: pointer; color: var(--accent); }
 .name-search { position: relative; display: inline-block; vertical-align: middle; }

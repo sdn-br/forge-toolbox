@@ -8,9 +8,8 @@ import { plunderCard } from '../../../ui/plunder';
 import type { PlunderVm } from '../../shared/plunder';
 import type { BattlePanelVm } from './view-model';
 
-/** a heading, the date and time, then the plunder with its building's image */
-const plunderView = (p: PlunderVm) =>
-  html`<h2>${t('pvp.plunder.title')}</h2><p class="muted">${p.when}</p>${plunderCard(p)}`;
+/** a heading, then the plunder with its time and its building's image */
+const plunderView = (p: PlunderVm) => html`<h2>${t('pvp.plunder.title')}</h2>${plunderCard(p, p.when)}`;
 
 /** the selected battle */
 export function battlePanel(vm: BattlePanelVm): TemplateResult {
