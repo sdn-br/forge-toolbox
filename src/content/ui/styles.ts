@@ -117,7 +117,7 @@ textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
 .unit-health > span { display: block; height: 100%; background: var(--good); }
 /* a plunder with its building's image on the left (ui/plunder.ts), 6px below its time */
 .plunder-card { display: flex; gap: 24px; align-items: flex-start; margin-top: 6px; }
-.plunder-card .building-img { flex: 0 0 auto; display: block; width: 120px; height: auto; }
+.plunder-card .building-img { flex: 0 0 auto; display: block; width: 96px; height: auto; }
 .plunder-card p { margin: 2px 0; }
 .plunder-card .double-loot { width: 16px; height: 16px; vertical-align: -3px; }
 details { margin: 6px 0; }
