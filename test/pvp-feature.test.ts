@@ -381,7 +381,7 @@ describe('pvp feature', () => {
       expect(box.box.isOpen).toBe(true);
     });
 
-    it('only writes the name, the toggles stay as they are', async () => {
+    it('writes the name and turns all toggles back on, so the opponent always shows', async () => {
       const { ctx, box, lists } = setup(1, false);
       ctx.bus.emit('army.opened', { battleType: 'pvp' });
       await tick();
@@ -389,11 +389,12 @@ describe('pvp feature', () => {
       ctx.bus.emit('army.target', { opponent: playerId(222) });
       await tick();
       expect(field(box).value).toBe('222');
-      expect(lists.at(-1)?.query).toMatchObject({ opponents: [playerId(222)], plunder: 'with' });
+      expect(lists.at(-1)?.query.opponents).toEqual([playerId(222)]);
+      expect(lists.at(-1)?.query.plunder).toBeUndefined();
       const pressed = [...box.root.querySelectorAll('.pvp-mark-filter button, .pvp-loot-filter button')].map((b) =>
         b.getAttribute('aria-pressed'),
       );
-      expect(pressed).toEqual(['true', 'true', 'true', 'true', 'false']);
+      expect(pressed).toEqual(['true', 'true', 'true', 'true', 'true']);
     });
 
     it('stays on all battles without the opponent', async () => {

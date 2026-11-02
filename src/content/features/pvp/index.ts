@@ -254,8 +254,8 @@ export const pvpFeature: Feature = {
     });
     ctx.bus.on('army.target', ({ opponent }) => {
       if (!box.isOpen || !openWithArmy.get()) return;
-      // only the name: the toggles stay as the viewer set them
-      setFilter({ ...filter, name: nameOf(opponent) });
+      // all toggles back on, so the opponent shows whatever its marks and battles
+      setFilter({ ...NO_FILTER, name: nameOf(opponent) });
     });
     ctx.bus.on('battle.recorded', onRecorded);
     ctx.bus.on('plunder.recorded', onRecorded);
