@@ -386,16 +386,16 @@ export const headerIcons = {
   /** the filter toggle beside the filled star: not marked, the star as an outline (A1, chosen 2026-11-01) */
   notMarked: headerIcon(svg`<path d="${STAR}"/>`),
   /** the profit icon in hollow pieces: no profit (B8, chosen from the icon preview, 2026-11-01) */
-  noProfit: headerIcon(svg`<path d=${hollowRing(8.6, 9.6, 6.4, 1.5, 8, 0.16)} stroke-width=".45"/>
-    <path d=${hollowRing(8.6, 9.6, 2.56, 1.1, 4, 0.3)} stroke-width=".38"/>
-    <path class="acc" d=${PROFIT_ARROWS} stroke-width=".8" stroke-linejoin="miter" stroke-dasharray="1.2 .9"/>`),
+  noProfit: headerIcon(svg`<path d=${hollowRing(8.6, 9.6, 6.4, 1.5, 8, 0.3)} stroke-width=".45"/>
+    <path d=${hollowRing(8.6, 9.6, 2.56, 1.1, 4, 0.55)} stroke-width=".38"/>
+    <path class="acc" d=${PROFIT_ARROWS} stroke-width=".8" stroke-linejoin="miter" stroke-dasharray="1.2 1.4"/>`),
   /** the small star and the warning triangle in hollow pieces: a player with neither PvP mark (C6, chosen from the
    * icon preview, 2026-11-01) */
   noPvpMark: headerIcon(
-    svg`${hollowDash('ft-no-pvp-mark-star', SMALL_STAR, 1.5, 0.45, 3.6, 1, 'translate(-1.4 -1.4) scale(.8)', 0.8)}${hollowDash('ft-no-pvp-mark-warning', WARNING, 1.5, 0.45, 4.6, 1, 'translate(9 9) scale(.62)', 0.62)}`,
+    svg`${hollowDash('ft-no-pvp-mark-star', SMALL_STAR, 1.5, 0.45, 3.6, 1.8, 'translate(-1.4 -1.4) scale(.8)', 0.8)}${hollowDash('ft-no-pvp-mark-warning', WARNING, 1.5, 0.45, 4.6, 1.8, 'translate(9 9) scale(.62)', 0.62)}`,
   ),
   /** the sack in hollow pieces: a battle without a plunder (D5, chosen from the icon preview, 2026-11-01) */
   noLoot: headerIcon(
-    svg`${hollowDash('ft-no-loot-sack', SACK, 1.6, 0.45, 3.8, 1)}${hollowDash('ft-no-loot-tie', 'M9.6 7.7h4.8', 1.6, 0.45, 4.8, 9)}`,
+    svg`${hollowDash('ft-no-loot-sack', SACK, 1.6, 0.45, 3.8, 1.8)}${hollowDash('ft-no-loot-tie', 'M9.6 7.7h4.8', 1.6, 0.45, 4.8, 9)}`,
   ),
 };
