@@ -58,3 +58,16 @@ export const DOUBLE_LOOT_ICON_PATH = '/city/gui/citymap_icons/citymap_icon_plund
 
 /** the game's icon of a unit class (`light_melee`, `heavy_melee`, `fast`, `short_ranged`, `long_ranged`) */
 export const unitClassIconPath = (unitClass: string): string => `/shared/icons/goods/unit_class_${unitClass}.png`;
+
+/**
+ * Where the image of a building may lie, by its `asset_id`, the likelier first. The game draws the sprite sheet
+ * `spriteSheets.idle` of its iso entity table, whose name is the asset id with `SS_` after the first letter
+ * (`G_ArcticFuture_Goods3` → `G_SS_ArcticFuture_Goods3`); some buildings have only an image under the plain id.
+ */
+// debt: the rule, not the game's tables. ceiling: 2 of 2274 buildings with an image in the table name it otherwise
+// (checked 2026-11-02), they show none. upgrade: read the tables `getIsoEntityData`/`getIsoSpriteData` from the
+// game's script if missing images are seen.
+export const buildingImagePaths = (assetId: string): string[] => [
+  `/city/buildings/${assetId.replace(/^([A-Z])_/, '$1_SS_')}.png`,
+  `/city/buildings/${assetId}.png`,
+];

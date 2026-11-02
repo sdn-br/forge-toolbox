@@ -141,7 +141,9 @@ function markSetup() {
   const row = (name: string) =>
     [...env.box.root.querySelectorAll('tr.plunder-row')].find((r) => r.textContent?.includes(name)) as HTMLElement;
   const marked = () =>
-    [...env.box.root.querySelectorAll('tr.plunder-row.marked')].map((r) => r.querySelector('td')?.textContent);
+    [...env.box.root.querySelectorAll('tr.plunder-row.marked')].map(
+      (r) => r.querySelector('td:not(.img) b')?.textContent,
+    );
   return { ...env, row, marked };
 }
 
@@ -245,14 +247,14 @@ describe('sabotage feature', () => {
         'plunder-row',
         'plunder-row muted',
       ]);
-      expect(row('Münzhaus').dataset.tip).toBe('Im Spiel mit einem Pfeil zeigen');
+      expect(row('Münzhaus').dataset.tip).toBe('Im Spiel mit einer Stecknadel zeigen');
 
       row('Münzhaus').click();
       expect(marker.last).toMatchObject({ type: 'show', spots: [{ id: 5, x: 0, y: 0, width: 2, length: 2 }] });
       expect(ctx.markers.current()?.city).toBe(playerId(1));
       expect(marked()).toEqual(['Münzhaus']);
       expect(row('Münzhaus').getAttribute('aria-pressed')).toBe('true');
-      expect(row('Münzhaus').dataset.tip).toBe('Pfeil im Spiel entfernen');
+      expect(row('Münzhaus').dataset.tip).toBe('Stecknadel im Spiel entfernen');
 
       row('Punktehaus').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
       expect(marker.shown).toEqual([6]);
@@ -366,12 +368,12 @@ describe('sabotage feature', () => {
     ctx.plunders.record(plunder(2, Date.now()));
     ctx.cities.setVisited(city(1));
     await vi.waitFor(() => expect(box.text).toContain('1 Plünderung, 4 FP'));
-    expect(box.text).toContain('R_IronAge_Residential2: 4 Forge-Punkte');
+    expect(box.text).toMatch(/Zuletzt heute \d\d:\d\dR_IronAge_Residential24 Forge-Punkte/);
     expect(box.text).not.toContain('Plünderung verdoppelt');
 
     ctx.plunders.record(plunder(1, Date.now() + 1000, { doubleLoot: true, resources: { money: 20 } }));
     await vi.waitFor(() => expect(box.text).toContain('2 Plünderungen, 4 FP'));
-    expect(box.text).toMatch(/20 Münzen\s+Plünderung verdoppelt/);
+    expect(box.text).toMatch(/Plünderung verdoppelt\s*20 Münzen/);
   });
 
   it('tells when the last plunder of the visited player was repelled', async () => {
@@ -382,7 +384,7 @@ describe('sabotage feature', () => {
     );
     ctx.cities.setVisited(city(1));
     await vi.waitFor(() => expect(box.text).toContain('1 Plünderung, 1 abgewehrt, 4 FP'));
-    expect(box.text).toMatch(/Zuletzt heute \d\d:\d\d: abgewehrt/);
+    expect(box.text).toMatch(/Zuletzt heute \d\d:\d\d–abgewehrt/);
     expect(box.text).not.toContain('R_IronAge_Residential2');
   });
 

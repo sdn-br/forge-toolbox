@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import { findForgeScript } from '../src/content/core/forge-script';
 import { battleDetails, catalogUnits } from '../src/content/features/shared/battle-details';
+import { buildingImage } from '../src/content/features/shared/building-image';
 import { AssetStore } from '../src/content/stores/assets';
 import { CatalogStore } from '../src/content/stores/catalog';
 import { battleDetailsView } from '../src/content/ui/battle-details';
@@ -11,12 +12,13 @@ import { assetPersistence } from '../src/persistence/assets/client';
 import {
   type AssetIndex,
   assetUrl,
+  buildingImagePaths,
   isCdnUrl,
   parseAssetIndex,
   unitClassIconPath,
   unitPortraitPath,
 } from '../src/shared/cdn-assets';
-import { eraId, playerId, worldId } from '../src/shared/ids';
+import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
 import type { FoughtBattle } from '../src/shared/model';
 import { testDb } from './helpers/battle-db';
 
@@ -238,5 +240,33 @@ describe('unit portraits in the battle details', () => {
     const img = root.querySelector('img') as HTMLImageElement;
     img.dispatchEvent(new Event('error'));
     expect(img.hidden).toBe(true);
+  });
+});
+
+describe('building images', () => {
+  it('looks for the sprite sheet with SS_ after the first letter first, then for the plain asset id', () => {
+    expect(buildingImagePaths('G_ArcticFuture_Goods3')).toEqual([
+      '/city/buildings/G_SS_ArcticFuture_Goods3.png',
+      '/city/buildings/G_ArcticFuture_Goods3.png',
+    ]);
+  });
+
+  it('finds the image by the asset id of the catalog, the first path the index knows', () => {
+    // a stand-in that knows only the asset id
+    const lookup = {
+      get: (id: string) => (id === 'W_AllAge_CupBonus1' ? { assetId: 'L_AllAge_CupBonus1' } : undefined),
+    } as unknown as Pick<CatalogStore, 'get'>;
+    const known = (...paths: string[]) => ({
+      url: (path: string) => (paths.includes(path) ? `https://cdn${path}` : undefined),
+    });
+    const cup = buildingDefId('W_AllAge_CupBonus1');
+    const both = known('/city/buildings/L_SS_AllAge_CupBonus1.png', '/city/buildings/L_AllAge_CupBonus1.png');
+    expect(buildingImage(lookup, both, cup)).toBe('https://cdn/city/buildings/L_SS_AllAge_CupBonus1.png');
+    expect(buildingImage(lookup, known('/city/buildings/L_AllAge_CupBonus1.png'), cup)).toBe(
+      'https://cdn/city/buildings/L_AllAge_CupBonus1.png',
+    );
+    expect(buildingImage(lookup, known(), cup)).toBeUndefined();
+    expect(buildingImage(lookup, both, buildingDefId('R_Unknown'))).toBeUndefined();
+    expect(buildingImage(lookup, undefined, cup)).toBeUndefined();
   });
 });

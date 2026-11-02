@@ -132,9 +132,13 @@ describe('own city map view model', () => {
     });
     // a selected building keeps its badge under the frame
     expect(tileOf(vm, 2, 0)?.badges).toEqual([{ color: MARK.finished, symbol: 'check' }]);
-    expect(vm.legend).toContainEqual({ color: MARK.selected, label: 'Ausgewählt (Pfeil im Spiel)', outline: true });
+    expect(vm.legend).toContainEqual({
+      color: MARK.selected,
+      label: 'Ausgewählt (Stecknadel im Spiel)',
+      outline: true,
+    });
     const none = ownCityMapViewModel(town, ui, undefined, new Set([99]));
-    expect(none.legend.map((l) => l.label)).not.toContain('Ausgewählt (Pfeil im Spiel)');
+    expect(none.legend.map((l) => l.label)).not.toContain('Ausgewählt (Stecknadel im Spiel)');
     expect(tileOf(none, 0, 2)?.fill).toBe(CATEGORY_COLORS.residential);
   });
 

@@ -181,6 +181,11 @@ export const headerIcons = {
   pin: (pinned: boolean): TemplateResult =>
     headerIcon(svg`<g transform=${pinned ? '' : 'rotate(40 12 12)'} fill=${pinned ? 'currentColor' : 'none'}>
     <path d="M7.5 2.5h9M9.2 2.5v7.2L5.5 14h13l-3.7-4.3V2.5"/><path d="M12 14v8"/></g>`),
+  /** a map pin marking a building in the game: off an outline, on filled with a hole in the box colour */
+  mapPin: (on: boolean): TemplateResult =>
+    headerIcon(svg`<path d="M12 21.5s-6.5-6.4-6.5-11.2a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11.2-6.5 11.2Z"
+    fill=${on ? 'currentColor' : 'none'}/><circle cx="12" cy="10.2" r="2.4" fill=${on ? 'var(--bg)' : 'none'}
+    stroke=${on ? 'var(--bg)' : 'currentColor'}/>`),
   popout: headerIcon(
     svg`<path d="M14 3.5h6.5V10M20.5 3.5 12 12"/><path d="M18.5 14v4.5a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2H10"/>`,
   ),

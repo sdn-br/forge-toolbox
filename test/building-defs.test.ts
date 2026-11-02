@@ -46,3 +46,12 @@ describe('street requirement of a definition', () => {
     expect(def?.street).toBeUndefined();
   });
 });
+
+describe('asset id of a definition', () => {
+  it('keeps the asset id, which differs from the id for event levels, and leaves it out when missing', () => {
+    expect(toBuildingDef({ id: 'W_AllAge_CupBonus1', asset_id: 'L_AllAge_CupBonus1' })?.assetId).toBe(
+      'L_AllAge_CupBonus1',
+    );
+    expect(toBuildingDef({ id: 'R_Trimmed', type: 'residential' })).not.toHaveProperty('assetId');
+  });
+});

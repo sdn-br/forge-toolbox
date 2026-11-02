@@ -2,7 +2,9 @@ import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, formatPercent, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { battleDetailsView } from '../../ui/battle-details';
+import { headerIcons } from '../../ui/icons';
 import { externalLink, guildTag } from '../../ui/links';
+import { plunderCard } from '../../ui/plunder';
 import { pvpMarks } from '../../ui/pvp-marks';
 import type { PlunderItem, SabotageVm } from './view-model';
 
@@ -45,22 +47,29 @@ const pressKeys = (action: () => void) => (e: KeyboardEvent) => {
   action();
 };
 
-const plunderTable = (items: PlunderItem[], marks?: PlunderMarks) =>
-  html`<table>${items.map((p) => {
-    const loot = html`<td>${p.name}</td>
-      <td>${p.items.map((i) => html`${formatNumber(i.amount)} ${i.label}<br />`)}</td>`;
+/** the building's image in its own column, kept only while some row has one */
+const imageCell = (p: PlunderItem) =>
+  html`<td class="img">${p.image ? html`<img src=${p.image} alt="" loading="lazy" referrerpolicy="no-referrer" />` : ''}</td>`;
+
+const plunderTable = (items: PlunderItem[], marks?: PlunderMarks) => {
+  const images = items.some((p) => p.image);
+  return html`<table class="plunder-table">${items.map((p) => {
+    const loot = html`${images ? imageCell(p) : ''}<td><b>${p.name}</b><br />${p.items.map(
+      (i, n) => html`${n ? html`<br />` : ''}${formatNumber(i.amount)} ${i.label}`,
+    )}</td>`;
     const muted = p.important ? '' : ' muted';
     if (!marks) return html`<tr class=${muted.trim()}>${loot}</tr>`;
     const marked = marks.marked(p.building);
     const toggle = () => marks.toggle(p.building);
     return html`<tr class=${`plunder-row${muted}${marked ? ' marked' : ''}`} role="button" tabindex="0"
       aria-pressed=${String(marked)} data-tip=${t(marked ? 'sabotage.unmarkInGame' : 'sabotage.markInGame')}
-      @click=${toggle} @keydown=${pressKeys(toggle)}>${loot}</tr>`;
+      @click=${toggle} @keydown=${pressKeys(toggle)}>${loot}<td class="mark">${headerIcons.mapPin(marked)}</td></tr>`;
   })}</table>`;
+};
 
 function plunderedPart({ last, totals }: NonNullable<SabotageVm['plundered']>) {
   if (!last) return html`<p class="muted">${t('sabotage.neverPlundered')}</p>`;
-  return html`<p>${last.text}${last.doubleLoot ? html` <b>${t('plunder.doubleLoot')}</b>` : ''}<br />${totals}</p>`;
+  return html`<p class="muted">${t('sabotage.lastPlunder', { when: last.when })}</p>${plunderCard(last)}<p>${totals}</p>`;
 }
 
 function lastBattlePart({ when, result, details }: NonNullable<SabotageVm['lastBattle']>) {

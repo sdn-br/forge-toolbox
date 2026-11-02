@@ -1,12 +1,9 @@
-import { DOUBLE_LOOT_ICON_PATH } from '../../../../shared/cdn-assets';
-import type { BuildingDefId } from '../../../../shared/ids';
 import {
   type BattleResult,
   type BattleSummary,
   type BattleWithPlunder,
   type FoughtBattle,
   isFought,
-  type Plunder,
   type PlunderOutcome,
 } from '../../../../shared/model';
 import { formatWhen, t } from '../../../core/texts';
@@ -14,22 +11,9 @@ import type { ArmyValues } from '../../../domain/assess-city';
 import { measuredArmy } from '../../../domain/measured-army';
 import type { BattleDetailsVm } from '../../../ui/battle-details';
 import { battleDetails } from '../../shared/battle-details';
-import { formatBattleSummary, formatResourceLines, formatRounds } from '../../shared/pvp-format';
+import { type PlunderVm, plunderVm } from '../../shared/plunder';
+import { formatBattleSummary, formatRounds } from '../../shared/pvp-format';
 import { isFiltered, type ListVm, listVm, type OpponentVm, opponentVm, type ViewInput } from '../rows';
-
-/** the plunder a battle allowed, as its details show it */
-export interface PlunderVm {
-  /** time of the plunder like the battle's, "heute 14:01" or "01.11., 14:01": when loot was there, worth knowing */
-  when: string;
-  outcome: PlunderOutcome;
-  /** the catalog name, the game's id for an unknown building, "–" when the game named none */
-  building: string;
-  /** one line per resource, "1.220 Münzen"; empty when repelled */
-  loot: string[];
-  doubleLoot: boolean;
-  /** the game's Double Loot mark, shown beside the building; missing while the index is not known */
-  doubleLootIcon?: string;
-}
 
 export interface PvpRow extends OpponentVm {
   battleId: number;
@@ -80,24 +64,6 @@ const battleWhen = (b: BattleWithPlunder, now: number) =>
 function battleKind(b: FoughtBattle): string {
   if (b.auto) return t('pvp.auto');
   return formatRounds(b.rounds);
-}
-
-export function plunderVm(
-  p: Plunder,
-  building: (id: BuildingDefId) => string | undefined,
-  resourceName: (id: string) => string | undefined,
-  now: number,
-  assetUrl: (path: string) => string | undefined = () => undefined,
-): PlunderVm {
-  const icon = p.doubleLoot ? assetUrl(DOUBLE_LOOT_ICON_PATH) : undefined;
-  return {
-    when: formatWhen(p.at, now),
-    outcome: p.outcome,
-    building: p.cityEntityId === undefined ? '–' : (building(p.cityEntityId) ?? p.cityEntityId),
-    loot: p.outcome === 'repelled' ? [] : formatResourceLines(p.resources, resourceName),
-    doubleLoot: p.doubleLoot,
-    ...(icon && { doubleLootIcon: icon }),
-  };
 }
 
 export function battlesViewModel(
@@ -161,6 +127,6 @@ export function battlePanelVm(b: BattleWithPlunder, input: ViewInput): BattlePan
     ...(isFought(b) && {
       details: battleDetails(b, { measured: measuredArmy(b), withResult: false, unit: input.unit }),
     }),
-    ...(b.plunder && { plunder: plunderVm(b.plunder, input.building, input.resourceName, input.now, input.assetUrl) }),
+    ...(b.plunder && { plunder: plunderVm(b.plunder, input) }),
   };
 }

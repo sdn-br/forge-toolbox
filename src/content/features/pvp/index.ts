@@ -8,6 +8,7 @@ import { icons } from '../../ui/icons';
 import { PlayerNoteCard } from '../../ui/note-card';
 import { rowWindow } from '../../ui/windowed-rows';
 import { catalogUnits } from '../shared/battle-details';
+import { buildingImage } from '../shared/building-image';
 import { playerLookups, playerRowActions } from '../shared/player-lookups';
 import { createBattlesSection } from './battles/section';
 import { prunedBy, reselect } from './battles/selection';
@@ -113,6 +114,7 @@ export const pvpFeature: Feature = {
         resourceName: (id: string) => ctx.catalog.resourceName(id),
         unit: catalogUnits(ctx.catalog, ctx.assets),
         assetUrl: (path: string) => ctx.assets.url(path),
+        buildingImage: (id: BuildingDefId) => buildingImage(ctx.catalog, ctx.assets, id),
         note: (id: PlayerId) => ctx.notes.playerPage(id)?.text,
         now: Date.now(),
       };
