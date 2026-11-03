@@ -13,7 +13,7 @@ describe('notes view model', () => {
   });
 
   it('counts players without a known relation as none, also unknown ones', () => {
-    const off = { neighbor: false, friend: false, guildMember: false, none: false };
+    const off = { neighbor: false, friend: false, guildMember: false, invited: false, none: false };
     const none = { neighbor: false, guildMember: false, friend: false };
     expect(matchesRelation({ ...off, none: true }, undefined)).toBe(true);
     expect(matchesRelation({ ...off, none: true }, none)).toBe(true);
@@ -23,7 +23,7 @@ describe('notes view model', () => {
   });
 
   it('lets a player through when any of their relations is switched on', () => {
-    const off = { neighbor: false, friend: false, guildMember: false, none: false };
+    const off = { neighbor: false, friend: false, guildMember: false, invited: false, none: false };
     const both = { neighbor: true, guildMember: true, friend: false };
     expect(matchesRelation({ ...off, guildMember: true }, both)).toBe(true);
     expect(matchesRelation({ ...off, friend: true, none: true }, both)).toBe(false);

@@ -263,7 +263,7 @@ describe('totals line', () => {
 });
 
 describe('relation and filters of the own investments', () => {
-  const ALL_REACH = { neighbor: true, friend: true, guildMember: true, none: true };
+  const ALL_REACH = { neighbor: true, friend: true, guildMember: true, invited: true, none: true };
   const owners: Record<number, Relations | undefined> = {
     2001: { neighbor: true, friend: false, guildMember: true },
     2002: { neighbor: false, friend: false, guildMember: false },
@@ -338,9 +338,9 @@ describe('relation and filters of the own investments', () => {
   });
 
   it('keeps a row when one of its reasons is on', () => {
-    const guild = { neighbor: false, friend: false, guildMember: true, none: false };
+    const guild = { neighbor: false, friend: false, guildMember: true, invited: false, none: false };
     expect(names3(vm({ reach: guild }))).toEqual(['Anna', 'Carla']);
-    const none = { neighbor: false, friend: false, guildMember: false, none: true };
+    const none = { neighbor: false, friend: false, guildMember: false, invited: false, none: true };
     expect(names3(vm({ reach: none }))).toEqual(['Bert', 'Carla']);
   });
 
@@ -390,7 +390,7 @@ describe('relation and filters of the own investments', () => {
 });
 
 describe('ignored rows of the own investments', () => {
-  const ALL_REACH = { neighbor: true, friend: true, guildMember: true, none: true };
+  const ALL_REACH = { neighbor: true, friend: true, guildMember: true, invited: true, none: true };
   /** three rows with deposits 100, 200 and 300: the second building is ignored, the third owner too */
   const rows = [
     building({ owner: playerId(2001), entityId: 1, contribution: { rank: 1, forgePoints: 100, reward: 400, at: 1 } }),

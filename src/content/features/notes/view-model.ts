@@ -114,9 +114,9 @@ export interface NotesInput {
 
 const NO_RELATIONS: Relations = { neighbor: false, friend: false, guildMember: false };
 
-/** players without any known relation, also those the store does not know, count as `none` */
-export const matchesRelation = (filter: ReachFilter, r: Relations | undefined): boolean =>
-  passesReach(reasonsOf(r ?? NO_RELATIONS), filter);
+/** players without any known relation or open invitation, also those the store does not know, count as `none` */
+export const matchesRelation = (filter: ReachFilter, r: Relations | undefined, friendInvited = false): boolean =>
+  passesReach(reasonsOf(r ?? NO_RELATIONS, friendInvited), filter);
 
 /** a short piece of the plain text around the first match, or its start */
 export function snippet(text: string, query: string): string {
@@ -154,7 +154,13 @@ export function notesViewModel(input: NotesInput): NotesVm {
   let draftPlayer: PlayerId | undefined;
   if (playerGroup) {
     listed = pages.filter(
-      (p) => p.group === PLAYER_GROUP && matchesRelation(ui.relation, player(p.player as PlayerId)?.relations),
+      (p) =>
+        p.group === PLAYER_GROUP &&
+        matchesRelation(
+          ui.relation,
+          player(p.player as PlayerId)?.relations,
+          player(p.player as PlayerId)?.friendInvited,
+        ),
     );
     const selected = playerOfPage(ui.page);
     if (selected !== undefined && !pages.some((p) => p.player === selected)) draftPlayer = selected;

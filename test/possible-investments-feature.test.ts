@@ -184,7 +184,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
       player: '',
       name: 'zeus',
       profit: { with: true, without: true },
-      reach: { neighbor: true, friend: true, guildMember: true, none: true },
+      reach: { neighbor: true, friend: true, guildMember: true, invited: true, none: true },
       tier: { exact: true, safe: true, possible: true },
       mark: { marked: true, notMarked: true },
       showIgnored: false,
@@ -228,10 +228,14 @@ describe('Investitionen: Mögliche Investitionen', () => {
   });
 
   it.each([
-    [{ onlyReachable: true }, [true, true, true, false]],
-    [{ onlyReachable: false }, [true, true, true, true]],
-    [{ reach: { neighbor: false, friend: true, guildMember: false, none: true } }, [false, true, false, true]],
-    [{}, [true, true, true, false]],
+    [{ onlyReachable: true }, [true, true, true, true, false]],
+    [{ onlyReachable: false }, [true, true, true, true, true]],
+    [{ reach: { neighbor: false, friend: true, guildMember: false, none: true } }, [false, true, false, true, true]],
+    [
+      { reach: { neighbor: true, friend: true, guildMember: true, invited: false, none: false } },
+      [true, true, true, false, false],
+    ],
+    [{}, [true, true, true, true, false]],
   ])('reads the stored filter %j as the reason toggles %j', async (stored, pressed) => {
     vi.useFakeTimers({ toFake: ['Date'] });
     const env = featureContext({ now: () => Date.now() });
@@ -562,10 +566,11 @@ describe('Investitionen: Mögliche Investitionen', () => {
       ['Nachbar', 'true'],
       ['Freund', 'true'],
       ['Gilde', 'true'],
+      ['Freundschaftsanfrage', 'true'],
       ['keine Beziehung, nicht erreichbar', 'false'],
     ]);
     expect(toggles.every((b) => b.getAttribute('data-tip') === b.getAttribute('aria-label'))).toBe(true);
-    (toggles[3] as HTMLButtonElement).click();
+    (toggles[4] as HTMLButtonElement).click();
     await tick();
     expect(rows().map((r) => [cells(r)[2], r.className])).toEqual([
       ['keine', 'muted'],

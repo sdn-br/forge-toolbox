@@ -18,7 +18,7 @@ const def: GreatBuildingDef = { era: 'HighMiddleAge', levelCosts: Array(10).fill
 const DEF_ID = buildingDefId('X_HighMiddleAge_Landmark1');
 const OTHER_DEF = buildingDefId('X_Unknown_Landmark1');
 const ME = playerId(1);
-const EVERY = { neighbor: true, friend: true, guildMember: true, none: true };
+const EVERY = { neighbor: true, friend: true, guildMember: true, invited: true, none: true };
 /** both profit toggles on: rows with and without profit */
 const BOTH = { with: true, without: true };
 const ONLY_MARKED = { marked: true, notMarked: false };
@@ -256,7 +256,7 @@ describe('possibleViewModel', () => {
 
   it('keeps owners the player store does not know with every reason off', () => {
     delete relations[1001];
-    const off = { neighbor: false, friend: false, guildMember: false, none: false };
+    const off = { neighbor: false, friend: false, guildMember: false, invited: false, none: false };
     expect(vm([safe], { reach: off }).rows.map((r) => r.reasons[0])).toEqual(['unknown']);
   });
 
@@ -415,7 +415,7 @@ describe('possibleViewModel: ignored buildings and owners', () => {
   it('leaves the owner unknown to the store without an ignore state', () => {
     const [row] = vm([building({ owner: playerId(1999), entityId: 8, invested: 400 })], {
       showIgnored: true,
-      reach: { neighbor: true, friend: true, guildMember: true, none: true },
+      reach: { neighbor: true, friend: true, guildMember: true, invited: true, none: true },
     }).rows;
     expect(row?.ownerIgnored).toBeUndefined();
   });

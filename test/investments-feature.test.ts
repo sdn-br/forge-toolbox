@@ -618,6 +618,36 @@ describe('Investitionen: Beziehung in Meine Investitionen', () => {
     expect(cell.querySelectorAll('svg')).toHaveLength(2);
   });
 
+  it('shows an owner with only an open friend invitation by the "Freundschaftsanfrage" toggle, not by "keine"', async () => {
+    const { box, send, rows, cells } = setup({ reachNone: false });
+    const owner = { player_id: 2005, name: 'Eigentümer 2005' };
+    send({
+      requestClass: 'OtherPlayerService',
+      requestMethod: 'getSocialList',
+      requestData: null,
+      responseData: { friends: [{ ...owner, isInvitedFriend: true }], neighbours: [], guildMembers: [] },
+    } as Entry);
+    send(contributions.contributions as Entry);
+    await tick();
+    const toggles = () => [...box.root.querySelectorAll('.inv-reach-filter button')] as HTMLButtonElement[];
+    const shown = () => rows().filter((r) => cells(r)[1] === 'Eigentümer 2005');
+    expect(toggles()[3]?.getAttribute('aria-label')).toBe('Freundschaftsanfrage');
+    expect(shown().length).toBeGreaterThan(0);
+    expect(((shown()[0] as Element).querySelectorAll('td')[2] as HTMLElement).dataset.tip).toBe(
+      'keine Beziehung, nicht erreichbar, Freundschaftsanfrage',
+    );
+    toggles()[3]?.click();
+    await tick();
+    expect(shown()).toHaveLength(0);
+    // "keine" alone does not bring him back: an invitation is not "no invitation"
+    toggles()[4]?.click();
+    await tick();
+    expect(shown()).toHaveLength(0);
+    toggles()[3]?.click();
+    await tick();
+    expect(shown().length).toBeGreaterThan(0);
+  });
+
   it('hides an owner out of reach by default and draws him muted, with "keine", once the filter lets him in', async () => {
     const { box, send, rows, cells } = setup({ reachNone: false });
     send(SOCIAL([2005, 2006]));
@@ -631,9 +661,10 @@ describe('Investitionen: Beziehung in Meine Investitionen', () => {
       ['Nachbar', 'true'],
       ['Freund', 'true'],
       ['Gilde', 'true'],
+      ['Freundschaftsanfrage', 'true'],
       ['keine Beziehung, nicht erreichbar', 'false'],
     ]);
-    (toggles[3] as HTMLButtonElement).click();
+    (toggles[4] as HTMLButtonElement).click();
     await tick();
     expect(rows()).toHaveLength(12);
     const out = rows().filter((r) => cells(r)[1] === 'Eigentümer 2006');
@@ -656,7 +687,7 @@ describe('Investitionen: Beziehung in Meine Investitionen', () => {
     expect(players.get(playerId(2004))).toBeUndefined();
     // the unknown owner always passes the filter; the owners from the list wait for "keine"
     expect(rows().map((r) => cells(r).slice(1, 3))).toEqual([['2004', 'unbekannt']]);
-    (box.root.querySelectorAll('.inv-reach-filter button')[3] as HTMLButtonElement).click();
+    (box.root.querySelectorAll('.inv-reach-filter button')[4] as HTMLButtonElement).click();
     await tick();
     expect(rows()).toHaveLength(12);
     expect(cells(rows().find((r) => cells(r)[1] === 'Eigentümer 2005'))[2]).toBe('keine');
@@ -761,7 +792,8 @@ describe('Investitionen: Filter in Meine Investitionen', () => {
     const pressed = (sel: string) =>
       [...root.querySelectorAll(`${sel} button`)].map((b) => b.getAttribute('aria-pressed'));
     expect(pressed('.inv-status-filter')).toEqual(['false', 'true', 'true']);
-    expect(pressed('.inv-reach-filter')).toEqual(['true', 'true', 'true', 'true']);
+    // a stored filter without `invited` reads it as on
+    expect(pressed('.inv-reach-filter')).toEqual(['true', 'true', 'true', 'true', 'true']);
     // the former "nur gemerkte" on: only the marked ones
     expect(pressed('.inv-marked-filter')).toEqual(['true', 'false']);
     const broken = open('{nope');
@@ -770,7 +802,7 @@ describe('Investitionen: Filter in Meine Investitionen', () => {
       [...broken.querySelectorAll('.inv-status-filter button')].map((b) => b.getAttribute('aria-pressed')),
     ).toEqual(['true', 'true', 'true']);
     expect([...broken.querySelectorAll('.inv-reach-filter button')].map((b) => b.getAttribute('aria-pressed'))).toEqual(
-      ['true', 'true', 'true', 'false'],
+      ['true', 'true', 'true', 'true', 'false'],
     );
   });
 
