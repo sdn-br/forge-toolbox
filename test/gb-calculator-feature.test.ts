@@ -855,7 +855,11 @@ describe('LG-Rechner: ignorierte LGs und Spieler', () => {
       requestClass: 'OtherPlayerService',
       requestMethod: 'getSocialList',
       requestData: null,
-      responseData: { friends: [{ player_id: 1001, name: 'Eigentümer 1001' }], neighbours: [], guildMembers: [] },
+      responseData: {
+        friends: [{ player_id: 1001, name: 'Eigentümer 1001', is_friend: true }],
+        neighbours: [],
+        guildMembers: [],
+      },
     });
   const warning = (box: { root: ParentNode }) => box.root.querySelector('p.ignore-warning');
   const headerEye = (box: { root: ParentNode }, kind: 'building' | 'player') =>

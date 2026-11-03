@@ -352,6 +352,17 @@ export function toNewFriend(data: unknown): PlayerObservation | null {
   return { ...rest, ...(typeof p.score === 'number' && { score }), ...(typeof p.rank === 'number' && { rank }) };
 }
 
+/**
+ * The player of an own friend invitation, from the answer to `FriendService.invitePlayerById` (recorded 2026-11-03):
+ * the player with `isInvitedFriend`, `is_neighbor` and score and rank.
+ */
+export function toInvitedFriend(data: unknown): { player: PlayerObservation; neighbor: boolean } | null {
+  const p = data as GamePlayer | null;
+  if (!p || typeof p !== 'object' || p.isInvitedFriend !== true) return null;
+  const player = toObservation(p);
+  return player && { player, neighbor: p.is_neighbor === true };
+}
+
 /** The player of a deleted friendship: the response is the bare player id (recorded 2026-10-25). */
 export function toFormerFriend(data: unknown): PlayerId | null {
   return typeof data === 'number' && Number.isInteger(data) && data > 0 ? playerId(data) : null;

@@ -260,6 +260,10 @@ export const headerIcons = {
   friend: headerIcon(
     svg`<circle cx="8.3" cy="7" r="3"/><path d="M2.5 18.5c0-3.6 2.4-6 5.8-6 1 0 1.9.2 2.7.6"/><circle cx="15.6" cy="10" r="3.2"/><path d="M9.6 21.5c0-3.6 2.6-6 6-6s6 2.4 6 6"/>`,
   ),
+  /** the friend with a small clock in the accent colour at the bottom right: a friend invitation, not accepted yet */
+  friendInvited: headerIcon(
+    svg`<circle cx="8.3" cy="7" r="3"/><path d="M2.5 18.5c0-3.6 2.4-6 5.8-6 1 0 1.9.2 2.7.6"/><circle cx="15.6" cy="8.5" r="3.2"/><path d="M10 18c.4-1.6 1.4-2.8 2.8-3.4"/><g class="acc" stroke-width="1.8"><circle cx="18" cy="18" r="4.3" fill="var(--bg)"/><path d="M18 15.6V18l1.5 1"/></g>`,
+  ),
   /** the whole heraldic shield: a guild member (the sabotage shield is broken in two) */
   guild: headerIcon(svg`<path d="M5 4h14v7.2c0 4.6-3 7.8-7 9.3-4-1.5-7-4.7-7-9.3Z"/>`),
   /** a clock: a promised payment, not paid yet */

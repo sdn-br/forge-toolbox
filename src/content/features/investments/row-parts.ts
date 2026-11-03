@@ -2,7 +2,7 @@
 // adding only its own columns and filters.
 import { html, type TemplateResult } from 'lit-html';
 import { sameName, type TextKey, t } from '../../core/texts';
-import type { Reach, ReachFilter } from '../../domain/reach';
+import { leadReason, type Reach, type ReachFilter } from '../../domain/reach';
 import { growthTag, progressCell } from '../../ui/fp-bar';
 import { headerIcons } from '../../ui/icons';
 import { buildingCell, ignoredFilter, rowTip } from '../../ui/ignore';
@@ -10,7 +10,7 @@ import { searchField } from '../../ui/inputs';
 import { externalLink } from '../../ui/links';
 import { ownerMarks } from '../../ui/owner-line';
 import { pickButton } from '../../ui/pick';
-import { RELATION_ICONS, relationToggles } from '../../ui/relations';
+import { relationToggles, TOGGLE_ICONS } from '../../ui/relations';
 import { type Sort, type SortColumn, sortHeads } from '../../ui/sortable';
 import { markCell, markedFilter } from '../../ui/star';
 import { type RowWindow, windowedRows } from '../../ui/windowed-rows';
@@ -19,10 +19,9 @@ import type { CommonFilter, CommonRowVm, NamedColumn, RowActions } from './rows'
 
 /** an icon per reason; out of reach and unknown stay words */
 const reachCell = (reasons: Reach[]) => {
-  const [first] = reasons;
-  return first === 'none' || first === 'unknown'
-    ? t(`investments.reach.${first}`)
-    : reasons.map((reason) => RELATION_ICONS[reason as keyof typeof RELATION_ICONS]);
+  const lead = leadReason(reasons);
+  const icons = reasons.flatMap((r) => (r === 'none' || r === 'unknown' ? [] : [TOGGLE_ICONS[r]]));
+  return lead === 'none' || lead === 'unknown' ? [t(`investments.reach.${lead}`), ...icons] : icons;
 };
 
 /** one toggle per reason, any switched on lets a row through */
@@ -66,7 +65,7 @@ export const LEAD_COLUMNS: SortColumn<LeadColumn>[] = [
 ];
 
 /** out of reach or ignored rows are drawn muted */
-export const isMuted = (r: CommonRowVm) => r.reasons[0] === 'none' || r.ignoreNote !== undefined;
+export const isMuted = (r: CommonRowVm) => leadReason(r.reasons) === 'none' || r.ignoreNote !== undefined;
 
 /** the cells of the lead columns; "x / y" of the level with the thin bar below, the growth beside it explained by
  * `growthHint` */

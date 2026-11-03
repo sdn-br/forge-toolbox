@@ -3,6 +3,9 @@ export const sabotageCss = `
 /* head and tab bar stay on top of the one scrolling body; the body's padding (6px 8px) is taken back by the margin */
 .visit-top { position: sticky; top: -6px; z-index: 2; margin: -6px -8px 0; padding: 6px 8px 0; background: var(--bg); }
 .visit-top p { margin: 0 0 4px; }
+/* the invitation icon in the box of the PvP mark buttons beside it, so all icons share one middle */
+.visit-name .rel-icons { display: inline-grid; place-items: center; width: 18px; height: 18px; vertical-align: middle; }
+.visit-name .rel-icons svg { display: block; margin: 0; }
 .visit-name { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
 button.note-icon { all: unset; cursor: pointer; flex: none; width: 18px; height: 18px; display: grid; place-items: center;
   color: var(--accent); }

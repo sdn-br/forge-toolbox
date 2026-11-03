@@ -32,6 +32,7 @@ import {
   toIncoming,
   toInventory,
   toInventoryItem,
+  toInvitedFriend,
   toItemAmount,
   toItemUpdates,
   toLimitedBonuses,
@@ -61,6 +62,7 @@ import type {
   GameEvent,
   GameEventPage,
   GameGreatBuildingConstruction,
+  GamePlayer,
   GameSocialList,
   GameStartup,
   GameVisit,
@@ -75,6 +77,10 @@ export type GameHandlerDeps = Stores & {
 
 const observations = (list: unknown) =>
   (Array.isArray(list) ? list : []).map(toObservation).filter((o): o is PlayerObservation => o !== null);
+
+/** the entries of a list that pass `keep`, as observations */
+const observationsWhere = (list: unknown, keep: (p: GamePlayer) => boolean) =>
+  observations((Array.isArray(list) ? list : []).filter((p) => p && typeof p === 'object' && keep(p)));
 
 /** For sources that carry the whole player: a missing timer field there clears what the store knows. */
 const withAttack = (list: unknown, now: number) =>
@@ -124,7 +130,10 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     players.applySocialList(world, {
       neighbor: withAttack(d.neighbours, now()),
       guildMember: observations(d.guildMembers),
-      friend: observations(d.friends),
+      // the list of friends holds the own pending invitations too (`isInvitedFriend`, no `is_friend`, recorded
+      // 2026-11-03): only `is_friend` makes a friend, an invitation is a flag of its own
+      friend: observationsWhere(d.friends, (p) => p.is_friend === true),
+      invited: observationsWhere(d.friends, (p) => p.is_friend !== true && p.isInvitedFriend === true),
     });
   });
 
@@ -134,6 +143,10 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   ingestion.on('FriendService', 'acceptInvitation', ({ data }) => {
     const friend = toNewFriend(data);
     if (friend) players.addFriend(world, friend);
+  });
+  ingestion.on('FriendService', 'invitePlayerById', ({ data }) => {
+    const invited = toInvitedFriend(data);
+    if (invited) players.addInvitation(world, invited.player, invited.neighbor);
   });
   ingestion.on('FriendService', 'deleteFriend', ({ data }) => {
     const id = toFormerFriend(data);

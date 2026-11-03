@@ -6,6 +6,7 @@ export const playerLookups = (change: Partial<PvpPlayerLookups> = {}): PvpPlayer
   playerUrl: (id) => `https://foestats.com/de/de20/players/${id}`,
   playerGuild: () => undefined,
   relations: () => undefined,
+  friendInvited: () => false,
   playerMarked: () => undefined,
   ownerIgnored: () => undefined,
   plunderWorthy: () => undefined,

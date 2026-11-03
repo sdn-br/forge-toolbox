@@ -96,6 +96,8 @@ export interface GamePlayer {
   clan?: GameClan;
   is_neighbor?: boolean;
   is_friend?: boolean;
+  /** the entry of the social list is an own friend invitation that is not accepted yet; such an entry has no `is_friend` */
+  isInvitedFriend?: boolean;
   is_guild_member?: boolean;
   canSabotage?: boolean;
   next_interaction_in?: number;

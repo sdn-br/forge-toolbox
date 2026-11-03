@@ -11,6 +11,8 @@ export interface PlayerLookups extends OwnerLookups {
   playerName(id: PlayerId): string | undefined;
   /** undefined for a player the player store does not know */
   relations(id: PlayerId): Relations | undefined;
+  /** whether the session player's friend invitation to the player is still open; false for an unknown player */
+  friendInvited(id: PlayerId): boolean;
 }
 
 /** the lookups of the PvP features, with the two PvP marks the great building features do not use */
@@ -30,6 +32,7 @@ export const playerLookups = (ctx: FeatureContext): PvpPlayerLookups => ({
     return guild && { name: guild.name, url: foestatsGuildUrl(ctx.world, guild.id) };
   },
   relations: (id) => ctx.players.get(id)?.relations,
+  friendInvited: (id) => ctx.players.get(id)?.friendInvited === true,
   playerMarked: (id) => ctx.players.marked(id),
   ownerIgnored: (id) => ctx.players.ignored(id),
   plunderWorthy: (id) => ctx.players.plunderWorthy(id),

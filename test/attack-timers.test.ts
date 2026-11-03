@@ -59,7 +59,11 @@ describe('attack timers of players', () => {
     const { players, send, update } = setup();
     update({ player_id: 1, next_interaction_in: 3600, canSabotage: true });
     send('OtherPlayerService', 'visitPlayer', { other_player: { player_id: 1, name: 'Visited' }, city_map: {} });
-    send('OtherPlayerService', 'getSocialList', { neighbours: [], friends: [{ player_id: 1 }], guildMembers: [] });
+    send('OtherPlayerService', 'getSocialList', {
+      neighbours: [],
+      friends: [{ player_id: 1, is_friend: true }],
+      guildMembers: [],
+    });
     expect(attackOf(players, 1)).toEqual({ canPlunder: true, nextInteractionAt: NOW + 3_600_000 });
   });
 

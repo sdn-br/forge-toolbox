@@ -41,6 +41,8 @@ export interface RowVm {
   renaming: boolean;
   /** the relations of a player page, drawn as icons; missing for other pages and unknown players */
   relations?: Relations;
+  /** the friend invitation to the player is still open; drawn after the relations */
+  friendInvited?: boolean;
   /** a player page that exists only as the selection, not stored yet */
   draft: boolean;
 }
@@ -53,6 +55,8 @@ export interface PlayerVm {
   guild?: { name: string; url: string };
   /** drawn as icons; missing for a player the store does not know */
   relations?: Relations;
+  /** the friend invitation is open, drawn as an icon after the relations */
+  friendInvited?: boolean;
 }
 
 export interface PageVm {
@@ -110,9 +114,9 @@ export interface NotesInput {
 
 const NO_RELATIONS: Relations = { neighbor: false, friend: false, guildMember: false };
 
-/** players without any known relation, also those the store does not know, count as `none` */
-export const matchesRelation = (filter: ReachFilter, r: Relations | undefined): boolean =>
-  passesReach(reasonsOf(r ?? NO_RELATIONS), filter);
+/** players without any known relation or open invitation, also those the store does not know, count as `none` */
+export const matchesRelation = (filter: ReachFilter, r: Relations | undefined, friendInvited = false): boolean =>
+  passesReach(reasonsOf(r ?? NO_RELATIONS, friendInvited), filter);
 
 /** a short piece of the plain text around the first match, or its start */
 export function snippet(text: string, query: string): string {
@@ -124,7 +128,8 @@ export function snippet(text: string, query: string): string {
 }
 
 /** `{ relations }` of a known player, for a row or the page head; nothing for an unknown one */
-const relationsOf = (p: Player | undefined) => (p ? { relations: p.relations } : {});
+const relationsOf = (p: Player | undefined) =>
+  p ? { relations: p.relations, ...(p.friendInvited && { friendInvited: true }) } : {};
 
 export function notesViewModel(input: NotesInput): NotesVm {
   const { ui, groups, pages, player, now } = input;
@@ -149,7 +154,13 @@ export function notesViewModel(input: NotesInput): NotesVm {
   let draftPlayer: PlayerId | undefined;
   if (playerGroup) {
     listed = pages.filter(
-      (p) => p.group === PLAYER_GROUP && matchesRelation(ui.relation, player(p.player as PlayerId)?.relations),
+      (p) =>
+        p.group === PLAYER_GROUP &&
+        matchesRelation(
+          ui.relation,
+          player(p.player as PlayerId)?.relations,
+          player(p.player as PlayerId)?.friendInvited,
+        ),
     );
     const selected = playerOfPage(ui.page);
     if (selected !== undefined && !pages.some((p) => p.player === selected)) draftPlayer = selected;

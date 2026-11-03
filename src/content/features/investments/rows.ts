@@ -5,7 +5,15 @@ import type { TemplateResult } from 'lit-html';
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import type { FeatureContext } from '../../core/feature';
 import { formatNumber, t, textFilter } from '../../core/texts';
-import { ALL_REACH, passesReach, REACH_ORDER, type Reach, type ReachFilter, reasonsOf } from '../../domain/reach';
+import {
+  ALL_REACH,
+  leadReason,
+  passesReach,
+  REACH_ORDER,
+  type Reach,
+  type ReachFilter,
+  reasonsOf,
+} from '../../domain/reach';
 import type { Box } from '../../ui/box';
 import { type ProgressVm, progressVm } from '../../ui/fp-bar';
 import { ignoreNote } from '../../ui/ignore';
@@ -15,13 +23,20 @@ import { prefRecord } from '../../ui/ui-state';
 import type { RowWindow } from '../../ui/windowed-rows';
 import { type GbLookups, type GbRowActions, gbRowActions } from '../shared/gb-lookups';
 
-/** the first three on: what the former checkbox "only reachable" meant */
-export const DEFAULT_REACH: ReachFilter = { neighbor: true, friend: true, guildMember: true, none: false };
+/** all but none on: the relations as the former checkbox "only reachable" meant, and the open invitation */
+export const DEFAULT_REACH: ReachFilter = {
+  neighbor: true,
+  friend: true,
+  guildMember: true,
+  invited: true,
+  none: false,
+};
 
 /** every reason as words, or why there is none */
 export const reachTip = (reasons: Reach[]) => {
-  const [first] = reasons;
-  if (first === 'none' || first === 'unknown') return t(`investments.reachHint.${first}`);
+  const lead = leadReason(reasons);
+  const invited = reasons.includes('invited') ? [t('investments.reach.invited')] : [];
+  if (lead === 'none' || lead === 'unknown') return [t(`investments.reachHint.${lead}`), ...invited].join(', ');
   return reasons.map((r) => t(`investments.reach.${r}`)).join(', ');
 };
 
@@ -116,7 +131,7 @@ export const rowNames = (input: GbLookups, b: RowBuilding): RowNames => ({
   ownerName: input.playerName(b.owner) ?? String(b.owner),
   ...guildName(input.playerGuild(b.owner)),
   name: input.greatBuildingName(b.cityEntityId) ?? b.cityEntityId,
-  reasons: reasonsOf(input.relations(b.owner)),
+  reasons: reasonsOf(input.relations(b.owner), input.friendInvited(b.owner)),
   marked: input.isMarked(b.owner, b.entityId),
   ownerMarked: input.playerMarked(b.owner) === true,
   ignored: input.isIgnored(b.owner, b.entityId),
@@ -140,7 +155,7 @@ export type NamedColumn = 'mark' | 'owner' | 'reach' | 'name';
 export const namedSortKeys = <R extends RowNames>(): Record<NamedColumn, (r: R) => number | string> => ({
   mark: (r) => Number(r.marked),
   owner: (r) => r.ownerName,
-  reach: (r) => REACH_ORDER.indexOf(r.reasons[0] as Reach),
+  reach: (r) => REACH_ORDER.indexOf(leadReason(r.reasons)),
   name: (r) => r.name,
 });
 
