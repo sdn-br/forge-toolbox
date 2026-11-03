@@ -69,7 +69,8 @@ export const investmentsFeature: Feature = {
      * debt: kept by hand. ceiling: a filter row or the totals line (with its ignored note) that wraps (a narrow box, the long hint without a town hall list), other
      * fonts or a changed padding need more. upgrade: measure the fixed parts in the box once a second box needs it */
     const MIN_HEIGHT = 275;
-    const WIDTH = 850;
+    // until 2026-11-03 (profit per Forge point) 850
+    const WIDTH = 906;
 
     const render = () => {
       const frame = { lookups, visible: fit.rows(), now: Date.now(), revision };

@@ -187,6 +187,20 @@ export function snipeBuilding(b: KnownGreatBuilding, def: GreatBuildingDef | und
 /** sorts by the best case, the worst case breaking ties */
 export const snipeProfitKey = (h: SnipeHit) => h.profitHigh * 1e9 + h.profitLow;
 
+const perFp = (p: SnipePlace) => p.profit / p.cost;
+
+/**
+ * Profit per Forge point paid in, of the best case (`high`, the place of `profitHigh`) and of the worst case (`low`):
+ * 20 profit on 100 paid in is 0.2. Like `profitLow`, without a paying place in the worst case it starts at nothing
+ * gained, or at the loss of the one place; equal when exact.
+ */
+export function snipeRatio(h: SnipeHit): { low: number; high: number } {
+  const place = perFp(h.place);
+  if (h.profitLow === h.profitHigh) return { low: place, high: place };
+  const low = h.worst ? perFp(h.worst) : Math.min(0, place);
+  return { low: Math.min(low, place), high: Math.max(low, place) };
+}
+
 /** the best profit first, by `snipeProfitKey` */
 export const bySnipeProfit = (a: SnipeHit, b: SnipeHit) => snipeProfitKey(b) - snipeProfitKey(a);
 

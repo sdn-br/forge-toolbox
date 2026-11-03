@@ -133,21 +133,22 @@ describe('Investitionen: Mögliche Investitionen', () => {
       'Platz',
       'Einsatz',
       'Gewinn',
+      'Gewinn je eingesetztem FP',
       'Sicherheit',
       'Stand',
     ]);
-    // the best profit on top; place, stake and profit as in the snipe helper
+    // the best profit on top; place, stake, profit and profit per Forge point as in the snipe helper
     const mine = rows().map((r) => cells(r));
     const helper = rows(snipe).map((r) => cells(r));
     expect(mine.map((c) => c[3])).toEqual(['Orakel von Delphi', 'Zeusstatue']);
     for (const c of mine) {
       const same = helper.find((h) => h[2] === c[3]);
-      expect(c.slice(7, 10)).toEqual(same?.slice(5, 8));
+      expect(c.slice(7, 11)).toEqual(same?.slice(5, 9));
     }
     expect(mine[0]?.[1]).toBe('Eigentümer 1001');
     // the owners are known only from their lists: the player store has them, without a relation
     expect(mine[0]?.[2]).toBe('keine');
-    expect(mine[0]?.[11]).toBe('vor 1 Min.');
+    expect(mine[0]?.[12]).toBe('vor 1 Min.');
     const tier = rows()[0]?.querySelector('td.snipe-tier');
     expect(tier?.getAttribute('aria-label')).toContain('sicher');
     expect(tier?.querySelector('svg')).not.toBeNull();
@@ -510,7 +511,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     await tick();
     vi.setSystemTime(Date.now() + 3 * 60 * MINUTE + 40 * MINUTE);
     await showPossible();
-    expect(cells(rows()[0])[11]).toBe('vor 3 Std.');
+    expect(cells(rows()[0])[12]).toBe('vor 3 Std.');
     expect(box.text).not.toContain('40 Min.');
   });
 

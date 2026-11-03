@@ -30,6 +30,7 @@ export type PossibleColumn =
   | 'rank'
   | 'cost'
   | 'profit'
+  | 'ratio'
   | 'tier'
   | 'seen';
 
@@ -47,6 +48,7 @@ export const POSSIBLE_DESC_FIRST: ReadonlySet<PossibleColumn> = new Set([
   'rank',
   'cost',
   'profit',
+  'ratio',
   'tier',
   'seen',
 ]);

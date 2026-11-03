@@ -113,8 +113,9 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         css: gbCalculatorCss,
         settings: 'gbCalc.title',
         title: () => t('gbCalc.title'),
-        // the snipe table: fixed columns of 518 px and the building name with its 16 px eye; until 2026-10-25 a CSS cap held fixed boxes at 520 px
-        width: 618,
+        // the snipe table: fixed columns of 574 px and the building name with its 16 px eye; until 2026-10-25 a CSS cap held
+        // fixed boxes at 520 px, until 2026-11-03 (profit per Forge point) 618 px
+        width: 674,
         // 6 table rows, the section and the calculator fit without the body scrolling on a normal window
         maxHeight: 0.92,
         render: () => {

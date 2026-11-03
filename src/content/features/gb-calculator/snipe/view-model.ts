@@ -11,7 +11,17 @@ import { clampTop, type RowWindow, rowWindow } from '../../../ui/windowed-rows';
 import { activityVm } from '../../shared/activity';
 import type { GbCalcLookups } from '../lookups';
 
-export type SnipeColumn = 'order' | 'name' | 'level' | 'progress' | 'rank' | 'cost' | 'profit' | 'tier' | 'mark';
+export type SnipeColumn =
+  | 'order'
+  | 'name'
+  | 'level'
+  | 'progress'
+  | 'rank'
+  | 'cost'
+  | 'profit'
+  | 'ratio'
+  | 'tier'
+  | 'mark';
 
 export type SnipeSort = Sort<SnipeColumn>;
 
@@ -25,6 +35,7 @@ export const SNIPE_DESC_FIRST: ReadonlySet<SnipeColumn> = new Set([
   'rank',
   'cost',
   'profit',
+  'ratio',
   'tier',
   'mark',
 ]);

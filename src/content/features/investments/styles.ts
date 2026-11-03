@@ -11,7 +11,7 @@ const SEEN = 72;
 const NAMES = 122 + 116;
 const MINE_FIXED = hit.mark + REACH + hit.level + MINE_PROGRESS + hit.rank + DEPOSIT + hit.profit + hit.icon;
 const POSSIBLE_FIXED =
-  hit.mark + REACH + hit.level + hit.progress + SHARE + hit.rank + hit.cost + hit.profit + hit.icon + SEEN;
+  hit.mark + REACH + hit.level + hit.progress + SHARE + hit.rank + hit.cost + hit.profit + hit.ratio + hit.icon + SEEN;
 
 export const investmentsCss = `
 /* investments: fixed columns so heads show whole; owner and building names give way. The box can be resized: the

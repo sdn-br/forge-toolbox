@@ -540,6 +540,7 @@ describe('Snipehilfe: stacked box', () => {
       'Platz',
       'Einsatz',
       'Gewinn',
+      'Gewinn je eingesetztem FP',
       'Sicherheit',
     ]);
     // the lighthouse has no loaded definition: unknown reward; the others pay a place
@@ -771,7 +772,7 @@ describe('Snipehilfe: stacked box', () => {
       list(many(10));
       await tick();
       expect(places(rows, cells)).toEqual([1, 2, 3, 4, 5, 6]);
-      expect(box.root.querySelectorAll('thead th').length).toBe(9);
+      expect(box.root.querySelectorAll('thead th').length).toBe(10);
       expect(hiddenLine(box)).toBe('noch 4 weitere unten');
       expect(button(box, 'Nach oben').getAttribute('aria-disabled')).toBe('true');
       expect(button(box, 'Nach unten').getAttribute('aria-disabled')).toBe('false');
