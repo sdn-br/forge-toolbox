@@ -173,7 +173,7 @@ export const hitColumnsCss = `
 :is(.snipe-table, .inv-table) .c-level { width: ${w.level}px; }
 :is(.snipe-table, .inv-table) .c-rank { width: ${w.rank}px; }
 :is(.snipe-table, .inv-table) .c-profit { width: ${w.profit}px; }
-:is(.snipe-table, .inv-possible) .c-ratio { width: ${w.ratio}px; }
+:is(.snipe-table, .inv-table) .c-ratio { width: ${w.ratio}px; }
 :is(.snipe-table, .inv-table) :is(.c-tier, .c-status) { width: ${w.icon}px; }
 :is(.snipe-table, .inv-possible) .c-progress { width: ${w.progress}px; }
 :is(.snipe-table, .inv-possible) .c-cost { width: ${w.cost}px; }

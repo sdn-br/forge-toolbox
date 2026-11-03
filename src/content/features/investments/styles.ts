@@ -9,7 +9,8 @@ const SHARE = 50;
 const SEEN = 72;
 /** the least room for the names: 122 px for the owner (name, star, eye, funnel), 116 px for the building (name, eye) */
 const NAMES = 122 + 116;
-const MINE_FIXED = hit.mark + REACH + hit.level + MINE_PROGRESS + hit.rank + DEPOSIT + hit.profit + hit.icon;
+const MINE_FIXED =
+  hit.mark + REACH + hit.level + MINE_PROGRESS + hit.rank + DEPOSIT + hit.profit + hit.ratio + hit.icon;
 const POSSIBLE_FIXED =
   hit.mark + REACH + hit.level + hit.progress + SHARE + hit.rank + hit.cost + hit.profit + hit.ratio + hit.icon + SEEN;
 

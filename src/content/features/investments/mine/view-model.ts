@@ -1,4 +1,4 @@
-import { formatAge, formatNumber, signed, t } from '../../../core/texts';
+import { formatAge, formatNumber, formatRatio, signed, t } from '../../../core/texts';
 import {
   type Investment,
   type InvestmentStatus,
@@ -31,6 +31,7 @@ export type InvestmentColumn =
   | 'rank'
   | 'deposit'
   | 'profit'
+  | 'ratio'
   | 'status'
   | 'progress';
 
@@ -57,13 +58,22 @@ export const DEFAULT_MINE_FILTER: MineFilter = {
 /** without a level the rows keep the default order (growth first, then the rest to the level up ascending) */
 export type InvestmentSort = Sort<InvestmentColumn>;
 
-/** names, places, status and progress (nearest level up) read from the top, deposit, profit and level from the largest */
-export const INVESTMENT_DESC_FIRST: ReadonlySet<InvestmentColumn> = new Set(['mark', 'deposit', 'profit', 'level']);
+/** names, places, status and progress (nearest level up) read from the top, deposit, profit, its ratio and level from
+ * the largest */
+export const INVESTMENT_DESC_FIRST: ReadonlySet<InvestmentColumn> = new Set([
+  'mark',
+  'deposit',
+  'profit',
+  'ratio',
+  'level',
+]);
 
 export interface InvestmentRowVm extends CommonRowVm {
   rank: number;
   deposit: string;
   profit: string;
+  /** profit per Forge point paid in, "0,20"; "–" without a deposit */
+  ratio: string;
   gross: string;
   status: InvestmentStatus;
   /** "44" when others paid in since the building was last open or, never opened, since the first town hall list */
@@ -117,12 +127,19 @@ export type Named = Investment &
     counted: boolean;
   };
 
+/** profit per Forge point of the own deposit; undefined without a deposit */
+const profitRatio = (r: { profit: number; forgePoints: number }) =>
+  r.forgePoints > 0 ? r.profit / r.forgePoints : undefined;
+
+const ratioText = (ratio: number | undefined) => (ratio === undefined ? '–' : formatRatio(ratio));
+
 const sortKey: Record<InvestmentColumn, (r: Named) => number | string> = {
   ...namedSortKeys<Named>(),
   level: (r) => r.level,
   rank: (r) => r.rank,
   deposit: (r) => r.forgePoints,
   profit: (r) => r.profit,
+  ratio: (r) => profitRatio(r) ?? Number.NEGATIVE_INFINITY,
   status: (r) => STATUS_ORDER[r.status],
   // the bar fills towards the level up: the least rest is the most progress
   progress: (r) => r.rest,
@@ -195,6 +212,7 @@ export function investmentsViewModel(input: InvestmentsInput, rows: MineRows = m
       rank: r.rank,
       deposit: formatNumber(r.forgePoints),
       profit: signed(r.profit),
+      ratio: ratioText(profitRatio(r)),
       gross: formatNumber(r.gross),
       status: r.status,
     })),

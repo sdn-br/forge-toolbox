@@ -30,6 +30,7 @@ const columns: SortColumn<InvestmentColumn>[] = [
   { column: 'rank', label: 'gb.col.rank', num: true },
   { column: 'deposit', label: 'investments.col.deposit', num: true },
   { column: 'profit', label: 'gb.col.profit', num: true, icon: headerIcons.profit },
+  { column: 'ratio', label: 'gb.col.ratio', num: true, icon: headerIcons.profitRatio },
   { column: 'status', label: 'investments.col.status', num: false, icon: headerIcons.info },
 ];
 
@@ -40,6 +41,7 @@ const row = (r: InvestmentRowVm, playerField: string, actions: InvestmentsAction
   <td class="num">${t('gb.rank', { rank: r.rank })}</td>
   <td class="num">${r.deposit}</td>
   <td class="num" data-tip=${t('investments.profitHint', { gross: r.gross })}>${r.profit}</td>
+  <td class="num">${r.ratio}</td>
   <td class=${`inv-status ${r.status}`} data-tip=${status} aria-label=${status}>${statusIcon[r.status]}</td>
 </tr>`;
 };
