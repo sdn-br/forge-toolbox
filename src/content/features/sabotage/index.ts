@@ -10,7 +10,7 @@ import { icons } from '../../ui/icons';
 import { PlayerNoteCard } from '../../ui/note-card';
 import { playerLookups, playerRowActions } from '../shared/player-lookups';
 import { sabotageCss } from './styles';
-import { type PlunderMarks, sabotageView } from './view';
+import { type PlunderMarks, type SabotageTab, type SabotageUi, sabotageView } from './view';
 import { type SabotageVm, sabotageViewModel } from './view-model';
 import { visitedRecord } from './visited-record';
 
@@ -42,6 +42,9 @@ export const sabotageFeature: Feature = {
     const showArmy = ctx.settings.register(SHOW_ARMY);
 
     let vm: SabotageVm | undefined;
+    // every visit starts on Plündern with the note card closed; ticks and store updates keep what was chosen since
+    let tab: SabotageTab = 'plunder';
+    let noteOpen = false;
     const lookups = playerLookups(ctx);
     const playerActions = playerRowActions(ctx);
     // the countdowns of the attack line run on while the box is open; the ticker stops with the box
@@ -72,7 +75,20 @@ export const sabotageFeature: Feature = {
               };
         // rows set arrows only while the game shows this city; back home the box still shows it, without arrows
         const markable = owner !== undefined && ctx.cities.shown() === owner;
-        return sabotageView(vm, note, markable ? marks : undefined, playerMarks);
+        const ui: SabotageUi = {
+          tab,
+          pickTab: (next) => {
+            tab = next;
+            box.update();
+          },
+          noteText: owner === undefined ? '' : (ctx.notes.playerPage(owner)?.text ?? ''),
+          noteOpen,
+          toggleNote: () => {
+            noteOpen = !noteOpen;
+            box.update();
+          },
+        };
+        return sabotageView(vm, ui, note, markable ? marks : undefined, playerMarks);
       },
     });
     const card = new PlayerNoteCard(ctx.notes, () => box.update());
@@ -153,6 +169,8 @@ export const sabotageFeature: Feature = {
       const marked = ctx.markers.of(ID);
       if (marked && marked.city !== owner) ctx.markers.clear(ID);
       assessed = undefined;
+      tab = 'plunder';
+      noteOpen = false;
       if (autoOpen.get() && !box.isOpen) open();
       else refresh();
     });

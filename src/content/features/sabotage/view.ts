@@ -2,10 +2,11 @@ import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, formatPercent, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { battleDetailsView } from '../../ui/battle-details';
-import { headerIcons } from '../../ui/icons';
+import { headerIcons, icons } from '../../ui/icons';
 import { externalLink, guildTag } from '../../ui/links';
 import { plunderCard } from '../../ui/plunder';
 import { pvpMarks } from '../../ui/pvp-marks';
+import { tabBar } from '../../ui/tabs';
 import type { PlunderItem, SabotageVm } from './view-model';
 
 const armyCells = (army: ArmyValues | undefined) =>
@@ -67,34 +68,58 @@ const plunderTable = (items: PlunderItem[], marks?: PlunderMarks) => {
   })}</table>`;
 };
 
-function plunderedPart({ last, totals }: NonNullable<SabotageVm['plundered']>) {
-  if (!last) return html`<p class="muted">${t('sabotage.neverPlundered')}</p>`;
-  return html`${plunderCard(last, t('sabotage.lastPlunder', { when: last.when }))}<p>${totals}</p>`;
-}
-
 function lastBattlePart({ when, result, details }: NonNullable<SabotageVm['lastBattle']>) {
   const line = t('sabotage.lastBattle', { when, result });
   if (!details) return html`<p>${line}</p>`;
   return html`<details><summary>${line}</summary>${battleDetailsView(details)}</details>`;
 }
 
-/** `note` is the note card of the visited player; `marks` points at plunderable buildings in the game */
-export function sabotageView(
-  vm: SabotageVm | undefined,
-  note?: TemplateResult,
-  marks?: PlunderMarks,
-  /** sets the PvP marks of the visited player or takes them away */
-  playerMarks?: { plunder(value: boolean): void; noAttack(value: boolean): void },
-): TemplateResult {
-  if (!vm) return html`<p class="muted">${t('sabotage.noVisit')}</p>`;
+/** the two tabs of the box, Plündern first */
+export const TABS = ['plunder', 'fight'] as const;
+export type SabotageTab = (typeof TABS)[number];
+
+/** What the box keeps between redraws: the chosen tab and whether the note card is shown. */
+export interface SabotageUi {
+  tab: SabotageTab;
+  pickTab(tab: SabotageTab): void;
+  /** the note of the visited player, the tooltip of the note icon; empty without one */
+  noteText: string;
+  noteOpen: boolean;
+  toggleNote(): void;
+}
+
+const tabLabel = (key: SabotageTab, vm: SabotageVm) =>
+  key === 'plunder'
+    ? html`${icons.sack}${vm.plunderable.length ? html`<span class="count">${vm.plunderable.length}</span>` : ''}`
+    : icons.pvp;
+
+/** The note icon at the right end of the first line; faded without a note. The tooltip is the note. */
+const noteButton = (ui: SabotageUi) => {
+  const word = t(ui.noteOpen ? 'sabotage.noteHide' : 'sabotage.noteShow');
+  const text = ui.noteText.trim();
+  const tip = text.length > 300 ? `${text.slice(0, 300)}…` : text || t('sabotage.noteCreate');
+  return html`<button class=${text ? 'note-icon' : 'note-icon empty'} aria-pressed=${String(ui.noteOpen)} aria-label=${word}
+    data-tip=${tip} @click=${ui.toggleNote}>${icons.notes}</button>`;
+};
+
+const plunderTab = (vm: SabotageVm, marks?: PlunderMarks) => html`
+  ${
+    vm.plundered?.last
+      ? html`<p class="muted">${vm.plundered.totals}</p>`
+      : html`<p class="muted">${t('sabotage.neverPlundered')}</p>`
+  }
+  ${
+    vm.plunderable.length === 0
+      ? html`<p class="muted">${t('sabotage.nothingPlunderable')}</p>`
+      : plunderTable(vm.plunderable, marks)
+  }
+  ${vm.incomplete ? html`<p class="warn">${t('sabotage.incomplete')}</p>` : ''}`;
+
+const fightTab = (vm: SabotageVm) => {
+  const last = vm.plundered?.last;
+  if (!vm.attackedMe && !vm.army && !vm.lastBattle && !last)
+    return html`<p class="muted">${t('sabotage.nothingToShow')}</p>`;
   return html`
-    <p><b>${externalLink(vm.player.owner, vm.player.ownerUrl)}</b>${vm.player.ownerGuild ? html` ${guildTag(vm.player.ownerGuild)}` : ''}${
-      playerMarks ? html` ${pvpMarks(vm.player, playerMarks.plunder, playerMarks.noAttack)}` : ''
-    }
-      <br /><span class="muted">${t('sabotage.era')}: ${vm.player.era}</span>
-      <br />${vm.attack.kind === 'plunderable' ? html`<b>${vm.attack.text}</b>` : vm.attack.text}</p>
-    ${note ?? ''}
-    ${vm.lootable ? '' : html`<p class="warn">${t('sabotage.notLootable')}</p>`}
     ${
       vm.attackedMe
         ? html`<p>${t('sabotage.attackedMe', { when: vm.attackedMe.when, result: vm.attackedMe.what })}
@@ -103,12 +128,37 @@ export function sabotageView(
     }
     ${vm.army ? armyTable(vm.army, vm.plunderRepel, vm.measured) : ''}
     ${vm.lastBattle ? lastBattlePart(vm.lastBattle) : ''}
-    ${vm.plundered ? html`<h2>${t('sabotage.plundered')}</h2>${plunderedPart(vm.plundered)}` : ''}
-    <h2>${t('sabotage.plunderable')}</h2>
-    ${
-      vm.plunderable.length === 0
-        ? html`<p class="muted">${t('sabotage.nothingPlunderable')}</p>`
-        : plunderTable(vm.plunderable, marks)
-    }
-    ${vm.incomplete ? html`<p class="warn">${t('sabotage.incomplete')}</p>` : ''}`;
+    ${last ? plunderCard(last, t('sabotage.lastPlunder', { when: last.when })) : ''}`;
+};
+
+/**
+ * `note` is the note card of the visited player, shown below the head while `ui.noteOpen`; `marks` points at
+ * plunderable buildings in the game. Head and tab bar stay on top while the tab scrolls under them.
+ */
+export function sabotageView(
+  vm: SabotageVm | undefined,
+  ui: SabotageUi,
+  note?: TemplateResult,
+  marks?: PlunderMarks,
+  /** sets the PvP marks of the visited player or takes them away */
+  playerMarks?: { plunder(value: boolean): void; noAttack(value: boolean): void },
+): TemplateResult {
+  if (!vm) return html`<p class="muted">${t('sabotage.noVisit')}</p>`;
+  return html`
+    <div class="visit-top">
+      <p class="visit-name"><span><b>${externalLink(vm.player.owner, vm.player.ownerUrl)}</b>${
+        vm.player.ownerGuild ? html` ${guildTag(vm.player.ownerGuild)}` : ''
+      }${playerMarks ? html` ${pvpMarks(vm.player, playerMarks.plunder, playerMarks.noAttack)}` : ''}
+        <span class="muted">${t('sabotage.era')}: ${vm.player.era}</span></span>${noteButton(ui)}</p>
+      <p class="visit-attack">${vm.attack.kind === 'plunderable' ? html`<b>${vm.attack.text}</b>` : vm.attack.text}</p>
+      ${ui.noteOpen && note ? note : ''}
+      ${tabBar(
+        TABS,
+        ui.tab,
+        (key) => tabLabel(key, vm),
+        ui.pickTab,
+        (key) => t(`sabotage.tab.${key}`),
+      )}
+    </div>
+    ${ui.tab === 'plunder' ? plunderTab(vm, marks) : fightTab(vm)}`;
 }
