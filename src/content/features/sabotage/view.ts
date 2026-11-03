@@ -153,7 +153,7 @@ export function sabotageView(
           ? html` <span class="rel-icons" data-tip=${t('friend.invited')} aria-label=${t('friend.invited')}>${headerIcons.friendInvited}</span>`
           : ''
       }${playerMarks ? html` ${pvpMarks(vm.player, playerMarks.plunder, playerMarks.noAttack)}` : ''}
-        <span class="muted">${t('sabotage.era')}: ${vm.player.era}</span></span>${noteButton(ui)}</p>
+        <br /><span class="muted">${t('sabotage.era')}: ${vm.player.era}</span></span>${noteButton(ui)}</p>
       <p class="visit-attack">${vm.attack.kind === 'plunderable' ? html`<b>${vm.attack.text}</b>` : vm.attack.text}</p>
       ${ui.noteOpen && note ? note : ''}
       ${tabBar(
