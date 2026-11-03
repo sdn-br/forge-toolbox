@@ -19,10 +19,11 @@ import { type GbLookups, type GbRowActions, gbRowActions } from '../shared/gb-lo
 export const DEFAULT_REACH: ReachFilter = { neighbor: true, friend: true, guildMember: true, none: false };
 
 /** every reason as words, or why there is none */
-export const reachTip = (reasons: Reach[]) => {
+export const reachTip = (reasons: Reach[], friendInvited = false) => {
   const [first] = reasons;
-  if (first === 'none' || first === 'unknown') return t(`investments.reachHint.${first}`);
-  return reasons.map((r) => t(`investments.reach.${r}`)).join(', ');
+  const invited = friendInvited ? [t('friend.invited')] : [];
+  if (first === 'none' || first === 'unknown') return [t(`investments.reachHint.${first}`), ...invited].join(', ');
+  return [...reasons.map((r) => t(`investments.reach.${r}`)), ...invited].join(', ');
 };
 
 /** which rows the star toggles show: those marked (the building or its owner) and those not */
@@ -104,6 +105,8 @@ export interface RowNames {
   ownerGuild?: string;
   name: string;
   reasons: Reach[];
+  /** the owner's friend invitation is open; drawn after the reasons, no reason itself */
+  friendInvited: boolean;
   marked: boolean;
   ownerMarked: boolean;
   ignored: boolean;
@@ -117,6 +120,7 @@ export const rowNames = (input: GbLookups, b: RowBuilding): RowNames => ({
   ...guildName(input.playerGuild(b.owner)),
   name: input.greatBuildingName(b.cityEntityId) ?? b.cityEntityId,
   reasons: reasonsOf(input.relations(b.owner)),
+  friendInvited: input.friendInvited(b.owner),
   marked: input.isMarked(b.owner, b.entityId),
   ownerMarked: input.playerMarked(b.owner) === true,
   ignored: input.isIgnored(b.owner, b.entityId),
@@ -164,6 +168,8 @@ export interface CommonRowVm extends ProgressVm {
   ignoreNote?: string;
   /** every reason, each drawn as its icon; a first `none` drawn muted */
   reasons: Reach[];
+  /** the owner's friend invitation is open: its icon follows the reasons */
+  friendInvited: boolean;
   /** every reason, for the tooltip */
   reachTip: string;
   name: string;
@@ -184,7 +190,8 @@ export const commonRowVm = (input: Pick<GbLookups, 'playerUrl'>, b: RowBuilding,
   ownerIgnored: n.ownerIgnored,
   ...ignoreNote(n.ignored, n.ownerIgnored),
   reasons: n.reasons,
-  reachTip: reachTip(n.reasons),
+  friendInvited: n.friendInvited,
+  reachTip: reachTip(n.reasons, n.friendInvited),
   name: n.name,
   level: b.level,
   ...progressVm(b.invested, b.required),

@@ -591,7 +591,7 @@ describe('Snipehilfe: stacked box', () => {
       name: 'Aachener Dom',
       level: 75,
       max_progress: 3062,
-      player: { player_id: 1001, name: 'Eigentümer 1001' },
+      player: { player_id: 1001, name: 'Eigentümer 1001', is_friend: true },
     };
     advance(10_000);
     list([{ ...dom, current_progress: 2_900 }]);
@@ -724,7 +724,7 @@ describe('Snipehilfe: stacked box', () => {
       name: 'Aachener Dom',
       level: 75,
       max_progress: 3062,
-      player: { player_id: 1001, name: 'Eigentümer 1001' },
+      player: { player_id: 1001, name: 'Eigentümer 1001', is_friend: true },
     };
     advance(10_000);
     list([{ ...dom, current_progress: 2_900 }]);
@@ -949,7 +949,7 @@ describe('Snipehilfe: marking the owner', () => {
       requestMethod: 'getSocialList',
       requestData: null,
       responseData: {
-        friends: ids.map((id) => ({ player_id: id, name: `Eigentümer ${id}` })),
+        friends: ids.map((id) => ({ player_id: id, name: `Eigentümer ${id}`, is_friend: true })),
         neighbours: [],
         guildMembers: [],
       },
@@ -1041,7 +1041,11 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
       requestClass: 'OtherPlayerService',
       requestMethod: 'getSocialList',
       requestData: null,
-      responseData: { friends: [{ player_id: 1001, name: 'Eigentümer 1001' }], neighbours: [], guildMembers: [] },
+      responseData: {
+        friends: [{ player_id: 1001, name: 'Eigentümer 1001', is_friend: true }],
+        neighbours: [],
+        guildMembers: [],
+      },
     });
 
   it('leaves an ignored building out of the rows and names how many are ignored', async () => {

@@ -32,6 +32,9 @@ export interface PlayerPersistence {
   put(rows: Player[]): Promise<void>;
 }
 
+/** the lists of the social list: one per relation, and the own invitations the other side has not accepted */
+export type SocialLists = Record<keyof Relations, PlayerObservation[]> & { invited?: PlayerObservation[] };
+
 const NO_RELATIONS: Relations = { neighbor: false, guildMember: false, friend: false };
 
 /** The two pairs of flags that exclude each other, each with the time of its last change and its change event. */
@@ -186,20 +189,33 @@ export class PlayerStore {
     return true;
   }
 
-  /** The social list is the full truth about relations: whoever is missing from a list loses that relation. */
-  applySocialList(world: WorldId, lists: Record<keyof Relations, PlayerObservation[]>): void {
+  /**
+   * The social list is the full truth about relations: whoever is missing from a list loses that relation. The same
+   * goes for the friend invitation: it stays only on the players `invited` names (the own invitations the other side
+   * has not accepted), and never on a friend.
+   */
+  applySocialList(world: WorldId, lists: SocialLists): void {
+    const { invited = [], ...byRelation } = lists;
     const relations = new Map<PlayerId, Relations>();
-    for (const [relation, observations] of Object.entries(lists) as [keyof Relations, PlayerObservation[]][]) {
+    for (const [relation, observations] of Object.entries(byRelation) as [keyof Relations, PlayerObservation[]][]) {
       for (const o of observations) relations.set(o.id, { ...(relations.get(o.id) ?? NO_RELATIONS), [relation]: true });
     }
     const touched = new Set<PlayerId>();
-    for (const observations of Object.values(lists)) {
+    for (const observations of [...Object.values(byRelation), invited]) {
       for (const o of observations) this.merge(world, o, 'socialList', relations.get(o.id) ?? NO_RELATIONS, touched);
     }
-    for (const p of this.players.values()) {
-      if (p.world !== world || relations.has(p.id)) continue;
-      if (p.relations.neighbor || p.relations.guildMember || p.relations.friend) {
-        this.players.set(p.id, { ...p, relations: NO_RELATIONS });
+    const pending = new Set(invited.filter((o) => !relations.get(o.id)?.friend).map((o) => o.id));
+    for (const p of [...this.players.values()]) {
+      if (p.world !== world) continue;
+      const { neighbor, guildMember, friend } = p.relations;
+      const lost = !relations.has(p.id) && (neighbor || guildMember || friend);
+      if (lost || (p.friendInvited === true) !== pending.has(p.id)) {
+        const { friendInvited: _, ...rest } = p;
+        this.players.set(p.id, {
+          ...rest,
+          ...(lost && { relations: NO_RELATIONS }),
+          ...(pending.has(p.id) && { friendInvited: true }),
+        });
         touched.add(p.id);
       }
     }
@@ -245,10 +261,26 @@ export class PlayerStore {
     this.changed(touched, 'list');
   }
 
-  /** An accepted friend invitation: the new friend with what the player brings; the other relations stay. */
+  /** An accepted friend invitation: the new friend with what the player brings; the other relations stay, the invitation is over. */
   addFriend(world: WorldId, o: PlayerObservation): void {
     const touched = new Set<PlayerId>();
     this.merge(world, o, 'friend', { ...(this.players.get(o.id)?.relations ?? NO_RELATIONS), friend: true }, touched);
+    const { friendInvited: _, ...friend } = this.players.get(o.id) as Player;
+    this.players.set(o.id, friend);
+    this.changed(touched, 'friend');
+  }
+
+  /**
+   * A friend invitation the session player just sent: the player with what the answer brings, flagged as invited.
+   * The relations stay; a player the store did not know is a neighbour when the answer says so.
+   */
+  addInvitation(world: WorldId, o: PlayerObservation, neighbor: boolean): void {
+    const touched = new Set<PlayerId>();
+    const old = this.players.get(o.id);
+    this.merge(world, o, 'friend', old?.world === world ? old.relations : { ...NO_RELATIONS, neighbor }, touched);
+    const known = this.players.get(o.id) as Player;
+    // an invitation to a friend is no invitation: the list or an acceptance named the friend already
+    if (!known.relations.friend) this.players.set(o.id, { ...known, friendInvited: true });
     this.changed(touched, 'friend');
   }
 
@@ -280,6 +312,7 @@ export class PlayerStore {
       relations: relations ?? old?.relations ?? NO_RELATIONS,
       ...(known && { attack: known }),
       ...marksOf(old),
+      ...(old?.friendInvited && { friendInvited: true }),
       firstSeenAt: old?.firstSeenAt ?? now,
       seenAt: now,
       source,

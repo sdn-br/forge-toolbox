@@ -28,6 +28,7 @@ function setup() {
 
 const FRIEND = playerId(1001);
 const player = (id: number) => ({ player_id: id, name: `P${id}`, era: 'FutureEra', score: 900, rank: 12 });
+const friendEntry = (id: number) => ({ ...player(id), is_friend: true });
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -67,14 +68,14 @@ describe('friend messages', () => {
 
   it('takes friend away on a deleted friendship', () => {
     const { players, send, social } = setup();
-    social([player(1001)], [player(1001)]);
+    social([friendEntry(1001)], [player(1001)]);
     send('FriendService', 'deleteFriend', deleted.delete.responseData);
     expect(players.get(FRIEND)?.relations).toEqual({ neighbor: true, guildMember: false, friend: false });
   });
 
   it('skips a deleted friendship without a player id', () => {
     const { players, ws, social } = setup();
-    social([player(1001)]);
+    social([friendEntry(1001)]);
     ws('FriendService', 'deleteFriend', 'gone');
     ws('FriendService', 'deleteFriend', [1001]);
     expect(players.get(FRIEND)?.relations.friend).toBe(true);

@@ -198,6 +198,21 @@ describe('notes feature', () => {
     expect(berta?.querySelectorAll('.rel-icons svg')).toHaveLength(1);
   });
 
+  it('draws the open friend invitation as one more relation icon, in the list and the page head', () => {
+    const { root, notes, ctx } = setup();
+    ctx.players.apply(world, [obs(2, 'Bert')], 'visit');
+    ctx.players.applySocialList(world, {
+      neighbor: [obs(2, 'Bert')],
+      guildMember: [],
+      friend: [],
+      invited: [obs(2, 'Bert')],
+    });
+    notes.setPlayerText(playerId(2), 'x');
+    expect(root.querySelectorAll('.side li .rel-icons svg')).toHaveLength(2);
+    ctx.players.applySocialList(world, { neighbor: [obs(2, 'Bert')], guildMember: [], friend: [] });
+    expect(root.querySelectorAll('.side li .rel-icons svg')).toHaveLength(1);
+  });
+
   it('removes a deleted player page from the list instead of keeping it as an empty draft', () => {
     const { box, root, notes, ctx } = setup();
     ctx.players.apply(world, [obs(2, 'Bert')], 'visit');

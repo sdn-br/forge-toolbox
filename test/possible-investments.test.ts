@@ -68,6 +68,7 @@ const vmInput = (buildings: KnownGreatBuilding[], filter: Partial<PossibleFilter
   greatBuildingName: (d: BuildingDefId) => defNames[d],
   playerName: (id: PlayerId) => names[id],
   relations: (id: PlayerId) => relations[id],
+  friendInvited: () => false,
   isMarked: (owner: PlayerId, entityId: number) => markedBuildings.has(`${owner}:${entityId}`),
   playerMarked: (id: PlayerId) => markedOwners.has(id),
   isIgnored: (owner: PlayerId, entityId: number) => ignoredBuildings.has(`${owner}:${entityId}`),

@@ -26,6 +26,7 @@ const lookups = (guild?: typeof GUILD, ownerIgnored = false): GbLookups => ({
   playerUrl: (id) => `https://foestats.com/de/de20/players/${id}`,
   playerGuild: () => guild,
   relations: () => ({ neighbor: false, friend: true, guildMember: false }),
+  friendInvited: () => false,
   isMarked: () => false,
   playerMarked: () => false,
   isIgnored: () => false,

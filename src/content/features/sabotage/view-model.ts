@@ -32,7 +32,12 @@ const resourceName = (catalog: CatalogStore) => (id: string) => catalog.resource
 
 export interface SabotageVm {
   /** name and guild with their pages at foestats, the PvP marks only for a player the store knows */
-  player: Omit<OwnerVm, 'ownerMarked' | 'ownerIgnored'> & { era: string; plunderWorthy?: boolean; noAttack?: boolean };
+  player: Omit<OwnerVm, 'ownerMarked' | 'ownerIgnored'> & {
+    era: string;
+    plunderWorthy?: boolean;
+    noAttack?: boolean;
+    friendInvited?: boolean;
+  };
   /** whether and when the visited player can be attacked or plundered */
   attack: AttackStatus;
   lootable: boolean;
@@ -130,6 +135,7 @@ export function sabotageViewModel({
       era: catalog.eraName(city.era),
       ...(plunderWorthy !== undefined && { plunderWorthy }),
       ...(noAttack !== undefined && { noAttack }),
+      ...(lookups.friendInvited(city.owner) && { friendInvited: true }),
     },
     attack,
     lootable: attack.kind === 'plunderable' || attack.kind === 'attackable',

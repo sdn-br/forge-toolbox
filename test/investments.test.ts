@@ -188,6 +188,7 @@ describe('marked owner', () => {
       playerGuild: () => undefined,
       filter: DEFAULT_MINE_FILTER,
       relations: () => undefined,
+      friendInvited: () => false,
     }).rows;
     expect(rows.map((r) => [r.entityId, r.ownerMarked])).toEqual([
       [1, false],
@@ -221,6 +222,7 @@ describe('rows in view', () => {
       playerGuild: () => undefined,
       filter: DEFAULT_MINE_FILTER,
       relations: () => undefined,
+      friendInvited: () => false,
     });
     expect(vm.rows.map((r) => r.entityId)).toEqual([2]);
     expect(vm.scroll).toEqual({ top: 1, below: 1 });
@@ -250,6 +252,7 @@ describe('totals line', () => {
       playerGuild: () => undefined,
       filter: DEFAULT_MINE_FILTER,
       relations: () => undefined,
+      friendInvited: () => false,
     }).totals;
 
   it('shows the safe profit green only above 0', () => {
@@ -306,6 +309,7 @@ describe('relation and filters of the own investments', () => {
       ownerIgnored: () => false,
       playerGuild: () => undefined,
       relations: (id) => owners[id],
+      friendInvited: () => false,
       filter: { ...DEFAULT_MINE_FILTER, reach: ALL_REACH, ...over },
       ...extra,
     });
@@ -408,6 +412,7 @@ describe('ignored rows of the own investments', () => {
       ownerIgnored: (id) => (id === playerId(2003) ? true : id === playerId(2999) ? undefined : false),
       playerGuild: () => undefined,
       relations: () => undefined,
+      friendInvited: () => false,
       filter: { ...DEFAULT_MINE_FILTER, reach: ALL_REACH, ...over },
       ...extra,
     });

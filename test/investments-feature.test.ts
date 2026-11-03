@@ -249,7 +249,7 @@ describe('Investitionen box', () => {
             forge_points: 301,
             current_progress: progress,
             max_progress: 1935,
-            player: { player_id: 1001, name: 'Eigentümer 1001' },
+            player: { player_id: 1001, name: 'Eigentümer 1001', is_friend: true },
           },
         ],
       } as Entry);
@@ -537,7 +537,7 @@ const SOCIAL = (friends: number[]) =>
     requestMethod: 'getSocialList',
     requestData: null,
     responseData: {
-      friends: friends.map((id) => ({ player_id: id, name: `Eigentümer ${id}` })),
+      friends: friends.map((id) => ({ player_id: id, name: `Eigentümer ${id}`, is_friend: true })),
       neighbours: [],
       guildMembers: [],
     },
@@ -594,6 +594,28 @@ describe('Investitionen: Beziehung in Meine Investitionen', () => {
         .slice(0, 4)
         .map((r) => cells(r)[1]),
     ).toEqual(['Eigentümer 2005', 'Eigentümer 2008', 'Eigentümer 2008', 'Eigentümer 2008']);
+  });
+
+  it('draws an open friend invitation after the relations and names it in the tooltip, as no relation of its own', async () => {
+    const { send, rows } = setup();
+    const owner = { player_id: 2005, name: 'Eigentümer 2005' };
+    send({
+      requestClass: 'OtherPlayerService',
+      requestMethod: 'getSocialList',
+      requestData: null,
+      responseData: {
+        friends: [{ ...owner, isInvitedFriend: true, is_neighbor: true }],
+        neighbours: [{ ...owner, is_neighbor: true }],
+        guildMembers: [],
+      },
+    } as Entry);
+    send(contributions.contributions as Entry);
+    await tick();
+    const cell = (
+      rows().find((r) => r.querySelectorAll('td')[1]?.textContent?.includes('2005')) as Element
+    ).querySelectorAll('td')[2] as HTMLElement;
+    expect(cell.dataset.tip).toBe('Nachbar, Freundschaftsanfrage');
+    expect(cell.querySelectorAll('svg')).toHaveLength(2);
   });
 
   it('hides an owner out of reach by default and draws him muted, with "keine", once the filter lets him in', async () => {

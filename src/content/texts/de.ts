@@ -158,6 +158,7 @@ export const de = {
   'attack.waiting': 'Wieder angreifbar in {duration} (ab {when})',
   'attack.shielded': 'Stadt geschützt bis {when} (noch {duration})',
   'attack.attackable': 'angreifbar',
+  'friend.invited': 'Freundschaftsanfrage',
   'attack.friend': 'Freund, nicht angreifbar',
   'attack.guildMember': 'Gildenmitglied, nicht angreifbar',
   'attack.notNeighbor': 'Kein Nachbar, nicht angreifbar',

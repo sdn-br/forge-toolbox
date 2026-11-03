@@ -234,6 +234,20 @@ describe('sabotage feature', () => {
     expect(ctx.players.get(playerId(1))?.noAttack).toBeUndefined();
   });
 
+  it('draws the open friend invitation next to the name, and the player stays attackable', async () => {
+    const { ctx, box } = setup();
+    ctx.players.apply(world, [observed(1, { canPlunder: false })], 'visit');
+    ctx.cities.setVisited(city(1));
+    await tick();
+    expect(box.root.querySelector('.visit-name .rel-icons')).toBeNull();
+    ctx.players.addInvitation(world, observed(1, { canPlunder: false }), true);
+    await tick();
+    const icon = box.root.querySelector('.visit-name .rel-icons') as HTMLElement;
+    expect(icon.querySelector('svg')).not.toBeNull();
+    expect(icon.dataset.tip).toBe('Freundschaftsanfrage');
+    expect(box.root.querySelector('.visit-attack')?.textContent).not.toContain('Freund,');
+  });
+
   it('shows neither mark nor the great building marks for a player the store does not know or knows', async () => {
     const { ctx, box } = setup();
     ctx.cities.setVisited(city(1));

@@ -68,6 +68,11 @@ export interface Player {
   active?: boolean;
   guild?: GuildRef;
   relations: Relations;
+  /**
+   * the session player sent a friend invitation the player has not accepted yet. Display only, never a relation: the
+   * player is no friend, stays attackable and counts for no reach. The social list sets and clears it.
+   */
+  friendInvited?: boolean;
   /** the session player put a star on the player; only the player removes it, never a change of relations */
   marked?: boolean;
   /** the session player ignores the player: their rows are hidden and do not count; removed only by hand, like `marked` */

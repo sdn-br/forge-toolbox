@@ -13,9 +13,11 @@ export const RELATION_ICONS: Record<keyof Relations, TemplateResult> = {
 
 const TOGGLE_ICONS: Record<keyof ReachFilter, TemplateResult> = { ...RELATION_ICONS, none: headerIcons.notReachable };
 
-/** an icon per relation the player has, in the fixed order; none without any or for an unknown player */
-export const relationIcons = (relations: Relations | undefined): TemplateResult[] =>
-  reasonsOf(relations).flatMap((r) => (r === 'none' || r === 'unknown' ? [] : [RELATION_ICONS[r]]));
+/** an icon per relation the player has, in the fixed order, then the open friend invitation (display only, no relation); none without any or for an unknown player */
+export const relationIcons = (relations: Relations | undefined, friendInvited?: boolean): TemplateResult[] => [
+  ...reasonsOf(relations).flatMap((r) => (r === 'none' || r === 'unknown' ? [] : [RELATION_ICONS[r]])),
+  ...(friendInvited ? [headerIcons.friendInvited] : []),
+];
 
 /** one toggle per relation and one for none, each with its icon; `cls` names the group for the styles */
 export const relationToggles = (

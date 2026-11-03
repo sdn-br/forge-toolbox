@@ -77,7 +77,7 @@ const tabs = (vm: NotesVm, actions: NotesActions) => html`<div class="tabs">
 
 function row(r: RowVm, playerGroup: boolean, actions: NotesActions) {
   if (r.renaming) return html`<li>${inlineField(r.title, actions.rename, actions.cancel)}</li>`;
-  const icons = relationIcons(r.relations);
+  const icons = relationIcons(r.relations, r.friendInvited);
   const content = html`${icons.length > 0 ? html`<span class="rel-icons">${icons}</span> ` : ''}${r.title}
     ${r.when ? html`<br /><span class="muted">${r.when}</span>` : ''}`;
   const classes = `${r.active ? 'active' : ''} ${r.draft ? 'muted' : ''}`;
@@ -108,7 +108,7 @@ function pageHead(page: PageVm, actions: NotesActions) {
   if (page.player) {
     const p = page.player;
     const guild = p.guild ? html`<br />${guildTag(p.guild)}` : '';
-    return html`<p><b>${externalLink(p.name, p.url)}</b> <span class="rel-icons">${relationIcons(p.relations)}</span>${guild}
+    return html`<p><b>${externalLink(p.name, p.url)}</b> <span class="rel-icons">${relationIcons(p.relations, p.friendInvited)}</span>${guild}
       ${page.when ? html`<br /><span class="muted">${t('notes.changed', { when: page.when })}</span>` : ''}</p>`;
   }
   return html`<p><input class="title" .value=${page.title}

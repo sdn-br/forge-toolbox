@@ -540,7 +540,11 @@ describe('Investitionen: Mögliche Investitionen', () => {
       requestClass: 'OtherPlayerService',
       requestMethod: 'getSocialList',
       requestData: null,
-      responseData: { friends: [{ player_id: 1001, name: 'Eigentümer 1001' }], neighbours: [], guildMembers: [] },
+      responseData: {
+        friends: [{ player_id: 1001, name: 'Eigentümer 1001', is_friend: true }],
+        neighbours: [],
+        guildMembers: [],
+      },
     });
     list([hitZeus(), hitOracle()]);
     await tick();
@@ -756,8 +760,8 @@ describe('Investitionen: Merken', () => {
       requestData: null,
       responseData: {
         friends: [
-          { player_id: 1001, name: 'Eigentümer 1001' },
-          { player_id: 1002, name: 'Eigentümer 1002' },
+          { player_id: 1001, name: 'Eigentümer 1001', is_friend: true },
+          { player_id: 1002, name: 'Eigentümer 1002', is_friend: true },
         ],
         neighbours: [],
         guildMembers: [],
@@ -793,7 +797,11 @@ describe('Investitionen: Spielerstern in Mögliche Investitionen', () => {
       requestClass: 'OtherPlayerService',
       requestMethod: 'getSocialList',
       requestData: null,
-      responseData: { friends: [{ player_id: 1001, name: 'Eigentümer 1001' }], neighbours: [], guildMembers: [] },
+      responseData: {
+        friends: [{ player_id: 1001, name: 'Eigentümer 1001', is_friend: true }],
+        neighbours: [],
+        guildMembers: [],
+      },
     });
     list([hitZeus()], 1001);
     // without the owner's name the list teaches the player store nothing: the owner stays unknown
@@ -844,7 +852,7 @@ describe('Investitionen: Ignorieren in Mögliche Investitionen', () => {
       requestMethod: 'getSocialList',
       requestData: null,
       responseData: {
-        friends: ids.map((id) => ({ player_id: id, name: `Eigentümer ${id}` })),
+        friends: ids.map((id) => ({ player_id: id, name: `Eigentümer ${id}`, is_friend: true })),
         neighbours: [],
         guildMembers: [],
       },

@@ -18,11 +18,12 @@ import type { GbRowActions } from '../shared/gb-lookups';
 import type { CommonFilter, CommonRowVm, NamedColumn, RowActions } from './rows';
 
 /** an icon per reason; out of reach and unknown stay words */
-const reachCell = (reasons: Reach[]) => {
+const reachCell = (reasons: Reach[], friendInvited: boolean) => {
   const [first] = reasons;
+  const invited = friendInvited ? [headerIcons.friendInvited] : [];
   return first === 'none' || first === 'unknown'
-    ? t(`investments.reach.${first}`)
-    : reasons.map((reason) => RELATION_ICONS[reason as keyof typeof RELATION_ICONS]);
+    ? [t(`investments.reach.${first}`), ...invited]
+    : [...reasons.map((reason) => RELATION_ICONS[reason as keyof typeof RELATION_ICONS]), ...invited];
 };
 
 /** one toggle per reason, any switched on lets a row through */
@@ -73,7 +74,7 @@ export const isMuted = (r: CommonRowVm) => r.reasons[0] === 'none' || r.ignoreNo
 export const leadCells = (r: CommonRowVm, playerField: string, actions: LeadActions, growthHint: TextKey) => html`
   ${markCell(r, actions.mark)}
   ${ownerCell(r, playerField, actions)}
-  <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r.reasons)}</td>
+  <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r.reasons, r.friendInvited)}</td>
   ${buildingCell(r.name, rowTip(r), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
   <td class="num">${r.level}</td>
   ${progressCell(r, growthTag(r.growth, growthHint))}`;

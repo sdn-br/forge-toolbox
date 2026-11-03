@@ -1,0 +1,139 @@
+{
+  "note": "OtherPlayerService.getSocialList and FriendService.invitePlayerById recorded on de10 2026-11-03: the list of friends holds real friends (is_friend, accepted), the own player (is_self) and the own pending invitations (isInvitedFriend, no is_friend, no accepted, no activity). Ids, names, city names, guilds anonymized (self 1000, friend 1001, invited 1002 to 1004, guild 1), profile text and achievements dropped.",
+  "socialList": {
+    "requestClass": "OtherPlayerService",
+    "requestMethod": "getSocialList",
+    "requestData": [],
+    "responseData": {
+      "friends": [
+        {
+          "player_id": 1000,
+          "name": "Ich",
+          "avatar": "portrait_id_1",
+          "score": 276027073,
+          "rank": 10,
+          "is_friend": true,
+          "is_neighbor": true,
+          "is_guild_member": true,
+          "is_self": true,
+          "city_name": "Meine Stadt",
+          "clan_id": 1,
+          "clan": {
+            "id": 1,
+            "name": "Testgilde",
+            "flag": "premium_flag_8",
+            "__class__": "Clan"
+          },
+          "has_great_building": true,
+          "is_active": true,
+          "era": "VirtualFuture",
+          "activity": 2,
+          "__class__": "Friend"
+        },
+        {
+          "player_id": 1001,
+          "name": "Alter Freund",
+          "avatar": "portrait_id_2",
+          "score": 900000,
+          "rank": 12,
+          "is_friend": true,
+          "next_interaction_in": 0,
+          "city_name": "Freundesstadt",
+          "has_great_building": true,
+          "is_active": true,
+          "era": "VirtualFuture",
+          "id": 5001,
+          "accepted": true,
+          "incoming": true,
+          "activity": 2,
+          "__class__": "Friend"
+        },
+        {
+          "player_id": 1002,
+          "name": "Angefragter Nachbar",
+          "avatar": "portrait_id_3",
+          "score": 576507276,
+          "rank": 4,
+          "is_neighbor": true,
+          "isInvitedFriend": true,
+          "city_name": "Nachbarstadt",
+          "clan_id": 1,
+          "has_great_building": true,
+          "is_active": true,
+          "era": "VirtualFuture",
+          "id": 5002,
+          "__class__": "Friend"
+        },
+        {
+          "player_id": 1003,
+          "name": "Angefragter Fremder",
+          "avatar": "portrait_id_4",
+          "score": 216166155,
+          "rank": 12,
+          "isInvitedFriend": true,
+          "city_name": "Fremdenstadt",
+          "is_active": true,
+          "era": "VirtualFuture",
+          "id": 5003,
+          "__class__": "Friend"
+        }
+      ],
+      "neighbours": [
+        {
+          "player_id": 1002,
+          "name": "Angefragter Nachbar",
+          "avatar": "portrait_id_3",
+          "score": 576507276,
+          "rank": 4,
+          "is_neighbor": true,
+          "city_name": "Nachbarstadt",
+          "clan_id": 1,
+          "has_great_building": true,
+          "is_active": true,
+          "era": "VirtualFuture",
+          "__class__": "Player"
+        },
+        {
+          "player_id": 1004,
+          "name": "Anderer Nachbar",
+          "avatar": "portrait_id_5",
+          "score": 100,
+          "rank": 50,
+          "is_neighbor": true,
+          "city_name": "Andere Stadt",
+          "is_active": true,
+          "era": "VirtualFuture",
+          "__class__": "Player"
+        }
+      ],
+      "guildMembers": []
+    }
+  },
+  "invite": {
+    "requestClass": "FriendService",
+    "requestMethod": "invitePlayerById",
+    "requestData": [1004],
+    "responseData": {
+      "player_id": 1004,
+      "name": "Anderer Nachbar",
+      "avatar": "portrait_id_5",
+      "score": 100,
+      "rank": 50,
+      "is_neighbor": true,
+      "isInvitedFriend": true,
+      "city_name": "Andere Stadt",
+      "clan_id": 1,
+      "clan": {
+        "id": 1,
+        "name": "Testgilde",
+        "flag": "premium_flag_8",
+        "__class__": "Clan"
+      },
+      "has_great_building": true,
+      "is_active": true,
+      "era": "VirtualFuture",
+      "id": 5004,
+      "__class__": "Friend"
+    }
+  }
+}

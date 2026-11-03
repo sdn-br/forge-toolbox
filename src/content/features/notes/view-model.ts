@@ -41,6 +41,8 @@ export interface RowVm {
   renaming: boolean;
   /** the relations of a player page, drawn as icons; missing for other pages and unknown players */
   relations?: Relations;
+  /** the friend invitation to the player is still open; drawn after the relations */
+  friendInvited?: boolean;
   /** a player page that exists only as the selection, not stored yet */
   draft: boolean;
 }
@@ -53,6 +55,8 @@ export interface PlayerVm {
   guild?: { name: string; url: string };
   /** drawn as icons; missing for a player the store does not know */
   relations?: Relations;
+  /** the friend invitation is open, drawn as an icon after the relations */
+  friendInvited?: boolean;
 }
 
 export interface PageVm {
@@ -124,7 +128,8 @@ export function snippet(text: string, query: string): string {
 }
 
 /** `{ relations }` of a known player, for a row or the page head; nothing for an unknown one */
-const relationsOf = (p: Player | undefined) => (p ? { relations: p.relations } : {});
+const relationsOf = (p: Player | undefined) =>
+  p ? { relations: p.relations, ...(p.friendInvited && { friendInvited: true }) } : {};
 
 export function notesViewModel(input: NotesInput): NotesVm {
   const { ui, groups, pages, player, now } = input;
