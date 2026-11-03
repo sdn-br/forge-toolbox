@@ -8,10 +8,9 @@ import { footprints } from '../../domain/city-grid';
 import type { VisitedCity } from '../../stores/cities';
 import { icons } from '../../ui/icons';
 import { PlayerNoteCard } from '../../ui/note-card';
-import { clampTop } from '../../ui/windowed-rows';
 import { playerLookups, playerRowActions } from '../shared/player-lookups';
 import { sabotageCss } from './styles';
-import { type PlunderMarks, type SabotageTab, type SabotageUi, sabotageView, VISIBLE_ROWS } from './view';
+import { type PlunderMarks, type SabotageTab, type SabotageUi, sabotageView } from './view';
 import { type SabotageVm, sabotageViewModel } from './view-model';
 import { visitedRecord } from './visited-record';
 
@@ -46,9 +45,8 @@ export const sabotageFeature: Feature = {
     // every visit starts on Plündern with the note card closed; ticks and store updates keep what was chosen since
     let tab: SabotageTab = 'plunder';
     let noteOpen = false;
-    // the first plunder row in view; back to the top on every visit, kept on redraws
-    let plunderTop = 0;
-    const rowsCount = () => vm?.plunderable.length ?? 0;
+    // counts the visits: the content area starts at the top again on each
+    let visit = 0;
     const lookups = playerLookups(ctx);
     const playerActions = playerRowActions(ctx);
     // the countdowns of the attack line run on while the box is open; the ticker stops with the box
@@ -68,8 +66,6 @@ export const sabotageFeature: Feature = {
       width: 400,
       render: () => {
         keepTicking();
-        // a shorter list leaves no offset beyond its end
-        plunderTop = clampTop(plunderTop, rowsCount(), VISIBLE_ROWS);
         const owner = ctx.cities.visited()?.owner;
         const note = vm && owner !== undefined ? card.render(owner, ctx.players.get(owner)?.name) : undefined;
         const playerMarks =
@@ -93,11 +89,7 @@ export const sabotageFeature: Feature = {
             noteOpen = !noteOpen;
             box.update();
           },
-          plunderTop,
-          scrollPlunder: (rows) => {
-            plunderTop = clampTop(plunderTop + rows, rowsCount(), VISIBLE_ROWS);
-            box.update();
-          },
+          visit,
         };
         return sabotageView(vm, ui, note, markable ? marks : undefined, playerMarks);
       },
@@ -182,7 +174,7 @@ export const sabotageFeature: Feature = {
       assessed = undefined;
       tab = 'plunder';
       noteOpen = false;
-      plunderTop = 0;
+      visit++;
       if (autoOpen.get() && !box.isOpen) open();
       else refresh();
     });

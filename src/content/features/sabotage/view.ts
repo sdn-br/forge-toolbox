@@ -1,4 +1,5 @@
 import { html, type TemplateResult } from 'lit-html';
+import { keyed } from 'lit-html/directives/keyed.js';
 import { formatNumber, formatPercent, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { battleDetailsView } from '../../ui/battle-details';
@@ -7,7 +8,6 @@ import { externalLink, guildTag } from '../../ui/links';
 import { plunderCard } from '../../ui/plunder';
 import { pvpMarks } from '../../ui/pvp-marks';
 import { tabBar } from '../../ui/tabs';
-import { rowsIn, rowWindow, windowedRows } from '../../ui/windowed-rows';
 import type { PlunderItem, SabotageVm } from './view-model';
 
 const armyCells = (army: ArmyValues | undefined) =>
@@ -53,13 +53,9 @@ const pressKeys = (action: () => void) => (e: KeyboardEvent) => {
 const imageCell = (p: PlunderItem) =>
   html`<td class="img">${p.image ? html`<img src=${p.image} alt="" loading="lazy" referrerpolicy="no-referrer" />` : ''}</td>`;
 
-/** rows of the plunder list in view; the box is as high as its head and this many rows (Nutzer, 2026-11-03) */
-export const VISIBLE_ROWS = 5;
-
-const plunderTable = (items: PlunderItem[], inView: PlunderItem[], marks?: PlunderMarks) => {
-  // the image column stays while any building has an image, so the width does not jump when the window moves
+const plunderTable = (items: PlunderItem[], marks?: PlunderMarks) => {
   const images = items.some((p) => p.image);
-  return html`<table class="plunder-table">${inView.map((p) => {
+  return html`<table class="plunder-table">${items.map((p) => {
     const loot = html`${images ? imageCell(p) : ''}<td><b>${p.name}</b><br />${p.items.map(
       (i, n) => html`${n ? html`<br />` : ''}${formatNumber(i.amount)} ${i.label}`,
     )}</td>`;
@@ -91,10 +87,8 @@ export interface SabotageUi {
   noteText: string;
   noteOpen: boolean;
   toggleNote(): void;
-  /** index of the first plunder row in view */
-  plunderTop: number;
-  /** moves the plunder list by rows, down for positive; the owner keeps the offset inside the list */
-  scrollPlunder(rows: number): void;
+  /** counts the visits; a new one scrolls the content area back to the top */
+  visit: number;
 }
 
 const tabLabel = (key: SabotageTab, vm: SabotageVm) =>
@@ -111,15 +105,7 @@ const noteButton = (ui: SabotageUi) => {
     data-tip=${tip} @click=${ui.toggleNote}>${icons.notes}</button>`;
 };
 
-/** the rows of "Jetzt plünderbar": a window of VISIBLE_ROWS, wheel and buttons move it; a shorter list has neither */
-const plunderList = (vm: SabotageVm, ui: SabotageUi, marks?: PlunderMarks) => {
-  const window = rowWindow(ui.plunderTop, vm.plunderable.length, VISIBLE_ROWS);
-  const table = plunderTable(vm.plunderable, rowsIn(vm.plunderable, window), marks);
-  if (vm.plunderable.length <= VISIBLE_ROWS) return table;
-  return windowedRows({ cls: 'plunder-win', table, window, scroll: ui.scrollPlunder });
-};
-
-const plunderTab = (vm: SabotageVm, ui: SabotageUi, marks?: PlunderMarks) => html`
+const plunderTab = (vm: SabotageVm, marks?: PlunderMarks) => html`
   ${
     vm.plundered?.last
       ? html`<p class="muted">${vm.plundered.totals}</p>`
@@ -128,7 +114,7 @@ const plunderTab = (vm: SabotageVm, ui: SabotageUi, marks?: PlunderMarks) => htm
   ${
     vm.plunderable.length === 0
       ? html`<p class="muted">${t('sabotage.nothingPlunderable')}</p>`
-      : plunderList(vm, ui, marks)
+      : plunderTable(vm.plunderable, marks)
   }
   ${vm.incomplete ? html`<p class="warn">${t('sabotage.incomplete')}</p>` : ''}`;
 
@@ -150,8 +136,8 @@ const fightTab = (vm: SabotageVm) => {
 
 /**
  * `note` is the note card of the visited player, shown below the head while `ui.noteOpen`; `marks` points at
- * plunderable buildings in the game. The head and the tab bar sit outside any scrolling area; only the content of the
- * Kampf tab scrolls, when it is taller than the box may be. The plunder list is a window of rows instead.
+ * plunderable buildings in the game. The head and the tab bar sit outside any scrolling area; the content area below them
+ * has a fixed height and scrolls natively. It is a new element per visit and tab, so it starts at the top then.
  */
 export function sabotageView(
   vm: SabotageVm | undefined,
@@ -182,5 +168,8 @@ export function sabotageView(
         (key) => t(`sabotage.tab.${key}`),
       )}
     </div>
-    <div class="visit-content">${ui.tab === 'plunder' ? plunderTab(vm, ui, marks) : fightTab(vm)}</div>`;
+    ${keyed(
+      `${ui.visit}-${ui.tab}`,
+      html`<div class="visit-content">${ui.tab === 'plunder' ? plunderTab(vm, marks) : fightTab(vm)}</div>`,
+    )}`;
 }
