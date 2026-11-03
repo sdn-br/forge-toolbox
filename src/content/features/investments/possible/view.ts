@@ -3,7 +3,7 @@ import { t } from '../../../core/texts';
 import { toggleGroup } from '../../../ui/buttons';
 import { headerIcons } from '../../../ui/icons';
 import { rowTip } from '../../../ui/ignore';
-import { hitCells, tierIcon } from '../../../ui/snipe-hit';
+import { HIT_CELL_COUNT, hitCells, tierIcon } from '../../../ui/snipe-hit';
 import type { SortColumn } from '../../../ui/sortable';
 import { filterBar, isMuted, LEAD_COLUMNS, leadCells, rowsTable } from '../row-parts';
 import type { RowActions } from '../rows';
@@ -25,6 +25,7 @@ const columns: SortColumn<PossibleColumn>[] = [
   { column: 'rank', label: 'gb.col.rank', num: true },
   { column: 'cost', label: 'gb.col.cost', num: true },
   { column: 'profit', label: 'gb.col.profit', num: true, icon: headerIcons.profit },
+  { column: 'ratio', label: 'gb.col.ratio', num: true, icon: headerIcons.profitRatio },
   { column: 'tier', label: 'gb.col.tier', num: false, icon: headerIcons.info },
   { column: 'seen', label: 'investments.col.seen', num: true },
 ];
@@ -36,7 +37,7 @@ const row = (
 ) => html`<tr class=${isMuted(r) ? 'muted' : ''} data-tip=${rowTip(r)}>
   ${leadCells(r, playerField, actions, 'investments.possible.growthHint')}
   <td class=${r.share.stale ? 'num muted' : 'num'} data-tip=${r.share.tip}>${r.share.text}</td>
-  ${r.hit ? hitCells(r.hit) : html`<td></td><td></td><td></td><td></td>`}
+  ${r.hit ? hitCells(r.hit) : Array.from({ length: HIT_CELL_COUNT }, () => html`<td></td>`)}
   <td class="num">${r.age}</td>
 </tr>`;
 

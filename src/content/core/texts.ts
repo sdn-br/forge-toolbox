@@ -38,6 +38,11 @@ export const sameName = (a: string, b: string) => foldCase(a) === foldCase(b);
 /** a gain or loss with its sign, „+310“, „−40“; zero without one */
 export const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatNumber(Math.abs(n))}`;
 
+const ratioFormat = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** a ratio with two decimals, "0,20", "−0,05" */
+export const formatRatio = (n: number) => `${n < 0 ? '−' : ''}${ratioFormat.format(Math.abs(n))}`;
+
 /** "12,5 %" */
 export const formatPercent = (n: number) => `${formatNumber(n)} %`;
 const millionFormat = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });

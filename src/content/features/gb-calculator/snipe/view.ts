@@ -34,6 +34,7 @@ const columns: SortColumn<SnipeColumn>[] = [
   { column: 'rank', label: 'gb.col.rank', num: true },
   { column: 'cost', label: 'gb.col.cost', num: true },
   { column: 'profit', label: 'gb.col.profit', num: true, icon: headerIcons.profit },
+  { column: 'ratio', label: 'gb.col.ratio', num: true, icon: headerIcons.profitRatio },
   { column: 'tier', label: 'gb.col.tier', num: false, icon: headerIcons.info, cls: 'tier-head' },
 ];
 
@@ -55,7 +56,7 @@ const table = (vm: Extract<SnipeVm, { kind: 'list' }>, actions: SnipeActions) =>
     scroll: actions.scroll,
     table: html`<table class="gb-table snipe-table">
         <colgroup><col class="c-order" /><col class="c-mark" /><col class="c-name" /><col class="c-level" /><col class="c-progress" /><col class="c-rank" />
-          <col class="c-cost" /><col class="c-profit" /><col class="c-tier" /></colgroup>
+          <col class="c-cost" /><col class="c-profit" /><col class="c-ratio" /><col class="c-tier" /></colgroup>
         <thead><tr>${sortHeads(columns, vm.sort, actions.sort)}</tr></thead>
         <tbody>${rowsIn(vm.rows, vm.scroll).map((r) => row(r, actions))}</tbody>
       </table>`,

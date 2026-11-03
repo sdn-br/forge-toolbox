@@ -1,13 +1,14 @@
 // How a snipe hit reads, in the snipe helper and in the possible investments: profit, row notes, tier icon, the cells
 // of the best place, their sort keys and the widths of the columns the hit lists share with the own investments.
 import { html, type TemplateResult } from 'lit-html';
-import { formatAge, formatNumber, signed, t } from '../core/texts';
+import { formatAge, formatNumber, formatRatio, signed, t } from '../core/texts';
 import {
   type OwnerShare,
   type SnipeHit,
   type SnipePlace,
   type SnipeTier,
   snipeProfitKey,
+  snipeRatio,
   TIER_ORDER,
 } from '../domain/gb-snipe';
 import { estimateCell } from './estimate-cell';
@@ -76,6 +77,10 @@ export interface HitVm {
   cost: string;
   profit: string;
   range?: string;
+  /** profit per Forge point paid in, of the best case like `profit`, "0,20" */
+  ratio: string;
+  /** the range of the ratio for its tooltip when not exact */
+  ratioRange?: string;
   /** the rewards are estimated */
   estimate: boolean;
   tier: SnipeTier;
@@ -83,24 +88,33 @@ export interface HitVm {
 
 export const hitVm = (h: SnipeHit): HitVm => {
   const range = snipeProfitRange(h);
+  const ratio = snipeRatio(h);
   return {
     rank: h.place.rank,
     cost: formatNumber(h.place.cost),
     profit: snipeProfit(h),
     ...(range !== undefined && { range }),
+    ratio: formatRatio(ratio.high),
+    ...(range !== undefined && {
+      ratioRange: t('snipe.ratioRange', { low: formatRatio(ratio.low), high: formatRatio(ratio.high) }),
+    }),
     estimate: h.estimate,
     tier: h.tier,
   };
 };
 
-/** Platz, Einsatz, Gewinn, Sicherheit of the best place */
+/** Platz, Einsatz, Gewinn, Gewinn je FP, Sicherheit of the best place */
 export const hitCells = (h: HitVm) =>
   html`<td class="num">${t('gb.rank', { rank: h.rank })}</td>
   <td class="num" data-tip=${t('snipe.costHint')}>${h.cost}</td>
   ${profitCell(h.profit, h.estimate, h.range)}
+  ${profitCell(h.ratio, h.estimate, h.ratioRange)}
   ${tierCell(h.tier)}`;
 
-export type HitColumn = 'progress' | 'rank' | 'cost' | 'profit' | 'tier';
+/** cells of `hitCells` a row without a hit leaves empty */
+export const HIT_CELL_COUNT = 5;
+
+export type HitColumn = 'progress' | 'rank' | 'cost' | 'profit' | 'ratio' | 'tier';
 
 /** Sort keys of the columns a hit list shares: the progress of the level, the rest of its best place, undefined for a
  * row without a hit (it goes last). */
@@ -117,6 +131,13 @@ export const hitSortKeys = <R>(
   profit: (r) => {
     const h = hit(r);
     return h && snipeProfitKey(h);
+  },
+  ratio: (r) => {
+    const h = hit(r);
+    if (!h) return undefined;
+    const { low, high } = snipeRatio(h);
+    // the worst case breaks ties, as for the profit; ratios stay far below 1e6
+    return high * 1e6 + low;
   },
   tier: (r) => {
     const h = hit(r);
@@ -138,6 +159,8 @@ export const HIT_COLUMN_WIDTHS = {
   cost: 68,
   /** the best case only, "≈ +12.345" at most; the range is in the tooltip */
   profit: 64,
+  /** "≈ 12,34" and the icon head with arrow and level number */
+  ratio: 56,
   /** icon heads (tier, status): icon, arrow and level number 29 px */
   icon: 32,
 };
@@ -150,6 +173,7 @@ export const hitColumnsCss = `
 :is(.snipe-table, .inv-table) .c-level { width: ${w.level}px; }
 :is(.snipe-table, .inv-table) .c-rank { width: ${w.rank}px; }
 :is(.snipe-table, .inv-table) .c-profit { width: ${w.profit}px; }
+:is(.snipe-table, .inv-table) .c-ratio { width: ${w.ratio}px; }
 :is(.snipe-table, .inv-table) :is(.c-tier, .c-status) { width: ${w.icon}px; }
 :is(.snipe-table, .inv-possible) .c-progress { width: ${w.progress}px; }
 :is(.snipe-table, .inv-possible) .c-cost { width: ${w.cost}px; }

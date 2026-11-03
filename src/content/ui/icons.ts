@@ -390,6 +390,11 @@ export const headerIcons = {
   ),
   /** the filter toggle beside the filled star: not marked, the star as an outline (A1, chosen 2026-11-01) */
   notMarked: headerIcon(svg`<path d="${STAR}"/>`),
+  /** the FP coin of the profit icon with a percent sign in the accent: profit per Forge point paid in (Q1, chosen from
+   * the icon preview, 2026-11-03) */
+  profitRatio:
+    headerIcon(svg`<circle cx="8.6" cy="9.6" r="6.4" stroke-width="2"/><circle cx="8.6" cy="9.6" r="2.56" stroke-width="1.4"/>
+    <g class="acc" stroke-width="2"><path d="M14.5 21.5 21.5 13.5"/><circle cx="15.2" cy="14.4" r="1.5"/><circle cx="20.8" cy="20.6" r="1.5"/></g>`),
   /** the profit icon in hollow pieces: no profit (B8, chosen from the icon preview, 2026-11-01) */
   noProfit: headerIcon(svg`<path d=${hollowRing(8.6, 9.6, 6.4, 1.5, 8, 0.3)} stroke-width=".45"/>
     <path d=${hollowRing(8.6, 9.6, 2.56, 1.1, 4, 0.55)} stroke-width=".38"/>

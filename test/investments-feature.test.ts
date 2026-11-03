@@ -97,6 +97,7 @@ describe('Investitionen box', () => {
       'P1',
       '242',
       '−12',
+      '−0,05',
       '',
     ]);
     const progress = rows()[0]?.querySelector('td.progress-cell') as HTMLElement;
@@ -175,7 +176,7 @@ describe('Investitionen box', () => {
     const { send, rows } = setup();
     send(contributions.contributions as Entry);
     await tick();
-    const status = rows()[0]?.querySelectorAll('td')[9];
+    const status = rows()[0]?.querySelectorAll('td')[10];
     expect(status?.getAttribute('aria-label')).toBe('unbekannt: ohne passende Rangliste nicht entscheidbar, LG öffnen');
     expect(status?.querySelector('svg')).not.toBeNull();
   });
@@ -402,7 +403,7 @@ describe('Investitionen: long lists', () => {
   it('shows the rows that fit, with the head and nothing else in the table area', async () => {
     const { box, texts, all, heads } = await listed(5);
     expect(texts()).toEqual(all.slice(0, 5));
-    expect(heads().length).toBe(10);
+    expect(heads().length).toBe(11);
     expect(hiddenLine(box)).toBe('noch 7 weitere unten');
     expect(button(box, 'Nach oben').getAttribute('aria-disabled')).toBe('true');
     expect(button(box, 'Nach unten').getAttribute('aria-disabled')).toBe('false');
@@ -569,6 +570,7 @@ describe('Investitionen: Beziehung in Meine Investitionen', () => {
       'Platz',
       'Einzahlung',
       'Gewinn',
+      'Gewinn je eingesetztem FP',
       'Status',
     ]);
     expect(heads()[2]?.querySelector('svg')).not.toBeNull();
