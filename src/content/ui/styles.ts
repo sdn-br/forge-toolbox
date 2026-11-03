@@ -116,6 +116,8 @@ textarea.note-input { width: 100%; min-height: 10em; resize: vertical; }
 .unit-health { display: block; height: 4px; margin-top: 3px; background: var(--bad); }
 .unit-health > span { display: block; height: 100%; background: var(--good); }
 /* a plunder with its building's image on the left (ui/plunder.ts), 6px below its time */
+/* relation icons beside a player name (notes, visited city), as in the investments */
+.rel-icons svg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 2px; }
 .plunder-when, .plunder-card { --plunder-img: 96px; --plunder-gap: 24px; }
 .plunder-card { display: flex; gap: var(--plunder-gap); align-items: flex-start; margin-top: 6px; }
 .plunder-card .building-img { flex: 0 0 auto; display: block; width: var(--plunder-img); height: auto; }
