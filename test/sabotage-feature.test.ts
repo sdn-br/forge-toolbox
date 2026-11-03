@@ -85,6 +85,12 @@ function setup(assetIndex?: AssetIndex) {
  * spies of the next one. */
 const boxesOfTest: { box: { close(): void } }[] = [];
 
+/** the tab buttons of the box, Plündern first, Kampf second */
+const tabButton = (box: { root: ParentNode }, n: 0 | 1) => box.root.querySelectorAll('.tabs button')[n] as HTMLElement;
+const showFight = (box: { root: ParentNode }) => tabButton(box, 1).click();
+const noteIcon = (box: { root: ParentNode }) => box.root.querySelector('button.note-icon') as HTMLElement;
+const showPlunder = (box: { root: ParentNode }) => tabButton(box, 0).click();
+
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const HOUR = 3_600_000;
@@ -162,6 +168,7 @@ describe('sabotage feature', () => {
     ctx.cities.setVisited(city(1));
     ctx.cities.setVisited(city(2));
     await tick();
+    showFight(box);
     const results: Record<number, FoughtBattle> = { 1: battle(1, 111), 2: battle(2, 222) };
 
     for (const owner of order) {
@@ -352,10 +359,102 @@ describe('sabotage feature', () => {
     });
   });
 
+  describe('tabs', () => {
+    it('opens on Plündern with the count of plunderable buildings and the totals line, tabs without words', async () => {
+      const { ctx, box } = markSetup();
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await tick();
+      expect(tabButton(box, 0).className).toBe('active');
+      expect(tabButton(box, 0).textContent?.trim()).toBe('2');
+      expect(tabButton(box, 0).dataset.tip).toBe('Plündern');
+      expect(tabButton(box, 1).dataset.tip).toBe('Kampf');
+      expect(tabButton(box, 1).textContent?.trim()).toBe('');
+      expect(box.root.querySelector('table.plunder-table')).not.toBeNull();
+      expect(box.text).toContain('Hier hast du noch nicht geplündert.');
+      expect(box.text).not.toContain('Jetzt plünderbar');
+    });
+
+    it('omits the count when nothing is plunderable', async () => {
+      const { ctx, box } = setup();
+      ctx.cities.setVisited(city(1));
+      await tick();
+      expect(tabButton(box, 0).textContent?.trim()).toBe('');
+      expect(box.text).toContain('Nichts Plünderbares.');
+    });
+
+    it('shows the fight content on Kampf instead, and Plündern again on the way back', async () => {
+      const { ctx, box } = markSetup();
+      ctx.plunders.record(plunder(1, Date.now()));
+      ctx.cities.setVisited(coinsAndPoints(1));
+      await vi.waitFor(() => expect(box.text).toContain('1 Plünderung, 4 FP'));
+      showFight(box);
+      expect(tabButton(box, 1).className).toBe('active');
+      expect(box.root.querySelector('table.plunder-table')).toBeNull();
+      expect(box.text).toMatch(/Zuletzt heute/);
+      expect(box.text).not.toContain('1 Plünderung, 4 FP');
+      showPlunder(box);
+      expect(box.root.querySelector('table.plunder-table')).not.toBeNull();
+    });
+
+    it('says so on Kampf when there is nothing to show', async () => {
+      const { ctx, box } = setup();
+      await ctx.settings.of(SHOW_ARMY).set(false);
+      ctx.cities.setVisited(city(1));
+      await tick();
+      showFight(box);
+      expect(box.text).toContain('Noch nichts zu diesem Spieler aufgezeichnet.');
+    });
+
+    it('keeps the chosen tab over redraws and goes back to Plündern on every new visit', async () => {
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+      const { ctx, box } = setup();
+      ctx.cities.setVisited(city(1));
+      await tick();
+      showFight(box);
+      vi.advanceTimersByTime(31_000);
+      ctx.bus.emit('city.visitedChanged', { owner: playerId(1), buildingIds: [] });
+      expect(tabButton(box, 1).className).toBe('active');
+
+      ctx.cities.setVisited(city(1));
+      await tick();
+      expect(tabButton(box, 0).className).toBe('active');
+    });
+  });
+
+  describe('note icon', () => {
+    it('is faded without a note, tells to create one and shows or hides the card on a click', async () => {
+      const { ctx, box } = setup();
+      ctx.cities.setVisited(city(1));
+      await tick();
+      expect(noteIcon(box).className).toBe('note-icon empty');
+      expect(noteIcon(box).dataset.tip).toBe('Notiz anlegen');
+      expect(noteIcon(box).getAttribute('aria-pressed')).toBe('false');
+      noteIcon(box).click();
+      expect(box.root.querySelector('.card')).not.toBeNull();
+      expect(noteIcon(box).getAttribute('aria-pressed')).toBe('true');
+      noteIcon(box).click();
+      expect(box.root.querySelector('.card')).toBeNull();
+    });
+
+    it('is not faded with a note, which is its tooltip, and closes again on a new visit', async () => {
+      const { ctx, box } = setup();
+      ctx.notes.setPlayerText(playerId(1), 'hat Schilde');
+      ctx.cities.setVisited(city(1));
+      await tick();
+      expect(noteIcon(box).className).toBe('note-icon');
+      expect(noteIcon(box).dataset.tip).toBe('hat Schilde');
+      noteIcon(box).click();
+      ctx.cities.setVisited(city(1));
+      await tick();
+      expect(box.root.querySelector('.card')).toBeNull();
+    });
+  });
+
   it('shows the last battle when the city did not change meanwhile', async () => {
     const { ctx, box, latest } = setup();
     ctx.cities.setVisited(city(1));
     await tick();
+    showFight(box);
     expect(box.text).not.toContain('Gemessen');
     latest.get(playerId(1))?.(battle(1, 111));
     await tick();
@@ -368,12 +467,17 @@ describe('sabotage feature', () => {
     ctx.plunders.record(plunder(2, Date.now()));
     ctx.cities.setVisited(city(1));
     await vi.waitFor(() => expect(box.text).toContain('1 Plünderung, 4 FP'));
+    showFight(box);
+    expect(box.text).not.toContain('1 Plünderung, 4 FP');
     expect(box.text).toMatch(/Zuletzt heute \d\d:\d\dR_IronAge_Residential24 Forge-Punkte/);
     expect(box.text).not.toContain('Plünderung verdoppelt');
 
     ctx.plunders.record(plunder(1, Date.now() + 1000, { doubleLoot: true, resources: { money: 20 } }));
-    await vi.waitFor(() => expect(box.text).toContain('2 Plünderungen, 4 FP'));
-    expect(box.text).toMatch(/Zuletzt heute \d\d:\d\dPlünderung verdoppelt\s*R_IronAge_Residential2\s*20 Münzen/);
+    await vi.waitFor(() =>
+      expect(box.text).toMatch(/Zuletzt heute \d\d:\d\dPlünderung verdoppelt\s*R_IronAge_Residential2\s*20 Münzen/),
+    );
+    showPlunder(box);
+    expect(box.text).toContain('2 Plünderungen, 4 FP');
   });
 
   it('tells when the last plunder of the visited player was repelled', async () => {
@@ -384,6 +488,7 @@ describe('sabotage feature', () => {
     );
     ctx.cities.setVisited(city(1));
     await vi.waitFor(() => expect(box.text).toContain('1 Plünderung, 1 abgewehrt, 4 FP'));
+    showFight(box);
     expect(box.text).toMatch(/Zuletzt heute \d\d:\d\d–abgewehrt/);
     expect(box.text).not.toContain('R_IronAge_Residential2');
   });
@@ -409,6 +514,7 @@ describe('sabotage feature', () => {
     ctx.incoming.record(attack(2, 1));
     ctx.cities.setVisited(city(1));
     await vi.waitFor(() => expect(box.text).toContain('Hier hast du noch nicht geplündert.'));
+    showFight(box);
     expect(box.text).not.toContain('angegriffen');
 
     ctx.incoming.record(attack(1, 2, { defense: 'broken' }));
@@ -419,6 +525,8 @@ describe('sabotage feature', () => {
     expect(box.text).not.toContain('abgewehrt');
 
     ctx.cities.setVisited(city(2));
+    await tick();
+    showFight(box);
     await vi.waitFor(() => expect(box.text).toContain('(Kampf: gehalten)'));
     expect(box.text).toContain('1 Angriff, 1 abgewehrt, 0 Plünderungen');
   });
@@ -427,6 +535,8 @@ describe('sabotage feature', () => {
     const { ctx, box } = setup();
     ctx.cities.setVisited(city(1));
     await tick();
+    expect(box.text).not.toContain('Notiz zu diesem Spieler');
+    noteIcon(box).click();
     expect(box.text).toContain('Notiz zu diesem Spieler');
     (box.root.querySelector('.note') as HTMLElement).click();
     const textarea = box.root.querySelector('textarea') as HTMLTextAreaElement;
@@ -434,6 +544,7 @@ describe('sabotage feature', () => {
     textarea.dispatchEvent(new Event('input'));
     textarea.dispatchEvent(new Event('blur'));
     expect(ctx.notes.playerPage(playerId(1))?.text).toBe('hat **Schilde**');
+    expect(noteIcon(box).dataset.tip).toBe('hat **Schilde**');
     expect(box.root.querySelector('strong')?.textContent).toBe('Schilde');
 
     ctx.notes.setPlayerText(playerId(1), '*neu*');
@@ -446,6 +557,7 @@ describe('sabotage feature', () => {
     const { ctx, box, latest } = setup();
     ctx.cities.setVisited(city(1));
     await tick();
+    showFight(box);
     expect(box.root.querySelector('details')).toBeNull();
     latest.get(playerId(1))?.({
       ...battle(1, 111),
@@ -476,6 +588,7 @@ describe('sabotage feature', () => {
     ctx.catalog.setUnitTypes([{ id: 'rogue', name: 'Agent' }]);
     ctx.cities.setVisited(city(1));
     await tick();
+    showFight(box);
     latest.get(playerId(1))?.({
       ...battle(1, 111),
       attacker: { bonuses: {}, units: [{ unitTypeId: 'rogue', startHp: 10, endHp: 10 }] },
@@ -555,6 +668,7 @@ describe('sabotage feature', () => {
     expect(latestBattle).toHaveBeenCalledTimes(1);
     latest.get(playerId(1))?.(battle(1, 111));
     await tick();
+    showFight(box);
     expect(box.text).toContain('111');
   });
 
@@ -568,6 +682,7 @@ describe('sabotage feature', () => {
     const first = def.mock.calls.length;
     expect(first).toBeGreaterThan(0);
 
+    showFight(box);
     vi.advanceTimersByTime(31_000);
     latest.get(playerId(1))?.(battle(1, 111));
     await tick();

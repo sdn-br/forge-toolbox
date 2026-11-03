@@ -15,6 +15,9 @@ const headerIcon = (inner: TemplateResult) => frame(inner, HEADER_STROKE);
 
 // traced from the game's great building icon: a tall keep left of centre, a lower tower on the right,
 // in front a wall with a battlement band and a square gate; filled, windows and gate cut out
+/** the loot sack of the game's plunder motif, in the star icons and alone */
+const SACK = 'M9 4.5h6l-1.6 3.2c3.6 1.6 6.1 5 6.1 8.6 0 2.9-2.3 4.2-7.5 4.2s-7.5-1.3-7.5-4.2c0-3.6 2.5-7 6.1-8.6Z';
+
 const castleShape = svg`<g fill="currentColor" stroke="none" fill-rule="evenodd">
     <path class="acc" d="M3.8 2.5H5.3V3.5H6.5V2.5H7.9V3.5H9.1V2.5H10.5V3.5H11.7V2.5H13.2V5H3.8Z"/>
     <path d="M5.6 5.5H11.7V11.9H5.6Z M7.1 6.8V8.3H10.1V6.8Z M7.1 9.4V10.8H10.1V9.4Z"/>
@@ -106,6 +109,8 @@ export const icons = {
   buildingSearch:
     menuIcon(svg`<path d="M2.5 11 9.5 4.5l7 6.5"/><path d="M4.3 9.5v9.5h10.4V9.5"/><path d="M8 19v-4.6h3V19"/>
     <circle class="acc" cx="16.2" cy="15.4" r="4.1" fill="var(--btn)"/><path class="acc" d="m19.1 18.3 3.2 3.2" stroke-width="2.2"/>`),
+  /** the loot sack alone, as the tab of the plunder list */
+  sack: menuIcon(svg`<path d="${SACK}"/><path d="M9.6 7.7h4.8"/>`),
   pvp: menuIcon(svg`${sword(45)}${sword(-45)}`),
   notes: menuIcon(svg`${scroll20}${featherFilled}`),
   /** the calculator signs large, the castle small in the fourth cell of the 2x2 grid */
@@ -123,7 +128,6 @@ export const icons = {
 
 const FORWARD = 'M20 12a8 8 0 1 1-2.3-5.6';
 const FUNNEL = 'M3.5 4.5h17l-6.5 8v6l-4 2v-8Z';
-const SACK = 'M9 4.5h6l-1.6 3.2c3.6 1.6 6.1 5 6.1 8.6 0 2.9-2.3 4.2-7.5 4.2s-7.5-1.3-7.5-4.2c0-3.6 2.5-7 6.1-8.6Z';
 const SMALL_STAR = 'M10 3l2.1 4.3 4.8.7-3.4 3.3.8 4.7L10 13.8 5.7 16l.8-4.7L3.1 8l4.8-.7Z';
 const WARNING = 'M12 3.5 21.5 20h-19Z';
 const WARNING_MARK = 'M12 10v4.4M12 17.2v.3';
