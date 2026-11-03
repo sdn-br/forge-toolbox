@@ -1,7 +1,11 @@
 // The look of the Besuchte Stadt box: the head with its tabs and the plunder rows.
 export const sabotageCss = `
-/* head and tab bar stay on top of the one scrolling body; the body's padding (6px 8px) is taken back by the margin */
-.visit-top { position: sticky; top: -6px; z-index: 2; margin: -6px -8px 0; padding: 6px 8px 0; background: var(--bg); }
+/* The body does not scroll: the head and the tab bar stand above the content area, which takes the rest of the box. The
+   Plündern tab fits (a window of rows); the Kampf tab scrolls inside this area when it is taller, without passing the
+   scroll on to the page at its ends. */
+.body { display: flex; flex-direction: column; overflow: hidden; }
+.visit-top { flex: none; }
+.visit-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .visit-top p { margin: 0 0 4px; }
 /* the invitation icon in the box of the PvP mark buttons beside it, so all icons share one middle */
 .visit-name .rel-icons { display: inline-grid; place-items: center; width: 18px; height: 18px; vertical-align: middle; }

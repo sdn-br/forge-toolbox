@@ -706,4 +706,95 @@ describe('sabotage feature', () => {
     ctx.bus.emit('city.visitedChanged', { owner: playerId(1), buildingIds: [5] });
     expect(def.mock.calls.length).toBeGreaterThan(first);
   });
+
+  describe('plunder list window', () => {
+    /** a city with `n` plunderable houses of the same kind; rows share the loot, so only the names tell them apart */
+    function manyHouses(n: number) {
+      const env = setup();
+      const buildings = Array.from({ length: n }, (_, i) => {
+        env.ctx.catalog.add(houseDef(`H${i}`, `Haus ${i}`));
+        return house(10 + i, 1, `H${i}`, i * 3, { money: 100 });
+      });
+      const names = () =>
+        [...env.box.root.querySelectorAll('tr.plunder-row')].map((r) => r.querySelector('td:not(.img) b')?.textContent);
+      const button = (label: string) =>
+        env.box.root.querySelector(`.win-nav button[aria-label="${label}"]`) as HTMLButtonElement | null;
+      const wheel = (deltaY: number) => {
+        const event = new WheelEvent('wheel', { deltaY, cancelable: true, bubbles: true });
+        env.box.root.querySelector('.win-scroll')?.dispatchEvent(event);
+        return event;
+      };
+      const visit = async () => {
+        env.ctx.cities.setVisited(withBuildings(1, buildings));
+        await tick();
+      };
+      return { ...env, names, button, wheel, visit };
+    }
+
+    it('draws at most five rows and offers no buttons for five or fewer', async () => {
+      const five = manyHouses(5);
+      await five.visit();
+      expect(five.names()).toHaveLength(5);
+      expect(five.box.root.querySelector('.win-scroll')).toBeNull();
+
+      const seven = manyHouses(7);
+      await seven.visit();
+      expect(seven.names()).toHaveLength(5);
+      expect(seven.box.root.querySelector('.win-scroll')).not.toBeNull();
+      expect(seven.box.text).toContain('noch 2 weitere unten');
+    });
+
+    it('moves the window by one row with the wheel and the buttons', async () => {
+      const { names, button, wheel, visit, box } = manyHouses(7);
+      await visit();
+      const all = names();
+      expect(button('Nach oben')?.classList.contains('off')).toBe(true);
+
+      expect(wheel(100).defaultPrevented).toBe(true);
+      expect(names()[0]).not.toBe(all[0]);
+      expect(names()).toHaveLength(5);
+      const afterWheel = names();
+      button('Nach unten')?.click();
+      expect(names()[0]).not.toBe(afterWheel[0]);
+      // at the end the wheel passes on
+      expect(wheel(100).defaultPrevented).toBe(false);
+      expect(box.text).toContain('2 weitere oben');
+
+      button('Nach oben')?.click();
+      button('Nach oben')?.click();
+      expect(names()).toEqual(all);
+    });
+
+    it('goes back to the top on a new visit and stays on redraws', async () => {
+      const { ctx, names, wheel, visit, box } = manyHouses(7);
+      await visit();
+      const top = names();
+      wheel(100);
+      const moved = names();
+      expect(moved).not.toEqual(top);
+
+      ctx.bus.emit('city.visitedChanged', { owner: playerId(1), buildingIds: [] });
+      showFight(box);
+      showPlunder(box);
+      expect(names()).toEqual(moved);
+
+      await visit();
+      expect(names()).toEqual(top);
+    });
+
+    it('toggles the pin of a row in the window', async () => {
+      const { ctx, names, wheel, visit, box, marker } = manyHouses(7);
+      await visit();
+      wheel(100);
+      const second = box.root.querySelectorAll('tr.plunder-row')[1] as HTMLElement;
+      const name = names()[1];
+      second.click();
+      expect(marker.last?.type).toBe('show');
+      expect(ctx.markers.current()?.city).toBe(playerId(1));
+      expect(box.root.querySelectorAll('tr.plunder-row.marked')).toHaveLength(1);
+      expect(box.root.querySelector('tr.plunder-row.marked b')?.textContent).toBe(name);
+      // the window stayed where it was
+      expect(names()[1]).toBe(name);
+    });
+  });
 });
