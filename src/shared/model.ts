@@ -319,9 +319,17 @@ export interface KnownGreatBuilding {
   /** `seenAt` of the sighting before the growth, and `growthAt` of the sighting that showed it; missing on entries stored before the span existed */
   growthFrom?: number;
   growthAt?: number;
+  /**
+   * the prestige tier of the building (game update 2026-11-05: gold for some buildings from level 101); only the ranking
+   * window brings it, every other write keeps it
+   */
+  tier?: GreatBuildingTier;
   /** last seen, in the building or in a list */
   seenAt: number;
 }
+
+/** `currentTier.value` of a row of the great building ranking */
+export type GreatBuildingTier = 'copper' | 'gold';
 
 /** One day of a player at foestats: the values of its daily snapshot. Past days never change. */
 export interface FoestatsDay {

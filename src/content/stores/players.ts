@@ -19,12 +19,20 @@ export interface PlayerObservation {
   attack?: AttackTimer;
 }
 
-/** What a great building list tells about the owner of a row: the id, the name and maybe the avatar. */
+/**
+ * What a great building list tells about the owner of a row: the id, the name and maybe the avatar. The ranking window
+ * also tells city, era and guild.
+ */
 export interface ListedPlayer {
   id: PlayerId;
   name: string;
   /** missing or empty keeps what is known */
   avatar?: string;
+  /** missing keeps what is known */
+  cityName?: string;
+  era?: EraId;
+  /** `null` means "no guild"; missing keeps what is known. The flag of the same guild stays */
+  guild?: GuildRef | null;
 }
 
 export interface PlayerPersistence {
@@ -57,17 +65,32 @@ type MarkField = (typeof MARK_FIELDS)[number];
 const marksOf = (p: Player | undefined): Pick<Player, MarkField> =>
   Object.fromEntries(MARK_FIELDS.filter((k) => p?.[k] !== undefined).map((k) => [k, p?.[k]]));
 
-/** A known player seen in a list: the name follows the newest sighting, an empty avatar keeps the known one. */
-const listedOnto = <T extends Omit<Player, MarkField>>(
-  old: T,
-  l: Pick<ListedPlayer, 'name' | 'avatar'>,
-  seenAt: number,
-): T => ({
-  ...old,
-  name: l.name,
+/** what a listed player says about the fields beyond the name: what it does not bring stays as known */
+const listedFields = (
+  l: ListedPlayer,
+  old?: Pick<Player, 'guild'>,
+): Pick<Player, 'avatar' | 'cityName' | 'era' | 'guild'> => ({
   ...(l.avatar && { avatar: l.avatar }),
-  seenAt: Math.max(old.seenAt, seenAt),
+  ...(l.cityName !== undefined && { cityName: l.cityName }),
+  ...(l.era !== undefined && { era: l.era }),
+  ...(l.guild && {
+    guild: {
+      ...l.guild,
+      ...(old?.guild?.id === l.guild.id && { flag: old.guild.flag }),
+    },
+  }),
 });
+
+/** what a view shows of a listed player, as one key */
+const shownOf = (p: Player | undefined) =>
+  JSON.stringify([p?.name, p?.avatar, p?.cityName, p?.era, p?.guild?.id, p?.guild?.name]);
+
+/** A known player seen in a list: the name follows the newest sighting, an empty avatar keeps the known one. */
+const listedOnto = <T extends Omit<Player, MarkField>>(old: T, l: ListedPlayer, seenAt: number): T => {
+  const next: T = { ...old, name: l.name, ...listedFields(l, old), seenAt: Math.max(old.seenAt, seenAt) };
+  if (l.guild === null) delete next.guild;
+  return next;
+};
 
 export class PlayerStore {
   private players = new Map<PlayerId, Player>();
@@ -246,7 +269,7 @@ export class PlayerStore {
               world,
               id: l.id,
               name: l.name,
-              ...(l.avatar && { avatar: l.avatar }),
+              ...listedFields(l),
               relations: NO_RELATIONS,
               firstSeenAt: now,
               seenAt: now,
@@ -254,7 +277,7 @@ export class PlayerStore {
             };
       this.players.set(l.id, next);
       // the same name again changes no view; only the sighting is saved
-      if (next.name !== old?.name || next.avatar !== old?.avatar) touched.add(l.id);
+      if (shownOf(next) !== shownOf(old)) touched.add(l.id);
       else this.dirty.add(l.id);
     }
     if (touched.size === 0 && this.dirty.size > 0) this.scheduleFlush();

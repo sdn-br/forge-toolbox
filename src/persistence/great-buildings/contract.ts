@@ -1,5 +1,5 @@
 import type { BuildingDefId, PlayerId, WorldId } from '../../shared/ids';
-import type { KnownGreatBuilding, MarkKind } from '../../shared/model';
+import type { GreatBuildingTier, KnownGreatBuilding, MarkKind } from '../../shared/model';
 
 /** A row of a great building list: the state of one building without its rankings. */
 export interface GreatBuildingListRow {
@@ -14,6 +14,8 @@ export interface GreatBuildingListRow {
   /** own deposit and net reward of that place; the town hall list (getContributions) brings them */
   forgePoints?: number;
   reward?: number;
+  /** the prestige tier; only rows of the ranking window bring it */
+  tier?: GreatBuildingTier;
 }
 
 export interface GreatBuildingsApi {

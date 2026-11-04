@@ -4,6 +4,7 @@ import type { GreatBuildingListRow } from '../../persistence/great-buildings/con
 import {
   type BuildingDefId,
   buildingDefId,
+  type EraId,
   eraId,
   guildId,
   type PlayerId,
@@ -60,6 +61,7 @@ import type {
   GamePlunderResult,
   GameProduct,
   GameProductionOption,
+  GameRankingList,
   GameResearchProgress,
   GameResearchTechnology,
   GameResources,
@@ -717,6 +719,60 @@ export function toListedPlayers(data: unknown, except?: PlayerId): ListedPlayer[
     });
   }
   return [...owners.values()];
+}
+
+/** What a page of the great building ranking tells: the rows as list rows, their owners and the building names. */
+export interface GreatBuildingRanking {
+  rows: GreatBuildingListRow[];
+  owners: ListedPlayer[];
+  names: Record<string, string>;
+}
+
+/**
+ * A page of the ranking window (RankingService.searchRanking, getRanking), when it is the great building tab; any other
+ * tab gives null. Rows without building, owner or costs are skipped, so are those of `except` (the session player).
+ * The ranking's own `rank` is the place in the ranking, not an own contribution, so it is not passed on.
+ */
+export function toGreatBuildingRanking(data: unknown, except?: PlayerId): GreatBuildingRanking | null {
+  const list = data as GameRankingList | null;
+  if (list?.category?.value !== 'great_building') return null;
+  const result: GreatBuildingRanking = { rows: [], owners: [], names: {} };
+  const owners = new Map<PlayerId, ListedPlayer>();
+  for (const r of Array.isArray(list.rankings) ? list.rankings : []) {
+    const entityId = num(r?.entityId);
+    const owner = num(r?.player?.player_id);
+    const level = num(r?.level);
+    const required = num(r?.requiredPoints);
+    const def = r?.cityEntityId;
+    if (entityId === undefined || owner === undefined || level === undefined || required === undefined || !def)
+      continue;
+    if (owner === except) continue;
+    const tier = r.currentTier?.value;
+    result.rows.push({
+      owner: playerId(owner),
+      entityId,
+      cityEntityId: buildingDefId(def),
+      level,
+      invested: num(r.points) ?? 0,
+      required,
+      ...((tier === 'copper' || tier === 'gold') && { tier }),
+    });
+    if (typeof r.name === 'string' && r.name !== '') result.names[def] = r.name;
+    const p = r.player;
+    if (typeof p?.name !== 'string' || p.name === '') continue;
+    const guild = num(r.clan?.id);
+    owners.set(playerId(owner), {
+      id: playerId(owner),
+      name: p.name,
+      // a missing field keeps what the player store knows
+      avatar: p.avatar,
+      cityName: p.city_name,
+      era: p.era as EraId | undefined,
+      guild: guild === undefined ? null : { id: guildId(guild), name: r.clan?.name ?? '' },
+    });
+  }
+  result.owners = [...owners.values()];
+  return result;
 }
 
 /** Display names of great buildings by definition, from the inventory list or the overview of a player. */

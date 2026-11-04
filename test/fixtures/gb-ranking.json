@@ -1,0 +1,1163 @@
+{
+  "note": "RankingService answers of the ranking window recorded on de10 2026-11-04: the tab \"Legendäre Bauwerke\" opened on the own place, a page, a player search, a great building search, and the medals tab. Rows trimmed, players and guilds anonymized (me 1000, players from 2001, guilds from 3001), city names and avatars replaced.",
+  "me": 1000,
+  "opened": {
+    "requestClass": "RankingService",
+    "requestMethod": "searchRanking",
+    "requestData": [
+      {
+        "__enum__": "RankingCategory",
+        "value": "great_building"
+      },
+      null,
+      "Ich",
+      true,
+      "player"
+    ],
+    "responseData": {
+      "length": 246399,
+      "rankings": [
+        {
+          "rank": 8771,
+          "player": {
+            "player_id": 2001,
+            "name": "Spieler 2001",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2001",
+            "clan_id": 3001,
+            "era": "SpaceAgeJupiterMoon",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3001,
+            "name": "Gilde 3001"
+          },
+          "entityId": 3475,
+          "cityEntityId": "X_FutureEra_Landmark1",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Zukunft",
+          "name": "Die Arche",
+          "requiredPoints": 22879,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8772,
+          "player": {
+            "player_id": 2002,
+            "name": "Spieler 2002",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2002",
+            "clan_id": 3002,
+            "era": "SpaceAgeTitan",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3002,
+            "name": "Gilde 3002"
+          },
+          "entityId": 3216,
+          "cityEntityId": "X_FutureEra_Landmark1",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Zukunft",
+          "name": "Die Arche",
+          "requiredPoints": 22879,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8773,
+          "player": {
+            "player_id": 2003,
+            "name": "Spieler 2003",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2003",
+            "clan_id": 3003,
+            "era": "SpaceAgeJupiterMoon",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3003,
+            "name": "Gilde 3003"
+          },
+          "entityId": 262,
+          "cityEntityId": "X_FutureEra_Landmark1",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Zukunft",
+          "name": "Die Arche",
+          "requiredPoints": 22879,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8774,
+          "player": {
+            "player_id": 1000,
+            "name": "Ich",
+            "avatar": "portrait_id_1",
+            "is_neighbor": true,
+            "is_guild_member": true,
+            "is_self": true,
+            "city_name": "Stadt 1000",
+            "clan_id": 3004,
+            "era": "VirtualFuture",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3004,
+            "name": "Gilde 3004"
+          },
+          "entityId": 1769,
+          "cityEntityId": "X_FutureEra_Landmark1",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Zukunft",
+          "name": "Die Arche",
+          "requiredPoints": 22879,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8775,
+          "player": {
+            "player_id": 2004,
+            "name": "Spieler 2004",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2004",
+            "era": "SpaceAgeAsteroidBelt",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan"
+          },
+          "entityId": 1738,
+          "cityEntityId": "X_FutureEra_Landmark1",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Zukunft",
+          "name": "Die Arche",
+          "requiredPoints": 22879,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8776,
+          "player": {
+            "player_id": 2005,
+            "name": "Spieler 2005",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2005",
+            "clan_id": 3005,
+            "era": "SpaceAgeMars",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3005,
+            "name": "Gilde 3005"
+          },
+          "entityId": 153,
+          "cityEntityId": "X_FutureEra_Landmark1",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Zukunft",
+          "name": "Die Arche",
+          "requiredPoints": 22879,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8777,
+          "player": {
+            "player_id": 2006,
+            "name": "Spieler 2006",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2006",
+            "era": "ContemporaryEra",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan"
+          },
+          "entityId": 1316,
+          "cityEntityId": "X_FutureEra_Landmark1",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Zukunft",
+          "name": "Die Arche",
+          "requiredPoints": 22879,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8778,
+          "player": {
+            "player_id": 2007,
+            "name": "Spieler 2007",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2007",
+            "clan_id": 3006,
+            "era": "SpaceAgeMars",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3006,
+            "name": "Gilde 3006"
+          },
+          "entityId": 10447602,
+          "cityEntityId": "X_FutureEra_Landmark1",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Zukunft",
+          "name": "Die Arche",
+          "requiredPoints": 22879,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8779,
+          "player": {
+            "player_id": 2008,
+            "name": "Spieler 2008",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2008",
+            "clan_id": 3007,
+            "era": "StellarAgeDiscovery",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3007,
+            "name": "Gilde 3007"
+          },
+          "points": 2254,
+          "entityId": 6929,
+          "cityEntityId": "X_PostModernEra_Landmark1",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Die Postmoderne",
+          "name": "Cape Canaveral",
+          "requiredPoints": 20756,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8780,
+          "player": {
+            "player_id": 2009,
+            "name": "Spieler 2009",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2009",
+            "clan_id": 3008,
+            "era": "IronAge",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3008,
+            "name": "Gilde 3008"
+          },
+          "entityId": 93,
+          "cityEntityId": "X_PostModernEra_Landmark1",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Die Postmoderne",
+          "name": "Cape Canaveral",
+          "requiredPoints": 20756,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8781,
+          "player": {
+            "player_id": 2010,
+            "name": "Spieler 2010",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2010",
+            "clan_id": 3009,
+            "era": "ArcticFuture",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3009,
+            "name": "Gilde 3009"
+          },
+          "entityId": 3089,
+          "cityEntityId": "X_PostModernEra_Landmark1",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Die Postmoderne",
+          "name": "Cape Canaveral",
+          "requiredPoints": 20756,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8782,
+          "player": {
+            "player_id": 2011,
+            "name": "Spieler 2011",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2011",
+            "clan_id": 3010,
+            "era": "SpaceAgeMars",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3010,
+            "name": "Gilde 3010"
+          },
+          "entityId": 10941,
+          "cityEntityId": "X_PostModernEra_Landmark1",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Die Postmoderne",
+          "name": "Cape Canaveral",
+          "requiredPoints": 20756,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8783,
+          "player": {
+            "player_id": 2012,
+            "name": "Spieler 2012",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2012",
+            "clan_id": 3011,
+            "era": "StellarAgeDiscovery",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3011,
+            "name": "Gilde 3011"
+          },
+          "entityId": 6717,
+          "cityEntityId": "X_ModernEra_Landmark2",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Die Moderne",
+          "name": "Atomium",
+          "requiredPoints": 20756,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8784,
+          "player": {
+            "player_id": 2013,
+            "name": "Spieler 2013",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2013",
+            "clan_id": 3012,
+            "era": "TomorrowEra",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3012,
+            "name": "Gilde 3012"
+          },
+          "points": 18987,
+          "entityId": 4854,
+          "cityEntityId": "X_ProgressiveEra_Landmark2",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "gold"
+          },
+          "era": "Jahrhundertwende",
+          "name": "Château Frontenac",
+          "requiredPoints": 19577,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8785,
+          "player": {
+            "player_id": 2014,
+            "name": "Spieler 2014",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2014",
+            "clan_id": 3013,
+            "era": "StellarAgeDiscovery",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3013,
+            "name": "Gilde 3013"
+          },
+          "points": 18957,
+          "entityId": 28,
+          "cityEntityId": "X_ProgressiveEra_Landmark2",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "gold"
+          },
+          "era": "Jahrhundertwende",
+          "name": "Château Frontenac",
+          "requiredPoints": 19577,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8786,
+          "player": {
+            "player_id": 2015,
+            "name": "Spieler 2015",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2015",
+            "clan_id": 3014,
+            "era": "StellarAgeDiscovery",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3014,
+            "name": "Gilde 3014"
+          },
+          "points": 18596,
+          "entityId": 12251,
+          "cityEntityId": "X_ProgressiveEra_Landmark2",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "gold"
+          },
+          "era": "Jahrhundertwende",
+          "name": "Château Frontenac",
+          "requiredPoints": 19577,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8787,
+          "player": {
+            "player_id": 2016,
+            "name": "Spieler 2016",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2016",
+            "clan_id": 3015,
+            "era": "SpaceAgeMars",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3015,
+            "name": "Gilde 3015"
+          },
+          "points": 17770,
+          "entityId": 957,
+          "cityEntityId": "X_ProgressiveEra_Landmark2",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "gold"
+          },
+          "era": "Jahrhundertwende",
+          "name": "Château Frontenac",
+          "requiredPoints": 19577,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8788,
+          "player": {
+            "player_id": 2017,
+            "name": "Spieler 2017",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2017",
+            "clan_id": 3016,
+            "era": "StellarAgeDiscovery",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3016,
+            "name": "Gilde 3016"
+          },
+          "points": 15860,
+          "entityId": 306,
+          "cityEntityId": "X_ProgressiveEra_Landmark1",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "gold"
+          },
+          "era": "Jahrhundertwende",
+          "name": "Alcatraz",
+          "requiredPoints": 19577,
+          "__class__": "GreatBuildingRanking"
+        }
+      ],
+      "page": 175,
+      "category": {
+        "__enum__": "RankingCategory",
+        "value": "great_building"
+      },
+      "search_successful": true,
+      "__class__": "RankingList"
+    }
+  },
+  "page": {
+    "requestClass": "RankingService",
+    "requestMethod": "getRanking",
+    "requestData": [
+      {
+        "__enum__": "RankingCategory",
+        "value": "great_building"
+      },
+      null,
+      174
+    ],
+    "responseData": {
+      "length": 246399,
+      "rankings": [
+        {
+          "rank": 8701,
+          "player": {
+            "player_id": 2018,
+            "name": "Spieler 2018",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2018",
+            "clan_id": 3017,
+            "era": "SpaceAgeAsteroidBelt",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3017,
+            "name": "Gilde 3017"
+          },
+          "points": 25760,
+          "entityId": 3831,
+          "cityEntityId": "X_OceanicFuture_Landmark3",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "gold"
+          },
+          "era": "Ozeanische Zukunft",
+          "name": "Die blaue Galaxie",
+          "requiredPoints": 27360,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8702,
+          "player": {
+            "player_id": 2019,
+            "name": "Spieler 2019",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2019",
+            "clan_id": 3013,
+            "era": "FutureEra",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3013,
+            "name": "Gilde 3013"
+          },
+          "points": 13209,
+          "entityId": 6803,
+          "cityEntityId": "X_OceanicFuture_Landmark3",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "gold"
+          },
+          "era": "Ozeanische Zukunft",
+          "name": "Die blaue Galaxie",
+          "requiredPoints": 27360,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8703,
+          "player": {
+            "player_id": 2011,
+            "name": "Spieler 2011",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2011",
+            "clan_id": 3010,
+            "era": "SpaceAgeMars",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3010,
+            "name": "Gilde 3010"
+          },
+          "points": 11450,
+          "entityId": 14764,
+          "cityEntityId": "X_OceanicFuture_Landmark2",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "gold"
+          },
+          "era": "Ozeanische Zukunft",
+          "name": "Der Kraken",
+          "requiredPoints": 27360,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 8704,
+          "player": {
+            "player_id": 2020,
+            "name": "Spieler 2020",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2020",
+            "clan_id": 3018,
+            "era": "SpaceAgeTitan",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3018,
+            "name": "Gilde 3018"
+          },
+          "points": 10010,
+          "entityId": 7166,
+          "cityEntityId": "X_OceanicFuture_Landmark3",
+          "level": 137,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "gold"
+          },
+          "era": "Ozeanische Zukunft",
+          "name": "Die blaue Galaxie",
+          "requiredPoints": 27360,
+          "__class__": "GreatBuildingRanking"
+        }
+      ],
+      "page": 174,
+      "category": {
+        "__enum__": "RankingCategory",
+        "value": "great_building"
+      },
+      "search_successful": true,
+      "__class__": "RankingList"
+    }
+  },
+  "playerSearch": {
+    "requestClass": "RankingService",
+    "requestMethod": "searchRanking",
+    "requestData": [
+      {
+        "__enum__": "RankingCategory",
+        "value": "great_building"
+      },
+      null,
+      "Spieler",
+      false,
+      "player"
+    ],
+    "responseData": {
+      "length": 98,
+      "rankings": [
+        {
+          "rank": 8966,
+          "player": {
+            "player_id": 2021,
+            "name": "Spieler 2021",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2021",
+            "clan_id": 3019,
+            "era": "ContemporaryEra",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3019,
+            "name": "Gilde 3019"
+          },
+          "entityId": 1391,
+          "cityEntityId": "X_FutureEra_Landmark1",
+          "level": 136,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Zukunft",
+          "name": "Die Arche",
+          "requiredPoints": 22321,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 17132,
+          "player": {
+            "player_id": 2021,
+            "name": "Spieler 2021",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2021",
+            "clan_id": 3019,
+            "era": "ContemporaryEra",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3019,
+            "name": "Gilde 3019"
+          },
+          "entityId": 6749,
+          "cityEntityId": "X_OceanicFuture_Landmark2",
+          "level": 113,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "gold"
+          },
+          "era": "Ozeanische Zukunft",
+          "name": "Der Kraken",
+          "requiredPoints": 15127,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 17163,
+          "player": {
+            "player_id": 2021,
+            "name": "Spieler 2021",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2021",
+            "clan_id": 3019,
+            "era": "ContemporaryEra",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3019,
+            "name": "Gilde 3019"
+          },
+          "entityId": 8734,
+          "cityEntityId": "X_ArcticFuture_Landmark2",
+          "level": 113,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "gold"
+          },
+          "era": "Arktische Zukunft",
+          "name": "Arktische Orangerie",
+          "requiredPoints": 14475,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 17652,
+          "player": {
+            "player_id": 2021,
+            "name": "Spieler 2021",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2021",
+            "clan_id": 3019,
+            "era": "ContemporaryEra",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3019,
+            "name": "Gilde 3019"
+          },
+          "entityId": 4797,
+          "cityEntityId": "X_VirtualFuture_Landmark1",
+          "level": 112,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "gold"
+          },
+          "era": "Virtuelle Zukunft",
+          "name": "Terrakotta-Armee",
+          "requiredPoints": 15394,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 17790,
+          "player": {
+            "player_id": 2022,
+            "name": "Spieler 2022",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2022",
+            "era": "SpaceAgeAsteroidBelt",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan"
+          },
+          "points": 29,
+          "entityId": 4205,
+          "cityEntityId": "X_FutureEra_Landmark1",
+          "level": 112,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Zukunft",
+          "name": "Die Arche",
+          "requiredPoints": 12341,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 27999,
+          "player": {
+            "player_id": 2021,
+            "name": "Spieler 2021",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2021",
+            "clan_id": 3019,
+            "era": "ContemporaryEra",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3019,
+            "name": "Gilde 3019"
+          },
+          "entityId": 802,
+          "cityEntityId": "X_AllAge_EasterBonus4",
+          "level": 101,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "gold"
+          },
+          "era": "Ohne Zeitalter",
+          "name": "Observatorium",
+          "requiredPoints": 6303,
+          "__class__": "GreatBuildingRanking"
+        }
+      ],
+      "category": {
+        "__enum__": "RankingCategory",
+        "value": "great_building"
+      },
+      "search_successful": true,
+      "__class__": "RankingList"
+    }
+  },
+  "buildingSearch": {
+    "requestClass": "RankingService",
+    "requestMethod": "searchRanking",
+    "requestData": [
+      {
+        "__enum__": "RankingCategory",
+        "value": "great_building"
+      },
+      null,
+      "Arche",
+      false,
+      "great_building"
+    ],
+    "responseData": {
+      "length": 50,
+      "rankings": [
+        {
+          "rank": 11,
+          "player": {
+            "player_id": 2023,
+            "name": "Spieler 2023",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2023",
+            "clan_id": 3020,
+            "era": "StellarAgeDiscovery",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3020,
+            "name": "Gilde 3020"
+          },
+          "points": 6892,
+          "entityId": 956,
+          "cityEntityId": "X_FutureEra_Landmark1",
+          "level": 301,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Zukunft",
+          "name": "Die Arche",
+          "requiredPoints": 1312625,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 12,
+          "player": {
+            "player_id": 2024,
+            "name": "Spieler 2024",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2024",
+            "clan_id": 3021,
+            "era": "StellarAgeDiscovery",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3021,
+            "name": "Gilde 3021"
+          },
+          "points": 2,
+          "entityId": 588,
+          "cityEntityId": "X_FutureEra_Landmark1",
+          "level": 301,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Zukunft",
+          "name": "Die Arche",
+          "requiredPoints": 1312625,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 19,
+          "player": {
+            "player_id": 2025,
+            "name": "Spieler 2025",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2025",
+            "clan_id": 3022,
+            "era": "StellarAgeDiscovery",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3022,
+            "name": "Gilde 3022"
+          },
+          "entityId": 39,
+          "cityEntityId": "X_FutureEra_Landmark1",
+          "level": 277,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Zukunft",
+          "name": "Die Arche",
+          "requiredPoints": 725718,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 21,
+          "player": {
+            "player_id": 2026,
+            "name": "Spieler 2026",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2026",
+            "clan_id": 3021,
+            "era": "ProgressiveEra",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3021,
+            "name": "Gilde 3021"
+          },
+          "entityId": 1144,
+          "cityEntityId": "X_FutureEra_Landmark1",
+          "level": 270,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Zukunft",
+          "name": "Die Arche",
+          "requiredPoints": 610521,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 30,
+          "player": {
+            "player_id": 2027,
+            "name": "Spieler 2027",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2027",
+            "clan_id": 3023,
+            "era": "SpaceAgeTitan",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3023,
+            "name": "Gilde 3023"
+          },
+          "points": 381791,
+          "entityId": 47,
+          "cityEntityId": "X_FutureEra_Landmark1",
+          "level": 251,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Zukunft",
+          "name": "Die Arche",
+          "requiredPoints": 381898,
+          "__class__": "GreatBuildingRanking"
+        },
+        {
+          "rank": 33,
+          "player": {
+            "player_id": 2028,
+            "name": "Spieler 2028",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2028",
+            "clan_id": 3020,
+            "era": "StellarAgeDiscovery",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3020,
+            "name": "Gilde 3020"
+          },
+          "entityId": 827,
+          "cityEntityId": "X_FutureEra_Landmark1",
+          "level": 250,
+          "currentTier": {
+            "__enum__": "GreatBuildingTier",
+            "value": "copper"
+          },
+          "era": "Zukunft",
+          "name": "Die Arche",
+          "requiredPoints": 372584,
+          "__class__": "GreatBuildingRanking"
+        }
+      ],
+      "category": {
+        "__enum__": "RankingCategory",
+        "value": "great_building"
+      },
+      "search_successful": true,
+      "__class__": "RankingList"
+    }
+  },
+  "medals": {
+    "requestClass": "RankingService",
+    "requestMethod": "searchRanking",
+    "requestData": [
+      {
+        "__enum__": "RankingCategory",
+        "value": "medals"
+      },
+      null,
+      "Ich",
+      true,
+      ""
+    ],
+    "responseData": {
+      "length": 39356,
+      "rankings": [
+        {
+          "rank": 4551,
+          "player": {
+            "player_id": 2029,
+            "name": "Spieler 2029",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2029",
+            "era": "ContemporaryEra",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan"
+          },
+          "medals": 75940033,
+          "battles": 68383,
+          "__class__": "Ranking"
+        },
+        {
+          "rank": 4552,
+          "player": {
+            "player_id": 2030,
+            "name": "Spieler 2030",
+            "avatar": "portrait_id_1",
+            "city_name": "Stadt 2030",
+            "clan_id": 3024,
+            "era": "HighMiddleAge",
+            "__class__": "Player"
+          },
+          "clan": {
+            "description": "",
+            "__class__": "Clan",
+            "id": 3024,
+            "name": "Gilde 3024"
+          },
+          "medals": 75880531,
+          "battles": 43524,
+          "__class__": "Ranking"
+        }
+      ],
+      "page": 91,
+      "category": {
+        "__enum__": "RankingCategory",
+        "value": "medals"
+      },
+      "search_successful": true,
+      "__class__": "RankingList"
+    }
+  }
+}

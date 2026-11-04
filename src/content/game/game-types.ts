@@ -282,6 +282,32 @@ export interface GameGreatBuildingName {
 }
 
 /**
+ * The answer of RankingService.searchRanking and getRanking (RankingList, recorded 2026-11-04 on de10). Every tab of the
+ * ranking window uses the two methods; `category.value` names the tab, `great_building` is "Legendäre Bauwerke".
+ */
+export interface GameRankingList {
+  rankings?: GameGreatBuildingRanking[];
+  category?: { value?: string };
+}
+
+/**
+ * A row of the great building ranking (GreatBuildingRanking): one building of `player`. `points` is the progress of the
+ * level, missing at 0; a `clan` without `id` means no guild. `currentTier` came with the game update of 2026-11-05.
+ */
+export interface GameGreatBuildingRanking {
+  rank?: number;
+  player?: { player_id?: number; name?: string; avatar?: string; city_name?: string; era?: string; clan_id?: number };
+  clan?: { id?: number; name?: string };
+  points?: number;
+  entityId?: number;
+  cityEntityId?: string;
+  level?: number;
+  currentTier?: { value?: string };
+  name?: string;
+  requiredPoints?: number;
+}
+
+/**
  * A row of GreatBuildingsService.getOtherPlayerOverview (GreatBuildingContributionRow, seen 2026-10-23): a building of
  * `player` with its state. `current_progress` is missing at 0. getContributions (seen 2026-10-24) brings the same
  * class with the own `rank`, `forge_points` and `reward` on top.

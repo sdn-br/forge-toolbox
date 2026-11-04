@@ -39,6 +39,7 @@ export function applyListRow(
     level: state.level,
     invested: state.invested,
     required: state.required,
+    ...(state.tier && { tier: state.tier }),
     ...own,
     seenAt: at,
   };

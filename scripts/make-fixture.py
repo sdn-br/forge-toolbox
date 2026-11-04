@@ -39,6 +39,13 @@
 # keeps the metadata file of each named great building, trimmed to id, name, type, min_era, the level costs and the type
 # and values of its production bonus (the Forge points per level of a Forge point building).
 
+# Great building ranking: python3 -I scripts/make-fixture.py gb-ranking <recording.json> <out.json> [<more-recording.json> …]
+# keeps the RankingService answers of the ranking window: rows 20 to 37 of the first page the tab "Legendäre Bauwerke"
+# opens with (the own building among them), the first rows of the first getRanking page, of the first player search and
+# of the first great building search, and the first rows of another category (medals), with request data. Players and
+# guilds anonymized (me 1000, players from 2001, guilds from 3001), city names and avatars replaced, the own name in
+# the request replaced, a player search text too.
+
 # Friend accepted: python3 -I scripts/make-fixture.py friend-accept <recording.json> <out.json>
 # Friend deleted: python3 -I scripts/make-fixture.py friend-delete <recording.json> <out.json>
 # keeps the first FriendService.acceptInvitation (request: the player id, response: the new friend as a whole player),
@@ -472,6 +479,59 @@ def gb_contributions_fixture(rec,out,rows):
       'contributions':{'requestClass':data['requestClass'],'requestMethod':data['requestMethod'],'requestData':None,'responseData':[row(x) for x in data['responseData'][:rows]]}}
     json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
 
+def gb_ranking_fixture(recs,out):
+    ME=1000
+    players={}; guilds={}
+    own=None
+    entries=[]
+    for rec in recs:
+        for r in rec:
+            if r['kind']!='json': continue
+            try: res=json.loads(r['response']); req=json.loads(r['request'] or '[]')
+            except (TypeError,ValueError): continue
+            reqs={q.get('requestId'):q for q in (req if isinstance(req,list) else []) if isinstance(q,dict)}
+            for e in (res if isinstance(res,list) else []):
+                if isinstance(e,dict) and e.get('requestClass')=='RankingService':
+                    entries.append((e,reqs.get(e.get('requestId'),{}).get('requestData')))
+    for e,_ in entries:
+        for x in e['responseData'].get('rankings',[]):
+            if x.get('player',{}).get('is_self'): own=x['player']['player_id']
+    def pid(p):
+        if p==own: return ME
+        if p not in players: players[p]=2001+len(players)
+        return players[p]
+    def gid(g):
+        if g not in guilds: guilds[g]=3001+len(guilds)
+        return guilds[g]
+    def row(x):
+        o=dict(x)
+        p=x['player']; n=pid(p['player_id'])
+        o['player']={**p,'player_id':n,'name':'Ich' if n==ME else f'Spieler {n}','avatar':'portrait_id_1','city_name':f'Stadt {n}'}
+        if 'clan_id' in p: o['player']['clan_id']=gid(p['clan_id'])
+        if 'clan' in x:
+            c=x['clan']
+            o['clan']={'description':'','__class__':c.get('__class__')}
+            if 'id' in c: o['clan'].update(id=gid(c['id']),name=f'Gilde {gid(c["id"])}')
+        return o
+    def first(method,category,pred=lambda d:True):
+        return next(((e,q) for e,q in entries if e['requestMethod']==method and e['responseData']['category']['value']==category and pred(q)),None)
+    picks={
+      'opened':(first('searchRanking','great_building',lambda q:q[3] is True),slice(20,38)),
+      'page':(first('getRanking','great_building'),slice(0,4)),
+      'playerSearch':(first('searchRanking','great_building',lambda q:q[3] is False and q[4]=='player'),slice(0,6)),
+      'buildingSearch':(first('searchRanking','great_building',lambda q:q[3] is False and q[4]=='great_building'),slice(0,6)),
+      'medals':(first('searchRanking','medals'),slice(0,2)),
+    }
+    fixture={'note':'RankingService answers of the ranking window recorded on de10 2026-11-04: the tab "Legendäre Bauwerke" opened on the own place, a page, a player search, a great building search, and the medals tab. Rows trimmed, players and guilds anonymized (me 1000, players from 2001, guilds from 3001), city names and avatars replaced.','me':ME}
+    for key,((e,q),cut) in picks.items():
+        q=list(q)
+        if q[0]['value']=='great_building' or key=='medals':
+            if isinstance(q[2],str): q[2]='Ich' if q[3] is True else ('Spieler' if q[4]=='player' else q[2])
+        d=e['responseData']
+        fixture[key]={'requestClass':'RankingService','requestMethod':e['requestMethod'],'requestData':q,
+          'responseData':{**d,'rankings':[row(x) if 'player' in x else x for x in d['rankings'][cut]]}}
+    json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
+
 def friend_accept_fixture(rec,out):
     FRIEND=1001
     entry=world=None
@@ -506,6 +566,8 @@ def friend_delete_fixture(rec,out):
       'delete':{'requestClass':'FriendService','requestMethod':'deleteFriend','requestData':[FRIEND],'responseData':FRIEND}}
     json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
 
+if sys.argv[1]=='gb-ranking':
+    gb_ranking_fixture([json.load(open(f)) for f in [sys.argv[2],*sys.argv[4:]]],sys.argv[3]); sys.exit()
 if sys.argv[1]=='friend-delete':
     friend_delete_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
 if sys.argv[1]=='friend-accept':
