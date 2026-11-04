@@ -61,7 +61,7 @@ describe('windowedRows template', () => {
     expect(steps).toEqual([1]);
   });
 
-  it('moves a row per 20px of small trackpad events and one row per mouse wheel notch', () => {
+  it('moves a row per 15px of small trackpad events and one row per mouse wheel notch', () => {
     const steps: number[] = [];
     const host = draw(rowWindow(2, 10, 3), (rows) => steps.push(rows));
     const wheel = (deltaY: number) => {
@@ -69,14 +69,14 @@ describe('windowedRows template', () => {
       host.querySelector('.win-scroll')?.dispatchEvent(event);
       return event.defaultPrevented;
     };
-    expect([wheel(5), wheel(5), wheel(5)]).toEqual([true, true, true]);
+    expect([wheel(5), wheel(5)]).toEqual([true, true]);
     expect(steps).toEqual([]);
     wheel(5);
     expect(steps).toEqual([1]);
     wheel(120);
     expect(steps).toEqual([1, 1]);
-    wheel(15);
-    wheel(-15);
+    wheel(10);
+    wheel(-10);
     expect(steps).toEqual([1, 1]);
     wheel(-5);
     expect(steps).toEqual([1, 1, -1]);

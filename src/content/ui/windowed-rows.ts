@@ -48,7 +48,7 @@ export interface WindowedRows {
 
 /** wheel travel in pixels for one row; a mouse wheel notch is larger and still moves one row (Nutzer, 2026-11-04: a
  * trackpad sends many small events and moved a row on each, far too fast) */
-export const WHEEL_ROW_TRAVEL = 20;
+export const WHEEL_ROW_TRAVEL = 15;
 
 const LINE_PIXELS = 16;
 
