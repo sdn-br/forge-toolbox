@@ -54,8 +54,8 @@ const pressKeys = (action: () => void) => (e: KeyboardEvent) => {
 /** rows of the plunder list in view; the box is as high as its head and this many rows (Nutzer, 2026-11-03) */
 export const VISIBLE_ROWS = 5;
 
-/** loot lines a row shows: with more items the first two and "+n weitere", so name and lines fill the row height */
-const LOOT_LINES = 3;
+/** loot lines a row shows: with more items the first four and "+n weitere", so name and lines fill the row height */
+const LOOT_LINES = 5;
 
 /** the loot lines of a row, nothing summed; the rest as a muted count */
 const lootLines = (items: PlunderItem['items']) => {

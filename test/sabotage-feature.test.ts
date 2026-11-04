@@ -853,22 +853,29 @@ describe('sabotage feature', () => {
       return { ...env, text, lines };
     };
 
-    it('shows up to three loot lines in one column under the name', async () => {
-      const { text, lines } = lootCity({ money: 1, strategy_points: 2, supplies: 3 });
+    it('shows up to five loot lines in one column under the name', async () => {
+      const { text, lines } = lootCity({ money: 1, strategy_points: 2, supplies: 3, population: 4, medals: 5 });
       await tick();
-      expect(lines()).toHaveLength(3);
+      expect(lines()).toHaveLength(5);
       expect(text().textContent).not.toContain('weitere');
     });
 
-    it('shows two lines and a muted count for four or more items, the whole loot in the tooltip', async () => {
-      const { text, lines } = lootCity({ money: 1, strategy_points: 2, supplies: 3, population: 4 });
+    it('shows four lines and a muted count for six or more items, the whole loot in the tooltip', async () => {
+      const { text, lines } = lootCity({
+        money: 1,
+        strategy_points: 2,
+        supplies: 3,
+        population: 4,
+        medals: 5,
+        premium: 6,
+      });
       await tick();
-      expect(lines()).toHaveLength(3);
-      expect(lines()[2]).toBe('+2 weitere');
+      expect(lines()).toHaveLength(5);
+      expect(lines()[4]).toBe('+2 weitere');
       expect(text().querySelector('div.muted')?.textContent).toBe('+2 weitere');
       const tip = text().dataset.tip?.split('\n') ?? [];
       expect(tip[0]).toBe('Münzhaus');
-      expect(tip).toHaveLength(5);
+      expect(tip).toHaveLength(7);
     });
 
     it('puts the loot tip on the text and the pin tip on the pin', async () => {
