@@ -46,6 +46,29 @@ export interface WindowedRows {
   measure?: (area: Element | undefined) => void;
 }
 
+/** wheel travel in pixels for one row; a mouse wheel notch is larger and still moves one row (Nutzer, 2026-11-04: a
+ * trackpad sends many small events and moved a row on each, far too fast) */
+export const WHEEL_ROW_TRAVEL = 10;
+
+const LINE_PIXELS = 16;
+
+/** travel gathered per list frame since its last step, signed */
+const wheelTravel = new WeakMap<Element, number>();
+
+/** Gathers the wheel travel of a frame and returns the direction of a row step once it reaches `WHEEL_ROW_TRAVEL`, else
+ * 0. At most one row per event; a change of direction starts over. */
+function wheelStep(frame: Element, e: WheelEvent): number {
+  const pixels = e.deltaMode === 0 ? e.deltaY : e.deltaY * (e.deltaMode === 1 ? LINE_PIXELS : WHEEL_ROW_TRAVEL);
+  const before = wheelTravel.get(frame) ?? 0;
+  const travel = Math.sign(before) === Math.sign(pixels) ? before + pixels : pixels;
+  if (Math.abs(travel) < WHEEL_ROW_TRAVEL) {
+    wheelTravel.set(frame, travel);
+    return 0;
+  }
+  wheelTravel.set(frame, 0);
+  return Math.sign(travel);
+}
+
 /** The frame around the table: the table area, the two buttons beside it and, when rows are hidden, the line of what is
  * hidden after it. The buttons always keep their room, greyed when nothing is hidden, so the table width never jumps.
  * The wheel over the frame steps a row and passes at the ends. */
@@ -54,9 +77,13 @@ export function windowedRows({ cls, table, window, scroll, measure }: WindowedRo
   const scrolls = above > 0 || below > 0;
   const wheel = (e: WheelEvent) => {
     const step = Math.sign(e.deltaY);
-    if (!scrolls || step === 0 || (step < 0 ? above : below) === 0) return;
+    const frame = e.currentTarget as Element;
+    if (!scrolls || step === 0 || (step < 0 ? above : below) === 0) {
+      wheelTravel.delete(frame);
+      return;
+    }
     e.preventDefault();
-    scroll(step);
+    if (wheelStep(frame, e) !== 0) scroll(step);
   };
   return html`<div class="win-scroll ${cls}" @wheel=${wheel}>
       <div class="win-area" ${ref(measure)}>${table}</div>

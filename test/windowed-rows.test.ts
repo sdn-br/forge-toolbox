@@ -60,6 +60,27 @@ describe('windowedRows template', () => {
     expect(wheel(100)).toBe(true);
     expect(steps).toEqual([1]);
   });
+
+  it('moves a row per 10px of small trackpad events and one row per mouse wheel notch', () => {
+    const steps: number[] = [];
+    const host = draw(rowWindow(2, 10, 3), (rows) => steps.push(rows));
+    const wheel = (deltaY: number) => {
+      const event = new WheelEvent('wheel', { deltaY, cancelable: true, bubbles: true });
+      host.querySelector('.win-scroll')?.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    expect([wheel(5)]).toEqual([true]);
+    expect(steps).toEqual([]);
+    wheel(5);
+    expect(steps).toEqual([1]);
+    wheel(120);
+    expect(steps).toEqual([1, 1]);
+    wheel(5);
+    wheel(-5);
+    expect(steps).toEqual([1, 1]);
+    wheel(-5);
+    expect(steps).toEqual([1, 1, -1]);
+  });
 });
 
 describe('rows in the window', () => {

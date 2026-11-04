@@ -8,9 +8,10 @@ import { footprints } from '../../domain/city-grid';
 import type { VisitedCity } from '../../stores/cities';
 import { icons } from '../../ui/icons';
 import { PlayerNoteCard } from '../../ui/note-card';
+import { clampTop } from '../../ui/windowed-rows';
 import { playerLookups, playerRowActions } from '../shared/player-lookups';
 import { sabotageCss } from './styles';
-import { type PlunderMarks, type SabotageTab, type SabotageUi, sabotageView } from './view';
+import { type PlunderMarks, type SabotageTab, type SabotageUi, sabotageView, VISIBLE_ROWS } from './view';
 import { type SabotageVm, sabotageViewModel } from './view-model';
 import { visitedRecord } from './visited-record';
 
@@ -45,6 +46,47 @@ export const sabotageFeature: Feature = {
     // every visit starts on Plündern with the note card closed; ticks and store updates keep what was chosen since
     let tab: SabotageTab = 'plunder';
     let noteOpen = false;
+    // the first plunder row in view; back to the top on every visit, kept on redraws
+    let plunderTop = 0;
+    // counts the visits: the content area starts at the top again on each
+    let visit = 0;
+    // the content area of the Plündern tab; its height at the switch to Kampf is the height of that tab, so the box
+    // keeps its size (unmeasured, as in a test without layout: the Kampf tab has the height of its content)
+    let plunderArea: Element | undefined;
+    // Rows of the window: up to VISIBLE_ROWS. The box is capped at 70% of the window, so a small window leaves less room
+    // than five rows plus the head: the count goes down by one per overflow seen and back to the maximum when the area
+    // grows or a visit starts. Each step is a redraw the observer sees again, so it ends when the area fits or at one row.
+    let visibleRows = VISIBLE_ROWS;
+    let areaHeight: number | undefined;
+    let observer: ResizeObserver | undefined;
+    const fit = () => {
+      const area = plunderArea as HTMLElement | undefined;
+      const height = area?.clientHeight ?? 0;
+      // no layout (a test, a closed box): nothing to follow
+      if (!area || height <= 0) return;
+      const grown = areaHeight !== undefined && height > areaHeight;
+      areaHeight = height;
+      if (grown && visibleRows < VISIBLE_ROWS) {
+        visibleRows = VISIBLE_ROWS;
+        box.update();
+      } else if (area.scrollHeight > height + 2 && visibleRows > 1) {
+        visibleRows--;
+        box.update();
+      }
+    };
+    // the area, and the list in it: the list changes its height with the count of rows, the area with the window
+    const measure = (area: Element | undefined) => {
+      plunderArea = area;
+      areaHeight = undefined;
+      observer?.disconnect();
+      if (!area || typeof ResizeObserver === 'undefined') return;
+      observer ??= new ResizeObserver(fit);
+      observer.observe(area);
+      const list = area.querySelector('.plunder-list');
+      if (list) observer.observe(list);
+    };
+    let fightHeight: number | undefined;
+    const rowsCount = () => vm?.plunderable.length ?? 0;
     const lookups = playerLookups(ctx);
     const playerActions = playerRowActions(ctx);
     // the countdowns of the attack line run on while the box is open; the ticker stops with the box
@@ -64,6 +106,8 @@ export const sabotageFeature: Feature = {
       width: 400,
       render: () => {
         keepTicking();
+        // a shorter list leaves no offset beyond its end
+        plunderTop = clampTop(plunderTop, rowsCount(), visibleRows);
         const owner = ctx.cities.visited()?.owner;
         const note = vm && owner !== undefined ? card.render(owner, ctx.players.get(owner)?.name) : undefined;
         const playerMarks =
@@ -78,6 +122,8 @@ export const sabotageFeature: Feature = {
         const ui: SabotageUi = {
           tab,
           pickTab: (next) => {
+            if (tab === 'plunder' && plunderArea)
+              fightHeight = (plunderArea as HTMLElement).offsetHeight || fightHeight;
             tab = next;
             box.update();
           },
@@ -85,6 +131,15 @@ export const sabotageFeature: Feature = {
           noteOpen,
           toggleNote: () => {
             noteOpen = !noteOpen;
+            box.update();
+          },
+          visit,
+          measure,
+          visibleRows,
+          ...(fightHeight && { fightHeight }),
+          plunderTop,
+          scrollPlunder: (rows) => {
+            plunderTop = clampTop(plunderTop + rows, rowsCount(), visibleRows);
             box.update();
           },
         };
@@ -171,6 +226,9 @@ export const sabotageFeature: Feature = {
       assessed = undefined;
       tab = 'plunder';
       noteOpen = false;
+      plunderTop = 0;
+      visibleRows = VISIBLE_ROWS;
+      visit++;
       if (autoOpen.get() && !box.isOpen) open();
       else refresh();
     });

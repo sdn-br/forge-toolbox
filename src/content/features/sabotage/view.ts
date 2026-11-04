@@ -1,4 +1,6 @@
 import { html, type TemplateResult } from 'lit-html';
+import { keyed } from 'lit-html/directives/keyed.js';
+import { ref } from 'lit-html/directives/ref.js';
 import { formatNumber, formatPercent, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { battleDetailsView } from '../../ui/battle-details';
@@ -7,6 +9,7 @@ import { externalLink, guildTag } from '../../ui/links';
 import { plunderCard } from '../../ui/plunder';
 import { pvpMarks } from '../../ui/pvp-marks';
 import { tabBar } from '../../ui/tabs';
+import { rowsIn, rowWindow, windowedRows } from '../../ui/windowed-rows';
 import type { PlunderItem, SabotageVm } from './view-model';
 
 const armyCells = (army: ArmyValues | undefined) =>
@@ -48,23 +51,48 @@ const pressKeys = (action: () => void) => (e: KeyboardEvent) => {
   action();
 };
 
-/** the building's image in its own column, kept only while some row has one */
-const imageCell = (p: PlunderItem) =>
-  html`<td class="img">${p.image ? html`<img src=${p.image} alt="" loading="lazy" referrerpolicy="no-referrer" />` : ''}</td>`;
+/** most rows of the plunder list in view, as many as fit the box below it (Nutzer, 2026-11-04) */
+export const VISIBLE_ROWS = 5;
+/** the height of a plunder row and of the line of hidden rows below the window, in px (see the styles) */
+export const ROW_HEIGHT = 76;
+export const HIDDEN_LINE = 21;
 
-const plunderTable = (items: PlunderItem[], marks?: PlunderMarks) => {
+/** loot items a row shows, in two columns of three in the game's order (left column first); with more items the last
+ * place shows "+n weitere" instead, so name and three lines fill the row height */
+const LOOT_PLACES = 6;
+
+/** the loot of a row, nothing summed; beyond six items the last place is a muted count of the rest */
+const lootLines = (items: PlunderItem['items']) => {
+  const shown = items.length > LOOT_PLACES ? items.slice(0, LOOT_PLACES - 1) : items;
+  const rest = items.length - shown.length;
+  return html`<div class="loot">${shown.map((i) => html`<div>${formatNumber(i.amount)} ${i.label}</div>`)}${
+    rest > 0 ? html`<div class="muted">${t('sabotage.moreLoot', { count: rest })}</div>` : ''
+  }</div>`;
+};
+
+/** the whole name and loot, one item per line, for the tooltip of the row's cells */
+const lootTip = (p: PlunderItem) => [p.name, ...p.items.map((i) => `${formatNumber(i.amount)} ${i.label}`)].join('\n');
+
+const plunderTable = (items: PlunderItem[], inView: PlunderItem[], marks?: PlunderMarks) => {
+  // the image column stays while any building has an image, so the width does not jump when the window moves
   const images = items.some((p) => p.image);
-  return html`<table class="plunder-table">${items.map((p) => {
-    const loot = html`${images ? imageCell(p) : ''}<td><b>${p.name}</b><br />${p.items.map(
-      (i, n) => html`${n ? html`<br />` : ''}${formatNumber(i.amount)} ${i.label}`,
-    )}</td>`;
+  return html`<table class="plunder-table">${inView.map((p) => {
+    const tip = lootTip(p);
+    const loot = html`${
+      images
+        ? html`<td class="img" data-tip=${tip}><span class="frame">${
+            p.image ? html`<img src=${p.image} alt="" loading="lazy" referrerpolicy="no-referrer" />` : ''
+          }</span></td>`
+        : ''
+    }<td class="text" data-tip=${tip}><div class="plunder-name"><b>${p.name}</b></div>${lootLines(p.items)}</td>`;
     const muted = p.important ? '' : ' muted';
     if (!marks) return html`<tr class=${muted.trim()}>${loot}</tr>`;
     const marked = marks.marked(p.building);
     const toggle = () => marks.toggle(p.building);
+    // the loot tooltip sits on the image and the text, the pin tooltip on the pin
     return html`<tr class=${`plunder-row${muted}${marked ? ' marked' : ''}`} role="button" tabindex="0"
-      aria-pressed=${String(marked)} data-tip=${t(marked ? 'sabotage.unmarkInGame' : 'sabotage.markInGame')}
-      @click=${toggle} @keydown=${pressKeys(toggle)}>${loot}<td class="mark">${headerIcons.mapPin(marked)}</td></tr>`;
+      aria-pressed=${String(marked)} @click=${toggle} @keydown=${pressKeys(toggle)}>${loot}<td class="mark"
+      data-tip=${t(marked ? 'sabotage.unmarkInGame' : 'sabotage.markInGame')}>${headerIcons.mapPin(marked)}</td></tr>`;
   })}</table>`;
 };
 
@@ -86,6 +114,18 @@ export interface SabotageUi {
   noteText: string;
   noteOpen: boolean;
   toggleNote(): void;
+  /** index of the first plunder row in view */
+  plunderTop: number;
+  /** rows of the window now: up to VISIBLE_ROWS, fewer while the box leaves no room for more */
+  visibleRows: number;
+  /** moves the plunder list by rows, down for positive; the owner keeps the offset inside the list */
+  scrollPlunder(rows: number): void;
+  /** counts the visits; a new one, like another tab, starts the content area at the top */
+  visit: number;
+  /** gets the content area of the Plündern tab when it is drawn and when it is gone, to measure it */
+  measure(area: Element | undefined): void;
+  /** the height the Plündern tab had when last measured; the Kampf tab takes it, so the box keeps its size */
+  fightHeight?: number;
 }
 
 const tabLabel = (key: SabotageTab, vm: SabotageVm) =>
@@ -102,17 +142,25 @@ const noteButton = (ui: SabotageUi) => {
     data-tip=${tip} @click=${ui.toggleNote}>${icons.notes}</button>`;
 };
 
-const plunderTab = (vm: SabotageVm, marks?: PlunderMarks) => html`
+/** the rows of "Jetzt plünderbar": a window of up to VISIBLE_ROWS, wheel and buttons move it; a shorter list has neither */
+const plunderList = (vm: SabotageVm, ui: SabotageUi, marks?: PlunderMarks) => {
+  const window = rowWindow(ui.plunderTop, vm.plunderable.length, ui.visibleRows);
+  const table = plunderTable(vm.plunderable, rowsIn(vm.plunderable, window), marks);
+  if (vm.plunderable.length <= ui.visibleRows) return table;
+  return windowedRows({ cls: 'plunder-win', table, window, scroll: ui.scrollPlunder });
+};
+
+const plunderTab = (vm: SabotageVm, ui: SabotageUi, marks?: PlunderMarks) => html`
   ${
     vm.plundered?.last
       ? html`<p class="muted">${vm.plundered.totals}</p>`
       : html`<p class="muted">${t('sabotage.neverPlundered')}</p>`
   }
-  ${
+  <div class="plunder-list" style=${`min-height:${ui.visibleRows * ROW_HEIGHT + HIDDEN_LINE}px`}>${
     vm.plunderable.length === 0
       ? html`<p class="muted">${t('sabotage.nothingPlunderable')}</p>`
-      : plunderTable(vm.plunderable, marks)
-  }
+      : plunderList(vm, ui, marks)
+  }</div>
   ${vm.incomplete ? html`<p class="warn">${t('sabotage.incomplete')}</p>` : ''}`;
 
 const fightTab = (vm: SabotageVm) => {
@@ -133,7 +181,8 @@ const fightTab = (vm: SabotageVm) => {
 
 /**
  * `note` is the note card of the visited player, shown below the head while `ui.noteOpen`; `marks` points at
- * plunderable buildings in the game. Head and tab bar stay on top while the tab scrolls under them.
+ * plunderable buildings in the game. The head and the tab bar sit outside any scrolling area; only the content of the
+ * Kampf tab scrolls, when it is taller than the box may be. The plunder list is a window of rows instead.
  */
 export function sabotageView(
   vm: SabotageVm | undefined,
@@ -164,5 +213,10 @@ export function sabotageView(
         (key) => t(`sabotage.tab.${key}`),
       )}
     </div>
-    ${ui.tab === 'plunder' ? plunderTab(vm, marks) : fightTab(vm)}`;
+${keyed(
+  `${ui.visit}-${ui.tab}`,
+  ui.tab === 'plunder'
+    ? html`<div class="visit-content plunder" ${ref(ui.measure)}>${plunderTab(vm, ui, marks)}</div>`
+    : html`<div class="visit-content" style=${ui.fightHeight ? `height:${ui.fightHeight}px` : ''}>${fightTab(vm)}</div>`,
+)}`;
 }

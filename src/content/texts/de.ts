@@ -136,6 +136,7 @@ export const de = {
   'sabotage.plunderRepel': 'Plünderabwehr',
   'sabotage.markInGame': 'Im Spiel mit einer Stecknadel zeigen',
   'sabotage.unmarkInGame': 'Stecknadel im Spiel entfernen',
+  'sabotage.moreLoot': '+{count} weitere',
   'sabotage.nothingPlunderable': 'Nichts Plünderbares.',
   'sabotage.incomplete': 'Noch nicht alle Gebäudedaten geladen, Werte können fehlen.',
   'sabotage.guild': 'Gilde',
