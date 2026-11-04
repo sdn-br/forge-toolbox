@@ -1,5 +1,6 @@
 import { html, type TemplateResult } from 'lit-html';
 import { keyed } from 'lit-html/directives/keyed.js';
+import { ref } from 'lit-html/directives/ref.js';
 import { formatNumber, formatPercent, t } from '../../core/texts';
 import type { ArmyValues } from '../../domain/assess-city';
 import { battleDetailsView } from '../../ui/battle-details';
@@ -115,6 +116,10 @@ export interface SabotageUi {
   scrollPlunder(rows: number): void;
   /** counts the visits; a new one, like another tab, starts the content area at the top */
   visit: number;
+  /** gets the content area of the Plündern tab on every render, to measure its height */
+  measure(area: Element | undefined): void;
+  /** the height the Plündern tab had when last measured; the Kampf tab takes it, so the box keeps its size */
+  fightHeight?: number;
 }
 
 const tabLabel = (key: SabotageTab, vm: SabotageVm) =>
@@ -145,11 +150,11 @@ const plunderTab = (vm: SabotageVm, ui: SabotageUi, marks?: PlunderMarks) => htm
       ? html`<p class="muted">${vm.plundered.totals}</p>`
       : html`<p class="muted">${t('sabotage.neverPlundered')}</p>`
   }
-  ${
+  <div class="plunder-list">${
     vm.plunderable.length === 0
       ? html`<p class="muted">${t('sabotage.nothingPlunderable')}</p>`
       : plunderList(vm, ui, marks)
-  }
+  }</div>
   ${vm.incomplete ? html`<p class="warn">${t('sabotage.incomplete')}</p>` : ''}`;
 
 const fightTab = (vm: SabotageVm) => {
@@ -204,6 +209,8 @@ export function sabotageView(
     </div>
 ${keyed(
   `${ui.visit}-${ui.tab}`,
-  html`<div class="visit-content">${ui.tab === 'plunder' ? plunderTab(vm, ui, marks) : fightTab(vm)}</div>`,
+  ui.tab === 'plunder'
+    ? html`<div class="visit-content" ${ref(ui.measure)}>${plunderTab(vm, ui, marks)}</div>`
+    : html`<div class="visit-content" style=${ui.fightHeight ? `height:${ui.fightHeight}px` : ''}>${fightTab(vm)}</div>`,
 )}`;
 }

@@ -50,6 +50,10 @@ export const sabotageFeature: Feature = {
     let plunderTop = 0;
     // counts the visits: the content area starts at the top again on each
     let visit = 0;
+    // the content area of the Plündern tab; its height at the switch to Kampf is the height of that tab, so the box
+    // keeps its size (unmeasured, as in a test without layout: the Kampf tab has the height of its content)
+    let plunderArea: Element | undefined;
+    let fightHeight: number | undefined;
     const rowsCount = () => vm?.plunderable.length ?? 0;
     const lookups = playerLookups(ctx);
     const playerActions = playerRowActions(ctx);
@@ -86,6 +90,8 @@ export const sabotageFeature: Feature = {
         const ui: SabotageUi = {
           tab,
           pickTab: (next) => {
+            if (tab === 'plunder' && plunderArea)
+              fightHeight = (plunderArea as HTMLElement).offsetHeight || fightHeight;
             tab = next;
             box.update();
           },
@@ -96,6 +102,10 @@ export const sabotageFeature: Feature = {
             box.update();
           },
           visit,
+          measure: (area) => {
+            plunderArea = area;
+          },
+          ...(fightHeight && { fightHeight }),
           plunderTop,
           scrollPlunder: (rows) => {
             plunderTop = clampTop(plunderTop + rows, rowsCount(), VISIBLE_ROWS);

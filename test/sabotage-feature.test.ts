@@ -814,6 +814,28 @@ describe('sabotage feature', () => {
       expect(area()).not.toBe(second);
     });
 
+    it('gives the Plündern tab no fixed height and the Kampf tab the height measured on Plündern', async () => {
+      const { box, visit, area } = manyHouses(8);
+      await visit();
+      expect((area() as HTMLElement).style.height).toBe('');
+      showFight(box);
+      // no layout in the test: nothing measured, the Kampf tab has the height of its content
+      expect((area() as HTMLElement).style.height).toBe('');
+      showPlunder(box);
+      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(437);
+      showFight(box);
+      expect((area() as HTMLElement).style.height).toBe('437px');
+    });
+
+    it('reserves the room of five rows for a list with fewer or none', async () => {
+      const { box, visit } = manyHouses(2);
+      await visit();
+      expect(box.root.querySelector('.visit-content > .plunder-list')).not.toBeNull();
+      const none = manyHouses(0);
+      await none.visit();
+      expect(none.box.root.querySelector('.plunder-list')?.textContent).toContain('Nichts Plünderbares.');
+    });
+
     it('keeps head and tab bar outside the content area', async () => {
       const { box, visit, area } = manyHouses(2);
       await visit();
