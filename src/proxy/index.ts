@@ -36,6 +36,7 @@ XMLHttpRequest.prototype.send = function (this: XMLHttpRequest, body?: Document 
   const url = urls.get(this);
   if (url?.includes('/game/json?h=')) {
     const request = bodyText(body);
+    if (request !== null) emit({ kind: 'request', url, request, at: Date.now() });
     this.addEventListener('load', () => {
       const response = textOf(this);
       if (response !== null) emit({ kind: 'json', url, request, response, at: Date.now() });

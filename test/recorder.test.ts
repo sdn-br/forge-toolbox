@@ -36,6 +36,15 @@ describe('Recorder', () => {
     expect(counts).toEqual([1, 2, 0, 1]);
   });
 
+  it('does not record an outgoing game request, the response carries it', () => {
+    const recorder = new Recorder(
+      () => true,
+      () => true,
+    );
+    recorder.add({ kind: 'request', url: 'x/game/json?h=1', request: '[]', at: 0 });
+    expect(recorder.count).toBe(0);
+  });
+
   it('keeps requests only when asked to', () => {
     let withRequests = false;
     const recorder = new Recorder(

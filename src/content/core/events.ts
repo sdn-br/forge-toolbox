@@ -54,6 +54,8 @@ export interface ToolboxEvents {
   'foestats.updated': { player: PlayerId };
   /** the game opened the construction window of a great building; `own` when it belongs to the session player */
   'greatBuilding.opened': { owner: PlayerId; entityId: number; own: boolean };
+  /** the game sends a contribution to a great building, before its answer; `own` when the building is the session player's */
+  'greatBuilding.contributing': { owner: PlayerId; entityId: number; own: boolean };
   /** the open construction changed: its building, the rankings shown, an own contribution or a level up */
   'greatBuilding.changed': {
     owner: PlayerId;

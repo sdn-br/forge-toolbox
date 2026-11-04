@@ -15,7 +15,8 @@ export class Recorder {
   ) {}
 
   add(traffic: Traffic): void {
-    if (!this.enabled()) return;
+    // the response of the same call carries its request, a recording would hold every call twice
+    if (!this.enabled() || traffic.kind === 'request') return;
     if (traffic.kind === 'ws' && traffic.direction === 'out' && traffic.data.includes('"authWithToken"')) {
       traffic = { ...traffic, data: maskToken(traffic.data) };
     }
