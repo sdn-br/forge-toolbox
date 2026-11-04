@@ -232,6 +232,8 @@ export const headerIcons = {
   /** a warning triangle with a red edge and the mark in the text colour: the bar over the army window's buttons
    * (W3, chosen from the icon preview, 2026-11-01) */
   attackWarning: headerIcon(svg`<path d="${WARNING}" stroke="var(--bad)"/><path d="${WARNING_MARK}"/>`),
+  /** a closed padlock: the contribution row is locked for a moment (S1, chosen from the icon preview) */
+  lock: headerIcon(svg`<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>`),
   /** a sack with a tie: loot (chosen from the icon preview, 2026-11-01; for the PvP rows) */
   loot: headerIcon(svg`<path d="${SACK}"/><path d="M9.6 7.7h4.8"/>`),
   /** the sack filled, the tie cut out */

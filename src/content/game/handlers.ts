@@ -430,6 +430,13 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     const rows = toRankingRows(Array.isArray(data) ? data : (data as GameGreatBuildingConstruction | null)?.rankings);
     if (rows) contribution = { rows, target: greatBuildingRequest(request) ?? undefined };
   });
+  // heard when the request leaves, so a feature can react while the answer is still on its way
+  ingestion.onRequest('GreatBuildingsService', 'contributeForgePoints', ({ request }) => {
+    const target = greatBuildingRequest(request);
+    if (!target) return;
+    const { owner, entityId } = target;
+    bus.emit('greatBuilding.contributing', { owner, entityId, own: owner === session.current?.playerId });
+  });
   const noteGreatBuildings = ({ data }: { data: unknown }) => {
     for (const e of Array.isArray(data) ? (data as GameCityEntity[]) : []) {
       const building = toGreatBuildingEntity(e);

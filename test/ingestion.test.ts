@@ -121,6 +121,65 @@ describe('Ingestion', () => {
   });
 });
 
+describe('Ingestion requests', () => {
+  const sent = (...entries: unknown[]) => ({
+    kind: 'request' as const,
+    url: 'x/game/json?h=1',
+    request: JSON.stringify(entries),
+    at: 0,
+  });
+  const call = (requestClass: string, requestMethod: string, requestData: unknown) => ({
+    requestClass,
+    requestMethod,
+    requestData,
+  });
+
+  it('routes an outgoing request to the request handlers of its service and method, with its data', () => {
+    const ingestion = new Ingestion();
+    const handler = vi.fn();
+    const other = vi.fn();
+    ingestion.onRequest('GreatBuildingsService', 'contributeForgePoints', handler);
+    ingestion.onRequest('GreatBuildingsService', 'getConstruction', other);
+    ingestion.accept(sent(call('GreatBuildingsService', 'contributeForgePoints', [1, 2, 3, 4, false])));
+    expect(handler).toHaveBeenCalledWith({
+      service: 'GreatBuildingsService',
+      method: 'contributeForgePoints',
+      request: [1, 2, 3, 4, false],
+    });
+    expect(other).not.toHaveBeenCalled();
+  });
+
+  it('does not call response handlers or batch ends for a request', () => {
+    const ingestion = new Ingestion();
+    const response = vi.fn();
+    const end = vi.fn();
+    ingestion.on('A', 'b', response);
+    ingestion.onBatchEnd(end);
+    ingestion.accept(sent(call('A', 'b', [])));
+    expect(response).not.toHaveBeenCalled();
+    expect(end).not.toHaveBeenCalled();
+  });
+
+  it('does not call request handlers for a response', () => {
+    const ingestion = new Ingestion();
+    const handler = vi.fn();
+    ingestion.onRequest('A', 'b', handler);
+    ingestion.accept(json([entry('A', 'b')]));
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('keeps going when a request handler throws', () => {
+    const ingestion = new Ingestion();
+    const ok = vi.fn();
+    ingestion.onRequest('A', 'b', () => {
+      throw new Error('boom');
+    });
+    ingestion.onRequest('A', 'b', ok);
+    ingestion.accept(sent(call('A', 'b', 1)));
+    expect(ok).toHaveBeenCalled();
+  });
+});
+
 describe('metaId', () => {
   it('splits at the last dash', () => {
     expect(metaId('https://cdn/start/metadata?id=building_entity_lookup-9f9f')).toEqual({

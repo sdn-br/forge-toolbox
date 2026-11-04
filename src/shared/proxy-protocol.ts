@@ -5,6 +5,8 @@ export const PROXY_TAG = 'forge-toolbox';
 
 export type Traffic =
   | { kind: 'json'; url: string; request: string | null; response: string; at: number }
+  // the request of a game call, sent before its answer comes (the answer's `json` carries the same request)
+  | { kind: 'request'; url: string; request: string; at: number }
   | { kind: 'meta'; url: string; response: string; at: number }
   // `out` is what the game sends (requests), absent means received; older recordings have no direction
   | { kind: 'ws'; direction?: 'out'; data: string; at: number };

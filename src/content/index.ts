@@ -42,6 +42,7 @@ import { backupCopyFeature } from './features/backup-copy';
 import { buildingSearchFeature } from './features/building-search';
 import { cityMapFeature } from './features/city-map';
 import { contributionWarningFeature } from './features/contribution-warning';
+import { doubleFpLockFeature } from './features/double-fp-lock';
 import { foestatsFeature } from './features/foestats';
 import { gbCalculatorFeature } from './features/gb-calculator';
 import { gbOwnShareFeature } from './features/gb-own-share';
@@ -66,6 +67,7 @@ const features = (copy: ProfileCopy): Feature[] => [
   pvpFeature,
   attackWarningFeature,
   contributionWarningFeature,
+  doubleFpLockFeature,
   notesFeature,
   cityMapFeature,
   buildingSearchFeature,

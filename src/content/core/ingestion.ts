@@ -20,6 +20,14 @@ export interface MetaFile {
   raw: string;
 }
 
+/** an outgoing call, seen before its answer */
+export interface RequestMessage {
+  service: string;
+  method: string;
+  request: unknown;
+}
+
+type RequestHandler = (message: RequestMessage) => void;
 type GameHandler = (message: GameMessage) => void;
 type MetaHandler = (file: MetaFile) => void;
 
@@ -29,12 +37,19 @@ const FIRST = 'StartupService.getData';
 export class Ingestion {
   private game = new Map<string, GameHandler[]>();
   private services = new Map<string, GameHandler[]>();
+  private requestHandlers = new Map<string, RequestHandler[]>();
   private meta: { prefix: string; handler: MetaHandler }[] = [];
   private batchEnds: (() => void)[] = [];
 
   on(service: string, method: string, handler: GameHandler): void {
     const key = `${service}.${method}`;
     this.game.set(key, [...(this.game.get(key) ?? []), handler]);
+  }
+
+  /** a request the game sends, heard when it leaves, before the answer; the answer's handlers run later as usual */
+  onRequest(service: string, method: string, handler: RequestHandler): void {
+    const key = `${service}.${method}`;
+    this.requestHandlers.set(key, [...(this.requestHandlers.get(key) ?? []), handler]);
   }
 
   /** every method of a service, for responses whose method is not known in advance */
@@ -54,6 +69,17 @@ export class Ingestion {
   accept(traffic: Traffic): void {
     if (traffic.kind === 'meta') {
       this.acceptMeta(traffic.url, traffic.response);
+      return;
+    }
+    if (traffic.kind === 'request') {
+      for (const entry of parseEntries(traffic.request)) {
+        const message: RequestMessage = {
+          service: entry.requestClass,
+          method: entry.requestMethod,
+          request: entry.requestData,
+        };
+        for (const handler of this.requestHandlers.get(key(entry)) ?? []) this.run(key(entry), () => handler(message));
+      }
       return;
     }
     // outgoing websocket messages are requests without responseData, no handler reads them yet
