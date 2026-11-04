@@ -237,6 +237,7 @@ Je Feature eine Datei mit Umfang, Entscheidungen und Annahmen. Neue Features bek
 - [Snipehilfe](features/snipehilfe.md): lohnende Plätze aus der LG-Liste eines Spielers
 - [Investitionen](features/investitionen.md): eigene Einzahlungen, Suche über alle bekannten fremden LGs, gemerkte LGs und Spieler
 - [Angriffswarnung](features/angriffswarnung.md): Leiste über den Knöpfen des Armeefensters vor einem Angriff auf einen Spieler auf „nicht angreifen“
+- [LG-Finder](features/lg-finder.md): Reiter der Investitionen, sucht in allen gespeicherten fremden LGs nach Typ, Stufe und Fortschritt
 - [Einzahlwarnung](features/einzahlwarnung.md): Leiste über den Einzahlknöpfen eines fremden LGs, wenn der Besitzer oder das LG auf Ignorieren steht
 - [Doppel-FP-Sperre](features/doppel-fp-sperre.md): Leiste über der Einzahlreihe für ein paar Sekunden nach einer Einzahlung in ein fremdes LG, gegen Doppelklick
 - [foestats](features/foestats.md): Links, täglicher Verlauf, Aktivität
@@ -258,7 +259,7 @@ Stand der FoE Toolbox. Module, die im Fundament aufgehen, stehen getrennt.
 | LG | Investitionen | investment | 2 |
 | LG | Eigenanteilsrechner, Powerleveling | part-calc | 2 |
 | LG | Doppel-FP-Sperre | doublefpprevention | 2 (umgesetzt) |
-| LG | LG-Finder | findGB | 2 |
+| LG | LG-Finder | findGB | 2 (umgesetzt) |
 | LG | Welches LG lohnt sich | greatbuildings | 3 |
 | LG | LG-Boni | gbbonus | 3 |
 | Stadt | Stadtübersicht | citymap | 3 |

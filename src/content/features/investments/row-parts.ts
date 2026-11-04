@@ -24,6 +24,10 @@ const reachCell = (reasons: Reach[]) => {
   return lead === 'none' || lead === 'unknown' ? [t(`investments.reach.${lead}`), ...icons] : icons;
 };
 
+/** the relation of the owner: its icons, the reasons in words in the tooltip */
+export const reachTd = (r: CommonRowVm) =>
+  html`<td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r.reasons)}</td>`;
+
 /** one toggle per reason, any switched on lets a row through */
 const reachFilter = (reach: ReachFilter, set: (reach: ReachFilter) => void) =>
   relationToggles(
@@ -42,14 +46,18 @@ type LeadActions = GbRowActions & Pick<RowActions<string, CommonFilter>, 'pickPl
 /**
  * The owner: link, then at the right edge the star, the closed eye and the funnel. Star and eye only for a player the
  * store knows. All keep their place in every row, so the mouse can run straight down the column. The tooltip is the name
- * with the guild over the row's tooltip.
+ * with the guild over the row's tooltip. Without a player field (the finder has none) there is no funnel.
  */
-const ownerCell = (r: CommonRowVm, playerField: string, actions: LeadActions) =>
+export const ownerCell = (
+  r: CommonRowVm,
+  actions: GbRowActions,
+  pick?: { field: string; pickPlayer: LeadActions['pickPlayer'] },
+) =>
   html`<td class="name-cell" data-tip=${[r.ownerTip, rowTip(r)].filter(Boolean).join('\n')}><span class="row-name">${externalLink(r.ownerName, r.ownerUrl)}${ownerMarks(
     r.ownerIgnored === undefined ? {} : { ownerMarked: r.ownerMarked, ownerIgnored: r.ownerIgnored },
     (marked) => actions.markPlayer(r.owner, marked),
     (ignored) => actions.ignorePlayer(r.owner, ignored),
-  )}${pickButton(r.ownerName, picks(playerField, r.ownerName), actions.pickPlayer)}</span></td>`;
+  )}${pick ? pickButton(r.ownerName, picks(pick.field, r.ownerName), pick.pickPlayer) : ''}</span></td>`;
 
 export type LeadColumn = NamedColumn | 'level' | 'progress';
 
@@ -71,8 +79,8 @@ export const isMuted = (r: CommonRowVm) => leadReason(r.reasons) === 'none' || r
  * `growthHint` */
 export const leadCells = (r: CommonRowVm, playerField: string, actions: LeadActions, growthHint: TextKey) => html`
   ${markCell(r, actions.mark)}
-  ${ownerCell(r, playerField, actions)}
-  <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r.reasons)}</td>
+  ${ownerCell(r, actions, { field: playerField, pickPlayer: actions.pickPlayer })}
+  ${reachTd(r)}
   ${buildingCell(r.name, rowTip(r), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
   <td class="num">${r.level}</td>
   ${progressCell(r, growthTag(r.growth, growthHint, r.growthSpan))}`;
@@ -86,7 +94,7 @@ export interface RowsTable<R, C extends string> {
   /** the rows of the window, the only ones drawn */
   rows: R[];
   window: RowWindow;
-  actions: Pick<RowActions<C, CommonFilter>, 'sort' | 'scroll' | 'measure'>;
+  actions: Pick<RowActions<C, object>, 'sort' | 'scroll' | 'measure'>;
   row(r: R): TemplateResult;
 }
 
