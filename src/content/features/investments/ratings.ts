@@ -27,6 +27,8 @@ export interface OwnerRatings {
   investments(): Investments;
   /** the possible investments, rated when first asked for; the same array while nothing changes */
   candidates(): PossibleInvestment[];
+  /** every known building as read, for the finder; the same array while nothing changes */
+  buildings(): KnownGreatBuilding[];
 }
 
 export function ownerRatings(
@@ -39,6 +41,7 @@ export function ownerRatings(
   let arc = 0;
   let investments: Investments | undefined;
   let candidates: PossibleInvestment[] | undefined;
+  let buildings: KnownGreatBuilding[] | undefined;
 
   /** the rows of every owner in the order a read of all brings them, by owner, rating an owner not rated yet */
   const all = <T>(rated: Map<PlayerId, T[]>, rate: (buildings: KnownGreatBuilding[]) => T[]): T[] =>
@@ -63,6 +66,11 @@ export function ownerRatings(
     investments = undefined;
     candidates = undefined;
   };
+  /** what was read changed: the finder takes the buildings anew */
+  const reread = (owner?: PlayerId) => {
+    forget(owner);
+    buildings = undefined;
+  };
 
   return {
     replaceAll(buildings) {
@@ -72,12 +80,12 @@ export function ownerRatings(
         if (rows) rows.push(b);
         else known.set(b.owner, [b]);
       }
-      forget();
+      reread();
     },
     replace(owner, buildings) {
       if (buildings.length > 0) known.set(owner, buildings);
       else known.delete(owner);
-      forget(owner);
+      reread(owner);
     },
     arc: () => arc,
     setArc(next) {
@@ -96,6 +104,10 @@ export function ownerRatings(
     candidates() {
       candidates ??= all(possible, (b) => possibleInvestments(b, greatBuilding, arc, me()));
       return candidates;
+    },
+    buildings() {
+      buildings ??= [...known.values()].flat();
+      return buildings;
     },
   };
 }

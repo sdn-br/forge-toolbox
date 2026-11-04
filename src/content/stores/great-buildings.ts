@@ -268,6 +268,21 @@ export class GreatBuildingStore {
     });
   }
 
+  /**
+   * Rows of the great building ranking (RankingService, recorded 2026-11-04): buildings of many owners, written like a
+   * list. Once written, `greatBuildings.stored` names each owner. It is no list of a player, so `greatBuildings.listed`
+   * stays silent: the snipe helper, foestats and the window detection mean a list the game shows for one owner.
+   */
+  noteRanking(rows: GreatBuildingListRow[]): void {
+    const at = this.now();
+    this.enqueue(async () => {
+      await this.persistence.putList(this.world, rows, at);
+      const written = new Map<PlayerId, number[]>();
+      for (const r of rows) written.set(r.owner, [...(written.get(r.owner) ?? []), r.entityId]);
+      for (const [owner, entityIds] of written) this.bus.emit('greatBuildings.stored', { owner, entityIds });
+    });
+  }
+
   /** The town hall list of the buildings the session player invested in (`getContributions`). */
   noteContributions(rows: GreatBuildingListRow[]): void {
     const at = this.now();

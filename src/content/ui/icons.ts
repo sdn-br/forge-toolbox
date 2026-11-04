@@ -398,6 +398,15 @@ export const headerIcons = {
   eye: headerIcon(
     svg`<path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.8"/>`,
   ),
+  /** a bar with its left part filled: only buildings with progress on their level (A1, chosen 2026-11-05) */
+  started: headerIcon(
+    svg`<rect x="3" y="8" width="18" height="8" rx="2"/><rect x="5" y="10" width="7" height="4" fill="currentColor" stroke="none"/>`,
+  ),
+  /** a crown, its body half filled: the gold tier of a great building (G1, chosen 2026-11-05, until the game's own
+   * sign replaces it); drawn in the accent where it is used */
+  goldTier: headerIcon(
+    svg`<path d="M3.5 18.5h17M4.5 18.5 3 7.5l5 4 4-6.5 4 6.5 5-4-1.5 11Z" fill="currentColor" fill-opacity=".35"/>`,
+  ),
   /** the filter toggle beside the filled star: not marked, the star as an outline (A1, chosen 2026-11-01) */
   notMarked: headerIcon(svg`<path d="${STAR}"/>`),
   /** the FP coin of the profit icon with a percent sign in the accent: profit per Forge point paid in (Q1, chosen from

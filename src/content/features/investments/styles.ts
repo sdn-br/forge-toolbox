@@ -11,6 +11,9 @@ const SEEN = 72;
 const NAMES = 122 + 116;
 const MINE_FIXED =
   hit.mark + REACH + hit.level + MINE_PROGRESS + hit.rank + DEPOSIT + hit.profit + hit.ratio + hit.icon;
+/** the finder: reach, level with the gold marker, progress and age */
+const FINDER_LEVEL = 74;
+const FINDER_FIXED = REACH + FINDER_LEVEL + hit.progress + SEEN;
 const POSSIBLE_FIXED =
   hit.mark + REACH + hit.level + hit.progress + SHARE + hit.rank + hit.cost + hit.profit + hit.ratio + hit.icon + SEEN;
 
@@ -25,6 +28,15 @@ export const investmentsCss = `
 .inv-table .c-deposit { width: ${DEPOSIT}px; }
 .inv-possible .c-share { width: ${SHARE}px; }
 .inv-possible .c-seen { width: ${SEEN}px; }
+.inv-table.inv-finder { min-width: ${FINDER_FIXED + NAMES}px; }
+.inv-finder .c-level { width: ${FINDER_LEVEL}px; }
+.inv-finder .c-progress { width: ${hit.progress}px; }
+.inv-finder .c-seen { width: ${SEEN}px; }
+.inv-finder td { overflow: hidden; text-overflow: ellipsis; }
+/* the gold tier before the level, in the accent (G1, a stand-in until the game's own sign) */
+.tier-gold { color: var(--accent); margin-right: 3px; }
+.tier-gold svg { display: inline-block; width: 13px; height: 13px; vertical-align: -2px; }
+.inv-filter input.inv-level { width: 6em; }
 .inv-table :is(.icon-head, .inv-status, .snipe-tier) { text-align: center; padding: 0; }
 .inv-table .icon-head { white-space: nowrap; }
 td.inv-status.safe { color: var(--good); }

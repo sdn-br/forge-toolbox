@@ -211,7 +211,7 @@ export const commonRowVm = (input: Pick<GbLookups, 'playerUrl'>, b: RowBuilding,
 });
 
 /** what a row of either tab does, and the table and filters around it */
-export interface RowActions<C extends string, F extends CommonFilter> extends GbRowActions {
+export interface RowActions<C extends string, F extends object> extends GbRowActions {
   sort(column: C, append: boolean): void;
   filter(patch: Partial<F>): void;
   /** put the owner's name into the "Spieler" filter, as if typed */
@@ -223,7 +223,7 @@ export interface RowActions<C extends string, F extends CommonFilter> extends Gb
 }
 
 /** the view choices of a tab as its view model takes them */
-export interface TabChoices<C extends string, F extends CommonFilter> {
+export interface TabChoices<C extends string, F extends object> {
   sort: Sort<C>;
   filter: F;
   /** the first row in view; the view model keeps it inside the list */
@@ -235,7 +235,7 @@ export interface TabChoices<C extends string, F extends CommonFilter> {
  * saved under `prefKey`, each part that is missing or broken at its default, older shapes migrated. Returns the draw of the tab: `vm` gets the
  * choices, the first row in view it keeps comes back through its window.
  */
-export function createTabState<C extends string, F extends CommonFilter>(
+export function createTabState<C extends string, F extends object>(
   ctx: FeatureContext,
   box: Box,
   measure: (area: Element | undefined) => void,
@@ -264,7 +264,7 @@ export function createTabState<C extends string, F extends CommonFilter>(
       ctx.ui.savePref(options.prefKey, JSON.stringify(filter));
       box.update();
     },
-    pickPlayer: (player) => actions.filter({ player } as Partial<F>),
+    pickPlayer: (player) => actions.filter({ player } as unknown as Partial<F>),
     scroll: (rows) => {
       scroll += rows;
       box.update();

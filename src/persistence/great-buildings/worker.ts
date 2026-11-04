@@ -40,6 +40,8 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables): Handlers<Great
           ...(before?.marked && { marked: true }),
           ...(before?.ignored && { ignored: true }),
           ...(before?.marksAt !== undefined && { marksAt: before.marksAt }),
+          // an opened building does not tell its tier; the ranking window did
+          ...(before?.tier && { tier: before.tier }),
         };
         latest.set(k, next);
         return next;

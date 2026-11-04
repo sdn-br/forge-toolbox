@@ -29,6 +29,7 @@ import {
   toGreatBuildingLevelUp,
   toGreatBuildingListRows,
   toGreatBuildingNames,
+  toGreatBuildingRanking,
   toIncoming,
   toInventory,
   toInventoryItem,
@@ -495,6 +496,17 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     players.applyListed(world, toListedPlayers(data, me));
     greatBuildings.noteList(toGreatBuildingListRows(data, me));
   });
+  // The ranking window, tab "Legendäre Bauwerke" (recorded 2026-11-04 on de10): opening the tab, paging (blocks of 50)
+  // and both searches answer with rows of buildings of many players. The other tabs use the same methods.
+  for (const method of ['searchRanking', 'getRanking']) {
+    ingestion.on('RankingService', method, ({ data }) => {
+      const ranking = toGreatBuildingRanking(data, session.current?.playerId);
+      if (!ranking) return;
+      catalog.setGreatBuildingNames(ranking.names);
+      players.applyListed(world, ranking.owners);
+      greatBuildings.noteRanking(ranking.rows);
+    });
+  }
   // The town hall list "Legendäre Bauwerke" of the buildings the session player invested in (recorded 2026-10-24,
   // 39 rows, no request data): the same rows as the overview, with the own rank, deposit and reward on top.
   ingestion.on('GreatBuildingsService', 'getContributions', ({ data }) => {

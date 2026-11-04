@@ -8,14 +8,18 @@ import { rowFit } from '../../ui/fit-rows';
 import { icons } from '../../ui/icons';
 import { tabBar } from '../../ui/tabs';
 import { gbLookups } from '../shared/gb-lookups';
+import { createFinderSection } from './finder/section';
 import { createMineSection } from './mine/section';
 import { createPossibleSection } from './possible/section';
 import { ownerRatings } from './ratings';
 import { investmentsCss } from './styles';
 
-/** the tabs of the box: the own investments and the buildings of others worth a place */
-type InvestmentsTab = 'mine' | 'possible';
-const TABS: InvestmentsTab[] = ['mine', 'possible'];
+/** the tabs of the box: the own investments, the buildings of others worth a place and the finder over all of them */
+type InvestmentsTab = 'mine' | 'possible' | 'finder';
+const TABS: InvestmentsTab[] = ['mine', 'possible', 'finder'];
+const isTab = (key: string | undefined): key is InvestmentsTab => TABS.includes(key as InvestmentsTab);
+
+const tabLabel = (key: InvestmentsTab) => t(`investments.tab.${key}`);
 
 /** the menu entry and the settings group show it */
 const ICON = icons.investments;
@@ -34,7 +38,8 @@ export const investmentsFeature: Feature = {
     ctx.settings.registerGroup('investments.title', ICON);
     const openWithList = ctx.settings.register(OPEN_WITH_LIST);
 
-    let tab: InvestmentsTab = ctx.ui.pref(TAB) === 'possible' ? 'possible' : 'mine';
+    const saved = ctx.ui.pref(TAB);
+    let tab: InvestmentsTab = isTab(saved) ? saved : 'mine';
     /** the known buildings as last read, by owner; a stored owner is read again, the other inputs only rate anew. The
      * possible investments are rated only for their tab */
     const ratings = ownerRatings(
@@ -75,9 +80,13 @@ export const investmentsFeature: Feature = {
     const render = () => {
       const frame = { lookups, visible: fit.rows(), now: Date.now(), revision };
       const content =
-        tab === 'possible' ? possible.render(frame, ratings.candidates()) : mine.render(frame, ratings.investments());
+        tab === 'possible'
+          ? possible.render(frame, ratings.candidates())
+          : tab === 'finder'
+            ? finder.render(frame, ratings.buildings())
+            : mine.render(frame, ratings.investments());
       // tabs, filters and the totals or count stay, the rows that fit are drawn and the two buttons scroll them
-      return html`<div class="inv-pane">${tabBar(TABS, tab, (key) => t(`investments.tab.${key}`), pickTab)}${content}</div>`;
+      return html`<div class="inv-pane">${tabBar(TABS, tab, tabLabel, pickTab)}${content}</div>`;
     };
 
     const box = ctx.createBox({
@@ -98,6 +107,7 @@ export const investmentsFeature: Feature = {
     });
     const mine = createMineSection(ctx, box, fit.measure);
     const possible = createPossibleSection(ctx, box, fit.measure);
+    const finder = createFinderSection(ctx, box, fit.measure);
 
     const rate = () => {
       ratings.setArc(ownArc());
