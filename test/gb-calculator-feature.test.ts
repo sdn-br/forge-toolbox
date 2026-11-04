@@ -105,17 +105,36 @@ describe('LG-Rechner', () => {
       'gb-unavailable',
       'gb-unavailable',
     ]);
-    // place, invested, safe, gross, profit, demand at 90 %, rate; blueprints and medals are not shown
+    // place, invested, safe, gross, profit, profit per Forge point, demand at 90 %, rate; blueprints and medals are not shown
     const cells = (row: Element | undefined) =>
       [...(row?.querySelectorAll('td') ?? [])].map((td) => td.textContent?.trim());
     // the profit head is an icon, its word in the label
     expect(
       [...box.root.querySelectorAll('th')].map((th) => th.textContent?.trim() || th.getAttribute('aria-label')),
-    ).toEqual(['Platz', 'Investiert', 'Sicher', 'FP', 'Gewinn', 'Fördern', 'Kurs']);
-    expect(cells(rows()[0])).toEqual(['1', '–', '1.406', '1.427', '21', '1.387', '192,6 %']);
+    ).toEqual(['Platz', 'Investiert', 'Sicher', 'FP', 'Gewinn', 'Gewinn je eingesetztem FP', 'Fördern', 'Kurs']);
+    // 21 profit on the 1.406 paid (1.427 - 21)
+    expect(cells(rows()[0])).toEqual(['1', '–', '1.406', '1.427', '21', '0,01', '1.387', '192,6 %']);
+    const ratioHead = box.root.querySelectorAll('th')[5];
+    expect(ratioHead?.getAttribute('data-tip')).toBe('Gewinn je eingesetztem FP');
     // place 2 costs the same 1406 as place 1, which is better: no safe cost, profit or rate, reward and demand stay
-    expect(cells(rows()[1])).toEqual(['2', '–', '–', '714', '–', '694', '–']);
+    expect(cells(rows()[1])).toEqual(['2', '–', '–', '714', '–', '–', '694', '–']);
     expect(tones()).toBe(1);
+  });
+
+  it('shows the profit per Forge point paid in, dashes without a profit, a loss with its sign', async () => {
+    const { box, open, rows } = setup();
+    open(1909);
+    await tick();
+    const ratio = (i: number) => rows()[i]?.querySelectorAll('td')[5]?.textContent?.trim();
+    // 21 profit on the 1.406 paid, two decimals
+    expect(ratio(0)).toBe('0,01');
+    // place 2 has no profit: the dash of the profit cell
+    expect(ratio(1)).toBe('–');
+    // the head is an icon, the word in tooltip and label
+    const head = box.root.querySelectorAll('th')[5];
+    expect(head?.getAttribute('data-tip')).toBe('Gewinn je eingesetztem FP');
+    expect(head?.getAttribute('aria-label')).toBe('Gewinn je eingesetztem FP');
+    expect(head?.querySelector('svg')).not.toBeNull();
   });
 
   it("names the owner's share in the progress line and splits it from the patrons in the tooltip", async () => {
@@ -150,7 +169,7 @@ describe('LG-Rechner', () => {
     const { open, rows } = setup();
     open(1909);
     await tick();
-    const demand = rows()[0]?.querySelectorAll('td')[5];
+    const demand = rows()[0]?.querySelectorAll('td')[6];
     expect(demand?.className).toBe('num below-safe');
     expect(demand?.getAttribute('data-tip')).toBe(
       'Gewinn bei Fördern: 40 FP\nunter Sichern: nur mit Absprache haltbar',
@@ -165,7 +184,7 @@ describe('LG-Rechner', () => {
     input.dispatchEvent(new Event('change'));
     await tick();
     // rank 1 pays 655: round(655 × 3) = 1965, the level needs 786 more; 575 of mine already in
-    const demand = rows()[0]?.querySelectorAll('td')[5];
+    const demand = rows()[0]?.querySelectorAll('td')[6];
     expect(demand?.textContent?.trim()).toBe('1.965 (+1.390)');
     expect(demand?.className).toBe('num over-rest');
     expect(demand?.getAttribute('data-tip')).toContain('mehr als bis zum Level-Up fehlt (786 FP)');
@@ -193,7 +212,7 @@ describe('LG-Rechner', () => {
   it('remembers the factor from the buttons and the field and uses it for the demand', async () => {
     const { box, ctx, open, rows } = setup();
     open(1909);
-    const demand = () => rows()[0]?.querySelectorAll('td')[5]?.textContent?.trim();
+    const demand = () => rows()[0]?.querySelectorAll('td')[6]?.textContent?.trim();
     box.click('2');
     await tick();
     expect(ctx.settings.of(CALC_FACTOR).get()).toBe(100);
@@ -465,13 +484,13 @@ describe('LG-Rechner', () => {
     it('empty: only place 1 has a safe cost, profit and rate, and the line offers no place, it loses', () => {
       const { box, rows } = scenario([]);
       // round(5404 / 2) = 2702 for round(1275 × 1.955) = 2493; demand round(1275 × 1.9) = 2423
-      expect(cells(rows()[0])).toEqual(['1', '–', '2.702', '2.493', '-209', '2.423', '211,9 %']);
+      expect(cells(rows()[0])).toEqual(['1', '–', '2.702', '2.493', '-209', '−0,08', '2.423', '211,9 %']);
       // the others cost the same 2702 for less: dominated, reward and demand stay
       expect(rows().slice(1).map(cells)).toEqual([
-        ['2', '–', '–', '1.251', '–', '1.216', '–'],
-        ['3', '–', '–', '420', '–', '409', '–'],
-        ['4', '–', '–', '108', '–', '105', '–'],
-        ['5', '–', '–', '20', '–', '19', '–'],
+        ['2', '–', '–', '1.251', '–', '–', '1.216', '–'],
+        ['3', '–', '–', '420', '–', '–', '409', '–'],
+        ['4', '–', '–', '108', '–', '–', '105', '–'],
+        ['5', '–', '–', '20', '–', '–', '19', '–'],
       ]);
       expect(meLines(box.root)).toEqual(['Du: noch nichts eingezahlt', 'kein Platz lohnt']);
       expect(best(box.root)).toEqual([]);
@@ -505,8 +524,17 @@ describe('LG-Rechner', () => {
       expect(cells(rows()[1])?.slice(0, 3)).toEqual(['2', '900', '1.952 (+1.552)']);
       expect(rows()[1]?.className).not.toBe('gb-unavailable');
       // own row: round(3004 / 2) = 1502; 400 / 215 = 186 % now, 1502 / 215 = 698.6 % when safe
-      expect(cells(rows()[2])).toEqual(['3', '400', '1.502 (+1.102)', '420', '-1.082', '409 (+9)', '186 % → 698,6 %']);
-      const now = rows()[2]?.querySelectorAll('td')[6]?.querySelector('span');
+      expect(cells(rows()[2])).toEqual([
+        '3',
+        '400',
+        '1.502 (+1.102)',
+        '420',
+        '-1.082',
+        '−0,72',
+        '409 (+9)',
+        '186 % → 698,6 %',
+      ]);
+      const now = rows()[2]?.querySelectorAll('td')[7]?.querySelector('span');
       expect(now?.className).toBe('muted');
       expect(now?.getAttribute('data-tip')).toBe('wenn du nichts mehr einzahlst und dich niemand überholt');
       expect(box.root.querySelector('.gb-me')?.className).toBe('gb-me');
@@ -523,7 +551,7 @@ describe('LG-Rechner', () => {
       // the own deposit is the cost once it is more than the safe 2702: 2493 - 2800
       expect(cells(rows()[0])?.slice(0, 5)).toEqual(['1', '2.800', 'secured', '2.493', '-307']);
       // 2800 / 1275 = 219.6 %
-      expect(cells(rows()[0])?.[6]).toBe('219,6 %');
+      expect(cells(rows()[0])?.[7]).toBe('219,6 %');
     });
 
     it('leaves out the places above that cannot be had', () => {
@@ -771,8 +799,8 @@ describe('LG-Rechner', () => {
         'gb-unavailable',
         'gb-unavailable',
       ]);
-      expect(cells(rows()[0])).toEqual(['1', '–', '1.569', '1.447', '-122', '1.406', '212 %']);
-      expect(cells(rows()[1])).toEqual(['2', '–', '–', '723', '–', '703', '–']);
+      expect(cells(rows()[0])).toEqual(['1', '–', '1.569', '1.447', '-122', '−0,08', '1.406', '212 %']);
+      expect(cells(rows()[1])).toEqual(['2', '–', '–', '723', '–', '–', '703', '–']);
       expect(rows().map((r) => cells(r)[3])).toEqual(['1.447', '723', '244', '59', '10']);
       expect(box.root.querySelector('.estimate')).toBeNull();
       expect(tones()).toBe(1);
@@ -789,7 +817,7 @@ describe('LG-Rechner', () => {
       // the factor still sets the demand: 910 × 2
       box.click('2');
       await tick();
-      expect(cells(rows()[0])?.[5]).toBe('1.820');
+      expect(cells(rows()[0])?.[6]).toBe('1.820');
       box.click('Laufend');
       expect(box.text).not.toContain('Vorschau Stufe');
       expect(box.text).toContain('noch 2.811 FP bis zum Level-up');
