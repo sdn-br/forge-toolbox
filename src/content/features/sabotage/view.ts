@@ -54,16 +54,17 @@ const pressKeys = (action: () => void) => (e: KeyboardEvent) => {
 /** rows of the plunder list in view; the box is as high as its head and this many rows (Nutzer, 2026-11-03) */
 export const VISIBLE_ROWS = 5;
 
-/** loot lines a row shows: with more items the first four and "+n weitere", so name and lines fill the row height */
-const LOOT_LINES = 5;
+/** loot items a row shows, in two columns of three in the game's order (left column first); with more items the last
+ * place shows "+n weitere" instead, so name and three lines fill the row height */
+const LOOT_PLACES = 6;
 
-/** the loot lines of a row, nothing summed; the rest as a muted count */
+/** the loot of a row, nothing summed; beyond six items the last place is a muted count of the rest */
 const lootLines = (items: PlunderItem['items']) => {
-  const shown = items.length > LOOT_LINES ? items.slice(0, LOOT_LINES - 1) : items;
+  const shown = items.length > LOOT_PLACES ? items.slice(0, LOOT_PLACES - 1) : items;
   const rest = items.length - shown.length;
-  return html`${shown.map((i) => html`<div>${formatNumber(i.amount)} ${i.label}</div>`)}${
+  return html`<div class="loot">${shown.map((i) => html`<div>${formatNumber(i.amount)} ${i.label}</div>`)}${
     rest > 0 ? html`<div class="muted">${t('sabotage.moreLoot', { count: rest })}</div>` : ''
-  }`;
+  }</div>`;
 };
 
 /** the whole name and loot, one item per line, for the tooltip of the row's cells */
