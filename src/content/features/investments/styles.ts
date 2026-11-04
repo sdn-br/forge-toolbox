@@ -37,8 +37,6 @@ export const investmentsCss = `
 .tier-gold { color: var(--accent); margin-right: 3px; }
 .tier-gold svg { display: inline-block; width: 13px; height: 13px; vertical-align: -2px; }
 .inv-filter input.inv-level { width: 6em; }
-/* the funnel of the finder tab before its word */
-.tab-icon svg { display: inline-block; width: 13px; height: 13px; vertical-align: -2px; margin-right: 4px; }
 .inv-table :is(.icon-head, .inv-status, .snipe-tier) { text-align: center; padding: 0; }
 .inv-table .icon-head { white-space: nowrap; }
 td.inv-status.safe { color: var(--good); }

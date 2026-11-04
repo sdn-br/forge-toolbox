@@ -240,11 +240,11 @@ describe('Investitionen: LG-Finder', () => {
     ).toEqual([['Spieler 2018', 'muted']]);
   });
 
-  it('carries the funnel icon on its tab', async () => {
+  it('shows its word only on the tab, like the other tabs', async () => {
     const { box, showFinder } = setup();
     await showFinder();
     const tab = [...box.root.querySelectorAll('.tabs button')].find((b) => b.textContent?.includes('LG-Finder'));
-    expect(tab?.querySelector('svg')).not.toBeNull();
+    expect(tab?.querySelector('svg')).toBeNull();
   });
 
   it('names a type the catalog does not know by its id, and says when no row passes', async () => {

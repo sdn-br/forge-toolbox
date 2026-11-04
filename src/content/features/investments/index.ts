@@ -5,7 +5,7 @@ import { logError } from '../../core/log';
 import { toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
 import { rowFit } from '../../ui/fit-rows';
-import { headerIcons, icons } from '../../ui/icons';
+import { icons } from '../../ui/icons';
 import { tabBar } from '../../ui/tabs';
 import { gbLookups } from '../shared/gb-lookups';
 import { createFinderSection } from './finder/section';
@@ -19,11 +19,7 @@ type InvestmentsTab = 'mine' | 'possible' | 'finder';
 const TABS: InvestmentsTab[] = ['mine', 'possible', 'finder'];
 const isTab = (key: string | undefined): key is InvestmentsTab => TABS.includes(key as InvestmentsTab);
 
-/** the word of a tab; the finder carries the funnel before it */
-const tabLabel = (key: InvestmentsTab) =>
-  key === 'finder'
-    ? html`<span class="tab-icon">${headerIcons.funnel}</span>${t('investments.tab.finder')}`
-    : t(`investments.tab.${key}`);
+const tabLabel = (key: InvestmentsTab) => t(`investments.tab.${key}`);
 
 /** the menu entry and the settings group show it */
 const ICON = icons.investments;

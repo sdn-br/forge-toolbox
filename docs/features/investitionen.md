@@ -9,7 +9,7 @@ Stand 2026-10-24. Altes Modul `investment`, hier nur als Idee übernommen. Rechn
 - Eigene Box „Investitionen“ mit zwei Reitern: „Meine Investitionen“ und „Mögliche Investitionen“ (Nutzer, 2026-10-24). Die Snipehilfe bleibt beim LG-Rechner, dort bleibt der schnelle Ablauf beim Snipen (Liste öffnen, LG öffnen, genauer Wert) in einer Box.
 - Öffnen über das Menü. Öffnet der Spieler im Rathaus die Liste „Legendäre Bauwerke“, geht die Box auf dem Reiter „Meine Investitionen“ auf. Einstellung „Investitionen beim Öffnen der Rathausliste zeigen“, Standard an (Vorschlag, im PR abzunehmen).
 - Größe: Höhe verstellbar, die Listen können lang werden (siehe [UI-Kit](../ui-kit.md) „Verstellbar nur, wo es hilft“).
-- Dritter Reiter „LG-Finder“ (seit 2026-11-05, Nutzer): durchsucht alle gespeicherten fremden LGs nach Typ, Stufe und Fortschritt, mit Trichter vor dem Wort. Die Box behält in allen drei Reitern ihre Breite. Beschreibung: [LG-Finder](lg-finder.md).
+- Dritter Reiter „LG-Finder“ (seit 2026-11-05, Nutzer): durchsucht alle gespeicherten fremden LGs nach Typ, Stufe und Fortschritt. Die Box behält in allen drei Reitern ihre Breite. Beschreibung: [LG-Finder](lg-finder.md).
 
 ## Reiter „Meine Investitionen“
 
