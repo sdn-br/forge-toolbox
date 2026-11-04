@@ -51,8 +51,11 @@ const pressKeys = (action: () => void) => (e: KeyboardEvent) => {
   action();
 };
 
-/** rows of the plunder list in view; the box is as high as its head and this many rows (Nutzer, 2026-11-03) */
+/** most rows of the plunder list in view, as many as fit the box below it (Nutzer, 2026-11-04) */
 export const VISIBLE_ROWS = 5;
+/** the height of a plunder row and of the line of hidden rows below the window, in px (see the styles) */
+export const ROW_HEIGHT = 76;
+export const HIDDEN_LINE = 21;
 
 /** loot items a row shows, in two columns of three in the game's order (left column first); with more items the last
  * place shows "+n weitere" instead, so name and three lines fill the row height */
@@ -113,11 +116,13 @@ export interface SabotageUi {
   toggleNote(): void;
   /** index of the first plunder row in view */
   plunderTop: number;
+  /** rows of the window now: up to VISIBLE_ROWS, fewer while the box leaves no room for more */
+  visibleRows: number;
   /** moves the plunder list by rows, down for positive; the owner keeps the offset inside the list */
   scrollPlunder(rows: number): void;
   /** counts the visits; a new one, like another tab, starts the content area at the top */
   visit: number;
-  /** gets the content area of the Plündern tab on every render, to measure its height */
+  /** gets the content area of the Plündern tab when it is drawn and when it is gone, to measure it */
   measure(area: Element | undefined): void;
   /** the height the Plündern tab had when last measured; the Kampf tab takes it, so the box keeps its size */
   fightHeight?: number;
@@ -137,11 +142,11 @@ const noteButton = (ui: SabotageUi) => {
     data-tip=${tip} @click=${ui.toggleNote}>${icons.notes}</button>`;
 };
 
-/** the rows of "Jetzt plünderbar": a window of VISIBLE_ROWS, wheel and buttons move it; a shorter list has neither */
+/** the rows of "Jetzt plünderbar": a window of up to VISIBLE_ROWS, wheel and buttons move it; a shorter list has neither */
 const plunderList = (vm: SabotageVm, ui: SabotageUi, marks?: PlunderMarks) => {
-  const window = rowWindow(ui.plunderTop, vm.plunderable.length, VISIBLE_ROWS);
+  const window = rowWindow(ui.plunderTop, vm.plunderable.length, ui.visibleRows);
   const table = plunderTable(vm.plunderable, rowsIn(vm.plunderable, window), marks);
-  if (vm.plunderable.length <= VISIBLE_ROWS) return table;
+  if (vm.plunderable.length <= ui.visibleRows) return table;
   return windowedRows({ cls: 'plunder-win', table, window, scroll: ui.scrollPlunder });
 };
 
@@ -151,7 +156,7 @@ const plunderTab = (vm: SabotageVm, ui: SabotageUi, marks?: PlunderMarks) => htm
       ? html`<p class="muted">${vm.plundered.totals}</p>`
       : html`<p class="muted">${t('sabotage.neverPlundered')}</p>`
   }
-  <div class="plunder-list">${
+  <div class="plunder-list" style=${`min-height:${ui.visibleRows * ROW_HEIGHT + HIDDEN_LINE}px`}>${
     vm.plunderable.length === 0
       ? html`<p class="muted">${t('sabotage.nothingPlunderable')}</p>`
       : plunderList(vm, ui, marks)
@@ -211,7 +216,7 @@ export function sabotageView(
 ${keyed(
   `${ui.visit}-${ui.tab}`,
   ui.tab === 'plunder'
-    ? html`<div class="visit-content" ${ref(ui.measure)}>${plunderTab(vm, ui, marks)}</div>`
+    ? html`<div class="visit-content plunder" ${ref(ui.measure)}>${plunderTab(vm, ui, marks)}</div>`
     : html`<div class="visit-content" style=${ui.fightHeight ? `height:${ui.fightHeight}px` : ''}>${fightTab(vm)}</div>`,
 )}`;
 }

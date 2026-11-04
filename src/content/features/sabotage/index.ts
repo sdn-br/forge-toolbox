@@ -53,6 +53,38 @@ export const sabotageFeature: Feature = {
     // the content area of the Plündern tab; its height at the switch to Kampf is the height of that tab, so the box
     // keeps its size (unmeasured, as in a test without layout: the Kampf tab has the height of its content)
     let plunderArea: Element | undefined;
+    // Rows of the window: up to VISIBLE_ROWS. The box is capped at 70% of the window, so a small window leaves less room
+    // than five rows plus the head: the count goes down by one per overflow seen and back to the maximum when the area
+    // grows or a visit starts. Each step is a redraw the observer sees again, so it ends when the area fits or at one row.
+    let visibleRows = VISIBLE_ROWS;
+    let areaHeight: number | undefined;
+    let observer: ResizeObserver | undefined;
+    const fit = () => {
+      const area = plunderArea as HTMLElement | undefined;
+      const height = area?.clientHeight ?? 0;
+      // no layout (a test, a closed box): nothing to follow
+      if (!area || height <= 0) return;
+      const grown = areaHeight !== undefined && height > areaHeight;
+      areaHeight = height;
+      if (grown && visibleRows < VISIBLE_ROWS) {
+        visibleRows = VISIBLE_ROWS;
+        box.update();
+      } else if (area.scrollHeight > height + 2 && visibleRows > 1) {
+        visibleRows--;
+        box.update();
+      }
+    };
+    // the area, and the list in it: the list changes its height with the count of rows, the area with the window
+    const measure = (area: Element | undefined) => {
+      plunderArea = area;
+      areaHeight = undefined;
+      observer?.disconnect();
+      if (!area || typeof ResizeObserver === 'undefined') return;
+      observer ??= new ResizeObserver(fit);
+      observer.observe(area);
+      const list = area.querySelector('.plunder-list');
+      if (list) observer.observe(list);
+    };
     let fightHeight: number | undefined;
     const rowsCount = () => vm?.plunderable.length ?? 0;
     const lookups = playerLookups(ctx);
@@ -75,7 +107,7 @@ export const sabotageFeature: Feature = {
       render: () => {
         keepTicking();
         // a shorter list leaves no offset beyond its end
-        plunderTop = clampTop(plunderTop, rowsCount(), VISIBLE_ROWS);
+        plunderTop = clampTop(plunderTop, rowsCount(), visibleRows);
         const owner = ctx.cities.visited()?.owner;
         const note = vm && owner !== undefined ? card.render(owner, ctx.players.get(owner)?.name) : undefined;
         const playerMarks =
@@ -102,13 +134,12 @@ export const sabotageFeature: Feature = {
             box.update();
           },
           visit,
-          measure: (area) => {
-            plunderArea = area;
-          },
+          measure,
+          visibleRows,
           ...(fightHeight && { fightHeight }),
           plunderTop,
           scrollPlunder: (rows) => {
-            plunderTop = clampTop(plunderTop + rows, rowsCount(), VISIBLE_ROWS);
+            plunderTop = clampTop(plunderTop + rows, rowsCount(), visibleRows);
             box.update();
           },
         };
@@ -196,6 +227,7 @@ export const sabotageFeature: Feature = {
       tab = 'plunder';
       noteOpen = false;
       plunderTop = 0;
+      visibleRows = VISIBLE_ROWS;
       visit++;
       if (autoOpen.get() && !box.isOpen) open();
       else refresh();

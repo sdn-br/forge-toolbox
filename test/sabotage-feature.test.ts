@@ -836,6 +836,67 @@ describe('sabotage feature', () => {
       expect(none.box.root.querySelector('.plunder-list')?.textContent).toContain('Nichts Plünderbares.');
     });
 
+    describe('rows that fit', () => {
+      /** a ResizeObserver that runs its callbacks by hand, and a content area with the given sizes */
+      function layout() {
+        const callbacks: (() => void)[] = [];
+        vi.stubGlobal(
+          'ResizeObserver',
+          class {
+            constructor(cb: () => void) {
+              callbacks.push(cb);
+            }
+            observe() {}
+            disconnect() {}
+          },
+        );
+        const size = { client: 400, scroll: 400 };
+        vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(() => size.client);
+        vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(() => size.scroll);
+        const observed = async () => {
+          for (const cb of callbacks) cb();
+          await tick();
+        };
+        return { size, observed };
+      }
+      afterEach(() => vi.unstubAllGlobals());
+
+      it('lowers the count by one per overflow, never below one, and keeps the reserved room in step', async () => {
+        const { size, observed } = layout();
+        const { box, visit, names } = manyHouses(8);
+        await visit();
+        // the content area overflows at every count
+        size.scroll = 500;
+        await observed();
+        expect(names()).toHaveLength(4);
+        expect((box.root.querySelector('.plunder-list') as HTMLElement).style.minHeight).toBe(`${4 * 76 + 21}px`);
+        for (let n = 0; n < 6; n++) await observed();
+        expect(names()).toHaveLength(1);
+      });
+
+      it('stops lowering once the content fits, and starts at five again on a new visit and when the area grows', async () => {
+        const { size, observed } = layout();
+        const { visit, names } = manyHouses(8);
+        await visit();
+        size.scroll = 500;
+        await observed();
+        size.scroll = 400;
+        await observed();
+        expect(names()).toHaveLength(4);
+
+        await visit();
+        expect(names()).toHaveLength(5);
+
+        size.scroll = 500;
+        await observed();
+        expect(names()).toHaveLength(4);
+        size.scroll = 400;
+        size.client = 600;
+        await observed();
+        expect(names()).toHaveLength(5);
+      });
+    });
+
     it('keeps head and tab bar outside the content area', async () => {
       const { box, visit, area } = manyHouses(2);
       await visit();

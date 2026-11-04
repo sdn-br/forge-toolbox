@@ -1,15 +1,16 @@
 // The look of the Besuchte Stadt box: the head with its tabs and the plunder rows.
 export const sabotageCss = `
 /* The body does not scroll: the head and the tab bar stand above the content area. On Plündern it has the height of its
-   content, so nothing scrolls there; the list reserves the room of five rows, so the box keeps its size with fewer. The
+   content, so nothing scrolls there; the list reserves the room of its rows, so the box keeps its size with fewer. The
    Kampf tab gets the height measured on Plündern (inline), and scrolls natively without passing the scroll on at its
    ends. Both shrink when the box hits its max height. Popped out, the window decides: it fills. */
 .body { display: flex; flex-direction: column; overflow: hidden; }
 .visit-top { flex: none; }
 .visit-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .box.popped .visit-content { height: auto !important; }
-/* five rows of 76px and the line of hidden rows below them (about 21px) */
-.plunder-list { min-height: 401px; }
+/* Plündern never scrolls: the window of rows takes what fits. Its list reserves the room of the rows in view and the line
+   of hidden rows (min-height inline, see view.ts), so the box keeps its size with fewer rows. */
+.visit-content.plunder { overflow-y: hidden; }
 .visit-top p { margin: 0 0 4px; }
 /* the invitation icon in the box of the PvP mark buttons beside it, so all icons share one middle */
 .visit-name .rel-icons { display: inline-grid; place-items: center; width: 18px; height: 18px; vertical-align: middle; }
