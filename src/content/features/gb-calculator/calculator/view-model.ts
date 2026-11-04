@@ -1,4 +1,5 @@
 import type { BuildingDefId } from '../../../../shared/ids';
+import { formatRatio } from '../../../core/texts';
 import {
   availableForgePoints,
   type ConstructionCalc,
@@ -81,6 +82,8 @@ export interface PlaceRow {
   demand?: DemandCell;
   gross: number;
   profit?: number;
+  /** profit per Forge point paid in, "0,20"; missing where the profit is or nothing is paid */
+  ratio?: string;
   rate?: number;
   /** the own row only: the own deposit in percent of the reward, what the place costs if nobody passes */
   depositRate?: number;
@@ -183,7 +186,15 @@ function demandCell(p: PlaceCalc, rest: number, available?: number): DemandCell 
   };
 }
 
+/** profit per Forge point the player pays for the place: the paid sum is the reward minus the profit */
+function ratioOf(p: PlaceCalc, profit: number | undefined): string | undefined {
+  if (profit === undefined) return undefined;
+  const paid = p.gross - profit;
+  return paid > 0 ? formatRatio(profit / paid) : undefined;
+}
+
 function placeRow(p: PlaceCalc, rest: number, available?: number): PlaceRow {
+  const profit = p.available || p.mine ? p.profit : undefined;
   return {
     rank: p.rank,
     ...(p.holder !== undefined && { holder: { name: p.holder, fp: p.holderFp } }),
@@ -191,7 +202,8 @@ function placeRow(p: PlaceCalc, rest: number, available?: number): PlaceRow {
     secured: p.secured,
     demand: demandCell(p, rest, available),
     gross: p.gross,
-    profit: p.available || p.mine ? p.profit : undefined,
+    profit,
+    ratio: ratioOf(p, profit),
     rate: priced(p) ? p.rate : undefined,
     ...(p.depositRate !== undefined && { depositRate: p.depositRate }),
     status: p.status,

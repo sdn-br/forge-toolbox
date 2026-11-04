@@ -154,7 +154,7 @@ function rateCell(p: PlaceRow) {
   return html`<td class="num">${deposit ? html`${deposit} → ` : ''}${rate}</td>`;
 }
 
-/** Platz, Investiert, Sichern, FP, Gewinn, Fördern, Kurs; `estimate` marks computed rewards, as in a preview */
+/** Platz, Investiert, Sichern, FP, Gewinn, Gewinn je FP, Fördern, Kurs; `estimate` marks computed rewards, as in a preview */
 const placeRow = (p: PlaceRow, estimate: boolean) =>
   html`<tr class=${`gb-${p.status}`} data-tip=${placeTitle(p)}>
     <td>${p.rank}</td>
@@ -162,6 +162,7 @@ const placeRow = (p: PlaceRow, estimate: boolean) =>
     ${safeCell(p)}
     ${estimateCell(formatNumber(p.gross), estimate)}
     ${maybe(p.profit)}
+    ${p.ratio === undefined ? emptyCell : html`<td class="num">${p.ratio}</td>`}
     ${demandCell(p.demand)}
     ${rateCell(p)}
   </tr>`;
@@ -174,6 +175,7 @@ function placesTable(places: PlaceRow[], estimate = false) {
       <th class="num" data-tip=${t('gbCalc.safeHint')}>${t('gbCalc.safe')}</th>
       <th class="num" data-tip=${t('gbCalc.grossHint')}>${t('gbCalc.gross')}</th>
       <th class="num" data-tip=${t('gbCalc.profit')} aria-label=${t('gbCalc.profit')}>${headerIcons.profit}</th>
+      <th class="num" data-tip=${t('gb.col.ratio')} aria-label=${t('gb.col.ratio')}>${headerIcons.profitRatio}</th>
       <th class="num" data-tip=${t('gbCalc.demandHint')}>${t('gbCalc.demand')}</th>
       <th class="num" data-tip=${t('gbCalc.rateHint')}>${t('gbCalc.rate')}</th>
     </tr>

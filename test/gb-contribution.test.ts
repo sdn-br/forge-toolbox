@@ -139,15 +139,15 @@ describe('recorded contribution to place 2 with empty places below', () => {
     // rank 1 holds 820, its safe cost round((820 + 557) / 2) = 689 cannot pass it anymore
     expect(cells(rows()[0]).slice(0, 3)).toEqual(['1', '820', 'secured']);
     expect(rows()[0]?.querySelectorAll('td')[2]?.getAttribute('data-tip')).toBe('Platz ist sicher');
-    expect([cells(rows()[0])[4], cells(rows()[0])[6]]).toEqual(['–', '–']);
+    expect([cells(rows()[0])[4], cells(rows()[0])[5], cells(rows()[0])[7]]).toEqual(['–', '–', '–']);
     // rest 557, no successor: round(557 / 2) = 279, already paid: safe, the rate is the own 279 of 205
-    expect(cells(rows()[1])).toEqual(['2', '279', 'secured', '205', '-74', '390 (+111)', '136,1 %']);
+    expect(cells(rows()[1])).toEqual(['2', '279', 'secured', '205', '-74', '−0,27', '390 (+111)', '136,1 %']);
     expect(box.root.querySelector('.gb-me')?.textContent?.trim()).toBe('Du: 279 FP auf P2 · sicher');
     expect(box.root.querySelector('.gb-me .secured-icon svg')).not.toBeNull();
     expect(box.root.querySelector('.gb-me')?.className).toBe('gb-me safe');
     for (const row of rows().slice(2)) {
-      const [, invested, safe, gross, profit, demand, rate] = cells(row);
-      expect([invested, safe, profit, rate]).toEqual(['–', '–', '–', '–']);
+      const [, invested, safe, gross, profit, ratio, demand, rate] = cells(row);
+      expect([invested, safe, profit, ratio, rate]).toEqual(['–', '–', '–', '–', '–']);
       // the reward and the owner's demand stay
       expect(gross).toMatch(/^\d/);
       expect(demand).toMatch(/^\d/);
