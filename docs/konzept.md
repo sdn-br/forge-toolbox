@@ -237,6 +237,7 @@ Je Feature eine Datei mit Umfang, Entscheidungen und Annahmen. Neue Features bek
 - [Snipehilfe](features/snipehilfe.md): lohnende Plätze aus der LG-Liste eines Spielers
 - [Investitionen](features/investitionen.md): eigene Einzahlungen, Suche über alle bekannten fremden LGs, gemerkte LGs und Spieler
 - [Angriffswarnung](features/angriffswarnung.md): Leiste über den Knöpfen des Armeefensters vor einem Angriff auf einen Spieler auf „nicht angreifen“
+- [Einzahlwarnung](features/einzahlwarnung.md): Leiste über den Einzahlknöpfen eines fremden LGs, wenn der Besitzer oder das LG auf Ignorieren steht
 - [foestats](features/foestats.md): Links, täglicher Verlauf, Aktivität
 - [Sicherung, Export und Import](features/sicherung.md): Export, Import, Sicherungskopie auf der Spielseite, Sicherung in einen Ordner, Altdaten-Import
 
