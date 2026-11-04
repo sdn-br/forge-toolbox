@@ -3,7 +3,7 @@ import { createBus } from '../src/content/core/events';
 import { Ingestion } from '../src/content/core/ingestion';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import { GreatBuildingStore } from '../src/content/stores/great-buildings';
-import { applyListRow, hasOwnContribution } from '../src/persistence/great-buildings/merge';
+import { applyListRow, growthSince, hasOwnContribution } from '../src/persistence/great-buildings/merge';
 import { playerId, worldId } from '../src/shared/ids';
 import type { KnownGreatBuilding } from '../src/shared/model';
 import contributionFixture from './fixtures/gb-contribution.json';
@@ -502,9 +502,11 @@ describe('growth between the last two sightings', () => {
     at(7_000);
     list([row(1909, 75, 750, 2000)]);
     expect((await greatBuildings.known())[0]?.growth).toBe(50);
+    expect((await greatBuildings.known())[0]).toMatchObject({ growth: 50, growthFrom: 6_000, growthAt: 7_000 });
+    // the same progress again keeps the growth and its span
     at(8_000);
     list([row(1909, 75, 750, 2000)]);
-    expect((await greatBuildings.known())[0]?.growth).toBeUndefined();
+    expect((await greatBuildings.known())[0]).toMatchObject({ growth: 50, growthFrom: 6_000, growthAt: 7_000 });
   });
 
   it('leaves the growth to an older list and drops it with a new level', async () => {
@@ -534,7 +536,7 @@ describe('growth between the last two sightings', () => {
     expect((await greatBuildings.known())[0]).toMatchObject({ invested: 300, growth: 49 });
   });
 
-  it('shows nothing when an opening finds the progress unchanged', async () => {
+  it('keeps the growth when an opening finds the progress unchanged', async () => {
     const { greatBuildings, list, row, open, at } = setup();
     at(4_000);
     list([row(1909, 75, 100, 3062)]);
@@ -542,7 +544,7 @@ describe('growth between the last two sightings', () => {
     expect((await greatBuildings.known())[0]?.growth).toBe(151);
     at(9_000);
     open(1909);
-    expect((await greatBuildings.known())[0]?.growth).toBeUndefined();
+    expect((await greatBuildings.known())[0]).toMatchObject({ growth: 151, growthFrom: 4_000, growthAt: 4_000 });
   });
 
   it('drops the growth when an opening shows a new level', async () => {
@@ -563,12 +565,11 @@ describe('growth between the last two sightings', () => {
     await db.greatBuildings.put([b]);
     await db.greatBuildings.put([
       { ...b, invested: 160 },
-      { ...b, invested: 160, again: true },
-      { ...b, invested: 200, again: true },
+      { ...b, invested: 160 },
+      { ...b, invested: 200 },
     ]);
     const [stored] = await greatBuildings.known();
     expect(stored).toMatchObject({ invested: 200, growth: 40 });
-    expect(stored).not.toHaveProperty('again');
   });
 });
 
@@ -620,5 +621,47 @@ describe('applyListRow', () => {
     });
     const old = known();
     expect(applyListRow(w, old, { ...r, rank: 3 }, 500)).toEqual({ ...old, ownContribution: true });
+  });
+});
+
+describe('growthSince', () => {
+  const before = known({ level: 5, invested: 100, seenAt: 1_000 });
+
+  it('names the sightings a growth lies between', () => {
+    expect(growthSince(before, { level: 5, invested: 130 }, 2_000)).toEqual({
+      growth: 30,
+      growthFrom: 1_000,
+      growthAt: 2_000,
+    });
+  });
+
+  it('keeps growth and span through a sighting with the same progress', () => {
+    const grown = { ...before, growth: 30, growthFrom: 500, growthAt: 1_000 };
+    expect(growthSince(grown, { level: 5, invested: 100 }, 3_000)).toEqual({
+      growth: 30,
+      growthFrom: 500,
+      growthAt: 1_000,
+    });
+  });
+
+  it('keeps an old growth that has no span, without inventing one', () => {
+    expect(growthSince({ ...before, growth: 30 }, { level: 5, invested: 100 }, 3_000)).toEqual({ growth: 30 });
+  });
+
+  it('replaces the growth with more progress', () => {
+    const grown = { ...before, growth: 30, growthFrom: 500, growthAt: 1_000 };
+    expect(growthSince(grown, { level: 5, invested: 110 }, 3_000)).toEqual({
+      growth: 10,
+      growthFrom: 1_000,
+      growthAt: 3_000,
+    });
+  });
+
+  it('clears it for a new level, less progress, a new entry, or nothing grown before', () => {
+    const grown = { ...before, growth: 30, growthFrom: 500, growthAt: 1_000 };
+    expect(growthSince(grown, { level: 6, invested: 100 }, 3_000)).toEqual({});
+    expect(growthSince(grown, { level: 5, invested: 90 }, 3_000)).toEqual({});
+    expect(growthSince(undefined, { level: 5, invested: 90 }, 3_000)).toEqual({});
+    expect(growthSince(before, { level: 5, invested: 100 }, 3_000)).toEqual({});
   });
 });

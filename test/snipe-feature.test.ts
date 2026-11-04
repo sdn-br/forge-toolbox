@@ -387,7 +387,12 @@ describe('Snipehilfe: stacked box', () => {
     await tick();
     const growth = rows()[0]?.querySelector('.fp-line .growth-tag');
     expect(growth?.textContent).toBe('+5');
-    expect(growth?.getAttribute('data-tip')).toBe('Seit dem vorigen Stand 5 FP eingezahlt');
+    expect(growth?.getAttribute('data-tip')).toMatch(/^Zwischen \d\d:\d\d und heute \d\d:\d\d 5 FP eingezahlt$/);
+    // the list again without a change keeps the growth
+    advance(10_000);
+    list([withRequired(zeus, 80, 15)]);
+    await tick();
+    expect(rows()[0]?.querySelector('.fp-line .growth-tag')?.textContent).toBe('+5');
   });
 
   it('shows the calculator without the section until a list comes, and has no tabs', async () => {

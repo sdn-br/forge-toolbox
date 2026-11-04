@@ -499,14 +499,14 @@ describe('Investitionen: Mögliche Investitionen', () => {
     await tick();
     const growth = rows()[0]?.querySelector('td.progress-cell .fp-line .growth-tag');
     expect(growth?.textContent).toBe('+5');
-    expect(growth?.getAttribute('data-tip')).toBe('Seit dem vorigen Stand 5 FP eingezahlt');
+    expect(growth?.getAttribute('data-tip')).toMatch(/^Zwischen \d\d:\d\d und heute \d\d:\d\d 5 FP eingezahlt$/);
     expect(rows()[1]?.querySelector('.growth-tag')).toBeNull();
     expect(rows().map((r) => r.classList.contains('grown'))).toEqual([false, false]);
-    // the next sighting without a change shows nothing
+    // the next sighting without a change keeps it, as the game re-requests the list after a building was closed
     vi.setSystemTime(Date.now() + MINUTE);
     list([hitZeus(), { ...hitOracle(), current_progress: 35 }]);
     await tick();
-    expect(rows().some((r) => r.querySelector('.growth-tag'))).toBe(false);
+    expect(rows()[0]?.querySelector('.growth-tag')?.textContent).toBe('+5');
   });
 
   it('shows the age of an entry by its largest unit', async () => {

@@ -57,7 +57,7 @@ const dateTimeFormat = new Intl.DateTimeFormat('de-DE', {
   minute: '2-digit',
 });
 
-const formatTime = (epochMs: number) => timeFormat.format(epochMs);
+export const formatTime = (epochMs: number) => timeFormat.format(epochMs);
 
 const fullDateTimeFormat = new Intl.DateTimeFormat('de-DE', {
   day: '2-digit',

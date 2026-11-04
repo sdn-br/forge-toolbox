@@ -1,6 +1,7 @@
 import { formatAgeShort, formatNumber, t } from '../../../core/texts';
 import { ownerShare, type SnipeTier } from '../../../domain/gb-snipe';
 import type { PossibleInvestment } from '../../../domain/investments';
+import { growthSpan } from '../../../ui/fp-bar';
 import { countsIgnored } from '../../../ui/ignore';
 import { type HitVm, hitSortKeys, hitVm, type OwnerShareCell, ownerShareCell, snipeNotes } from '../../../ui/snipe-hit';
 import { type Sort, sortRows } from '../../../ui/sortable';
@@ -189,6 +190,7 @@ export function possibleViewModel(input: PossibleInput, rows: PossibleRows = pos
       const { building: b, hit } = r;
       return {
         ...commonRowVm(input, b, r),
+        ...(b.growth !== undefined && growthSpan(b, input.now)),
         share: ownerShareCell(ownerShare(b), input.now),
         ...(hit && { hit: hitVm(hit) }),
         notes: hit ? snipeNotes(hit) : [],

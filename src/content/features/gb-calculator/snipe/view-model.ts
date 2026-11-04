@@ -2,7 +2,7 @@ import type { PlayerId } from '../../../../shared/ids';
 import { formatNumber, signed, t } from '../../../core/texts';
 import { bySnipeProfit, type SnipeHit, type SnipeList } from '../../../domain/gb-snipe';
 import type { ActivityVm } from '../../../ui/activity';
-import { type ProgressVm, progressVm } from '../../../ui/fp-bar';
+import { type GrowthSpan, growthSpan, type ProgressVm, progressVm } from '../../../ui/fp-bar';
 import { countsIgnored, ignoreNote } from '../../../ui/ignore';
 import { type OwnerVm, ownerVm } from '../../../ui/owner-line';
 import { type HitVm, hitSortKeys, hitVm, ownerShareNote, snipeNotes } from '../../../ui/snipe-hit';
@@ -56,6 +56,8 @@ export interface SnipeRowVm extends ProgressVm {
   level: number;
   /** "300" when the building gained Forge points since its previous sighting on this level */
   growth?: string;
+  /** the sightings the growth lies between, when the entry knows them */
+  growthSpan?: GrowthSpan;
   /** the best place */
   hit: HitVm;
   /** the player put a star on the building */
@@ -147,6 +149,7 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
       level: h.level,
       ...progressVm(h.invested, h.required),
       ...(h.growth !== undefined && { growth: formatNumber(h.growth) }),
+      ...(h.growth !== undefined && growthSpan(h, input.now)),
       hit: hitVm(h),
       marked: input.isMarked(h.owner, h.entityId),
       ignored,
