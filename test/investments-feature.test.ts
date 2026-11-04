@@ -414,7 +414,7 @@ describe('Investitionen: long lists', () => {
     const { box, texts, all, greatBuildings, bus } = await listed(5);
     const named = vi.spyOn(greatBuildings, 'isMarked');
     button(box, 'Nach unten').click();
-    wheel(box, 1);
+    wheel(box, 100);
     expect(texts()).toEqual(all.slice(2, 7));
     expect(named).not.toHaveBeenCalled();
     bus.emit('greatBuilding.marked', { owner: playerId(2005), entityId: 1, marked: true });
