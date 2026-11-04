@@ -44,7 +44,7 @@ const row = (r: SnipeRowVm, actions: SnipeActions) =>
   ${markCell(r, actions.mark)}
   ${buildingCell(r.name, rowTip(r), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
   <td class="num">${r.level}</td>
-  ${progressCell(r, growthTag(r.growth, 'investments.possible.growthHint'), r.ownerShare === undefined ? [] : [r.ownerShare])}
+  ${progressCell(r, growthTag(r.growth, 'investments.possible.growthHint', r.growthSpan), r.ownerShare === undefined ? [] : [r.ownerShare])}
   ${hitCells(r.hit)}
 </tr>`;
 

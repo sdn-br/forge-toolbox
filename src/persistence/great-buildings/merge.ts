@@ -7,7 +7,7 @@ import type { GreatBuildingListRow } from './contract';
  * the entry. A changed level drops the rankings (they belong to another level), the own place and the progress of the
  * growth base; the entry stays so its last state serves the estimate and the retention. A row of the town hall list
  * brings the own place, which replaces an older one, and starts the growth base when there is none: growth then counts
- * from the first town hall list until the building is opened. A newer row is a sighting: it replaces the growth.
+ * from the first town hall list until the building is opened. A newer row is a sighting: more progress replaces the growth, the same progress keeps it.
  */
 export function applyListRow(
   world: WorldId,
@@ -43,7 +43,9 @@ export function applyListRow(
     seenAt: at,
   };
   delete next.growth;
-  Object.assign(next, growthSince(existing, state));
+  delete next.growthFrom;
+  delete next.growthAt;
+  Object.assign(next, growthSince(existing, state, at));
   if (state.level !== existing.level) {
     delete next.rankings;
     delete next.rankingsLevel;
@@ -57,18 +59,24 @@ export function applyListRow(
 }
 
 /**
- * The growth of a sighting: what it shows paid in beyond the state seen before on the same level. A further write of
- * the same opening with the same progress keeps the growth it had. Nothing grown, or a new level, means no growth.
+ * The growth of a sighting at `at`: what it shows paid in beyond the state seen before on the same level, with the time
+ * span it covers (`growthFrom` is the sighting before, `growthAt` this one). A sighting with the same progress keeps the
+ * growth and its span until something changes. A new level, or less progress, means no growth.
  */
 export function growthSince(
   previous: KnownGreatBuilding | undefined,
   next: Pick<KnownGreatBuilding, 'level' | 'invested'>,
-  again = false,
-): Pick<KnownGreatBuilding, 'growth'> {
+  at: number,
+): Pick<KnownGreatBuilding, 'growth' | 'growthFrom' | 'growthAt'> {
   if (!previous || previous.level !== next.level) return {};
   const grown = next.invested - previous.invested;
-  if (grown > 0) return { growth: grown };
-  return grown === 0 && again && previous.growth !== undefined ? { growth: previous.growth } : {};
+  if (grown > 0) return { growth: grown, growthFrom: previous.seenAt, growthAt: at };
+  if (grown < 0 || previous.growth === undefined) return {};
+  return {
+    growth: previous.growth,
+    ...(previous.growthFrom !== undefined && { growthFrom: previous.growthFrom }),
+    ...(previous.growthAt !== undefined && { growthAt: previous.growthAt }),
+  };
 }
 
 /** The player's own marks, the star and the ignore: they stay with the building and only the player removes them. */

@@ -30,12 +30,12 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables): Handlers<Great
       const known = await db.greatBuildings.bulkGet(rows.map((r) => [r.world, r.owner, r.entityId]));
       // a batch may hold several writes of one building: each one is measured against the one before it
       const latest = new Map<string, KnownGreatBuilding>();
-      const written = rows.map(({ again, ...row }, i) => {
+      const written = rows.map((row, i) => {
         const k = `${row.world}:${row.owner}:${row.entityId}`;
         const before = latest.get(k) ?? known[i];
         const next: KnownGreatBuilding = {
           ...row,
-          ...growthSince(before, row, again),
+          ...growthSince(before, row, row.seenAt),
           ...(before?.ownContribution && { ownContribution: true }),
           ...(before?.marked && { marked: true }),
           ...(before?.ignored && { ignored: true }),

@@ -41,6 +41,9 @@ export interface SnipeHit {
   ownerShare: OwnerShare;
   /** what the building gained since its previous sighting on this level */
   growth?: number;
+  /** the sightings the growth lies between; missing for an entry stored without a span */
+  growthFrom?: number;
+  growthAt?: number;
 }
 
 /**
@@ -181,6 +184,8 @@ export function snipeBuilding(b: KnownGreatBuilding, def: GreatBuildingDef | und
     seenAt: b.seenAt,
     ownerShare: ownerShare(b),
     ...(b.growth !== undefined && { growth: b.growth }),
+    ...(b.growthFrom !== undefined && { growthFrom: b.growthFrom }),
+    ...(b.growthAt !== undefined && { growthAt: b.growthAt }),
   };
 }
 

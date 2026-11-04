@@ -312,10 +312,13 @@ export interface KnownGreatBuilding {
    */
   growthBase?: number;
   /**
-   * Forge points paid in between the last two sightings of the same level (a list or the open building); missing when
-   * nothing grew or the level is new
+   * Forge points paid in between the last two sightings of the same level that differed (a list or the open building);
+   * stays through sightings that show no change; missing when the level is new or the progress fell
    */
   growth?: number;
+  /** `seenAt` of the sighting before the growth, and `growthAt` of the sighting that showed it; missing on entries stored before the span existed */
+  growthFrom?: number;
+  growthAt?: number;
   /** last seen, in the building or in a list */
   seenAt: number;
 }

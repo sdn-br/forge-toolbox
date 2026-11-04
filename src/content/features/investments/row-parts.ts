@@ -75,7 +75,7 @@ export const leadCells = (r: CommonRowVm, playerField: string, actions: LeadActi
   <td class="inv-reach" data-tip=${r.reachTip} aria-label=${r.reachTip}>${reachCell(r.reasons)}</td>
   ${buildingCell(r.name, rowTip(r), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
   <td class="num">${r.level}</td>
-  ${progressCell(r, growthTag(r.growth, growthHint))}`;
+  ${progressCell(r, growthTag(r.growth, growthHint, r.growthSpan))}`;
 
 export interface RowsTable<R, C extends string> {
   /** the class of the tab's table, beside the classes both share */

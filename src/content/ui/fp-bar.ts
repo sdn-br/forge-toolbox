@@ -1,6 +1,7 @@
 // The thin bar under "paid in / costs", filled towards the level up (investments, GB calculator, snipe helper).
 import { html, type TemplateResult } from 'lit-html';
-import { formatNumber, type TextKey, t } from '../core/texts';
+import { sameDay } from '../../shared/time';
+import { formatNumber, formatTime, formatWhen, type TextKey, t } from '../core/texts';
 
 /** paid in of a level in percent, 0 to 100 */
 export const progressPercent = (invested: number, required: number) =>
@@ -34,6 +35,26 @@ export const progressCell = (
     <div class="fp-line">${fpBar(p.percent)}${extra}</div>
   </td>`;
 
-/** "+X" small beside the bar, what others paid in; the tooltip says since when */
-export const growthTag = (growth: string | undefined, hint: TextKey) =>
-  growth ? html`<span class="growth-tag" data-tip=${t(hint, { growth })}>${t('table.growth', { growth })}</span>` : '';
+/** the time span a growth covers, formatted for the tooltip */
+export interface GrowthSpan {
+  from: string;
+  to: string;
+}
+
+/**
+ * The span from the sighting before the growth to the one that showed it; the start is only a time when both fall on
+ * the same day ("10:00" and "heute 14:00"), otherwise both carry their day. Missing for an entry stored without a span.
+ */
+export function growthSpan(b: { growthFrom?: number; growthAt?: number }, now: number): { growthSpan?: GrowthSpan } {
+  const { growthFrom: from, growthAt: to } = b;
+  if (from === undefined || to === undefined) return {};
+  return {
+    growthSpan: { from: sameDay(from, to) ? formatTime(from) : formatWhen(from, now), to: formatWhen(to, now) },
+  };
+}
+
+/** "+X" small beside the bar, what others paid in; the tooltip says since when, or between which sightings with a span */
+export const growthTag = (growth: string | undefined, hint: TextKey, span?: GrowthSpan) =>
+  growth
+    ? html`<span class="growth-tag" data-tip=${span ? t('investments.possible.growthSpan', { growth, ...span }) : t(hint, { growth })}>${t('table.growth', { growth })}</span>`
+    : '';

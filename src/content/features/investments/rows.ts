@@ -15,7 +15,7 @@ import {
   reasonsOf,
 } from '../../domain/reach';
 import type { Box } from '../../ui/box';
-import { type ProgressVm, progressVm } from '../../ui/fp-bar';
+import { type GrowthSpan, type ProgressVm, progressVm } from '../../ui/fp-bar';
 import { ignoreNote } from '../../ui/ignore';
 import { nameWithGuild } from '../../ui/links';
 import { nextSort, type Sort } from '../../ui/sortable';
@@ -110,6 +110,8 @@ export interface RowBuilding {
   invested: number;
   required: number;
   growth?: number;
+  growthFrom?: number;
+  growthAt?: number;
 }
 
 /** what the lookups say about a row: names, relation, stars and eyes */
@@ -185,6 +187,8 @@ export interface CommonRowVm extends ProgressVm {
   level: number;
   /** the Forge points others paid in, as the tab explains it in the growth hint */
   growth?: string;
+  /** the sightings the growth lies between, when known; only the possible investments carry it */
+  growthSpan?: GrowthSpan;
 }
 
 export const commonRowVm = (input: Pick<GbLookups, 'playerUrl'>, b: RowBuilding, n: RowNames): CommonRowVm => ({
