@@ -268,14 +268,14 @@ describe('sabotage feature', () => {
         'plunder-row',
         'plunder-row muted',
       ]);
-      expect(row('Münzhaus').dataset.tip).toBe('Im Spiel mit einer Stecknadel zeigen');
+      expect(row('Münzhaus').querySelector<HTMLElement>('td.mark')?.dataset.tip).toBe('Im Spiel mit einer Stecknadel zeigen');
 
       row('Münzhaus').click();
       expect(marker.last).toMatchObject({ type: 'show', spots: [{ id: 5, x: 0, y: 0, width: 2, length: 2 }] });
       expect(ctx.markers.current()?.city).toBe(playerId(1));
       expect(marked()).toEqual(['Münzhaus']);
       expect(row('Münzhaus').getAttribute('aria-pressed')).toBe('true');
-      expect(row('Münzhaus').dataset.tip).toBe('Stecknadel im Spiel entfernen');
+      expect(row('Münzhaus').querySelector<HTMLElement>('td.mark')?.dataset.tip).toBe('Stecknadel im Spiel entfernen');
 
       row('Punktehaus').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
       expect(marker.shown).toEqual([6]);
@@ -707,51 +707,161 @@ describe('sabotage feature', () => {
     expect(def.mock.calls.length).toBeGreaterThan(first);
   });
 
-  describe('plunder list and content area', () => {
+  describe('plunder list window', () => {
+    /** a city with `n` plunderable houses of the same kind; rows share the loot, so only the names tell them apart */
     function manyHouses(n: number) {
       const env = setup();
       const buildings = Array.from({ length: n }, (_, i) => {
         env.ctx.catalog.add(houseDef(`H${i}`, `Haus ${i}`));
         return house(10 + i, 1, `H${i}`, i * 3, { money: 100 });
       });
+      const names = () =>
+        [...env.box.root.querySelectorAll('tr.plunder-row')].map((r) => r.querySelector('td:not(.img) b')?.textContent);
+      const button = (label: string) =>
+        env.box.root.querySelector(`.win-nav button[aria-label="${label}"]`) as HTMLButtonElement | null;
+      const wheel = (deltaY: number) => {
+        const event = new WheelEvent('wheel', { deltaY, cancelable: true, bubbles: true });
+        env.box.root.querySelector('.win-scroll')?.dispatchEvent(event);
+        return event;
+      };
       const visit = async () => {
         env.ctx.cities.setVisited(withBuildings(1, buildings));
         await tick();
       };
       const area = () => env.box.root.querySelector('.visit-content');
-      return { ...env, visit, area };
+      return { ...env, names, button, wheel, visit, area };
     }
 
-    it('draws all rows without window buttons', async () => {
-      const { box, visit } = manyHouses(8);
-      await visit();
-      expect(box.root.querySelectorAll('tr.plunder-row')).toHaveLength(8);
-      expect(box.root.querySelector('.win-scroll')).toBeNull();
-      expect(box.root.querySelector('.win-nav')).toBeNull();
+    it('draws at most five rows and offers no buttons for five or fewer', async () => {
+      const five = manyHouses(5);
+      await five.visit();
+      expect(five.names()).toHaveLength(5);
+      expect(five.box.root.querySelector('.win-scroll')).toBeNull();
+
+      const seven = manyHouses(7);
+      await seven.visit();
+      expect(seven.names()).toHaveLength(5);
+      expect(seven.box.root.querySelector('.win-scroll')).not.toBeNull();
+      expect(seven.box.text).toContain('noch 2 weitere unten');
     });
 
-    it('keeps head and tab bar outside the content area', async () => {
-      const { box, visit, area } = manyHouses(2);
+    it('moves the window by one row with the wheel and the buttons', async () => {
+      const { names, button, wheel, visit, box } = manyHouses(7);
       await visit();
-      expect(area()?.querySelector('.tabs')).toBeNull();
-      expect(area()?.querySelector('table.plunder-table')).not.toBeNull();
-      expect(box.root.querySelector('.visit-top .tabs')).not.toBeNull();
+      const all = names();
+      expect(button('Nach oben')?.classList.contains('off')).toBe(true);
+
+      expect(wheel(100).defaultPrevented).toBe(true);
+      expect(names()[0]).not.toBe(all[0]);
+      expect(names()).toHaveLength(5);
+      const afterWheel = names();
+      button('Nach unten')?.click();
+      expect(names()[0]).not.toBe(afterWheel[0]);
+      // at the end the wheel passes on
+      expect(wheel(100).defaultPrevented).toBe(false);
+      expect(box.text).toContain('2 weitere oben');
+
+      button('Nach oben')?.click();
+      button('Nach oben')?.click();
+      expect(names()).toEqual(all);
     });
 
-    it('keeps the content area over redraws and pin toggles, and starts a new one on a new visit and a tab switch', async () => {
+    it('goes back to the top on a new visit and stays on redraws', async () => {
+      const { ctx, names, wheel, visit, box } = manyHouses(7);
+      await visit();
+      const top = names();
+      wheel(100);
+      const moved = names();
+      expect(moved).not.toEqual(top);
+
+      ctx.bus.emit('city.visitedChanged', { owner: playerId(1), buildingIds: [] });
+      showFight(box);
+      showPlunder(box);
+      expect(names()).toEqual(moved);
+
+      await visit();
+      expect(names()).toEqual(top);
+    });
+
+    it('toggles the pin of a row in the window', async () => {
+      const { ctx, names, wheel, visit, box, marker } = manyHouses(7);
+      await visit();
+      wheel(100);
+      const second = box.root.querySelectorAll('tr.plunder-row')[1] as HTMLElement;
+      const name = names()[1];
+      second.click();
+      expect(marker.last?.type).toBe('show');
+      expect(ctx.markers.current()?.city).toBe(playerId(1));
+      expect(box.root.querySelectorAll('tr.plunder-row.marked')).toHaveLength(1);
+      expect(box.root.querySelector('tr.plunder-row.marked b')?.textContent).toBe(name);
+      // the window stayed where it was
+      expect(names()[1]).toBe(name);
+    });
+
+    it('keeps the content area over redraws and starts a new one on a new visit and a tab switch', async () => {
       const { ctx, box, visit, area } = manyHouses(8);
       await visit();
       const first = area();
-      (box.root.querySelectorAll('tr.plunder-row')[3] as HTMLElement).click();
       ctx.bus.emit('city.visitedChanged', { owner: playerId(1), buildingIds: [] });
       expect(area()).toBe(first);
-
       showFight(box);
       expect(area()).not.toBe(first);
       showPlunder(box);
       const second = area();
       await visit();
       expect(area()).not.toBe(second);
+    });
+
+    it('keeps head and tab bar outside the content area', async () => {
+      const { box, visit, area } = manyHouses(2);
+      await visit();
+      expect(area()?.querySelector('.tabs')).toBeNull();
+      expect(box.root.querySelector('.visit-top .tabs')).not.toBeNull();
+    });
+  });
+
+  describe('plunder row', () => {
+    const lootCity = (resources: Record<string, number>) => {
+      const env = markSetup();
+      env.ctx.cities.setVisited(withBuildings(1, [house(5, 1, 'Coins', 0, resources)]));
+      const text = () => env.box.root.querySelector('tr.plunder-row td.text') as HTMLElement;
+      const lines = () => [...text().querySelectorAll(':scope > div:not(.plunder-name)')].map((d) => d.textContent);
+      return { ...env, text, lines };
+    };
+
+    it('shows up to three loot lines in one column under the name', async () => {
+      const { text, lines } = lootCity({ money: 1, strategy_points: 2, supplies: 3 });
+      await tick();
+      expect(lines()).toHaveLength(3);
+      expect(text().textContent).not.toContain('weitere');
+    });
+
+    it('shows two lines and a muted count for four or more items, the whole loot in the tooltip', async () => {
+      const { text, lines } = lootCity({ money: 1, strategy_points: 2, supplies: 3, population: 4 });
+      await tick();
+      expect(lines()).toHaveLength(3);
+      expect(lines()[2]).toBe('+2 weitere');
+      expect(text().querySelector('div.muted')?.textContent).toBe('+2 weitere');
+      const tip = text().dataset.tip?.split('\n') ?? [];
+      expect(tip[0]).toBe('Münzhaus');
+      expect(tip).toHaveLength(5);
+    });
+
+    it('puts the loot tip on the text and the pin tip on the pin', async () => {
+      const { box, text } = lootCity({ money: 1 });
+      await tick();
+      expect(text().dataset.tip?.split('\n')).toHaveLength(2);
+      expect(text().dataset.tip).toMatch(/^Münzhaus\n1 /);
+      expect((box.root.querySelector('td.mark') as HTMLElement).dataset.tip).toBe('Im Spiel mit einer Stecknadel zeigen');
+    });
+
+    it('draws the building image in a fixed frame', async () => {
+      const env = setup({ '/city/buildings/R_SS_Test.png': 'abc' });
+      env.ctx.catalog.add({ ...houseDef('Coins', 'Münzhaus'), assetId: 'R_Test' });
+      env.ctx.cities.setVisited(withBuildings(1, [house(5, 1, 'Coins', 0, { money: 1 })]));
+      await tick();
+      await env.ctx.assets.load('https://foede.innogamescdn.com/cache/ForgeHX-1.js');
+      expect(env.box.root.querySelector('td.img .frame img')).not.toBeNull();
     });
   });
 });

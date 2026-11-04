@@ -8,6 +8,7 @@ import { externalLink, guildTag } from '../../ui/links';
 import { plunderCard } from '../../ui/plunder';
 import { pvpMarks } from '../../ui/pvp-marks';
 import { tabBar } from '../../ui/tabs';
+import { rowsIn, rowWindow, windowedRows } from '../../ui/windowed-rows';
 import type { PlunderItem, SabotageVm } from './view-model';
 
 const armyCells = (army: ArmyValues | undefined) =>
@@ -49,23 +50,45 @@ const pressKeys = (action: () => void) => (e: KeyboardEvent) => {
   action();
 };
 
-/** the building's image in its own column, kept only while some row has one */
-const imageCell = (p: PlunderItem) =>
-  html`<td class="img">${p.image ? html`<img src=${p.image} alt="" loading="lazy" referrerpolicy="no-referrer" />` : ''}</td>`;
+/** rows of the plunder list in view; the box is as high as its head and this many rows (Nutzer, 2026-11-03) */
+export const VISIBLE_ROWS = 5;
 
-const plunderTable = (items: PlunderItem[], marks?: PlunderMarks) => {
+/** loot lines a row shows: with more items the first two and "+n weitere", so name and lines fill the row height */
+const LOOT_LINES = 3;
+
+/** the loot lines of a row, nothing summed; the rest as a muted count */
+const lootLines = (items: PlunderItem['items']) => {
+  const shown = items.length > LOOT_LINES ? items.slice(0, LOOT_LINES - 1) : items;
+  const rest = items.length - shown.length;
+  return html`${shown.map((i) => html`<div>${formatNumber(i.amount)} ${i.label}</div>`)}${
+    rest > 0 ? html`<div class="muted">${t('sabotage.moreLoot', { count: rest })}</div>` : ''
+  }`;
+};
+
+/** the whole name and loot, one item per line, for the tooltip of the row's cells */
+const lootTip = (p: PlunderItem) =>
+  [p.name, ...p.items.map((i) => `${formatNumber(i.amount)} ${i.label}`)].join('\n');
+
+const plunderTable = (items: PlunderItem[], inView: PlunderItem[], marks?: PlunderMarks) => {
+  // the image column stays while any building has an image, so the width does not jump when the window moves
   const images = items.some((p) => p.image);
-  return html`<table class="plunder-table">${items.map((p) => {
-    const loot = html`${images ? imageCell(p) : ''}<td><b>${p.name}</b><br />${p.items.map(
-      (i, n) => html`${n ? html`<br />` : ''}${formatNumber(i.amount)} ${i.label}`,
-    )}</td>`;
+  return html`<table class="plunder-table">${inView.map((p) => {
+    const tip = lootTip(p);
+    const loot = html`${
+      images
+        ? html`<td class="img" data-tip=${tip}><span class="frame">${
+            p.image ? html`<img src=${p.image} alt="" loading="lazy" referrerpolicy="no-referrer" />` : ''
+          }</span></td>`
+        : ''
+    }<td class="text" data-tip=${tip}><div class="plunder-name"><b>${p.name}</b></div>${lootLines(p.items)}</td>`;
     const muted = p.important ? '' : ' muted';
     if (!marks) return html`<tr class=${muted.trim()}>${loot}</tr>`;
     const marked = marks.marked(p.building);
     const toggle = () => marks.toggle(p.building);
+    // the loot tooltip sits on the image and the text, the pin tooltip on the pin
     return html`<tr class=${`plunder-row${muted}${marked ? ' marked' : ''}`} role="button" tabindex="0"
-      aria-pressed=${String(marked)} data-tip=${t(marked ? 'sabotage.unmarkInGame' : 'sabotage.markInGame')}
-      @click=${toggle} @keydown=${pressKeys(toggle)}>${loot}<td class="mark">${headerIcons.mapPin(marked)}</td></tr>`;
+      aria-pressed=${String(marked)} @click=${toggle} @keydown=${pressKeys(toggle)}>${loot}<td class="mark"
+      data-tip=${t(marked ? 'sabotage.unmarkInGame' : 'sabotage.markInGame')}>${headerIcons.mapPin(marked)}</td></tr>`;
   })}</table>`;
 };
 
@@ -87,7 +110,11 @@ export interface SabotageUi {
   noteText: string;
   noteOpen: boolean;
   toggleNote(): void;
-  /** counts the visits; a new one scrolls the content area back to the top */
+  /** index of the first plunder row in view */
+  plunderTop: number;
+  /** moves the plunder list by rows, down for positive; the owner keeps the offset inside the list */
+  scrollPlunder(rows: number): void;
+  /** counts the visits; a new one, like another tab, starts the content area at the top */
   visit: number;
 }
 
@@ -105,7 +132,15 @@ const noteButton = (ui: SabotageUi) => {
     data-tip=${tip} @click=${ui.toggleNote}>${icons.notes}</button>`;
 };
 
-const plunderTab = (vm: SabotageVm, marks?: PlunderMarks) => html`
+/** the rows of "Jetzt plünderbar": a window of VISIBLE_ROWS, wheel and buttons move it; a shorter list has neither */
+const plunderList = (vm: SabotageVm, ui: SabotageUi, marks?: PlunderMarks) => {
+  const window = rowWindow(ui.plunderTop, vm.plunderable.length, VISIBLE_ROWS);
+  const table = plunderTable(vm.plunderable, rowsIn(vm.plunderable, window), marks);
+  if (vm.plunderable.length <= VISIBLE_ROWS) return table;
+  return windowedRows({ cls: 'plunder-win', table, window, scroll: ui.scrollPlunder });
+};
+
+const plunderTab = (vm: SabotageVm, ui: SabotageUi, marks?: PlunderMarks) => html`
   ${
     vm.plundered?.last
       ? html`<p class="muted">${vm.plundered.totals}</p>`
@@ -114,7 +149,7 @@ const plunderTab = (vm: SabotageVm, marks?: PlunderMarks) => html`
   ${
     vm.plunderable.length === 0
       ? html`<p class="muted">${t('sabotage.nothingPlunderable')}</p>`
-      : plunderTable(vm.plunderable, marks)
+      : plunderList(vm, ui, marks)
   }
   ${vm.incomplete ? html`<p class="warn">${t('sabotage.incomplete')}</p>` : ''}`;
 
@@ -136,8 +171,8 @@ const fightTab = (vm: SabotageVm) => {
 
 /**
  * `note` is the note card of the visited player, shown below the head while `ui.noteOpen`; `marks` points at
- * plunderable buildings in the game. The head and the tab bar sit outside any scrolling area; the content area below them
- * has a fixed height and scrolls natively. It is a new element per visit and tab, so it starts at the top then.
+ * plunderable buildings in the game. The head and the tab bar sit outside any scrolling area; only the content of the
+ * Kampf tab scrolls, when it is taller than the box may be. The plunder list is a window of rows instead.
  */
 export function sabotageView(
   vm: SabotageVm | undefined,
@@ -168,8 +203,8 @@ export function sabotageView(
         (key) => t(`sabotage.tab.${key}`),
       )}
     </div>
-    ${keyed(
+${keyed(
       `${ui.visit}-${ui.tab}`,
-      html`<div class="visit-content">${ui.tab === 'plunder' ? plunderTab(vm, marks) : fightTab(vm)}</div>`,
+      html`<div class="visit-content">${ui.tab === 'plunder' ? plunderTab(vm, ui, marks) : fightTab(vm)}</div>`,
     )}`;
 }

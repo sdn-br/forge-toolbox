@@ -1,11 +1,12 @@
 // The look of the Besuchte Stadt box: the head with its tabs and the plunder rows.
 export const sabotageCss = `
-/* The body does not scroll: the head and the tab bar stand above the content area. It has one fixed height for both tabs
-   (about five plunder rows), so the box never changes size; it shrinks only when the box hits its max height. It
-   scrolls natively and passes the scroll on to nothing at its ends. Popped out, the window decides: it fills. */
+/* The body does not scroll: the head and the tab bar stand above the content area. It has one fixed height for both tabs:
+   the totals line, five plunder rows of 76px and the line of hidden rows (about 442px, to be checked in the browser), so
+   switching tabs never changes the box. It shrinks only when the box hits its max height. It scrolls natively (the Kampf
+   tab) and passes the scroll on to nothing at its ends. Popped out, the window decides: it fills. */
 .body { display: flex; flex-direction: column; overflow: hidden; }
 .visit-top { flex: none; }
-.visit-content { flex: 1 1 auto; min-height: 0; height: 380px; overflow-y: auto; overscroll-behavior: contain; }
+.visit-content { flex: 1 1 auto; min-height: 0; height: 442px; overflow-y: auto; overscroll-behavior: contain; }
 .box.popped .visit-content { height: auto; }
 .visit-top p { margin: 0 0 4px; }
 /* the invitation icon in the box of the PvP mark buttons beside it, so all icons share one middle */
@@ -22,14 +23,21 @@ button.note-icon:focus-visible { box-shadow: 0 0 0 1px var(--accent); }
 .tabs button { display: inline-flex; align-items: center; }
 tr.plunder-row { cursor: pointer; }
 tr.plunder-row:hover, tr.plunder-row:focus-visible { background: var(--row-selected); outline: none; }
-/* the building's image left of its name and loot, faded with a muted row */
-.plunder-table td { vertical-align: top; }
-.plunder-table td.img { width: 72px; padding-right: 24px; vertical-align: middle; }
-.plunder-table td.img img { display: block; width: 72px; height: auto; }
+/* Every row is 76px high: name and up to three loot lines (the row shows at most three lines, the full text is the
+   tooltip). The building's image sits in a 72 x 54 frame, scaled down to fit, so a tall image does not stretch the row. */
+.plunder-table { table-layout: fixed; }
+.plunder-table tr { height: 76px; }
+.plunder-table td { vertical-align: middle; height: 76px; overflow: hidden; }
+.plunder-table td.img { width: 96px; padding-right: 24px; }
+.plunder-table td.img .frame { display: block; width: 72px; height: 54px; }
+.plunder-table td.img img { display: block; width: 72px; height: 54px; object-fit: contain; object-position: center; }
 .plunder-table tr.muted td.img img { opacity: .5; }
+.plunder-table td.text { line-height: 1.4; }
+.plunder-table .plunder-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plunder-table td.text > div { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 /* the pin at the right edge shows whether the building carries it in the game: off in the text colour, on filled in
    the accent; the row keeps its colour */
-.plunder-table td.mark { width: 22px; vertical-align: middle; }
+.plunder-table td.mark { width: 22px; }
 .plunder-table td.mark svg { display: block; width: 16px; height: 16px; margin: 0 auto; color: var(--ink); }
 .plunder-table tr.marked td.mark svg { color: var(--accent); }
 `;
