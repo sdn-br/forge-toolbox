@@ -301,6 +301,11 @@ export const de = {
   'contributionWarning.playerUnnamed': 'Dieser Spieler steht auf Ignorieren.',
   'contributionWarning.building': 'Dieses LG steht auf Ignorieren.',
   'contributionWarning.payAnyway': 'Trotzdem einzahlen',
+  'doubleFpLock.section': 'Doppel-FP-Sperre',
+  'doubleFpLock.secondsSetting': 'Sperre nach Einzahlung (Sekunden, 0 = aus)',
+  'doubleFpLock.secondsHint':
+    'Nach einer Einzahlung in ein fremdes LG deckt eine Leiste die Einzahlreihe ab, damit ein Doppelklick nicht zweimal einzahlt.',
+  'doubleFpLock.text': 'Eingezahlt, kurz gesperrt',
   'gb.col.name': 'LG',
   'gb.col.level': 'Stufe',
   'gb.col.progress': 'Fortschritt',
