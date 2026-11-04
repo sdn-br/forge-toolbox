@@ -12,6 +12,7 @@ import {
   type FinderRows,
   finderRows,
   finderViewModel,
+  migrateStarted,
 } from './view-model';
 
 export interface FinderSection {
@@ -24,6 +25,7 @@ export function createFinderSection(ctx: FeatureContext, box: Box, measure: Find
     defaults: DEFAULT_FINDER_FILTER,
     defaultSort: DEFAULT_FINDER_SORT,
     descFirst: FINDER_DESC_FIRST,
+    migrate: migrateStarted,
   });
   const rows = lastResult<FinderRows>();
   return {

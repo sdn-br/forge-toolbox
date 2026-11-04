@@ -6,7 +6,7 @@ import { growthSpan, progressPercent } from '../../../ui/fp-bar';
 import { type Sort, sortRows } from '../../../ui/sortable';
 import { type RowWindow, rowsIn, rowWindow } from '../../../ui/windowed-rows';
 import type { GbLookups } from '../../shared/gb-lookups';
-import { type CommonRowVm, commonRowVm, namedSortKeys, type RowNames, rowNames } from '../rows';
+import { type CommonRowVm, commonRowVm, namedSortKeys, type RowNames, rowNames, savedRecord } from '../rows';
 
 export type FinderColumn = 'owner' | 'reach' | 'name' | 'level' | 'progress' | 'seen';
 
@@ -24,11 +24,31 @@ export interface FinderFilter {
   type: string;
   levelFrom: string;
   levelTo: string;
-  /** only buildings with progress on their level */
-  started: boolean;
+  /** which rows the progress toggles show: those with progress on their level and those without */
+  progress: StartedFilter;
 }
 
-export const DEFAULT_FINDER_FILTER: FinderFilter = { type: '', levelFrom: '', levelTo: '', started: false };
+/** the progress toggles: buildings with something paid in on their level, buildings with nothing */
+export interface StartedFilter {
+  started: boolean;
+  notStarted: boolean;
+}
+
+/** the progress toggles in their order */
+export const STARTED_TOGGLES: (keyof StartedFilter)[] = ['started', 'notStarted'];
+
+export const DEFAULT_FINDER_FILTER: FinderFilter = {
+  type: '',
+  levelFrom: '',
+  levelTo: '',
+  progress: { started: true, notStarted: true },
+};
+
+/** the former toggle "only started": on showed the started rows alone, off all; toggles saved since then win */
+export const migrateStarted = (saved: Record<string, unknown>): Record<string, unknown> =>
+  saved.started === true
+    ? { ...saved, progress: { started: true, notStarted: false, ...savedRecord(saved.progress) } }
+    : saved;
 
 /** a type of the type choice: the definition and its name */
 export interface FinderType {
@@ -67,13 +87,18 @@ export interface FinderInput extends GbLookups {
 
 type Named = KnownGreatBuilding & RowNames;
 
-const sortKey: Record<FinderColumn, (r: Named) => number | string> = {
+const sortKey: Record<FinderColumn | 'invested', (r: Named) => number | string> = {
   ...namedSortKeys<Named>(),
   level: (r) => r.level,
   // the share of the level paid in, as in the other tabs
   progress: (r) => progressPercent(r.invested, r.required),
   seen: (r) => r.seenAt,
+  invested: (r) => r.invested,
 };
+
+/** equal levels are told apart by what is paid in, the most first, whichever way the levels run */
+const withTiebreak = (sort: FinderSort): Sort<FinderColumn | 'invested'> =>
+  sort.flatMap((l) => (l.column === 'level' ? [l, { column: 'invested' as const, desc: true }] : [l]));
 
 /** a level field as a bound; empty or not a number is open */
 const bound = (typed: string): number | undefined => {
@@ -105,10 +130,10 @@ export function finderRows(input: FinderRowsInput): FinderRows {
         (filter.type === '' || b.cityEntityId === filter.type) &&
         b.level >= from &&
         b.level <= to &&
-        (!filter.started || b.invested > 0),
+        (b.invested > 0 ? filter.progress.started : filter.progress.notStarted),
     )
     .map((b) => ({ ...b, ...rowNames(input, b) }));
-  sortRows(rows, input.sort, (column) => sortKey[column]);
+  sortRows(rows, withTiebreak(input.sort), (column) => sortKey[column]);
   return {
     empty: buildings.length === 0,
     types,

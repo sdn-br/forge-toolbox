@@ -1,6 +1,6 @@
 import { html, type TemplateResult } from 'lit-html';
 import { t } from '../../../core/texts';
-import { filterToggle } from '../../../ui/buttons';
+import { toggleGroup } from '../../../ui/buttons';
 import { growthTag, progressCell } from '../../../ui/fp-bar';
 import { headerIcons } from '../../../ui/icons';
 import { buildingCell, rowTip } from '../../../ui/ignore';
@@ -8,7 +8,14 @@ import { keepKeys } from '../../../ui/inputs';
 import type { SortColumn } from '../../../ui/sortable';
 import { ownerCell, reachTd, rowsTable } from '../row-parts';
 import type { RowActions } from '../rows';
-import type { FinderColumn, FinderFilter, FinderRowVm, FinderType, FinderVm } from './view-model';
+import {
+  type FinderColumn,
+  type FinderFilter,
+  type FinderRowVm,
+  type FinderType,
+  type FinderVm,
+  STARTED_TOGGLES,
+} from './view-model';
 
 export type FinderActions = RowActions<FinderColumn, FinderFilter>;
 
@@ -50,16 +57,19 @@ const levelField = (label: string, value: string, set: (value: string) => void) 
     @input=${(e: Event) => set((e.target as HTMLInputElement).value)}
     @keydown=${keepKeys} @keypress=${keepKeys} @keyup=${keepKeys} />`;
 
+const STARTED_ICONS = { started: headerIcons.started, notStarted: headerIcons.notStarted };
+
 const filters = (vm: FinderVm, actions: FinderActions) => html`<p class="inv-filter">
     ${typeSelect(vm.types, vm.filter.type, actions)}
     ${levelField(t('investments.finder.levelFrom'), vm.filter.levelFrom, (levelFrom) => actions.filter({ levelFrom }))}
     ${levelField(t('investments.finder.levelTo'), vm.filter.levelTo, (levelTo) => actions.filter({ levelTo }))}
-    ${filterToggle(
+    ${toggleGroup(
       'inv-started-filter',
-      vm.filter.started,
-      t('investments.finder.started'),
-      headerIcons.started,
-      (started) => actions.filter({ started }),
+      STARTED_TOGGLES,
+      vm.filter.progress,
+      (key) => t(`investments.finder.${key}`),
+      (key) => STARTED_ICONS[key],
+      (progress) => actions.filter({ progress }),
     )}
     <span class="inv-count muted">${vm.empty ? '' : vm.count}</span>
   </p>`;

@@ -336,7 +336,8 @@ export const de = {
   'investments.finder.allTypes': 'alle Typen',
   'investments.finder.levelFrom': 'Stufe ab',
   'investments.finder.levelTo': 'Stufe bis',
-  'investments.finder.started': 'nur angefangen',
+  'investments.finder.started': 'Angefangene LGs zeigen',
+  'investments.finder.notStarted': 'Nicht angefangene LGs zeigen',
   'investments.finder.gold': 'Gold-Stufe',
   'investments.finder.count': '{count} von {total} LGs',
   'investments.finder.none':
