@@ -268,7 +268,9 @@ describe('sabotage feature', () => {
         'plunder-row',
         'plunder-row muted',
       ]);
-      expect(row('Münzhaus').querySelector<HTMLElement>('td.mark')?.dataset.tip).toBe('Im Spiel mit einer Stecknadel zeigen');
+      expect(row('Münzhaus').querySelector<HTMLElement>('td.mark')?.dataset.tip).toBe(
+        'Im Spiel mit einer Stecknadel zeigen',
+      );
 
       row('Münzhaus').click();
       expect(marker.last).toMatchObject({ type: 'show', spots: [{ id: 5, x: 0, y: 0, width: 2, length: 2 }] });
@@ -852,7 +854,9 @@ describe('sabotage feature', () => {
       await tick();
       expect(text().dataset.tip?.split('\n')).toHaveLength(2);
       expect(text().dataset.tip).toMatch(/^Münzhaus\n1 /);
-      expect((box.root.querySelector('td.mark') as HTMLElement).dataset.tip).toBe('Im Spiel mit einer Stecknadel zeigen');
+      expect((box.root.querySelector('td.mark') as HTMLElement).dataset.tip).toBe(
+        'Im Spiel mit einer Stecknadel zeigen',
+      );
     });
 
     it('draws the building image in a fixed frame', async () => {
