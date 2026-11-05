@@ -402,6 +402,10 @@ export const headerIcons = {
   started: headerIcon(
     svg`<rect x="3" y="8" width="18" height="8" rx="2"/><rect x="5" y="10" width="7" height="4" fill="currentColor" stroke="none"/>`,
   ),
+  /** a bar with only a thin mark at its left edge: buildings with nothing paid in on their level (N3, chosen 2026-11-05) */
+  notStarted: headerIcon(
+    svg`<rect x="3" y="8" width="18" height="8" rx="2"/><path d="M6 10.2v3.6" stroke-width="1.8"/>`,
+  ),
   /** a crown, its body half filled: the gold tier of a great building (G1, chosen 2026-11-05, until the game's own
    * sign replaces it); drawn in the accent where it is used */
   goldTier: headerIcon(

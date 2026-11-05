@@ -167,18 +167,84 @@ describe('Investitionen: LG-Finder', () => {
     expect(rows().map((r) => cells(r)[3])).toEqual(['277', '270', '251', '250']);
   });
 
-  it('shows only started buildings while the toggle is on, off by default', async () => {
-    const { box, send, rows, showFinder } = setup();
+  it('shows started and not started buildings by two toggles, both on by default, both off shows none', async () => {
+    const { box, send, rows, cells, showFinder } = setup();
     send(ranking.buildingSearch as Entry);
     await tick();
     await showFinder();
-    const toggle = () => box.root.querySelector('.inv-started-filter button') as HTMLButtonElement;
-    expect(toggle().getAttribute('aria-pressed')).toBe('false');
-    expect(toggle().getAttribute('aria-label')).toBe('nur angefangen');
-    toggle().click();
+    const toggle = (word: string) =>
+      box.root.querySelector(`.inv-started-filter button[aria-label="${word}"]`) as HTMLButtonElement;
+    expect(toggle('Angefangene LGs zeigen').getAttribute('aria-pressed')).toBe('true');
+    expect(toggle('Nicht angefangene LGs zeigen').getAttribute('aria-pressed')).toBe('true');
+    expect(rows()).toHaveLength(6);
+    toggle('Nicht angefangene LGs zeigen').click();
     await tick();
     expect(rows()).toHaveLength(3);
     expect(box.text).toContain('3 von 6 LGs');
+    toggle('Nicht angefangene LGs zeigen').click();
+    await tick();
+    toggle('Angefangene LGs zeigen').click();
+    await tick();
+    expect(rows().map((r) => cells(r)[3])).toEqual(['277', '270', '250']);
+    toggle('Angefangene LGs zeigen').click();
+    await tick();
+    expect(rows()).toHaveLength(6);
+    toggle('Nicht angefangene LGs zeigen').click();
+    await tick();
+    toggle('Angefangene LGs zeigen').click();
+    await tick();
+    expect(rows()).toHaveLength(0);
+    expect(box.text).toContain('0 von 6 LGs');
+  });
+
+  it('reads the former toggle "only started" as started on and not started off, off or missing as both on', async () => {
+    const showing = async (saved: string | undefined) => {
+      const t = setup({
+        'investments.tab': 'finder',
+        ...(saved !== undefined && { 'investments.finderFilter': saved }),
+      });
+      t.send(ranking.buildingSearch as Entry);
+      await tick();
+      t.openMenu();
+      await tick();
+      return t.rows().length;
+    };
+    expect(await showing(JSON.stringify({ started: true }))).toBe(3);
+    expect(await showing(JSON.stringify({ started: false }))).toBe(6);
+    expect(await showing(undefined)).toBe(6);
+    // a saved pair wins over the old key
+    expect(await showing(JSON.stringify({ started: true, progress: { started: true, notStarted: true } }))).toBe(6);
+  });
+
+  it('breaks a level tie by the most paid in first, also when sorted ascending', async () => {
+    const { box, send, rows, cells, showFinder } = setup();
+    const search = ranking.buildingSearch as Entry & { responseData: { rankings: { points: number }[] } };
+    const [a, b, ...rest] = search.responseData.rankings;
+    send({
+      ...search,
+      responseData: {
+        ...search.responseData,
+        rankings: [{ ...(a as object), points: 2 }, { ...(b as object), points: 6892 }, ...rest],
+      } as never,
+    });
+    await tick();
+    await showFinder();
+    expect(
+      rows()
+        .map((r) => cells(r)[0])
+        .slice(0, 2),
+    ).toEqual(['Spieler 2024', 'Spieler 2023']);
+    (box.root.querySelector('th[aria-label="Stufe"]') as HTMLElement).click();
+    expect(
+      rows()
+        .map((r) => cells(r)[3])
+        .slice(-2),
+    ).toEqual(['301', '301']);
+    expect(
+      rows()
+        .map((r) => cells(r)[0])
+        .slice(-2),
+    ).toEqual(['Spieler 2024', 'Spieler 2023']);
   });
 
   it('remembers the filter and the tab', async () => {
@@ -194,7 +260,7 @@ describe('Investitionen: LG-Finder', () => {
       type: 'X_FutureEra_Landmark1',
       levelFrom: '260',
       levelTo: '',
-      started: false,
+      progress: { started: true, notStarted: true },
     });
     const again = setup({
       'investments.tab': 'finder',
