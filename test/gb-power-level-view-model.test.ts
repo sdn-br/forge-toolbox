@@ -26,9 +26,9 @@ const roman = def(ROMAN);
 // the recorded production per level 0 to 10: 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6
 
 const LEVEL = 3;
-/** the five factors at 90 %, standard */
+/** the seven factors at 90 %, standard */
 const factorsOf = (value: number): PlaceFactorState => ({
-  choices: Array(5).fill({ value, arc: false }),
+  choices: Array(7).fill({ value, arc: false }),
   status: 'standard',
   canSave: false,
   canReset: false,
@@ -43,11 +43,11 @@ const own = {
   exts: [] as number[],
 };
 
-/** the open level with the player's 20 on place 2 and a holder with 50 on place 1 */
+/** the open level with the player's 20 on place 2 and a holder with 60 on place 1 */
 function rankings(level = LEVEL): RankingRow[] {
   const rows = emptyLevel(roman, level).rankings as RankingRow[];
   return rows.map((r) =>
-    r.rank === 1 ? { ...r, name: 'Holder', fp: 50 } : r.rank === 2 ? { ...r, name: 'Ich', self: true, fp: 20 } : r,
+    r.rank === 1 ? { ...r, name: 'Holder', fp: 60 } : r.rank === 2 ? { ...r, name: 'Ich', self: true, fp: 20 } : r,
   );
 }
 
@@ -61,7 +61,7 @@ const construction = (extra: Partial<Construction> = {}, level = LEVEL, maxLevel
     def: ROMAN as BuildingDefId,
     level,
     maxLevel,
-    invested: 70,
+    invested: 80,
     required: emptyLevel(roman, level).required as number,
     connected: true,
   },
@@ -154,14 +154,14 @@ describe('own share per row', () => {
     expect(cheap.rows[1]?.places[0]?.fp).toBeLessThan(vm().rows[1]?.places[0]?.fp as number);
   });
 
-  it('marks payments from estimated rewards', () => {
-    // past the listed rewards of the era (level 400 for this one) the first place comes from the curve
+  it('marks payments from an estimated cost', () => {
+    // past the ten listed levels the cost grows by 2.5 % a level, the rewards follow from it
     const far = vm({ construction: construction({}, 400, 500) });
     expect(far.estimate).toBe(true);
     // the open level has the game's rewards, the later ones are computed
     expect(far.rows[0]?.places.find(Boolean)?.estimate).toBe(false);
     expect(far.rows[1]?.places.find(Boolean)?.estimate).toBe(true);
-    expect(vm().estimate).toBe(false);
+    expect(vm({ to: 10 }).estimate).toBe(false);
   });
 });
 
@@ -202,11 +202,11 @@ describe('double harvest', () => {
 });
 
 describe('the end of the table', () => {
-  it('ends at the first level whose reward is unknown', () => {
-    // the reward curve ends before level 422
-    const t = vm({ construction: construction({}, 419, 500), to: 430 });
-    expect(t.rows.map((r) => r.level)).toEqual([419, 420, 421]);
-    expect(t.endsAt).toBe(422);
+  it('ends at the first level whose cost is unknown', () => {
+    // a definition with the costs of levels 0 to 5 only
+    const t = vm({ greatBuilding: () => ({ ...roman, levelCosts: roman.levelCosts.slice(0, 6) }) });
+    expect(t.rows.map((r) => r.level)).toEqual([3, 4, 5]);
+    expect(t.endsAt).toBe(6);
   });
 
   it('has no end note when every level is known', () => {
@@ -261,20 +261,16 @@ describe('what the table cannot show', () => {
 
 describe('the Arc bonus by tier', () => {
   it('pays each level at the Arc bonus of its tier, the buttons show the one of the first level', () => {
-    const arc: PlaceFactorState = { ...factorsOf(0), choices: Array(5).fill({ value: 0, arc: true }) };
-    const t = vm({
-      factors: arc,
-      greatBuilding: () => ({ ...roman, maxTier: 'gold' }),
-      arcBonus: { copper: 90, gold: 200 },
-      // gold from 6: the construction from 5 goes to the first gold level
-      tiers: [
-        { tier: 'copper', startLevel: 1 },
-        { tier: 'gold', startLevel: 6 },
-      ],
-      to: 7,
-    });
+    const arc: PlaceFactorState = { ...factorsOf(0), choices: Array(7).fill({ value: 0, arc: true }) };
+    const gold: GreatBuildingDef = { ...roman, maxTier: 'gold' };
+    // gold from 6: the construction from 5 goes to the first gold level
+    const tiers = [
+      { tier: 'copper' as const, startLevel: 1 },
+      { tier: 'gold' as const, startLevel: 6 },
+    ];
+    const t = vm({ factors: arc, greatBuilding: () => gold, arcBonus: { copper: 90, gold: 200 }, tiers, to: 7 });
     const shareAt = (level: number, factor: number) => {
-      const empty = emptyLevel(roman, level);
+      const empty = emptyLevel(gold, level, tiers);
       return calculateOwnShare({
         required: empty.required as number,
         rankings: empty.rankings as RankingRow[],
@@ -296,18 +292,15 @@ describe('the Arc bonus by tier', () => {
   });
 
   it('pays a fixed factor per tier, the buttons of the first row with their own list', () => {
-    const fixed: PlaceFactorState = { ...factorsOf(90), choices: Array(5).fill({ value: 90, arc: false, gold: 15 }) };
-    const input = {
-      factors: fixed,
-      greatBuilding: () => ({ ...roman, maxTier: 'gold' as const }),
-      factorButtonsGold: [10, 15, 20],
-      tiers: [
-        { tier: 'copper' as const, startLevel: 1 },
-        { tier: 'gold' as const, startLevel: 6 },
-      ],
-    };
+    const fixed: PlaceFactorState = { ...factorsOf(90), choices: Array(7).fill({ value: 90, arc: false, gold: 15 }) };
+    const goldDef: GreatBuildingDef = { ...roman, maxTier: 'gold' };
+    const tiers = [
+      { tier: 'copper' as const, startLevel: 1 },
+      { tier: 'gold' as const, startLevel: 6 },
+    ];
+    const input = { factors: fixed, greatBuilding: () => goldDef, factorButtonsGold: [10, 15, 20], tiers };
     const shareAt = (level: number, factor: number) => {
-      const empty = emptyLevel(roman, level);
+      const empty = emptyLevel(goldDef, level, tiers);
       return calculateOwnShare({
         required: empty.required as number,
         rankings: empty.rankings as RankingRow[],
@@ -334,5 +327,43 @@ describe('the Arc bonus by tier', () => {
       ['1,20', false],
     ]);
     expect(gold.placeFactors[0]).toEqual({ factor: 15, arc: false });
+  });
+});
+
+describe('the place columns (Nutzer, 2026-11-05)', () => {
+  // costs a hundred times the Roman ones, so that P6 and P7 pay something
+  const gold: GreatBuildingDef = { ...roman, maxTier: 'gold', levelCosts: roman.levelCosts.map((c) => c * 100) };
+  const tiers = [
+    { tier: 'copper' as const, startLevel: 1 },
+    { tier: 'gold' as const, startLevel: 6 },
+  ];
+  const factors: PlaceFactorState = {
+    ...factorsOf(90),
+    choices: [90, 90, 90, 90, 90, 80, 70].map((value) => ({ value, arc: false, gold: value - 70 })),
+  };
+
+  it('are five while the table shows copper levels only, P6 and P7 left out', () => {
+    const t = vm({ greatBuilding: () => gold, tiers, factors, to: 5 });
+    expect(t.places).toBe(5);
+    expect(t.placeFactors).toHaveLength(5);
+    expect(t.rows.every((r) => r.places.length === 5)).toBe(true);
+  });
+
+  it('are seven when a gold level is in the table, copper rows leave P6 and P7 empty', () => {
+    const t = vm({ greatBuilding: () => gold, tiers, factors, to: 7 });
+    expect(t.places).toBe(7);
+    expect(t.placeFactors.map((p) => p.factor)).toEqual([90, 90, 90, 90, 90, 80, 70]);
+    expect(t.rows.map((r) => r.places.length)).toEqual([7, 7, 7, 7]);
+    // levels 3 and 4 are copper
+    expect(t.rows[1]?.places.slice(5)).toEqual([undefined, undefined]);
+    // the gold levels pay P6 and P7 at their own gold factors, 1,10 and 1,00: level 6 costs 38.000, 25 % of it pays
+    // 8 and 2 on P6 and P7
+    const rewards = emptyLevel(gold, 6, tiers).rankings?.map((r) => r.reward?.fp);
+    expect(rewards?.slice(5)).toEqual([8, 2]);
+    expect(t.rows[3]?.places.slice(5).map((p) => p?.fp)).toEqual([9, 2]);
+  });
+
+  it('are seven from a gold first row on', () => {
+    expect(vm({ greatBuilding: () => gold, tiers, factors, from: 5, to: 7 }).places).toBe(7);
   });
 });

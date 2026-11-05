@@ -5,7 +5,7 @@ import { type DoubleHarvest, hasDoubleHarvest } from '../../domain/gb-double-har
 import { effectiveFactor, effectiveFactors } from '../../domain/gb-factor';
 import type { OwnShareCalc } from '../../domain/gb-own-share';
 import { powerLevelPlan } from '../../domain/gb-power-level';
-import { levelTier } from '../../domain/gb-tier';
+import { levelTier, tierPlaces } from '../../domain/gb-tier';
 import type { GreatBuildingDef, GreatBuildingTier, TierStart } from '../../model/catalog';
 import type { Construction } from '../../model/great-building';
 import { alikeOn, type PlaceFactorState } from '../../stores/place-factors';
@@ -16,7 +16,6 @@ import { type CopyOptions, copyText } from '../gb-own-share/copy-text';
 export const MAX_ROWS = 100;
 /** levels the table covers from the first one unless the player says otherwise */
 export const DEFAULT_SPAN = 10;
-const PLACES = 5;
 
 export interface PowerLevelInputs {
   /** the last own construction opened */
@@ -63,7 +62,7 @@ export interface PowerRow {
   current: boolean;
   /** the owner has not unlocked the level yet */
   locked: boolean;
-  /** places 1 to 5; missing where no helper pays: held, full or not offered */
+  /** one per place column; missing where no helper pays (held, full or not offered) and P6, P7 on a copper level */
   places: (PayCell | undefined)[];
   /** what the owner pays himself; on the open level what is still open */
   ownShare: number;
@@ -94,12 +93,14 @@ export type PowerLevelVm =
       to: number;
       /** the factor of the free field: the one of place 1 */
       factor: number;
-      /** sorted by value; active only when all five places hold it */
+      /** sorted by value; active only when all places of the tier hold it */
       factorButtons: FactorButton[];
       /** the tier of the first row: the buttons and the factor fields belong to it */
       tier: GreatBuildingTier;
       factorState: Omit<PlaceFactorState, 'choices'>;
-      /** per place, index 0 is place 1: the factor in effect in percent, and whether it follows the Arc bonus */
+      /** the place columns: 7 when a gold level is in the table, else 5 */
+      places: number;
+      /** per place column, index 0 is place 1: the factor in effect in percent, and whether it follows the Arc bonus */
       placeFactors: { factor: number; arc: boolean }[];
       /** the building takes part in the double harvest: the column shows */
       harvestColumn: boolean;
@@ -135,7 +136,9 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
   const { choices, ...factorState } = input.factors;
   // each row takes the Arc bonus and the fixed factors of its tier; buttons and fields show those of the first row
   const tierAt = (x: number) => levelTier(gb, x + 1, input.tiers);
-  const factorAt = (x: number) => effectiveFactors(choices, input.arcBonus?.[tierAt(x)], tierAt(x));
+  // a copper level has five places, the factors of places 6 and 7 count on gold levels only
+  const factorAt = (x: number) =>
+    effectiveFactors(choices.slice(0, tierPlaces(tierAt(x))), input.arcBonus?.[tierAt(x)], tierAt(x));
   const tier = tierAt(from);
   const arcBonus = input.arcBonus?.[tier];
   const factors = factorAt(from);
@@ -148,6 +151,7 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
     greatBuilding: gb,
     level: entity.level,
     maxLevel: entity.maxLevel,
+    tiers: input.tiers,
     required: entity.required,
     rankings: c.rankings,
     nextProduction: c.nextProduction,
@@ -162,12 +166,14 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
     },
     factorAt,
   });
+  // seven place columns only when a gold level is shown
+  const places = Math.max(tierPlaces(tier), ...plan.rows.map((r) => tierPlaces(tierAt(r.level))));
   const rows = plan.rows.map<PowerRow>((r) => ({
     level: r.level,
     next: r.level + 1,
     current: r.open,
     locked: r.locked,
-    places: payments(r.calc, r.estimate),
+    places: payments(r.calc, r.estimate, places),
     ownShare: r.ownShare,
     ...(r.open && { paid: r.calc.myDeposit }),
     ...(r.harvest && { harvest: r.harvest }),
@@ -197,7 +203,8 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
     ),
     tier,
     factorState,
-    placeFactors: choices.map((c) => ({
+    places,
+    placeFactors: choices.slice(0, places).map((c) => ({
       factor: effectiveFactor(c, arcBonus, tier),
       arc: c.arc && arcBonus !== undefined,
     })),
@@ -210,8 +217,8 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
 }
 
 /** the payment per place as the Eigenanteil box shows under „Einzahlen“: none where a holder keeps the place */
-function payments(calc: OwnShareCalc, estimate: boolean): (PayCell | undefined)[] {
-  return Array.from({ length: PLACES }, (_, i) => {
+function payments(calc: OwnShareCalc, estimate: boolean, places: number): (PayCell | undefined)[] {
+  return Array.from({ length: places }, (_, i) => {
     const p = calc.places.find((x) => x.rank === i + 1);
     return !p || p.holder || p.full || p.unoffered ? undefined : { fp: p.amount, estimate };
   });

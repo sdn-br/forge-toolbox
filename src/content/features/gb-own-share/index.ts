@@ -208,7 +208,7 @@ export function createGbOwnShareFeature(
       ctx.bus.on('gbOwn.factorsChanged', () => update());
       ctx.bus.on('gbOwn.extChanged', () => update());
       ctx.settings.onChange((key) => {
-        // the factor of the settings sets all five places alike again
+        // the factor of the settings sets all places alike again
         if (key === FACTOR.key || key === FACTOR_ARC.key || key === FACTOR_GOLD.key) state.dropStandard();
         update();
       });

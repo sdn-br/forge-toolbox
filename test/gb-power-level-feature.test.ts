@@ -17,7 +17,8 @@ interface Entry {
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-function setup() {
+/** `defs` are the definitions the game loads; the recorded ones by default */
+function setup(defs: { url: string; json: object }[] = definitions.files) {
   const env = featureContext();
   const { ctx } = env;
   const ingestion = new Ingestion();
@@ -42,8 +43,7 @@ function setup() {
       at: 0,
     });
   send(...(fixture.startup as Entry[]));
-  for (const f of definitions.files)
-    ingestion.accept({ kind: 'meta', url: f.url, response: JSON.stringify(f.json), at: 0 });
+  for (const f of defs) ingestion.accept({ kind: 'meta', url: f.url, response: JSON.stringify(f.json), at: 0 });
   const openOwn = () => send(fixture.own as Entry);
   // the header row, then the factor row, then one row per level
   const rows = () => [...power.root.querySelectorAll('tr:not(.factors)')].slice(1);
@@ -76,6 +76,30 @@ describe('Powerleveln', () => {
     expect(cells(rows()[9])[0]).toBe('144→145');
     // the open level: what the Eigenanteil box still asks, "offen 8.128" there
     expect(cells(rows()[0])[6]).toBe('8.128');
+  });
+
+  it('shows seven place columns when a gold level is in the table, else five (Nutzer, 2026-11-05)', async () => {
+    const heads = (power: { root: HTMLElement }) =>
+      [...power.root.querySelectorAll('th')].map((th) => th.textContent?.trim()).slice(1, 8);
+    // the recorded definition of the Ark has no highest tier: copper only
+    const copper = setup();
+    copper.openOwn();
+    await tick();
+    copper.own.click('Powerleveln');
+    expect(heads(copper.power)).toEqual(['P1', 'P2', 'P3', 'P4', 'P5', 'EA', 'Netto']);
+    expect(copper.fields(copper.power)).toHaveLength(5);
+    // the Ark reaches gold, gold from level 101: the levels from 135 on have seven places
+    const gold = setup(
+      definitions.files.map((f) =>
+        f.json.id === 'X_FutureEra_Landmark1' ? { ...f, json: { ...f.json, maxTier: { value: 'gold' } } } : f,
+      ),
+    );
+    gold.openOwn();
+    await tick();
+    gold.own.click('Powerleveln');
+    expect(heads(gold.power)).toEqual(['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7']);
+    expect(gold.fields(gold.power)).toHaveLength(7);
+    expect(gold.cells(gold.rows()[1])).toHaveLength(gold.cells(gold.rows()[0]).length);
   });
 
   it('follows the factors of the Eigenanteil box at once', async () => {

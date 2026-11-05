@@ -1,12 +1,12 @@
-// The part of the factor bar and the factor column both own-share boxes show: where the five factors come from with
-// the buttons that change it, and the narrow field of one place.
+// The part of the factor bar and the factor column both own-share boxes show: where the factors of the places come
+// from with the buttons that change it, and the narrow field of one place.
 import { html } from 'lit-html';
 import { t } from '../../core/texts';
 import { offButton } from '../../ui/buttons';
 import { factorInput } from '../../ui/factor-bar';
 import { headerIcons } from '../../ui/icons';
 
-/** where the five factors come from, and what each of the three buttons may do now */
+/** where the factors of the places come from, and what each of the three buttons may do now */
 export interface FactorLevel {
   status: 'standard' | 'saved' | 'changed';
   canSave: boolean;
@@ -15,11 +15,11 @@ export interface FactorLevel {
 }
 
 export interface FactorLevelActions {
-  /** keeps the five factors for this building */
+  /** keeps the factors of the places for this building */
   saveFactors(): void;
   /** drops the building's saved factors and the change */
   resetFactors(): void;
-  /** makes the five factors the standard */
+  /** makes the factors of the places the standard */
   adoptFactors(): void;
 }
 

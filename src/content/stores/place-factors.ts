@@ -1,12 +1,16 @@
-// The factor of each of the five places of an own great building, on three levels: the standard for every building,
-// the five saved for one building, and a change in the box not saved, kept per building until the page reloads.
+// The factor of each of the seven places of an own great building, on three levels: the standard for every building,
+// the seven saved for one building, and a change in the box not saved, kept per building until the page reloads.
+// Copper levels have five places and use places 1 to 5 only.
 import { type FactorChoice, fixedFactor, withFixed } from '../domain/gb-factor';
+import { tierPlaces } from '../domain/gb-tier';
 import type { GreatBuildingTier } from '../model/catalog';
 
-/** the places with a reward */
-export const PLACES = 5;
+/** the places with a reward on a gold level, the most a level has */
+export const PLACES = 7;
+/** the places stored before 2026-11-05, when every level had five */
+const OLD_PLACES = 5;
 
-/** which level the five factors come from */
+/** which level the factors come from */
 export type FactorStatus = 'standard' | 'saved' | 'changed';
 
 export interface PlaceFactorState {
@@ -17,7 +21,7 @@ export interface PlaceFactorState {
   canSave: boolean;
   /** saved values or a change are there to drop */
   canReset: boolean;
-  /** the five differ from the standard */
+  /** the factors differ from the standard */
   canAdopt: boolean;
 }
 
@@ -28,9 +32,9 @@ export interface PrefStore {
   removePref(key: string): void;
 }
 
-/** the five chosen as the standard; without it the single setting sets all five */
+/** the factors chosen as the standard; without it the single setting sets all places */
 export const STANDARD_KEY = 'gbOwn.factorDefault';
-/** the five saved for one building, by its definition */
+/** the factors saved for one building, by its definition */
 export const savedKey = (def: string) => `gbOwn.factors.${def}`;
 
 /** both follow the Arc bonus, or both hold the same fixed factors on copper and on gold levels */
@@ -40,32 +44,34 @@ export const sameChoice = (a: FactorChoice, b: FactorChoice) => sameOn(a, b, 'co
 export const sameOn = (a: FactorChoice, b: FactorChoice, tier: GreatBuildingTier) =>
   a.arc === b.arc && (a.arc || fixedFactor(a, tier) === fixedFactor(b, tier));
 
-/** the choice all five share on a level of `tier`, else undefined */
+/** the choice all places of a level of `tier` share, else undefined; a copper level looks at places 1 to 5 only */
 export const alikeOn = (choices: FactorChoice[], tier: GreatBuildingTier): FactorChoice | undefined => {
   const first = choices[0];
-  return first && choices.every((c) => sameOn(c, first, tier)) ? first : undefined;
+  return first && choices.slice(0, tierPlaces(tier)).every((c) => sameOn(c, first, tier)) ? first : undefined;
 };
 const sameChoices = (a: FactorChoice[], b: FactorChoice[]) => a.every((c, i) => sameChoice(c, b[i] as FactorChoice));
 
 /**
- * five choices as stored; anything else, e.g. from an older version, counts as not stored. A choice without `gold`
- * (stored before 2026-11-05) takes `gold`, the gold factor of the settings.
+ * seven choices as stored; anything else, e.g. from an older version, counts as not stored. Five choices (stored before
+ * 2026-11-05) get places 6 and 7 as a copy of place 5, both factors, and a choice without `gold` takes `gold`, the gold
+ * factor of the settings. The next save stores all seven.
  */
 function parse(text: string | undefined, gold: number | undefined): FactorChoice[] | undefined {
   if (!text) return undefined;
   try {
     const list: unknown = JSON.parse(text);
-    if (!Array.isArray(list) || list.length !== PLACES) return undefined;
+    if (!Array.isArray(list) || (list.length !== PLACES && list.length !== OLD_PLACES)) return undefined;
     const ok = list.every(
       (c) => typeof c === 'object' && c !== null && Number.isFinite(c.value) && typeof c.arc === 'boolean',
     );
     const goldOf = (c: { gold?: unknown }) => (Number.isFinite(c.gold) ? (c.gold as number) : gold);
-    return ok
-      ? list.map((c) => {
-          const g = goldOf(c);
-          return { value: c.value, arc: c.arc, ...(g !== undefined && { gold: g }) };
-        })
-      : undefined;
+    if (!ok) return undefined;
+    const choices: FactorChoice[] = list.map((c) => {
+      const g = goldOf(c);
+      return { value: c.value, arc: c.arc, ...(g !== undefined && { gold: g }) };
+    });
+    while (choices.length < PLACES) choices.push({ ...(choices[OLD_PLACES - 1] as FactorChoice) });
+    return choices;
   } catch {
     return undefined;
   }
@@ -75,7 +81,7 @@ export class PlaceFactors {
   /** changes not saved, per building definition; gone with the page */
   private changed = new Map<string, FactorChoice[]>();
 
-  /** `single` is the factor of the settings, for all five places while no standard of five is stored */
+  /** `single` is the factor of the settings, for all places while no standard is stored */
   constructor(
     private prefs: PrefStore,
     private single: () => FactorChoice,
@@ -106,7 +112,7 @@ export class PlaceFactors {
   }
 
   /**
-   * the factor bar: the same choice for all five places; a fixed factor for levels of `tier`, that of the other tier
+   * the factor bar: the same choice for all seven places; a fixed factor for levels of `tier`, that of the other tier
    * stays
    */
   setAll(def: string, choice: { value: number; arc: boolean }, tier: GreatBuildingTier = 'copper'): void {
@@ -123,7 +129,7 @@ export class PlaceFactors {
     this.changed.set(def, choices);
   }
 
-  /** the current five become the saved ones of the building */
+  /** the current factors become the saved ones of the building */
   save(def: string): void {
     this.prefs.savePref(savedKey(def), JSON.stringify(this.state(def).choices));
     this.changed.delete(def);
@@ -135,12 +141,12 @@ export class PlaceFactors {
     this.changed.delete(def);
   }
 
-  /** the current five become the standard for every building without saved values */
+  /** the current factors become the standard for every building without saved values */
   adopt(def: string): void {
     this.prefs.savePref(STANDARD_KEY, JSON.stringify(this.state(def).choices));
   }
 
-  /** the factor in the settings changed: it sets all five places alike again */
+  /** the factor in the settings changed: it sets all places alike again */
   dropStandard(): void {
     this.prefs.removePref(STANDARD_KEY);
   }

@@ -23,8 +23,19 @@ export interface PowerLevelActions extends FactorActions, FactorLevelActions {
 
 type TableVm = Extract<PowerLevelVm, { kind: 'table' }>;
 
-/** column widths in em: Stufe, P1 to P5, then Eigenanteil, Doppelernte (only with its column), Netto, Summe, copy */
-const widths = (harvest: boolean) => [5.6, 4.6, 4.6, 4.6, 4.6, 4.6, 5.4, ...(harvest ? [5.2] : []), 5.2, 6, 2.2];
+/**
+ * column widths in em: Stufe, the places (P1 to P5, or to P7 with a gold level), then Eigenanteil, Doppelernte (only
+ * with its column), Netto, Summe, copy
+ */
+const widths = (places: number, harvest: boolean) => [
+  5.6,
+  ...Array.from({ length: places }, () => 4.6),
+  5.4,
+  ...(harvest ? [5.2] : []),
+  5.2,
+  6,
+  2.2,
+];
 
 /** `copied` names what was copied a moment ago */
 export function powerLevelView(vm: PowerLevelVm, actions: PowerLevelActions, copied?: string) {
@@ -55,7 +66,7 @@ function levelField(label: string, hint: string, value: number, min: number, set
 }
 
 function table(vm: TableVm, actions: PowerLevelActions, copied?: string) {
-  const cols = widths(vm.harvestColumn);
+  const cols = widths(vm.places, vm.harvestColumn);
   return html`<p class="gb-title">${vm.name}</p>
     ${factorBar(vm.factorButtons, vm.factor, actions, vm.tier, factorLevel(vm.factorState, actions))}
     <div class="gb-levels">
@@ -67,8 +78,9 @@ function table(vm: TableVm, actions: PowerLevelActions, copied?: string) {
       <colgroup>${cols.map((w) => html`<col style=${`width:${w}em`} />`)}</colgroup>
       <tr>
         <th data-tip=${t('gbPower.levelHint')}>${t('gbPower.level')}</th>
-        ${[1, 2, 3, 4, 5].map(
-          (rank) => html`<th class="num" data-tip=${t('gbPower.placeHint', { rank })}>P${rank}</th>`,
+        ${Array.from(
+          { length: vm.places },
+          (_, i) => html`<th class="num" data-tip=${t('gbPower.placeHint', { rank: i + 1 })}>P${i + 1}</th>`,
         )}
         <th class="num" data-tip=${t('gbPower.ownShareHint')} aria-label=${t('gbPower.ownShare')}>${t('gbPower.ownShareShort')}</th>
         ${vm.harvestColumn ? html`<th class="num" data-tip=${t('gbPower.harvestHint')} aria-label=${t('gbPower.harvest')}>${headerIcons.doubleHarvest}</th>` : ''}
@@ -82,7 +94,7 @@ function table(vm: TableVm, actions: PowerLevelActions, copied?: string) {
           (p, i) =>
             html`<td class="num">${placeFactorField(p.factor, p.arc, (percent) => actions.setPlaceFactor(i + 1, percent, vm.tier))}</td>`,
         )}
-        <td colspan=${cols.length - 6}></td>
+        <td colspan=${cols.length - 1 - vm.places}></td>
       </tr>
       ${vm.rows.map((r) => row(r, vm.harvestColumn, actions, copied))}
     </table>

@@ -247,16 +247,17 @@ function previewVm(
   maxLevel: number,
   arcBonus: number,
   factor: number,
+  tiers?: TierStart[],
 ): PreviewVm {
   const base = { ...levelPreview(level, maxLevel), places: [] };
   if (!gb) return { ...base, unknown: 'definition' };
-  const p = previewLevel({ greatBuilding: gb, level, arcBonus, factor });
-  if (!p.calc || !p.reward) return { ...base, required: p.required, unknown: 'reward' };
-  const { calc, reward } = p;
+  const p = previewLevel({ greatBuilding: gb, level, arcBonus, factor, tiers });
+  if (!p.calc) return { ...base, required: p.required, unknown: 'reward' };
+  const { calc } = p;
   return {
     ...base,
     required: p.required,
-    estimate: reward.estimate,
+    estimate: p.estimate,
     places: calc.places.map((place) => placeRow(place, calc.rest)),
   };
 }
@@ -319,7 +320,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
   const next = entity.level + 1;
   const levelUp = c.leveled
     ? undefined
-    : levelUpAndFirst(live, calc, gb, { arcBonus: arcAt(next), factor: factorAt(next) });
+    : levelUpAndFirst(live, calc, gb, { arcBonus: arcAt(next), factor: factorAt(next) }, input.tiers);
   if (preview !== undefined) {
     return {
       kind: 'preview',
@@ -327,7 +328,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
       factorButtons: buttons,
       effectiveFactor,
       tier,
-      preview: previewVm(gb, preview, entity.maxLevel, shownArc, effectiveFactor),
+      preview: previewVm(gb, preview, entity.maxLevel, shownArc, effectiveFactor, input.tiers),
       ...(levelUp && preview === levelUp.nextLevel && { levelUp }),
     };
   }

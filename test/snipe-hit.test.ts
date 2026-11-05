@@ -18,7 +18,6 @@ const hit = (ownerShare: OwnerShare, over: Partial<SnipeHit> = {}): SnipeHit => 
   place: { rank: 1, cost: 200, profit: 285 },
   profitLow: 285,
   profitHigh: 285,
-  estimate: false,
   maybeLocked: false,
   seenAt: 0,
   ownerShare,

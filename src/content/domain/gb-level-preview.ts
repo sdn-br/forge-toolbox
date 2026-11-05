@@ -1,10 +1,10 @@
 // A later level of a great building as if it were open and empty: what it costs and what each place pays. Pure, so
 // the own great buildings can use it too (Eigenanteilsrechner).
 import { EPSILON, roundHalfUp } from '../../shared/math';
-import table from '../data/gb-p1.json';
-import type { GreatBuildingDef } from '../model/catalog';
+import type { GreatBuildingDef, TierStart } from '../model/catalog';
 import type { RankingRow } from '../model/great-building';
 import { type ConstructionCalc, calculateConstruction, constructionOf } from './gb-calculator';
+import { levelTier, tierPlaces } from './gb-tier';
 
 /** the definition lists the costs of the first ten levels, later ones grow by this factor per level */
 const COST_GROWTH = 1.025;
@@ -22,73 +22,43 @@ export function levelCost(costs: readonly number[], level: number): number | und
   return last === undefined ? undefined : Math.ceil(last * COST_GROWTH ** (level - LISTED_LEVELS + 1) - EPSILON);
 }
 
-/** The rewards of places 1 to 5 from the first: each place a share of the one above, rounded to 5. */
-export function placeRewards(first: number): number[] {
-  const out = [first];
-  for (let i = 1; i < 5; i++) out.push(roundHalfUp((out[i - 1] as number) / (i + 1) / 5) * 5);
-  return out;
-}
+/**
+ * The share of the cost all places get together, in percent, by the level the construction goes to: up to `upTo` the
+ * share. Seen 2026-11-05 on recorded levels after the prestige update.
+ */
+// debt: only 15 % (101 to 200) and 25 % (70 to 100) are checked against recorded levels, the other shares follow the
+// rule as the FoE Helfer 4.8.7.0 states it. ceiling: the shares of levels up to 69 and from 201 on are unverified.
+// upgrade: when a recorded level of such a range contradicts.
+const POOL_SHARES: readonly { upTo: number; share: number }[] = [
+  { upTo: 9, share: 25 },
+  { upTo: 39, share: 30 },
+  { upTo: 69, share: 40 },
+  { upTo: 100, share: 25 },
+  { upTo: 200, share: 15 },
+  { upTo: 300, share: 10 },
+  { upTo: 400, share: 7 },
+];
+const POOL_SHARE_ABOVE = 5;
 
-export interface FirstPlaceReward {
-  /** Forge points without the Arc bonus */
-  fp: number;
-  /** computed from the curve, not game data: off by up to 5 Forge points */
-  estimate: boolean;
-}
-
-const ERAS: readonly string[] = table.eras;
-const P1: Record<string, readonly (number | null)[]> = table.p1;
-/** AllAge buildings pay like the High Middle Ages (the tables are equal) */
-const ALL_AGE_LIKE = 'HighMiddleAge';
-
-/** era number as the tables count it: index in the game order + 1 */
-function eraNumber(era: string): number | undefined {
-  const i = ERAS.indexOf(era === 'AllAge' ? ALL_AGE_LIKE : era);
-  return i < 0 ? undefined : i + 1;
-}
-
-const ceil5 = (x: number) => Math.ceil(x / 5 - EPSILON) * 5;
-
-let curve: number[] | undefined;
+/** the share of the cost all places of a construction to `target` get together, in percent */
+export const poolShare = (target: number): number =>
+  POOL_SHARES.find((s) => target <= s.upTo)?.share ?? POOL_SHARE_ABOVE;
 
 /**
- * The era independent curve A per level. The game seems to pay P1 = ceil5((era + 9) × A(level)), so every known value
- * bounds A to [(P1 − 5) / (era + 9), P1 / (era + 9)]. The middle of all bounds of a level is its A; where the bounds do
- * not quite meet (they miss by a hair at some levels) the middle still lies between them. The curve ends before the
- * first level without any game data (422 with the current table).
+ * The Forge point rewards of places 1 to `places` of a construction to `target` that costs `cost`. The pool is the cost
+ * times the share of `target`; place n gets the weight 1/n! of it, each place rounded from the pool on its own (halves
+ * up). The game pays 2 for a 1 and 4 for a 3.
  */
-function levelCurve(): number[] {
-  if (curve) return curve;
-  const low: number[] = [];
-  const high: number[] = [];
-  for (const [era, row] of Object.entries(P1)) {
-    if (era === 'AllAge') continue;
-    const factor = (eraNumber(era) ?? 0) + 9;
-    row.forEach((p, level) => {
-      if (p === null) return;
-      low[level] = Math.max(low[level] ?? -Infinity, (p - 5) / factor);
-      high[level] = Math.min(high[level] ?? Infinity, p / factor);
-    });
-  }
-  // past the first level no table knows, single scattered rows would bound A too loosely for 5 Forge points
-  const end = Array.from(high).indexOf(undefined as never);
-  curve = high.slice(0, end < 0 ? high.length : end).map((h, level) => ((low[level] as number) + h) / 2);
-  return curve;
-}
-
-/** P1 from the curve alone, undefined for an unknown era or a level no table reaches */
-export function estimateFirstPlaceReward(era: string, level: number): number | undefined {
-  const n = eraNumber(era);
-  const a = levelCurve()[level];
-  return n === undefined || a === undefined ? undefined : ceil5((n + 9) * a);
-}
-
-/** P1 of a great building of `era` on `level` (0-based, where the construction starts): game data, else estimated. */
-export function firstPlaceReward(era: string, level: number): FirstPlaceReward | undefined {
-  const known = P1[era]?.[level];
-  if (typeof known === 'number') return { fp: known, estimate: false };
-  const fp = estimateFirstPlaceReward(era, level);
-  return fp === undefined ? undefined : { fp, estimate: true };
+export function placeRewards(cost: number, target: number, places: number): number[] {
+  const pool = (cost * poolShare(target)) / 100;
+  // places! / n!, whole numbers: 7 places weigh 5040, 2520, 840, 210, 42, 7, 1
+  const weights: number[] = [];
+  for (let n = places, w = 1; n >= 1; w *= n, n--) weights.unshift(w);
+  const sum = weights.reduce((s, w) => s + w, 0);
+  return weights.map((w) => {
+    const fp = roundHalfUp((pool * w) / sum);
+    return fp === 1 || fp === 3 ? fp + 1 : fp;
+  });
 }
 
 interface LevelPreviewInput {
@@ -98,43 +68,54 @@ interface LevelPreviewInput {
   /** the Arc bonus of the tier of level + 1 */
   arcBonus: number;
   factor: number;
+  /** the tiers of great building levels; the default ones when missing */
+  tiers?: TierStart[];
 }
 
-/** A level as it opens: its cost, the reward of place 1 and the five places with nobody on them. */
+/** A level as it opens: its cost and the places with nobody on them, 5 on a copper level, 7 on a gold one. */
 interface EmptyLevel {
   level: number;
   /** Forge points the level needs; undefined when the definition does not tell */
   required?: number;
-  /** undefined when neither the table nor the curve knows the level */
-  reward?: FirstPlaceReward;
-  /** places 1 to 5 without deposits; undefined without cost or reward */
+  /** the cost comes from the growth past the listed levels, so it and the rewards are estimated */
+  estimate: boolean;
+  /** the places without deposits; undefined without a cost */
   rankings?: RankingRow[];
 }
 
 export interface LevelPreview extends Omit<EmptyLevel, 'rankings'> {
-  /** the places of the empty level; undefined without cost or reward */
+  /** the places of the empty level; undefined without a cost */
   calc?: ConstructionCalc;
 }
 
-/** The level as if it were open and nobody had paid yet: blueprints and medals are not known, they stay 0. */
-export function emptyLevel(greatBuilding: GreatBuildingDef, level: number): EmptyLevel {
-  const required = levelCost(greatBuilding.levelCosts, level);
-  const reward = firstPlaceReward(greatBuilding.era, level);
-  if (required === undefined || !reward) return { level, required, reward };
-  const rankings: RankingRow[] = placeRewards(reward.fp).map((fp, i) => ({
+/**
+ * The level as if it were open and nobody had paid yet: blueprints and medals are not known, they stay 0. `cost` is
+ * the real cost of the level when known (a stored building), else it comes from the definition.
+ */
+export function emptyLevel(
+  greatBuilding: GreatBuildingDef,
+  level: number,
+  tiers?: TierStart[],
+  cost?: number,
+): EmptyLevel {
+  const required = cost ?? levelCost(greatBuilding.levelCosts, level);
+  if (required === undefined) return { level, estimate: false };
+  const estimate = cost === undefined && level >= LISTED_LEVELS;
+  const places = tierPlaces(levelTier(greatBuilding, level + 1, tiers));
+  const rankings: RankingRow[] = placeRewards(required, level + 1, places).map((fp, i) => ({
     rank: i + 1,
     name: '',
     self: false,
     reward: { fp, blueprints: 0, medals: 0 },
   }));
-  return { level, required, reward, rankings };
+  return { level, required, estimate, rankings };
 }
 
 /** The level as if it were open and nobody had paid yet, priced like a foreign construction. */
 export function previewLevel(input: LevelPreviewInput): LevelPreview {
-  const { greatBuilding, level, arcBonus, factor } = input;
-  const { required, reward, rankings } = emptyLevel(greatBuilding, level);
-  if (required === undefined || !reward || !rankings) return { level, required, reward };
+  const { greatBuilding, level, arcBonus, factor, tiers } = input;
+  const { required, estimate, rankings } = emptyLevel(greatBuilding, level, tiers);
+  if (required === undefined || !rankings) return { level, required, estimate };
   const calc = calculateConstruction(constructionOf({ level, required }, rankings, { arcBonus, factor }));
-  return { level, required, reward, calc };
+  return { level, required, estimate, calc };
 }

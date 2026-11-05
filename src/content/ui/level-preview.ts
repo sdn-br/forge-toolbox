@@ -10,9 +10,9 @@ export interface LevelPreview {
   required?: number;
   /** the owner has not unlocked the level yet */
   locked: boolean;
-  /** why there are no places: the definition is not loaded or the reward of the level is unknown */
+  /** why there are no places: the definition is not loaded or does not tell the cost of the level */
   unknown?: 'definition' | 'reward';
-  /** the rewards are computed, off by up to 5 Forge points */
+  /** the cost is estimated, so are the rewards that follow from it */
   estimate: boolean;
 }
 

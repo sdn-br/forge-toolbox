@@ -3,7 +3,7 @@ import type { ArcBonus } from '../../domain/arc-bonus';
 import { effectiveFactor, effectiveFactors } from '../../domain/gb-factor';
 import { emptyLevel } from '../../domain/gb-level-preview';
 import { calculateOwnShare, type OwnPlace, type OwnShareCalc } from '../../domain/gb-own-share';
-import { levelTier } from '../../domain/gb-tier';
+import { levelTier, tierPlaces } from '../../domain/gb-tier';
 import type { GreatBuildingDef, GreatBuildingTier, TierStart } from '../../model/catalog';
 import type { Construction, RankingRow } from '../../model/great-building';
 import { alikeOn, type PlaceFactorState } from '../../stores/place-factors';
@@ -64,7 +64,7 @@ export type OwnRow =
   /** `fp` to pay now (0 for none) and the total so far; `paid` is what the owner has paid already, first row only */
   | { kind: 'own'; fp: number; total: number; paid: number }
   /** `factor` in percent for the place's field; missing without a Forge point reward, where it changes nothing */
-  /** `estimate` marks a payment from a computed reward, in the preview */
+  /** `estimate` marks a payment from an estimated cost, in the preview */
   | { kind: 'place'; place: OwnPlace; ext: number; factor?: number; arc?: boolean; estimate?: boolean }
   /** deposits below the paid places, e.g. placeholders a helper pushed down */
   | { kind: 'pushed'; from: number; to: number; fp: number };
@@ -92,7 +92,7 @@ export type OwnShareVm =
       preview?: LevelPreview;
       /** the factor of the free field: the one of place 1 */
       factor: number;
-      /** sorted by value; `arc` marks the button of the own Arc bonus; active only when all five places hold it */
+      /** sorted by value; `arc` marks the button of the own Arc bonus; active only when all places of the tier hold it */
       factorButtons: FactorButton[];
       /** the tier of the level shown: the buttons and a factor typed belong to it */
       tier: GreatBuildingTier;
@@ -110,7 +110,7 @@ export type OwnShareVm =
       addedLive: number;
       copy: CopyVm;
     }
-  /** a previewed level whose places are unknown: no definition, or a reward no table reaches */
+  /** a previewed level whose places are unknown: no definition, or no cost of the level */
   | { kind: 'previewUnknown'; name: string; levels: LevelChoice; preview: LevelPreview };
 
 export function ownShareViewModel(input: OwnShareInputs): OwnShareVm {
@@ -127,15 +127,10 @@ export function ownShareViewModel(input: OwnShareInputs): OwnShareVm {
     const base = levelPreview(level, entity.maxLevel);
     const gb = input.greatBuilding?.(entity.def);
     if (!gb) return { kind: 'previewUnknown', name, levels, preview: { ...base, unknown: 'definition' } };
-    const empty = emptyLevel(gb, level);
-    if (empty.required === undefined || !empty.reward || !empty.rankings)
-      return {
-        kind: 'previewUnknown',
-        name,
-        levels,
-        preview: { ...base, required: empty.required, unknown: 'reward' },
-      };
-    const preview = { ...base, required: empty.required, estimate: empty.reward.estimate };
+    const empty = emptyLevel(gb, level, input.tiers);
+    if (empty.required === undefined || !empty.rankings)
+      return { kind: 'previewUnknown', name, levels, preview: { ...base, unknown: 'reward' } };
+    const preview = { ...base, required: empty.required, estimate: empty.estimate };
     return {
       ...ownTable(input, name, gb, level, empty.required, empty.rankings, [], preview.estimate),
       levels,
@@ -180,7 +175,8 @@ function ownTable(
   const { choices, ...factorState } = input.factors;
   const tier = levelTier(gb, level + 1, input.tiers);
   const arcBonus = input.arcBonus?.[tier];
-  const factors = effectiveFactors(choices, arcBonus, tier);
+  // a copper level has five places, the factors of places 6 and 7 count on gold levels only
+  const factors = effectiveFactors(choices.slice(0, tierPlaces(tier)), arcBonus, tier);
   const calc = calculateOwnShare({
     required,
     rankings,

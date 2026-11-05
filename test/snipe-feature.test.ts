@@ -110,9 +110,13 @@ type Row = {
 const zeus = levelUp.overview.responseData[0] as Row;
 const lighthouse = levelUp.overview.responseData[1] as Row;
 const oracle = levelUp.overview.responseData[2] as Row;
-/** rows that pay a place: Zeusstatue P1 pays 45, Orakel 75, so a cost of 80 or 100 makes place 1 cheap enough */
-const hitZeus = () => withRequired(zeus, 80);
-const hitOracle = () => withRequired(oracle, 100);
+/**
+ * rows that pay a place, with the own Arc bonus of 95.5 %: Zeusstatue 8 to 9 shares 25 % of 80, place 1 pays 12, 23
+ * with the bonus, safe at 10 with 60 paid in: +13; Orakel 10 to 11 shares 30 % of 100, place 1 pays 17, 33 with the
+ * bonus, safe at 15 with 70 paid in: +18. Both safe: at worst place 2 still pays
+ */
+const hitZeus = () => withRequired(zeus, 80, 60);
+const hitOracle = () => withRequired(oracle, 100, 70);
 /** the row without the owner's name: the list then teaches the player store nothing, the owner stays unknown */
 const unnamed = (r: Row): Row => ({ ...r, player: { player_id: r.player.player_id } });
 const withRequired = (r: Row, required: number, invested?: number): Row => ({
@@ -120,6 +124,22 @@ const withRequired = (r: Row, required: number, invested?: number): Row => ({
   max_progress: required,
   ...(invested !== undefined && { current_progress: invested }),
 });
+
+/**
+ * a recorded opening with `invested` paid in by the owner alone: at the recorded deposits no place of these buildings
+ * pays since the prestige update
+ */
+function openPaid(send: (...entries: Entry[]) => void, entityId: number, invested: number) {
+  const o = fixture.openings.find((x) => x.entity.requestData[0] === entityId);
+  if (!o) throw new Error(`no opening ${entityId}`);
+  const entity = structuredClone(o.entity) as Entry & { responseData: { state: { invested_forge_points: number } } };
+  entity.responseData.state.invested_forge_points = invested;
+  const construction = structuredClone(o.construction) as Entry & {
+    responseData: { rankings: { rank?: number; forge_points?: number }[] };
+  };
+  for (const r of construction.responseData.rankings) if (r.rank === undefined) r.forge_points = invested;
+  send(entity, construction);
+}
 
 afterEach(() => vi.useRealTimers());
 
@@ -379,18 +399,18 @@ describe('LG-Rechner: follows the windows of the game', () => {
 describe('Snipehilfe: stacked box', () => {
   it('shows what a building gained since its previous sighting beside the bar', async () => {
     const { box, list, rows, advance } = setup();
-    list([withRequired(zeus, 80, 10)]);
+    list([withRequired(zeus, 80, 55)]);
     await tick();
     expect(box.root.querySelector('.growth-tag')).toBeNull();
     advance(10_000);
-    list([withRequired(zeus, 80, 15)]);
+    list([withRequired(zeus, 80, 60)]);
     await tick();
     const growth = rows()[0]?.querySelector('.fp-line .growth-tag');
     expect(growth?.textContent).toBe('+5');
     expect(growth?.getAttribute('data-tip')).toMatch(/^Zwischen \d\d:\d\d und heute \d\d:\d\d 5 FP eingezahlt$/);
     // the list again without a change keeps the growth
     advance(10_000);
-    list([withRequired(zeus, 80, 15)]);
+    list([withRequired(zeus, 80, 60)]);
     await tick();
     expect(rows()[0]?.querySelector('.fp-line .growth-tag')?.textContent).toBe('+5');
   });
@@ -432,7 +452,7 @@ describe('Snipehilfe: stacked box', () => {
     await tick();
     expect(expanded(box)).toBe(false);
     expect(toggle(box)?.textContent).toMatch(
-      /^Mögliche Einzahlungen: 2 mit Gewinn, bester Orakel von Delphi \+97 \(Eigentümer 1001, vor 2 Min\.\)$/,
+      /^Mögliche Einzahlungen: 2 mit Gewinn, bester Orakel von Delphi \+18 \(Eigentümer 1001, vor 2 Min\.\)$/,
     );
     expect(box.root.querySelector('table.snipe-table')).toBeNull();
   });
@@ -558,7 +578,7 @@ describe('Snipehilfe: stacked box', () => {
 
   it('shows the progress like the investments: a thin bar under the numbers and the rest in the tooltip', async () => {
     const { list, rows } = setup();
-    list([withRequired(zeus, 80, 20)]);
+    list([withRequired(zeus, 80, 60)]);
     await tick();
     const progress = rows()[0]?.querySelectorAll('td:not(.mark-cell)')[3] as HTMLElement;
     expect(progress.querySelector('.fp-bar')).not.toBeNull();
@@ -577,11 +597,12 @@ describe('Snipehilfe: stacked box', () => {
     expect(box.root.querySelectorAll('td.name-cell[data-tip]')).toHaveLength(1);
   });
 
-  it('marks a building without a deposit as maybe locked and shows the tier with a tooltip', async () => {
+  // an empty level pays no place at the own Arc bonus since the prestige update, so a building without a deposit
+  // („eventuell gesperrt“) is no hit here; the note is tested with the hit notes
+  it('shows the tier with a tooltip', async () => {
     const { box, list, rows } = setup();
     list([hitZeus()]);
     await tick();
-    expect(rows()[0]?.getAttribute('data-tip')).toContain('eventuell gesperrt');
     const tier = rows()[0]?.querySelector('td.snipe-tier');
     expect(tier?.className).toContain('safe');
     expect(tier?.getAttribute('data-tip')).toContain('sicher');
@@ -589,7 +610,7 @@ describe('Snipehilfe: stacked box', () => {
   });
 
   it('names what the owner paid in the row tooltip once the building was opened, not before', async () => {
-    const { list, open, advance, rows } = setup();
+    const { list, send, advance, rows } = setup();
     const dom = {
       entity_id: 1909,
       city_entity_id: 'X_EarlyMiddleAge_Landmark2',
@@ -599,20 +620,20 @@ describe('Snipehilfe: stacked box', () => {
       player: { player_id: 1001, name: 'Eigentümer 1001', is_friend: true },
     };
     advance(10_000);
-    list([{ ...dom, current_progress: 2_900 }]);
+    list([{ ...dom, current_progress: 2_800 }]);
     await tick();
     const progressTip = () => rows()[0]?.querySelectorAll('td:not(.mark-cell)')[3]?.getAttribute('data-tip') ?? '';
     expect(progressTip()).not.toContain('Eigenanteil:');
     advance(10_000);
-    open(1909);
+    openPaid(send, 1909, 2_900);
     await tick();
-    expect(progressTip()).toMatch(/^Eigenanteil: \d[\d.]* FP$/m);
+    expect(progressTip()).toMatch(/^Eigenanteil: 2\.900 FP$/m);
     expect(rows()[0]?.getAttribute('data-tip')).not.toContain('Eigenanteil:');
   });
 
   it('shows the best profit with its range in the tooltip and sorts by a clicked column head', async () => {
     const { box, list, rows, cells } = setup();
-    list([withRequired(zeus, 80, 20), withRequired(oracle, 100, 30)]);
+    list([withRequired(zeus, 80, 60), withRequired(oracle, 100, 70)]);
     await tick();
     const profits = rows().map((r) => cells(r)[6] ?? '');
     expect(profits.every((p) => /^[+−]?\d[\d.]*$/.test(p))).toBe(true);
@@ -632,7 +653,7 @@ describe('Snipehilfe: stacked box', () => {
 
   it('adds a sort level on a shift click', async () => {
     const { box, list } = setup();
-    list([withRequired(zeus, 80, 20), withRequired(oracle, 100, 30)]);
+    list([withRequired(zeus, 80, 60), withRequired(oracle, 100, 70)]);
     await tick();
     (box.root.querySelectorAll('th')[2] as HTMLElement).dispatchEvent(
       new MouseEvent('click', { bubbles: true, shiftKey: true }),
@@ -644,7 +665,7 @@ describe('Snipehilfe: stacked box', () => {
 
   it('numbers the rows in the order of the game and sorts by that number', async () => {
     const { box, list, rows, cells } = setup();
-    list([withRequired(zeus, 80, 20), withRequired(oracle, 100, 30)]);
+    list([withRequired(zeus, 80, 60), withRequired(oracle, 100, 70)]);
     await tick();
     const order = () => rows().map((r) => cells(r)[0]);
     expect([...order()].sort()).toEqual(['1', '2']);
@@ -692,7 +713,7 @@ describe('Snipehilfe: stacked box', () => {
     list([hitZeus()]);
     await tick();
     expect(tones()).toBe(1);
-    list([withRequired(oracle, 90)]);
+    list([withRequired(oracle, 90, 70)]);
     await tick();
     expect(tones()).toBe(2);
   });
@@ -721,8 +742,9 @@ describe('Snipehilfe: stacked box', () => {
   });
 
   it('updates the row of an opened building of the list owner to exact', async () => {
-    const { box, list, open, advance, rows, cells } = setup();
-    // the Aachener Dom of owner 1001 (entity 1909, level 75, 3.062 needed) is opened with 251 paid in, an empty ranking
+    const { box, list, send, advance, rows, cells } = setup();
+    // the Aachener Dom of owner 1001 (entity 1909, level 75, 3.062 needed) is opened with 2.900 paid in by the owner,
+    // nobody on a place
     const dom = {
       entity_id: 1909,
       city_entity_id: 'X_EarlyMiddleAge_Landmark2',
@@ -737,11 +759,11 @@ describe('Snipehilfe: stacked box', () => {
     expect(cells(rows()[0]).slice(1, 4)).toEqual(['Aachener Dom', '75', '2.900 / 3.062']);
     expect(rows()[0]?.querySelector('td.snipe-tier')?.className).not.toContain('exact');
     advance(10_000);
-    open(1909);
+    openPaid(send, 1909, 2_900);
     await tick();
     expect(expanded(box)).toBe(true);
-    // the opening is newer than the list: its state and its ranking make the row exact
-    expect(cells(rows()[0]).slice(1, 5)).toEqual(['Aachener Dom', '75', '251 / 3.062', 'P1']);
+    // the opening is newer than the list: its ranking makes the row exact
+    expect(cells(rows()[0]).slice(1, 5)).toEqual(['Aachener Dom', '75', '2.900 / 3.062', 'P1']);
     expect(rows()[0]?.querySelector('td.snipe-tier')?.className).toContain('exact');
   });
 
@@ -872,7 +894,7 @@ describe('Snipehilfe: marking with a star', () => {
 
   it('sorts by the tier and by the mark on a click on their heads, the best and the marked first', async () => {
     const { box, greatBuildings, list, rows, cells } = setup();
-    list([withRequired(zeus, 80, 20), withRequired(oracle, 100, 30)]);
+    list([withRequired(zeus, 80, 60), withRequired(oracle, 100, 70)]);
     await tick();
     const head = (label: string) => box.root.querySelector(`.snipe-table th[aria-label="${label}"]`) as HTMLElement;
     const names = () => rows().map((r) => cells(r)[1]);
@@ -1124,7 +1146,7 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     box.box.close();
     await greatBuildings.ignore(owner, zeus.entity_id, true);
     // other hits than before: a visible one would open the box and beep
-    list([withRequired(zeus, 90)]);
+    list([withRequired(zeus, 90, 70)]);
     await tick();
     expect(box.box.isOpen).toBe(false);
     expect(tones()).toBe(1);
@@ -1137,7 +1159,7 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     await tick();
     box.box.close();
     players.setIgnored(owner, true);
-    list([withRequired(zeus, 90)]);
+    list([withRequired(zeus, 90, 70)]);
     await tick();
     expect(box.box.isOpen).toBe(false);
     expect(tones()).toBe(1);
@@ -1149,7 +1171,7 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     await tick();
     box.box.close();
     await greatBuildings.ignore(owner, zeus.entity_id, true);
-    list([withRequired(zeus, 90), hitOracle()]);
+    list([withRequired(zeus, 90, 70), hitOracle()]);
     await tick();
     expect(box.box.isOpen).toBe(true);
     expect(tones()).toBe(2);

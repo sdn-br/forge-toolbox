@@ -33,8 +33,6 @@ export interface SnipeHit {
   /** profit of the worst case (0 when no place pays there) and of the best case; equal when exact */
   profitLow: number;
   profitHigh: number;
-  /** the rewards come from the curve, not from game data */
-  estimate: boolean;
   /** nothing paid in yet: the building may be locked (not connected or at the unlocked maximum level) */
   maybeLocked: boolean;
   /** when the list or the opened building told the state */
@@ -129,7 +127,7 @@ export type SnipeResult = SnipeHit | 'none' | 'ownContribution' | 'unknownReward
 
 /**
  * One building of a list. `none` when no place pays, `ownContribution` for a building the player invested in, and
- * `unknownReward` when the rewards of the level are not known. The Arc bonus is the one of the tier the level goes to.
+ * `unknownReward` without a definition of the building. The Arc bonus is the one of the tier the level goes to.
  */
 export function snipeBuilding(
   b: KnownGreatBuilding,
@@ -138,7 +136,8 @@ export function snipeBuilding(
   tiers?: TierStart[],
 ): SnipeResult {
   if (b.ownContribution) return 'ownContribution';
-  const level = def && emptyLevel(def, b.level);
+  // the stored cost is the real one of the level, so the rewards are exact
+  const level = def && emptyLevel(def, b.level, tiers, b.required);
   const places = level?.rankings;
   if (!level || !places) return 'unknownReward';
   const arcBonus = arcBonusAt(arc, def, b.level, tiers);
@@ -188,7 +187,6 @@ export function snipeBuilding(
     ...(atWorst && !exact && { worst: atWorst }),
     profitLow: Math.min(low, place.profit),
     profitHigh: Math.max(low, place.profit),
-    estimate: level.reward?.estimate ?? false,
     maybeLocked: b.invested === 0,
     seenAt: b.seenAt,
     ownerShare: ownerShare(b),

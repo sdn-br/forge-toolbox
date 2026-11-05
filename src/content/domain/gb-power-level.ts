@@ -1,6 +1,6 @@
 // The power level plan of an own great building: the own share of each level over a span, the double harvest taken
 // off, and what it adds up to. The open level counts with its real ranking, every other one as it opens, empty.
-import type { GreatBuildingDef } from '../model/catalog';
+import type { GreatBuildingDef, TierStart } from '../model/catalog';
 import type { NextProduction, RankingRow } from '../model/great-building';
 import { type DoubleHarvest, doubleHarvest } from './gb-double-harvest';
 import { emptyLevel } from './gb-level-preview';
@@ -12,6 +12,8 @@ export interface PowerLevelInput {
   /** the building's level and the highest one the owner has unlocked */
   level: number;
   maxLevel: number;
+  /** the tiers of great building levels, for the places of each level; the default ones when missing */
+  tiers?: TierStart[];
   /** Forge points the open level needs and its ranking */
   required: number;
   rankings: RankingRow[];
@@ -33,7 +35,7 @@ export interface PowerLevelRow {
   /** the owner has not unlocked the level yet */
   locked: boolean;
   calc: OwnShareCalc;
-  /** the rewards of the level come from the curve, not from game data */
+  /** the cost of the level, and so its rewards, is estimated */
   estimate: boolean;
   /** missing without a Forge point production or without a value for the level */
   harvest?: DoubleHarvest;
@@ -47,7 +49,7 @@ export interface PowerLevelRow {
 
 export interface PowerLevelPlan {
   rows: PowerLevelRow[];
-  /** the plan ends before `to`: nothing is known about the reward of this level */
+  /** the plan ends before `to`: nothing is known about the cost of this level */
   endsAt?: number;
   totals: { ownShare: number; harvest: number; net: number };
 }
@@ -60,7 +62,7 @@ export function powerLevelPlan(input: PowerLevelInput): PowerLevelPlan {
   let sum = 0;
   for (let x = input.from; x < input.to; x++) {
     const open = x === level && !atMax;
-    const empty = open ? undefined : emptyLevel(greatBuilding, x);
+    const empty = open ? undefined : emptyLevel(greatBuilding, x, input.tiers);
     const required = open ? input.required : empty?.required;
     const rankings = open ? input.rankings : empty?.rankings;
     if (required === undefined || !rankings) {
@@ -78,7 +80,7 @@ export function powerLevelPlan(input: PowerLevelInput): PowerLevelPlan {
       open,
       locked: x + 1 > maxLevel,
       calc,
-      estimate: empty?.reward?.estimate === true,
+      estimate: empty?.estimate === true,
       ...(harvest && { harvest }),
       ownShare,
       net,

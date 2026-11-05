@@ -1,12 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  emptyLevel,
-  estimateFirstPlaceReward,
-  firstPlaceReward,
-  levelCost,
-  placeRewards,
-  previewLevel,
-} from '../src/content/domain/gb-level-preview';
+import { emptyLevel, levelCost, placeRewards, poolShare, previewLevel } from '../src/content/domain/gb-level-preview';
 import { calculateOwnShare } from '../src/content/domain/gb-own-share';
 import { toBuildingDef } from '../src/content/game/building-defs';
 import { toGreatBuildingEntity, toRankingRows } from '../src/content/game/convert';
@@ -80,60 +73,37 @@ describe('levelCost', () => {
   });
 });
 
+describe('poolShare', () => {
+  it('gives the share of the cost all places get by the level the construction goes to', () => {
+    expect([1, 9, 10, 39, 40, 69, 70, 100, 101, 200, 201, 300, 301, 400, 401, 1000].map(poolShare)).toEqual([
+      25, 25, 30, 30, 40, 40, 25, 25, 15, 15, 10, 10, 7, 7, 5, 5,
+    ]);
+  });
+});
+
 describe('placeRewards', () => {
-  it('derives places 2 to 5 from the first, each rounded to 5 with halves up', () => {
-    expect(placeRewards(2605)).toEqual([2605, 1305, 435, 110, 20]);
-    expect(placeRewards(505)).toEqual([505, 255, 85, 20, 5]);
+  // recorded 2026-11-05, after the prestige update
+  it('pays seven places on a gold level: Arche 137 to 138, cost 62495, 15 %', () => {
+    expect(placeRewards(62495, 138, 7)).toEqual([5456, 2728, 909, 227, 45, 8, 2]);
+  });
+
+  it('pays five places on a copper level: Zeus 88 to 89, cost 3667, 25 %', () => {
+    expect(placeRewards(3667, 89, 5)).toEqual([534, 267, 89, 22, 4]);
+  });
+
+  it('pays the same on the cost range of Blaue Galaxie 190 to 191, 139070 to 139075, 15 %', () => {
+    const recorded = [12141, 6070, 2023, 506, 101, 17, 2];
+    for (let cost = 139070; cost <= 139075; cost++) expect(placeRewards(cost, 191, 7), String(cost)).toEqual(recorded);
+  });
+
+  it('rounds each place from the pool, halves up, and pays 2 for a 1 and 4 for a 3', () => {
+    // pool 127.5: 74.27, 37.14, 12.38, 3.09, 0.62
+    expect(placeRewards(510, 6, 5)).toEqual([74, 37, 12, 4, 2]);
   });
 });
 
-describe('firstPlaceReward', () => {
-  it('reads the table of the era of the building', () => {
-    expect(firstPlaceReward('FutureEra', 135)).toEqual({ fp: 2605, estimate: false });
-    expect(firstPlaceReward('AllAge', 10)).toEqual(firstPlaceReward('HighMiddleAge', 10));
-  });
-
-  it('estimates an era without a table from the curve of the other eras', () => {
-    // the table has no Stone Age, one era before the Bronze Age
-    const stone = firstPlaceReward('StoneAge', 100);
-    expect(stone?.estimate).toBe(true);
-    expect(stone?.fp).toBeLessThan(firstPlaceReward('BronzeAge', 100)?.fp ?? 0);
-    expect((stone?.fp ?? 0) % 5).toBe(0);
-  });
-
-  it('estimates a level past the table of its era from the other eras', () => {
-    // the Stellar Age row ends at level 250, older eras reach further
-    expect(firstPlaceReward('StellarAgeDiscovery', 250)?.estimate).toBe(false);
-    const later = firstPlaceReward('StellarAgeDiscovery', 300);
-    expect(later?.estimate).toBe(true);
-    expect(later?.fp).toBeGreaterThan(firstPlaceReward('StellarAgeDiscovery', 250)?.fp ?? 0);
-  });
-
-  it('estimates a level the table of the era lacks within 5 Forge points of the known values', () => {
-    // every era with its whole table, as if each value were missing
-    let compared = 0;
-    for (const era of ['BronzeAge', 'ColonialAge', 'FutureEra', 'SpaceAgeSpaceHub'])
-      for (let level = 0; level < 400; level++) {
-        const known = firstPlaceReward(era, level);
-        if (known?.estimate !== false) continue;
-        const estimated = estimateFirstPlaceReward(era, level);
-        expect(Math.abs((estimated ?? 0) - known.fp), `${era} ${level}`).toBeLessThanOrEqual(5);
-        compared++;
-      }
-    expect(compared).toBeGreaterThan(1000);
-  });
-
-  it('knows nothing beyond the levels of all tables or for an unknown era', () => {
-    expect(firstPlaceReward('FutureEra', 2000)).toBeUndefined();
-    // levels 422 on: only scattered rows of single eras, too loose for 5 Forge points
-    expect(firstPlaceReward('FutureEra', 421)?.estimate).toBe(true);
-    expect(firstPlaceReward('FutureEra', 422)).toBeUndefined();
-    expect(firstPlaceReward('ProgressiveEra', 482)?.estimate).toBe(false);
-    expect(firstPlaceReward('SomeNewEra', 10)).toBeUndefined();
-  });
-});
-
-describe('the formulas against the recorded constructions', () => {
+// the recorded rewards are of before the prestige update, the costs still hold
+describe('the cost formula against the recorded constructions', () => {
   const recorded = recordedConstructions();
   const defs = new Map(definitions.files.map((f) => [f.json.id, def(f.json.id)]));
 
@@ -148,15 +118,6 @@ describe('the formulas against the recorded constructions', () => {
       expect(levelCost(gb?.levelCosts ?? [], entity.level), `${entity.def} ${entity.level}`).toBe(entity.required);
     }
   });
-
-  it('the rewards of the current level are what the game pays per place', () => {
-    for (const { entity, rewards } of recorded) {
-      const era = defs.get(entity.def)?.era ?? '';
-      const p1 = firstPlaceReward(era, entity.level);
-      expect(p1?.estimate).toBe(false);
-      expect(placeRewards(p1?.fp ?? 0), `${entity.def} ${entity.level}`).toEqual(rewards);
-    }
-  });
 });
 
 describe('previewLevel', () => {
@@ -165,21 +126,33 @@ describe('previewLevel', () => {
   it('shows a later level as open and empty: cost of that level, rewards with the Arc bonus', () => {
     const p = previewLevel({ greatBuilding: arche, level: 135, arcBonus: 95.5, factor: 90 });
     expect(p.required).toBe(21777);
-    expect(p.reward).toEqual({ fp: 2605, estimate: false });
+    // the cost past level 10 comes from the growth, and the rewards from the cost
+    expect(p.estimate).toBe(true);
     const places = p.calc?.places ?? [];
-    expect(places.map((x) => x.net)).toEqual([2605, 1305, 435, 110, 20]);
-    expect(places.map((x) => x.gross)).toEqual([5093, 2551, 850, 215, 39]);
+    expect(places.map((x) => x.net)).toEqual([1903, 951, 317, 79, 16]);
+    expect(places.map((x) => x.gross)).toEqual([3720, 1859, 620, 154, 31]);
     // empty: every place is safe at half of the cost, only the first can be had
     expect(places.map((x) => x.safeCost)).toEqual([10889, 10889, 10889, 10889, 10889]);
     expect(places.map((x) => x.available)).toEqual([true, false, false, false, false]);
-    expect(places[0]?.demandCost).toBe(4950);
-    expect(places[0]?.rate).toBe(418);
+    expect(places[0]?.demandCost).toBe(3616);
   });
 
-  it('has a cost but no places when the reward of the level is unknown', () => {
-    const p = previewLevel({ greatBuilding: arche, level: 2000, arcBonus: 0, factor: 90 });
-    expect(p.required).toBeGreaterThan(0);
-    expect(p.reward).toBeUndefined();
+  it('has seven places on a gold level', () => {
+    const gold: GreatBuildingDef = { ...arche, maxTier: 'gold' };
+    const p = previewLevel({ greatBuilding: gold, level: 135, arcBonus: 95.5, factor: 90 });
+    expect(p.calc?.places.map((x) => x.net)).toEqual([1901, 951, 317, 79, 16, 4, 0]);
+    // level 99 to 100 is copper
+    expect(previewLevel({ greatBuilding: gold, level: 99, arcBonus: 0, factor: 90 }).calc?.places).toHaveLength(5);
+  });
+
+  it('is no estimate on the levels the definition lists', () => {
+    expect(previewLevel({ greatBuilding: arche, level: 9, arcBonus: 0, factor: 90 }).estimate).toBe(false);
+    expect(previewLevel({ greatBuilding: arche, level: 10, arcBonus: 0, factor: 90 }).estimate).toBe(true);
+  });
+
+  it('has no places without the costs of the definition', () => {
+    const p = previewLevel({ greatBuilding: { ...arche, levelCosts: [] }, level: 20, arcBonus: 0, factor: 90 });
+    expect(p.required).toBeUndefined();
     expect(p.calc).toBeUndefined();
   });
 });
@@ -187,27 +160,33 @@ describe('previewLevel', () => {
 describe('emptyLevel', () => {
   const arche = def('X_FutureEra_Landmark1');
 
-  it('gives the five places of a level with nobody on them, for the own share as well', () => {
+  it('gives the places of a level with nobody on them, for the own share as well', () => {
     const e = emptyLevel(arche, 135);
     expect(e.required).toBe(21777);
     expect(e.rankings?.map((r) => [r.rank, r.reward?.fp, r.fp])).toEqual([
-      [1, 2605, undefined],
-      [2, 1305, undefined],
-      [3, 435, undefined],
-      [4, 110, undefined],
-      [5, 20, undefined],
+      [1, 1903, undefined],
+      [2, 951, undefined],
+      [3, 317, undefined],
+      [4, 79, undefined],
+      [5, 16, undefined],
     ]);
     // the own share of the empty level: the cost less what helpers pay at 1,9
     const calc = calculateOwnShare({ required: 21777, rankings: e.rankings ?? [], factor: 90 });
-    expect(calc.places.map((p) => p.amount)).toEqual([4950, 2480, 827, 209, 38]);
-    expect(calc.places[0]?.advance).toBe(11877);
-    expect(calc.ownShare).toBe(21777 - 8504);
+    expect(calc.places.map((p) => p.amount)).toEqual([3616, 1807, 602, 150, 30]);
+    expect(calc.places[0]?.advance).toBe(14545);
+    expect(calc.ownShare).toBe(21777 - 6205);
     expect(calc.myDeposit).toBe(0);
   });
 
-  it('has no places when the reward of the level is unknown', () => {
-    const e = emptyLevel(arche, 2000);
-    expect(e.required).toBeGreaterThan(0);
+  it('takes a known cost as the real one: no estimate', () => {
+    const e = emptyLevel({ ...arche, maxTier: 'gold' }, 137, undefined, 62495);
+    expect(e).toMatchObject({ required: 62495, estimate: false });
+    expect(e.rankings?.map((r) => r.reward?.fp)).toEqual([5456, 2728, 909, 227, 45, 8, 2]);
+  });
+
+  it('has no places without a cost', () => {
+    const e = emptyLevel({ ...arche, levelCosts: [] }, 20);
+    expect(e.required).toBeUndefined();
     expect(e.rankings).toBeUndefined();
   });
 });

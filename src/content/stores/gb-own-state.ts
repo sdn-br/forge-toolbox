@@ -91,7 +91,7 @@ export class GbOwnState {
   /** promised payments per building and level; they are typed in for one level only, gone with the page */
   private exts = new Map<string, number[]>();
 
-  /** `single` is the factor of the settings, for all five places while no standard of five is stored */
+  /** `single` is the factor of the settings, for all places while no standard is stored */
   constructor(
     private bus: ToolboxBus,
     prefs: PrefStore,
@@ -100,12 +100,12 @@ export class GbOwnState {
     this.factors = new PlaceFactors(prefs, single);
   }
 
-  /** the five factors of a building and where they come from */
+  /** the factors of the places of a building and where they come from */
   state(def: string): PlaceFactorState {
     return this.factors.state(def);
   }
 
-  /** the factor bar: the same choice for all five places, a fixed factor for levels of `tier` */
+  /** the factor bar: the same choice for all places, a fixed factor for levels of `tier` */
   setAll(def: string, choice: { value: number; arc: boolean }, tier?: GreatBuildingTier): void {
     this.factors.setAll(def, choice, tier);
     this.changed(def);
@@ -131,7 +131,7 @@ export class GbOwnState {
     this.changed(def);
   }
 
-  /** the factor in the settings changed: it sets all five places alike again, for every building */
+  /** the factor in the settings changed: it sets all places alike again, for every building */
   dropStandard(): void {
     this.factors.dropStandard();
     this.changed(undefined);
