@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { memoryKv } from '../src/content/core/kv';
 import type { FactorChoice } from '../src/content/domain/gb-factor';
-import { PlaceFactors, STANDARD_KEY, savedKey } from '../src/content/stores/place-factors';
+import { alikeOn, PlaceFactors, STANDARD_KEY, sameChoice, savedKey } from '../src/content/stores/place-factors';
 import { UiState } from '../src/content/ui/ui-state';
 
 const fixed = (value: number): FactorChoice => ({ value, arc: false });
@@ -101,5 +101,36 @@ describe('the factors of the five places', () => {
   it('take Arc from the setting for all five', () => {
     const { values } = setup(ARC);
     expect(values('Arc')).toEqual(['arc', 'arc', 'arc', 'arc', 'arc']);
+  });
+});
+
+describe('the factors by tier (Nutzer, 2026-11-05)', () => {
+  const gold = (c: FactorChoice[]) => c.map((x) => (x.arc ? 'arc' : x.gold));
+
+  it('keep a fixed factor per tier: one set on gold leaves copper, the Arc choice counts for both', () => {
+    const { factors, values } = setup({ value: 90, arc: false, gold: 15 });
+    factors.setAll('Arc', fixed(20), 'gold');
+    expect(values('Arc')).toEqual([90, 90, 90, 90, 90]);
+    expect(gold(factors.state('Arc').choices)).toEqual([20, 20, 20, 20, 20]);
+    factors.setPlace('Arc', 2, 12, 'gold');
+    expect(gold(factors.state('Arc').choices)).toEqual([20, 12, 20, 20, 20]);
+    factors.setAll('Arc', ARC);
+    expect(values('Arc')).toEqual(['arc', 'arc', 'arc', 'arc', 'arc']);
+    // a fixed copper factor afterwards brings back the gold ones kept
+    factors.setAll('Arc', fixed(100));
+    expect(gold(factors.state('Arc').choices)).toEqual([20, 12, 20, 20, 20]);
+  });
+
+  it('give choices stored before the tiers the gold factor of the settings', () => {
+    const { ui, factors } = setup({ value: 90, arc: false, gold: 15 });
+    ui.savePref(savedKey('Arc'), JSON.stringify(Array(5).fill(fixed(100))));
+    expect(factors.state('Arc').choices[0]).toEqual({ value: 100, arc: false, gold: 15 });
+  });
+
+  it('are alike on a tier when the fixed factor of that tier is', () => {
+    const a = { value: 90, arc: false, gold: 15 };
+    expect(alikeOn([a, { ...a, value: 80 }], 'gold')).toEqual(a);
+    expect(alikeOn([a, { ...a, value: 80 }], 'copper')).toBeUndefined();
+    expect(sameChoice(a, { ...a, gold: 20 })).toBe(false);
   });
 });

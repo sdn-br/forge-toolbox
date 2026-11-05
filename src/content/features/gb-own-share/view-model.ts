@@ -1,10 +1,12 @@
 import type { BuildingDefId } from '../../../shared/ids';
+import type { ArcBonus } from '../../domain/arc-bonus';
 import { effectiveFactor, effectiveFactors } from '../../domain/gb-factor';
 import { emptyLevel } from '../../domain/gb-level-preview';
 import { calculateOwnShare, type OwnPlace, type OwnShareCalc } from '../../domain/gb-own-share';
-import type { GreatBuildingDef } from '../../model/catalog';
+import { levelTier } from '../../domain/gb-tier';
+import type { GreatBuildingDef, GreatBuildingTier, TierStart } from '../../model/catalog';
 import type { Construction, RankingRow } from '../../model/great-building';
-import { type PlaceFactorState, sameChoice } from '../../stores/place-factors';
+import { alikeOn, type PlaceFactorState } from '../../stores/place-factors';
 import { type FactorButton, factorButtons } from '../../ui/factor-bar';
 import { type LevelChoice, levelChoice } from '../../ui/level-bar';
 import { type LevelPreview, levelPreview } from '../../ui/level-preview';
@@ -28,8 +30,15 @@ export interface OwnShareInputs {
   /** the factor of each place, in percent or the Arc bonus, and where they come from */
   factors: PlaceFactorState;
   factorButtons: number[];
-  /** the own Arc bonus as one more button, sorted in by its value; missing when the setting leaves it out */
-  arcBonus?: number;
+  /** the presets on gold levels; none when missing */
+  factorButtonsGold?: number[];
+  /**
+   * the own Arc bonus as one more button, sorted in by its value: the one of the tier of the level shown; missing when
+   * the setting leaves it out
+   */
+  arcBonus?: ArcBonus;
+  /** the tiers of great building levels; the default ones when missing */
+  tiers?: TierStart[];
   secureExisting: boolean;
   trust: boolean;
   /** places without a Forge point reward count as one paid Forge point */
@@ -85,6 +94,8 @@ export type OwnShareVm =
       factor: number;
       /** sorted by value; `arc` marks the button of the own Arc bonus; active only when all five places hold it */
       factorButtons: FactorButton[];
+      /** the tier of the level shown: the buttons and a factor typed belong to it */
+      tier: GreatBuildingTier;
       factorState: Omit<PlaceFactorState, 'choices'>;
       secureExisting: boolean;
       trust: boolean;
@@ -126,7 +137,7 @@ export function ownShareViewModel(input: OwnShareInputs): OwnShareVm {
       };
     const preview = { ...base, required: empty.required, estimate: empty.reward.estimate };
     return {
-      ...ownTable(input, name, level, empty.required, empty.rankings, [], preview.estimate),
+      ...ownTable(input, name, gb, level, empty.required, empty.rankings, [], preview.estimate),
       levels,
       preview,
       addedLive: 0,
@@ -137,16 +148,29 @@ export function ownShareViewModel(input: OwnShareInputs): OwnShareVm {
   if (c.leveled || entity.level !== (input.openedLevel ?? entity.level))
     return { kind: 'leveled', name, level: c.leveled?.level ?? entity.level };
   return {
-    ...ownTable(input, name, entity.level, entity.required, c.rankings, input.exts, false),
+    ...ownTable(
+      input,
+      name,
+      input.greatBuilding?.(entity.def),
+      entity.level,
+      entity.required,
+      c.rankings,
+      input.exts,
+      false,
+    ),
     levels,
     addedLive: entity.invested - c.rankings.reduce((sum, r) => sum + (r.fp ?? 0), 0),
   };
 }
 
-/** the places of `level` with the factors of the building, the totals and the copy text */
+/**
+ * the places of `level` with the factors of the building, the totals and the copy text; the Arc bonus, the fixed
+ * factors and the buttons of its tier
+ */
 function ownTable(
   input: OwnShareInputs,
   name: string,
+  gb: GreatBuildingDef | undefined,
   level: number,
   required: number,
   rankings: RankingRow[],
@@ -154,7 +178,9 @@ function ownTable(
   estimate: boolean,
 ): Omit<Extract<OwnShareVm, { kind: 'current' }>, 'levels' | 'preview' | 'addedLive'> {
   const { choices, ...factorState } = input.factors;
-  const factors = effectiveFactors(choices, input.arcBonus);
+  const tier = levelTier(gb, level + 1, input.tiers);
+  const arcBonus = input.arcBonus?.[tier];
+  const factors = effectiveFactors(choices, arcBonus, tier);
   const calc = calculateOwnShare({
     required,
     rankings,
@@ -166,10 +192,9 @@ function ownTable(
   });
   const player = input.copyPlayer ?? '';
   const building = input.copyBuilding ?? name;
-  const text = copyText(calc, input.copy, { player, building, level, factor: factors });
-  const first = choices[0];
-  const alike = first && choices.every((c) => sameChoice(c, first)) ? first : undefined;
-  const buttons = factorButtons(input.factorButtons, input.arcBonus, alike);
+  const text = copyText(calc, input.copy, { player, building, level, factor: factors, tier });
+  const presets = tier === 'gold' ? (input.factorButtonsGold ?? []) : input.factorButtons;
+  const buttons = factorButtons(presets, arcBonus, alikeOn(choices, tier), input.arcBonus, tier);
   return {
     kind: 'current',
     name,
@@ -177,14 +202,13 @@ function ownTable(
     next: level + 1,
     factor: factors[0] ?? 0,
     factorButtons: buttons,
+    tier,
     factorState,
     secureExisting: input.secureExisting,
     trust: input.trust,
     rows: ownRows(calc, exts, estimate, (rank) => {
       const choice = choices[rank - 1];
-      return (
-        choice && { factor: effectiveFactor(choice, input.arcBonus), arc: choice.arc && input.arcBonus !== undefined }
-      );
+      return choice && { factor: effectiveFactor(choice, arcBonus, tier), arc: choice.arc && arcBonus !== undefined };
     }),
     ownShare: calc.ownShare,
     myDeposit: calc.myDeposit,

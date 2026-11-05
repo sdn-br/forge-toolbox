@@ -37,15 +37,16 @@ const ranking = (ownerFp: number, ...holders: number[]): Partial<KnownGreatBuild
   rankingsInvested: ownerFp + holders.reduce((a, b) => a + b, 0),
 });
 
-const run = (b: KnownGreatBuilding, arc = 0) => snipeBuilding(b, def, arc);
+const NO_ARC = { copper: 0, gold: 0 };
+const run = (b: KnownGreatBuilding, arc = 0) => snipeBuilding(b, def, { copper: arc, gold: 0 });
 
 describe('snipeBuilding', () => {
   it('leaves out a building with an own contribution, before anything else', () => {
-    expect(snipeBuilding(building({ ownContribution: true }), undefined, 0)).toBe('ownContribution');
+    expect(snipeBuilding(building({ ownContribution: true }), undefined, NO_ARC)).toBe('ownContribution');
   });
 
   it('counts a building without a definition or with a level no table reaches as unknown reward', () => {
-    expect(snipeBuilding(building(), undefined, 0)).toBe('unknownReward');
+    expect(snipeBuilding(building(), undefined, NO_ARC)).toBe('unknownReward');
     expect(run(building({ level: 600 }))).toBe('unknownReward');
   });
 
@@ -61,6 +62,23 @@ describe('snipeBuilding', () => {
       profitHigh: 285,
       maybeLocked: false,
       estimate: false,
+    });
+  });
+
+  it('takes the Arc bonus of the tier the level goes to', () => {
+    const gold: GreatBuildingDef = { ...def, maxTier: 'gold' };
+    const arc = { copper: 0, gold: 100 };
+    // gold from 51: the construction from 50 goes to 51, place 1 pays 485 doubled
+    const tiers = [
+      { tier: 'copper' as const, startLevel: 1 },
+      { tier: 'gold' as const, startLevel: 51 },
+    ];
+    expect(snipeBuilding(building({ invested: 400 }), gold, arc, tiers)).toMatchObject({
+      place: { rank: 1, cost: 200, profit: 770 },
+    });
+    // gold from 101 by default: level 51 is copper, without a copper bonus
+    expect(snipeBuilding(building({ invested: 400 }), gold, arc)).toMatchObject({
+      place: { rank: 1, cost: 200, profit: 285 },
     });
   });
 
@@ -138,7 +156,7 @@ describe('snipeList', () => {
         building({ entityId: 5, cityEntityId: buildingDefId('unknown') }),
       ],
       greatBuilding: (id) => (id === DEF_ID ? def : undefined),
-      arcBonus: 0,
+      arcBonus: NO_ARC,
     });
     expect(list.hits.map((h) => [h.entityId, h.profitHigh])).toEqual([
       [1, 285],

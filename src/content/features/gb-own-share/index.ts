@@ -8,6 +8,8 @@ import {
   FACTOR,
   FACTOR_ARC,
   FACTOR_BUTTONS,
+  FACTOR_BUTTONS_GOLD,
+  FACTOR_GOLD,
   ONE_FP,
   ownArcBonus,
   SECURE,
@@ -58,6 +60,8 @@ export function createGbOwnShareFeature(
       ctx.settings.registerGroup('gbOwn.title', ICON);
       ctx.settings.register(FACTOR);
       ctx.settings.register(FACTOR_BUTTONS);
+      ctx.settings.register(FACTOR_GOLD);
+      ctx.settings.register(FACTOR_BUTTONS_GOLD);
       ctx.settings.register(ARC_BUTTON);
       ctx.settings.register(FACTOR_ARC);
       ctx.settings.register(ONE_FP);
@@ -89,9 +93,9 @@ export function createGbOwnShareFeature(
       };
 
       const actions: OwnShareActions = {
-        setFactor: (value) => onFactors((d) => state.setAll(d, { value, arc: false }))(),
+        setFactor: (value, tier) => onFactors((d) => state.setAll(d, { value, arc: false }, tier))(),
         useArc: () => onFactors((d) => state.setAll(d, { value: 0, arc: true }))(),
-        setPlaceFactor: (rank, value) => onFactors((d) => state.setPlace(d, rank, value))(),
+        setPlaceFactor: (rank, value, tier) => onFactors((d) => state.setPlace(d, rank, value, tier))(),
         saveFactors: onFactors((d) => state.save(d)),
         resetFactors: onFactors((d) => state.reset(d)),
         adoptFactors: onFactors((d) => state.adopt(d)),
@@ -140,7 +144,9 @@ export function createGbOwnShareFeature(
           greatBuildingName: (id) => ctx.catalog.greatBuildingName(id),
           factors: state.state(d ?? ''),
           factorButtons: ctx.settings.of(FACTOR_BUTTONS).get(),
+          factorButtonsGold: ctx.settings.of(FACTOR_BUTTONS_GOLD).get(),
           arcBonus: arcNow(),
+          tiers: ctx.catalog.greatBuildingTiers(),
           secureExisting: flag(SECURE, true),
           trust: flag(TRUST, false),
           oneFpForNoReward: ctx.settings.of(ONE_FP).get(),
@@ -203,7 +209,7 @@ export function createGbOwnShareFeature(
       ctx.bus.on('gbOwn.extChanged', () => update());
       ctx.settings.onChange((key) => {
         // the factor of the settings sets all five places alike again
-        if (key === FACTOR.key || key === FACTOR_ARC.key) state.dropStandard();
+        if (key === FACTOR.key || key === FACTOR_ARC.key || key === FACTOR_GOLD.key) state.dropStandard();
         update();
       });
       ctx.menu.add({ id: 'gbOwnShare', icon: ICON, label: () => t('gbOwn.menu'), action: () => box.toggle() });

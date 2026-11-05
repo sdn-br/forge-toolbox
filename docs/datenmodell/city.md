@@ -64,7 +64,14 @@ interface GreatBuildingState {
   maxLevel: number;
   investedFp?: number;          // nur in der eigenen Stadt bekannt
   fpForLevelUp: number;
-  bonus?: { type: string; value: number; amount?: number };
+  bonuses: GreatBuildingBonus[];  // leer, wenn das Spiel keine schickt
+}
+
+interface GreatBuildingBonus {
+  type: string;                 // z.B. 'contribution_boost', 'military_boost'
+  value: number;
+  amount?: number;
+  feature?: string;             // targetedFeature, z.B. 'all' oder 'battleground'
 }
 ```
 
@@ -72,6 +79,7 @@ interface GreatBuildingState {
 
 - `CityMapService.updateEntity` und `CityMapService.reset` tragen die Spieler-ID der Gebäude. Danach entscheidet der Store, ob die eigene oder die besuchte Stadt betroffen ist. Die alte Toolbox hatte hier einen Fehler: Nach einer FP-Einzahlung in ein fremdes LG kam `reset`, und die Daten des LGs blieben alt.
 - Spielbegriffe übersetzt `game/convert.ts` beim Einlesen, die Domäne kennt nur die eigenen Namen. `category` kommt aus dem Spieltyp der Entity: `decoration` zählt als `culture`, `greatbuilding` wird `greatBuilding`, `generic_building`, `random_production`, `tower` und `clan_power_production` werden `special`, jeder unbekannte Typ wird `other`. `offGrid` setzt convert für `off_grid`, `outpost_ship`, `friends_tavern`, `hub_main` und `hub_part` (die Hubs Arctic Harbour und Ocean Terminal mit ihren Teilen). Den Spieltyp selbst behält das Gebäude nicht.
+- Boni der LGs: Seit dem 2026-11-05 schickt das Spiel statt `bonus` (nur der passive Bonus) die Liste `bonuses` mit allen Boni, passiv und Produktion (`bonusCategory`), etwa für die Arche `contribution_boost` 93, `clan_goods` 1845 und `contribution_boost_gold` 12. Ältere Daten haben `bonus` und daneben ein leeres `bonuses`, deshalb gilt `bonuses` nur mit Einträgen, sonst `bonus` als Liste mit einem Eintrag. Die Bewertung zählt nur Boni mit `targetedFeature` `all` oder ohne, so bleibt der Kampfboost von Alcatraz für das Gildenschlachtfeld (`battleground`) draußen. Testfall `test/fixtures/gb-tiers.json` (gebaut mit `scripts/make-fixture.py gb-tiers`).
 - Unbekannte Zustände des Spiels werden `unknown` mit dem Klassennamen. Ein neuer Zustand im Spiel bricht dann nichts, er wird nur nicht ausgewertet.
 
 **Gezeigte Stadt:** `shown()` ist `'own'` oder die Spieler-ID der besuchten Stadt, so weit der Spielverkehr es verrät. Ein Besuch zeigt die besuchte Stadt. Die eigene Stadt kehrt zurück mit `CityMapService.getEntities` der Karte `main` oder `AnnouncementsService.fetchAllAnnouncements`, ausgewertet am Ende der Antwort und nur, wenn dieselbe Antwort keinen Besuch bringt (nach einem Kampf aus einer besuchten Stadt schickt das Spiel beides). Der Knopf „Nach Hause“ schickt nichts, diese Rückkehr bleibt unbemerkt. Nutzer: die Markierungspfeile (siehe [Stadtplan](../features/stadtplan.md)).

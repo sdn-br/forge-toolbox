@@ -23,7 +23,17 @@ export interface GreatBuildingState {
   maxLevel: number;
   investedFp?: number;
   fpForLevelUp?: number;
-  bonus?: { type: string; value: number; amount?: number };
+  /** the bonuses of the building, passive and production; empty when the game sends none */
+  bonuses: GreatBuildingBonus[];
+}
+
+/** One bonus of a great building as the city map lists it, e.g. `contribution_boost` 93 of the Arc. */
+export interface GreatBuildingBonus {
+  type: string;
+  value: number;
+  amount?: number;
+  /** `targetedFeature`, e.g. `all` or `battleground`; missing for bonuses outside battles */
+  feature?: string;
 }
 
 export const CATEGORIES = [

@@ -39,6 +39,11 @@
 # keeps the metadata file of each named great building, trimmed to id, name, type, min_era, the level costs and the type
 # and values of its production bonus (the Forge points per level of a Forge point building).
 
+# Great building tiers: python3 -I scripts/make-fixture.py gb-tiers <recording.json> <out.json> <cityentity_id> …
+# keeps the metadata file great_building_tiers, the own great buildings of the startup data with the named definitions
+# (their bonuses since 2026-11-05) as a startup stub of the session player, and the metadata file of each named
+# definition, trimmed as in gb-defs plus maxTier. Player id 1000, name „Ich“.
+
 # Great building ranking: python3 -I scripts/make-fixture.py gb-ranking <recording.json> <out.json> [<more-recording.json> …]
 # keeps the RankingService answers of the ranking window: rows 20 to 37 of the first page the tab "Legendäre Bauwerke"
 # opens with (the own building among them), the first rows of the first getRanking page, of the first player search and
@@ -215,7 +220,9 @@ def gb_fixture(rec,out):
         o={k:x[k] for k in ('id','cityentity_id','type','x','y','connected','level','max_level') if k in x}
         o['player_id']=pid(x['player_id'],True)
         o['state']={k:st[k] for k in ('invested_forge_points','forge_points_for_level_up','__class__') if k in st}
-        if x.get('bonus'): o['bonus']={k:x['bonus'][k] for k in ('type','value','amount','__class__') if k in x['bonus']}
+        keep=('type','value','amount','__class__')
+        if x.get('bonus'): o['bonus']={k:x['bonus'][k] for k in keep if k in x['bonus']}
+        if x.get('bonuses'): o['bonuses']=[{k:b[k] for k in keep if k in b} for b in x['bonuses']]
         return o
     def row(x):
         o={k:x[k] for k in ('rank','forge_points','reward','__class__') if k in x}
@@ -257,7 +264,9 @@ def gb_fixture(rec,out):
     fp=[x for x in items if x.get('item',{}).get('__class__')=='ForgePointPackagePayload']
     other=next(x for x in items if x.get('item',{}).get('__class__')=='BoostItemPayload')
     inventory=[dict({k:x[k] for k in ('name','inStock','item','itemAssetName','__class__') if k in x},id=9001+i) for i,x in enumerate(fp+[other])]
-    arc=[entity(x) for x in startup['city_map']['entities'] if x.get('type')=='greatbuilding' and (x.get('bonus') or {}).get('type')=='contribution_boost']
+    # until 2026-11-05 one `bonus`, since then a list `bonuses`
+    arc=[entity(x) for x in startup['city_map']['entities'] if x.get('type')=='greatbuilding'
+        and any(b.get('type')=='contribution_boost' for b in [x.get('bonus') or {},*(x.get('bonuses') or [])])]
     ids[me_real]=ME
     fixture={'note':'Great building openings recorded on de20 2026-10-21: four buildings of other players (the building and its construction), the overview of each owner for the names, a finished level (getConstructionRanking), the own Arc construction and the own Arc from the startup data. Player ids and names replaced (me 1000, owners from 1001, others from 2001), unrelated fields dropped.',
       'me':ME,
@@ -357,6 +366,32 @@ def gb_defs_fixture(rec,out,ids):
         files.append({'url':r['url'].split('-')[0]+'-0','json':trimmed})
     files.sort(key=lambda f:ids.index(f['json']['id']))
     fixture={'note':'Great building definitions (metadata building_entity_<id>) recorded on de20 2026-10-19, trimmed to what the level preview and the double harvest read.','files':files}
+    json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
+
+def gb_tiers_fixture(rec,out,ids):
+    ME=1000
+    tiers=next(json.loads(r['response']) for r in rec if r['kind']=='meta' and 'id=great_building_tiers-' in r['url'])
+    startup=next(e['responseData'] for r in rec if r['kind']=='json' for e in json.loads(r['response'])
+        if e.get('requestClass')=='StartupService' and e.get('requestMethod')=='getData')
+    keep=('id','cityentity_id','type','x','y','connected','level','max_level','state','bonuses','__class__')
+    gbs=[dict({k:x[k] for k in keep if k in x},player_id=ME) for x in startup['city_map']['entities']
+        if x.get('type')=='greatbuilding' and x.get('cityentity_id') in ids]
+    gbs.sort(key=lambda x:ids.index(x['cityentity_id']))
+    files=[]
+    for r in rec:
+        if r['kind']!='meta' or 'building_entity_X_' not in r['url']: continue
+        d=json.loads(r['response'])
+        if d.get('id') not in ids or any(f['json']['id']==d['id'] for f in files): continue
+        trimmed={'id':d['id'],'name':d['name'],'type':d['type'],'requirements':{'min_era':d['requirements']['min_era']},
+          'strategy_points_for_upgrade':d['strategy_points_for_upgrade'],'maxTier':d.get('maxTier'),'__class__':d.get('__class__')}
+        files.append({'url':r['url'].split('-')[0]+'-0','json':trimmed})
+    files.sort(key=lambda f:ids.index(f['json']['id']))
+    fixture={'note':'Great building tiers recorded on de10 2026-11-05: the metadata great_building_tiers, own great buildings with their list of bonuses (the Arc with contribution_boost and contribution_boost_gold) and their definitions trimmed to the level costs and maxTier. Player anonymized.',
+      'tiers':{'url':'https://cdn/start/metadata?id=great_building_tiers-0','json':tiers},
+      'startup':[{'requestClass':'StartupService','requestMethod':'getData','requestData':None,'responseData':{
+        'user_data':{'player_id':ME,'user_name':'Ich','era':startup['user_data'].get('era')},
+        'city_map':{'gridId':'main','entities':gbs}}}],
+      'defs':files}
     json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
 
 def gb_level_up_fixture(rec,out,own):
@@ -576,6 +611,8 @@ if sys.argv[1]=='gb-contributions':
     gb_contributions_fixture(json.load(open(sys.argv[2])),sys.argv[3],int(sys.argv[4]) if len(sys.argv)>4 else 12); sys.exit()
 if sys.argv[1] in ('gb-own-level-up','gb-level-up'):
     gb_level_up_fixture(json.load(open(sys.argv[2])),sys.argv[3],sys.argv[1]=='gb-own-level-up'); sys.exit()
+if sys.argv[1]=='gb-tiers':
+    gb_tiers_fixture(json.load(open(sys.argv[2])),sys.argv[3],sys.argv[4:]); sys.exit()
 if sys.argv[1]=='gb-defs':
     gb_defs_fixture(json.load(open(sys.argv[2])),sys.argv[3],sys.argv[4:]); sys.exit()
 if sys.argv[1]=='gb-contribution':

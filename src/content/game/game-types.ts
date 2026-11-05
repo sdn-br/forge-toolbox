@@ -39,7 +39,17 @@ export interface GameCityEntity {
   level?: number;
   max_level?: number;
   state?: GameState;
-  bonus?: { type?: string; value?: number; amount?: number };
+  /** until 2026-11-05: the passive bonus alone */
+  bonus?: GameGreatBuildingBonus;
+  /** since 2026-11-05: every bonus, passive and production (`bonusCategory`) */
+  bonuses?: GameGreatBuildingBonus[];
+}
+
+export interface GameGreatBuildingBonus {
+  type?: string;
+  value?: number;
+  amount?: number;
+  targetedFeature?: string;
 }
 
 /** an unlocked piece of the city grid; the game leaves out coordinates that are 0 */

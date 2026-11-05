@@ -32,6 +32,7 @@ import type {
   City,
   ExpansionKind,
   ExpansionOffer,
+  GreatBuildingBonus,
   Product,
 } from '../model/city';
 import type { GreatBuildingEntity, PlaceReward, RankingRow } from '../model/great-building';
@@ -176,10 +177,31 @@ export function toBuilding(e: GameCityEntity, owner: PlayerId): Building | null 
       maxLevel: e.max_level ?? 0,
       investedFp: e.state?.invested_forge_points,
       fpForLevelUp: e.state?.forge_points_for_level_up,
-      bonus: e.bonus?.type ? { type: e.bonus.type, value: e.bonus.value ?? 0, amount: e.bonus.amount } : undefined,
+      bonuses: toGreatBuildingBonuses(e),
     };
   }
   return building;
+}
+
+/**
+ * The bonuses of a great building: the list `bonuses` since 2026-11-05 (the Arc there has `contribution_boost` and
+ * `contribution_boost_gold`), else the single passive `bonus` of older data as a list of one. Older data send an empty
+ * `bonuses` beside `bonus` (seen 2026-10-19), so only a list with entries counts.
+ */
+function toGreatBuildingBonuses(e: GameCityEntity): GreatBuildingBonus[] {
+  const list = Array.isArray(e.bonuses) && e.bonuses.length > 0 ? e.bonuses : e.bonus ? [e.bonus] : [];
+  return list.flatMap((b) =>
+    b?.type
+      ? [
+          {
+            type: b.type,
+            value: b.value ?? 0,
+            ...(b.amount !== undefined && { amount: b.amount }),
+            ...(b.targetedFeature !== undefined && { feature: b.targetedFeature }),
+          },
+        ]
+      : [],
+  );
 }
 
 function toArea(a: GameCityMapArea): Area | null {

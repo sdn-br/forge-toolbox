@@ -144,8 +144,10 @@ export function assessCity(city: City, ctx: AssessContext): CityAssessment {
     // debt: a connected link adds its level 1 bonus only. ceiling: chains whose links grow with chain length.
     // upgrade: when the game shows a higher chain bonus than the box for such a chain.
     if (def.chain && linked.has(b.id)) addBoosts(bonusesUpTo(def.chain.bonuses, 1, era));
-    const bonus = b.greatBuilding?.bonus;
-    if (bonus) addToSides(GREAT_BUILDING_SIDES, bonus.type, bonus.value);
+    // since 2026-11-05 the game lists every bonus; one for another feature (Alcatraz: battleground) does not count
+    for (const bonus of b.greatBuilding?.bonuses ?? []) {
+      if ((bonus.feature ?? 'all') === 'all') addToSides(GREAT_BUILDING_SIDES, bonus.type, bonus.value);
+    }
   }
 
   for (const { building: b, def } of placed) {

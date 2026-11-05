@@ -4,6 +4,7 @@
 import { choiceDef, listDef, type Settings, type ToggleSettingDef, textDef, toggleDef } from '../../core/settings';
 import { type TextKey, t } from '../../core/texts';
 import type { OwnPlace, OwnShareCalc } from '../../domain/gb-own-share';
+import type { GreatBuildingTier } from '../../model/catalog';
 import { factorText } from '../../ui/factor-bar';
 
 /** which places the copy text names: the safe ones from the top, all free ones, all with Forge points, or a choice */
@@ -91,25 +92,25 @@ function copiedPlaces(calc: OwnShareCalc, o: CopyOptions): OwnPlace[] {
 }
 
 /** the factor as helpers read it: 1,9 when all places share it, else the lowest and the highest, 1,8/1,9 */
-function factorsText(factors: number[]): string {
+function factorsText(factors: number[], tier?: GreatBuildingTier): string {
   const low = Math.min(...factors);
   const high = Math.max(...factors);
-  return low === high ? factorText(low) : `${factorText(low)}/${factorText(high)}`;
+  return low === high ? factorText(low, tier) : `${factorText(low, tier)}/${factorText(high, tier)}`;
 }
 
 /** One line for the guild chat, e.g. „Ich Arche 135→136 P5(38) P4(209) P3(827)“. Numbers stay plain for pasting. */
 export function copyText(
   calc: OwnShareCalc,
   o: CopyOptions,
-  /** `factor` in percent, one per place */
-  about: { player: string; building: string; level: number; factor: number[] },
+  /** `factor` in percent, one per place; on a gold level (`tier`) with two decimals */
+  about: { player: string; building: string; level: number; factor: number[]; tier?: GreatBuildingTier },
 ): string {
   const parts: string[] = [];
   if (o.player && about.player) parts.push(about.player);
   if (o.building && about.building) parts.push(about.building);
   if (o.levelUp) parts.push(t('gbOwn.copyLevelUp'));
   if (o.level) parts.push(`${about.level}→${about.level + 1}`);
-  if (o.factor) parts.push(factorsText(about.factor));
+  if (o.factor) parts.push(factorsText(about.factor, about.tier));
   const places = copiedPlaces(calc, o);
   if (o.descending) places.reverse();
   // as in the old toolbox, but the prefix only when a marked place is in the text, not for one left out

@@ -8,7 +8,7 @@ import type { Building } from '../model/city';
 import type { GreatBuildingEntity, RankingRow } from '../model/great-building';
 import type { Stores } from '../stores';
 import type { PlayerObservation } from '../stores/players';
-import { toBuildingDef, toBuildingFiles } from './building-defs';
+import { toBuildingDef, toBuildingFiles, toGreatBuildingTiers } from './building-defs';
 import {
   armyBattleType,
   greatBuildingOf,
@@ -381,6 +381,11 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
       e.era ? [{ id: eraId(e.era), name: e.name ?? e.era }] : [],
     );
     catalog.setEras(eras);
+  });
+
+  // the tiers of great building levels, copper and gold (seen 2026-11-05); an exact name, as with `research`
+  ingestion.onMeta('great_building_tiers', (file) => {
+    if (file.name === 'great_building_tiers') catalog.setGreatBuildingTiers(toGreatBuildingTiers(file.json));
   });
 
   // `research_eras` shares the prefix and is another file

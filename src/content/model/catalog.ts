@@ -65,6 +65,18 @@ export interface GreatBuildingDef {
    * only for buildings whose production bonus is of type `strategy_points`
    */
   fpProduction?: number[];
+  /** the highest tier its levels reach (`maxTier`, seen 2026-11-05); missing in older definitions */
+  maxTier?: GreatBuildingTier;
+}
+
+/** The tiers of great building levels, from the lowest (`GreatBuildingTier`, seen 2026-11-05). */
+export const GREAT_BUILDING_TIERS = ['copper', 'gold'] as const;
+export type GreatBuildingTier = (typeof GREAT_BUILDING_TIERS)[number];
+
+/** A tier from the metadata file `great_building_tiers`: the first level that belongs to it. */
+export interface TierStart {
+  tier: GreatBuildingTier;
+  startLevel: number;
 }
 
 /** The main city grid from the metadata `grid-<hash>`: top left tiles of its 4 × 4 blocks. */

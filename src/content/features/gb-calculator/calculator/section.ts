@@ -18,6 +18,9 @@ export interface CalculatorSettings {
   factor: Setting<number>;
   factorArc: Setting<boolean>;
   factorButtons: Setting<number[]>;
+  /** the fixed factor and the buttons on gold levels */
+  factorGold: Setting<number>;
+  factorButtonsGold: Setting<number[]>;
   arcButton: Setting<boolean>;
   sound: Setting<boolean>;
 }
@@ -47,7 +50,7 @@ export function createCalculatorSection(
   settings: CalculatorSettings,
   hooks: CalculatorHooks,
 ): CalculatorSection {
-  const { factor, factorArc, factorButtons, arcButton, sound } = settings;
+  const { factor, factorArc, factorButtons, factorGold, factorButtonsGold, arcButton, sound } = settings;
   /** the last foreign construction; an own one opened later leaves it in the box */
   let shown: Construction | undefined;
   let vm: GbCalculatorVm = { kind: 'none' };
@@ -57,8 +60,8 @@ export function createCalculatorSection(
   let preview: number | undefined;
 
   const actions: GbCalculatorActions = {
-    setFactor: (value) => {
-      saveSetting(factor, value);
+    setFactor: (value, tier) => {
+      saveSetting(tier === 'gold' ? factorGold : factor, value);
       saveSetting(factorArc, false);
     },
     useArc: () => saveSetting(factorArc, true),
@@ -122,15 +125,17 @@ export function createCalculatorSection(
   return {
     shown: () => shown,
     hasBuilding: () => vm.kind !== 'none' && vm.kind !== 'noEntity',
-    update: ({ lookups, greatBuilding, arcBonus }) => {
+    update: ({ lookups, greatBuilding, arcBonus, tiers }) => {
       vm = gbCalculatorViewModel({
         ...lookups,
         construction: shown,
         fpBar: ctx.resources.known ? ctx.resources.amount(FORGE_POINTS) : undefined,
         fpPackages: ctx.inventory.knowsPackages ? ctx.inventory.forgePointPackages() : undefined,
         arcBonus,
-        factor: { value: factor.get(), arc: factorArc.get() },
+        tiers,
+        factor: { value: factor.get(), arc: factorArc.get(), gold: factorGold.get() },
         factorButtons: factorButtons.get(),
+        factorButtonsGold: factorButtonsGold.get(),
         arcButton: arcButton.get(),
         previewLevel: preview,
         greatBuilding,

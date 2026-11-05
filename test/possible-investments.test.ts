@@ -57,7 +57,7 @@ beforeEach(() => {
 const defNames: Record<string, string> = { [DEF_ID]: 'Kathedrale von Aachen', [OTHER_DEF]: 'Leuchtturm' };
 
 const candidates = (buildings: KnownGreatBuilding[]) =>
-  possibleInvestments(buildings, (d) => (d === DEF_ID ? def : undefined), 0, ME);
+  possibleInvestments(buildings, (d) => (d === DEF_ID ? def : undefined), { copper: 0, gold: 0 }, ME);
 
 const vmInput = (buildings: KnownGreatBuilding[], filter: Partial<PossibleFilter> = {}, sort?: PossibleSort) => ({
   visible: 100,

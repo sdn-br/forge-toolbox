@@ -1,5 +1,6 @@
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
+import type { GreatBuildingTier } from '../../model/catalog';
 import { iconButton } from '../../ui/buttons';
 import { emptyCell, estimateCell } from '../../ui/estimate-cell';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
@@ -10,7 +11,8 @@ import { MAX_ROWS, type PayCell, type PowerLevelVm, type PowerRow } from './view
 
 export interface PowerLevelActions extends FactorActions, FactorLevelActions {
   /** the factor of one place, in percent */
-  setPlaceFactor(rank: number, value: number): void;
+  /** for levels of `tier` */
+  setPlaceFactor(rank: number, value: number, tier: GreatBuildingTier): void;
   /** the first level of the table; undefined takes the open level */
   setFrom(level: number | undefined): void;
   /** the last level; undefined takes 10 levels after the first */
@@ -55,7 +57,7 @@ function levelField(label: string, hint: string, value: number, min: number, set
 function table(vm: TableVm, actions: PowerLevelActions, copied?: string) {
   const cols = widths(vm.harvestColumn);
   return html`<p class="gb-title">${vm.name}</p>
-    ${factorBar(vm.factorButtons, vm.factor, actions, factorLevel(vm.factorState, actions))}
+    ${factorBar(vm.factorButtons, vm.factor, actions, vm.tier, factorLevel(vm.factorState, actions))}
     <div class="gb-levels">
       ${levelField(t('gbPower.from'), t('gbPower.fromHint'), vm.from, vm.current, actions.setFrom)}
       ${levelField(t('gbPower.to'), t('gbPower.toHint'), vm.to, vm.from + 1, actions.setTo)}
@@ -78,7 +80,7 @@ function table(vm: TableVm, actions: PowerLevelActions, copied?: string) {
         <td data-tip=${t('gbOwn.placeFactorHint')}>${t('gbCalc.factor')}</td>
         ${vm.placeFactors.map(
           (p, i) =>
-            html`<td class="num">${placeFactorField(p.factor, p.arc, (percent) => actions.setPlaceFactor(i + 1, percent))}</td>`,
+            html`<td class="num">${placeFactorField(p.factor, p.arc, (percent) => actions.setPlaceFactor(i + 1, percent, vm.tier))}</td>`,
         )}
         <td colspan=${cols.length - 6}></td>
       </tr>

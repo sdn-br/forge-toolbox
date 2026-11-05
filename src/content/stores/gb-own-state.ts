@@ -4,7 +4,8 @@
 // from the view choices and settings with the helpers below. The Eigenanteil box registers the settings, the readers take them with `settings.of`.
 import type { ToolboxBus } from '../core/events';
 import { listDef, numberDef, type Settings, toggleDef } from '../core/settings';
-import type { FactorChoice } from '../domain/gb-factor';
+import { type FactorChoice, GOLD_FACTOR } from '../domain/gb-factor';
+import type { GreatBuildingTier } from '../model/catalog';
 import { type PlaceFactorState, PlaceFactors, type PrefStore } from './place-factors';
 import type { PlayerBonusStore } from './player-bonuses';
 
@@ -28,6 +29,28 @@ export const FACTOR_BUTTONS = listDef({
   min: -100,
   max: 200,
   step: 0.1,
+  asFactor: true,
+});
+/** the fixed factor and the buttons on gold levels, where the Arc bonus is 0 to 50 % (Nutzer, 2026-11-05) */
+export const FACTOR_GOLD = numberDef({
+  key: 'gbOwn.factorGold',
+  group: 'gbOwn.title',
+  label: 'gbOwn.factorGoldSetting',
+  default: GOLD_FACTOR,
+  min: 0,
+  max: 100,
+  step: 0.1,
+  asFactor: true,
+});
+export const FACTOR_BUTTONS_GOLD = listDef({
+  key: 'gbOwn.factorButtonsGold',
+  group: 'gbOwn.title',
+  label: 'gbCalc.factorButtonsGoldSetting',
+  hint: 'gbCalc.factorButtonsGoldHint',
+  default: [10, 15, 20],
+  min: 0,
+  max: 100,
+  step: 1,
   asFactor: true,
 });
 export const ARC_BUTTON = toggleDef({
@@ -59,7 +82,7 @@ export const viewFlag = (prefs: Pick<PrefStore, 'pref'>, key: string, fallback: 
   return value === undefined ? fallback : value === 'true';
 };
 
-/** the own Arc bonus while its factor button shows */
+/** the own Arc bonus, both tiers, while its factor button shows */
 export const ownArcBonus = (settings: Settings, bonuses: PlayerBonusStore) =>
   settings.of(ARC_BUTTON).get() ? bonuses.arcBonus() : undefined;
 
@@ -82,14 +105,14 @@ export class GbOwnState {
     return this.factors.state(def);
   }
 
-  /** the factor bar: the same choice for all five places */
-  setAll(def: string, choice: FactorChoice): void {
-    this.factors.setAll(def, choice);
+  /** the factor bar: the same choice for all five places, a fixed factor for levels of `tier` */
+  setAll(def: string, choice: { value: number; arc: boolean }, tier?: GreatBuildingTier): void {
+    this.factors.setAll(def, choice, tier);
     this.changed(def);
   }
 
-  setPlace(def: string, rank: number, value: number): void {
-    this.factors.setPlace(def, rank, value);
+  setPlace(def: string, rank: number, value: number, tier?: GreatBuildingTier): void {
+    this.factors.setPlace(def, rank, value, tier);
     this.changed(def);
   }
 
@@ -133,4 +156,8 @@ export class GbOwnState {
 
 /** the state of a world: the factor of the settings is the single factor of the places */
 export const createGbOwnState = (bus: ToolboxBus, prefs: PrefStore, settings: Settings) =>
-  new GbOwnState(bus, prefs, () => ({ value: settings.of(FACTOR).get(), arc: settings.of(FACTOR_ARC).get() }));
+  new GbOwnState(bus, prefs, () => ({
+    value: settings.of(FACTOR).get(),
+    arc: settings.of(FACTOR_ARC).get(),
+    gold: settings.of(FACTOR_GOLD).get(),
+  }));

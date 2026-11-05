@@ -1,7 +1,17 @@
 // Building definitions from the game metadata → own BuildingDef. Two formats exist:
 // classic definitions (`abilities`, `boostHintEraMap`) and GenericCityEntity (`components` per era).
 import { type BuildingDefId, buildingDefId } from '../../shared/ids';
-import type { Boost, BoostsByEra, BuildingDef, GreatBuildingDef, LevelBonus, Rect } from '../model/catalog';
+import {
+  type Boost,
+  type BoostsByEra,
+  type BuildingDef,
+  GREAT_BUILDING_TIERS,
+  type GreatBuildingDef,
+  type GreatBuildingTier,
+  type LevelBonus,
+  type Rect,
+  type TierStart,
+} from '../model/catalog';
 import type { Product } from '../model/city';
 
 type Json = Record<string, unknown>;
@@ -96,7 +106,8 @@ function streetOf(json: Json, components: Json | undefined, generic: boolean): n
 /**
  * The era and level costs of a great building. The era is `requirements.min_era` (`NoAge` for the buildings of every
  * era, seen 2026-10-19), else the era in the id `X_<Era>_Landmark1`. A production bonus of type `strategy_points` lists the
- * Forge points per level (seen 2026-10-23: 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6 for levels 0 to 10).
+ * Forge points per level (seen 2026-10-23: 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6 for levels 0 to 10). `maxTier` is the
+ * highest tier the levels reach, `gold` or `copper` (seen 2026-11-05).
  */
 function greatBuildingOf(json: Json): GreatBuildingDef | undefined {
   const costs = json.strategy_points_for_upgrade;
@@ -108,7 +119,31 @@ function greatBuildingOf(json: Json): GreatBuildingDef | undefined {
   const values = bonus?.type === 'strategy_points' ? bonus.values : undefined;
   const fpProduction =
     Array.isArray(values) && values.every((v) => typeof v === 'number') ? (values as number[]) : undefined;
-  return { era: era === 'NoAge' ? 'AllAge' : era, levelCosts: costs, ...(fpProduction && { fpProduction }) };
+  const maxTier = tierOf(json.maxTier);
+  return {
+    era: era === 'NoAge' ? 'AllAge' : era,
+    levelCosts: costs,
+    ...(fpProduction && { fpProduction }),
+    ...(maxTier && { maxTier }),
+  };
+}
+
+/** a `GreatBuildingTier` enum, `{ __enum__: 'GreatBuildingTier', value: 'gold' }`; undefined for an unknown tier */
+function tierOf(v: unknown): GreatBuildingTier | undefined {
+  const value = isObject(v) ? v.value : undefined;
+  return GREAT_BUILDING_TIERS.find((t) => t === value);
+}
+
+/**
+ * The tiers from the metadata file `great_building_tiers` (seen 2026-11-05): `{ tier: { value: 'copper' }, name:
+ * 'Kupfer', startLevel: 1, endLevel: 200 }` and gold from level 101 to 2147483647. The ranges overlap; only the start
+ * counts. Unknown tiers are skipped.
+ */
+export function toGreatBuildingTiers(json: unknown): TierStart[] {
+  return list(json).flatMap((t) => {
+    const tier = tierOf(t.tier);
+    return tier && typeof t.startLevel === 'number' ? [{ tier, startLevel: t.startLevel }] : [];
+  });
 }
 
 const NOT_PLUNDERABLE = ['AddResourcesToGuildTreasuryAbility', 'RandomChestRewardAbility', 'NotPlunderableAbility'];

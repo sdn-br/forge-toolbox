@@ -39,7 +39,7 @@ function vm(choices: FactorChoice[], arcBonus?: number, status: PlaceFactorState
     greatBuildingName: () => 'Arche',
     factors: { choices, status, canSave: false, canReset: false, canAdopt: false },
     factorButtons: [80, 90, 100],
-    arcBonus,
+    arcBonus: arcBonus === undefined ? undefined : { copper: arcBonus, gold: 0 },
     secureExisting: true,
     trust: false,
     oneFpForNoReward: true,

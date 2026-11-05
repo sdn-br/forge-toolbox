@@ -1,5 +1,6 @@
 import type { BuildingDefId } from '../../../../shared/ids';
 import { formatRatio } from '../../../core/texts';
+import type { ArcBonus } from '../../../domain/arc-bonus';
 import {
   availableForgePoints,
   type ConstructionCalc,
@@ -15,7 +16,8 @@ import { effectiveFactor as effective, type FactorChoice } from '../../../domain
 import { previewLevel } from '../../../domain/gb-level-preview';
 import { ownerRow } from '../../../domain/gb-snipe';
 import { type LevelUpAndFirst, levelUpAndFirst } from '../../../domain/gb-strategy';
-import type { GreatBuildingDef } from '../../../model/catalog';
+import { levelTier } from '../../../domain/gb-tier';
+import type { GreatBuildingDef, GreatBuildingTier, TierStart } from '../../../model/catalog';
 import type { Construction } from '../../../model/great-building';
 import type { ActivityVm } from '../../../ui/activity';
 import { type FactorButton, factorButtons } from '../../../ui/factor-bar';
@@ -40,7 +42,10 @@ export interface GbHeader extends OwnerVm {
   /** the parts of `availableFp`; a part is undefined while its source is not known */
   fpBar?: number;
   fpPackages?: number;
+  /** the Arc bonus of the tier of the level shown (the next level of the construction shown) */
   arcBonus: number;
+  /** both values, for the tooltip */
+  arcBonuses: ArcBonus;
   /** the level selector: live or a preview of a later level */
   levels: LevelChoice;
   /** the player put a star on the building */
@@ -123,6 +128,8 @@ export type GbCalculatorVm =
       /** sorted by value, the own Arc bonus among them while its setting shows it */
       factorButtons: FactorButton[];
       effectiveFactor: number;
+      /** the tier of the level shown: the buttons and a factor typed belong to it */
+      tier: GreatBuildingTier;
       preview: PreviewVm;
       /** set when the preview shows the level right after the current one and leveling into its place 1 pays */
       levelUp?: LevelUpAndFirst;
@@ -134,6 +141,8 @@ export type GbCalculatorVm =
       factorButtons: FactorButton[];
       /** the factor in effect, in percent */
       effectiveFactor: number;
+      /** the tier of the level shown: the buttons and a factor typed belong to it */
+      tier: GreatBuildingTier;
       blocked?: 'maxLevel' | 'unconnected';
       leveled?: number;
       places: PlaceRow[];
@@ -157,10 +166,14 @@ export interface GbCalculatorInput extends GbCalcLookups {
   fpBar?: number;
   /** Forge points in the packages of the inventory; undefined while the inventory is not known */
   fpPackages?: number;
-  arcBonus: number;
+  /** per tier; each level takes the one of the level it goes to */
+  arcBonus: ArcBonus;
+  /** the tiers of great building levels; the default ones when missing */
+  tiers?: TierStart[];
   factor: FactorChoice;
-  /** the factor presets in percent */
+  /** the factor presets in percent; on gold levels those of `factorButtonsGold` */
   factorButtons: number[];
+  factorButtonsGold: number[];
   /** the own Arc bonus shows as one more button */
   arcButton: boolean;
   /** the level chosen for the preview; undefined shows the current construction */
@@ -262,6 +275,17 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
   const levels = levelChoice(entity.level, input.previewLevel);
   const preview = levels.preview ? levels.chosen : undefined;
   const availableFp = availableForgePoints(input.fpBar, input.fpPackages);
+  const gb = input.greatBuilding(entity.def);
+  // each construction pays the Arc bonus and the fixed factor of its tier: the live one, the next one after a level
+  // up, the one shown
+  const tierAt = (level: number) => levelTier(gb, level + 1, input.tiers);
+  const arcAt = (level: number) => input.arcBonus[tierAt(level)];
+  const factorAt = (level: number) =>
+    effective(input.factor, input.arcButton ? arcAt(level) : undefined, tierAt(level));
+  const liveArc = arcAt(entity.level);
+  const shown = preview ?? entity.level;
+  const tier = tierAt(shown);
+  const shownArc = arcAt(shown);
   const ignored = input.isIgnored(c.owner, c.entityId);
   const foestats = input.foestats(c.owner);
   const words = ignoreWords(ignored, owner.ownerIgnored);
@@ -275,26 +299,35 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     availableFp,
     fpBar: input.fpBar,
     fpPackages: input.fpPackages,
-    arcBonus: input.arcBonus,
+    arcBonus: shownArc,
+    arcBonuses: input.arcBonus,
     levels,
     marked: input.isMarked(c.owner, c.entityId),
     ignored,
     ...(words.length > 0 && { ignoreWords: words }),
   };
-  const arcButton = input.arcButton ? input.arcBonus : undefined;
-  const effectiveFactor = effective(input.factor, arcButton);
-  const buttons = factorButtons(input.factorButtons, arcButton, input.factor);
-  const live = constructionOf(entity, c.rankings, { arcBonus: input.arcBonus, factor: effectiveFactor });
+  const effectiveFactor = factorAt(shown);
+  const buttons = factorButtons(
+    tier === 'gold' ? input.factorButtonsGold : input.factorButtons,
+    input.arcButton ? shownArc : undefined,
+    input.factor,
+    input.arcBonus,
+    tier,
+  );
+  const live = constructionOf(entity, c.rankings, { arcBonus: liveArc, factor: factorAt(entity.level) });
   const calc = calculateConstruction(live);
-  const gb = input.greatBuilding(entity.def);
-  const levelUp = c.leveled ? undefined : levelUpAndFirst(live, calc, gb);
+  const next = entity.level + 1;
+  const levelUp = c.leveled
+    ? undefined
+    : levelUpAndFirst(live, calc, gb, { arcBonus: arcAt(next), factor: factorAt(next) });
   if (preview !== undefined) {
     return {
       kind: 'preview',
       header,
       factorButtons: buttons,
       effectiveFactor,
-      preview: previewVm(gb, preview, entity.maxLevel, input.arcBonus, effectiveFactor),
+      tier,
+      preview: previewVm(gb, preview, entity.maxLevel, shownArc, effectiveFactor),
       ...(levelUp && preview === levelUp.nextLevel && { levelUp }),
     };
   }
@@ -305,6 +338,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     header,
     factorButtons: buttons,
     effectiveFactor,
+    tier,
     ...(calc.blocked && { blocked: calc.blocked }),
     ...(c.leveled && { leveled: c.leveled.level }),
     places,

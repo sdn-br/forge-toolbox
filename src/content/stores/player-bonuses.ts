@@ -1,4 +1,4 @@
-import { arcBonus } from '../domain/arc-bonus';
+import { type ArcBonus, arcBonus } from '../domain/arc-bonus';
 import type { LimitedBonus } from '../model/bonus';
 import type { CityStore } from './cities';
 
@@ -11,7 +11,7 @@ export class PlayerBonusStore {
 
   constructor(private cities: CityStore) {}
 
-  /** limited bonuses of the player; the Arc bonus counts those of type contribution_boost */
+  /** limited bonuses of the player; the Arc bonus counts those of type contribution_boost and contribution_boost_gold */
   limitedBonuses(): LimitedBonus[] {
     return this.limited;
   }
@@ -20,8 +20,8 @@ export class PlayerBonusStore {
     this.limited = bonuses;
   }
 
-  /** the Arc bonus in percent, from the own city and the limited bonuses */
-  arcBonus(): number {
+  /** the Arc bonus in percent per tier, from the own city and the limited bonuses */
+  arcBonus(): ArcBonus {
     return arcBonus(this.cities.own(), this.limited);
   }
 }

@@ -1,7 +1,8 @@
 // The own investments: where the session player's Forge points sit in great buildings of others and what they bring.
 import type { BuildingDefId, PlayerId } from '../../shared/ids';
 import type { KnownGreatBuilding } from '../../shared/model';
-import type { GreatBuildingDef } from '../model/catalog';
+import type { GreatBuildingDef, TierStart } from '../model/catalog';
+import { type ArcBonus, arcBonusAt } from './arc-bonus';
 import { calculateConstruction, constructionOf, plusPercent } from './gb-calculator';
 import { currentRankings, type SnipeHit, snipeBuildings } from './gb-snipe';
 
@@ -87,11 +88,17 @@ export const sumTotals = (rows: Investment[]): InvestmentTotals =>
 export const byDefaultOrder = (a: Investment, b: Investment): number =>
   Number(b.growth !== undefined) - Number(a.growth !== undefined) || a.rest - b.rest;
 
-export function myInvestments(buildings: KnownGreatBuilding[], arcBonus: number): Investments {
+/** The own investments; each reward grows by the Arc bonus of the tier its level goes to. */
+export function myInvestments(
+  buildings: KnownGreatBuilding[],
+  arc: ArcBonus,
+  greatBuilding: (def: BuildingDefId) => GreatBuildingDef | undefined,
+  tiers?: TierStart[],
+): Investments {
   const rows = buildings.flatMap<Investment>((b) => {
     const c = b.contribution;
     if (!c) return [];
-    const gross = plusPercent(c.reward, arcBonus);
+    const gross = plusPercent(c.reward, arcBonusAt(arc, greatBuilding(b.cityEntityId), b.level, tiers));
     const rest = Math.max(0, b.required - b.invested);
     const growth = b.growthBase !== undefined && b.growthBase < b.invested ? b.invested - b.growthBase : undefined;
     return [
@@ -131,11 +138,12 @@ export interface PossibleInvestment {
 export function possibleInvestments(
   buildings: KnownGreatBuilding[],
   greatBuilding: (def: BuildingDefId) => GreatBuildingDef | undefined,
-  arcBonus: number,
+  arc: ArcBonus,
   me?: PlayerId,
+  tiers?: TierStart[],
 ): PossibleInvestment[] {
   const others = buildings.filter((b) => b.owner !== me);
-  return snipeBuildings(others, greatBuilding, arcBonus).flatMap<PossibleInvestment>(({ building, result: r }) => {
+  return snipeBuildings(others, greatBuilding, arc, tiers).flatMap<PossibleInvestment>(({ building, result: r }) => {
     if (r === 'ownContribution') return [];
     return [typeof r === 'string' ? { building } : { building, hit: r }];
   });

@@ -1,7 +1,8 @@
 import type { BuildingDefId, EraId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
-import type { BuildingDef, CityGrid, UnitType } from '../model/catalog';
+import { DEFAULT_TIERS } from '../domain/gb-tier';
+import type { BuildingDef, CityGrid, TierStart, UnitType } from '../model/catalog';
 
 /** the metadata file of one building definition on the CDN; the URL carries the file's hash */
 export interface BuildingDefFile {
@@ -252,6 +253,20 @@ export class CatalogStore {
     for (const [id, n] of this.gbNames) if (n === name) ids.add(id);
     for (const def of this.defs.values()) if (def.type === 'greatbuilding' && def.name === name) ids.add(def.id);
     return [...ids];
+  }
+
+  private tiers?: TierStart[];
+
+  /** The tiers of great building levels from the metadata file `great_building_tiers`; the boxes redraw. */
+  setGreatBuildingTiers(tiers: TierStart[]): void {
+    if (tiers.length === 0) return;
+    this.tiers = tiers;
+    this.bus.emit('catalog.updated', { defs: [] });
+  }
+
+  /** the tiers of great building levels; those of 2026-11-05 while the file is not loaded */
+  greatBuildingTiers(): TierStart[] {
+    return this.tiers ?? DEFAULT_TIERS;
   }
 
   private eraOrder: EraId[] = [];

@@ -30,6 +30,10 @@ const building = (over: Partial<KnownGreatBuilding> = {}): KnownGreatBuilding =>
   ...over,
 });
 
+/** the own investments with a copper Arc bonus of `arc`, no definition known: every level counts as copper */
+const mine = (buildings: KnownGreatBuilding[], arc: number) =>
+  myInvestments(buildings, { copper: arc, gold: 0 }, () => undefined);
+
 const reward = (fp: number) => ({ fp, blueprints: 0, medals: 0 });
 
 /** own 100 on place 1, place 2 holds 90, rest 50 */
@@ -46,22 +50,19 @@ const withRankings = (rankings: RankingRow[], over: Partial<KnownGreatBuilding> 
 
 describe('status of an own place', () => {
   it('is unsafe with rankings when the next place can still pass (100 on P1, P2 holds 90, rest 50)', () => {
-    const [row] = myInvestments([withRankings(counterRankings)], 0).rows;
+    const [row] = mine([withRankings(counterRankings)], 0).rows;
     expect(row).toMatchObject({ rest: 50, status: 'unsafe' });
   });
 
   it('is not safe without rankings when own deposit covers the rest but not the others with it', () => {
-    const [row] = myInvestments([building()], 0).rows;
+    const [row] = mine([building()], 0).rows;
     expect(row).toMatchObject({ rest: 50, status: 'unknown' });
   });
 
   it('is safe without rankings once the own deposit holds the others and the rest together', () => {
-    const [row] = myInvestments([building({ contribution: { rank: 1, forgePoints: 120, reward: 50, at: 1 } })], 0).rows;
+    const [row] = mine([building({ contribution: { rank: 1, forgePoints: 120, reward: 50, at: 1 } })], 0).rows;
     expect(row?.status).toBe('safe');
-    const [short] = myInvestments(
-      [building({ contribution: { rank: 1, forgePoints: 119, reward: 50, at: 1 } })],
-      0,
-    ).rows;
+    const [short] = mine([building({ contribution: { rank: 1, forgePoints: 119, reward: 50, at: 1 } })], 0).rows;
     // 119 against 190 − 119 = 71 others and 50 rest; 120 held 70 and 50
     expect(short?.status).toBe('unknown');
   });
@@ -76,48 +77,48 @@ describe('status of an own place', () => {
       required: 350,
       contribution: { rank: 1, forgePoints: 150, reward: 80, at: 1 },
     });
-    expect(myInvestments([b], 0).rows[0]?.status).toBe('safe');
+    expect(mine([b], 0).rows[0]?.status).toBe('safe');
     // the same building without its rankings
-    expect(myInvestments([{ ...b, rankings: undefined }], 0).rows[0]?.status).toBe('unknown');
+    expect(mine([{ ...b, rankings: undefined }], 0).rows[0]?.status).toBe('unknown');
   });
 
   it('falls back to the rule without rankings when the stored ones do not match the progress or the level', () => {
     const stale = withRankings(counterRankings, { invested: 200 });
-    expect(myInvestments([stale], 0).rows[0]).toMatchObject({ rest: 40, status: 'unknown' });
+    expect(mine([stale], 0).rows[0]).toMatchObject({ rest: 40, status: 'unknown' });
     const otherLevel = withRankings(counterRankings, { rankingsLevel: 9 });
-    expect(myInvestments([otherLevel], 0).rows[0]?.status).toBe('unknown');
+    expect(mine([otherLevel], 0).rows[0]?.status).toBe('unknown');
   });
 
   it('decides with the rankings also on a building at its highest level or not connected', () => {
     const blocked = withRankings(counterRankings, { maxLevel: 10, connected: false });
-    expect(myInvestments([blocked], 0).rows[0]?.status).toBe('unsafe');
+    expect(mine([blocked], 0).rows[0]?.status).toBe('unsafe');
   });
 });
 
 describe('profit, growth and order', () => {
   it('takes the reward with the own Arc bonus minus the own deposit', () => {
     // 50 × 1.9 = 95
-    expect(myInvestments([building()], 90).rows[0]).toMatchObject({ gross: 95, profit: -5 });
+    expect(mine([building()], 90).rows[0]).toMatchObject({ gross: 95, profit: -5 });
     // 5 × 1.9 = 9.5 rounds up like in the calculator
     const small = building({ contribution: { rank: 5, forgePoints: 3, reward: 5, at: 1 } });
-    expect(myInvestments([small], 90).rows[0]).toMatchObject({ gross: 10, profit: 7 });
+    expect(mine([small], 90).rows[0]).toMatchObject({ gross: 10, profit: 7 });
   });
 
   it('shows growth when the progress passed the one of the last opening', () => {
-    const grown = myInvestments([building({ growthBase: 150 })], 0).rows[0];
+    const grown = mine([building({ growthBase: 150 })], 0).rows[0];
     expect(grown?.growth).toBe(40);
-    expect(myInvestments([building()], 0).rows[0]?.growth).toBeUndefined();
-    expect(myInvestments([building({ growthBase: 190 })], 0).rows[0]?.growth).toBeUndefined();
-    expect(myInvestments([building({ growthBase: 250 })], 0).rows[0]?.growth).toBeUndefined();
+    expect(mine([building()], 0).rows[0]?.growth).toBeUndefined();
+    expect(mine([building({ growthBase: 190 })], 0).rows[0]?.growth).toBeUndefined();
+    expect(mine([building({ growthBase: 250 })], 0).rows[0]?.growth).toBeUndefined();
   });
 
   it('leaves out buildings without an own place', () => {
     const none = building({ contribution: undefined });
-    expect(myInvestments([none], 0).rows).toEqual([]);
+    expect(mine([none], 0).rows).toEqual([]);
   });
 
   it('puts growth first, then what levels soonest', () => {
-    const rows = myInvestments(
+    const rows = mine(
       [
         building({ entityId: 1, invested: 100, required: 400 }),
         building({ entityId: 2, invested: 100, required: 150 }),
@@ -132,7 +133,7 @@ describe('profit, growth and order', () => {
   it('sums the Forge points in circulation and the profit of safe rows and of all rows', () => {
     const safe = building({ entityId: 1, contribution: { rank: 1, forgePoints: 140, reward: 100, at: 1 } });
     const unknown = building({ entityId: 2 });
-    const result = myInvestments([safe, unknown], 0);
+    const result = mine([safe, unknown], 0);
     expect(sumTotals(result.rows)).toEqual({ circulating: 240, profitSafe: -40, profitTotal: -90 });
   });
 });
@@ -142,7 +143,7 @@ describe('the recorded town hall list', () => {
   const buildings = rows.flatMap((r) => applyListRow(world, undefined, r, 8_000, true) ?? []);
 
   it('has a row per building with its own place, profit and rest', () => {
-    const result = myInvestments(buildings, 90);
+    const result = mine(buildings, 90);
     expect(result.rows).toHaveLength(12);
     const kapitol = result.rows.find((r) => r.entityId === 13);
     expect(kapitol).toMatchObject({
@@ -161,11 +162,11 @@ describe('the recorded town hall list', () => {
   });
 
   it('knows no row as safe without rankings, since the others hold more than the own deposits', () => {
-    expect(myInvestments(buildings, 90).rows.every((r) => r.status === 'unknown')).toBe(true);
+    expect(mine(buildings, 90).rows.every((r) => r.status === 'unknown')).toBe(true);
   });
 
   it('sums all rows and orders them by the rest', () => {
-    const result = myInvestments(buildings, 90);
+    const result = mine(buildings, 90);
     expect(sumTotals(result.rows)).toEqual({ circulating: 4896, profitSafe: 0, profitTotal: 4342 });
     expect(result.rows.map((r) => r.rest)).toEqual([17, 67, 80, 120, 231, 237, 425, 472, 539, 1735, 5263, 5913]);
   });
@@ -176,7 +177,7 @@ describe('marked owner', () => {
     const rows = investmentsViewModel({
       visible: 100,
       sort: [],
-      investments: myInvestments([building(), building({ owner: playerId(2002), entityId: 2 })], 90),
+      investments: mine([building(), building({ owner: playerId(2002), entityId: 2 })], 90),
       now: 0,
       greatBuildingName: () => undefined,
       playerName: () => undefined,
@@ -204,10 +205,7 @@ describe('rows in view', () => {
       visible: 1,
       scroll: 1,
       sort: [],
-      investments: myInvestments(
-        [building(), building({ entityId: 2 }), building({ owner: playerId(2002), entityId: 3 })],
-        90,
-      ),
+      investments: mine([building(), building({ entityId: 2 }), building({ owner: playerId(2002), entityId: 3 })], 90),
       now: 0,
       greatBuildingName: () => undefined,
       playerName: () => undefined,
@@ -237,7 +235,7 @@ describe('totals line', () => {
       visible: 100,
       sort: [],
       // a safe row (the own deposit holds the rest and all the others) whose profit is `profitSafe`
-      investments: myInvestments(
+      investments: mine(
         [building({ contribution: { rank: 1, forgePoints: 120, reward: 120 + profitSafe, at: 1 } })],
         0,
       ),
@@ -298,7 +296,7 @@ describe('relation and filters of the own investments', () => {
     investmentsViewModel({
       visible: 100,
       sort: [],
-      investments: myInvestments(rows(), 0),
+      investments: mine(rows(), 0),
       now: 0,
       greatBuildingName: (def) => def.replace('X_Test_', ''),
       playerName: (id) => names[id],
@@ -385,7 +383,7 @@ describe('relation and filters of the own investments', () => {
   it('tells apart no investment at all from a filter that leaves none', () => {
     expect(vm().empty).toBe(false);
     expect(vm({ player: 'x' }).empty).toBe(false);
-    expect(vm({}, { investments: myInvestments([], 0) }).empty).toBe(true);
+    expect(vm({}, { investments: mine([], 0) }).empty).toBe(true);
   });
 });
 
@@ -401,7 +399,7 @@ describe('ignored rows of the own investments', () => {
     investmentsViewModel({
       visible: 100,
       sort: [],
-      investments: myInvestments(rows, 0),
+      investments: mine(rows, 0),
       now: 0,
       greatBuildingName: () => undefined,
       playerName: () => undefined,
@@ -451,7 +449,7 @@ describe('ignored rows of the own investments', () => {
 
   it('leaves the owner unknown to the store without an ignore state', () => {
     const only = [building({ owner: playerId(2999), entityId: 9 })];
-    const { rows: out } = vm({}, { investments: myInvestments(only, 0) });
+    const { rows: out } = vm({}, { investments: mine(only, 0) });
     expect(out[0]?.ownerIgnored).toBeUndefined();
   });
 });
