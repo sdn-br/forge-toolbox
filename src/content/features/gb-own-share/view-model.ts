@@ -1,8 +1,9 @@
 import type { BuildingDefId } from '../../../shared/ids';
+import { type ArcBonus, arcBonusAt } from '../../domain/arc-bonus';
 import { effectiveFactor, effectiveFactors } from '../../domain/gb-factor';
 import { emptyLevel } from '../../domain/gb-level-preview';
 import { calculateOwnShare, type OwnPlace, type OwnShareCalc } from '../../domain/gb-own-share';
-import type { GreatBuildingDef } from '../../model/catalog';
+import type { GreatBuildingDef, TierStart } from '../../model/catalog';
 import type { Construction, RankingRow } from '../../model/great-building';
 import { type PlaceFactorState, sameChoice } from '../../stores/place-factors';
 import { type FactorButton, factorButtons } from '../../ui/factor-bar';
@@ -28,8 +29,13 @@ export interface OwnShareInputs {
   /** the factor of each place, in percent or the Arc bonus, and where they come from */
   factors: PlaceFactorState;
   factorButtons: number[];
-  /** the own Arc bonus as one more button, sorted in by its value; missing when the setting leaves it out */
-  arcBonus?: number;
+  /**
+   * the own Arc bonus as one more button, sorted in by its value: the one of the tier of the level shown; missing when
+   * the setting leaves it out
+   */
+  arcBonus?: ArcBonus;
+  /** the tiers of great building levels; the default ones when missing */
+  tiers?: TierStart[];
   secureExisting: boolean;
   trust: boolean;
   /** places without a Forge point reward count as one paid Forge point */
@@ -126,7 +132,7 @@ export function ownShareViewModel(input: OwnShareInputs): OwnShareVm {
       };
     const preview = { ...base, required: empty.required, estimate: empty.reward.estimate };
     return {
-      ...ownTable(input, name, level, empty.required, empty.rankings, [], preview.estimate),
+      ...ownTable(input, name, gb, level, empty.required, empty.rankings, [], preview.estimate),
       levels,
       preview,
       addedLive: 0,
@@ -137,16 +143,26 @@ export function ownShareViewModel(input: OwnShareInputs): OwnShareVm {
   if (c.leveled || entity.level !== (input.openedLevel ?? entity.level))
     return { kind: 'leveled', name, level: c.leveled?.level ?? entity.level };
   return {
-    ...ownTable(input, name, entity.level, entity.required, c.rankings, input.exts, false),
+    ...ownTable(
+      input,
+      name,
+      input.greatBuilding?.(entity.def),
+      entity.level,
+      entity.required,
+      c.rankings,
+      input.exts,
+      false,
+    ),
     levels,
     addedLive: entity.invested - c.rankings.reduce((sum, r) => sum + (r.fp ?? 0), 0),
   };
 }
 
-/** the places of `level` with the factors of the building, the totals and the copy text */
+/** the places of `level` with the factors of the building, the totals and the copy text; the Arc bonus of its tier */
 function ownTable(
   input: OwnShareInputs,
   name: string,
+  gb: GreatBuildingDef | undefined,
   level: number,
   required: number,
   rankings: RankingRow[],
@@ -154,7 +170,8 @@ function ownTable(
   estimate: boolean,
 ): Omit<Extract<OwnShareVm, { kind: 'current' }>, 'levels' | 'preview' | 'addedLive'> {
   const { choices, ...factorState } = input.factors;
-  const factors = effectiveFactors(choices, input.arcBonus);
+  const arcBonus = input.arcBonus && arcBonusAt(input.arcBonus, gb, level, input.tiers);
+  const factors = effectiveFactors(choices, arcBonus);
   const calc = calculateOwnShare({
     required,
     rankings,
@@ -169,7 +186,7 @@ function ownTable(
   const text = copyText(calc, input.copy, { player, building, level, factor: factors });
   const first = choices[0];
   const alike = first && choices.every((c) => sameChoice(c, first)) ? first : undefined;
-  const buttons = factorButtons(input.factorButtons, input.arcBonus, alike);
+  const buttons = factorButtons(input.factorButtons, arcBonus, alike, input.arcBonus);
   return {
     kind: 'current',
     name,
@@ -182,9 +199,7 @@ function ownTable(
     trust: input.trust,
     rows: ownRows(calc, exts, estimate, (rank) => {
       const choice = choices[rank - 1];
-      return (
-        choice && { factor: effectiveFactor(choice, input.arcBonus), arc: choice.arc && input.arcBonus !== undefined }
-      );
+      return choice && { factor: effectiveFactor(choice, arcBonus), arc: choice.arc && arcBonus !== undefined };
     }),
     ownShare: calc.ownShare,
     myDeposit: calc.myDeposit,

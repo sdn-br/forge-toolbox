@@ -1,10 +1,11 @@
 import type { BuildingDefId } from '../../../shared/ids';
 import { clamp } from '../../../shared/math';
+import { type ArcBonus, arcBonusAt } from '../../domain/arc-bonus';
 import { type DoubleHarvest, hasDoubleHarvest } from '../../domain/gb-double-harvest';
 import { effectiveFactor, effectiveFactors } from '../../domain/gb-factor';
 import type { OwnShareCalc } from '../../domain/gb-own-share';
 import { powerLevelPlan } from '../../domain/gb-power-level';
-import type { GreatBuildingDef } from '../../model/catalog';
+import type { GreatBuildingDef, TierStart } from '../../model/catalog';
 import type { Construction } from '../../model/great-building';
 import { type PlaceFactorState, sameChoice } from '../../stores/place-factors';
 import { type FactorButton, factorButtons } from '../../ui/factor-bar';
@@ -25,8 +26,13 @@ export interface PowerLevelInputs {
   /** the factor of each place, in percent or the Arc bonus, and where they come from */
   factors: PlaceFactorState;
   factorButtons: number[];
-  /** the own Arc bonus as one more button, sorted in by its value; missing when the setting leaves it out */
-  arcBonus?: number;
+  /**
+   * the own Arc bonus, both tiers; each level takes the one of its tier, the button the one of the first level. Missing
+   * when the setting leaves the button out.
+   */
+  arcBonus?: ArcBonus;
+  /** the tiers of great building levels; the default ones when missing */
+  tiers?: TierStart[];
   secureExisting: boolean;
   trust: boolean;
   /** promised payments by place for the open level, index 0 is place 1 */
@@ -122,7 +128,10 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
   const from = level(input.from, entity.level, entity.level, Number.MAX_SAFE_INTEGER);
   const to = level(input.to, from + DEFAULT_SPAN, from + 1, from + MAX_ROWS);
   const { choices, ...factorState } = input.factors;
-  const factors = effectiveFactors(choices, input.arcBonus);
+  const arcAt = (x: number) => input.arcBonus && arcBonusAt(input.arcBonus, gb, x, input.tiers);
+  const arcBonus = arcAt(from);
+  const factors = effectiveFactors(choices, arcBonus);
+  const factorAt = (x: number) => effectiveFactors(choices, arcAt(x));
   const first = choices[0];
   const alike = first && choices.every((c) => sameChoice(c, first)) ? first : undefined;
   const harvestColumn = hasDoubleHarvest(entity.def, gb);
@@ -146,6 +155,7 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
       oneFpForNoReward: input.oneFpForNoReward,
       exts: input.exts,
     },
+    factorAt,
   });
   const rows = plan.rows.map<PowerRow>((r) => ({
     level: r.level,
@@ -158,7 +168,7 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
     ...(r.harvest && { harvest: r.harvest }),
     net: r.net,
     sum: r.sum,
-    copy: copyText(r.calc, input.copy, { player, building, level: r.level, factor: factors }),
+    copy: copyText(r.calc, input.copy, { player, building, level: r.level, factor: factorAt(r.level) }),
   }));
   return {
     kind: 'table',
@@ -167,11 +177,11 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
     from,
     to,
     factor: factors[0] ?? 0,
-    factorButtons: factorButtons(input.factorButtons, input.arcBonus, alike),
+    factorButtons: factorButtons(input.factorButtons, arcBonus, alike, input.arcBonus),
     factorState,
     placeFactors: choices.map((c) => ({
-      factor: effectiveFactor(c, input.arcBonus),
-      arc: c.arc && input.arcBonus !== undefined,
+      factor: effectiveFactor(c, arcBonus),
+      arc: c.arc && arcBonus !== undefined,
     })),
     harvestColumn,
     rows,

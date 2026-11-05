@@ -258,3 +258,40 @@ describe('what the table cannot show', () => {
     expect(kind({ construction: construction({ rankingsLevel: 2 }) })).toBe('leveled');
   });
 });
+
+describe('the Arc bonus by tier', () => {
+  it('pays each level at the Arc bonus of its tier, the buttons show the one of the first level', () => {
+    const arc: PlaceFactorState = { ...factorsOf(0), choices: Array(5).fill({ value: 0, arc: true }) };
+    const t = vm({
+      factors: arc,
+      greatBuilding: () => ({ ...roman, maxTier: 'gold' }),
+      arcBonus: { copper: 90, gold: 200 },
+      // gold from 6: the construction from 5 goes to the first gold level
+      tiers: [
+        { tier: 'copper', startLevel: 1 },
+        { tier: 'gold', startLevel: 6 },
+      ],
+      to: 7,
+    });
+    const shareAt = (level: number, factor: number) => {
+      const empty = emptyLevel(roman, level);
+      return calculateOwnShare({
+        required: empty.required as number,
+        rankings: empty.rankings as RankingRow[],
+        factor,
+        secureExisting: true,
+        trust: false,
+        oneFpForNoReward: true,
+      }).open;
+    };
+    expect(t.rows.map((r) => [r.level, r.ownShare])).toEqual([
+      [3, Math.max(0, calcOf(3, true).open)],
+      [4, shareAt(4, 90)],
+      [5, shareAt(5, 200)],
+      [6, shareAt(6, 200)],
+    ]);
+    expect(shareAt(5, 200)).not.toBe(shareAt(5, 90));
+    expect(t.placeFactors[0]).toEqual({ factor: 90, arc: true });
+    expect(t.factorButtons.find((b) => b.arc)).toMatchObject({ value: 90, arcBonuses: { copper: 90, gold: 200 } });
+  });
+});

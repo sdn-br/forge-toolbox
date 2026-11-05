@@ -3,7 +3,7 @@ import { formatNumber, formatPercent, signed, t } from '../../../core/texts';
 import type { LevelUpAndFirst } from '../../../domain/gb-strategy';
 import { activityLine } from '../../../ui/activity';
 import { emptyCell, estimateCell } from '../../../ui/estimate-cell';
-import { type FactorActions, factorBar } from '../../../ui/factor-bar';
+import { arcTip, type FactorActions, factorBar } from '../../../ui/factor-bar';
 import { foldToggle } from '../../../ui/fold-toggle';
 import { fpBar, progressPercent } from '../../../ui/fp-bar';
 import { headerIcons } from '../../../ui/icons';
@@ -50,7 +50,7 @@ function header(h: GbHeader, actions: GbCalculatorActions) {
     <span class="muted">· ${t('gbCalc.unlocked', { max: h.maxLevel })}</span>
     <br />${ownerOf(h, actions.toggleOwnerMark, actions.toggleOwnerIgnore)}${h.activity ? activityLine(h.activity) : ''}
     <br /><span class="muted"><span class="gb-fp" data-tip=${split}>${fp}</span> ·
-      ${t('gbCalc.arc', { arc: formatNumber(h.arcBonus) })}</span></p>`;
+      <span data-tip=${arcTip(h.arcBonuses)}>${t('gbCalc.arc', { arc: formatNumber(h.arcBonus) })}</span></span></p>`;
 }
 
 /** paid in of the running level with a thin bar under it, as the investments show it */

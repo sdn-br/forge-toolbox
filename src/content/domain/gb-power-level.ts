@@ -21,6 +21,8 @@ export interface PowerLevelInput {
   to: number;
   /** how the owner hands out the places; the promised payments count on the open level only */
   share: Omit<OwnShareInput, 'required' | 'rankings'>;
+  /** the factors of the places for the construction from `level`, when they change by level; else `share.factor` */
+  factorAt?: (level: number) => number[];
 }
 
 export interface PowerLevelRow {
@@ -65,7 +67,8 @@ export function powerLevelPlan(input: PowerLevelInput): PowerLevelPlan {
       endsAt = x;
       break;
     }
-    const calc = calculateOwnShare({ ...share, required, rankings, exts: open ? share.exts : [] });
+    const factor = input.factorAt?.(x) ?? share.factor;
+    const calc = calculateOwnShare({ ...share, factor, required, rankings, exts: open ? share.exts : [] });
     const harvest = doubleHarvest(def, greatBuilding, x, input.nextProduction);
     const ownShare = Math.max(0, calc.open);
     const net = ownShare - (harvest?.fp ?? 0);

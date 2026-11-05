@@ -53,6 +53,17 @@ describe('levelUpAndFirst', () => {
     });
   });
 
+  it('prices the next level with its own Arc bonus and factor, as its tier can differ', () => {
+    // the next place 1 pays 670: round(670 × 2) = 1340 for the safe 1230, +110 instead of +80; the fill stays -10
+    const rows = [row(1, 1300), row(2, 900), row(3, 100), row(4, 50), row(5, 40)];
+    const i = input(rows);
+    expect(levelUpAndFirst(i, calculateConstruction(i), gb, { arcBonus: 100, factor: 90 })).toMatchObject({
+      fillGain: -10,
+      firstGain: 110,
+      total: 100,
+    });
+  });
+
   it('counts a place of an early level that pays no Forge points as 0, levelling onto it and taking it alike', () => {
     // P4 and P5 pay 0 FP, as in the first levels: 2380 in, 20 missing lands on 4 for 0 FP: -20, with the next +60.
     // Taking 4 or 5 safely costs Forge points for 0, so the current level brings 0

@@ -1,5 +1,6 @@
 import type { BuildingDefId } from '../../../../shared/ids';
 import { formatRatio } from '../../../core/texts';
+import { type ArcBonus, arcBonusAt } from '../../../domain/arc-bonus';
 import {
   availableForgePoints,
   type ConstructionCalc,
@@ -15,7 +16,7 @@ import { effectiveFactor as effective, type FactorChoice } from '../../../domain
 import { previewLevel } from '../../../domain/gb-level-preview';
 import { ownerRow } from '../../../domain/gb-snipe';
 import { type LevelUpAndFirst, levelUpAndFirst } from '../../../domain/gb-strategy';
-import type { GreatBuildingDef } from '../../../model/catalog';
+import type { GreatBuildingDef, TierStart } from '../../../model/catalog';
 import type { Construction } from '../../../model/great-building';
 import type { ActivityVm } from '../../../ui/activity';
 import { type FactorButton, factorButtons } from '../../../ui/factor-bar';
@@ -40,7 +41,10 @@ export interface GbHeader extends OwnerVm {
   /** the parts of `availableFp`; a part is undefined while its source is not known */
   fpBar?: number;
   fpPackages?: number;
+  /** the Arc bonus of the tier of the level shown (the next level of the construction shown) */
   arcBonus: number;
+  /** both values, for the tooltip */
+  arcBonuses: ArcBonus;
   /** the level selector: live or a preview of a later level */
   levels: LevelChoice;
   /** the player put a star on the building */
@@ -157,7 +161,10 @@ export interface GbCalculatorInput extends GbCalcLookups {
   fpBar?: number;
   /** Forge points in the packages of the inventory; undefined while the inventory is not known */
   fpPackages?: number;
-  arcBonus: number;
+  /** per tier; each level takes the one of the level it goes to */
+  arcBonus: ArcBonus;
+  /** the tiers of great building levels; the default ones when missing */
+  tiers?: TierStart[];
   factor: FactorChoice;
   /** the factor presets in percent */
   factorButtons: number[];
@@ -262,6 +269,12 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
   const levels = levelChoice(entity.level, input.previewLevel);
   const preview = levels.preview ? levels.chosen : undefined;
   const availableFp = availableForgePoints(input.fpBar, input.fpPackages);
+  const gb = input.greatBuilding(entity.def);
+  // each construction pays the Arc bonus of its tier: the live one, the next one after a level up, the one shown
+  const arcAt = (level: number) => arcBonusAt(input.arcBonus, gb, level, input.tiers);
+  const factorAt = (arc: number) => effective(input.factor, input.arcButton ? arc : undefined);
+  const liveArc = arcAt(entity.level);
+  const shownArc = arcAt(preview ?? entity.level);
   const ignored = input.isIgnored(c.owner, c.entityId);
   const foestats = input.foestats(c.owner);
   const words = ignoreWords(ignored, owner.ownerIgnored);
@@ -275,26 +288,33 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     availableFp,
     fpBar: input.fpBar,
     fpPackages: input.fpPackages,
-    arcBonus: input.arcBonus,
+    arcBonus: shownArc,
+    arcBonuses: input.arcBonus,
     levels,
     marked: input.isMarked(c.owner, c.entityId),
     ignored,
     ...(words.length > 0 && { ignoreWords: words }),
   };
-  const arcButton = input.arcButton ? input.arcBonus : undefined;
-  const effectiveFactor = effective(input.factor, arcButton);
-  const buttons = factorButtons(input.factorButtons, arcButton, input.factor);
-  const live = constructionOf(entity, c.rankings, { arcBonus: input.arcBonus, factor: effectiveFactor });
+  const effectiveFactor = factorAt(shownArc);
+  const buttons = factorButtons(
+    input.factorButtons,
+    input.arcButton ? shownArc : undefined,
+    input.factor,
+    input.arcBonus,
+  );
+  const live = constructionOf(entity, c.rankings, { arcBonus: liveArc, factor: factorAt(liveArc) });
   const calc = calculateConstruction(live);
-  const gb = input.greatBuilding(entity.def);
-  const levelUp = c.leveled ? undefined : levelUpAndFirst(live, calc, gb);
+  const nextArc = arcAt(entity.level + 1);
+  const levelUp = c.leveled
+    ? undefined
+    : levelUpAndFirst(live, calc, gb, { arcBonus: nextArc, factor: factorAt(nextArc) });
   if (preview !== undefined) {
     return {
       kind: 'preview',
       header,
       factorButtons: buttons,
       effectiveFactor,
-      preview: previewVm(gb, preview, entity.maxLevel, input.arcBonus, effectiveFactor),
+      preview: previewVm(gb, preview, entity.maxLevel, shownArc, effectiveFactor),
       ...(levelUp && preview === levelUp.nextLevel && { levelUp }),
     };
   }

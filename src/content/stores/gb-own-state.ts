@@ -59,7 +59,7 @@ export const viewFlag = (prefs: Pick<PrefStore, 'pref'>, key: string, fallback: 
   return value === undefined ? fallback : value === 'true';
 };
 
-/** the own Arc bonus while its factor button shows */
+/** the own Arc bonus, both tiers, while its factor button shows */
 export const ownArcBonus = (settings: Settings, bonuses: PlayerBonusStore) =>
   settings.of(ARC_BUTTON).get() ? bonuses.arcBonus() : undefined;
 

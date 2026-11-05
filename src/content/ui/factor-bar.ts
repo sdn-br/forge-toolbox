@@ -1,6 +1,7 @@
 // The factor buttons of the great building calculators: presets and the own Arc bonus, sorted by value, plus a field.
 import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../core/texts';
+import type { ArcBonus } from '../domain/arc-bonus';
 import { FACTOR_STEP, type FactorChoice, factorOf, percentOf } from '../domain/gb-factor';
 import { keepKeys } from './inputs';
 
@@ -9,6 +10,8 @@ export interface FactorButton {
   /** the button of the own Arc bonus */
   arc: boolean;
   active: boolean;
+  /** the Arc button: both values of the Arc bonus, the button shows the one of the level */
+  arcBonuses?: ArcBonus;
 }
 
 export interface FactorActions {
@@ -20,18 +23,29 @@ export interface FactorActions {
 /** 90 % reads as the factor 1,9 */
 export const factorText = (percent: number) => formatNumber(factorOf(percent));
 
-/** the presets and, when given, the own Arc bonus, sorted by value, the chosen one active; without a choice none is */
+/** both values of the Arc bonus, „Kupfer 93 %, Gold 12 %“ */
+export const arcTip = (arc: ArcBonus) =>
+  t('gbCalc.arcTiers', { copper: formatNumber(arc.copper), gold: formatNumber(arc.gold) });
+
+/**
+ * the presets and, when given, the own Arc bonus of the level, sorted by value, the chosen one active; without a choice
+ * none is. `arcBonuses` are both values for the tooltip of the Arc button.
+ */
 export function factorButtons(
   presets: number[],
   arcBonus: number | undefined,
   choice: FactorChoice | undefined,
+  arcBonuses?: ArcBonus,
 ): FactorButton[] {
   const arc = choice?.arc === true && arcBonus !== undefined;
   return [
     ...presets.map((value) => ({ value, arc: false, active: !arc && value === choice?.value })),
-    ...(arcBonus === undefined ? [] : [{ value: arcBonus, arc: true, active: arc }]),
+    ...(arcBonus === undefined ? [] : [{ value: arcBonus, arc: true, active: arc, ...(arcBonuses && { arcBonuses }) }]),
   ].sort((a, b) => a.value - b.value);
 }
+
+const arcButtonTip = (b: FactorButton) =>
+  b.arcBonuses ? `${t('gbCalc.arcButton')} (${arcTip(b.arcBonuses)})` : t('gbCalc.arcButton');
 
 /** a field that reads `percent` as a factor; `set` gets what was typed in percent */
 export function factorInput(f: {
@@ -57,7 +71,7 @@ export function factorBar(buttons: FactorButton[], factor: number, actions: Fact
   return html`<div class="gb-factor">
     <span>${t('gbCalc.factor')}</span>
     ${buttons.map(
-      (b) => html`<button class=${b.active ? 'action active' : 'action'} data-tip=${b.arc ? t('gbCalc.arcButton') : ''}
+      (b) => html`<button class=${b.active ? 'action active' : 'action'} data-tip=${b.arc ? arcButtonTip(b) : ''}
         @click=${() => (b.arc ? actions.useArc() : actions.setFactor(b.value))}>${factorText(b.value)}</button>`,
     )}
     ${factorInput({

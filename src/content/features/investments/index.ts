@@ -45,6 +45,7 @@ export const investmentsFeature: Feature = {
     const ratings = ownerRatings(
       (def) => ctx.catalog.get(def)?.greatBuilding,
       () => ctx.session.current?.playerId,
+      () => ctx.catalog.greatBuildingTiers(),
     );
 
     /** how many rows fit into the table area; a change redraws */
@@ -175,7 +176,9 @@ export const investmentsFeature: Feature = {
     ctx.bus.on('greatBuilding.ignored', relookup);
     // every collection in the own city reports a change; only the Arc bonus counts
     ctx.bus.on('city.ownChanged', () => {
-      if (ownArc() !== ratings.arc()) rerate();
+      const now = ownArc();
+      const rated = ratings.arc();
+      if (now.copper !== rated.copper || now.gold !== rated.gold) rerate();
     });
     // the rewards of a level decide which places pay
     ctx.bus.on('catalog.updated', () => {

@@ -24,12 +24,14 @@ export interface LevelUpAndFirst {
  * The combination only when the next level can be paid into right after the level up and it pays: not blocked, the
  * level after the next construction start unlocked, the reward of the next level known and the total above the best
  * profit of the current level without levelling: the own place, or a place still to take (0 when none brings one).
- * `calc` is the construction of `input`, as the caller has it already.
+ * `calc` is the construction of `input`, as the caller has it already. `next` holds the Arc bonus and the factor of the
+ * next level when they differ: its tier can be gold while the current level is copper.
  */
 export function levelUpAndFirst(
   input: ConstructionInput,
   calc: ConstructionCalc,
   greatBuilding: GreatBuildingDef | undefined,
+  next: { arcBonus: number; factor: number } = input,
 ): LevelUpAndFirst | undefined {
   const { level, maxLevel, rankings, arcBonus } = input;
   // the construction from `level` is open while level < maxLevel, so the next one needs level + 1 < maxLevel
@@ -41,7 +43,8 @@ export function levelUpAndFirst(
   const rank = 1 + others.filter((fp) => fp >= mine).length;
   const reward = rankings.find((r) => r.rank === rank)?.reward?.fp ?? 0;
   const fillGain = plusPercent(reward, arcBonus) - mine;
-  const first = previewLevel({ greatBuilding, level: level + 1, arcBonus, factor: input.factor }).calc?.places[0];
+  const first = previewLevel({ greatBuilding, level: level + 1, arcBonus: next.arcBonus, factor: next.factor }).calc
+    ?.places[0];
   if (first?.safeCost === undefined || first.profit === undefined) return undefined;
   const total = fillGain + first.profit;
   // levelling up plus first place against what the current level pays without levelling: the own place as it stands,

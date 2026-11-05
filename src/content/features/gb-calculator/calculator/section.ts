@@ -122,13 +122,14 @@ export function createCalculatorSection(
   return {
     shown: () => shown,
     hasBuilding: () => vm.kind !== 'none' && vm.kind !== 'noEntity',
-    update: ({ lookups, greatBuilding, arcBonus }) => {
+    update: ({ lookups, greatBuilding, arcBonus, tiers }) => {
       vm = gbCalculatorViewModel({
         ...lookups,
         construction: shown,
         fpBar: ctx.resources.known ? ctx.resources.amount(FORGE_POINTS) : undefined,
         fpPackages: ctx.inventory.knowsPackages ? ctx.inventory.forgePointPackages() : undefined,
         arcBonus,
+        tiers,
         factor: { value: factor.get(), arc: factorArc.get() },
         factorButtons: factorButtons.get(),
         arcButton: arcButton.get(),

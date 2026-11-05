@@ -109,7 +109,7 @@ Für die [Snipehilfe](../features/snipehilfe.md) (Nutzer, 2026-10-24). Ein Eintr
 
 ## Rechnung je Platz (abgeleitet)
 
-Reine Funktion `calculateConstruction` in `src/content/domain/gb-calculator.ts`. Eingaben: Stufe, Höchststufe, verbunden, benötigte FP, Rangliste, Arche-Bonus und Faktor in Prozent.
+Reine Funktion `calculateConstruction` in `src/content/domain/gb-calculator.ts`. Eingaben: Stufe, Höchststufe, verbunden, benötigte FP, Rangliste, Arche-Bonus und Faktor in Prozent. Der Arche-Bonus ist der Wert der Prestigestufe, in die die Einzahlung geht (siehe Arche-Bonus unten).
 
 - **Rest:** benötigte FP minus (Summe aller Einzahlungen minus eigene Einzahlung). So viel dürfen die anderen noch einzahlen.
 - **Brutto:** `round(N × (1 + Arche/100))` mit N = `strategy_point_amount`, ebenso Blaupausen und Medaillen.
@@ -128,7 +128,11 @@ Reine Funktion `calculateConstruction` in `src/content/domain/gb-calculator.ts`.
 - Runden kaufmännisch, mit einer kleinen Toleranz gegen Fließkommafehler (5 × 1,9 ergibt 10).
 - Höchststufe erreicht oder nicht verbunden: keine Plätze, nur der Grund.
 
-**Arche-Bonus:** Summe der `contribution_boost`-Boni der eigenen LGs aus der Stadt, dazu befristete Boni dieses Typs aus `BonusService.getLimitedBonuses`. Befristete Boni eines eigenen LGs stehen in beiden Listen (gesehen beim Vorrats-Bonus des LGs 701), deshalb zählt ein befristeter Bonus nicht, dessen `entityId` schon mit einem Arche-Bonus gezählt ist. In der Aufnahme gab es keinen befristeten `contribution_boost`. Die befristeten Boni hält der `PlayerBonusStore` im Speicher (nicht persistiert, ohne Event), seine Abfrage `arcBonus()` liefert den Arche-Bonus.
+**Arche-Bonus:** Seit dem Spielupdate vom 2026-11-05 (Prestigestufen) gibt es zwei Werte, Kupfer und Gold. Kupfer ist die Summe der `contribution_boost`-Boni der eigenen LGs aus der Stadt, Gold die Summe der `contribution_boost_gold`-Boni, dazu je befristete Boni desselben Typs aus `BonusService.getLimitedBonuses`. Die eigene Arche auf Stufe 137 hatte in der Aufnahme `contribution_boost` 93 und `contribution_boost_gold` 12. Befristete Boni eines eigenen LGs stehen in beiden Listen (gesehen beim Vorrats-Bonus des LGs 701), deshalb zählt ein befristeter Bonus nicht, dessen `entityId` für denselben Typ schon gezählt ist. In den Aufnahmen gab es keinen befristeten Arche-Bonus. Die befristeten Boni hält der `PlayerBonusStore` im Speicher (nicht persistiert, ohne Event), seine Abfrage `arcBonus()` liefert `{ copper, gold }` (`src/content/domain/arc-bonus.ts`).
+
+**Prestigestufe einer Einzahlung:** Eine Einzahlung gehört zur Zielstufe des Level-Ups, also Stufe des LGs + 1. Welche Prestigestufe diese Stufe hat, rechnet `levelTier` (`src/content/domain/gb-tier.ts`): von den Einträgen der Metadatei `great_building_tiers` (siehe [Catalog](catalog.md)) der mit dem höchsten `startLevel`, den die Stufe erreicht, aber nicht höher als `maxTier` der Definition. Die Bereiche der Datei überschneiden sich (Kupfer 1 bis 200, Gold ab 101), deshalb zählt nur der Start. Beispiel: Die Arche (`maxTier` Gold) auf Stufe 100 baut auf 101 und zahlt den Gold-Bonus aus, auf Stufe 99 den Kupfer-Bonus. Ein LG mit `maxTier` Kupfer bleibt immer Kupfer. Rückfälle: ohne Definition Kupfer (die Funktion nimmt eine bekannte Stufe an, falls ein Aufrufer eine hat, bisher keiner), eine Definition ohne `maxTier` Kupfer, solange die Datei fehlt, die Stufen vom 2026-11-05 (Gold ab 101). `arcBonusAt(arc, def, level)` gibt den passenden Wert für den Bau ab `level`.
+
+**Welcher Wert wo gilt (Nutzer, 2026-11-05):** Jede Rechnung nimmt den Wert der Stufe, die sie rechnet, und zeigt diesen. Der andere Wert steht nur im Tooltip („Kupfer 93 %, Gold 12 %“). Das gilt für LG-Rechner (laufende Stufe, Stufenvorschau, Leveln + P1 mit dem Wert der nächsten Stufe), Snipehilfe, Investitionen, Eigenanteil und Powerleveln (je Zeile).
 
 **Netto:** `strategy_point_amount` ist die Belohnung ohne Arche-Bonus, der Empfänger bekommt sie mit seinem Bonus. Bestätigt (Abgleich mit Spiel und alter Toolbox, 2026-10-22).
 
@@ -167,10 +171,11 @@ Der Store übernimmt in beiden Fällen Rangliste und Gebäude der neuen Stufe (`
 
 Reine Funktionen in `src/content/domain/gb-level-preview.ts`. `previewLevel` nimmt Ära und Stufenkosten des LGs, die Stufe, den Arche-Bonus und den Faktor und rechnet mit `calculateConstruction` auf einer leeren Rangliste (fünf freie Plätze, Blaupausen und Medaillen 0, verbunden, Höchststufe nicht beachtet). Die Stufe zählt wie `level` des Gebäudes: Stufe X ist der Bau von X auf X+1. Die leere Stufe selbst (Kosten, P1 und die fünf Plätze ohne Einzahlung) liefert `emptyLevel`, auch für den [Eigenanteil](../features/eigenanteil.md), der damit `calculateOwnShare` rechnet.
 
-**Definition des LGs:** die Metadatei `building_entity_<id>` vom Inno-CDN, wie das Spiel sie lädt. `toBuildingDef` legt für LGs `greatBuilding { era, levelCosts, fpProduction? }` an:
+**Definition des LGs:** die Metadatei `building_entity_<id>` vom Inno-CDN, wie das Spiel sie lädt. `toBuildingDef` legt für LGs `greatBuilding { era, levelCosts, fpProduction?, maxTier? }` an:
 
 - `levelCosts` ist `strategy_points_for_upgrade`, die Kosten der ersten zehn Stufen (Index 0 ist der Bau von 0 auf 1).
 - `fpProduction` ist `production_bonus.values`, die FP-Produktion je Stufe (Index = Stufe, 0 bis 10), nur wenn `production_bonus.type` `strategy_points` ist (Aufnahme vom 2026-10-23: 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6 für `X_EarlyMiddleAge_Landmark1`). Grundlage der Doppelernte im [Powerleveln](../features/powerleveln.md).
+- `maxTier` ist die höchste Prestigestufe des LGs, `maxTier: { __enum__: 'GreatBuildingTier', value: 'gold' }` (oder `copper`), seit dem 2026-11-05. Die Arche (`X_FutureEra_Landmark1`), Zeus (`X_BronzeAge_Landmark2`) und Alcatraz (`X_ProgressiveEra_Landmark1`) reichen bis Gold, `X_IronAge_Landmark2` und der Tempel der Relikte (`X_AllAge_Expedition`) nur bis Kupfer (Aufnahme vom 2026-11-05). Die Definition bringt auch `bonuses` je Prestigestufe, gelesen wird davon noch nichts.
 - `era` ist `requirements.min_era`, die Ära des LGs selbst, nicht die des Eigentümers. LGs aller Zeitalter (Orakel, Expedition) haben dort `NoAge`, das wird `AllAge`. Fehlt `min_era`, gilt die Ära aus der ID `X_<Ära>_Landmark1`. Gesehen in der Aufnahme vom 2026-10-19 (alle LG-Definitionen), Testfall `test/fixtures/gb-definitions.json` (gebaut mit `scripts/make-fixture.py gb-defs`).
 
 **Kosten einer Stufe:** bis Stufe 9 `levelCosts[Stufe]`, ab Stufe 10 `ceil(levelCosts[9] × 1,025^(Stufe − 9))`. Geprüft an allen neun aufgezeichneten Konstruktionen (Stufen 41 bis 135): die Kosten der laufenden Stufe sind genau `forge_points_for_level_up`.

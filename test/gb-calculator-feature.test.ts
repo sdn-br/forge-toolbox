@@ -72,7 +72,7 @@ function setup(options: TestStoresOptions = {}) {
     send(o.construction);
   };
   const rows = () => [...box.root.querySelectorAll('tr')].slice(1);
-  return { ...env, box, send, ws, open, opening, rows, loadDefinitions, tones: () => tones };
+  return { ...env, ingestion, box, send, ws, open, opening, rows, loadDefinitions, tones: () => tones };
 }
 
 describe('LG-Rechner', () => {
@@ -119,6 +119,34 @@ describe('LG-Rechner', () => {
     // place 2 costs the same 1406 as place 1, which is better: no safe cost, profit or rate, reward and demand stay
     expect(cells(rows()[1])).toEqual(['2', '–', '–', '714', '–', '–', '694', '–']);
     expect(tones()).toBe(1);
+  });
+
+  it('pays the gold Arc bonus into a gold level and names both values in the tooltip', async () => {
+    const { box, ingestion, send, open, rows, loadDefinitions } = setup();
+    loadDefinitions();
+    // the Arc reaches gold; level 100 → 101 is the first gold level
+    const arche = definitions.files.find((f) => f.json.id === 'X_FutureEra_Landmark1');
+    if (!arche) throw new Error('no Arc definition');
+    const json = { ...arche.json, maxTier: { __enum__: 'GreatBuildingTier', value: 'gold' } };
+    ingestion.accept({ kind: 'meta', url: arche.url, response: JSON.stringify(json), at: 0 });
+    send({
+      requestClass: 'BonusService',
+      requestMethod: 'getLimitedBonuses',
+      requestData: [],
+      responseData: [{ type: 'contribution_boost_gold', value: 10, isActive: true }],
+    });
+    open(1500);
+    await tick();
+    expect(box.text).toContain('Arche St. 100 → 101');
+    expect(box.text).toContain('Arche-Bonus: 10 %');
+    const arc = [...box.root.querySelectorAll('[data-tip]')].find((e) => e.textContent?.includes('Arche-Bonus'));
+    expect(arc?.getAttribute('data-tip')).toBe('Kupfer 95,5 %, Gold 10 %');
+    // place 1 pays 1820, with the gold bonus 2002
+    expect(rows()[0]?.querySelectorAll('td')[3]?.textContent?.trim()).toBe('2.002');
+    // a copper level still takes the copper value
+    open(1909);
+    await tick();
+    expect(box.text).toContain('Arche-Bonus: 95,5 %');
   });
 
   it('shows the profit per Forge point paid in, dashes without a profit, a loss with its sign', async () => {

@@ -95,6 +95,7 @@ interface LevelPreviewInput {
   greatBuilding: GreatBuildingDef;
   /** the level the construction starts from */
   level: number;
+  /** the Arc bonus of the tier of level + 1 */
   arcBonus: number;
   factor: number;
 }

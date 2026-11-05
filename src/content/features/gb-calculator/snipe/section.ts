@@ -136,8 +136,8 @@ export function createSnipeSection(
   return {
     listOwner: () => list?.owner,
     hasList: () => vm.kind !== 'none',
-    update: ({ lookups, greatBuilding, arcBonus, now }) => {
-      snipe = list && snipeList({ buildings: listed, greatBuilding, arcBonus });
+    update: ({ lookups, greatBuilding, arcBonus, tiers, now }) => {
+      snipe = list && snipeList({ buildings: listed, greatBuilding, arcBonus, tiers });
       vm = snipeViewModel({ ...lookups, list, result: snipe, showIgnored, now, sort, scroll });
     },
     render: (show) => snipeView(vm, actions, show !== 'folded', show !== 'alone'),

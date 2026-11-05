@@ -9,7 +9,7 @@ export interface ConstructionInput {
   /** Forge points the current level needs */
   required: number;
   rankings: RankingRow[];
-  /** Arc bonus of the session player in percent, e.g. 95.5 */
+  /** Arc bonus of the session player in percent for the tier of level + 1, e.g. 95.5 */
   arcBonus: number;
   /** factor in percent the player asks for when others pay a place, e.g. 90 asks 1.9 times the reward */
   factor: number;

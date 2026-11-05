@@ -2,7 +2,8 @@
 import { foestatsDay } from '../../../shared/foestats';
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import type { FeatureContext } from '../../core/feature';
-import type { GreatBuildingDef } from '../../model/catalog';
+import type { ArcBonus } from '../../domain/arc-bonus';
+import type { GreatBuildingDef, TierStart } from '../../model/catalog';
 import { FOESTATS_SETTING, type FoestatsRecord } from '../../stores/foestats';
 import { type GbLookups, gbLookups } from '../shared/gb-lookups';
 
@@ -19,7 +20,10 @@ export interface GbShared {
   lookups: GbCalcLookups;
   /** era and level costs of a building; undefined while its definition is not loaded */
   greatBuilding(def: BuildingDefId): GreatBuildingDef | undefined;
-  arcBonus: number;
+  /** per tier; a building takes the one of the level it goes to */
+  arcBonus: ArcBonus;
+  /** the tiers of great building levels */
+  tiers: TierStart[];
   now: number;
 }
 
@@ -32,6 +36,7 @@ export function gbShared(ctx: FeatureContext, now: number): GbShared {
     },
     greatBuilding: (def) => ctx.catalog.get(def)?.greatBuilding,
     arcBonus: ctx.playerBonuses.arcBonus(),
+    tiers: ctx.catalog.greatBuildingTiers(),
     now,
   };
 }

@@ -1,0 +1,378 @@
+{
+  "note": "Great building tiers recorded on de10 2026-11-05: the metadata great_building_tiers, own great buildings with their list of bonuses (the Arc with contribution_boost and contribution_boost_gold) and their definitions trimmed to the level costs and maxTier. Player anonymized.",
+  "tiers": {
+    "url": "https://cdn/start/metadata?id=great_building_tiers-0",
+    "json": [
+      {
+        "tier": {
+          "__enum__": "GreatBuildingTier",
+          "value": "copper"
+        },
+        "iconAssetId": "copper",
+        "bannerColor": "red",
+        "name": "Kupfer",
+        "startLevel": 1,
+        "endLevel": 200,
+        "__class__": "GreatBuildingTierMetadata"
+      },
+      {
+        "tier": {
+          "__enum__": "GreatBuildingTier",
+          "value": "gold"
+        },
+        "iconAssetId": "gold",
+        "bannerColor": "blue",
+        "name": "Gold",
+        "startLevel": 101,
+        "endLevel": 2147483647,
+        "__class__": "GreatBuildingTierMetadata"
+      }
+    ]
+  },
+  "startup": [
+    {
+      "requestClass": "StartupService",
+      "requestMethod": "getData",
+      "requestData": null,
+      "responseData": {
+        "user_data": {
+          "player_id": 1000,
+          "user_name": "Ich",
+          "era": "VirtualFuture"
+        },
+        "city_map": {
+          "gridId": "main",
+          "entities": [
+            {
+              "id": 1769,
+              "cityentity_id": "X_FutureEra_Landmark1",
+              "type": "greatbuilding",
+              "x": 31,
+              "connected": 1,
+              "level": 137,
+              "max_level": 138,
+              "state": {
+                "next_state_transition_in": 86362,
+                "next_state_transition_at": 1793966709,
+                "forge_points_for_level_up": 62495,
+                "current_product": {
+                  "production_time": 86400,
+                  "products": [
+                    {
+                      "name": "clan_goods",
+                      "production_time": 86400,
+                      "asset_name": "clan_goods",
+                      "goods": [
+                        {
+                          "good_id": "tea_silk",
+                          "value": 1845,
+                          "__class__": "CityGood"
+                        },
+                        {
+                          "good_id": "data_crystals",
+                          "value": 1845,
+                          "__class__": "CityGood"
+                        },
+                        {
+                          "good_id": "golden_rice",
+                          "value": 1845,
+                          "__class__": "CityGood"
+                        },
+                        {
+                          "good_id": "nanites",
+                          "value": 1845,
+                          "__class__": "CityGood"
+                        },
+                        {
+                          "good_id": "cryptocash",
+                          "value": 1845,
+                          "__class__": "CityGood"
+                        }
+                      ],
+                      "__class__": "CityEntityClanGoodsProduct"
+                    }
+                  ],
+                  "slot": 2,
+                  "__class__": "CityEntityGreatBuildingProducts"
+                },
+                "__class__": "ProducingState"
+              },
+              "bonuses": [
+                {
+                  "value": 93.0,
+                  "type": "contribution_boost",
+                  "amount": -1,
+                  "bonusCategory": {
+                    "__enum__": "GreatBuildingBonusCategory",
+                    "value": "passiveBonus"
+                  },
+                  "__class__": "GreatBuildingCityMapBonus"
+                },
+                {
+                  "value": 1845.0,
+                  "type": "clan_goods",
+                  "bonusCategory": {
+                    "__enum__": "GreatBuildingBonusCategory",
+                    "value": "productionBonus"
+                  },
+                  "__class__": "GreatBuildingClanBonus"
+                },
+                {
+                  "value": 12.0,
+                  "type": "contribution_boost_gold",
+                  "amount": -1,
+                  "bonusCategory": {
+                    "__enum__": "GreatBuildingBonusCategory",
+                    "value": "passiveBonus"
+                  },
+                  "__class__": "GreatBuildingCityMapBonus"
+                }
+              ],
+              "__class__": "CityMapEntity",
+              "player_id": 1000
+            },
+            {
+              "id": 824,
+              "cityentity_id": "X_ProgressiveEra_Landmark1",
+              "type": "greatbuilding",
+              "x": 38,
+              "y": 25,
+              "connected": 1,
+              "level": 111,
+              "max_level": 112,
+              "state": {
+                "next_state_transition_in": 32810,
+                "next_state_transition_at": 1793913157,
+                "forge_points_for_level_up": 23797,
+                "current_product": {
+                  "production_time": 86400,
+                  "products": [
+                    {
+                      "name": "penal_unit",
+                      "production_time": 86400,
+                      "asset_name": "penal_unit",
+                      "requirements": {
+                        "cost": {
+                          "resources": [],
+                          "__class__": "Resources"
+                        },
+                        "__class__": "CityEntityRequirements"
+                      },
+                      "amount": 640,
+                      "__class__": "CityEntityMilitaryProduct"
+                    }
+                  ],
+                  "slot": 3,
+                  "__class__": "CityEntityGreatBuildingProducts"
+                },
+                "__class__": "ProducingState"
+              },
+              "bonuses": [
+                {
+                  "value": 298261.0,
+                  "type": "happiness",
+                  "amount": -1,
+                  "bonusCategory": {
+                    "__enum__": "GreatBuildingBonusCategory",
+                    "value": "passiveBonus"
+                  },
+                  "__class__": "GreatBuildingCityMapBonus"
+                },
+                {
+                  "value": 640.0,
+                  "type": "penal_unit",
+                  "amount": -1,
+                  "bonusCategory": {
+                    "__enum__": "GreatBuildingBonusCategory",
+                    "value": "productionBonus"
+                  },
+                  "__class__": "GreatBuildingCityMapBonus"
+                },
+                {
+                  "value": 2.0,
+                  "type": "military_boost",
+                  "bonusCategory": {
+                    "__enum__": "GreatBuildingBonusCategory",
+                    "value": "passiveBonus"
+                  },
+                  "targetedFeature": "battleground",
+                  "isBonusMultiplier": true,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "value": 131.0,
+                  "type": "advanced_tactics",
+                  "bonusCategory": {
+                    "__enum__": "GreatBuildingBonusCategory",
+                    "value": "passiveBonus"
+                  },
+                  "targetedFeature": "battleground",
+                  "__class__": "GreatBuildingUnitBonus"
+                }
+              ],
+              "__class__": "CityMapEntity",
+              "player_id": 1000
+            },
+            {
+              "id": 368,
+              "cityentity_id": "X_BronzeAge_Landmark2",
+              "type": "greatbuilding",
+              "x": 11,
+              "y": 35,
+              "connected": 1,
+              "level": 88,
+              "max_level": 89,
+              "state": {
+                "forge_points_for_level_up": 3667,
+                "__class__": "IdleState"
+              },
+              "bonuses": [
+                {
+                  "value": 247.0,
+                  "type": "military_boost",
+                  "bonusCategory": {
+                    "__enum__": "GreatBuildingBonusCategory",
+                    "value": "passiveBonus"
+                  },
+                  "targetedFeature": "all",
+                  "__class__": "GreatBuildingUnitBonus"
+                }
+              ],
+              "__class__": "CityMapEntity",
+              "player_id": 1000
+            },
+            {
+              "id": 701,
+              "cityentity_id": "X_IronAge_Landmark2",
+              "type": "greatbuilding",
+              "x": 44,
+              "y": 52,
+              "connected": 1,
+              "level": 41,
+              "max_level": 41,
+              "state": {
+                "next_state_transition_at": 1793872278,
+                "forge_points_for_level_up": 1216,
+                "current_product": {
+                  "production_time": 86400,
+                  "products": [
+                    {
+                      "name": "random_goods",
+                      "production_time": 86400,
+                      "asset_name": "random_goods",
+                      "product": {
+                        "resources": {
+                          "cryptocash": 188
+                        },
+                        "__class__": "Resources"
+                      },
+                      "slot": 4,
+                      "__class__": "CityEntityProductionProduct"
+                    }
+                  ],
+                  "slot": 4,
+                  "__class__": "CityEntityGreatBuildingProducts"
+                },
+                "__class__": "ProductionFinishedState"
+              },
+              "bonuses": [
+                {
+                  "value": 520.0,
+                  "type": "supplies_boost",
+                  "amount": 40,
+                  "bonusCategory": {
+                    "__enum__": "GreatBuildingBonusCategory",
+                    "value": "passiveBonus"
+                  },
+                  "__class__": "GreatBuildingCityMapBonus"
+                },
+                {
+                  "value": 188.0,
+                  "type": "random_goods",
+                  "amount": -1,
+                  "bonusCategory": {
+                    "__enum__": "GreatBuildingBonusCategory",
+                    "value": "productionBonus"
+                  },
+                  "__class__": "GreatBuildingCityMapBonus"
+                }
+              ],
+              "__class__": "CityMapEntity",
+              "player_id": 1000
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "defs": [
+    {
+      "url": "https://foede.innogamescdn.com/start/metadata?id=building_entity_X_FutureEra_Landmark1-0",
+      "json": {
+        "id": "X_FutureEra_Landmark1",
+        "name": "Die Arche",
+        "type": "greatbuilding",
+        "requirements": {
+          "min_era": "FutureEra"
+        },
+        "strategy_points_for_upgrade": [84, 168, 252, 336, 420, 504, 588, 672, 756, 840],
+        "maxTier": {
+          "__enum__": "GreatBuildingTier",
+          "value": "gold"
+        },
+        "__class__": "CityEntityGreatBuilding"
+      }
+    },
+    {
+      "url": "https://foede.innogamescdn.com/start/metadata?id=building_entity_X_ProgressiveEra_Landmark1-0",
+      "json": {
+        "id": "X_ProgressiveEra_Landmark1",
+        "name": "Alcatraz",
+        "type": "greatbuilding",
+        "requirements": {
+          "min_era": "ProgressiveEra"
+        },
+        "strategy_points_for_upgrade": [72, 144, 216, 288, 360, 432, 504, 576, 648, 720],
+        "maxTier": {
+          "__enum__": "GreatBuildingTier",
+          "value": "gold"
+        },
+        "__class__": "CityEntityGreatBuilding"
+      }
+    },
+    {
+      "url": "https://foede.innogamescdn.com/start/metadata?id=building_entity_X_BronzeAge_Landmark2-0",
+      "json": {
+        "id": "X_BronzeAge_Landmark2",
+        "name": "Zeusstatue",
+        "type": "greatbuilding",
+        "requirements": {
+          "min_era": "BronzeAge"
+        },
+        "strategy_points_for_upgrade": [44, 88, 132, 176, 220, 264, 308, 352, 396, 440],
+        "maxTier": {
+          "__enum__": "GreatBuildingTier",
+          "value": "gold"
+        },
+        "__class__": "CityEntityGreatBuilding"
+      }
+    },
+    {
+      "url": "https://foede.innogamescdn.com/start/metadata?id=building_entity_X_IronAge_Landmark2-0",
+      "json": {
+        "id": "X_IronAge_Landmark2",
+        "name": "Leuchtturm von Alexandria",
+        "type": "greatbuilding",
+        "requirements": {
+          "min_era": "IronAge"
+        },
+        "strategy_points_for_upgrade": [48, 96, 144, 192, 240, 288, 336, 384, 432, 480],
+        "maxTier": {
+          "__enum__": "GreatBuildingTier",
+          "value": "copper"
+        },
+        "__class__": "CityEntityGreatBuilding"
+      }
+    }
+  ]
+}

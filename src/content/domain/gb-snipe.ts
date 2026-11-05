@@ -1,8 +1,9 @@
 // The snipe helper: which great buildings of a list could be worth a place, from the state the list brings and the
 // rankings the toolbox saw before. Every row is calculated on an assumed ranking, in the best and the worst case.
 import type { KnownGreatBuilding } from '../../shared/model';
-import type { GreatBuildingDef } from '../model/catalog';
+import type { GreatBuildingDef, TierStart } from '../model/catalog';
 import type { RankingRow } from '../model/great-building';
+import { type ArcBonus, arcBonusAt } from './arc-bonus';
 import { calculateConstruction, constructionOf, type PlaceCalc } from './gb-calculator';
 import { emptyLevel } from './gb-level-preview';
 
@@ -74,8 +75,10 @@ export function ownerShare(b: KnownGreatBuilding): OwnerShare {
 export interface SnipeInput {
   buildings: KnownGreatBuilding[];
   greatBuilding(def: KnownGreatBuilding['cityEntityId']): GreatBuildingDef | undefined;
-  /** Arc bonus of the session player in percent */
-  arcBonus: number;
+  /** Arc bonus of the session player in percent per tier; each building takes the one of its level */
+  arcBonus: ArcBonus;
+  /** the tiers of great building levels; the default ones when missing */
+  tiers?: TierStart[];
 }
 
 export interface SnipeList {
@@ -126,13 +129,19 @@ export type SnipeResult = SnipeHit | 'none' | 'ownContribution' | 'unknownReward
 
 /**
  * One building of a list. `none` when no place pays, `ownContribution` for a building the player invested in, and
- * `unknownReward` when the rewards of the level are not known.
+ * `unknownReward` when the rewards of the level are not known. The Arc bonus is the one of the tier the level goes to.
  */
-export function snipeBuilding(b: KnownGreatBuilding, def: GreatBuildingDef | undefined, arcBonus: number): SnipeResult {
+export function snipeBuilding(
+  b: KnownGreatBuilding,
+  def: GreatBuildingDef | undefined,
+  arc: ArcBonus,
+  tiers?: TierStart[],
+): SnipeResult {
   if (b.ownContribution) return 'ownContribution';
   const level = def && emptyLevel(def, b.level);
   const places = level?.rankings;
   if (!level || !places) return 'unknownReward';
+  const arcBonus = arcBonusAt(arc, def, b.level, tiers);
 
   const solve = (rankings: RankingRow[]) =>
     worthwhile(calculateConstruction(constructionOf(b, rankings, { arcBonus, factor: 0 })).places);
@@ -216,14 +225,15 @@ export const TIER_ORDER: Record<SnipeTier, number> = { exact: 2, safe: 1, possib
 export const snipeBuildings = (
   buildings: KnownGreatBuilding[],
   greatBuilding: SnipeInput['greatBuilding'],
-  arcBonus: number,
+  arc: ArcBonus,
+  tiers?: TierStart[],
 ): { building: KnownGreatBuilding; result: SnipeResult }[] =>
-  buildings.map((b) => ({ building: b, result: snipeBuilding(b, greatBuilding(b.cityEntityId), arcBonus) }));
+  buildings.map((b) => ({ building: b, result: snipeBuilding(b, greatBuilding(b.cityEntityId), arc, tiers) }));
 
 /** The whole list: hits by profit, the rest counted. */
 export function snipeList(input: SnipeInput): SnipeList {
   const out: SnipeList = { hits: [], none: 0, ownContribution: 0, unknownReward: 0 };
-  for (const { result: r } of snipeBuildings(input.buildings, input.greatBuilding, input.arcBonus)) {
+  for (const { result: r } of snipeBuildings(input.buildings, input.greatBuilding, input.arcBonus, input.tiers)) {
     if (r === 'none') out.none++;
     else if (r === 'ownContribution') out.ownContribution++;
     else if (r === 'unknownReward') out.unknownReward++;

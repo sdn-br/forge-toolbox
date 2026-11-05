@@ -1,7 +1,9 @@
 // The known buildings the box holds, by owner, and what they are worth. Each owner is rated on its own, so a stored
-// owner is read and rated again alone; the Arc bonus rates every owner anew, the rewards of a level the possible ones.
+// owner is read and rated again alone; the Arc bonus and the definitions (rewards and tier of a level) rate every
+// owner anew.
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import type { KnownGreatBuilding } from '../../../shared/model';
+import type { ArcBonus } from '../../domain/arc-bonus';
 import {
   byDefaultOrder,
   type Investment,
@@ -10,7 +12,7 @@ import {
   type PossibleInvestment,
   possibleInvestments,
 } from '../../domain/investments';
-import type { GreatBuildingDef } from '../../model/catalog';
+import type { GreatBuildingDef, TierStart } from '../../model/catalog';
 
 export interface OwnerRatings {
   /** every known building anew, as a read of all brings them */
@@ -18,10 +20,10 @@ export interface OwnerRatings {
   /** the buildings of one owner anew; none drops the owner */
   replace(owner: PlayerId, buildings: KnownGreatBuilding[]): void;
   /** the Arc bonus the rows are rated with */
-  arc(): number;
+  arc(): ArcBonus;
   /** a new Arc bonus rates every owner anew */
-  setArc(arc: number): void;
-  /** the rewards of a level changed: the possible investments are rated anew */
+  setArc(arc: ArcBonus): void;
+  /** the definitions changed, the rewards or the tier of a level: every owner is rated anew */
   rewardsChanged(): void;
   /** the own investments in their default order; the same object while nothing changes */
   investments(): Investments;
@@ -34,11 +36,12 @@ export interface OwnerRatings {
 export function ownerRatings(
   greatBuilding: (def: BuildingDefId) => GreatBuildingDef | undefined,
   me: () => PlayerId | undefined,
+  tiers?: () => TierStart[],
 ): OwnerRatings {
   const known = new Map<PlayerId, KnownGreatBuilding[]>();
   const mine = new Map<PlayerId, Investment[]>();
   const possible = new Map<PlayerId, PossibleInvestment[]>();
-  let arc = 0;
+  let arc: ArcBonus = { copper: 0, gold: 0 };
   let investments: Investments | undefined;
   let candidates: PossibleInvestment[] | undefined;
   let buildings: KnownGreatBuilding[] | undefined;
@@ -89,20 +92,21 @@ export function ownerRatings(
     },
     arc: () => arc,
     setArc(next) {
-      if (next === arc) return;
+      if (next.copper === arc.copper && next.gold === arc.gold) return;
       arc = next;
       forget();
     },
     rewardsChanged() {
-      possible.clear();
-      candidates = undefined;
+      forget();
     },
     investments() {
-      investments ??= { rows: all(mine, (b) => myInvestments(b, arc).rows).sort(byDefaultOrder) };
+      investments ??= {
+        rows: all(mine, (b) => myInvestments(b, arc, greatBuilding, tiers?.()).rows).sort(byDefaultOrder),
+      };
       return investments;
     },
     candidates() {
-      candidates ??= all(possible, (b) => possibleInvestments(b, greatBuilding, arc, me()));
+      candidates ??= all(possible, (b) => possibleInvestments(b, greatBuilding, arc, me(), tiers?.()));
       return candidates;
     },
     buildings() {

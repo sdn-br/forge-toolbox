@@ -141,6 +141,7 @@ export function createGbOwnShareFeature(
           factors: state.state(d ?? ''),
           factorButtons: ctx.settings.of(FACTOR_BUTTONS).get(),
           arcBonus: arcNow(),
+          tiers: ctx.catalog.greatBuildingTiers(),
           secureExisting: flag(SECURE, true),
           trust: flag(TRUST, false),
           oneFpForNoReward: ctx.settings.of(ONE_FP).get(),

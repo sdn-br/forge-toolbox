@@ -435,6 +435,7 @@ export const de = {
   'gbCalc.availableUnknown': 'Verfügbare FP: unbekannt',
   'gbCalc.fpSplit': 'Leiste {bar} + Pakete {packages}',
   'gbCalc.arc': 'Arche-Bonus: {arc} %',
+  'gbCalc.arcTiers': 'Kupfer {copper} %, Gold {gold} %',
   'gbCalc.factor': 'Faktor',
   'gbCalc.arcButton': 'dein Arche-Bonus',
   'gbCalc.factorButtonsSetting': 'Faktor-Knöpfe',
