@@ -294,4 +294,45 @@ describe('the Arc bonus by tier', () => {
     expect(t.placeFactors[0]).toEqual({ factor: 90, arc: true });
     expect(t.factorButtons.find((b) => b.arc)).toMatchObject({ value: 90, arcBonuses: { copper: 90, gold: 200 } });
   });
+
+  it('pays a fixed factor per tier, the buttons of the first row with their own list', () => {
+    const fixed: PlaceFactorState = { ...factorsOf(90), choices: Array(5).fill({ value: 90, arc: false, gold: 15 }) };
+    const input = {
+      factors: fixed,
+      greatBuilding: () => ({ ...roman, maxTier: 'gold' as const }),
+      factorButtonsGold: [10, 15, 20],
+      tiers: [
+        { tier: 'copper' as const, startLevel: 1 },
+        { tier: 'gold' as const, startLevel: 6 },
+      ],
+    };
+    const shareAt = (level: number, factor: number) => {
+      const empty = emptyLevel(roman, level);
+      return calculateOwnShare({
+        required: empty.required as number,
+        rankings: empty.rankings as RankingRow[],
+        factor,
+        secureExisting: true,
+        trust: false,
+        oneFpForNoReward: true,
+      }).open;
+    };
+    const t = vm({ ...input, to: 7 });
+    // the rows from 5 go to gold levels: 1,15 instead of 1,9, no carry over
+    expect(t.rows.slice(1).map((r) => [r.level, r.ownShare])).toEqual([
+      [4, shareAt(4, 90)],
+      [5, shareAt(5, 15)],
+      [6, shareAt(6, 15)],
+    ]);
+    expect(t.tier).toBe('copper');
+    expect(t.factorButtons.map((b) => b.label)).toEqual(['1,8', '1,9', '2']);
+    const gold = vm({ ...input, from: 5, to: 7 });
+    expect(gold.tier).toBe('gold');
+    expect(gold.factorButtons.map((b) => [b.label, b.active])).toEqual([
+      ['1,10', false],
+      ['1,15', true],
+      ['1,20', false],
+    ]);
+    expect(gold.placeFactors[0]).toEqual({ factor: 15, arc: false });
+  });
 });

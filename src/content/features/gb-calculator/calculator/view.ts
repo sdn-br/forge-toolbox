@@ -205,7 +205,7 @@ function calculatorBody(vm: GbCalculatorVm, actions: GbCalculatorActions): Templ
     case 'preview':
       return html`${header(vm.header, actions)}
         ${levelBar(vm.header.levels, actions.previewLevel)}
-        ${factorBar(vm.factorButtons, vm.effectiveFactor, actions)}
+        ${factorBar(vm.factorButtons, vm.effectiveFactor, actions, vm.tier)}
         ${vm.levelUp ? html`<p class="gb-me">${levelUpLine(vm.levelUp)}</p>` : ''}
         ${previewPart(vm.preview)}`;
     case 'current': {
@@ -213,7 +213,7 @@ function calculatorBody(vm: GbCalculatorVm, actions: GbCalculatorActions): Templ
       return html`${header(vm.header, actions)}
         ${progressLine(vm.invested, vm.required, vm.missing, vm.ownerFp)}
         ${levelBar(vm.header.levels, actions.previewLevel)}
-        ${factorBar(vm.factorButtons, vm.effectiveFactor, actions)}
+        ${factorBar(vm.factorButtons, vm.effectiveFactor, actions, vm.tier)}
         ${vm.me ? meLine(vm.me) : ''}
         <div class="gb-places">
           ${placesTable(vm.places)}

@@ -7,6 +7,7 @@ import {
   FACTOR as CALC_FACTOR,
   FACTOR_ARC as CALC_FACTOR_ARC,
   FACTOR_BUTTONS as CALC_FACTOR_BUTTONS,
+  FACTOR_GOLD as CALC_FACTOR_GOLD,
   createGbCalculatorFeature,
   SOUND,
 } from '../src/content/features/gb-calculator';
@@ -122,7 +123,7 @@ describe('LG-Rechner', () => {
   });
 
   it('pays the gold Arc bonus into a gold level and names both values in the tooltip', async () => {
-    const { box, ingestion, send, open, rows, loadDefinitions } = setup();
+    const { box, ctx, ingestion, send, open, rows, loadDefinitions } = setup();
     loadDefinitions();
     // the Arc reaches gold; level 100 → 101 is the first gold level
     const arche = definitions.files.find((f) => f.json.id === 'X_FutureEra_Landmark1');
@@ -133,20 +134,32 @@ describe('LG-Rechner', () => {
       requestClass: 'BonusService',
       requestMethod: 'getLimitedBonuses',
       requestData: [],
-      responseData: [{ type: 'contribution_boost_gold', value: 10, isActive: true }],
+      responseData: [{ type: 'contribution_boost_gold', value: 12, isActive: true }],
     });
     open(1500);
     await tick();
     expect(box.text).toContain('Arche St. 100 → 101');
-    expect(box.text).toContain('Arche-Bonus: 10 %');
+    expect(box.text).toContain('Arche-Bonus: 12 %');
     const arc = [...box.root.querySelectorAll('[data-tip]')].find((e) => e.textContent?.includes('Arche-Bonus'));
-    expect(arc?.getAttribute('data-tip')).toBe('Kupfer 95,5 %, Gold 10 %');
-    // place 1 pays 1820, with the gold bonus 2002
-    expect(rows()[0]?.querySelectorAll('td')[3]?.textContent?.trim()).toBe('2.002');
-    // a copper level still takes the copper value
+    expect(arc?.getAttribute('data-tip')).toBe('Kupfer 95,5 %, Gold 12 %');
+    // place 1 pays 1820, with the gold bonus round(2038,4)
+    expect(rows()[0]?.querySelectorAll('td')[3]?.textContent?.trim()).toBe('2.038');
+    // the gold buttons with two decimals, the gold Arc bonus sorted in
+    const labels = () => [...box.root.querySelectorAll('.gb-factor button')].map((b) => b.textContent?.trim());
+    const active = () => box.root.querySelector('.gb-factor button.active')?.textContent?.trim();
+    expect(labels()).toEqual(['1,10', '1,12', '1,15', '1,20']);
+    expect(active()).toBe('1,15');
+    box.click('1,20');
+    await tick();
+    // a gold factor is kept apart from the copper one
+    expect(ctx.settings.of(CALC_FACTOR_GOLD).get()).toBe(20);
+    expect(ctx.settings.of(CALC_FACTOR).get()).toBe(90);
+    // a copper level still takes the copper value and the copper buttons, the gold choice does not carry over
     open(1909);
     await tick();
     expect(box.text).toContain('Arche-Bonus: 95,5 %');
+    expect(labels()).toEqual(['1,8', '1,9', '1,955', '2']);
+    expect(active()).toBe('1,9');
   });
 
   it('shows the profit per Forge point paid in, dashes without a profit, a loss with its sign', async () => {

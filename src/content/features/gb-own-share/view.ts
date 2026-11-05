@@ -1,6 +1,7 @@
 import { html, nothing, type TemplateResult } from 'lit-html';
 import { formatNumber, t } from '../../core/texts';
 import type { OwnPlace } from '../../domain/gb-own-share';
+import type { GreatBuildingTier } from '../../model/catalog';
 import { iconButton } from '../../ui/buttons';
 import { emptyCell, estimateCell } from '../../ui/estimate-cell';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
@@ -13,8 +14,8 @@ import type { CopyVm, OwnRow, OwnShareVm } from './view-model';
 
 export interface OwnShareActions extends FactorActions, FactorLevelActions {
   setExt(rank: number, fp: number): void;
-  /** the factor of one place, in percent */
-  setPlaceFactor(rank: number, value: number): void;
+  /** the factor of one place, in percent, for levels of `tier` */
+  setPlaceFactor(rank: number, value: number, tier: GreatBuildingTier): void;
   setSecure(on: boolean): void;
   setTrust(on: boolean): void;
   setCopyBuilding(name: string): void;
@@ -47,7 +48,7 @@ export function ownShareView(vm: OwnShareVm, actions: OwnShareActions, copied?: 
   const cell: Cell = (n, id) => copyCell(n, id, actions, copied);
   return html`${head(vm.name, vm.levels, actions)}
     ${vm.preview ? previewHeading(vm.preview) : ''}
-    ${factorBar(vm.factorButtons, vm.factor, actions, factorLevel(vm.factorState, actions))}
+    ${factorBar(vm.factorButtons, vm.factor, actions, vm.tier, factorLevel(vm.factorState, actions))}
     <table class="gb-table own-share" style=${`width:${COLUMNS.reduce((sum, c) => sum + c.width, 0)}em`}>
       <colgroup>${COLUMNS.map((c) => html`<col style=${`width:${c.width}em`} />`)}</colgroup>
       <tr>
@@ -65,7 +66,7 @@ export function ownShareView(vm: OwnShareVm, actions: OwnShareActions, copied?: 
           ? ownRow(r, cell, i)
           : r.kind === 'pushed'
             ? pushedRow(r)
-            : placeRow(r, cell, actions, !vm.preview),
+            : placeRow(r, cell, actions, !vm.preview, vm.tier),
       )}
     </table>
     <div class="gb-factor">
@@ -137,7 +138,13 @@ function pushedRow(r: Extract<OwnRow, { kind: 'pushed' }>) {
 const marker = (icon: TemplateResult, label: string, cls = '') =>
   html`<span class=${`marker ${cls}`.trim()} role="img" data-tip=${label} aria-label=${label}>${icon}</span>`;
 
-function placeRow(r: Extract<OwnRow, { kind: 'place' }>, cell: Cell, actions: OwnShareActions, withExt: boolean) {
+function placeRow(
+  r: Extract<OwnRow, { kind: 'place' }>,
+  cell: Cell,
+  actions: OwnShareActions,
+  withExt: boolean,
+  tier: GreatBuildingTier,
+) {
   const { place: p, ext } = r;
   const holder = p.holder?.ext
     ? marker(headerIcons.clock, t('gbOwn.extHolder'), 'muted')
@@ -161,15 +168,15 @@ function placeRow(r: Extract<OwnRow, { kind: 'place' }>, cell: Cell, actions: Ow
       .value=${ext ? String(ext) : ''} @keydown=${keepKeys} @change=${typed} /></td>`
         : html`<td></td>`
     }
-    ${factorCell(r, actions)}
+    ${factorCell(r, actions, tier)}
   </tr>`;
 }
 
 /** the factor of the place; a place without a Forge point reward has none, it changes nothing there */
-const factorCell = (r: Extract<OwnRow, { kind: 'place' }>, actions: OwnShareActions) =>
+const factorCell = (r: Extract<OwnRow, { kind: 'place' }>, actions: OwnShareActions, tier: GreatBuildingTier) =>
   r.factor === undefined
     ? html`<td></td>`
-    : html`<td class="num">${placeFactorField(r.factor, r.arc === true, (percent) => actions.setPlaceFactor(r.place.rank, percent))}</td>`;
+    : html`<td class="num">${placeFactorField(r.factor, r.arc === true, (percent) => actions.setPlaceFactor(r.place.rank, percent, tier))}</td>`;
 
 /** a holder who keeps the place: his deposit against the payment at the factor, + paid more, − paid less */
 function diffCell(p: OwnPlace) {

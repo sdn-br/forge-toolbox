@@ -3,6 +3,7 @@ import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { listDef, numberDef, toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
+import { GOLD_FACTOR } from '../../domain/gb-factor';
 import { icons } from '../../ui/icons';
 import { playTone } from '../../ui/sound';
 import { createCalculatorSection } from './calculator/section';
@@ -39,6 +40,28 @@ export const FACTOR_BUTTONS = listDef({
   min: -100,
   max: 200,
   step: 0.1,
+  asFactor: true,
+});
+/** the fixed factor and the buttons on gold levels, where the Arc bonus is 0 to 50 % (Nutzer, 2026-11-05) */
+export const FACTOR_GOLD = numberDef({
+  key: 'gbCalc.factorGold',
+  group: 'gbCalc.title',
+  label: 'gbCalc.factorGoldSetting',
+  default: GOLD_FACTOR,
+  min: 0,
+  max: 100,
+  step: 0.1,
+  asFactor: true,
+});
+export const FACTOR_BUTTONS_GOLD = listDef({
+  key: 'gbCalc.factorButtonsGold',
+  group: 'gbCalc.title',
+  label: 'gbCalc.factorButtonsGoldSetting',
+  hint: 'gbCalc.factorButtonsGoldHint',
+  default: [10, 15, 20],
+  min: 0,
+  max: 100,
+  step: 1,
   asFactor: true,
 });
 export const ARC_BUTTON = toggleDef({
@@ -92,6 +115,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       const factor = ctx.settings.register(FACTOR);
       const factorArc = ctx.settings.register(FACTOR_ARC);
       const factorButtons = ctx.settings.register(FACTOR_BUTTONS);
+      const factorGold = ctx.settings.register(FACTOR_GOLD);
+      const factorButtonsGold = ctx.settings.register(FACTOR_BUTTONS_GOLD);
       const arcButton = ctx.settings.register(ARC_BUTTON);
       const sound = ctx.settings.register(SOUND);
       const closeWithoutWindow = ctx.settings.register(CLOSE_WITHOUT_WINDOW);
@@ -153,7 +178,7 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       const calc = createCalculatorSection(
         ctx,
         box,
-        { factor, factorArc, factorButtons, arcButton, sound },
+        { factor, factorArc, factorButtons, factorGold, factorButtonsGold, arcButton, sound },
         {
           refresh,
           followed: (owner) => dispatch({ type: 'buildingOpened', ofListOwner: snipe.listOwner() === owner }),

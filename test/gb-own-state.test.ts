@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import { memoryKv } from '../src/content/core/kv';
 import { Settings } from '../src/content/core/settings';
-import { createGbOwnState, FACTOR, FACTOR_ARC, viewFlag } from '../src/content/stores/gb-own-state';
+import { createGbOwnState, FACTOR, FACTOR_ARC, FACTOR_GOLD, viewFlag } from '../src/content/stores/gb-own-state';
 import { UiState } from '../src/content/ui/ui-state';
 
 function setup() {
@@ -11,6 +11,7 @@ function setup() {
   const settings = new Settings(memoryKv());
   settings.register(FACTOR);
   settings.register(FACTOR_ARC);
+  settings.register(FACTOR_GOLD);
   const state = createGbOwnState(bus, ui, settings);
   const factorEvents: unknown[] = [];
   const extEvents: unknown[] = [];

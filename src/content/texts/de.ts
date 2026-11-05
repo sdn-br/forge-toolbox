@@ -421,6 +421,7 @@ export const de = {
   'gbCalc.menu': 'LG-Rechner',
   'gbCalc.factorSetting': 'Faktor für „Fördern“ an fremden LGs (z. B. 1,9)',
   'gbCalc.factorArcSetting': 'Faktor = eigener Arche-Bonus',
+  'gbCalc.factorGoldSetting': 'Faktor auf Gold-Stufen für „Fördern“ an fremden LGs (z. B. 1,15)',
   'gbCalc.soundSetting': 'Ton bei lohnendem Platz',
   'gbCalc.closeWithoutWindowSetting': 'Box schließen, wenn kein LG-Fenster offen ist',
   'gbCalc.none': 'Noch kein fremdes LG geöffnet.',
@@ -439,6 +440,9 @@ export const de = {
   'gbCalc.factor': 'Faktor',
   'gbCalc.arcButton': 'dein Arche-Bonus',
   'gbCalc.factorButtonsSetting': 'Faktor-Knöpfe',
+  'gbCalc.factorButtonsGoldSetting': 'Faktor-Knöpfe auf Gold-Stufen',
+  'gbCalc.factorButtonsGoldHint':
+    'für Stufen mit Gold-Arche-Bonus, ganze Prozent, z. B. 1,1; 1,15; 1,2; leer gibt die Standardknöpfe',
   'gbCalc.arcButtonSetting': 'Eigenen Arche-Bonus als Faktor-Knopf zeigen',
   'gbCalc.factorInput': 'Eigener Faktor, z. B. 1,9 (0 bis 3)',
   'gbCalc.place': 'Platz',
@@ -498,6 +502,7 @@ export const de = {
   'gbOwn.title': 'Eigenanteil',
   'gbOwn.menu': 'Eigenanteil an eigenen LGs',
   'gbOwn.factorSetting': 'Faktor für eigene LGs (z. B. 1,9)',
+  'gbOwn.factorGoldSetting': 'Faktor auf Gold-Stufen für eigene LGs (z. B. 1,15)',
   'gbCalc.factorButtonsHint':
     'mit Semikolon oder Leerzeichen getrennt, z. B. 1,8; 1,9; 2; leer gibt die Standardknöpfe',
   'gbOwn.factorArcSetting': 'Faktor = eigener Arche-Bonus',

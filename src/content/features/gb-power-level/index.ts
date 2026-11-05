@@ -2,7 +2,15 @@ import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
 import type { Construction } from '../../model/great-building';
-import { FACTOR_BUTTONS, ONE_FP, ownArcBonus, SECURE, TRUST, viewFlag } from '../../stores/gb-own-state';
+import {
+  FACTOR_BUTTONS,
+  FACTOR_BUTTONS_GOLD,
+  ONE_FP,
+  ownArcBonus,
+  SECURE,
+  TRUST,
+  viewFlag,
+} from '../../stores/gb-own-state';
 import { COPY_PLAYER, copyBuildingKey, readCopyOptions } from '../gb-own-share/copy-text';
 import { powerLevelCss } from './styles';
 import { powerLevelView } from './view';
@@ -40,6 +48,7 @@ export function createGbPowerLevelFeature(
           greatBuilding: (id) => ctx.catalog.get(id)?.greatBuilding,
           factors: ctx.gbOwn.state(def ?? ''),
           factorButtons: ctx.settings.of(FACTOR_BUTTONS).get(),
+          factorButtonsGold: ctx.settings.of(FACTOR_BUTTONS_GOLD).get(),
           arcBonus: ownArcBonus(ctx.settings, ctx.playerBonuses),
           tiers: ctx.catalog.greatBuildingTiers(),
           secureExisting: viewFlag(ctx.ui, SECURE, true),
@@ -67,9 +76,9 @@ export function createGbPowerLevelFeature(
           powerLevelView(
             vm(),
             {
-              setFactor: (value) => onFactors((d) => ctx.gbOwn.setAll(d, { value, arc: false })),
+              setFactor: (value, tier) => onFactors((d) => ctx.gbOwn.setAll(d, { value, arc: false }, tier)),
               useArc: () => onFactors((d) => ctx.gbOwn.setAll(d, { value: 0, arc: true })),
-              setPlaceFactor: (rank, value) => onFactors((d) => ctx.gbOwn.setPlace(d, rank, value)),
+              setPlaceFactor: (rank, value, tier) => onFactors((d) => ctx.gbOwn.setPlace(d, rank, value, tier)),
               saveFactors: () => onFactors((d) => ctx.gbOwn.save(d)),
               resetFactors: () => onFactors((d) => ctx.gbOwn.reset(d)),
               adoptFactors: () => onFactors((d) => ctx.gbOwn.adopt(d)),

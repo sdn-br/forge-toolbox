@@ -1,6 +1,7 @@
 // The factor of each of the five places of an own great building, on three levels: the standard for every building,
 // the five saved for one building, and a change in the box not saved, kept per building until the page reloads.
-import type { FactorChoice } from '../domain/gb-factor';
+import { type FactorChoice, fixedFactor, withFixed } from '../domain/gb-factor';
+import type { GreatBuildingTier } from '../model/catalog';
 
 /** the places with a reward */
 export const PLACES = 5;
@@ -32,12 +33,25 @@ export const STANDARD_KEY = 'gbOwn.factorDefault';
 /** the five saved for one building, by its definition */
 export const savedKey = (def: string) => `gbOwn.factors.${def}`;
 
-/** both follow the Arc bonus, or both hold the same number */
-export const sameChoice = (a: FactorChoice, b: FactorChoice) => a.arc === b.arc && (a.arc || a.value === b.value);
+/** both follow the Arc bonus, or both hold the same fixed factors on copper and on gold levels */
+export const sameChoice = (a: FactorChoice, b: FactorChoice) => sameOn(a, b, 'copper') && sameOn(a, b, 'gold');
+
+/** alike on a level of `tier`: both follow the Arc bonus, or both hold the same fixed factor of the tier */
+export const sameOn = (a: FactorChoice, b: FactorChoice, tier: GreatBuildingTier) =>
+  a.arc === b.arc && (a.arc || fixedFactor(a, tier) === fixedFactor(b, tier));
+
+/** the choice all five share on a level of `tier`, else undefined */
+export const alikeOn = (choices: FactorChoice[], tier: GreatBuildingTier): FactorChoice | undefined => {
+  const first = choices[0];
+  return first && choices.every((c) => sameOn(c, first, tier)) ? first : undefined;
+};
 const sameChoices = (a: FactorChoice[], b: FactorChoice[]) => a.every((c, i) => sameChoice(c, b[i] as FactorChoice));
 
-/** five choices as stored; anything else, e.g. from an older version, counts as not stored */
-function parse(text: string | undefined): FactorChoice[] | undefined {
+/**
+ * five choices as stored; anything else, e.g. from an older version, counts as not stored. A choice without `gold`
+ * (stored before 2026-11-05) takes `gold`, the gold factor of the settings.
+ */
+function parse(text: string | undefined, gold: number | undefined): FactorChoice[] | undefined {
   if (!text) return undefined;
   try {
     const list: unknown = JSON.parse(text);
@@ -45,7 +59,13 @@ function parse(text: string | undefined): FactorChoice[] | undefined {
     const ok = list.every(
       (c) => typeof c === 'object' && c !== null && Number.isFinite(c.value) && typeof c.arc === 'boolean',
     );
-    return ok ? list.map((c) => ({ value: c.value, arc: c.arc })) : undefined;
+    const goldOf = (c: { gold?: unknown }) => (Number.isFinite(c.gold) ? (c.gold as number) : gold);
+    return ok
+      ? list.map((c) => {
+          const g = goldOf(c);
+          return { value: c.value, arc: c.arc, ...(g !== undefined && { gold: g }) };
+        })
+      : undefined;
   } catch {
     return undefined;
   }
@@ -62,12 +82,15 @@ export class PlaceFactors {
   ) {}
 
   standard(): FactorChoice[] {
-    return parse(this.prefs.pref(STANDARD_KEY)) ?? Array.from({ length: PLACES }, () => ({ ...this.single() }));
+    return (
+      parse(this.prefs.pref(STANDARD_KEY), this.single().gold) ??
+      Array.from({ length: PLACES }, () => ({ ...this.single() }))
+    );
   }
 
   state(def: string): PlaceFactorState {
     const standard = this.standard();
-    const saved = parse(this.prefs.pref(savedKey(def)));
+    const saved = parse(this.prefs.pref(savedKey(def)), this.single().gold);
     const base = saved ?? standard;
     // a change back to what is in effect anyway is no change
     const draft = this.changed.get(def);
@@ -82,18 +105,21 @@ export class PlaceFactors {
     };
   }
 
-  /** the factor bar: the same choice for all five places */
-  setAll(def: string, choice: FactorChoice): void {
+  /**
+   * the factor bar: the same choice for all five places; a fixed factor for levels of `tier`, that of the other tier
+   * stays
+   */
+  setAll(def: string, choice: { value: number; arc: boolean }, tier: GreatBuildingTier = 'copper'): void {
     this.changed.set(
       def,
-      this.state(def).choices.map((c) => ({ value: choice.arc ? c.value : choice.value, arc: choice.arc })),
+      this.state(def).choices.map((c) => (choice.arc ? { ...c, arc: true } : withFixed(c, choice.value, tier))),
     );
   }
 
-  /** a factor typed for one place holds that number, also where the place followed the Arc bonus */
-  setPlace(def: string, rank: number, value: number): void {
+  /** a factor typed for one place holds that number on levels of `tier`, also where the place followed the Arc bonus */
+  setPlace(def: string, rank: number, value: number, tier: GreatBuildingTier = 'copper'): void {
     const choices = this.state(def).choices.map((c) => ({ ...c }));
-    choices[rank - 1] = { value, arc: false };
+    choices[rank - 1] = withFixed(choices[rank - 1] as FactorChoice, value, tier);
     this.changed.set(def, choices);
   }
 
