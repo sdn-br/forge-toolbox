@@ -1,14 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { emptyLevel, levelCost, placeRewards, poolShare, previewLevel } from '../src/content/domain/gb-level-preview';
+import { emptyLevel, placeRewards, poolShare, previewLevel } from '../src/content/domain/gb-level-preview';
 import { calculateOwnShare } from '../src/content/domain/gb-own-share';
 import { toBuildingDef } from '../src/content/game/building-defs';
-import { toGreatBuildingEntity, toRankingRows } from '../src/content/game/convert';
-import type { GameCityEntity } from '../src/content/game/game-types';
 import type { GreatBuildingDef } from '../src/content/model/catalog';
-import contribution from './fixtures/gb-contribution.json';
-import belowOwn from './fixtures/gb-contribution-below-own.json';
 import definitions from './fixtures/gb-definitions.json';
-import greatBuildings from './fixtures/great-buildings.json';
 
 const def = (id: string): GreatBuildingDef => {
   const file = definitions.files.find((f) => f.json.id === id);
@@ -16,62 +11,6 @@ const def = (id: string): GreatBuildingDef => {
   if (!gb) throw new Error(`no definition ${id}`);
   return gb;
 };
-
-interface Entry {
-  requestMethod: string;
-  requestData?: unknown;
-  responseData?: unknown;
-}
-
-/** every recorded opening of a foreign great building: the building and the game's rewards per place */
-function recordedConstructions() {
-  const entries: Entry[] = [];
-  const walk = (o: unknown) => {
-    if (Array.isArray(o)) o.forEach(walk);
-    else if (o && typeof o === 'object') {
-      if (typeof (o as Entry).requestMethod === 'string') entries.push(o as Entry);
-      Object.values(o).forEach(walk);
-    }
-  };
-  walk([greatBuildings, contribution, belowOwn]);
-  const buildings = new Map<number, GameCityEntity>();
-  for (const e of entries)
-    if (e.requestMethod === 'getOtherPlayerCityMapEntity') {
-      const b = e.responseData as GameCityEntity;
-      buildings.set(b.id as number, b);
-    }
-  return entries
-    .filter((e) => e.requestMethod === 'getConstruction' && buildings.has((e.requestData as number[])[0] as number))
-    .map((e) => {
-      const entity = toGreatBuildingEntity(buildings.get((e.requestData as number[])[0] as number) as GameCityEntity);
-      const rankings = toRankingRows((e.responseData as { rankings: unknown }).rankings);
-      if (!entity || !rankings) throw new Error('fixture does not parse');
-      const rewards = rankings
-        .filter((r) => r.rank !== undefined && r.reward)
-        .sort((a, b) => (a.rank as number) - (b.rank as number))
-        .map((r) => r.reward?.fp);
-      return { entity, rewards };
-    });
-}
-
-describe('levelCost', () => {
-  const costs = [70, 110, 200, 290, 400, 510, 620, 740, 860, 970];
-
-  it('takes the first ten levels from the definition, index = the level the construction starts from', () => {
-    expect(levelCost(costs, 0)).toBe(70);
-    expect(levelCost(costs, 9)).toBe(970);
-  });
-
-  it('grows by 2.5 % per level from level 10 on, rounded up', () => {
-    expect(levelCost(costs, 10)).toBe(995);
-    expect(levelCost(costs, 135)).toBe(21777);
-  });
-
-  it('knows nothing without the costs or for a negative level', () => {
-    expect(levelCost([], 12)).toBeUndefined();
-    expect(levelCost(costs, -1)).toBeUndefined();
-  });
-});
 
 describe('poolShare', () => {
   it('gives the share of the cost all places get by the level the construction goes to', () => {
@@ -102,31 +41,16 @@ describe('placeRewards', () => {
   });
 });
 
-// the recorded rewards are of before the prestige update, the costs still hold
-describe('the cost formula against the recorded constructions', () => {
-  const recorded = recordedConstructions();
-  const defs = new Map(definitions.files.map((f) => [f.json.id, def(f.json.id)]));
-
-  it('covers every recorded foreign construction', () => {
-    expect(recorded.length).toBeGreaterThanOrEqual(8);
-  });
-
-  it('the cost of the current level is what the construction needs', () => {
-    for (const { entity } of recorded) {
-      const gb = defs.get(entity.def);
-      expect(gb, entity.def).toBeDefined();
-      expect(levelCost(gb?.levelCosts ?? [], entity.level), `${entity.def} ${entity.level}`).toBe(entity.required);
-    }
-  });
-});
+/** a cost computed from the costs seen */
+const estimated = (fp: number) => ({ fp, estimate: true });
 
 describe('previewLevel', () => {
   const arche = def('X_FutureEra_Landmark1');
 
   it('shows a later level as open and empty: cost of that level, rewards with the Arc bonus', () => {
-    const p = previewLevel({ greatBuilding: arche, level: 135, arcBonus: 95.5, factor: 90 });
+    const p = previewLevel({ greatBuilding: arche, level: 135, cost: estimated(21777), arcBonus: 95.5, factor: 90 });
     expect(p.required).toBe(21777);
-    // the cost past level 10 comes from the growth, and the rewards from the cost
+    // an estimated cost makes estimated rewards
     expect(p.estimate).toBe(true);
     const places = p.calc?.places ?? [];
     expect(places.map((x) => x.net)).toEqual([1903, 951, 317, 79, 16]);
@@ -139,19 +63,20 @@ describe('previewLevel', () => {
 
   it('has seven places on a gold level', () => {
     const gold: GreatBuildingDef = { ...arche, maxTier: 'gold' };
-    const p = previewLevel({ greatBuilding: gold, level: 135, arcBonus: 95.5, factor: 90 });
+    const p = previewLevel({ greatBuilding: gold, level: 135, cost: estimated(21777), arcBonus: 95.5, factor: 90 });
     expect(p.calc?.places.map((x) => x.net)).toEqual([1901, 951, 317, 79, 16, 4, 0]);
     // level 99 to 100 is copper
-    expect(previewLevel({ greatBuilding: gold, level: 99, arcBonus: 0, factor: 90 }).calc?.places).toHaveLength(5);
+    const copper = previewLevel({ greatBuilding: gold, level: 99, cost: estimated(8670), arcBonus: 0, factor: 90 });
+    expect(copper.calc?.places).toHaveLength(5);
   });
 
-  it('is no estimate on the levels the definition lists', () => {
-    expect(previewLevel({ greatBuilding: arche, level: 9, arcBonus: 0, factor: 90 }).estimate).toBe(false);
-    expect(previewLevel({ greatBuilding: arche, level: 10, arcBonus: 0, factor: 90 }).estimate).toBe(true);
+  it('is no estimate with an exact cost', () => {
+    const cost = { fp: 970, estimate: false };
+    expect(previewLevel({ greatBuilding: arche, level: 9, cost, arcBonus: 0, factor: 90 }).estimate).toBe(false);
   });
 
-  it('has no places without the costs of the definition', () => {
-    const p = previewLevel({ greatBuilding: { ...arche, levelCosts: [] }, level: 20, arcBonus: 0, factor: 90 });
+  it('has no places without a cost', () => {
+    const p = previewLevel({ greatBuilding: arche, level: 20, cost: undefined, arcBonus: 0, factor: 90 });
     expect(p.required).toBeUndefined();
     expect(p.calc).toBeUndefined();
   });
@@ -161,7 +86,7 @@ describe('emptyLevel', () => {
   const arche = def('X_FutureEra_Landmark1');
 
   it('gives the places of a level with nobody on them, for the own share as well', () => {
-    const e = emptyLevel(arche, 135);
+    const e = emptyLevel(arche, 135, estimated(21777));
     expect(e.required).toBe(21777);
     expect(e.rankings?.map((r) => [r.rank, r.reward?.fp, r.fp])).toEqual([
       [1, 1903, undefined],
@@ -178,14 +103,14 @@ describe('emptyLevel', () => {
     expect(calc.myDeposit).toBe(0);
   });
 
-  it('takes a known cost as the real one: no estimate', () => {
-    const e = emptyLevel({ ...arche, maxTier: 'gold' }, 137, undefined, 62495);
+  it('takes an exact cost as the real one: no estimate', () => {
+    const e = emptyLevel({ ...arche, maxTier: 'gold' }, 137, { fp: 62495, estimate: false });
     expect(e).toMatchObject({ required: 62495, estimate: false });
     expect(e.rankings?.map((r) => r.reward?.fp)).toEqual([5456, 2728, 909, 227, 45, 8, 2]);
   });
 
   it('has no places without a cost', () => {
-    const e = emptyLevel({ ...arche, levelCosts: [] }, 20);
+    const e = emptyLevel(arche, 20, undefined);
     expect(e.required).toBeUndefined();
     expect(e.rankings).toBeUndefined();
   });

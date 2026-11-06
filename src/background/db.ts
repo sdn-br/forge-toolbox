@@ -3,6 +3,7 @@ import type { AssetsTables } from '../persistence/assets/worker';
 import type { BattlesTables } from '../persistence/battles/worker';
 import type { BuildingDefsTables } from '../persistence/building-defs/worker';
 import type { FoestatsTables } from '../persistence/foestats/worker';
+import type { GbLevelCostsTables } from '../persistence/gb-level-costs/worker';
 import type { GreatBuildingsTables } from '../persistence/great-buildings/worker';
 import type { IncomingTables } from '../persistence/incoming/worker';
 import type { NotesTables } from '../persistence/notes/worker';
@@ -95,6 +96,22 @@ export function openDb(name = 'forge-toolbox'): ToolboxDb {
   // the metadata files of building definitions the toolbox loaded itself, one per id; no world, not in the backup
   db.version(15).stores({
     buildingDefFiles: 'id',
+  });
+  return db;
+}
+
+/** the database every profile shares, for what is the same in all worlds; its name is no profile's */
+export const SHARED_DB = 'forge-toolbox-shared';
+
+export type SharedDb = Dexie & GbLevelCostsTables;
+
+/** The database of all profiles together, with its own version history. Not in the backup. */
+export function openSharedDb(name = SHARED_DB): SharedDb {
+  const db = new Dexie(name) as SharedDb;
+  // the Forge point costs of great building levels the game showed, one per type and start level. It starts empty:
+  // stored buildings may hold costs of before the prestige update (2026-11-05)
+  db.version(1).stores({
+    gbLevelCosts: '[type+level]',
   });
   return db;
 }

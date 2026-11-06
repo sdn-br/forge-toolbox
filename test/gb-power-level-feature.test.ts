@@ -4,6 +4,7 @@ import { Ingestion } from '../src/content/core/ingestion';
 import { createGbOwnShareFeature } from '../src/content/features/gb-own-share';
 import { createGbPowerLevelFeature } from '../src/content/features/gb-power-level';
 import { registerGameHandlers } from '../src/content/game/handlers';
+import { buildingDefId } from '../src/shared/ids';
 import definitions from './fixtures/gb-definitions.json';
 import fixture from './fixtures/great-buildings.json';
 import { featureContext } from './helpers/feature-context';
@@ -44,6 +45,8 @@ function setup(defs: { url: string; json: object }[] = definitions.files) {
     });
   send(...(fixture.startup as Entry[]));
   for (const f of defs) ingestion.accept({ kind: 'meta', url: f.url, response: JSON.stringify(f.json), at: 0 });
+  // with the 21.777 of the own Ark on 135 a step of 1.443 a level, so the later levels are known
+  ctx.gbLevelCosts.note([{ type: buildingDefId('X_FutureEra_Landmark1'), level: 136, fp: 23220 }]);
   const openOwn = () => send(fixture.own as Entry);
   // the header row, then the factor row, then one row per level
   const rows = () => [...power.root.querySelectorAll('tr:not(.factors)')].slice(1);

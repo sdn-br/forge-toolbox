@@ -3,12 +3,15 @@
 import type { GreatBuildingDef, TierStart } from '../model/catalog';
 import type { NextProduction, RankingRow } from '../model/great-building';
 import { type DoubleHarvest, doubleHarvest } from './gb-double-harvest';
+import type { LevelCosts } from './gb-level-cost';
 import { emptyLevel } from './gb-level-preview';
 import { calculateOwnShare, type OwnShareCalc, type OwnShareInput } from './gb-own-share';
 
 export interface PowerLevelInput {
   def: string;
   greatBuilding: GreatBuildingDef;
+  /** the cost of each level, seen or computed */
+  costs: LevelCosts;
   /** the building's level and the highest one the owner has unlocked */
   level: number;
   maxLevel: number;
@@ -62,7 +65,7 @@ export function powerLevelPlan(input: PowerLevelInput): PowerLevelPlan {
   let sum = 0;
   for (let x = input.from; x < input.to; x++) {
     const open = x === level && !atMax;
-    const empty = open ? undefined : emptyLevel(greatBuilding, x, input.tiers);
+    const empty = open ? undefined : emptyLevel(greatBuilding, x, input.costs(x), input.tiers);
     const required = open ? input.required : empty?.required;
     const rankings = open ? input.rankings : empty?.rankings;
     if (required === undefined || !rankings) {

@@ -3,6 +3,7 @@ import { clamp } from '../../../shared/math';
 import type { ArcBonus } from '../../domain/arc-bonus';
 import { type DoubleHarvest, hasDoubleHarvest } from '../../domain/gb-double-harvest';
 import { effectiveFactor, effectiveFactors } from '../../domain/gb-factor';
+import { type LevelCosts, levelCosts } from '../../domain/gb-level-cost';
 import type { OwnShareCalc } from '../../domain/gb-own-share';
 import { powerLevelPlan } from '../../domain/gb-power-level';
 import { levelTier, tierPlaces } from '../../domain/gb-tier';
@@ -23,6 +24,8 @@ export interface PowerLevelInputs {
   greatBuildingName(def: BuildingDefId): string | undefined;
   /** era, level costs and production of the building; undefined while its definition is not loaded */
   greatBuilding(def: BuildingDefId): GreatBuildingDef | undefined;
+  /** the cost of each level of a building, seen or computed; without it only the levels the definition lists */
+  levelCosts?(def: BuildingDefId, gb: GreatBuildingDef): LevelCosts;
   /** the factor of each place, in percent or the Arc bonus, and where they come from */
   factors: PlaceFactorState;
   factorButtons: number[];
@@ -149,6 +152,7 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
   const plan = powerLevelPlan({
     def: entity.def,
     greatBuilding: gb,
+    costs: input.levelCosts?.(entity.def, gb) ?? levelCosts(gb.levelCosts, new Map()),
     level: entity.level,
     maxLevel: entity.maxLevel,
     tiers: input.tiers,

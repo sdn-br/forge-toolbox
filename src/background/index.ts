@@ -13,7 +13,7 @@ import {
 } from '../shared/messages';
 import { type Profile, profileOfDbName, profileOfStorageKey } from '../shared/profile';
 import type { RpcResponse } from '../shared/rpc';
-import { openDb } from './db';
+import { openDb, openSharedDb } from './db';
 import { adoptLegacy, type LocalStorage } from './legacy';
 import {
   FOLDER_DELAY,
@@ -64,6 +64,7 @@ const dispatch = profileDispatch({
   watch: (profile, db) => watchBackupTables(db, () => signal.rowsChanged(profile)),
   deps: {
     now: Date.now,
+    shared: openSharedDb(),
     // the host permission for the Inno CDN lets the service worker read the game's script past CORS
     fetchText: async (url) => {
       const res = await fetch(url);

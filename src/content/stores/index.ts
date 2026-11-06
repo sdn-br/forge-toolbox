@@ -3,6 +3,7 @@ import { assetPersistence } from '../../persistence/assets/client';
 import { battlePersistence } from '../../persistence/battles/client';
 import { buildingDefLoader } from '../../persistence/building-defs/client';
 import { foestatsPersistence } from '../../persistence/foestats/client';
+import { gbLevelCostPersistence } from '../../persistence/gb-level-costs/client';
 import { greatBuildingPersistence } from '../../persistence/great-buildings/client';
 import { incomingPersistence } from '../../persistence/incoming/client';
 import { notePersistence } from '../../persistence/notes/client';
@@ -19,6 +20,7 @@ import { BattleStore } from './battles';
 import { CatalogStore } from './catalog';
 import { CityStore } from './cities';
 import { FoestatsStore } from './foestats';
+import { GbLevelCostStore } from './gb-level-costs';
 import { createGbOwnState, type GbOwnState } from './gb-own-state';
 import { GreatBuildingStore } from './great-buildings';
 import { IncomingStore } from './incoming';
@@ -49,6 +51,8 @@ export interface Stores {
   shields: ShieldStore;
   notes: NoteStore;
   greatBuildings: GreatBuildingStore;
+  /** the Forge point costs of great building levels the game showed, shared by all worlds */
+  gbLevelCosts: GbLevelCostStore;
   playerBonuses: PlayerBonusStore;
   foestats: FoestatsStore;
   /** the factors and Ext the two own-share boxes share */
@@ -84,6 +88,7 @@ export function createStores(
     shields: new ShieldStore(bus, world, shieldPersistence(call), now),
     notes: new NoteStore(bus, world, notePersistence(call), now),
     greatBuildings: new GreatBuildingStore(bus, world, greatBuildingPersistence(call), now),
+    gbLevelCosts: new GbLevelCostStore(bus, gbLevelCostPersistence(call), now),
     playerBonuses: new PlayerBonusStore(cities),
     foestats: new FoestatsStore(bus, world, foestatsPersistence(call), foestatsApi(fetch)),
     gbOwn: createGbOwnState(bus, view.prefs, view.settings),

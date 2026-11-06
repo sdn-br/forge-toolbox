@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { LevelCosts } from '../src/content/domain/gb-level-cost';
 import { emptyLevel } from '../src/content/domain/gb-level-preview';
 import { calculateOwnShare } from '../src/content/domain/gb-own-share';
 import { DEFAULT_COPY } from '../src/content/features/gb-own-share/copy-text';
@@ -23,6 +24,14 @@ const def = (id: string): GreatBuildingDef => {
   return gb;
 };
 const roman = def(ROMAN);
+/** the listed levels exact, the later ones as if learned: 10 more per level */
+const costsOf =
+  (gb: GreatBuildingDef): LevelCosts =>
+  (level) => {
+    const listed = gb.levelCosts[level];
+    if (listed !== undefined) return { fp: listed, estimate: false };
+    return { fp: (gb.levelCosts[9] as number) + 10 * (level - 9), estimate: true };
+  };
 // the recorded production per level 0 to 10: 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6
 
 const LEVEL = 3;
@@ -45,7 +54,7 @@ const own = {
 
 /** the open level with the player's 20 on place 2 and a holder with 60 on place 1 */
 function rankings(level = LEVEL): RankingRow[] {
-  const rows = emptyLevel(roman, level).rankings as RankingRow[];
+  const rows = emptyLevel(roman, level, costsOf(roman)(level)).rankings as RankingRow[];
   return rows.map((r) =>
     r.rank === 1 ? { ...r, name: 'Holder', fp: 60 } : r.rank === 2 ? { ...r, name: 'Ich', self: true, fp: 20 } : r,
   );
@@ -62,7 +71,7 @@ const construction = (extra: Partial<Construction> = {}, level = LEVEL, maxLevel
     level,
     maxLevel,
     invested: 80,
-    required: emptyLevel(roman, level).required as number,
+    required: emptyLevel(roman, level, costsOf(roman)(level)).required as number,
     connected: true,
   },
   rankings: rankings(level),
@@ -76,6 +85,7 @@ function vm(change: Partial<PowerLevelInputs> = {}): Extract<PowerLevelVm, { kin
     construction: construction(),
     greatBuildingName: () => 'Roman',
     greatBuilding: () => roman,
+    levelCosts: (_, gb) => costsOf(gb),
     ...own,
     oneFpForNoReward: true,
     copy: DEFAULT_COPY,
@@ -87,7 +97,7 @@ function vm(change: Partial<PowerLevelInputs> = {}): Extract<PowerLevelVm, { kin
 
 /** the own share the Eigenanteil box would show for these rankings */
 const calcOf = (level: number, real: boolean) => {
-  const empty = emptyLevel(roman, level);
+  const empty = emptyLevel(roman, level, costsOf(roman)(level));
   return calculateOwnShare({
     required: empty.required as number,
     rankings: real ? rankings(level) : (empty.rankings as RankingRow[]),
@@ -155,7 +165,7 @@ describe('own share per row', () => {
   });
 
   it('marks payments from an estimated cost', () => {
-    // past the ten listed levels the cost grows by 2.5 % a level, the rewards follow from it
+    // past the ten listed levels the cost is computed, the rewards follow from it
     const far = vm({ construction: construction({}, 400, 500) });
     expect(far.estimate).toBe(true);
     // the open level has the game's rewards, the later ones are computed
@@ -203,8 +213,8 @@ describe('double harvest', () => {
 
 describe('the end of the table', () => {
   it('ends at the first level whose cost is unknown', () => {
-    // a definition with the costs of levels 0 to 5 only
-    const t = vm({ greatBuilding: () => ({ ...roman, levelCosts: roman.levelCosts.slice(0, 6) }) });
+    // the costs of levels 0 to 5 only
+    const t = vm({ levelCosts: () => (level) => (level < 6 ? costsOf(roman)(level) : undefined) });
     expect(t.rows.map((r) => r.level)).toEqual([3, 4, 5]);
     expect(t.endsAt).toBe(6);
   });
@@ -242,6 +252,7 @@ describe('what the table cannot show', () => {
     construction: construction(),
     greatBuildingName: () => 'Roman',
     greatBuilding: () => roman,
+    levelCosts: (_, gb) => costsOf(gb),
     ...own,
     oneFpForNoReward: true,
     copy: DEFAULT_COPY,
@@ -270,7 +281,7 @@ describe('the Arc bonus by tier', () => {
     ];
     const t = vm({ factors: arc, greatBuilding: () => gold, arcBonus: { copper: 90, gold: 200 }, tiers, to: 7 });
     const shareAt = (level: number, factor: number) => {
-      const empty = emptyLevel(gold, level, tiers);
+      const empty = emptyLevel(gold, level, costsOf(gold)(level), tiers);
       return calculateOwnShare({
         required: empty.required as number,
         rankings: empty.rankings as RankingRow[],
@@ -300,7 +311,7 @@ describe('the Arc bonus by tier', () => {
     ];
     const input = { factors: fixed, greatBuilding: () => goldDef, factorButtonsGold: [10, 15, 20], tiers };
     const shareAt = (level: number, factor: number) => {
-      const empty = emptyLevel(goldDef, level, tiers);
+      const empty = emptyLevel(goldDef, level, costsOf(goldDef)(level), tiers);
       return calculateOwnShare({
         required: empty.required as number,
         rankings: empty.rankings as RankingRow[],
@@ -358,7 +369,7 @@ describe('the place columns (Nutzer, 2026-11-05)', () => {
     expect(t.rows[1]?.places.slice(5)).toEqual([undefined, undefined]);
     // the gold levels pay P6 and P7 at their own gold factors, 1,10 and 1,00: level 6 costs 38.000, 25 % of it pays
     // 8 and 2 on P6 and P7
-    const rewards = emptyLevel(gold, 6, tiers).rankings?.map((r) => r.reward?.fp);
+    const rewards = emptyLevel(gold, 6, costsOf(gold)(6), tiers).rankings?.map((r) => r.reward?.fp);
     expect(rewards?.slice(5)).toEqual([8, 2]);
     expect(t.rows[3]?.places.slice(5).map((p) => p?.fp)).toEqual([9, 2]);
   });

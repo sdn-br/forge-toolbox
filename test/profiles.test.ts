@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { openDb, type ToolboxDb } from '../src/background/db';
+import { openDb, openSharedDb, type ToolboxDb } from '../src/background/db';
 import { isRpcRequest, profileDispatch } from '../src/background/profiles';
-import { eraId, playerId, worldId } from '../src/shared/ids';
+import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
 import type { BattleSummary, FoughtBattle } from '../src/shared/model';
 import { type Profile, profileDbName, profileOfDbName } from '../src/shared/profile';
 import type { RpcRequest } from '../src/shared/rpc';
@@ -31,7 +31,7 @@ function setup(prepare: (profile: Profile, db: ToolboxDb) => Promise<void> = asy
     },
     prepare,
     watch: (profile, db) => watched.push(`${profile.player} ${db.name}`),
-    deps: { now: () => 1000, fetchText: async () => '' },
+    deps: { now: () => 1000, fetchText: async () => '', shared: openSharedDb(`test-shared-${world}`) },
     logError: vi.fn(),
   });
   const a: Profile = { world, player: playerId(1) };
@@ -55,6 +55,15 @@ describe('profile dispatch', () => {
     expect(await listOf(a)).toEqual([1]);
     expect(await listOf(b)).toEqual([2]);
     expect(opened).toEqual([profileDbName(a), profileDbName(b)]);
+  });
+
+  it('shares the costs of great building levels across profiles and worlds', async () => {
+    const { a, dispatch } = setup();
+    const other: Profile = { world: worldId('elsewhere'), player: playerId(3) };
+    const row = { type: buildingDefId('X_FutureEra_Landmark1'), level: 137, fp: 62495, at: 1 };
+    await dispatch(req(a, 'gbLevelCosts.put', { rows: [row] }));
+    const res = await dispatch(req(other, 'gbLevelCosts.all', {}));
+    expect(res.ok && res.result).toEqual({ rows: [row] });
   });
 
   it('opens and prepares a database once, before its first handler runs', async () => {
