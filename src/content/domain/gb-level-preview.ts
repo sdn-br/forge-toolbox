@@ -26,8 +26,9 @@ export function levelCost(costs: readonly number[], level: number): number | und
  * The share of the cost all places get together, in percent, by the level the construction goes to: up to `upTo` the
  * share. Seen 2026-11-05 on recorded levels after the prestige update.
  */
-// debt: only 15 % (101 to 200) and 25 % (70 to 100) are checked against recorded levels, the other shares follow the
-// rule as the FoE Helfer 4.8.7.0 states it. ceiling: the shares of levels up to 69 and from 201 on are unverified.
+// debt: only 15 % (101 to 200), 25 % (70 to 100) and 40 % (40 to 69, Galataturm 64 to 65) are checked against levels
+// seen in the game, the other shares follow the rule as the FoE Helfer 4.8.7.0 states it. ceiling: the shares of levels
+// up to 39 and from 201 on are unverified.
 // upgrade: when a recorded level of such a range contradicts.
 const POOL_SHARES: readonly { upTo: number; share: number }[] = [
   { upTo: 9, share: 25 },
