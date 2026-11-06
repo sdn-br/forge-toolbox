@@ -12,8 +12,9 @@ export interface BoxOptions {
   id: string;
   title: () => string;
   render: () => TemplateResult;
-  /** the width in pixels; for a box without the resize handle it is fixed, else the default until the viewer resizes */
-  width?: number;
+  /** the width in pixels; for a box without the resize handle it is fixed, else the default until the viewer resizes. A
+   * function is asked on every render, for a box whose content changes its width (e.g. more table columns). */
+  width?: number | (() => number);
   /** the box has the resize handle and remembers its size; without it the box has a fixed width and the height of its content */
   resizable?: boolean;
   /** the largest height of a box without the handle, as a share of the window height (default 0.7) */
@@ -173,7 +174,8 @@ export class Box {
 
   /** the width of a box with the handle: the saved one, else the default size, else the configured one; never wider than the window. A box without the handle ignores a saved width. */
   private width(): number {
-    const configured = this.options.width ?? 320;
+    const option = this.options.width;
+    const configured = (typeof option === 'function' ? option() : option) ?? 320;
     if (this.options.resizable !== true) return Math.min(configured, window.innerWidth);
     const wanted = this.ui.box(this.options.id).width ?? this.defaultSize()?.width ?? configured;
     return clamp(wanted, MIN_WIDTH, window.innerWidth);

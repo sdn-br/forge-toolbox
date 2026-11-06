@@ -82,3 +82,56 @@ describe('the view model of the five factors', () => {
     expect(vm(Array(5).fill(fixed(90)), undefined, 'saved').factorState.status).toBe('saved');
   });
 });
+
+describe('the factors of places 6 and 7 (Nutzer, 2026-11-05)', () => {
+  const goldFactor = (gold: number): FactorChoice => ({ value: 90, arc: false, gold });
+  /** a gold level has seven places: the Arc on 10 → 11 with gold from level 11 */
+  const goldConstruction: Construction = {
+    ...construction,
+    rankings: [{ name: 'Ich', self: true, fp: 0 }, ...[100, 50, 20, 10, 4, 2, 2].map((net, i) => place(i + 1, net))],
+  };
+  const goldVm = (choices: FactorChoice[]) =>
+    ownShareViewModel({
+      construction: goldConstruction,
+      openedLevel: 10,
+      greatBuildingName: () => 'Arche',
+      greatBuilding: () => ({ era: 'FutureEra', levelCosts: [], maxTier: 'gold' }),
+      tiers: [
+        { tier: 'copper', startLevel: 1 },
+        { tier: 'gold', startLevel: 11 },
+      ],
+      factors: { choices, status: 'standard', canSave: false, canReset: false, canAdopt: false },
+      factorButtons: [80, 90, 100],
+      factorButtonsGold: [10, 15, 20],
+      secureExisting: true,
+      trust: false,
+      oneFpForNoReward: true,
+      exts: [],
+      copy: { ...DEFAULT_COPY, mode: 'all', factor: true },
+      copyPlayer: 'Ich',
+    }) as Extract<OwnShareVm, { kind: 'current' }>;
+
+  it('asks places 6 and 7 of a gold level at their own factors', () => {
+    const v = goldVm([...Array(5).fill(goldFactor(15)), goldFactor(20), goldFactor(10)]);
+    expect(v.tier).toBe('gold');
+    expect(places(v)).toEqual([
+      { ask: 115, factor: 15, arc: false },
+      { ask: 58, factor: 15, arc: false },
+      { ask: 23, factor: 15, arc: false },
+      { ask: 12, factor: 15, arc: false },
+      { ask: 5, factor: 15, arc: false },
+      { ask: 2, factor: 20, arc: false },
+      { ask: 2, factor: 10, arc: false },
+    ]);
+    // the buttons need all seven alike, the copy text names the lowest and the highest
+    expect(v.factorButtons.filter((b) => b.active)).toEqual([]);
+    expect(v.copy.text).toBe('Ich Arche 1,10/1,20 P7(2) P6(2) P5(5) P4(12) P3(23) P2(58) P1(115)');
+    expect(active(goldVm(Array(7).fill(goldFactor(15))) as ReturnType<typeof vm>)).toEqual([15]);
+  });
+
+  it('leaves the factors of places 6 and 7 out on a copper level', () => {
+    const v = vm([...Array(5).fill(fixed(100)), fixed(80), fixed(70)]);
+    expect(active(v)).toEqual([100]);
+    expect(places(v).map((p) => p.factor)).toEqual([100, 100, 100, 100, undefined]);
+  });
+});

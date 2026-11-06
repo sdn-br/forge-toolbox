@@ -30,7 +30,7 @@ describe('the shared own-share state', () => {
     state.reset('Arc');
     expect(factorEvents).toEqual(Array(5).fill({ def: 'Arc' }));
     // the single factor of the settings drives the standard until it is dropped
-    expect(state.state('Arc').choices.map((c) => c.value)).toEqual([100, 80, 100, 100, 100]);
+    expect(state.state('Arc').choices.map((c) => c.value)).toEqual([100, 80, 100, 100, 100, 100, 100]);
   });
 
   it('announces a dropped standard for every building', () => {

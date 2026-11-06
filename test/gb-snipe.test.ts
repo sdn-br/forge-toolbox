@@ -5,7 +5,8 @@ import type { RankingRow } from '../src/content/model/great-building';
 import { buildingDefId, playerId, worldId } from '../src/shared/ids';
 import type { KnownGreatBuilding } from '../src/shared/model';
 
-// HighMiddleAge on level 50 pays 485, 245, 80, 20, 5 FP on places 1 to 5 (the table of the level preview)
+// the rewards follow the stored cost: level 50 to 51 shares 40 % of it, at 800 places 1 to 5 pay 186, 93, 31, 8, 2 FP,
+// with an Arc bonus of 160 % 484, 242, 81, 21, 5
 const def: GreatBuildingDef = { era: 'HighMiddleAge', levelCosts: Array(10).fill(1000) };
 const DEF_ID = buildingDefId('X_HighMiddleAge_Landmark1');
 
@@ -38,16 +39,16 @@ const ranking = (ownerFp: number, ...holders: number[]): Partial<KnownGreatBuild
 });
 
 const NO_ARC = { copper: 0, gold: 0 };
-const run = (b: KnownGreatBuilding, arc = 0) => snipeBuilding(b, def, { copper: arc, gold: 0 });
+const ARC = { copper: 160, gold: 0 };
+const run = (b: KnownGreatBuilding, arc = ARC.copper) => snipeBuilding(b, def, { copper: arc, gold: 0 });
 
 describe('snipeBuilding', () => {
   it('leaves out a building with an own contribution, before anything else', () => {
     expect(snipeBuilding(building({ ownContribution: true }), undefined, NO_ARC)).toBe('ownContribution');
   });
 
-  it('counts a building without a definition or with a level no table reaches as unknown reward', () => {
+  it('counts a building without a definition as unknown reward', () => {
     expect(snipeBuilding(building(), undefined, NO_ARC)).toBe('unknownReward');
-    expect(run(building({ level: 600 }))).toBe('unknownReward');
   });
 
   it('without a ranking takes the best case as empty and the worst as one holder with everything', () => {
@@ -56,50 +57,52 @@ describe('snipeBuilding', () => {
       tier: 'safe',
       // best: the owner paid all, rest 400, place 1 safe at 200; worst: one holder with 400 has place 1 secured,
       // place 2 is safe at 200
-      place: { rank: 1, cost: 200, profit: 285 },
-      worst: { rank: 2, cost: 200, profit: 45 },
-      profitLow: 45,
-      profitHigh: 285,
+      place: { rank: 1, cost: 200, profit: 284 },
+      worst: { rank: 2, cost: 200, profit: 42 },
+      profitLow: 42,
+      profitHigh: 284,
       maybeLocked: false,
-      estimate: false,
     });
   });
 
   it('takes the Arc bonus of the tier the level goes to', () => {
     const gold: GreatBuildingDef = { ...def, maxTier: 'gold' };
-    const arc = { copper: 0, gold: 100 };
-    // gold from 51: the construction from 50 goes to 51, place 1 pays 485 doubled
+    const arc = { copper: 0, gold: 200 };
+    // gold from 51: the construction from 50 goes to 51, seven places, place 1 pays round(320 × 5040 / 8660) = 186,
+    // tripled 558
     const tiers = [
       { tier: 'copper' as const, startLevel: 1 },
       { tier: 'gold' as const, startLevel: 51 },
     ];
     expect(snipeBuilding(building({ invested: 400 }), gold, arc, tiers)).toMatchObject({
-      place: { rank: 1, cost: 200, profit: 770 },
+      place: { rank: 1, cost: 200, profit: 358 },
     });
-    // gold from 101 by default: level 51 is copper, without a copper bonus
-    expect(snipeBuilding(building({ invested: 400 }), gold, arc)).toMatchObject({
-      place: { rank: 1, cost: 200, profit: 285 },
-    });
+    // gold from 101 by default: level 51 is copper, without a copper bonus place 1 pays 186 for 200
+    expect(snipeBuilding(building({ invested: 400 }), gold, arc)).toBe('none');
   });
 
   it('is only possible when the worst case pays no place', () => {
-    const hit = run(building({ invested: 2_000, required: 2_950 }));
+    // without an Arc bonus 3.000 pays 699, 350, 117, 29, 6: place 1 at 500 at best; at worst one holder has 2.000 and
+    // place 2 costs 500 for 350
+    const hit = run(building({ invested: 2_000, required: 3_000 }), 0);
     expect(hit).toMatchObject({
       tier: 'possible',
-      place: { rank: 1, cost: 475, profit: 10 },
+      place: { rank: 1, cost: 500, profit: 199 },
       profitLow: 0,
-      profitHigh: 10,
+      profitHigh: 199,
     });
     expect(hit).not.toHaveProperty('worst');
   });
 
   it('has no hit for a place with a loss, even one cheaper than paying it at a factor', () => {
-    // place 1 is safe at 500 for 485: a loss of 15, though below 485 at 1.9
-    expect(run(building({ invested: 0, required: 1_000 }))).toBe('none');
+    // 1.000 pays 233 on place 1, 350 with an Arc bonus of 50 %: safe at 400 at best, a loss of 50, though below
+    // 443 at 1.9
+    expect(run(building({ invested: 200, required: 1_000 }), 50)).toBe('none');
   });
 
   it('has no hit when not even the best case pays a place', () => {
-    expect(run(building({ invested: 400, required: 6_000 }))).toBe('none');
+    // 6.000 pays 1.398 on place 1, safe at 2.800
+    expect(run(building({ invested: 400, required: 6_000 }), 0)).toBe('none');
   });
 
   it('is exact with a ranking of the same level and the same sum', () => {
@@ -107,9 +110,9 @@ describe('snipeBuilding', () => {
     const hit = run(building({ invested: 400, ...ranking(100, 300) }));
     expect(hit).toMatchObject({
       tier: 'exact',
-      place: { rank: 1, cost: 350, profit: 135 },
-      profitLow: 135,
-      profitHigh: 135,
+      place: { rank: 1, cost: 350, profit: 134 },
+      profitLow: 134,
+      profitHigh: 134,
     });
     expect(hit).not.toHaveProperty('worst');
   });
@@ -130,6 +133,13 @@ describe('snipeBuilding', () => {
     expect(run(stale)).toEqual(run(building({ invested: 400 })));
   });
 
+  it('uses the ranking of a level that started over as no ranking (Galataturm 64, Nutzer, 2026-11-06)', () => {
+    // seen with 400 paid in, now the list shows nothing: the stored owner and holder deposits are gone
+    const restarted = building({ invested: 0, ...ranking(100, 300) });
+    expect(run(restarted)).toEqual(run(building({ invested: 0 })));
+    expect(ownerShare(restarted)).toEqual({ state: 'unknown' });
+  });
+
   it('flags a building with nothing paid in as maybe locked', () => {
     expect(run(building({ invested: 0 }))).toMatchObject({ maybeLocked: true });
   });
@@ -139,9 +149,10 @@ describe('snipeBuilding', () => {
     expect(run(building({ invested: 400, connected: false }))).toBe('none');
   });
 
-  it('rates a level beyond the listed costs with the rewards of the table', () => {
-    const hit = run(building({ level: 200, invested: 400 }));
-    expect(hit).toMatchObject({ level: 200, estimate: false });
+  it('rates a level beyond the listed costs from its stored cost', () => {
+    // 200 to 201 shares 10 %: place 1 pays round(80 × 120 / 206) = 47, 517 with an Arc bonus of 1000 %
+    const hit = run(building({ level: 200, invested: 400 }), 1000);
+    expect(hit).toMatchObject({ level: 200, place: { rank: 1, cost: 200, profit: 317 } });
   });
 });
 
@@ -151,16 +162,16 @@ describe('snipeList', () => {
       buildings: [
         building({ entityId: 1, invested: 400 }),
         building({ entityId: 2, invested: 400, ...ranking(100, 300) }),
-        building({ entityId: 3, invested: 400, required: 6_000 }),
+        building({ entityId: 3, invested: 400, maxLevel: 50 }),
         building({ entityId: 4, ownContribution: true }),
         building({ entityId: 5, cityEntityId: buildingDefId('unknown') }),
       ],
       greatBuilding: (id) => (id === DEF_ID ? def : undefined),
-      arcBonus: NO_ARC,
+      arcBonus: ARC,
     });
     expect(list.hits.map((h) => [h.entityId, h.profitHigh])).toEqual([
-      [1, 285],
-      [2, 135],
+      [1, 284],
+      [2, 134],
     ]);
     expect(list).toMatchObject({ none: 1, ownContribution: 1, unknownReward: 1 });
   });

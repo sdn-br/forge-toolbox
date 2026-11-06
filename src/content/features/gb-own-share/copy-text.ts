@@ -20,7 +20,7 @@ export interface CopyOptions {
   fp: boolean;
   /** „P“ before the number of a place */
   prefixP: boolean;
-  /** place 5 first */
+  /** the last place first */
   descending: boolean;
   /** the own share still open at the end, EA(1234) */
   ownPart: boolean;
@@ -170,7 +170,7 @@ export const COPY_MANUAL = listDef({
   hint: 'gbOwn.copyManualPlacesHint',
   default: [],
   min: 1,
-  max: 5,
+  max: 7,
 });
 /** the name of one building in the copy text, a view choice kept per building definition */
 export const copyBuildingKey = (def: string) => `gbOwn.copy.building.${def}`;

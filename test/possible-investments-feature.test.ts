@@ -43,9 +43,12 @@ type Row = {
 const zeus = levelUp.overview.responseData[0] as Row;
 const lighthouse = levelUp.overview.responseData[1] as Row;
 const oracle = levelUp.overview.responseData[2] as Row;
-/** rows that pay a place, as in the snipe helper's tests: Zeusstatue P1 pays 45, Orakel 75 */
-const hitZeus = (): Row => ({ ...zeus, max_progress: 80 });
-const hitOracle = (): Row => ({ ...oracle, max_progress: 100, current_progress: 30 });
+/**
+ * rows that pay a place, as in the snipe helper's tests: Zeusstatue 80 with 60 paid in, place 1 +13; Orakel 100 with 70
+ * paid in, place 1 +18
+ */
+const hitZeus = (): Row => ({ ...zeus, max_progress: 80, current_progress: 60 });
+const hitOracle = (): Row => ({ ...oracle, max_progress: 100, current_progress: 70 });
 
 /**
  * `reachNone`: the reach filter lets owners without a relation in. A list teaches the player store its owner, without a
@@ -107,8 +110,23 @@ function setup({ reachNone = true } = {}) {
     send(o.entity as Entry);
     send(o.construction as Entry);
   };
+  /**
+   * the recorded opening with `invested` paid in by the owner alone: at the recorded deposits no place of these
+   * buildings pays since the prestige update
+   */
+  const openPaid = (entityId: number, invested: number) => {
+    const o = fixture.openings.find((x) => x.entity.requestData[0] === entityId);
+    if (!o) throw new Error(`no opening ${entityId}`);
+    const entity = structuredClone(o.entity) as Entry & { responseData: { state: { invested_forge_points: number } } };
+    entity.responseData.state.invested_forge_points = invested;
+    const construction = structuredClone(o.construction) as Entry & {
+      responseData: { rankings: { rank?: number; forge_points?: number }[] };
+    };
+    for (const r of construction.responseData.rankings) if (r.rank === undefined) r.forge_points = invested;
+    send(entity, construction);
+  };
   const input = (label: string) => box.root.querySelector(`input[aria-label="${label}"]`) as HTMLInputElement;
-  return { ...env, ...ctx, box, snipe, send, list, open, rows, cells, showPossible, input };
+  return { ...env, ...ctx, box, snipe, send, list, open, openPaid, rows, cells, showPossible, input };
 }
 
 afterEach(() => {
@@ -152,8 +170,6 @@ describe('Investitionen: Mögliche Investitionen', () => {
     const tier = rows()[0]?.querySelector('td.snipe-tier');
     expect(tier?.getAttribute('aria-label')).toContain('sicher');
     expect(tier?.querySelector('svg')).not.toBeNull();
-    // the Zeusstatue has nothing paid in
-    expect(rows()[1]?.getAttribute('data-tip')).toContain('eventuell gesperrt');
     expect(rows()[0]?.querySelector('td.progress-cell .fp-bar')).not.toBeNull();
     // the lighthouse has no loaded definition: no place
     expect(box.text).toContain('2 mit Gewinn von 3 LGs');
@@ -357,8 +373,9 @@ describe('Investitionen: Mögliche Investitionen', () => {
   });
 
   it('uses the stored ranking of an opened building: the row turns exact', async () => {
-    const { list, open, rows, cells, showPossible } = setup();
-    // the Aachener Dom of owner 1001 (entity 1909, level 75), listed with 2.900 paid in, then opened with 251
+    const { list, openPaid, rows, cells, showPossible } = setup();
+    // the Aachener Dom of owner 1001 (entity 1909, level 75), listed with 2.900 paid in, then opened with the 2.900 of
+    // the owner
     const dom: Row = {
       entity_id: 1909,
       city_entity_id: 'X_EarlyMiddleAge_Landmark2',
@@ -374,15 +391,15 @@ describe('Investitionen: Mögliche Investitionen', () => {
     await showPossible();
     expect(rows()[0]?.querySelector('td.snipe-tier')?.className).not.toContain('exact');
     vi.setSystemTime(Date.now() + 10_000);
-    open(1909);
+    openPaid(1909, 2_900);
     await tick();
-    expect(cells(rows()[0]).slice(3, 6)).toEqual(['Aachener Dom', '75', '251 / 3.062']);
+    expect(cells(rows()[0]).slice(3, 6)).toEqual(['Aachener Dom', '75', '2.900 / 3.062']);
     expect(cells(rows()[0])[7]).toBe('P1');
     expect(rows()[0]?.querySelector('td.snipe-tier')?.className).toContain('exact');
   });
 
   it('shows the share of the owner: "?" until the building was opened, plain when current, muted when stale', async () => {
-    const { box, list, open, rows, showPossible } = setup();
+    const { box, list, openPaid, rows, showPossible } = setup();
     const dom: Row = {
       entity_id: 1909,
       city_entity_id: 'X_EarlyMiddleAge_Landmark2',
@@ -403,9 +420,9 @@ describe('Investitionen: Mögliche Investitionen', () => {
     );
     expect(share().textContent).toBe('?');
     vi.setSystemTime(Date.now() + 10_000);
-    open(1909);
+    openPaid(1909, 2_900);
     await tick();
-    expect(share().textContent).toMatch(/^\d[\d.]*$/);
+    expect(share().textContent).toBe('2.900');
     expect(share().className).not.toContain('muted');
     // the list moves the progress on: the ranking is of an earlier state, its number stays, drawn muted with its age
     const fp = share().textContent;
@@ -495,7 +512,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     await showPossible();
     expect(rows().some((r) => r.querySelector('.growth-tag'))).toBe(false);
     vi.setSystemTime(Date.now() + MINUTE);
-    list([hitZeus(), { ...hitOracle(), current_progress: 35 }]);
+    list([hitZeus(), { ...hitOracle(), current_progress: 75 }]);
     await tick();
     const growth = rows()[0]?.querySelector('td.progress-cell .fp-line .growth-tag');
     expect(growth?.textContent).toBe('+5');
@@ -504,7 +521,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     expect(rows().map((r) => r.classList.contains('grown'))).toEqual([false, false]);
     // the next sighting without a change keeps it, as the game re-requests the list after a building was closed
     vi.setSystemTime(Date.now() + MINUTE);
-    list([hitZeus(), { ...hitOracle(), current_progress: 35 }]);
+    list([hitZeus(), { ...hitOracle(), current_progress: 75 }]);
     await tick();
     expect(rows()[0]?.querySelector('.growth-tag')?.textContent).toBe('+5');
   });

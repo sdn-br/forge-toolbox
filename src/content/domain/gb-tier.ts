@@ -26,3 +26,6 @@ export function levelTier(
   });
   return best?.tier ?? 'copper';
 }
+
+/** the places with a reward on a level of `tier`: 5 on copper, 7 on gold (seen 2026-11-05) */
+export const tierPlaces = (tier: GreatBuildingTier): number => (tier === 'gold' ? 7 : 5);

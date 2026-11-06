@@ -20,11 +20,11 @@ const roman = def(ROMAN);
 const LEVEL = 3;
 const SHARE = { factor: 90, secureExisting: true, trust: false, oneFpForNoReward: true };
 
-/** the open level with the player's 20 on place 2 and a holder with 50 on place 1 */
+/** the open level with the player's 20 on place 2 and a holder with 60 on place 1 */
 function rankings(level = LEVEL): RankingRow[] {
   const rows = emptyLevel(roman, level).rankings as RankingRow[];
   return rows.map((r) =>
-    r.rank === 1 ? { ...r, name: 'Holder', fp: 50 } : r.rank === 2 ? { ...r, name: 'Ich', self: true, fp: 20 } : r,
+    r.rank === 1 ? { ...r, name: 'Holder', fp: 60 } : r.rank === 2 ? { ...r, name: 'Ich', self: true, fp: 20 } : r,
   );
 }
 
@@ -86,10 +86,25 @@ describe('powerLevelPlan', () => {
     ]);
   });
 
-  it('marks levels whose rewards come from the curve', () => {
-    // past the listed rewards of the era (level 400 for this one) the first place comes from the curve
-    const { rows } = plan({}, 400, 500);
-    expect(rows.map((r) => r.estimate).slice(0, 2)).toEqual([false, true]);
+  it('marks levels whose cost, and so whose rewards, come from the growth past the listed levels', () => {
+    // the open level 8 has its real cost; 9 is listed, from 10 on the cost grows by 2.5 % a level
+    const { rows } = plan({ to: 12 }, 8, 20);
+    expect(rows.map((r) => r.estimate)).toEqual([false, false, true, true]);
+  });
+
+  it('takes the places of each level by its tier: five on copper, seven on gold', () => {
+    const gold: GreatBuildingDef = { ...roman, maxTier: 'gold' };
+    const tiers = [
+      { tier: 'copper' as const, startLevel: 1 },
+      { tier: 'gold' as const, startLevel: 6 },
+    ];
+    const { rows } = plan({ greatBuilding: gold, tiers, to: 7 });
+    expect(rows.map((r) => [r.level, r.calc.places.length])).toEqual([
+      [3, 5],
+      [4, 5],
+      [5, 7],
+      [6, 7],
+    ]);
   });
 
   it('takes the double harvest exact up to level 10 from the definition: the production of level X + 1', () => {
@@ -133,11 +148,11 @@ describe('powerLevelPlan', () => {
     });
   });
 
-  it('ends at the first level whose reward is unknown', () => {
-    // the reward curve ends before level 422
-    const p = plan({ to: 430 }, 419, 500);
-    expect(p.rows.map((r) => r.level)).toEqual([419, 420, 421]);
-    expect(p.endsAt).toBe(422);
+  it('ends at the first level whose cost is unknown', () => {
+    // a definition with the costs of levels 0 to 5 only
+    const p = plan({ greatBuilding: { ...roman, levelCosts: roman.levelCosts.slice(0, 6) } });
+    expect(p.rows.map((r) => r.level)).toEqual([3, 4, 5]);
+    expect(p.endsAt).toBe(6);
     expect(plan().endsAt).toBeUndefined();
   });
 });

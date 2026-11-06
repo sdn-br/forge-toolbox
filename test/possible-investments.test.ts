@@ -13,7 +13,8 @@ import { nextSort } from '../src/content/ui/sortable';
 import { type BuildingDefId, buildingDefId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { KnownGreatBuilding, Relations } from '../src/shared/model';
 
-// HighMiddleAge on level 50 pays 485, 245, 80, 20, 5 FP on places 1 to 5 (the table of the level preview)
+// the rewards follow the stored cost: level 50 to 51 shares 40 % of it, at 800 places 1 to 5 pay 186, 93, 31, 8, 2 FP,
+// with the Arc bonus of 160 % 484, 242, 81, 21, 5
 const def: GreatBuildingDef = { era: 'HighMiddleAge', levelCosts: Array(10).fill(1000) };
 const DEF_ID = buildingDefId('X_HighMiddleAge_Landmark1');
 const OTHER_DEF = buildingDefId('X_Unknown_Landmark1');
@@ -57,7 +58,7 @@ beforeEach(() => {
 const defNames: Record<string, string> = { [DEF_ID]: 'Kathedrale von Aachen', [OTHER_DEF]: 'Leuchtturm' };
 
 const candidates = (buildings: KnownGreatBuilding[]) =>
-  possibleInvestments(buildings, (d) => (d === DEF_ID ? def : undefined), { copper: 0, gold: 0 }, ME);
+  possibleInvestments(buildings, (d) => (d === DEF_ID ? def : undefined), { copper: 160, gold: 0 }, ME);
 
 const vmInput = (buildings: KnownGreatBuilding[], filter: Partial<PossibleFilter> = {}, sort?: PossibleSort) => ({
   visible: 100,
@@ -81,10 +82,13 @@ const vm = (buildings: KnownGreatBuilding[], filter: Partial<PossibleFilter> = {
 
 /** pays place 1 in both cases: safe, +45 to +285 */
 const safe = building({ entityId: 1, invested: 400 });
-/** pays place 1 only in the best case: possible, 0 to +10 */
-const possible = building({ owner: playerId(1002), entityId: 2, invested: 2_000, required: 2_950 });
-/** no place pays */
-const none = building({ owner: playerId(1003), entityId: 3, invested: 400, required: 6_000 });
+/**
+ * pays place 1 only in the best case: possible, 0 to +181. Level 150 to 151 shares 15 %: 3.000 pays 681 and 341 on
+ * places 1 and 2 with the Arc bonus; place 1 at 500 at best, at worst one holder has 2.000 and place 2 costs 500
+ */
+const possible = building({ owner: playerId(1002), entityId: 2, level: 150, invested: 2_000, required: 3_000 });
+/** no place pays: 6.000 pays 1.362 on place 1, safe at 2.800 */
+const none = building({ owner: playerId(1003), entityId: 3, level: 150, invested: 400, required: 6_000 });
 /** rewards unknown */
 const unknown = building({ owner: playerId(1003), entityId: 4, cityEntityId: OTHER_DEF });
 
@@ -142,8 +146,8 @@ describe('possibleViewModel', () => {
       rest: '400',
       percent: 50,
       // the cell shows the best case, the range goes to its tooltip
-      hit: { rank: 1, cost: '200', profit: '+285', range: 'Gewinn +45 bis +285', estimate: false, tier: 'safe' },
-      notes: ['Im schlechtesten Fall: P2 mit 200 FP, Gewinn +45'],
+      hit: { rank: 1, cost: '200', profit: '+284', range: 'Gewinn +42 bis +284', tier: 'safe' },
+      notes: ['Im schlechtesten Fall: P2 mit 200 FP, Gewinn +42'],
       // the largest unit only
       age: 'vor 3 Std.',
     });

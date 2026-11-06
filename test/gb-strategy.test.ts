@@ -15,8 +15,11 @@ const def = (id: string): GreatBuildingDef => {
 
 describe('levelUpAndFirst', () => {
   // the recorded construction 2434 (ProgressiveEra, St. 52 of 60): 2400 needed; the next level 53 costs 2460, its
-  // place 1 pays 670, round(670 × 1.955) = 1310 for the safe round(2460 / 2) = 1230: +80
+  // place 1 pays round(2460 × 40 % × 120 / 206) = 573. With the Arc bonus of 95.5 % an empty place 1 of a 40 % level
+  // never pays (it is 23 % of the cost, the safe cost half of it), so the next level counts with 130 %:
+  // round(573 × 2.3) = 1318 for the safe round(2460 / 2) = 1230: +88
   const gb = def('X_ProgressiveEra_Landmark1');
+  const NEXT = { arcBonus: 130, factor: 90 };
   const NET = [655, 330, 110, 30, 5];
   const row = (rank: number, fp?: number, self = false, net = NET[rank - 1] as number): RankingRow => ({
     rank,
@@ -37,10 +40,10 @@ describe('levelUpAndFirst', () => {
     ...change,
   });
   const levelUp = (i: ConstructionInput, greatBuilding: GreatBuildingDef | undefined) =>
-    levelUpAndFirst(i, calculateConstruction(i), greatBuilding);
+    levelUpAndFirst(i, calculateConstruction(i), greatBuilding, NEXT);
 
   it('nothing paid in: fills the level, lands below the deposits that stay safe and takes place 1 of the next', () => {
-    // 2390 in, every place safe: 10 missing lands on 6 without a reward, -10, with the next +80 still +70 over 0
+    // 2390 in, every place safe: 10 missing lands on 6 without a reward, -10, with the next +88 still +78 over 0
     const rows = [row(1, 1300), row(2, 900), row(3, 100), row(4, 50), row(5, 40)];
     expect(levelUp(input(rows), gb)).toEqual({
       nextLevel: 53,
@@ -48,31 +51,33 @@ describe('levelUpAndFirst', () => {
       rank: 6,
       fillGain: -10,
       firstCost: 1230,
-      firstGain: 80,
-      total: 70,
+      firstGain: 88,
+      total: 78,
     });
   });
 
   it('prices the next level with its own Arc bonus and factor, as its tier can differ', () => {
-    // the next place 1 pays 670: round(670 × 2) = 1340 for the safe 1230, +110 instead of +80; the fill stays -10
+    // the next place 1 pays 573: round(573 × 2.4) = 1375 for the safe 1230, +145 instead of +88; the fill stays -10
     const rows = [row(1, 1300), row(2, 900), row(3, 100), row(4, 50), row(5, 40)];
     const i = input(rows);
-    expect(levelUpAndFirst(i, calculateConstruction(i), gb, { arcBonus: 100, factor: 90 })).toMatchObject({
+    expect(levelUpAndFirst(i, calculateConstruction(i), gb, { arcBonus: 140, factor: 90 })).toMatchObject({
       fillGain: -10,
-      firstGain: 110,
-      total: 100,
+      firstGain: 145,
+      total: 135,
     });
+    // with the Arc bonus of the current level place 1 of the next one does not pay
+    expect(levelUpAndFirst(i, calculateConstruction(i), gb)).toBeUndefined();
   });
 
   it('counts a place of an early level that pays no Forge points as 0, levelling onto it and taking it alike', () => {
-    // P4 and P5 pay 0 FP, as in the first levels: 2380 in, 20 missing lands on 4 for 0 FP: -20, with the next +60.
+    // P4 and P5 pay 0 FP, as in the first levels: 2380 in, 20 missing lands on 4 for 0 FP: -20, with the next +68.
     // Taking 4 or 5 safely costs Forge points for 0, so the current level brings 0
     const rows = [row(1, 1300), row(2, 900), row(3, 180), row(4, undefined, false, 0), row(5, undefined, false, 0)];
-    expect(levelUp(input(rows), gb)).toMatchObject({ fill: 20, rank: 4, fillGain: -20, total: 60 });
+    expect(levelUp(input(rows), gb)).toMatchObject({ fill: 20, rank: 4, fillGain: -20, total: 68 });
   });
 
   it('is left out when a place of the current level pays more without levelling', () => {
-    // 2200 in, 200 missing: levelling lands on 3, round(110 × 1.955) = 215 for 200: +15, with the next +95. Taking 3
+    // 2200 in, 200 missing: levelling lands on 3, round(110 × 1.955) = 215 for 200: +15, with the next +103. Taking 3
     // safely costs round(200 / 2) = 100 for the same 215: +115, more than both together
     const rows = [row(1, 1300), row(2, 900), row(3), row(4), row(5)];
     expect(levelUp(input(rows), gb)).toBeUndefined();
@@ -80,18 +85,18 @@ describe('levelUpAndFirst', () => {
 
   it('own deposit: the total of own deposit and the rest decides the place and the cost', () => {
     // 1500 needed: owner 100, 600 on 1, mine 500 on 2, 100 on 3, 200 missing: 700 passes place 1, 1281 - 700 = +581,
-    // with the next +661. Without levelling the best is taking place 1 safely: round((600 + 700) / 2) = 650, +631
+    // with the next +669. Without levelling the best is taking place 1 safely: round((600 + 700) / 2) = 650, +631
     const rows = [owner(100), row(1, 600), row(2, 500, true), row(3, 100), row(4), row(5)];
     expect(levelUp(input(rows, { required: 1500 }), gb)).toMatchObject({
       fill: 200,
       rank: 1,
       fillGain: 581,
-      total: 661,
+      total: 669,
     });
   });
 
   it('is left out when the own place already pays more than levelling and place 1 of the next together', () => {
-    // mine 500 on 2 is safe: 645 - 500 = +145 as it stands; levelling with 100 more and P1 of the next brings +125
+    // mine 500 on 2 is safe: 645 - 500 = +145 as it stands; levelling with 100 more and P1 of the next brings +133
     const rows = [owner(100), row(1, 1600), row(2, 500, true), row(3, 100), row(4), row(5)];
     expect(levelUp(input(rows), gb)).toBeUndefined();
   });
@@ -101,21 +106,21 @@ describe('levelUpAndFirst', () => {
     // place 3 brings 1173 - 550 = +623, less than levelling and the next together
     const rows = [row(1, 1500, false, 655), row(2, 600, false, 1000), row(3, 550, true, 600), row(4), row(5)];
     // round(600 × 1.955) = 1173 - 600 = 573, not the 1955 - 600 of place 2
-    expect(levelUp(input(rows, { required: 2700 }), gb)).toMatchObject({ rank: 3, fillGain: 573, total: 653 });
+    expect(levelUp(input(rows, { required: 2700 }), gb)).toMatchObject({ rank: 3, fillGain: 573, total: 661 });
   });
 
   it('is left out when it does not pay: the recorded own second place', () => {
-    // 2434 as recorded: mine 575 on 2, 211 missing, 786 on 2 for 645: -141, with the next +80 still -61
+    // 2434 as recorded: mine 575 on 2, 211 missing, 786 on 2 for 645: -141, with the next +88 still -53
     const rows = [row(1, 1150), row(2, 575, true), row(3, 363), owner(100), row(4, 1), row(5)];
     expect(levelUp(input(rows), gb)).toBeUndefined();
   });
 
-  it('is left out when the next level is not unlocked, its reward is unknown or the building is blocked', () => {
+  it('is left out when the next level is not unlocked, its cost is unknown or the building is blocked', () => {
     const rows = [row(1, 1300), row(2, 900), row(3, 100), row(4, 50), row(5, 40)];
     // unlocked up to 53: the construction from 53 is not open after the level up
     expect(levelUp(input(rows, { maxLevel: 53 }), gb)).toBeUndefined();
     expect(levelUp(input(rows, { maxLevel: 54 }), gb)).toBeDefined();
-    expect(levelUp(input(rows, { level: 1999, maxLevel: 3000 }), gb)).toBeUndefined();
+    expect(levelUp(input(rows), { ...gb, levelCosts: [] })).toBeUndefined();
     expect(levelUp(input(rows, { connected: false }), gb)).toBeUndefined();
     expect(levelUp(input(rows), undefined)).toBeUndefined();
   });

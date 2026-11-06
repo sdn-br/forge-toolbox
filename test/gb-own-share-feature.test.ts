@@ -268,6 +268,11 @@ describe('Eigenanteil', () => {
     await ctx.settings.of(COPY_MANUAL).set([2]);
     await tick();
     expect(copyField().value).toBe('Michi Arche 135→136 2(2480) EA(8141)');
+    // places 6 and 7 of gold levels can be picked too, a copper level has none
+    await ctx.settings.of(COPY_MANUAL).set([2, 7]);
+    await tick();
+    expect(ctx.settings.of(COPY_MANUAL).get()).toEqual([2, 7]);
+    expect(copyField().value).toBe('Michi Arche 135→136 2(2480) EA(8141)');
     expect(box.root.querySelector('details')).toBeNull();
     // the field can still be edited before copying
     copyField().value = 'Arche P2 bitte';
@@ -615,7 +620,8 @@ describe('Eigenanteil', () => {
       expect(rows()).toEqual(PREVIEW_140);
       expect(box.text).toContain(PREVIEW_140_TOTAL);
       expect(box.text).toContain('eingezahlt 0');
-      expect(box.root.querySelector('.estimate')).toBeNull();
+      // the cost of level 140 comes from the growth past level 10
+      expect(box.text).toContain('Kosten der Stufe geschätzt, die Belohnungen folgen daraus');
       box.click('Laufend');
       expect(box.text).not.toContain('Vorschau Stufe');
       expect(box.text).toContain('Seit dem Öffnen +55 FP von anderen');
@@ -641,7 +647,7 @@ describe('Eigenanteil', () => {
       // one place on its own factor, kept for the building like on the open level
       type(box.root.querySelectorAll('input.place-factor')[4] as HTMLInputElement, '1');
       await tick();
-      expect(rows().find((r) => r.startsWith('P5'))).toBe('P5 25 – –');
+      expect(rows().find((r) => r.startsWith('P5'))).toBe('P5 ≈ 18 – –');
       expect(box.root.querySelector('.factor-status')?.getAttribute('data-tip')).toBe(
         'Faktoren geändert, nicht gespeichert',
       );
@@ -649,7 +655,7 @@ describe('Eigenanteil', () => {
       expect(box.root.querySelectorAll<HTMLInputElement>('input.place-factor')[4]?.value).toBe('1');
     });
 
-    it('marks payments from estimated rewards and says when the level is locked', async () => {
+    it('marks payments from an estimated cost and says when the level is locked', async () => {
       const { box, openOwn, rows, loadDefinitions } = setup();
       loadDefinitions();
       openOwn();
@@ -659,13 +665,13 @@ describe('Eigenanteil', () => {
       const p1 = [...box.root.querySelectorAll('tr')].find((tr) => tr.querySelector('td')?.textContent === 'P1');
       const pay = p1?.querySelectorAll('td')[3];
       expect(pay?.className).toBe('num estimate');
-      expect(pay?.getAttribute('data-tip')).toBe('Belohnung geschätzt, auf etwa 5 FP genau');
+      expect(pay?.getAttribute('data-tip')).toBe('Kosten der Stufe geschätzt, die Belohnungen folgen daraus');
       expect(pay?.textContent).toContain('≈');
-      expect(box.text).toContain('Belohnung geschätzt, auf etwa 5 FP genau');
+      expect(box.text).toContain('Kosten der Stufe geschätzt, die Belohnungen folgen daraus');
       expect(rows().length).toBeGreaterThan(0);
     });
 
-    it('says what is missing without the definition or past every known level', async () => {
+    it('says what is missing without the definition, and knows every later level with it', async () => {
       const { box, openOwn, loadDefinitions } = setup();
       openOwn();
       await tick();
@@ -677,9 +683,8 @@ describe('Eigenanteil', () => {
       await new Promise((resolve) => setTimeout(resolve, 60));
       expect(box.text).not.toContain('Definition des LGs ist noch nicht geladen');
       choose(box.root, 2000);
-      expect(box.text).toContain('Für diese Stufe ist die Belohnung nicht bekannt.');
+      expect(box.text).not.toContain('Für diese Stufe sind die Kosten nicht bekannt.');
       expect(box.text).toContain('Die Stufe kostet');
-      expect(box.root.querySelector('.copy-text')).toBeNull();
     });
 
     it('starts on the open level again when a great building is opened', async () => {
@@ -696,31 +701,36 @@ describe('Eigenanteil', () => {
   });
 });
 
-/** the Arc on 140 → 141 at 1,9, nobody paid in yet: the level and its own share */
+/**
+ * the Arc on 140 → 141 at 1,9, nobody paid in yet: the level and its own share. 24.638 from the growth past level 10,
+ * 15 % of it on five places: 2.153, 1.076, 359, 90, 18
+ */
 const PREVIEW_140 = [
-  'Eigene FP 14.302 (=14.302) –',
-  'P1 5.168 – –',
-  'P2 2.584 – –',
-  'Eigene FP 854 (=15.156) –',
-  'P3 865 – –',
-  'Eigene FP 427 (=15.583) –',
-  'P4 219 – –',
-  'Eigene FP 123 (=15.706) –',
-  'P5 48 – –',
-  'Eigene FP 48 (=15.754) –',
+  'Eigene FP 16.456 (=16.456) –',
+  'P1 ≈ 4.091 – –',
+  'Eigene FP 3 (=16.459) –',
+  'P2 ≈ 2.044 – –',
+  'Eigene FP 680 (=17.139) –',
+  'P3 ≈ 682 – –',
+  'Eigene FP 340 (=17.479) –',
+  'P4 ≈ 171 – –',
+  'Eigene FP 103 (=17.582) –',
+  'P5 ≈ 34 – –',
+  'Eigene FP 34 (=17.616) –',
 ];
-const PREVIEW_140_TOTAL = 'Eigenanteil: 15.754 FP';
-const PREVIEW_140_COPY = 'Ich Die Arche 140→141 P5(48) P4(219) P3(865) P2(2584) P1(5168)';
+const PREVIEW_140_TOTAL = 'Eigenanteil: 17.616 FP';
+const PREVIEW_140_COPY = 'Ich Die Arche 140→141 P5(34) P4(171) P3(682) P2(2044) P1(4091)';
 /** the same at 2: the factor buttons set the places of the preview as of the open level */
 const PREVIEW_140_AT_2 = [
-  'Eigene FP 13.758 (=13.758) –',
-  'P1 5.440 – –',
-  'P2 2.720 – –',
-  'Eigene FP 900 (=14.658) –',
-  'P3 910 – –',
-  'Eigene FP 450 (=15.108) –',
-  'P4 230 – –',
-  'Eigene FP 130 (=15.238) –',
-  'P5 50 – –',
-  'Eigene FP 50 (=15.288) –',
+  'Eigene FP 16.026 (=16.026) –',
+  'P1 ≈ 4.306 – –',
+  'Eigene FP 2 (=16.028) –',
+  'P2 ≈ 2.152 – –',
+  'Eigene FP 716 (=16.744) –',
+  'P3 ≈ 718 – –',
+  'Eigene FP 358 (=17.102) –',
+  'P4 ≈ 180 – –',
+  'Eigene FP 108 (=17.210) –',
+  'P5 ≈ 36 – –',
+  'Eigene FP 36 (=17.246) –',
 ];

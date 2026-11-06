@@ -67,9 +67,8 @@ export const tierIcon: Record<SnipeTier, TemplateResult> = {
 export const tierCell = (tier: SnipeTier) =>
   html`<td class=${`snipe-tier ${tier}`} data-tip=${t(`snipe.tier.${tier}`)} aria-label=${t(`snipe.tier.${tier}`)}>${tierIcon[tier]}</td>`;
 
-/** the profit, marked when the rewards are estimated; the range of a not exact profit in the tooltip */
-export const profitCell = (profit: string, estimate: boolean, range?: string) =>
-  estimateCell(profit, estimate, [range]);
+/** the profit; the range of a not exact profit in the tooltip */
+export const profitCell = (profit: string, range?: string) => estimateCell(profit, false, [range]);
 
 /** the best place of a hit as drawn: `profit` the best case, `range` the range for its tooltip when not exact */
 export interface HitVm {
@@ -81,8 +80,6 @@ export interface HitVm {
   ratio: string;
   /** the range of the ratio for its tooltip when not exact */
   ratioRange?: string;
-  /** the rewards are estimated */
-  estimate: boolean;
   tier: SnipeTier;
 }
 
@@ -98,7 +95,6 @@ export const hitVm = (h: SnipeHit): HitVm => {
     ...(range !== undefined && {
       ratioRange: t('snipe.ratioRange', { low: formatRatio(ratio.low), high: formatRatio(ratio.high) }),
     }),
-    estimate: h.estimate,
     tier: h.tier,
   };
 };
@@ -107,8 +103,8 @@ export const hitVm = (h: SnipeHit): HitVm => {
 export const hitCells = (h: HitVm) =>
   html`<td class="num">${t('gb.rank', { rank: h.rank })}</td>
   <td class="num" data-tip=${t('snipe.costHint')}>${h.cost}</td>
-  ${profitCell(h.profit, h.estimate, h.range)}
-  ${profitCell(h.ratio, h.estimate, h.ratioRange)}
+  ${profitCell(h.profit, h.range)}
+  ${profitCell(h.ratio, h.ratioRange)}
   ${tierCell(h.tier)}`;
 
 /** cells of `hitCells` a row without a hit leaves empty */

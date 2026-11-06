@@ -13,11 +13,17 @@ import {
 } from '../../stores/gb-own-state';
 import { COPY_PLAYER, copyBuildingKey, readCopyOptions } from '../gb-own-share/copy-text';
 import { powerLevelCss } from './styles';
-import { powerLevelView } from './view';
+import { powerLevelView, tableEm } from './view';
 import { powerLevelViewModel } from './view-model';
 
 /** how long a copy button says it copied */
 const COPIED_MS = 1500;
+/** the box is never narrower than this */
+const MIN_WIDTH = 560;
+/** the font size of the box, for the table width in em */
+const FONT_PX = 12;
+/** the padding of the box body on both sides plus room for its vertical scrollbar */
+const BODY_EXTRA = 16 + 18;
 
 declare module '../../core/shell' {
   interface OpenableBoxes {
@@ -71,7 +77,13 @@ export function createGbPowerLevelFeature(
         id: 'gbPowerLevel',
         css: powerLevelCss,
         title: () => t('gbPower.title'),
-        width: 560,
+        // follows the table: two more place columns on a gold level, the harvest column
+        width: () => {
+          const v = vm();
+          return v.kind === 'table'
+            ? Math.max(MIN_WIDTH, Math.ceil(tableEm(v.places, v.harvestColumn) * FONT_PX) + BODY_EXTRA)
+            : MIN_WIDTH;
+        },
         render: () =>
           powerLevelView(
             vm(),

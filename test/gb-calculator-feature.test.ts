@@ -775,6 +775,8 @@ describe('LG-Rechner', () => {
     /** 2434 (St. 52 of 60, 2400 needed) with owner 100, 1600 on 1, mine 560 on 2, 100 on 3: 40 missing */
     const levelUpCase = () => {
       const env = setup();
+      // 40 more on the copper Arc bonus, 135,5 %: at 95,5 % place 1 of the empty next level does not pay
+      env.ctx.playerBonuses.setLimited([{ type: 'contribution_boost', value: 40 }]);
       env.loadDefinitions();
       const { entity, construction } = env.opening(2434);
       type Row = { rank?: number; forge_points?: number };
@@ -788,16 +790,16 @@ describe('LG-Rechner', () => {
       env.send({ ...construction, responseData: { ...(construction.responseData as object), rankings } });
       return env;
     };
-    // 600 stays on 2: round(330 × 1.955) = 645 - 600 = +45; level 53 costs 2460, place 1 1310 for 1230: +80. As it
-    // stands place 2 brings 645 - 560 = +85, less than +125
-    const LEVEL_UP = 'Leveln + P1 auf 53: 40 + 1.230 FP → +45 + 80 = +125';
+    // 600 stays on 2: round(330 × 2.355) = 777 - 600 = +177; level 53 costs 2460, 40 % of it pays 573 on place 1,
+    // round(573 × 2.355) = 1349 for 1230: +119. As it stands place 2 brings 777 - 560 = +217, less than +296
+    const LEVEL_UP = 'Leveln + P1 auf 53: 40 + 1.230 FP → +177 + 119 = +296';
 
     it('shows leveling now plus place 1 of the next level in the line about the own deposit', () => {
       const { box } = levelUpCase();
       expect(box.text).toContain('noch 40 FP bis zum Level-up');
       const line = box.root.querySelector('.gb-me .gb-levelup');
       expect(line?.textContent?.replace(/\s+/g, ' ').trim()).toBe(LEVEL_UP);
-      expect(line?.querySelector('b.gain')?.textContent).toBe('+125');
+      expect(line?.querySelector('b.gain')?.textContent).toBe('+296');
     });
 
     it('shows it in the preview of the next level only', () => {
@@ -813,7 +815,7 @@ describe('LG-Rechner', () => {
     it('leaves it out when it does not pay', () => {
       const { box, open, loadDefinitions } = setup();
       loadDefinitions();
-      // as recorded: 211 missing, 786 on 2 for 645, -141 + 80
+      // as recorded: 211 missing, 786 on 2 for 645: -141, and place 1 of the next level does not pay
       open(2434);
       expect(box.root.querySelector('.gb-me')).not.toBeNull();
       expect(box.root.querySelector('.gb-levelup')).toBeNull();
@@ -840,10 +842,10 @@ describe('LG-Rechner', () => {
         'gb-unavailable',
         'gb-unavailable',
       ]);
-      expect(cells(rows()[0])).toEqual(['1', '–', '1.569', '1.447', '-122', '−0,08', '1.406', '212 %']);
-      expect(cells(rows()[1])).toEqual(['2', '–', '–', '723', '–', '–', '703', '–']);
-      expect(rows().map((r) => cells(r)[3])).toEqual(['1.447', '723', '244', '59', '10']);
-      expect(box.root.querySelector('.estimate')).toBeNull();
+      // 3.138 from the growth past level 10, 25 % of it on five places: 457, 228, 76, 19, 4
+      expect(cells(rows()[0])).toEqual(['1', '–', '1.569', '≈ 893', '-676', '−0,43', '868', '343,3 %']);
+      expect(cells(rows()[1])).toEqual(['2', '–', '–', '≈ 446', '–', '–', '433', '–']);
+      expect(rows().map((r) => cells(r)[3])).toEqual(['≈ 893', '≈ 446', '≈ 149', '≈ 37', '≈ 8']);
       expect(tones()).toBe(1);
     });
 
@@ -855,10 +857,10 @@ describe('LG-Rechner', () => {
       expect(box.text).toContain('Vorschau Stufe 90 → 91');
       expect(box.text).toContain('Die Stufe kostet 4.434 FP');
       expect(cells(rows()[0])?.[0]).toBe('1');
-      // the factor still sets the demand: 910 × 2
+      // the factor still sets the demand: 646 × 2
       box.click('2');
       await tick();
-      expect(cells(rows()[0])?.[6]).toBe('1.820');
+      expect(cells(rows()[0])?.[6]).toBe('1.292');
       box.click('Laufend');
       expect(box.text).not.toContain('Vorschau Stufe');
       expect(box.text).toContain('noch 2.811 FP bis zum Level-up');
@@ -883,25 +885,25 @@ describe('LG-Rechner', () => {
       expect(box.text).not.toContain('Vorschau Stufe');
     });
 
-    it('marks computed rewards past the table as estimate', () => {
+    it('marks rewards from an estimated cost as estimate', () => {
       const { box, open, rows, loadDefinitions } = setup();
       loadDefinitions();
       open(1500);
       choose(box.root, 421);
       const gross = rows()[0]?.querySelectorAll('td')[3];
       expect(gross?.className).toBe('num estimate');
-      expect(gross?.getAttribute('data-tip')).toBe('Belohnung geschätzt, auf etwa 5 FP genau');
+      expect(gross?.getAttribute('data-tip')).toBe('Kosten der Stufe geschätzt, die Belohnungen folgen daraus');
       expect(gross?.textContent).toContain('≈');
     });
 
-    it('says what is missing without the definition or past every known level', () => {
+    it('says what is missing without the definition, and knows every later level with it', () => {
       const { box, open, loadDefinitions } = setup();
       open(1909);
       choose(box.root, 76);
       expect(box.text).toContain('Definition des LGs ist noch nicht geladen');
       loadDefinitions();
       choose(box.root, 2000);
-      expect(box.text).toContain('Für diese Stufe ist die Belohnung nicht bekannt.');
+      expect(box.text).not.toContain('Für diese Stufe sind die Kosten nicht bekannt.');
       expect(box.text).toContain('Die Stufe kostet');
     });
 
