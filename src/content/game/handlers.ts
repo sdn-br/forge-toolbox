@@ -1,12 +1,15 @@
 // Which game response feeds which store, all in one place. A response may have several handlers that each feed their
 // own part, for example `updatePlayer` (players, plunder) and `CityMapService.reset` (plunder, own buildings).
+
+import type { GreatBuildingListRow } from '../../persistence/great-buildings/contract';
 import { eraId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import type { Ingestion } from '../core/ingestion';
 import { logInfo } from '../core/log';
-import type { Building } from '../model/city';
+import type { Building, City } from '../model/city';
 import type { GreatBuildingEntity, RankingRow } from '../model/great-building';
 import type { Stores } from '../stores';
+import type { LevelCostSeen } from '../stores/gb-level-costs';
 import type { PlayerObservation } from '../stores/players';
 import { toBuildingDef, toBuildingFiles, toGreatBuildingTiers } from './building-defs';
 import {
@@ -89,6 +92,24 @@ const withAttack = (list: unknown, now: number) =>
     .map((p) => toObservationWithAttack(p, now))
     .filter((o): o is PlayerObservation => o !== null);
 
+/** the cost a row of a great building list shows: `max_progress` (`requiredPoints` in the ranking) of its level */
+const costOfRow = (r: GreatBuildingListRow): LevelCostSeen => ({
+  type: r.cityEntityId,
+  level: r.level,
+  fp: r.required,
+});
+
+/** the cost an opened or reset great building shows: `forge_points_for_level_up` of its level */
+const costOfEntity = (e: GreatBuildingEntity): LevelCostSeen => ({ type: e.def, level: e.level, fp: e.required });
+
+/** the costs the great buildings of a city show */
+const costsOfCity = (city: City): LevelCostSeen[] =>
+  [...city.buildings.values()].flatMap((b) =>
+    b.greatBuilding?.fpForLevelUp === undefined
+      ? []
+      : [{ type: b.def, level: b.greatBuilding.level, fp: b.greatBuilding.fpForLevelUp }],
+  );
+
 export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps): void {
   const {
     world,
@@ -107,6 +128,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     greatBuildings,
     playerBonuses,
     inventory,
+    gbLevelCosts,
   } = deps;
 
   /** the game shows the main map of the own city, not a settlement or a colony; set by the map requests below */
@@ -121,7 +143,9 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     for (const g of d.goodsList ?? []) if (g.id && g.name) goods[g.id] = g.name;
     catalog.setResourceNames(goods);
     session.start(s);
-    cities.setOwn(toCity(world, s.playerId, s.era, d.city_map, now()));
+    const own = toCity(world, s.playerId, s.era, d.city_map, now());
+    cities.setOwn(own);
+    gbLevelCosts.note(costsOfCity(own));
   });
 
   // Attack timers come whole with the neighbours (30 of 75 had next_interaction_in, seen 2026-10-21). Friends and
@@ -196,6 +220,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     const era = d.other_player_era ?? d.other_player.era ?? '';
     const city = toCity(world, o.id, era, d.city_map, now());
     cities.setVisited({ ...city, visit: toVisitInfo(d.other_player) });
+    gbLevelCosts.note(costsOfCity(city));
   });
 
   // comes with battles and other interactions, for example in the same response as the battle against that player.
@@ -406,7 +431,9 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   // which the own city knows. Without the request a construction cannot be placed and is skipped.
   ingestion.on('OtherPlayerService', 'getOtherPlayerCityMapEntity', ({ data }) => {
     const entity = toGreatBuildingEntity(data as GameCityEntity);
-    if (entity) greatBuildings.noteEntity(entity);
+    if (!entity) return;
+    gbLevelCosts.note([costOfEntity(entity)]);
+    greatBuildings.noteEntity(entity);
   });
   ingestion.on('GreatBuildingsService', 'getConstruction', ({ data, request }) => {
     const target = greatBuildingRequest(request);
@@ -452,6 +479,8 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   ingestion.on('CityMapService', 'reset', noteGreatBuildings);
   ingestion.on('CityMapService', 'updateEntity', noteGreatBuildings);
   ingestion.onBatchEnd(() => {
+    // an own level up comes so, with the cost of the new level
+    gbLevelCosts.note(resetBuildings.map(costOfEntity));
     const open = greatBuildings.current();
     const target = contribution?.target ?? open;
     const building = resetBuildings.find((b) => b.owner === target?.owner && b.entityId === target.entityId);
@@ -500,6 +529,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     // the owner first, so the views the list redraws already know the name
     players.applyListed(world, toListedPlayers(data, me));
     greatBuildings.noteList(toGreatBuildingListRows(data, me));
+    gbLevelCosts.note(toGreatBuildingListRows(data).map(costOfRow));
   });
   // The ranking window, tab "Legendäre Bauwerke" (recorded 2026-11-04 on de10): opening the tab, paging (blocks of 50)
   // and both searches answer with rows of buildings of many players. The other tabs use the same methods.
@@ -510,6 +540,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
       catalog.setGreatBuildingNames(ranking.names);
       players.applyListed(world, ranking.owners);
       greatBuildings.noteRanking(ranking.rows);
+      gbLevelCosts.note(ranking.rows.map(costOfRow));
     });
   }
   // The town hall list "Legendäre Bauwerke" of the buildings the session player invested in (recorded 2026-10-24,
@@ -519,7 +550,9 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     const me = session.current?.playerId;
     catalog.setGreatBuildingNames(toGreatBuildingNames(data));
     players.applyListed(world, toListedPlayers(data, me));
-    greatBuildings.noteContributions(toGreatBuildingListRows(data, me));
+    const rows = toGreatBuildingListRows(data, me);
+    greatBuildings.noteContributions(rows);
+    gbLevelCosts.note(rows.map(costOfRow));
   });
   ingestion.on('BonusService', 'getLimitedBonuses', ({ data }) => {
     playerBonuses.setLimited(toLimitedBonuses(data));

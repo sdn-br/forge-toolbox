@@ -13,6 +13,7 @@ import {
   profitablePlaces,
 } from '../../../domain/gb-calculator';
 import { effectiveFactor as effective, type FactorChoice } from '../../../domain/gb-factor';
+import { type LevelCosts, levelCosts } from '../../../domain/gb-level-cost';
 import { previewLevel } from '../../../domain/gb-level-preview';
 import { ownerRow } from '../../../domain/gb-snipe';
 import { type LevelUpAndFirst, levelUpAndFirst } from '../../../domain/gb-strategy';
@@ -180,6 +181,8 @@ export interface GbCalculatorInput extends GbCalcLookups {
   previewLevel?: number;
   /** era and level costs of the building; undefined while its definition is not loaded */
   greatBuilding(def: BuildingDefId): GreatBuildingDef | undefined;
+  /** the cost of each level of a building, seen or computed; without it only the levels the definition lists */
+  levelCosts?(def: BuildingDefId, gb: GreatBuildingDef): LevelCosts;
 }
 
 /** no cell where nothing can be paid */
@@ -243,6 +246,7 @@ function meVm(calc: ConstructionCalc): MeVm {
 /** A later level, empty: the own Forge points do not limit a plan, blueprints and medals are not known. */
 function previewVm(
   gb: GreatBuildingDef | undefined,
+  costs: LevelCosts,
   level: number,
   maxLevel: number,
   arcBonus: number,
@@ -251,7 +255,7 @@ function previewVm(
 ): PreviewVm {
   const base = { ...levelPreview(level, maxLevel), places: [] };
   if (!gb) return { ...base, unknown: 'definition' };
-  const p = previewLevel({ greatBuilding: gb, level, arcBonus, factor, tiers });
+  const p = previewLevel({ greatBuilding: gb, level, cost: costs(level), arcBonus, factor, tiers });
   if (!p.calc) return { ...base, required: p.required, unknown: 'reward' };
   const { calc } = p;
   return {
@@ -261,6 +265,10 @@ function previewVm(
     places: calc.places.map((place) => placeRow(place, calc.rest)),
   };
 }
+
+/** the costs of the building's levels; the listed ones only when the input does not tell */
+const costsOf = (input: GbCalculatorInput, def: BuildingDefId, gb: GreatBuildingDef): LevelCosts =>
+  input.levelCosts?.(def, gb) ?? levelCosts(gb.levelCosts, new Map());
 
 export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm {
   const c = input.construction;
@@ -315,12 +323,13 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     input.arcBonus,
     tier,
   );
+  const costs = gb ? costsOf(input, entity.def, gb) : () => undefined;
   const live = constructionOf(entity, c.rankings, { arcBonus: liveArc, factor: factorAt(entity.level) });
   const calc = calculateConstruction(live);
   const next = entity.level + 1;
   const levelUp = c.leveled
     ? undefined
-    : levelUpAndFirst(live, calc, gb, { arcBonus: arcAt(next), factor: factorAt(next) }, input.tiers);
+    : levelUpAndFirst(live, calc, gb, costs(next), { arcBonus: arcAt(next), factor: factorAt(next) }, input.tiers);
   if (preview !== undefined) {
     return {
       kind: 'preview',
@@ -328,7 +337,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
       factorButtons: buttons,
       effectiveFactor,
       tier,
-      preview: previewVm(gb, preview, entity.maxLevel, shownArc, effectiveFactor, input.tiers),
+      preview: previewVm(gb, costs, preview, entity.maxLevel, shownArc, effectiveFactor, input.tiers),
       ...(levelUp && preview === levelUp.nextLevel && { levelUp }),
     };
   }

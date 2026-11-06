@@ -85,6 +85,8 @@ export interface ToolboxEvents {
    * once without an owner: then every owner may have changed
    */
   'greatBuildings.stored': { owner: PlayerId; entityIds: number[] } | { owner?: undefined };
+  /** costs of great building levels were seen anew or read at start: the costs of these types may have changed */
+  'gbLevelCosts.changed': { types: BuildingDefId[] };
   /** the factors per place of a building changed (any of the three levels); without `def` those of every building */
   'gbOwn.factorsChanged': { def?: string };
   /** the Ext of a building's level changed */

@@ -125,7 +125,7 @@ export function createCalculatorSection(
   return {
     shown: () => shown,
     hasBuilding: () => vm.kind !== 'none' && vm.kind !== 'noEntity',
-    update: ({ lookups, greatBuilding, arcBonus, tiers }) => {
+    update: ({ lookups, greatBuilding, levelCosts, arcBonus, tiers }) => {
       vm = gbCalculatorViewModel({
         ...lookups,
         construction: shown,
@@ -139,6 +139,7 @@ export function createCalculatorSection(
         arcButton: arcButton.get(),
         previewLevel: preview,
         greatBuilding,
+        levelCosts,
       });
     },
     render: (show, toggle) =>

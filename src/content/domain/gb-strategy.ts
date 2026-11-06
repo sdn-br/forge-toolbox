@@ -1,6 +1,7 @@
 // Strategies on the running construction of a foreign great building: ways to pay in that the places alone do not show.
 import type { GreatBuildingDef, TierStart } from '../model/catalog';
 import { type ConstructionCalc, type ConstructionInput, plusPercent } from './gb-calculator';
+import type { LevelCost } from './gb-level-cost';
 import { previewLevel } from './gb-level-preview';
 
 /** Level the building now with everything still missing, then take place 1 of the next level while it is empty. */
@@ -24,14 +25,15 @@ export interface LevelUpAndFirst {
  * The combination only when the next level can be paid into right after the level up and it pays: not blocked, the
  * level after the next construction start unlocked, the reward of the next level known and the total above the best
  * profit of the current level without levelling: the own place, or a place still to take (0 when none brings one).
- * `calc` is the construction of `input`, as the caller has it already. `next` holds the Arc bonus and the factor of the
- * next level when they differ: its tier can be gold while the current level is copper. `tiers` tells that tier, and with
- * it how many places the next level has.
+ * `calc` is the construction of `input`, as the caller has it already; `nextCost` is the cost of the next construction.
+ * `next` holds the Arc bonus and the factor of the next level when they differ: its tier can be gold while the current
+ * level is copper. `tiers` tells that tier, and with it how many places the next level has.
  */
 export function levelUpAndFirst(
   input: ConstructionInput,
   calc: ConstructionCalc,
   greatBuilding: GreatBuildingDef | undefined,
+  nextCost: LevelCost | undefined,
   next: { arcBonus: number; factor: number } = input,
   tiers?: TierStart[],
 ): LevelUpAndFirst | undefined {
@@ -45,8 +47,14 @@ export function levelUpAndFirst(
   const rank = 1 + others.filter((fp) => fp >= mine).length;
   const reward = rankings.find((r) => r.rank === rank)?.reward?.fp ?? 0;
   const fillGain = plusPercent(reward, arcBonus) - mine;
-  const first = previewLevel({ greatBuilding, level: level + 1, arcBonus: next.arcBonus, factor: next.factor, tiers })
-    .calc?.places[0];
+  const first = previewLevel({
+    greatBuilding,
+    level: level + 1,
+    cost: nextCost,
+    arcBonus: next.arcBonus,
+    factor: next.factor,
+    tiers,
+  }).calc?.places[0];
   if (first?.safeCost === undefined || first.profit === undefined) return undefined;
   const total = fillGain + first.profit;
   // levelling up plus first place against what the current level pays without levelling: the own place as it stands,

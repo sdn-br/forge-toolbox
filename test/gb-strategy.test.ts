@@ -20,6 +20,7 @@ describe('levelUpAndFirst', () => {
   // round(573 × 2.3) = 1318 for the safe round(2460 / 2) = 1230: +88
   const gb = def('X_ProgressiveEra_Landmark1');
   const NEXT = { arcBonus: 130, factor: 90 };
+  const NEXT_COST = { fp: 2460, estimate: true };
   const NET = [655, 330, 110, 30, 5];
   const row = (rank: number, fp?: number, self = false, net = NET[rank - 1] as number): RankingRow => ({
     rank,
@@ -40,7 +41,7 @@ describe('levelUpAndFirst', () => {
     ...change,
   });
   const levelUp = (i: ConstructionInput, greatBuilding: GreatBuildingDef | undefined) =>
-    levelUpAndFirst(i, calculateConstruction(i), greatBuilding, NEXT);
+    levelUpAndFirst(i, calculateConstruction(i), greatBuilding, NEXT_COST, NEXT);
 
   it('nothing paid in: fills the level, lands below the deposits that stay safe and takes place 1 of the next', () => {
     // 2390 in, every place safe: 10 missing lands on 6 without a reward, -10, with the next +88 still +78 over 0
@@ -60,13 +61,13 @@ describe('levelUpAndFirst', () => {
     // the next place 1 pays 573: round(573 × 2.4) = 1375 for the safe 1230, +145 instead of +88; the fill stays -10
     const rows = [row(1, 1300), row(2, 900), row(3, 100), row(4, 50), row(5, 40)];
     const i = input(rows);
-    expect(levelUpAndFirst(i, calculateConstruction(i), gb, { arcBonus: 140, factor: 90 })).toMatchObject({
+    expect(levelUpAndFirst(i, calculateConstruction(i), gb, NEXT_COST, { arcBonus: 140, factor: 90 })).toMatchObject({
       fillGain: -10,
       firstGain: 145,
       total: 135,
     });
     // with the Arc bonus of the current level place 1 of the next one does not pay
-    expect(levelUpAndFirst(i, calculateConstruction(i), gb)).toBeUndefined();
+    expect(levelUpAndFirst(i, calculateConstruction(i), gb, NEXT_COST)).toBeUndefined();
   });
 
   it('counts a place of an early level that pays no Forge points as 0, levelling onto it and taking it alike', () => {
@@ -120,7 +121,8 @@ describe('levelUpAndFirst', () => {
     // unlocked up to 53: the construction from 53 is not open after the level up
     expect(levelUp(input(rows, { maxLevel: 53 }), gb)).toBeUndefined();
     expect(levelUp(input(rows, { maxLevel: 54 }), gb)).toBeDefined();
-    expect(levelUp(input(rows), { ...gb, levelCosts: [] })).toBeUndefined();
+    const unknownCost = input(rows);
+    expect(levelUpAndFirst(unknownCost, calculateConstruction(unknownCost), gb, undefined, NEXT)).toBeUndefined();
     expect(levelUp(input(rows, { connected: false }), gb)).toBeUndefined();
     expect(levelUp(input(rows), undefined)).toBeUndefined();
   });

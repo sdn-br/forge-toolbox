@@ -1,4 +1,4 @@
-import { openDb } from '../../src/background/db';
+import { openDb, openSharedDb } from '../../src/background/db';
 import { createHandlers, type HandlerDeps } from '../../src/background/handlers';
 import type { Call } from '../../src/content/core/rpc';
 import { battlePersistence } from '../../src/persistence/battles/client';
@@ -23,7 +23,8 @@ const offline = async (url: string): Promise<string> => {
  */
 export function testDb(deps: Partial<HandlerDeps> = {}) {
   const db = openDb(`test-${++dbCount}`);
-  const handlers = createHandlers(db, { now: Date.now, fetchText: offline, ...deps }) as Record<
+  const shared = openSharedDb(`test-shared-${dbCount}`);
+  const handlers = createHandlers(db, { now: Date.now, fetchText: offline, shared, ...deps }) as Record<
     string,
     (arg: unknown) => Promise<unknown>
   >;

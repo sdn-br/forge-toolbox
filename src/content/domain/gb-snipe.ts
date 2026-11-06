@@ -141,7 +141,7 @@ export function snipeBuilding(
 ): SnipeResult {
   if (b.ownContribution) return 'ownContribution';
   // the stored cost is the real one of the level, so the rewards are exact
-  const level = def && emptyLevel(def, b.level, tiers, b.required);
+  const level = def && emptyLevel(def, b.level, { fp: b.required, estimate: false }, tiers);
   const places = level?.rankings;
   if (!level || !places) return 'unknownReward';
   const arcBonus = arcBonusAt(arc, def, b.level, tiers);

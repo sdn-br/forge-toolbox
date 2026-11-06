@@ -14,7 +14,7 @@ import {
 import { registerGameHandlers } from '../src/content/game/handlers';
 import { FOESTATS_SETTING } from '../src/content/stores/foestats';
 import type { FetchLike } from '../src/shared/foestats-api';
-import { playerId, worldId } from '../src/shared/ids';
+import { buildingDefId, playerId, worldId } from '../src/shared/ids';
 import definitions from './fixtures/gb-definitions.json';
 import levelUp from './fixtures/gb-level-up.json';
 import fixture from './fixtures/great-buildings.json';
@@ -73,7 +73,12 @@ function setup(options: TestStoresOptions = {}) {
     send(o.construction);
   };
   const rows = () => [...box.root.querySelectorAll('tr')].slice(1);
-  return { ...env, ingestion, box, send, ws, open, opening, rows, loadDefinitions, tones: () => tones };
+  /** costs of levels of `type` as if the game had shown them */
+  const learn = (type: string, costs: Record<number, number>) =>
+    ctx.gbLevelCosts.note(
+      Object.entries(costs).map(([level, fp]) => ({ type: buildingDefId(type), level: Number(level), fp })),
+    );
+  return { ...env, ingestion, box, send, ws, open, opening, rows, loadDefinitions, learn, tones: () => tones };
 }
 
 describe('LG-Rechner', () => {
@@ -778,6 +783,8 @@ describe('LG-Rechner', () => {
       // 40 more on the copper Arc bonus, 135,5 %: at 95,5 % place 1 of the empty next level does not pay
       env.ctx.playerBonuses.setLimited([{ type: 'contribution_boost', value: 40 }]);
       env.loadDefinitions();
+      // 2340 on 51 and the 2400 of the opening: 60 a level, so 53 costs 2460
+      env.learn('X_ProgressiveEra_Landmark1', { 51: 2340 });
       const { entity, construction } = env.opening(2434);
       type Row = { rank?: number; forge_points?: number };
       const fp: Record<number, number | undefined> = { 1: 1600, 2: 560, 3: 100, 4: undefined };
@@ -822,8 +829,10 @@ describe('LG-Rechner', () => {
     });
 
     it('shows a later level from the field open and empty', () => {
-      const { box, open, rows, loadDefinitions, tones } = setup();
+      const { box, open, rows, loadDefinitions, learn, tones } = setup();
       loadDefinitions();
+      // with the 3062 of the opening 76 a level, so 76 costs 3138
+      learn('X_EarlyMiddleAge_Landmark2', { 77: 3214 });
       open(1909);
       expect(levelInput(box.root).value).toBe('75');
       expect(box.text).not.toContain('Laufend');
@@ -842,7 +851,7 @@ describe('LG-Rechner', () => {
         'gb-unavailable',
         'gb-unavailable',
       ]);
-      // 3.138 from the growth past level 10, 25 % of it on five places: 457, 228, 76, 19, 4
+      // 3.138 computed from the levels seen, 25 % of it on five places: 457, 228, 76, 19, 4
       expect(cells(rows()[0])).toEqual(['1', '–', '1.569', '≈ 893', '-676', '−0,43', '868', '343,3 %']);
       expect(cells(rows()[1])).toEqual(['2', '–', '–', '≈ 446', '–', '–', '433', '–']);
       expect(rows().map((r) => cells(r)[3])).toEqual(['≈ 893', '≈ 446', '≈ 149', '≈ 37', '≈ 8']);
@@ -850,17 +859,19 @@ describe('LG-Rechner', () => {
     });
 
     it('takes any later level from the field and goes back to the live construction', async () => {
-      const { box, open, rows, loadDefinitions } = setup();
+      const { box, open, rows, loadDefinitions, learn } = setup();
       loadDefinitions();
+      learn('X_EarlyMiddleAge_Landmark2', { 77: 3214 });
       open(1909);
       choose(box.root, 90);
       expect(box.text).toContain('Vorschau Stufe 90 → 91');
-      expect(box.text).toContain('Die Stufe kostet 4.434 FP');
+      // 3062 + 15 × 76
+      expect(box.text).toContain('Die Stufe kostet 4.202 FP');
       expect(cells(rows()[0])?.[0]).toBe('1');
-      // the factor still sets the demand: 646 × 2
+      // the factor still sets the demand: 612 × 2
       box.click('2');
       await tick();
-      expect(cells(rows()[0])?.[6]).toBe('1.292');
+      expect(cells(rows()[0])?.[6]).toBe('1.224');
       box.click('Laufend');
       expect(box.text).not.toContain('Vorschau Stufe');
       expect(box.text).toContain('noch 2.811 FP bis zum Level-up');
@@ -886,25 +897,32 @@ describe('LG-Rechner', () => {
     });
 
     it('marks rewards from an estimated cost as estimate', () => {
-      const { box, open, rows, loadDefinitions } = setup();
+      const { box, open, rows, loadDefinitions, learn } = setup();
       loadDefinitions();
+      // two levels past 400 seen: 1000 a level
+      learn('X_FutureEra_Landmark1', { 410: 500000, 430: 520000 });
       open(1500);
       choose(box.root, 421);
       const gross = rows()[0]?.querySelectorAll('td')[3];
       expect(gross?.className).toBe('num estimate');
-      expect(gross?.getAttribute('data-tip')).toBe('Kosten der Stufe geschätzt, die Belohnungen folgen daraus');
+      expect(gross?.getAttribute('data-tip')).toBe(
+        'Kosten der Stufe aus gesehenen Stufen berechnet, die Belohnungen folgen daraus',
+      );
       expect(gross?.textContent).toContain('≈');
     });
 
-    it('says what is missing without the definition, and knows every later level with it', () => {
-      const { box, open, loadDefinitions } = setup();
+    it('says what is missing without the definition, and without enough levels seen of the building', () => {
+      const { box, open, loadDefinitions, learn } = setup();
       open(1909);
       choose(box.root, 76);
       expect(box.text).toContain('Definition des LGs ist noch nicht geladen');
       loadDefinitions();
       choose(box.root, 2000);
-      expect(box.text).not.toContain('Für diese Stufe sind die Kosten nicht bekannt.');
-      expect(box.text).toContain('Die Stufe kostet');
+      expect(box.text).toContain('Für diese Stufe sind die Kosten noch nicht bekannt');
+      expect(box.text).not.toContain('Die Stufe kostet');
+      // once the game showed two levels past 400 the box draws again with the cost
+      learn('X_EarlyMiddleAge_Landmark2', { 1000: 400000, 1010: 401000 });
+      expect(box.text).toContain('Die Stufe kostet 500.000 FP');
     });
 
     it('starts live again when another great building is opened', () => {

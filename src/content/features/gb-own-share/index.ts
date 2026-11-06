@@ -156,6 +156,7 @@ export function createGbOwnShareFeature(
           copyBuilding: d ? ctx.ui.pref(copyBuildingKey(d)) : undefined,
           previewLevel: preview,
           greatBuilding: (id) => ctx.catalog.get(id)?.greatBuilding,
+          levelCosts: (id, gb) => ctx.gbLevelCosts.costs(gb, id),
         });
       };
       const box = ctx.createBox({
@@ -203,6 +204,7 @@ export function createGbOwnShareFeature(
         if (closed && box.isOpen && closeWithoutWindow.get()) box.close();
       });
       ctx.bus.on('catalog.updated', () => update());
+      ctx.bus.on('gbLevelCosts.changed', () => update());
       ctx.bus.on('city.ownChanged', () => update());
       // the other box changed the factors or Ext of the building
       ctx.bus.on('gbOwn.factorsChanged', () => update());

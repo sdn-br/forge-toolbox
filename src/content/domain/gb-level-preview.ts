@@ -1,26 +1,11 @@
 // A later level of a great building as if it were open and empty: what it costs and what each place pays. Pure, so
 // the own great buildings can use it too (Eigenanteilsrechner).
-import { EPSILON, roundHalfUp } from '../../shared/math';
+import { roundHalfUp } from '../../shared/math';
 import type { GreatBuildingDef, TierStart } from '../model/catalog';
 import type { RankingRow } from '../model/great-building';
 import { type ConstructionCalc, calculateConstruction, constructionOf } from './gb-calculator';
+import type { LevelCost } from './gb-level-cost';
 import { levelTier, tierPlaces } from './gb-tier';
-
-/** the definition lists the costs of the first ten levels, later ones grow by this factor per level */
-const COST_GROWTH = 1.025;
-const LISTED_LEVELS = 10;
-
-/**
- * Forge points to build `level` up to `level + 1`, from the costs of the definition. Undefined without them. The index
- * is the level the construction starts from (checked against recorded constructions).
- */
-export function levelCost(costs: readonly number[], level: number): number | undefined {
-  if (!Number.isInteger(level) || level < 0) return undefined;
-  if (level < LISTED_LEVELS) return costs[level];
-  const last = costs[LISTED_LEVELS - 1];
-  // never an integer from level 10 on, the epsilon only keeps a float a hair above one from rounding up
-  return last === undefined ? undefined : Math.ceil(last * COST_GROWTH ** (level - LISTED_LEVELS + 1) - EPSILON);
-}
 
 /**
  * The share of the cost all places get together, in percent, by the level the construction goes to: up to `upTo` the
@@ -66,6 +51,8 @@ interface LevelPreviewInput {
   greatBuilding: GreatBuildingDef;
   /** the level the construction starts from */
   level: number;
+  /** the cost of the level; undefined when it is not known */
+  cost: LevelCost | undefined;
   /** the Arc bonus of the tier of level + 1 */
   arcBonus: number;
   factor: number;
@@ -76,9 +63,9 @@ interface LevelPreviewInput {
 /** A level as it opens: its cost and the places with nobody on them, 5 on a copper level, 7 on a gold one. */
 interface EmptyLevel {
   level: number;
-  /** Forge points the level needs; undefined when the definition does not tell */
+  /** Forge points the level needs; undefined when the cost is not known */
   required?: number;
-  /** the cost comes from the growth past the listed levels, so it and the rewards are estimated */
+  /** the cost is computed from the costs seen, so it and the rewards are estimated */
   estimate: boolean;
   /** the places without deposits; undefined without a cost */
   rankings?: RankingRow[];
@@ -91,17 +78,16 @@ export interface LevelPreview extends Omit<EmptyLevel, 'rankings'> {
 
 /**
  * The level as if it were open and nobody had paid yet: blueprints and medals are not known, they stay 0. `cost` is
- * the real cost of the level when known (a stored building), else it comes from the definition.
+ * the cost of the level, seen or computed (see gb-level-cost.ts); without it there are no places.
  */
 export function emptyLevel(
   greatBuilding: GreatBuildingDef,
   level: number,
+  cost: LevelCost | undefined,
   tiers?: TierStart[],
-  cost?: number,
 ): EmptyLevel {
-  const required = cost ?? levelCost(greatBuilding.levelCosts, level);
-  if (required === undefined) return { level, estimate: false };
-  const estimate = cost === undefined && level >= LISTED_LEVELS;
+  if (cost === undefined) return { level, estimate: false };
+  const { fp: required, estimate } = cost;
   const places = tierPlaces(levelTier(greatBuilding, level + 1, tiers));
   const rankings: RankingRow[] = placeRewards(required, level + 1, places).map((fp, i) => ({
     rank: i + 1,
@@ -114,8 +100,8 @@ export function emptyLevel(
 
 /** The level as if it were open and nobody had paid yet, priced like a foreign construction. */
 export function previewLevel(input: LevelPreviewInput): LevelPreview {
-  const { greatBuilding, level, arcBonus, factor, tiers } = input;
-  const { required, estimate, rankings } = emptyLevel(greatBuilding, level, tiers);
+  const { greatBuilding, level, cost, arcBonus, factor, tiers } = input;
+  const { required, estimate, rankings } = emptyLevel(greatBuilding, level, cost, tiers);
   if (required === undefined || !rankings) return { level, required, estimate };
   const calc = calculateConstruction(constructionOf({ level, required }, rankings, { arcBonus, factor }));
   return { level, required, estimate, calc };

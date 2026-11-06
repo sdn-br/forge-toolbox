@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { LevelCosts } from '../src/content/domain/gb-level-cost';
 import { emptyLevel } from '../src/content/domain/gb-level-preview';
 import { calculateOwnShare } from '../src/content/domain/gb-own-share';
 import { type PowerLevelInput, powerLevelPlan } from '../src/content/domain/gb-power-level';
@@ -15,6 +16,13 @@ const def = (id: string): GreatBuildingDef => {
   return gb;
 };
 const roman = def(ROMAN);
+/** the listed levels exact, the later ones as if learned: 10 more per level */
+const costs: LevelCosts = (level) => {
+  const listed = roman.levelCosts[level];
+  if (listed !== undefined) return { fp: listed, estimate: false };
+  const last = roman.levelCosts[9] as number;
+  return { fp: last + 10 * (level - 9), estimate: true };
+};
 // the recorded production per level 0 to 10: 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6
 
 const LEVEL = 3;
@@ -22,7 +30,7 @@ const SHARE = { factor: 90, secureExisting: true, trust: false, oneFpForNoReward
 
 /** the open level with the player's 20 on place 2 and a holder with 60 on place 1 */
 function rankings(level = LEVEL): RankingRow[] {
-  const rows = emptyLevel(roman, level).rankings as RankingRow[];
+  const rows = emptyLevel(roman, level, costs(level)).rankings as RankingRow[];
   return rows.map((r) =>
     r.rank === 1 ? { ...r, name: 'Holder', fp: 60 } : r.rank === 2 ? { ...r, name: 'Ich', self: true, fp: 20 } : r,
   );
@@ -32,9 +40,10 @@ const plan = (change: Partial<PowerLevelInput> = {}, level = LEVEL, maxLevel = 8
   powerLevelPlan({
     def: ROMAN,
     greatBuilding: roman,
+    costs,
     level,
     maxLevel,
-    required: emptyLevel(roman, level).required as number,
+    required: emptyLevel(roman, level, costs(level)).required as number,
     rankings: rankings(level),
     from: level,
     to: level + 10,
@@ -43,7 +52,7 @@ const plan = (change: Partial<PowerLevelInput> = {}, level = LEVEL, maxLevel = 8
   });
 
 const calcOf = (level: number, real: boolean, exts: number[] = []) => {
-  const empty = emptyLevel(roman, level);
+  const empty = emptyLevel(roman, level, costs(level));
   return calculateOwnShare({
     ...SHARE,
     required: empty.required as number,
@@ -86,8 +95,8 @@ describe('powerLevelPlan', () => {
     ]);
   });
 
-  it('marks levels whose cost, and so whose rewards, come from the growth past the listed levels', () => {
-    // the open level 8 has its real cost; 9 is listed, from 10 on the cost grows by 2.5 % a level
+  it('marks levels whose cost, and so whose rewards, are estimated', () => {
+    // the open level 8 has its real cost; 9 is listed, from 10 on the cost is computed
     const { rows } = plan({ to: 12 }, 8, 20);
     expect(rows.map((r) => r.estimate)).toEqual([false, false, true, true]);
   });
@@ -149,8 +158,8 @@ describe('powerLevelPlan', () => {
   });
 
   it('ends at the first level whose cost is unknown', () => {
-    // a definition with the costs of levels 0 to 5 only
-    const p = plan({ greatBuilding: { ...roman, levelCosts: roman.levelCosts.slice(0, 6) } });
+    // the costs of levels 0 to 5 only
+    const p = plan({ costs: (level) => (level < 6 ? costs(level) : undefined) });
     expect(p.rows.map((r) => r.level)).toEqual([3, 4, 5]);
     expect(p.endsAt).toBe(6);
     expect(plan().endsAt).toBeUndefined();

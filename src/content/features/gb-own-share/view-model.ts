@@ -1,6 +1,7 @@
 import type { BuildingDefId } from '../../../shared/ids';
 import type { ArcBonus } from '../../domain/arc-bonus';
 import { effectiveFactor, effectiveFactors } from '../../domain/gb-factor';
+import { type LevelCosts, levelCosts } from '../../domain/gb-level-cost';
 import { emptyLevel } from '../../domain/gb-level-preview';
 import { calculateOwnShare, type OwnPlace, type OwnShareCalc } from '../../domain/gb-own-share';
 import { levelTier, tierPlaces } from '../../domain/gb-tier';
@@ -53,6 +54,8 @@ export interface OwnShareInputs {
   previewLevel?: number;
   /** era and level costs of the building; undefined (or missing) while its definition is not loaded */
   greatBuilding?(def: BuildingDefId): GreatBuildingDef | undefined;
+  /** the cost of each level of a building, seen or computed; without it only the levels the definition lists */
+  levelCosts?(def: BuildingDefId, gb: GreatBuildingDef): LevelCosts;
 }
 
 /**
@@ -127,7 +130,8 @@ export function ownShareViewModel(input: OwnShareInputs): OwnShareVm {
     const base = levelPreview(level, entity.maxLevel);
     const gb = input.greatBuilding?.(entity.def);
     if (!gb) return { kind: 'previewUnknown', name, levels, preview: { ...base, unknown: 'definition' } };
-    const empty = emptyLevel(gb, level, input.tiers);
+    const costs = input.levelCosts?.(entity.def, gb) ?? levelCosts(gb.levelCosts, new Map());
+    const empty = emptyLevel(gb, level, costs(level), input.tiers);
     if (empty.required === undefined || !empty.rankings)
       return { kind: 'previewUnknown', name, levels, preview: { ...base, unknown: 'reward' } };
     const preview = { ...base, required: empty.required, estimate: empty.estimate };
