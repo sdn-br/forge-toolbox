@@ -120,6 +120,16 @@ describe('box resize', () => {
     expect(handle()).not.toBeNull();
   });
 
+  it('asks a width function on every render, for content that changes its width', async () => {
+    let wanted = 400;
+    const { box, frame } = await shownBox(undefined, 'grows', undefined, { resizable: false, width: () => wanted });
+    expect(frame().style.width).toBe('400px');
+    wanted = 480;
+    box.update();
+    await tick();
+    expect(frame().style.width).toBe('480px');
+  });
+
   it('keeps a configured width above the width cap of the fixed boxes', async () => {
     const { frame } = await shownBox();
     // the cap sits on the class of the fixed boxes

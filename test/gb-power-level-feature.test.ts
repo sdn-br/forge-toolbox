@@ -100,6 +100,12 @@ describe('Powerleveln', () => {
     expect(heads(gold.power)).toEqual(['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7']);
     expect(gold.fields(gold.power)).toHaveLength(7);
     expect(gold.cells(gold.rows()[1])).toHaveLength(gold.cells(gold.rows()[0]).length);
+    // the box grows with the two columns (Nutzer, 2026-11-06)
+    const width = (power: { options: { width?: number | (() => number) } }) => {
+      const w = power.options.width;
+      return typeof w === 'function' ? w() : w;
+    };
+    expect(width(gold.power)).toBeGreaterThan(width(copper.power) ?? 0);
   });
 
   it('follows the factors of the Eigenanteil box at once', async () => {

@@ -37,6 +37,9 @@ const widths = (places: number, harvest: boolean) => [
   2.2,
 ];
 
+/** the width of the table in em, the box follows it */
+export const tableEm = (places: number, harvest: boolean) => widths(places, harvest).reduce((sum, w) => sum + w, 0);
+
 /** `copied` names what was copied a moment ago */
 export function powerLevelView(vm: PowerLevelVm, actions: PowerLevelActions, copied?: string) {
   switch (vm.kind) {
@@ -74,7 +77,7 @@ function table(vm: TableVm, actions: PowerLevelActions, copied?: string) {
       ${levelField(t('gbPower.to'), t('gbPower.toHint'), vm.to, vm.from + 1, actions.setTo)}
       <span class="muted">(${t('gbPower.max', { max: MAX_ROWS })})</span>
     </div>
-    <table class="gb-table power-level" style=${`width:${cols.reduce((sum, w) => sum + w, 0)}em`}>
+    <table class="gb-table power-level" style=${`width:${tableEm(vm.places, vm.harvestColumn)}em`}>
       <colgroup>${cols.map((w) => html`<col style=${`width:${w}em`} />`)}</colgroup>
       <tr>
         <th data-tip=${t('gbPower.levelHint')}>${t('gbPower.level')}</th>
