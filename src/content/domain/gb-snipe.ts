@@ -58,9 +58,13 @@ export type OwnerShare =
 export const ownerRow = (rows: RankingRow[], owner: KnownGreatBuilding['owner']) =>
   rows.find((r) => r.player === owner) ?? rows.find((r) => r.rank === undefined && !r.self);
 
-/** the stored rankings when they belong to the building's current level */
+/**
+ * The stored rankings when they belong to the building's current level. Progress on a level only grows, so a sum below
+ * the rankings' means the level started over (the prestige update of 2026-11-05 reset begun levels): the rankings
+ * then belong to the earlier pass and count as none.
+ */
 export const currentRankings = (b: KnownGreatBuilding): RankingRow[] | undefined =>
-  b.rankingsLevel === b.level ? b.rankings : undefined;
+  b.rankingsLevel === b.level && (b.rankingsInvested ?? 0) <= b.invested ? b.rankings : undefined;
 
 export function ownerShare(b: KnownGreatBuilding): OwnerShare {
   const rankings = currentRankings(b);
@@ -156,7 +160,7 @@ export function snipeBuilding(
   let exact = false;
   let best: RankingRow[];
   let worst: RankingRow[];
-  if (ranked && b.invested <= sum) {
+  if (ranked && b.invested === sum) {
     exact = true;
     best = worst = assumed(places, ownerFp, holders, beyond);
   } else {

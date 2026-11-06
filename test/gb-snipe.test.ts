@@ -133,6 +133,13 @@ describe('snipeBuilding', () => {
     expect(run(stale)).toEqual(run(building({ invested: 400 })));
   });
 
+  it('uses the ranking of a level that started over as no ranking (Galataturm 64, Nutzer, 2026-11-06)', () => {
+    // seen with 400 paid in, now the list shows nothing: the stored owner and holder deposits are gone
+    const restarted = building({ invested: 0, ...ranking(100, 300) });
+    expect(run(restarted)).toEqual(run(building({ invested: 0 })));
+    expect(ownerShare(restarted)).toEqual({ state: 'unknown' });
+  });
+
   it('flags a building with nothing paid in as maybe locked', () => {
     expect(run(building({ invested: 0 }))).toMatchObject({ maybeLocked: true });
   });
