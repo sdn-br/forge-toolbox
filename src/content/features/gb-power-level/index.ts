@@ -14,7 +14,7 @@ import {
 import { COPY_PLAYER, copyBuildingKey, readCopyOptions } from '../gb-own-share/copy-text';
 import { powerLevelCss } from './styles';
 import { powerLevelView, tableEm } from './view';
-import { powerLevelViewModel } from './view-model';
+import { clampScroll, powerLevelViewModel, VISIBLE_ROWS } from './view-model';
 
 /** how long a copy button says it copied */
 const COPIED_MS = 1500;
@@ -24,6 +24,8 @@ const MIN_WIDTH = 560;
 const FONT_PX = 12;
 /** the padding of the box body on both sides plus room for its vertical scrollbar */
 const BODY_EXTRA = 16 + 18;
+/** the two buttons beside the table and their gap, while the level rows move */
+const NAV_EXTRA = 18 + 4;
 
 declare module '../../core/shell' {
   interface OpenableBoxes {
@@ -43,6 +45,8 @@ export function createGbPowerLevelFeature(
       let shown: Construction | undefined;
       let from: number | undefined;
       let to: number | undefined;
+      /** index of the first level row in view; a new building or range starts at the top, other redraws keep it */
+      let top = 0;
       let copied: string | undefined;
       let copiedTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -67,6 +71,7 @@ export function createGbPowerLevelFeature(
           copyBuilding: def ? ctx.ui.pref(copyBuildingKey(def)) : undefined,
           from,
           to,
+          top,
         });
       };
       /** a change to the factors of the building shown; the state announces it and the box follows */
@@ -78,12 +83,12 @@ export function createGbPowerLevelFeature(
         id: 'gbPowerLevel',
         css: powerLevelCss,
         title: () => t('gbPower.title'),
-        // follows the table: two more place columns on a gold level, the harvest column
+        // follows the table: two more place columns on a gold level, the harvest column, the buttons of moving rows
         width: () => {
           const v = vm();
-          return v.kind === 'table'
-            ? Math.max(MIN_WIDTH, Math.ceil(tableEm(v.places, v.harvestColumn) * FONT_PX) + BODY_EXTRA)
-            : MIN_WIDTH;
+          if (v.kind !== 'table') return MIN_WIDTH;
+          const nav = v.rows.length > VISIBLE_ROWS ? NAV_EXTRA : 0;
+          return Math.max(MIN_WIDTH, Math.ceil(tableEm(v.places, v.harvestColumn) * FONT_PX) + BODY_EXTRA + nav);
         },
         render: () =>
           powerLevelView(
@@ -97,10 +102,17 @@ export function createGbPowerLevelFeature(
               adoptFactors: () => onFactors((d) => ctx.gbOwn.adopt(d)),
               setFrom: (level) => {
                 from = level;
+                top = 0;
                 box.update();
               },
               setTo: (level) => {
                 to = level;
+                top = 0;
+                box.update();
+              },
+              scroll: (rows) => {
+                const v = vm();
+                top = clampScroll(top + rows, v.kind === 'table' ? v.rows.length : 0);
                 box.update();
               },
               copy: (text, id) => {
@@ -137,6 +149,7 @@ export function createGbPowerLevelFeature(
         if (!follow()) return;
         from = undefined;
         to = undefined;
+        top = 0;
         box.update();
       });
       ctx.bus.on('greatBuilding.changed', () => {
