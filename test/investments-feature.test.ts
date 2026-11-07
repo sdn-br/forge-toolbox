@@ -502,14 +502,14 @@ describe('Investitionen: Merken', () => {
     const { box, send, rows, heads } = setup();
     send(contributions.contributions as Entry);
     await tick();
-    expect(heads()[0]?.getAttribute('aria-label')).toBe('Merken');
+    expect(heads()[0]?.getAttribute('aria-label')).toBe('Gemerkte LGs');
     expect(heads()[0]?.querySelector('svg')).not.toBeNull();
     const star = () => rows()[0]?.querySelector('td:first-child button.star') as HTMLElement;
-    expect(star().getAttribute('aria-label')).toBe('Merken');
+    expect(star().getAttribute('aria-label')).toBe('Dieses LG merken');
     star().click();
     await tick();
     expect(star().getAttribute('aria-pressed')).toBe('true');
-    expect(star().getAttribute('aria-label')).toBe('Nicht mehr merken');
+    expect(star().getAttribute('aria-label')).toBe('Dieses LG nicht mehr merken');
     expect(box.root.querySelectorAll('button.star[aria-pressed=true]')).toHaveLength(1);
     star().click();
     await tick();
@@ -561,7 +561,7 @@ describe('Investitionen: Beziehung in Meine Investitionen', () => {
     send(contributions.contributions as Entry);
     await tick();
     expect(heads().map((th) => th.getAttribute('aria-label'))).toEqual([
-      'Merken',
+      'Gemerkte LGs',
       'Eigentümer',
       'Beziehung',
       'LG',
@@ -834,14 +834,14 @@ describe('Investitionen: Filter in Meine Investitionen', () => {
     await tick();
     const first = () => rows().find((r) => cells(r)[1] === 'Eigentümer 2005') as Element;
     const star = () => first().querySelector('.row-name button.star') as HTMLButtonElement;
-    expect(star().getAttribute('aria-label')).toBe('Merken');
-    expect(star().getAttribute('data-tip')).toBe('Merken');
+    expect(star().getAttribute('aria-label')).toBe('Diesen Spieler merken');
+    expect(star().getAttribute('data-tip')).toBe('Diesen Spieler merken');
     expect(star().getAttribute('aria-pressed')).toBe('false');
     expect(star().nextElementSibling?.classList.contains('ignore')).toBe(true);
     star().click();
     await tick();
     expect(players.get(playerId(2005))?.marked).toBe(true);
-    expect(star().getAttribute('aria-label')).toBe('Nicht mehr merken');
+    expect(star().getAttribute('aria-label')).toBe('Diesen Spieler nicht mehr merken');
     expect(star().classList.contains('on')).toBe(true);
     // marking and ignoring exclude each other
     (first().querySelector('.row-name button.ignore') as HTMLButtonElement).click();

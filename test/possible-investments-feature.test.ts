@@ -141,7 +141,7 @@ describe('Investitionen: Mögliche Investitionen', () => {
     await tick();
     await showPossible();
     expect([...box.root.querySelectorAll('thead th')].map((th) => th.getAttribute('aria-label'))).toEqual([
-      'Merken',
+      'Gemerkte LGs',
       'Eigentümer',
       'Beziehung',
       'LG',
@@ -710,10 +710,10 @@ describe('Investitionen: Merken', () => {
     await tick();
     await showPossible();
     const head = box.root.querySelector('thead th') as HTMLElement;
-    expect(head.getAttribute('aria-label')).toBe('Merken');
-    expect(head.getAttribute('data-tip')).toContain('Merken');
+    expect(head.getAttribute('aria-label')).toBe('Gemerkte LGs');
+    expect(head.getAttribute('data-tip')).toContain('Gemerkte LGs');
     expect(head.querySelector('svg')).not.toBeNull();
-    expect(rows().map((r) => star(r)?.getAttribute('aria-label'))).toEqual(['Merken', 'Merken']);
+    expect(rows().map((r) => star(r)?.getAttribute('aria-label'))).toEqual(['Dieses LG merken', 'Dieses LG merken']);
   });
 
   it('marks a building on a click, redraws it filled and keeps it in the other views', async () => {
@@ -799,8 +799,8 @@ describe('Investitionen: Merken', () => {
     // a marked owner shows its star on, the other a star off
     const ownerStar = (row: Element | undefined) => row?.querySelector('.row-name button.star');
     const byName = (name: string) => rows().find((r) => cells(r)[3] === name);
-    expect(ownerStar(byName('Orakel von Delphi'))?.getAttribute('aria-label')).toBe('Nicht mehr merken');
-    expect(ownerStar(byName('Zeusstatue'))?.getAttribute('aria-label')).toBe('Merken');
+    expect(ownerStar(byName('Orakel von Delphi'))?.getAttribute('aria-label')).toBe('Diesen Spieler nicht mehr merken');
+    expect(ownerStar(byName('Zeusstatue'))?.getAttribute('aria-label')).toBe('Diesen Spieler merken');
     // "nicht markiert" off: only the marked ones
     (box.root.querySelectorAll('.inv-marked-filter button')[1] as HTMLButtonElement).click();
     await tick();
@@ -832,13 +832,13 @@ describe('Investitionen: Spielerstern in Mögliche Investitionen', () => {
     await showPossible();
     const row = (name: string) => rows().find((r) => r.textContent?.includes(name)) as Element;
     const star = () => row('Zeusstatue').querySelector('.row-name button.star') as HTMLButtonElement;
-    expect(star().getAttribute('aria-label')).toBe('Merken');
+    expect(star().getAttribute('aria-label')).toBe('Diesen Spieler merken');
     expect(star().getAttribute('aria-pressed')).toBe('false');
     expect(star().nextElementSibling?.classList.contains('ignore')).toBe(true);
     star().click();
     await tick();
     expect(players.get(playerId(1001))?.marked).toBe(true);
-    expect(star().getAttribute('aria-label')).toBe('Nicht mehr merken');
+    expect(star().getAttribute('aria-label')).toBe('Diesen Spieler nicht mehr merken');
     expect(star().classList.contains('on')).toBe(true);
     // ignoring the marked owner removes the star
     (row('Zeusstatue').querySelector('.row-name button.ignore') as HTMLButtonElement).click();

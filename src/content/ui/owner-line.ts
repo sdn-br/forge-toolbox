@@ -51,7 +51,7 @@ export const ownerMarks = (
   toggleMark: (marked: boolean) => void,
   toggleIgnore: (ignored: boolean) => void,
 ) =>
-  html`${o.ownerMarked === undefined ? '' : starButton(o.ownerMarked, () => toggleMark(!o.ownerMarked))}${
+  html`${o.ownerMarked === undefined ? '' : starButton('player', o.ownerMarked, () => toggleMark(!o.ownerMarked))}${
     o.ownerIgnored === undefined ? '' : ignoreButton('player', o.ownerIgnored, () => toggleIgnore(!o.ownerIgnored))
   }`;
 
