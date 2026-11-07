@@ -1,5 +1,7 @@
+import type { Table } from 'dexie';
 import { openDb, type ToolboxDb } from '../background/db';
 import { hasOwnContribution, isFlagged } from '../persistence/great-buildings/merge';
+import { rowsOfWorld } from '../shared/idb';
 import type { PlayerId, WorldId } from '../shared/ids';
 import { LEGACY_DB, type Profile, profileOfDbName, profileStorageKey } from '../shared/profile';
 import type { BackupFile, BackupProfile, BackupTables } from './format';
@@ -48,9 +50,7 @@ async function collectProfile(
 
 /** the rows of `world`; a profile's database holds no other, the old one holds all */
 export async function collectTables(db: ToolboxDb, world: WorldId, now: number): Promise<BackupTables> {
-  const ofWorld = <T extends { world: string }>(table: {
-    filter(fn: (row: T) => boolean): { toArray(): Promise<T[]> };
-  }) => table.filter((row) => row.world === world).toArray();
+  const ofWorld = <T extends { world: string }, K>(table: Table<T, K>) => rowsOfWorld(table, world).toArray();
   const [battles, plunders, incoming, noteGroups, notePages, shields, buildings, allPlayers] = await Promise.all([
     ofWorld(db.battles),
     ofWorld(db.plunders),

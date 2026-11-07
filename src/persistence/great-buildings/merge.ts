@@ -1,6 +1,13 @@
-import type { WorldId } from '../../shared/ids';
+import type { PlayerId, WorldId } from '../../shared/ids';
 import type { KnownGreatBuilding } from '../../shared/model';
 import type { GreatBuildingListRow } from './contract';
+
+/** the primary key of a known building */
+export const gbKey = (b: Pick<KnownGreatBuilding, 'world' | 'owner' | 'entityId'>): [WorldId, PlayerId, number] => [
+  b.world,
+  b.owner,
+  b.entityId,
+];
 
 /**
  * What a list row does to the known building. Level, sum, costs and `seenAt` change only when the list is newer than

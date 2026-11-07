@@ -3,10 +3,8 @@
 // and makes the backup in a local folder due. The backups need not know which events of the game lead to such a write.
 import Dexie from 'dexie';
 import { BACKUP_CHANGES } from '../backup/format';
-import { type Profile, profileOfStorageKey, profileStorageKey } from '../shared/profile';
+import { type Profile, profileDbName, profileOfStorageKey, profileStorageKey } from '../shared/profile';
 import type { ToolboxDb } from './db';
-
-const keyOf = ({ world, player }: Profile) => `${world}:${player}`;
 
 /** whether a key path of a Dexie modification is one of the fields or lies inside one */
 const touches = (fields: readonly string[], path: string) => fields.some((f) => path === f || path.startsWith(`${f}.`));
@@ -59,7 +57,7 @@ export class PersistedSignal {
 
   /** the change number of the profile */
   current(profile: Profile): number {
-    const key = keyOf(profile);
+    const key = profileDbName(profile);
     let change = this.changes.get(key);
     if (change === undefined) {
       change = this.env.now();
@@ -79,7 +77,7 @@ export class PersistedSignal {
   }
 
   private count(profile: Profile, rows: boolean) {
-    const key = keyOf(profile);
+    const key = profileDbName(profile);
     this.changes.set(key, Math.max(this.current(profile) + 1, this.env.now()));
     // a bulk write runs the hooks once per row: the tab and the folder hear of it once
     if (this.waiting.size === 0) setTimeout(() => this.flush(), 0);
@@ -103,7 +101,7 @@ export class ProfileTabs {
 
   /** a call of the profile came from the tab */
   seen(profile: Profile, tab: number | undefined): void {
-    if (tab !== undefined) this.tabs.set(tab, keyOf(profile));
+    if (tab !== undefined) this.tabs.set(tab, profileDbName(profile));
   }
 
   /** the tab was closed */
@@ -112,7 +110,7 @@ export class ProfileTabs {
   }
 
   of(profile: Profile): number[] {
-    const key = keyOf(profile);
+    const key = profileDbName(profile);
     return [...this.tabs].filter(([, k]) => k === key).map(([tab]) => tab);
   }
 }

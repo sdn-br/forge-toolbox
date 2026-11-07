@@ -1,6 +1,7 @@
 // Takes over the store of the time before profiles: one database `forge-toolbox` for all worlds and global settings.
 // The first profile that opens on a world gets the rows of that world, a second profile on it starts empty.
 import Dexie from 'dexie';
+import { rowsOfWorld } from '../shared/idb';
 import { LEGACY_DB, PROFILE_KEYS, type Profile, profileDbName, profileStorageKey } from '../shared/profile';
 import { openDb, type ToolboxDb } from './db';
 
@@ -11,7 +12,6 @@ export interface LocalStorage {
   remove(keys: string[]): Promise<void>;
 }
 
-/** settings and box state, global before profiles */
 /** the databases of the profiles that ran the takeover; opening a database creates it, so its existence tells nothing */
 export const SEEN_KEY = 'profiles.seen';
 
@@ -22,15 +22,16 @@ export async function adoptLegacy(profile: Profile, target: ToolboxDb, storage: 
   if (seen.includes(name)) return;
   if (await Dexie.exists(LEGACY_DB)) {
     const legacy = openDb(LEGACY_DB);
+    let drained = false;
     try {
       if (await moveWorld(legacy, target, profile.world)) await copyGlobalKeys(profile, storage);
-      if (await isEmpty(legacy)) {
-        legacy.close();
-        await Dexie.delete(LEGACY_DB);
-        await storage.remove(PROFILE_KEYS);
-      }
+      drained = await isEmpty(legacy);
     } finally {
       legacy.close();
+    }
+    if (drained) {
+      await Dexie.delete(LEGACY_DB);
+      await storage.remove(PROFILE_KEYS);
     }
   } else {
     // the database went first, so a takeover that stopped in between leaves only the keys
@@ -39,16 +40,14 @@ export async function adoptLegacy(profile: Profile, target: ToolboxDb, storage: 
   await storage.set({ [SEEN_KEY]: [...seen, name] });
 }
 
-const ofWorld = (world: string) => (row: { world?: unknown }) => row.world === world;
-
-/** every table has the field `world`; returns how many rows moved */
-async function moveWorld(from: ToolboxDb, to: ToolboxDb, world: string): Promise<number> {
+/** every table has the field `world`; returns whether rows moved */
+async function moveWorld(from: ToolboxDb, to: ToolboxDb, world: string): Promise<boolean> {
   const rows = new Map<string, unknown[]>();
   for (const table of from.tables) {
-    const list = await table.filter(ofWorld(world)).toArray();
+    const list = await rowsOfWorld(table, world).toArray();
     if (list.length) rows.set(table.name, list);
   }
-  if (rows.size === 0) return 0;
+  if (rows.size === 0) return false;
   const names = [...rows.keys()];
   // copy first and delete only after the copy committed: a stop in between leaves the rows in both databases, and the
   // next run puts them again under the same keys
@@ -56,9 +55,9 @@ async function moveWorld(from: ToolboxDb, to: ToolboxDb, world: string): Promise
     for (const [name, list] of rows) await to.table(name).bulkPut(list);
   });
   await from.transaction('rw', names, async () => {
-    for (const name of names) await from.table(name).filter(ofWorld(world)).delete();
+    for (const name of names) await rowsOfWorld(from.table(name), world).delete();
   });
-  return [...rows.values()].reduce((sum, list) => sum + list.length, 0);
+  return true;
 }
 
 /** the old settings and boxes go with the rows, unless the profile has its own already */
