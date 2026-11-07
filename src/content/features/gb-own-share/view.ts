@@ -8,7 +8,7 @@ import { type FactorActions, factorBar } from '../../ui/factor-bar';
 import { headerIcons } from '../../ui/icons';
 import { keepKeys } from '../../ui/inputs';
 import { type LevelChoice, levelBar } from '../../ui/level-bar';
-import { previewCost, previewHeading, previewUnknown } from '../../ui/level-preview';
+import { levelProgress, previewProgress, previewUnknown } from '../../ui/level-preview';
 import { type FactorLevelActions, factorLevel, placeFactorField } from './factor-state';
 import type { CopyVm, OwnRow, OwnShareVm } from './view-model';
 
@@ -41,13 +41,11 @@ export function ownShareView(vm: OwnShareVm, actions: OwnShareActions, copied?: 
     case 'leveled':
       return html`<p class="gb-title">${vm.name}</p><p class="warn">${t('gbCalc.leveled', { level: vm.level })}</p>`;
     case 'previewUnknown':
-      return html`${head(vm.name, vm.levels, actions)}${previewHeading(vm.preview)}${previewUnknown(vm.preview)}${previewCost(
-        vm.preview,
-      )}`;
+      return html`${head(vm.name, vm.levels, actions, previewProgress(vm.preview))}${previewUnknown(vm.preview)}`;
   }
   const cell: Cell = (n, id) => copyCell(n, id, actions, copied);
-  return html`${head(vm.name, vm.levels, actions)}
-    ${vm.preview ? previewHeading(vm.preview) : ''}
+  const progress = vm.preview ? previewProgress(vm.preview) : levelProgress(vm.invested, vm.required);
+  return html`${head(vm.name, vm.levels, actions, progress)}
     ${factorBar(vm.factorButtons, vm.factor, actions, vm.tier, factorLevel(vm.factorState, actions))}
     <table class="gb-table own-share" style=${`width:${COLUMNS.reduce((sum, c) => sum + c.width, 0)}em`}>
       <colgroup>${COLUMNS.map((c) => html`<col style=${`width:${c.width}em`} />`)}</colgroup>
@@ -83,13 +81,13 @@ export function ownShareView(vm: OwnShareVm, actions: OwnShareActions, copied?: 
       <span class="muted">· ${t('gbOwn.paid', { fp: formatNumber(vm.myDeposit) })}</span>
       · <b>${t('gbOwn.open', { fp: formatNumber(Math.max(0, vm.open)) })}</b></p>
     ${vm.addedLive > 0 ? html`<p class="warn">${t('gbOwn.addedLive', { fp: formatNumber(vm.addedLive) })}</p>` : ''}
-    ${vm.preview ? previewCost(vm.preview) : ''}
     ${copyPanel(vm.copy, actions, copied)}`;
 }
 
-/** the name with the open level, then the level field */
-const head = (name: string, l: LevelChoice, actions: OwnShareActions) =>
+/** the name with the open level, the progress line (or the preview in its place), then the level field */
+const head = (name: string, l: LevelChoice, actions: OwnShareActions, progress: TemplateResult) =>
   html`<p><span class="gb-title">${t('gbCalc.heading', { name, level: l.current, next: l.current + 1 })}</span></p>
+    ${progress}
     ${levelBar(l, (level) => actions.previewLevel(level))}`;
 
 /**

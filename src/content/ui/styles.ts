@@ -267,6 +267,8 @@ button.inv-pick svg { display: block; width: 12px; height: 12px; }
 .fp-line { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
 .fp-line .fp-bar { flex: 1 1 auto; margin-top: 0; }
 /* a thin bar under "paid in / costs", filled towards the level up (investments, GB calculator) */
+/* the progress line of the great building boxes (ui/level-preview.ts) */
+.gb-progress { margin: 0 0 6px; }
 .fp-bar { height: 3px; margin-top: 2px; background: var(--line); border-radius: 2px; overflow: hidden; }
 .fp-bar > div { height: 100%; background: var(--accent); }
 /* the factor of one place and where the factors come from (gb-own-share/factor-state.ts, Eigenanteil and Powerleveln) */

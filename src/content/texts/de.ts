@@ -498,7 +498,6 @@ export const de = {
   'gbCalc.previewHeading': 'Vorschau Stufe {level} → {next}',
   'gbCalc.previewLocked': 'noch nicht freigeschaltet',
   'gbCalc.previewProgress': '0 / {fp} FP',
-  'gbCalc.previewCost': 'Die Stufe kostet {fp} FP',
   'gbCalc.previewNoDefinition': 'Die Definition des LGs ist noch nicht geladen, deshalb fehlen Kosten und Belohnungen.',
   'gbCalc.previewNoReward':
     'Für diese Stufe sind die Kosten noch nicht bekannt: Die Kostentabelle der Toolbox reicht für dieses LG nicht so weit.',

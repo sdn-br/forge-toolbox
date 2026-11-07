@@ -92,6 +92,9 @@ export type OwnShareVm =
       levels: LevelChoice;
       /** set while a later level is previewed: empty, without deposits, Ext and live Forge points */
       preview?: LevelPreview;
+      /** Forge points paid into the level shown and what it costs, for the progress line; 0 paid in a preview */
+      invested: number;
+      required: number;
       /** the factor of the free field: the one of place 1 */
       factor: number;
       /** sorted by value; `arc` marks the button of the own Arc bonus; active only when all places of the tier hold it */
@@ -138,6 +141,7 @@ export function ownShareViewModel(input: OwnShareInputs): OwnShareVm {
       ...ownTable(input, name, gb, level, empty.required, empty.rankings, []),
       levels,
       preview,
+      invested: 0,
       addedLive: 0,
     };
   }
@@ -148,6 +152,7 @@ export function ownShareViewModel(input: OwnShareInputs): OwnShareVm {
   return {
     ...ownTable(input, name, input.greatBuilding?.(entity.def), entity.level, entity.required, c.rankings, input.exts),
     levels,
+    invested: entity.invested,
     addedLive: entity.invested - c.rankings.reduce((sum, r) => sum + (r.fp ?? 0), 0),
   };
 }
@@ -164,7 +169,7 @@ function ownTable(
   required: number,
   rankings: RankingRow[],
   exts: number[],
-): Omit<Extract<OwnShareVm, { kind: 'current' }>, 'levels' | 'preview' | 'addedLive'> {
+): Omit<Extract<OwnShareVm, { kind: 'current' }>, 'levels' | 'preview' | 'invested' | 'addedLive'> {
   const { choices, ...factorState } = input.factors;
   const tier = levelTier(gb, level + 1, input.tiers);
   const arcBonus = input.arcBonus?.[tier];
@@ -189,6 +194,7 @@ function ownTable(
     name,
     level,
     next: level + 1,
+    required,
     factor: factors[0] ?? 0,
     factorButtons: buttons,
     tier,

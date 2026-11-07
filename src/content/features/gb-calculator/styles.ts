@@ -11,7 +11,6 @@ p.ignore-warning { display: flex; align-items: center; gap: 6px; }
 .snipe-table .c-order { width: 32px; }
 .snipe-table .snipe-tier, .snipe-table th.tier-head { text-align: center; padding: 0; }
 .snipe-counts .ignored-filter { margin-left: 6px; vertical-align: middle; }
-.gb-progress { margin: 0 0 6px; }
 /* one row per place, coloured by what the place is worth */
 tr.gb-profit { background: var(--row-good); }
 tr.gb-loss { background: var(--row-bad); }

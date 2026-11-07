@@ -5,11 +5,10 @@ import { activityLine } from '../../../ui/activity';
 import { emptyCell } from '../../../ui/estimate-cell';
 import { arcTip, type FactorActions, factorBar } from '../../../ui/factor-bar';
 import { foldToggle } from '../../../ui/fold-toggle';
-import { fpBar, progressPercent } from '../../../ui/fp-bar';
 import { headerIcons } from '../../../ui/icons';
 import { ignoreButton } from '../../../ui/ignore';
 import { levelBar } from '../../../ui/level-bar';
-import { previewProgress, previewUnknown } from '../../../ui/level-preview';
+import { levelProgress, previewProgress, previewUnknown } from '../../../ui/level-preview';
 import { ownerOf } from '../../../ui/owner-line';
 import { starButton } from '../../../ui/star';
 import type { CostCell, DemandCell, GbCalculatorVm, GbHeader, MeVm, PlaceRow } from './view-model';
@@ -51,20 +50,6 @@ function header(h: GbHeader, actions: GbCalculatorActions) {
     <br />${ownerOf(h, actions.toggleOwnerMark, actions.toggleOwnerIgnore)}${h.activity ? activityLine(h.activity) : ''}
     <br /><span class="muted"><span class="gb-fp" data-tip=${split}>${fp}</span> ·
       <span data-tip=${arcTip(h.arcBonuses)}>${t('gbCalc.arc', { arc: formatNumber(h.arcBonus) })}</span></span></p>`;
-}
-
-/** paid in of the running level with a thin bar under it, as the investments show it */
-function progressLine(invested: number, required: number, missing: number, ownerFp?: number) {
-  const values = { invested: formatNumber(invested), required: formatNumber(required), fp: formatNumber(missing) };
-  const text = ownerFp
-    ? html`<span data-tip=${t('gbCalc.progressSplit', { owner: formatNumber(ownerFp), patrons: formatNumber(invested - ownerFp) })}
-        >${t('gbCalc.progressOwner', { ...values, owner: formatNumber(ownerFp) })}</span
-      >`
-    : html`<span>${t('gbCalc.progress', values)}</span>`;
-  return html`<div class="gb-progress">
-    ${text}
-    ${fpBar(progressPercent(invested, required))}
-  </div>`;
 }
 
 /** what the player still has to add, muted after the cost; nothing when it is the whole cost or nothing */
@@ -206,7 +191,7 @@ function calculatorBody(vm: GbCalculatorVm, actions: GbCalculatorActions): Templ
     case 'current': {
       const overlay = overlayText(vm);
       return html`${header(vm.header, actions)}
-        ${progressLine(vm.invested, vm.required, vm.missing, vm.ownerFp)}
+        ${levelProgress(vm.invested, vm.required, vm.missing, vm.ownerFp)}
         ${levelBar(vm.header.levels, actions.previewLevel)}
         ${factorBar(vm.factorButtons, vm.effectiveFactor, actions, vm.tier)}
         ${vm.me ? meLine(vm.me) : ''}

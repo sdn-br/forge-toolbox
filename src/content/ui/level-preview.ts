@@ -1,7 +1,29 @@
-// The head of a previewed later level in the great building boxes (LG-Rechner, Eigenanteil): heading and cost.
+// The progress line of the great building boxes (LG-Rechner, Eigenanteil): the running level paid in over a thin bar,
+// or a previewed later level in its place, heading and cost over an empty bar.
 import { html } from 'lit-html';
 import { formatNumber, t } from '../core/texts';
-import { fpBar } from './fp-bar';
+import { fpBar, progressPercent } from './fp-bar';
+
+/**
+ * paid in of the running level with a thin bar under it, as the investments show it; `missing` is what is left to the
+ * level up (the LG-Rechner counts it from the rankings), `ownerFp` splits the paid in
+ */
+export function levelProgress(invested: number, required: number, missing = required - invested, ownerFp?: number) {
+  const values = {
+    invested: formatNumber(invested),
+    required: formatNumber(required),
+    fp: formatNumber(Math.max(0, missing)),
+  };
+  const text = ownerFp
+    ? html`<span data-tip=${t('gbCalc.progressSplit', { owner: formatNumber(ownerFp), patrons: formatNumber(invested - ownerFp) })}
+        >${t('gbCalc.progressOwner', { ...values, owner: formatNumber(ownerFp) })}</span
+      >`
+    : html`<span>${t('gbCalc.progress', values)}</span>`;
+  return html`<div class="gb-progress">
+    ${text}
+    ${fpBar(progressPercent(invested, required))}
+  </div>`;
+}
 
 /** a later level as if it were open and empty */
 export interface LevelPreview {
@@ -22,18 +44,13 @@ export const levelPreview = (level: number, maxLevel: number): LevelPreview => (
   locked: level + 1 > maxLevel,
 });
 
-export const previewHeading = (p: LevelPreview) =>
-  html`<p class="warn">${t('gbCalc.previewHeading', { level: p.level, next: p.next })}${
-    p.locked ? html` <span class="muted">· ${t('gbCalc.previewLocked')}</span>` : ''
-  }</p>`;
-
 /** why the places are missing */
 export const previewUnknown = (p: LevelPreview) =>
   html`<p class="muted">${p.unknown === 'definition' ? t('gbCalc.previewNoDefinition') : t('gbCalc.previewNoReward')}</p>`;
 
 /**
- * The heading in the place of the progress line, with "0 / cost" and an empty bar under it: the LG-Rechner keeps the
- * level and factor bars below at the same height when it switches between the running level and a preview.
+ * The heading in the place of the progress line, with "0 / cost" and an empty bar under it: the bars below keep their
+ * height when the box switches between the running level and a preview.
  */
 export const previewProgress = (p: LevelPreview) =>
   html`<div class="gb-progress">
@@ -42,6 +59,3 @@ export const previewProgress = (p: LevelPreview) =>
     }</span>${p.locked ? html` <span class="muted">· ${t('gbCalc.previewLocked')}</span>` : ''}
     ${fpBar(0)}
   </div>`;
-
-export const previewCost = (p: LevelPreview) =>
-  p.required === undefined ? '' : html`<p>${t('gbCalc.previewCost', { fp: formatNumber(p.required) })}</p>`;
