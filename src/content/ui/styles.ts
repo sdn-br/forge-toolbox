@@ -166,11 +166,11 @@ summary { cursor: pointer; color: var(--accent); }
 .gb-factor input[type=number], .gb-levels input[type=number] { width: 5em; }
 /* buttons glued to both sides of a field, one part: square inner corners, the field centred between them */
 .joined { display: inline-flex; align-items: stretch; }
-.joined > * { margin: 0; border-radius: 0; }
-.joined > :first-child { border-radius: 3px 0 0 3px; }
-.joined > :last-child { border-radius: 0 3px 3px 0; }
-.joined > input { text-align: center; }
-.joined > input:not(.active):not(:focus) { border-left-color: transparent; border-right-color: transparent; }
+/* the field keeps its whole frame (accent when active), the buttons drop the side that meets it, so one line parts them */
+.joined > button.action { margin: 0; }
+.joined > button.action:first-child { border-radius: 3px 0 0 3px; border-right: 0; }
+.joined > button.action:last-child { border-radius: 0 3px 3px 0; border-left: 0; }
+.joined > input:not([type=checkbox]):not([type=radio]) { margin: 0; border-radius: 0; text-align: center; }
 /* factor buttons all one width, whatever the number of digits */
 .gb-factor button.action { min-width: 3.6em; text-align: center; }
 .gb-factor label { gap: 3px; }
