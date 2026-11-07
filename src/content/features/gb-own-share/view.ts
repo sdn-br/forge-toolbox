@@ -67,16 +67,16 @@ export function ownShareView(vm: OwnShareVm, actions: OwnShareActions, copied?: 
             : placeRow(r, cell, actions, !vm.preview, vm.tier),
       )}
     </table>
-    <div class="gb-factor">
+    <div class="own-checks">
       <label><input type="checkbox" .checked=${vm.secureExisting}
         @change=${(e: Event) => actions.setSecure((e.target as HTMLInputElement).checked)} />
         <span data-tip=${t('gbOwn.secureHint')}>${t('gbOwn.secure')}</span></label>
       <label><input type="checkbox" .checked=${vm.trust}
         @change=${(e: Event) => actions.setTrust((e.target as HTMLInputElement).checked)} />
         <span data-tip=${t('gbOwn.trustHint')}>${t('gbOwn.trust')}</span></label>
+      <button class="action power-open" data-tip=${t('gbPower.openHint')} aria-label=${t('gbPower.title')}
+        @click=${() => actions.openPowerLevel()}>${headerIcons.powerLevel}</button>
     </div>
-    <div class="power-open"><button class="action" data-tip=${t('gbPower.openHint')} aria-label=${t('gbPower.title')}
-      @click=${() => actions.openPowerLevel()}>${headerIcons.powerLevel}</button></div>
     <p class="gb-me">${t('gbOwn.total', { fp: formatNumber(vm.ownShare) })}
       <span class="muted">· ${t('gbOwn.paid', { fp: formatNumber(vm.myDeposit) })}</span>
       · <b>${t('gbOwn.open', { fp: formatNumber(Math.max(0, vm.open)) })}</b></p>
