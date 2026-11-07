@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { learnSteps, levelCosts, seedJson, seedRows, withShipped } from '../src/content/domain/gb-level-cost';
+import { learnSteps, levelCosts, seedEntries, seedJson, withShipped } from '../src/content/domain/gb-level-cost';
 
 /** the levels 0 to 9 after the prestige update: linear from the base */
 const listed = (base: number) => Array.from({ length: 10 }, (_, i) => base * (i + 1));
@@ -250,9 +250,10 @@ describe('withShipped', () => {
   });
 });
 
-describe('seedRows', () => {
-  it('keeps the lowest and highest level per type and segment, sorted by type then level', () => {
-    const rows = seedRows(
+describe('seedJson', () => {
+  it('writes every level, one line per type, types sorted, levels ascending, and no type without costs', () => {
+    expect(seedJson(new Map())).toBe('{}\n');
+    const json = seedJson(
       new Map([
         [
           'b',
@@ -261,58 +262,26 @@ describe('seedRows', () => {
             [15, 1080],
           ]),
         ],
+        ['c', seen([])],
         [
           'a',
           seen([
-            [30, 1680],
-            [3, 336],
-            [15, 1080],
-            [9, 840],
-            [20, 1280],
-            [5, 504],
             [120, 37964],
+            [3, 336],
+            [9, 840],
+            [10, 880],
           ]),
         ],
       ]),
     );
-    expect(rows.map((r) => [r.type, r.level, r.fp])).toEqual([
-      ['a', 3, 336],
-      ['a', 9, 840],
-      ['a', 15, 1080],
-      ['a', 30, 1680],
-      ['a', 120, 37964],
-      ['b', 15, 1080],
-      ['b', 50, 2755],
+    expect(json).toBe('{\n  "a": {"3":336,"9":840,"10":880,"120":37964},\n  "b": {"15":1080,"50":2755}\n}\n');
+    expect(seedEntries(JSON.parse(json))).toEqual([
+      { type: 'a', level: 3, fp: 336 },
+      { type: 'a', level: 9, fp: 840 },
+      { type: 'a', level: 10, fp: 880 },
+      { type: 'a', level: 120, fp: 37964 },
+      { type: 'b', level: 15, fp: 1080 },
+      { type: 'b', level: 50, fp: 2755 },
     ]);
-  });
-
-  it('keeps every cost of a segment that fits no single step, so it stays disabled', () => {
-    const rows = seedRows(
-      new Map([
-        [
-          'a',
-          seen([
-            [50, 2755],
-            [55, 3081],
-            [60, 3405],
-          ]),
-        ],
-      ]),
-    );
-    expect(rows.map((r) => r.level)).toEqual([50, 55, 60]);
-  });
-});
-
-describe('seedJson', () => {
-  it('writes one row per line, and an empty list as the empty file', () => {
-    expect(seedJson([])).toBe('[]\n');
-    const rows = [
-      { type: 'a', level: 15, fp: 1080 },
-      { type: 'a', level: 30, fp: 1680 },
-    ];
-    expect(seedJson(rows)).toBe(
-      '[\n  { "type": "a", "level": 15, "fp": 1080 },\n  { "type": "a", "level": 30, "fp": 1680 }\n]\n',
-    );
-    expect(JSON.parse(seedJson(rows))).toEqual(rows);
   });
 });

@@ -7,7 +7,7 @@
 // value stays unrounded through the chain and is rounded, halves up, at the end. A type that follows another curve shows
 // as observations that fit no integer step; such a segment is disabled.
 //
-// Costs shipped with the toolbox join the own observations (`withShipped`), and `seedRows` writes the file they come from.
+// Costs shipped with the toolbox join the own observations (`withShipped`), and `seedJson` writes the file they come from.
 
 /** the cost of one level and whether it is computed rather than seen or listed */
 export interface LevelCost {
@@ -194,42 +194,28 @@ export function withShipped(
   return merged;
 }
 
-/** a cost as the file of shipped costs holds it */
-export interface SeedRow<T extends string = string> {
-  type: T;
-  level: number;
-  fp: number;
+/** the file of shipped costs: per type (game id) the Forge points of each start level, keys are the levels */
+export type SeedFile = Readonly<Record<string, Readonly<Record<string, number>>>>;
+
+/** the costs of the file of shipped costs, one entry per type and level */
+export function seedEntries(file: SeedFile): { type: string; level: number; fp: number }[] {
+  return Object.entries(file).flatMap(([type, levels]) =>
+    Object.entries(levels).map(([level, fp]) => ({ type, level: Number(level), fp })),
+  );
 }
 
 /**
- * The rows of the file of shipped costs, from what each type has seen: per type and segment the lowest and the highest
- * level, the widest span to check a step against; the levels in between follow from them. A segment whose costs fit no
- * single step keeps all of them, so it stays disabled and is not thinned into a wrong step. Sorted by type, then level.
+ * The file of shipped costs from what each type has seen, every level kept: one line per type without spaces, its
+ * levels ascending, the types sorted. The formatter of the repo leaves this one file alone, so it stays this short.
  */
-export function seedRows<T extends string>(seen: ReadonlyMap<T, ReadonlyMap<number, number>>): SeedRow<T>[] {
-  const rows: SeedRow<T>[] = [];
-  const types = [...seen.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
-  for (const type of types) {
-    const groups = new Map<number, [number, number][]>();
-    for (const entry of [...(seen.get(type) ?? [])].sort((a, b) => a[0] - b[0])) {
-      const segment = segmentOf(entry[0]);
-      groups.set(segment, [...(groups.get(segment) ?? []), entry]);
-    }
-    const kept = [...groups].flatMap(([segment, entries]) =>
-      entries.length <= 2 || (segment >= 0 && !stepOf(entries, 0, undefined).fits)
-        ? entries
-        : [entries[0] as [number, number], entries[entries.length - 1] as [number, number]],
-    );
-    for (const [level, fp] of kept.sort((a, b) => a[0] - b[0])) rows.push({ type, level, fp });
-  }
-  return rows;
-}
-
-/** the rows as the file of shipped costs holds them: one row per line, as the formatter of the repo writes it */
-export function seedJson(rows: readonly SeedRow[]): string {
-  if (rows.length === 0) return '[]\n';
-  const lines = rows.map(
-    ({ type, level, fp }) => `  { "type": ${JSON.stringify(type)}, "level": ${level}, "fp": ${fp} }`,
-  );
-  return `[\n${lines.join(',\n')}\n]\n`;
+export function seedJson(seen: ReadonlyMap<string, ReadonlyMap<number, number>>): string {
+  const types = [...seen.keys()]
+    .filter((type) => (seen.get(type)?.size ?? 0) > 0)
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  if (types.length === 0) return '{}\n';
+  const lines = types.map((type) => {
+    const levels = [...(seen.get(type) ?? [])].sort((a, b) => a[0] - b[0]);
+    return `  ${JSON.stringify(type)}: {${levels.map(([level, fp]) => `"${level}":${fp}`).join(',')}}`;
+  });
+  return `{\n${lines.join(',\n')}\n}\n`;
 }

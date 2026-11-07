@@ -2,7 +2,7 @@ import type { LevelCostRow } from '../../persistence/gb-level-costs/contract';
 import type { BuildingDefId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
-import { type LevelCost, type LevelCosts, levelCosts, seedRows, withShipped } from '../domain/gb-level-cost';
+import { type LevelCost, type LevelCosts, levelCosts, withShipped } from '../domain/gb-level-cost';
 import type { GreatBuildingDef } from '../model/catalog';
 
 export interface GbLevelCostPersistence {
@@ -96,14 +96,15 @@ export class GbLevelCostStore {
   }
 
   /**
-   * The costs to hand to the maintainers, in the format of the file of shipped costs: own and shipped as the lookup
-   * sees them, thinned by `seedRows`. `listed` gives the definition of a type, which the check of shipped against own
-   * costs chains from; without it the check stays within each segment.
+   * The costs to hand to the maintainers, every level of every type, for the file of shipped costs (`seedJson`): own
+   * and shipped as the lookup sees them. `listed` gives the definition of a type, which the check of shipped against
+   * own costs chains from; without it the check stays within each segment.
    */
-  seedRows(listed: (type: BuildingDefId) => readonly number[] | undefined): LevelCostSeen[] {
+  exportSeen(
+    listed: (type: BuildingDefId) => readonly number[] | undefined,
+  ): ReadonlyMap<BuildingDefId, ReadonlyMap<number, number>> {
     const types = new Set([...this.seen.keys(), ...this.shipped.keys()]);
-    const merged = new Map([...types].map((type) => [type, this.merged(type, listed(type) ?? [])] as const));
-    return seedRows(merged);
+    return new Map([...types].map((type) => [type, this.merged(type, listed(type) ?? [])] as const));
   }
 
   /** resolves once the costs noted so far are written */

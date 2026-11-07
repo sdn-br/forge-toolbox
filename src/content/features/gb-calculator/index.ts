@@ -215,8 +215,8 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
           @click=${exportLevelCosts}>${t('gbCalc.exportLevelCosts')}</button>`,
       });
       const exportLevelCosts = () => {
-        const rows = ctx.gbLevelCosts.seedRows((type) => ctx.catalog.get(type)?.greatBuilding?.levelCosts);
-        downloadFile('gb-level-costs.json', seedJson(rows));
+        const seen = ctx.gbLevelCosts.exportSeen((type) => ctx.catalog.get(type)?.greatBuilding?.levelCosts);
+        downloadFile('gb-level-costs.json', seedJson(seen));
       };
       ctx.menu.add({ id: 'gbCalculator', icon: ICON, label: () => t('gbCalc.menu'), action: () => box.toggle() });
     },

@@ -16,6 +16,7 @@ import type { ToolboxBus } from '../core/events';
 import type { Call } from '../core/rpc';
 import type { Settings } from '../core/settings';
 import shippedLevelCosts from '../data/gb-level-costs.json';
+import { type SeedFile, seedEntries } from '../domain/gb-level-cost';
 import { AssetStore } from './assets';
 import { BattleStore } from './battles';
 import { CatalogStore } from './catalog';
@@ -73,7 +74,7 @@ export function createStores(
   view: { prefs: PrefStore; settings: Settings },
   now: () => number = Date.now,
   fetch: FetchLike = (url, init) => globalThis.fetch(url, init),
-  shippedCosts: readonly LevelCostSeen[] = shippedLevelCosts as LevelCostSeen[],
+  shippedCosts: SeedFile = shippedLevelCosts,
 ): Stores {
   const cities = new CityStore(bus);
   return {
@@ -91,7 +92,12 @@ export function createStores(
     shields: new ShieldStore(bus, world, shieldPersistence(call), now),
     notes: new NoteStore(bus, world, notePersistence(call), now),
     greatBuildings: new GreatBuildingStore(bus, world, greatBuildingPersistence(call), now),
-    gbLevelCosts: new GbLevelCostStore(bus, gbLevelCostPersistence(call), now, shippedCosts),
+    gbLevelCosts: new GbLevelCostStore(
+      bus,
+      gbLevelCostPersistence(call),
+      now,
+      seedEntries(shippedCosts) as LevelCostSeen[],
+    ),
     playerBonuses: new PlayerBonusStore(cities),
     foestats: new FoestatsStore(bus, world, foestatsPersistence(call), foestatsApi(fetch)),
     gbOwn: createGbOwnState(bus, view.prefs, view.settings),

@@ -110,9 +110,9 @@ describe('GbLevelCostStore', () => {
     expect((await persistence.all()).map((r) => [r.level, r.fp])).toEqual([[45, 2460]]);
   });
 
-  it('exports own and shipped costs as the lookup sees them, thinned and sorted', () => {
+  it('exports own and shipped costs as the lookup sees them, every level', () => {
     const { store: empty } = setup();
-    expect(empty.seedRows(() => undefined)).toEqual([]);
+    expect(empty.exportSeen(() => undefined)).toEqual(new Map());
     const store = new GbLevelCostStore(createBus(), undefined, () => 1000, [
       { type: zeus, level: 20, fp: 671 },
       { type: arche, level: 15, fp: 1080 },
@@ -124,11 +124,16 @@ describe('GbLevelCostStore', () => {
       { type: arche, level: 30, fp: 1680 },
       { type: arche, level: 45, fp: 2460 },
     ]);
-    expect(store.seedRows((type) => (type === arche ? archeDef.levelCosts : undefined))).toEqual([
-      { type: zeus, level: 20, fp: 671 },
-      { type: arche, level: 15, fp: 1080 },
-      { type: arche, level: 30, fp: 1680 },
-      { type: arche, level: 45, fp: 2460 },
+    const exported = store.exportSeen((type) => (type === arche ? archeDef.levelCosts : undefined));
+    const sorted = (type: string) => [...(exported.get(type as typeof arche) ?? [])].sort((a, b) => a[0] - b[0]);
+    expect([...exported.keys()].sort()).toEqual([zeus, arche].sort());
+    expect(sorted(zeus)).toEqual([[20, 671]]);
+    // the own 45 contradicts the shipped 41 and 50, they go
+    expect(sorted(arche)).toEqual([
+      [15, 1080],
+      [20, 1280],
+      [30, 1680],
+      [45, 2460],
     ]);
   });
 });

@@ -34,7 +34,7 @@ export function testStores({
   const world = worldId('de20');
   const bus = createBus();
   const stores: Stores = {
-    ...createStores(world, bus, db.call, { prefs: ui, settings }, now, fetch, []),
+    ...createStores(world, bus, db.call, { prefs: ui, settings }, now, fetch, {}),
     ...overrides?.({ bus, world, now }),
   };
   return { db, world, bus, now, stores };
