@@ -34,7 +34,7 @@ const ignoreWarning = (h: GbHeader, actions: GbCalculatorActions) => {
     if (h.ownerIgnored) actions.toggleOwnerIgnore(false);
   };
   return html`<p class="warn ignore-warning"><span class="warn-icon" role="img" aria-hidden="true">${headerIcons.warning}</span>
-    ${h.ignoreWords.join(' · ')} ${ignoreButton('building', true, release)}</p>`;
+    ${h.ignoreWords.join(' · ')} ${ignoreButton('both', true, release)}</p>`;
 };
 
 function header(h: GbHeader, actions: GbCalculatorActions) {
@@ -45,7 +45,7 @@ function header(h: GbHeader, actions: GbCalculatorActions) {
   const part = (n: number | undefined) => (n === undefined ? '?' : formatNumber(n));
   const split = t('gbCalc.fpSplit', { bar: part(h.fpBar), packages: part(h.fpPackages) });
   return html`${ignoreWarning(h, actions)}<p><span class="gb-title">${t('gbCalc.heading', { name: h.name, level: h.level, next: h.next })}</span>
-    ${starButton(h.marked, () => actions.toggleMark(!h.marked))}${ignoreButton('building', h.ignored, () => actions.toggleIgnore(!h.ignored))}
+    ${starButton('building', h.marked, () => actions.toggleMark(!h.marked))}${ignoreButton('building', h.ignored, () => actions.toggleIgnore(!h.ignored))}
     <span class="muted">· ${t('gbCalc.unlocked', { max: h.maxLevel })}</span>
     <br />${ownerOf(h, actions.toggleOwnerMark, actions.toggleOwnerIgnore)}${h.activity ? activityLine(h.activity) : ''}
     <br /><span class="muted"><span class="gb-fp" data-tip=${split}>${fp}</span> ·

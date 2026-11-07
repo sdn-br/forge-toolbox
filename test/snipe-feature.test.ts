@@ -558,7 +558,7 @@ describe('Snipehilfe: stacked box', () => {
     expect(box.text).toContain('Stand: vor 4 Min.');
     expect([...box.root.querySelectorAll('th')].map((th) => th.getAttribute('aria-label'))).toEqual([
       '#',
-      'Merken',
+      'Gemerkte LGs',
       'LG',
       'Stufe',
       'Fortschritt',
@@ -884,9 +884,9 @@ describe('Snipehilfe: marking with a star', () => {
     list([hitZeus(), hitOracle()]);
     await tick();
     const heads = [...box.root.querySelectorAll('.snipe-table th')];
-    expect(heads.map((h) => h.getAttribute('aria-label')).slice(0, 3)).toEqual(['#', 'Merken', 'LG']);
+    expect(heads.map((h) => h.getAttribute('aria-label')).slice(0, 3)).toEqual(['#', 'Gemerkte LGs', 'LG']);
     const star = heads[1];
-    expect(star?.getAttribute('data-tip')).toContain('Merken');
+    expect(star?.getAttribute('data-tip')).toContain('Gemerkte LGs');
     expect(star?.querySelector('svg')).not.toBeNull();
     expect(box.root.querySelector('.snipe-table tbody tr td:nth-child(2) button.star')).not.toBeNull();
     expect(stars(box)).toHaveLength(2);
@@ -899,13 +899,13 @@ describe('Snipehilfe: marking with a star', () => {
     const head = (label: string) => box.root.querySelector(`.snipe-table th[aria-label="${label}"]`) as HTMLElement;
     const names = () => rows().map((r) => cells(r)[1]);
     expect(head('Sicherheit').classList.contains('sortable')).toBe(true);
-    expect(head('Merken').classList.contains('sortable')).toBe(true);
+    expect(head('Gemerkte LGs').classList.contains('sortable')).toBe(true);
     const last = names()[names().length - 1];
     await greatBuildings.mark(playerId(1001), last === 'Zeusstatue' ? zeus.entity_id : oracle.entity_id, true);
-    head('Merken').click();
+    head('Gemerkte LGs').click();
     await tick();
     expect(names()[0]).toBe(last);
-    expect(head('Merken').classList.contains('desc')).toBe(true);
+    expect(head('Gemerkte LGs').classList.contains('desc')).toBe(true);
     head('Sicherheit').click();
     await tick();
     expect(head('Sicherheit').classList.contains('desc')).toBe(true);
@@ -916,20 +916,20 @@ describe('Snipehilfe: marking with a star', () => {
     list([hitZeus()]);
     await tick();
     const star = () => stars(box)[0] as HTMLElement;
-    expect(star().getAttribute('aria-label')).toBe('Merken');
+    expect(star().getAttribute('aria-label')).toBe('Dieses LG merken');
     expect(star().getAttribute('aria-pressed')).toBe('false');
     const outline = star().innerHTML;
     star().click();
     await tick();
     expect(greatBuildings.isMarked(playerId(1001), zeus.entity_id)).toBe(true);
-    expect(star().getAttribute('aria-label')).toBe('Nicht mehr merken');
+    expect(star().getAttribute('aria-label')).toBe('Dieses LG nicht mehr merken');
     expect(star().getAttribute('aria-pressed')).toBe('true');
     expect(star().classList.contains('on')).toBe(true);
     expect(star().innerHTML).not.toBe(outline);
     star().click();
     await tick();
     expect(greatBuildings.isMarked(playerId(1001), zeus.entity_id)).toBe(false);
-    expect(star().getAttribute('aria-label')).toBe('Merken');
+    expect(star().getAttribute('aria-label')).toBe('Dieses LG merken');
   });
 
   it('shows a mark set elsewhere, and the star of the open building in the calculator header', async () => {
@@ -939,11 +939,11 @@ describe('Snipehilfe: marking with a star', () => {
     await tick();
     const header = () =>
       box.root.querySelector('p .gb-title')?.closest('p')?.querySelector('button.star') as HTMLElement;
-    expect(header().getAttribute('aria-label')).toBe('Merken');
+    expect(header().getAttribute('aria-label')).toBe('Dieses LG merken');
     header().click();
     await tick();
     expect(greatBuildings.isMarked(playerId(1001), 1909)).toBe(true);
-    expect(header().getAttribute('aria-label')).toBe('Nicht mehr merken');
+    expect(header().getAttribute('aria-label')).toBe('Dieses LG nicht mehr merken');
     header().click();
     await tick();
     expect(greatBuildings.isMarked(playerId(1001), 1909)).toBe(false);
@@ -953,7 +953,7 @@ describe('Snipehilfe: marking with a star', () => {
     advance(10_000);
     list([{ ...hitZeus(), entity_id: 1909 }]);
     await tick();
-    expect(stars(box)[0]?.getAttribute('aria-label')).toBe('Nicht mehr merken');
+    expect(stars(box)[0]?.getAttribute('aria-label')).toBe('Dieses LG nicht mehr merken');
   });
 
   it('keeps the stored mark when the player opens the building again', async () => {
@@ -1001,7 +1001,7 @@ describe('Snipehilfe: marking the owner', () => {
     list([hitZeus()]);
     await tick();
     expect(ownerStar(box)?.closest('p')?.textContent).toContain('Eigentümer 1001');
-    expect(ownerStar(box)?.getAttribute('aria-label')).toBe('Merken');
+    expect(ownerStar(box)?.getAttribute('aria-label')).toBe('Diesen Spieler merken');
     ownerStar(box)?.click();
     await tick();
     expect(players.get(playerId(1001))?.marked).toBe(true);
@@ -1233,14 +1233,14 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     social(send);
     list([hitZeus(), hitOracle()]);
     await tick();
-    expect(headerEye(box).getAttribute('aria-label')).toBe('Spieler ignorieren');
+    expect(headerEye(box).getAttribute('aria-label')).toBe('Diesen Spieler ignorieren');
     expect(headerEye(box).previousElementSibling?.classList.contains('star')).toBe(true);
     headerEye(box).click();
     await tick();
     expect(players.get(owner)?.ignored).toBe(true);
     // all hits are ignored now, the header stays and releases
     expect(rows()).toHaveLength(0);
-    expect(headerEye(box).getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(headerEye(box).getAttribute('aria-label')).toBe('Diesen Spieler nicht mehr ignorieren');
     expect(headerEye(box).classList.contains('on')).toBe(true);
     headerEye(box).click();
     await tick();
@@ -1253,7 +1253,7 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     list([hitZeus(), hitOracle()]);
     await tick();
     const zeusRow = () => rows().find((r) => cells(r)[1] === 'Zeusstatue');
-    expect(rowEye(zeusRow()).getAttribute('aria-label')).toBe('LG ignorieren');
+    expect(rowEye(zeusRow()).getAttribute('aria-label')).toBe('Dieses LG ignorieren');
     expect(rowEye(zeusRow()).getAttribute('aria-pressed')).toBe('false');
     rowEye(zeusRow()).click();
     await tick();
@@ -1261,7 +1261,7 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     expect(rows()).toHaveLength(1);
     showToggle(box).click();
     await tick();
-    expect(rowEye(zeusRow()).getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(rowEye(zeusRow()).getAttribute('aria-label')).toBe('Dieses LG nicht mehr ignorieren');
     expect(rowEye(zeusRow()).classList.contains('on')).toBe(true);
     rowEye(zeusRow()).click();
     await tick();

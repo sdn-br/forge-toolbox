@@ -23,11 +23,12 @@ export const ignoreNote = (building: boolean, owner: boolean | undefined) => {
 };
 
 /**
- * A toggle button. In a table row (styles) it shows faint on row hover or focus while not ignored and stays in the
+ * A toggle button naming what it ignores. In a table row (styles) it shows faint on row hover or focus while not ignored and stays in the
  * accent while ignored. The word is in the tooltip and the label, `aria-pressed` tells the state.
  */
-export const ignoreButton = (kind: 'building' | 'player', ignored: boolean, toggle: () => void) => {
-  const word = t(ignored ? 'ignore.remove' : `ignore.add.${kind}`);
+export const ignoreButton = (kind: 'building' | 'player' | 'both', ignored: boolean, toggle: () => void) => {
+  // 'both' lifts every reason at once (the warning of the LG-Rechner), so it is only ever drawn ignored
+  const word = kind === 'both' ? t('ignore.remove') : t(ignored ? `ignore.remove.${kind}` : `ignore.add.${kind}`);
   return toggleButton('ignore', ignored, word, headerIcons.eyeClosed, toggle);
 };
 

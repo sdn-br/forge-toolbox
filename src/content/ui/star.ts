@@ -5,9 +5,9 @@ import { t } from '../core/texts';
 import { toggleButton, toggleGroup } from './buttons';
 import { headerIcons } from './icons';
 
-/** a toggle button; the word is in the tooltip and the label, `aria-pressed` tells the state */
-export const starButton = (marked: boolean, toggle: () => void) => {
-  const word = t(marked ? 'mark.remove' : 'mark.add');
+/** a toggle button; the word, naming what it marks, is in the tooltip and the label, `aria-pressed` tells the state */
+export const starButton = (kind: 'building' | 'player', marked: boolean, toggle: () => void) => {
+  const word = t(marked ? `mark.remove.${kind}` : `mark.add.${kind}`);
   return toggleButton('star', marked, word, marked ? headerIcons.starFilled : headerIcons.star, toggle);
 };
 
@@ -15,7 +15,7 @@ export const starButton = (marked: boolean, toggle: () => void) => {
 export const markCell = (
   r: { owner: PlayerId; entityId: number; marked: boolean },
   mark: (owner: PlayerId, entityId: number, marked: boolean) => void,
-) => html`<td class="mark-cell">${starButton(r.marked, () => mark(r.owner, r.entityId, !r.marked))}</td>`;
+) => html`<td class="mark-cell">${starButton('building', r.marked, () => mark(r.owner, r.entityId, !r.marked))}</td>`;
 
 type MarkKey = 'marked' | 'notMarked';
 
