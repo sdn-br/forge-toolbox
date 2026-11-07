@@ -493,6 +493,8 @@ export const de = {
   'gbCalc.level': 'Stufe',
   'gbCalc.live': 'Laufend {level} → {next}',
   'gbCalc.previewInput': 'Stufe: die laufende oder eine spätere als Vorschau',
+  'gbCalc.previousLevel': 'Vorige Stufe',
+  'gbCalc.nextLevel': 'Nächste Stufe',
   'gbCalc.previewHeading': 'Vorschau Stufe {level} → {next}',
   'gbCalc.previewLocked': 'noch nicht freigeschaltet',
   'gbCalc.previewCost': 'Die Stufe kostet {fp} FP',

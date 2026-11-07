@@ -874,6 +874,24 @@ describe('LG-Rechner', () => {
       expect(levelInput(box.root).value).toBe('75');
     });
 
+    it('steps one level with the chevrons beside the field, back is shut on the live construction', () => {
+      const { box, open, loadDefinitions } = setup({ levelCosts: DOM_COSTS });
+      loadDefinitions();
+      open(1909);
+      const button = (side: 'prev' | 'next') =>
+        box.root.querySelector(`.gb-levels button.${side}`) as HTMLButtonElement;
+      expect(button('prev').disabled).toBe(true);
+      button('next').click();
+      expect(box.text).toContain('Vorschau Stufe 76 → 77');
+      button('next').click();
+      expect(levelInput(box.root).value).toBe('77');
+      button('prev').click();
+      button('prev').click();
+      expect(box.text).not.toContain('Vorschau Stufe');
+      expect(levelInput(box.root).value).toBe('75');
+      expect(button('prev').disabled).toBe(true);
+    });
+
     it('goes back to the live construction when the field gets the current level', () => {
       const { box, open, loadDefinitions } = setup();
       loadDefinitions();

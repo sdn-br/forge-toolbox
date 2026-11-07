@@ -164,6 +164,13 @@ summary { cursor: pointer; color: var(--accent); }
 .gb-factor, .gb-levels { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 4px 0 6px; }
 .gb-factor input.active, .gb-levels input.active { font-weight: 600; border-color: var(--accent); }
 .gb-factor input[type=number], .gb-levels input[type=number] { width: 5em; }
+/* buttons glued to both sides of a field, one part: square inner corners, the field centred between them */
+.joined { display: inline-flex; align-items: stretch; }
+.joined > * { margin: 0; border-radius: 0; }
+.joined > :first-child { border-radius: 3px 0 0 3px; }
+.joined > :last-child { border-radius: 0 3px 3px 0; }
+.joined > input { text-align: center; }
+.joined > input:not(.active):not(:focus) { border-left-color: transparent; border-right-color: transparent; }
 /* factor buttons all one width, whatever the number of digits */
 .gb-factor button.action { min-width: 3.6em; text-align: center; }
 .gb-factor label { gap: 3px; }
