@@ -21,7 +21,7 @@ export interface GbShared {
   lookups: GbCalcLookups;
   /** era and level costs of a building; undefined while its definition is not loaded */
   greatBuilding(def: BuildingDefId): GreatBuildingDef | undefined;
-  /** the cost of each level of a building, seen in the game or computed from what was seen */
+  /** the cost of each level of a building that is not open: the definition, then the shipped costs */
   levelCosts(def: BuildingDefId, gb: GreatBuildingDef): LevelCosts;
   /** per tier; a building takes the one of the level it goes to */
   arcBonus: ArcBonus;
@@ -38,7 +38,7 @@ export function gbShared(ctx: FeatureContext, now: number): GbShared {
       today: foestatsDay(now),
     },
     greatBuilding: (def) => ctx.catalog.get(def)?.greatBuilding,
-    levelCosts: (def, gb) => ctx.gbLevelCosts.costs(gb, def),
+    levelCosts: ctx.gbLevelCosts,
     arcBonus: ctx.playerBonuses.arcBonus(),
     tiers: ctx.catalog.greatBuildingTiers(),
     now,

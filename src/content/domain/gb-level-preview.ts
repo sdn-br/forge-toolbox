@@ -4,7 +4,6 @@ import { roundHalfUp } from '../../shared/math';
 import type { GreatBuildingDef, TierStart } from '../model/catalog';
 import type { RankingRow } from '../model/great-building';
 import { type ConstructionCalc, calculateConstruction, constructionOf } from './gb-calculator';
-import type { LevelCost } from './gb-level-cost';
 import { levelTier, tierPlaces } from './gb-tier';
 
 /**
@@ -52,7 +51,7 @@ interface LevelPreviewInput {
   /** the level the construction starts from */
   level: number;
   /** the cost of the level; undefined when it is not known */
-  cost: LevelCost | undefined;
+  cost: number | undefined;
   /** the Arc bonus of the tier of level + 1 */
   arcBonus: number;
   factor: number;
@@ -65,8 +64,6 @@ interface EmptyLevel {
   level: number;
   /** Forge points the level needs; undefined when the cost is not known */
   required?: number;
-  /** the cost is computed from the costs seen, so it and the rewards are estimated */
-  estimate: boolean;
   /** the places without deposits; undefined without a cost */
   rankings?: RankingRow[];
 }
@@ -78,16 +75,15 @@ export interface LevelPreview extends Omit<EmptyLevel, 'rankings'> {
 
 /**
  * The level as if it were open and nobody had paid yet: blueprints and medals are not known, they stay 0. `cost` is
- * the cost of the level, seen or computed (see gb-level-cost.ts); without it there are no places.
+ * the cost of the level, from the game or the shipped costs (see gb-level-cost.ts); without it there are no places.
  */
 export function emptyLevel(
   greatBuilding: GreatBuildingDef,
   level: number,
-  cost: LevelCost | undefined,
+  required: number | undefined,
   tiers?: TierStart[],
 ): EmptyLevel {
-  if (cost === undefined) return { level, estimate: false };
-  const { fp: required, estimate } = cost;
+  if (required === undefined) return { level };
   const places = tierPlaces(levelTier(greatBuilding, level + 1, tiers));
   const rankings: RankingRow[] = placeRewards(required, level + 1, places).map((fp, i) => ({
     rank: i + 1,
@@ -95,14 +91,14 @@ export function emptyLevel(
     self: false,
     reward: { fp, blueprints: 0, medals: 0 },
   }));
-  return { level, required, estimate, rankings };
+  return { level, required, rankings };
 }
 
 /** The level as if it were open and nobody had paid yet, priced like a foreign construction. */
 export function previewLevel(input: LevelPreviewInput): LevelPreview {
   const { greatBuilding, level, cost, arcBonus, factor, tiers } = input;
-  const { required, estimate, rankings } = emptyLevel(greatBuilding, level, cost, tiers);
-  if (required === undefined || !rankings) return { level, required, estimate };
+  const { required, rankings } = emptyLevel(greatBuilding, level, cost, tiers);
+  if (required === undefined || !rankings) return { level, required };
   const calc = calculateConstruction(constructionOf({ level, required }, rankings, { arcBonus, factor }));
-  return { level, required, estimate, calc };
+  return { level, required, calc };
 }

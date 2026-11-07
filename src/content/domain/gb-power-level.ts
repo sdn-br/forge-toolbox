@@ -10,7 +10,7 @@ import { calculateOwnShare, type OwnShareCalc, type OwnShareInput } from './gb-o
 export interface PowerLevelInput {
   def: string;
   greatBuilding: GreatBuildingDef;
-  /** the cost of each level, seen or computed */
+  /** the cost of each level that is not open */
   costs: LevelCosts;
   /** the building's level and the highest one the owner has unlocked */
   level: number;
@@ -38,8 +38,6 @@ export interface PowerLevelRow {
   /** the owner has not unlocked the level yet */
   locked: boolean;
   calc: OwnShareCalc;
-  /** the cost of the level, and so its rewards, is estimated */
-  estimate: boolean;
   /** missing without a Forge point production or without a value for the level */
   harvest?: DoubleHarvest;
   /** what the owner pays himself; on the open level what is still open */
@@ -83,7 +81,6 @@ export function powerLevelPlan(input: PowerLevelInput): PowerLevelPlan {
       open,
       locked: x + 1 > maxLevel,
       calc,
-      estimate: empty?.estimate === true,
       ...(harvest && { harvest }),
       ownShare,
       net,

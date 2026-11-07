@@ -199,7 +199,6 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
       ctx.bus.on('inventory.changed', refresh);
       ctx.bus.on('city.ownChanged', refresh);
       ctx.bus.on('catalog.updated', refresh);
-      ctx.bus.on('gbLevelCosts.changed', refresh);
       ctx.bus.on('player.updated', refresh);
       ctx.bus.on('foestats.updated', ({ player }) => {
         if (player === calc.shown()?.owner || player === snipe.listOwner()) refresh();

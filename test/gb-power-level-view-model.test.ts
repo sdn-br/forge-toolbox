@@ -24,14 +24,11 @@ const def = (id: string): GreatBuildingDef => {
   return gb;
 };
 const roman = def(ROMAN);
-/** the listed levels exact, the later ones as if learned: 10 more per level */
+/** the listed levels, the later ones as if from the shipped file: 10 more per level */
 const costsOf =
   (gb: GreatBuildingDef): LevelCosts =>
-  (level) => {
-    const listed = gb.levelCosts[level];
-    if (listed !== undefined) return { fp: listed, estimate: false };
-    return { fp: (gb.levelCosts[9] as number) + 10 * (level - 9), estimate: true };
-  };
+  (level) =>
+    gb.levelCosts[level] ?? (gb.levelCosts[9] as number) + 10 * (level - 9);
 // the recorded production per level 0 to 10: 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6
 
 const LEVEL = 3;
@@ -147,7 +144,7 @@ describe('own share per row', () => {
     expect(calc.open).not.toBe(calcOf(LEVEL, false).open);
     // place 1 is held, so no helper pays there
     expect(first?.places[0]).toBeUndefined();
-    expect(first?.places[2]).toEqual({ fp: expect.any(Number), estimate: false });
+    expect(first?.places[2]).toEqual({ fp: expect.any(Number) });
   });
 
   it('takes later levels as open and empty, nothing paid', () => {
@@ -162,16 +159,6 @@ describe('own share per row', () => {
   it('follows the factors per place', () => {
     const cheap = vm({ factors: factorsOf(0) });
     expect(cheap.rows[1]?.places[0]?.fp).toBeLessThan(vm().rows[1]?.places[0]?.fp as number);
-  });
-
-  it('marks payments from an estimated cost', () => {
-    // past the ten listed levels the cost is computed, the rewards follow from it
-    const far = vm({ construction: construction({}, 400, 500) });
-    expect(far.estimate).toBe(true);
-    // the open level has the game's rewards, the later ones are computed
-    expect(far.rows[0]?.places.find(Boolean)?.estimate).toBe(false);
-    expect(far.rows[1]?.places.find(Boolean)?.estimate).toBe(true);
-    expect(vm({ to: 10 }).estimate).toBe(false);
   });
 });
 

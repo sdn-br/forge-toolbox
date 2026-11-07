@@ -2,5 +2,11 @@
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 120 },
   "javascript": { "formatter": { "quoteStyle": "single" } },
-  "linter": { "rules": { "recommended": true } }
+  "linter": { "rules": { "recommended": true } },
+  "overrides": [
+    {
+      "includes": ["src/content/data/gb-level-costs.json"],
+      "formatter": { "enabled": false }
+    }
+  ]
 }

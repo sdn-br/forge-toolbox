@@ -498,8 +498,7 @@ export const de = {
   'gbCalc.previewCost': 'Die Stufe kostet {fp} FP',
   'gbCalc.previewNoDefinition': 'Die Definition des LGs ist noch nicht geladen, deshalb fehlen Kosten und Belohnungen.',
   'gbCalc.previewNoReward':
-    'Für diese Stufe sind die Kosten noch nicht bekannt: Die Toolbox hat von diesem LG noch nicht genug Stufen im Spiel gesehen.',
-  'gbCalc.estimate': 'Kosten der Stufe aus gesehenen Stufen berechnet, die Belohnungen folgen daraus',
+    'Für diese Stufe sind die Kosten noch nicht bekannt: Die Kostentabelle der Toolbox reicht für dieses LG nicht so weit.',
   'gbOwn.title': 'Eigenanteil',
   'gbOwn.menu': 'Eigenanteil an eigenen LGs',
   'gbOwn.factorSetting': 'Faktor für eigene LGs (z. B. 1,9)',
@@ -615,7 +614,7 @@ export const de = {
   'gbPower.sumHint': 'Summe: laufende Summe von Netto ab der ersten Zeile',
   'gbPower.copyHint': 'Kopiertext dieser Stufe für den Gildenchat',
   'gbPower.endsAt':
-    'Ab Stufe {level} sind die Kosten noch nicht bekannt, die Tabelle endet davor. Die Toolbox lernt sie aus Stufen, die sie im Spiel sieht.',
+    'Ab Stufe {level} sind die Kosten noch nicht bekannt, die Tabelle endet davor. Die Kostentabelle der Toolbox reicht für dieses LG nicht weiter.',
   'gbPower.totalsOwnOnly': 'Summe: Eigenanteil {own}',
   'gbPower.totals': 'Summe: Eigenanteil {own} · Doppelernte {harvest} · Netto {net}',
   'resource.money': 'Münzen',

@@ -3,7 +3,6 @@ import { assetPersistence } from '../../persistence/assets/client';
 import { battlePersistence } from '../../persistence/battles/client';
 import { buildingDefLoader } from '../../persistence/building-defs/client';
 import { foestatsPersistence } from '../../persistence/foestats/client';
-import { gbLevelCostPersistence } from '../../persistence/gb-level-costs/client';
 import { greatBuildingPersistence } from '../../persistence/great-buildings/client';
 import { incomingPersistence } from '../../persistence/incoming/client';
 import { notePersistence } from '../../persistence/notes/client';
@@ -11,16 +10,18 @@ import { playerPersistence } from '../../persistence/players/client';
 import { plunderPersistence } from '../../persistence/plunders/client';
 import { shieldPersistence } from '../../persistence/shields/client';
 import { type FetchLike, foestatsApi } from '../../shared/foestats-api';
-import type { WorldId } from '../../shared/ids';
+import type { BuildingDefId, WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import type { Call } from '../core/rpc';
 import type { Settings } from '../core/settings';
+import shippedLevelCosts from '../data/gb-level-costs.json';
+import { type LevelCostFile, type LevelCosts, levelCosts } from '../domain/gb-level-cost';
+import type { GreatBuildingDef } from '../model/catalog';
 import { AssetStore } from './assets';
 import { BattleStore } from './battles';
 import { CatalogStore } from './catalog';
 import { CityStore } from './cities';
 import { FoestatsStore } from './foestats';
-import { GbLevelCostStore } from './gb-level-costs';
 import { createGbOwnState, type GbOwnState } from './gb-own-state';
 import { GreatBuildingStore } from './great-buildings';
 import { IncomingStore } from './incoming';
@@ -51,8 +52,8 @@ export interface Stores {
   shields: ShieldStore;
   notes: NoteStore;
   greatBuildings: GreatBuildingStore;
-  /** the Forge point costs of great building levels the game showed, shared by all worlds */
-  gbLevelCosts: GbLevelCostStore;
+  /** the cost of each level of a great building of a type, from its definition and the costs shipped with the toolbox */
+  gbLevelCosts: (type: BuildingDefId, gb: GreatBuildingDef) => LevelCosts;
   playerBonuses: PlayerBonusStore;
   foestats: FoestatsStore;
   /** the factors and Ext the two own-share boxes share */
@@ -62,7 +63,8 @@ export interface Stores {
 /**
  * `call` reaches the persistence in the service worker; `view` holds the view choices and settings the shared state of
  * the own-share boxes rests on; `now` is the clock of the stores that keep times; `fetch` makes the requests to
- * foestats from the content script.
+ * foestats from the content script. `shippedCosts` are the level costs shipped with the toolbox; tests pass their own, so
+ * they see only the costs they bring.
  */
 export function createStores(
   world: WorldId,
@@ -71,6 +73,7 @@ export function createStores(
   view: { prefs: PrefStore; settings: Settings },
   now: () => number = Date.now,
   fetch: FetchLike = (url, init) => globalThis.fetch(url, init),
+  shippedCosts: LevelCostFile = shippedLevelCosts,
 ): Stores {
   const cities = new CityStore(bus);
   return {
@@ -88,7 +91,7 @@ export function createStores(
     shields: new ShieldStore(bus, world, shieldPersistence(call), now),
     notes: new NoteStore(bus, world, notePersistence(call), now),
     greatBuildings: new GreatBuildingStore(bus, world, greatBuildingPersistence(call), now),
-    gbLevelCosts: new GbLevelCostStore(bus, gbLevelCostPersistence(call), now),
+    gbLevelCosts: (type, gb) => levelCosts(gb.levelCosts, shippedCosts[type]),
     playerBonuses: new PlayerBonusStore(cities),
     foestats: new FoestatsStore(bus, world, foestatsPersistence(call), foestatsApi(fetch)),
     gbOwn: createGbOwnState(bus, view.prefs, view.settings),

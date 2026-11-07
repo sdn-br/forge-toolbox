@@ -181,7 +181,7 @@ export interface GbCalculatorInput extends GbCalcLookups {
   previewLevel?: number;
   /** era and level costs of the building; undefined while its definition is not loaded */
   greatBuilding(def: BuildingDefId): GreatBuildingDef | undefined;
-  /** the cost of each level of a building, seen or computed; without it only the levels the definition lists */
+  /** the cost of each level of a building that is not open; without it only the levels the definition lists */
   levelCosts?(def: BuildingDefId, gb: GreatBuildingDef): LevelCosts;
 }
 
@@ -261,14 +261,13 @@ function previewVm(
   return {
     ...base,
     required: p.required,
-    estimate: p.estimate,
     places: calc.places.map((place) => placeRow(place, calc.rest)),
   };
 }
 
 /** the costs of the building's levels; the listed ones only when the input does not tell */
 const costsOf = (input: GbCalculatorInput, def: BuildingDefId, gb: GreatBuildingDef): LevelCosts =>
-  input.levelCosts?.(def, gb) ?? levelCosts(gb.levelCosts, new Map());
+  input.levelCosts?.(def, gb) ?? levelCosts(gb.levelCosts);
 
 export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm {
   const c = input.construction;

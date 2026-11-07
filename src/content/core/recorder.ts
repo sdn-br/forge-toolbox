@@ -1,4 +1,5 @@
 import type { Traffic } from '../../shared/proxy-protocol';
+import { downloadFile } from '../ui/download';
 
 /**
  * Keeps raw game traffic for test fixtures. Contains private game data: saved files never go into the repo as is.
@@ -52,14 +53,7 @@ export class Recorder {
   }
 
   save(): void {
-    const blob = new Blob([this.serialize()], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `forge-toolbox-recording-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
-    document.body.append(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+    downloadFile(`forge-toolbox-recording-${new Date().toISOString().replace(/[:.]/g, '-')}.json`, this.serialize());
   }
 }
 

@@ -1,4 +1,4 @@
-// The head of a previewed later level in the great building boxes (LG-Rechner, Eigenanteil): heading, cost, estimate.
+// The head of a previewed later level in the great building boxes (LG-Rechner, Eigenanteil): heading and cost.
 import { html } from 'lit-html';
 import { formatNumber, t } from '../core/texts';
 
@@ -12,8 +12,6 @@ export interface LevelPreview {
   locked: boolean;
   /** why there are no places: the definition is not loaded or does not tell the cost of the level */
   unknown?: 'definition' | 'reward';
-  /** the cost is estimated, so are the rewards that follow from it */
-  estimate: boolean;
 }
 
 /** the preview of `level` before its places are known */
@@ -21,7 +19,6 @@ export const levelPreview = (level: number, maxLevel: number): LevelPreview => (
   level,
   next: level + 1,
   locked: level + 1 > maxLevel,
-  estimate: false,
 });
 
 export const previewHeading = (p: LevelPreview) =>
@@ -35,6 +32,3 @@ export const previewUnknown = (p: LevelPreview) =>
 
 export const previewCost = (p: LevelPreview) =>
   p.required === undefined ? '' : html`<p>${t('gbCalc.previewCost', { fp: formatNumber(p.required) })}</p>`;
-
-export const previewEstimate = (p: LevelPreview) =>
-  p.estimate ? html`<p class="muted">${t('gbCalc.estimate')}</p>` : '';

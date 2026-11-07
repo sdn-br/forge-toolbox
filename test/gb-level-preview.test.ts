@@ -41,17 +41,12 @@ describe('placeRewards', () => {
   });
 });
 
-/** a cost computed from the costs seen */
-const estimated = (fp: number) => ({ fp, estimate: true });
-
 describe('previewLevel', () => {
   const arche = def('X_FutureEra_Landmark1');
 
   it('shows a later level as open and empty: cost of that level, rewards with the Arc bonus', () => {
-    const p = previewLevel({ greatBuilding: arche, level: 135, cost: estimated(21777), arcBonus: 95.5, factor: 90 });
+    const p = previewLevel({ greatBuilding: arche, level: 135, cost: 21777, arcBonus: 95.5, factor: 90 });
     expect(p.required).toBe(21777);
-    // an estimated cost makes estimated rewards
-    expect(p.estimate).toBe(true);
     const places = p.calc?.places ?? [];
     expect(places.map((x) => x.net)).toEqual([1903, 951, 317, 79, 16]);
     expect(places.map((x) => x.gross)).toEqual([3720, 1859, 620, 154, 31]);
@@ -63,16 +58,11 @@ describe('previewLevel', () => {
 
   it('has seven places on a gold level', () => {
     const gold: GreatBuildingDef = { ...arche, maxTier: 'gold' };
-    const p = previewLevel({ greatBuilding: gold, level: 135, cost: estimated(21777), arcBonus: 95.5, factor: 90 });
+    const p = previewLevel({ greatBuilding: gold, level: 135, cost: 21777, arcBonus: 95.5, factor: 90 });
     expect(p.calc?.places.map((x) => x.net)).toEqual([1901, 951, 317, 79, 16, 4, 0]);
     // level 99 to 100 is copper
-    const copper = previewLevel({ greatBuilding: gold, level: 99, cost: estimated(8670), arcBonus: 0, factor: 90 });
+    const copper = previewLevel({ greatBuilding: gold, level: 99, cost: 8670, arcBonus: 0, factor: 90 });
     expect(copper.calc?.places).toHaveLength(5);
-  });
-
-  it('is no estimate with an exact cost', () => {
-    const cost = { fp: 970, estimate: false };
-    expect(previewLevel({ greatBuilding: arche, level: 9, cost, arcBonus: 0, factor: 90 }).estimate).toBe(false);
   });
 
   it('has no places without a cost', () => {
@@ -86,7 +76,7 @@ describe('emptyLevel', () => {
   const arche = def('X_FutureEra_Landmark1');
 
   it('gives the places of a level with nobody on them, for the own share as well', () => {
-    const e = emptyLevel(arche, 135, estimated(21777));
+    const e = emptyLevel(arche, 135, 21777);
     expect(e.required).toBe(21777);
     expect(e.rankings?.map((r) => [r.rank, r.reward?.fp, r.fp])).toEqual([
       [1, 1903, undefined],
@@ -103,9 +93,9 @@ describe('emptyLevel', () => {
     expect(calc.myDeposit).toBe(0);
   });
 
-  it('takes an exact cost as the real one: no estimate', () => {
-    const e = emptyLevel({ ...arche, maxTier: 'gold' }, 137, { fp: 62495, estimate: false });
-    expect(e).toMatchObject({ required: 62495, estimate: false });
+  it('takes the cost as the real one', () => {
+    const e = emptyLevel({ ...arche, maxTier: 'gold' }, 137, 62495);
+    expect(e.required).toBe(62495);
     expect(e.rankings?.map((r) => r.reward?.fp)).toEqual([5456, 2728, 909, 227, 45, 8, 2]);
   });
 

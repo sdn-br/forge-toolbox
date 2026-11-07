@@ -2,14 +2,14 @@ import { html, type TemplateResult } from 'lit-html';
 import { formatNumber, formatPercent, signed, t } from '../../../core/texts';
 import type { LevelUpAndFirst } from '../../../domain/gb-strategy';
 import { activityLine } from '../../../ui/activity';
-import { emptyCell, estimateCell } from '../../../ui/estimate-cell';
+import { emptyCell } from '../../../ui/estimate-cell';
 import { arcTip, type FactorActions, factorBar } from '../../../ui/factor-bar';
 import { foldToggle } from '../../../ui/fold-toggle';
 import { fpBar, progressPercent } from '../../../ui/fp-bar';
 import { headerIcons } from '../../../ui/icons';
 import { ignoreButton } from '../../../ui/ignore';
 import { levelBar } from '../../../ui/level-bar';
-import { previewCost, previewEstimate, previewHeading, previewUnknown } from '../../../ui/level-preview';
+import { previewCost, previewHeading, previewUnknown } from '../../../ui/level-preview';
 import { ownerOf } from '../../../ui/owner-line';
 import { starButton } from '../../../ui/star';
 import type { CostCell, DemandCell, GbCalculatorVm, GbHeader, MeVm, PlaceRow, PreviewVm } from './view-model';
@@ -154,20 +154,20 @@ function rateCell(p: PlaceRow) {
   return html`<td class="num">${deposit ? html`${deposit} → ` : ''}${rate}</td>`;
 }
 
-/** Platz, Investiert, Sichern, FP, Gewinn, Gewinn je FP, Fördern, Kurs; `estimate` marks computed rewards, as in a preview */
-const placeRow = (p: PlaceRow, estimate: boolean) =>
+/** Platz, Investiert, Sichern, FP, Gewinn, Gewinn je FP, Fördern, Kurs */
+const placeRow = (p: PlaceRow) =>
   html`<tr class=${`gb-${p.status}`} data-tip=${placeTitle(p)}>
     <td>${p.rank}</td>
     ${maybe(p.holder?.fp)}
     ${safeCell(p)}
-    ${estimateCell(formatNumber(p.gross), estimate)}
+    <td class="num">${formatNumber(p.gross)}</td>
     ${maybe(p.profit)}
     ${p.ratio === undefined ? emptyCell : html`<td class="num">${p.ratio}</td>`}
     ${demandCell(p.demand)}
     ${rateCell(p)}
   </tr>`;
 
-function placesTable(places: PlaceRow[], estimate = false) {
+function placesTable(places: PlaceRow[]) {
   return html`<table class="gb-table">
     <tr>
       <th>${t('gbCalc.place')}</th>
@@ -179,7 +179,7 @@ function placesTable(places: PlaceRow[], estimate = false) {
       <th class="num" data-tip=${t('gbCalc.demandHint')}>${t('gbCalc.demand')}</th>
       <th class="num" data-tip=${t('gbCalc.rateHint')}>${t('gbCalc.rate')}</th>
     </tr>
-    ${places.map((p) => placeRow(p, estimate))}
+    ${places.map(placeRow)}
   </table>`;
 }
 
@@ -192,9 +192,8 @@ function overlayText(vm: Extract<GbCalculatorVm, { kind: 'current' }>): string |
 
 const previewPart = (p: PreviewVm) =>
   html`${previewHeading(p)}
-    ${p.unknown ? previewUnknown(p) : placesTable(p.places, p.estimate)}
-    ${previewCost(p)}
-    ${previewEstimate(p)}`;
+    ${p.unknown ? previewUnknown(p) : placesTable(p.places)}
+    ${previewCost(p)}`;
 
 function calculatorBody(vm: GbCalculatorVm, actions: GbCalculatorActions): TemplateResult {
   switch (vm.kind) {
