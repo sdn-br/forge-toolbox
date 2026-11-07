@@ -63,7 +63,8 @@ export interface Stores {
 /**
  * `call` reaches the persistence in the service worker; `view` holds the view choices and settings the shared state of
  * the own-share boxes rests on; `now` is the clock of the stores that keep times; `fetch` makes the requests to
- * foestats from the content script.
+ * foestats from the content script. `shippedCosts` are the level costs shipped with the toolbox, a file in the format of
+ * the export in the settings; tests pass none, so they see only the costs they bring.
  */
 export function createStores(
   world: WorldId,
@@ -72,6 +73,7 @@ export function createStores(
   view: { prefs: PrefStore; settings: Settings },
   now: () => number = Date.now,
   fetch: FetchLike = (url, init) => globalThis.fetch(url, init),
+  shippedCosts: readonly LevelCostSeen[] = shippedLevelCosts as LevelCostSeen[],
 ): Stores {
   const cities = new CityStore(bus);
   return {
@@ -89,13 +91,7 @@ export function createStores(
     shields: new ShieldStore(bus, world, shieldPersistence(call), now),
     notes: new NoteStore(bus, world, notePersistence(call), now),
     greatBuildings: new GreatBuildingStore(bus, world, greatBuildingPersistence(call), now),
-    gbLevelCosts: new GbLevelCostStore(
-      bus,
-      gbLevelCostPersistence(call),
-      now,
-      // the costs shipped with the toolbox, a file in the format of the export in the settings
-      shippedLevelCosts as LevelCostSeen[],
-    ),
+    gbLevelCosts: new GbLevelCostStore(bus, gbLevelCostPersistence(call), now, shippedCosts),
     playerBonuses: new PlayerBonusStore(cities),
     foestats: new FoestatsStore(bus, world, foestatsPersistence(call), foestatsApi(fetch)),
     gbOwn: createGbOwnState(bus, view.prefs, view.settings),
