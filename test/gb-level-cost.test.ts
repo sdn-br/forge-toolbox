@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { learnSteps, levelCosts } from '../src/content/domain/gb-level-cost';
+import { learnSteps, levelCosts, seedJson, seedRows, withShipped } from '../src/content/domain/gb-level-cost';
 
 /** the levels 0 to 9 after the prestige update: linear from the base */
 const listed = (base: number) => Array.from({ length: 10 }, (_, i) => base * (i + 1));
@@ -183,5 +183,136 @@ describe('learnSteps', () => {
       [301, undefined, false],
       [401, undefined, false],
     ]);
+  });
+});
+
+// Arche: steps 40 from 10, 65 from 40; level 39 costs 2040
+describe('withShipped', () => {
+  const costs = (own: [number, number][], shipped: [number, number][]) =>
+    levelCosts(listed(84), withShipped(listed(84), seen(own), seen(shipped)));
+
+  it('learns from shipped costs alone as if seen', () => {
+    const cost = costs(
+      [],
+      [
+        [15, 1080],
+        [50, 2755],
+      ],
+    );
+    expect(cost(15)).toEqual({ fp: 1080, estimate: false });
+    expect(cost(10)).toEqual({ fp: 880, estimate: true });
+    expect(cost(60)).toEqual({ fp: 3405, estimate: true });
+  });
+
+  it('joins own costs that agree with the shipped ones', () => {
+    const merged = withShipped(listed(84), seen([[20, 1280]]), seen([[15, 1080]]));
+    expect([...merged].sort((a, b) => a[0] - b[0])).toEqual([
+      [15, 1080],
+      [20, 1280],
+    ]);
+  });
+
+  it('takes an own cost over the shipped one of the same level', () => {
+    const cost = costs([[15, 1080]], [[15, 1000]]);
+    expect(cost(15)).toEqual({ fp: 1080, estimate: false });
+    expect(cost(10)).toEqual({ fp: 880, estimate: true });
+  });
+
+  it('drops the shipped costs of a segment an own cost contradicts, the own ones compute it', () => {
+    // the game raised the step from 40 on to 70: 2040 + 6 × 70 = 2460 does not fit 2170 at 41 and 2755 at 50
+    const shipped: [number, number][] = [
+      [15, 1080],
+      [41, 2170],
+      [50, 2755],
+    ];
+    const merged = withShipped(listed(84), seen([[45, 2460]]), seen(shipped));
+    expect(merged.has(41)).toBe(false);
+    expect(merged.has(50)).toBe(false);
+    const cost = costs([[45, 2460]], shipped);
+    // the shipped segment before stays and chains to the own one
+    expect(cost(15)).toEqual({ fp: 1080, estimate: false });
+    expect(cost(50)).toEqual({ fp: 2810, estimate: true });
+    expect(cost(41)).toEqual({ fp: 2180, estimate: true });
+  });
+
+  it('keeps a segment disabled whose shipped costs contradict each other', () => {
+    const cost = costs(
+      [[80, 5706]],
+      [
+        [15, 1080],
+        [50, 2755],
+        [55, 3081],
+      ],
+    );
+    expect(cost(45)).toBeUndefined();
+    expect(cost(55)).toEqual({ fp: 3081, estimate: false });
+    expect(cost(75)).toBeUndefined();
+  });
+});
+
+describe('seedRows', () => {
+  it('keeps the lowest and highest level per type and segment, sorted by type then level', () => {
+    const rows = seedRows(
+      new Map([
+        [
+          'b',
+          seen([
+            [50, 2755],
+            [15, 1080],
+          ]),
+        ],
+        [
+          'a',
+          seen([
+            [30, 1680],
+            [3, 336],
+            [15, 1080],
+            [9, 840],
+            [20, 1280],
+            [5, 504],
+            [120, 37964],
+          ]),
+        ],
+      ]),
+    );
+    expect(rows.map((r) => [r.type, r.level, r.fp])).toEqual([
+      ['a', 3, 336],
+      ['a', 9, 840],
+      ['a', 15, 1080],
+      ['a', 30, 1680],
+      ['a', 120, 37964],
+      ['b', 15, 1080],
+      ['b', 50, 2755],
+    ]);
+  });
+
+  it('keeps every cost of a segment that fits no single step, so it stays disabled', () => {
+    const rows = seedRows(
+      new Map([
+        [
+          'a',
+          seen([
+            [50, 2755],
+            [55, 3081],
+            [60, 3405],
+          ]),
+        ],
+      ]),
+    );
+    expect(rows.map((r) => r.level)).toEqual([50, 55, 60]);
+  });
+});
+
+describe('seedJson', () => {
+  it('writes one row per line, and an empty list as the empty file', () => {
+    expect(seedJson([])).toBe('[]\n');
+    const rows = [
+      { type: 'a', level: 15, fp: 1080 },
+      { type: 'a', level: 30, fp: 1680 },
+    ];
+    expect(seedJson(rows)).toBe(
+      '[\n  { "type": "a", "level": 15, "fp": 1080 },\n  { "type": "a", "level": 30, "fp": 1680 }\n]\n',
+    );
+    expect(JSON.parse(seedJson(rows))).toEqual(rows);
   });
 });

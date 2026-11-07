@@ -15,12 +15,13 @@ import type { WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import type { Call } from '../core/rpc';
 import type { Settings } from '../core/settings';
+import shippedLevelCosts from '../data/gb-level-costs.json';
 import { AssetStore } from './assets';
 import { BattleStore } from './battles';
 import { CatalogStore } from './catalog';
 import { CityStore } from './cities';
 import { FoestatsStore } from './foestats';
-import { GbLevelCostStore } from './gb-level-costs';
+import { GbLevelCostStore, type LevelCostSeen } from './gb-level-costs';
 import { createGbOwnState, type GbOwnState } from './gb-own-state';
 import { GreatBuildingStore } from './great-buildings';
 import { IncomingStore } from './incoming';
@@ -88,7 +89,13 @@ export function createStores(
     shields: new ShieldStore(bus, world, shieldPersistence(call), now),
     notes: new NoteStore(bus, world, notePersistence(call), now),
     greatBuildings: new GreatBuildingStore(bus, world, greatBuildingPersistence(call), now),
-    gbLevelCosts: new GbLevelCostStore(bus, gbLevelCostPersistence(call), now),
+    gbLevelCosts: new GbLevelCostStore(
+      bus,
+      gbLevelCostPersistence(call),
+      now,
+      // the costs shipped with the toolbox, a file in the format of the export in the settings
+      shippedLevelCosts as LevelCostSeen[],
+    ),
     playerBonuses: new PlayerBonusStore(cities),
     foestats: new FoestatsStore(bus, world, foestatsPersistence(call), foestatsApi(fetch)),
     gbOwn: createGbOwnState(bus, view.prefs, view.settings),

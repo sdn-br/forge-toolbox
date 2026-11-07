@@ -4,6 +4,8 @@ import { logError } from '../../core/log';
 import { listDef, numberDef, toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
 import { GOLD_FACTOR } from '../../domain/gb-factor';
+import { seedJson } from '../../domain/gb-level-cost';
+import { downloadFile } from '../../ui/download';
 import { icons } from '../../ui/icons';
 import { playTone } from '../../ui/sound';
 import { createCalculatorSection } from './calculator/section';
@@ -205,6 +207,17 @@ export function createGbCalculatorFeature(tone: () => void = playTone): Feature 
         if (player === calc.shown()?.owner || player === snipe.listOwner()) refresh();
       });
       ctx.settings.onChange(refresh);
+      // the learned costs in the format of the file shipped with the toolbox, to hand to its maintainers
+      ctx.settingsControls.add({
+        group: 'gbCalc.title',
+        section: 'gbCalc.levelCostsSection',
+        render: () => html`<button class="action" data-tip=${t('gbCalc.exportLevelCostsTip')}
+          @click=${exportLevelCosts}>${t('gbCalc.exportLevelCosts')}</button>`,
+      });
+      const exportLevelCosts = () => {
+        const rows = ctx.gbLevelCosts.seedRows((type) => ctx.catalog.get(type)?.greatBuilding?.levelCosts);
+        downloadFile('gb-level-costs.json', seedJson(rows));
+      };
       ctx.menu.add({ id: 'gbCalculator', icon: ICON, label: () => t('gbCalc.menu'), action: () => box.toggle() });
     },
   };

@@ -6,6 +6,8 @@
 // and segment of start levels. Level 100 is the exception: it costs level 99 times 1.05, the steps go on from 101. The
 // value stays unrounded through the chain and is rounded, halves up, at the end. A type that follows another curve shows
 // as observations that fit no integer step; such a segment is disabled.
+//
+// Costs shipped with the toolbox join the own observations (`withShipped`), and `seedRows` writes the file they come from.
 
 /** the cost of one level and whether it is computed rather than seen or listed */
 export interface LevelCost {
@@ -158,4 +160,76 @@ export function levelCosts(listed: readonly number[], seen: ReadonlyMap<number, 
     const value = segment && computed(segment, level);
     return value === undefined ? undefined : { fp: value, estimate: true };
   };
+}
+
+/** the index of the segment `level` belongs to in SEGMENTS; -1 for the listed levels 0 to 9 */
+const segmentOf = (level: number) => SEGMENTS.findIndex((s) => level >= s.first && level <= s.last);
+
+/**
+ * What a type has seen when the costs shipped with the toolbox join the own observations. Shipped costs count as seen,
+ * but the own ones win: an own cost replaces the shipped one of its level, and where the own costs of a segment and the
+ * shipped ones do not fit one step together (the game changed the costs since), the segment keeps only the own costs.
+ * Segment by segment from level 10, so a segment is checked with the start that the ones before it chain to.
+ */
+export function withShipped(
+  listed: readonly number[],
+  own: ReadonlyMap<number, number>,
+  shipped: ReadonlyMap<number, number>,
+): ReadonlyMap<number, number> {
+  if (shipped.size === 0) return own;
+  const merged = new Map<number, number>();
+  const rowsOf = (map: ReadonlyMap<number, number>, segment: number) =>
+    [...map].filter(([level]) => segmentOf(level) === segment && !(map === shipped && own.has(level)));
+  for (let segment = -1; segment < SEGMENTS.length; segment++) {
+    const ownRows = rowsOf(own, segment);
+    const shippedRows = rowsOf(shipped, segment);
+    const together = [...shippedRows, ...ownRows];
+    const contradicts =
+      segment >= 0 &&
+      ownRows.length > 0 &&
+      shippedRows.length > 0 &&
+      learn(listed, new Map([...merged, ...together]))[segment]?.disabled;
+    for (const [level, fp] of contradicts ? ownRows : together) merged.set(level, fp);
+  }
+  return merged;
+}
+
+/** a cost as the file of shipped costs holds it */
+export interface SeedRow<T extends string = string> {
+  type: T;
+  level: number;
+  fp: number;
+}
+
+/**
+ * The rows of the file of shipped costs, from what each type has seen: per type and segment the lowest and the highest
+ * level, the widest span to check a step against; the levels in between follow from them. A segment whose costs fit no
+ * single step keeps all of them, so it stays disabled and is not thinned into a wrong step. Sorted by type, then level.
+ */
+export function seedRows<T extends string>(seen: ReadonlyMap<T, ReadonlyMap<number, number>>): SeedRow<T>[] {
+  const rows: SeedRow<T>[] = [];
+  const types = [...seen.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  for (const type of types) {
+    const groups = new Map<number, [number, number][]>();
+    for (const entry of [...(seen.get(type) ?? [])].sort((a, b) => a[0] - b[0])) {
+      const segment = segmentOf(entry[0]);
+      groups.set(segment, [...(groups.get(segment) ?? []), entry]);
+    }
+    const kept = [...groups].flatMap(([segment, entries]) =>
+      entries.length <= 2 || (segment >= 0 && !stepOf(entries, 0, undefined).fits)
+        ? entries
+        : [entries[0] as [number, number], entries[entries.length - 1] as [number, number]],
+    );
+    for (const [level, fp] of kept.sort((a, b) => a[0] - b[0])) rows.push({ type, level, fp });
+  }
+  return rows;
+}
+
+/** the rows as the file of shipped costs holds them: one row per line, as the formatter of the repo writes it */
+export function seedJson(rows: readonly SeedRow[]): string {
+  if (rows.length === 0) return '[]\n';
+  const lines = rows.map(
+    ({ type, level, fp }) => `  { "type": ${JSON.stringify(type)}, "level": ${level}, "fp": ${fp} }`,
+  );
+  return `[\n${lines.join(',\n')}\n]\n`;
 }

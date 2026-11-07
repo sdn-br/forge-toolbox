@@ -2,7 +2,7 @@ import type { LevelCostRow } from '../../persistence/gb-level-costs/contract';
 import type { BuildingDefId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
-import { type LevelCost, type LevelCosts, levelCosts } from '../domain/gb-level-cost';
+import { type LevelCost, type LevelCosts, levelCosts, seedRows, withShipped } from '../domain/gb-level-cost';
 import type { GreatBuildingDef } from '../model/catalog';
 
 export interface GbLevelCostPersistence {
@@ -22,10 +22,12 @@ export interface LevelCostSeen {
 /**
  * The Forge point costs of great building levels the game showed, by type and start level, and what they tell about
  * the other levels. The costs are the same in every world, so they live in the database all profiles share; memory
- * holds them all. A newer different cost of a type and level replaces the old one.
+ * holds them all. A newer different cost of a type and level replaces the old one. The costs shipped with the toolbox
+ * join them as if seen, but the own ones win (`withShipped`); they stay in memory and never go to the database.
  */
 export class GbLevelCostStore {
   private seen = new Map<BuildingDefId, Map<number, number>>();
+  private shipped = new Map<BuildingDefId, Map<number, number>>();
   /** the lookup of a type, kept while its costs and its definition stay */
   private learned = new Map<BuildingDefId, { listed: readonly number[]; costs: LevelCosts }>();
   private pending = new Map<string, LevelCostRow>();
@@ -36,7 +38,18 @@ export class GbLevelCostStore {
     private bus: ToolboxBus,
     private persistence?: GbLevelCostPersistence,
     private now: () => number = Date.now,
-  ) {}
+    shipped: readonly LevelCostSeen[] = [],
+  ) {
+    for (const { type, level, fp } of shipped) {
+      if (!valid(level, fp)) continue;
+      let levels = this.shipped.get(type);
+      if (!levels) {
+        levels = new Map();
+        this.shipped.set(type, levels);
+      }
+      levels.set(level, fp);
+    }
+  }
 
   /** Reads the costs seen before this page load; a cost seen meanwhile is newer and stays. */
   async load(): Promise<void> {
@@ -56,8 +69,7 @@ export class GbLevelCostStore {
     const types = new Set<BuildingDefId>();
     const at = this.now();
     for (const { type, level, fp } of costs) {
-      // a building at its last level or a broken row brings no cost
-      if (!Number.isInteger(level) || level < 0 || !Number.isInteger(fp) || fp <= 0) continue;
+      if (!valid(level, fp)) continue;
       const levels = this.levelsOf(type);
       if (levels.get(level) === fp) continue;
       levels.set(level, fp);
@@ -78,14 +90,29 @@ export class GbLevelCostStore {
   costs(def: GreatBuildingDef, type: BuildingDefId): LevelCosts {
     const known = this.learned.get(type);
     if (known && known.listed === def.levelCosts) return known.costs;
-    const costs = levelCosts(def.levelCosts, this.seen.get(type) ?? new Map());
+    const costs = levelCosts(def.levelCosts, this.merged(type, def.levelCosts));
     this.learned.set(type, { listed: def.levelCosts, costs });
     return costs;
+  }
+
+  /**
+   * The costs to hand to the maintainers, in the format of the file of shipped costs: own and shipped as the lookup
+   * sees them, thinned by `seedRows`. `listed` gives the definition of a type, which the check of shipped against own
+   * costs chains from; without it the check stays within each segment.
+   */
+  seedRows(listed: (type: BuildingDefId) => readonly number[] | undefined): LevelCostSeen[] {
+    const types = new Set([...this.seen.keys(), ...this.shipped.keys()]);
+    const merged = new Map([...types].map((type) => [type, this.merged(type, listed(type) ?? [])] as const));
+    return seedRows(merged);
   }
 
   /** resolves once the costs noted so far are written */
   flushed(): Promise<void> {
     return this.writes.then(() => undefined);
+  }
+
+  private merged(type: BuildingDefId, listed: readonly number[]): ReadonlyMap<number, number> {
+    return withShipped(listed, this.seen.get(type) ?? new Map(), this.shipped.get(type) ?? new Map());
   }
 
   private levelsOf(type: BuildingDefId): Map<number, number> {
@@ -118,3 +145,6 @@ export class GbLevelCostStore {
     });
   }
 }
+
+/** a building at its last level or a broken row brings no cost */
+const valid = (level: number, fp: number) => Number.isInteger(level) && level >= 0 && Number.isInteger(fp) && fp > 0;

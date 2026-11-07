@@ -391,6 +391,10 @@ export const de = {
   'investments.possible.count': '{hits} mit Gewinn von {count} LGs',
   'gbCalc.title': 'LG-Rechner',
   'snipe.section': 'Snipehilfe',
+  'gbCalc.levelCostsSection': 'Kosten je Stufe',
+  'gbCalc.exportLevelCosts': 'Gelernte LG-Kosten exportieren',
+  'gbCalc.exportLevelCostsTip':
+    'Speichert die gelernten Kosten der LG-Stufen als Datei gb-level-costs.json. Sie ist für die Betreuer der Toolbox gedacht: Mit ihr bringt eine neue Version diese Kosten gleich mit.',
   'snipe.retentionSetting': 'Fremde LGs aufbewahren (Tage)',
   'snipe.openSetting': 'Snipehilfe beim Öffnen einer LG-Liste zeigen',
   'snipe.soundSetting': 'Ton bei LGs mit Gewinn in der Snipehilfe',

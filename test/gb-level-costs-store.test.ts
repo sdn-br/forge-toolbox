@@ -92,4 +92,43 @@ describe('GbLevelCostStore', () => {
     expect(store.cost(archeDef, arche, 120)?.fp).toBe(37964);
     expect(changed).toEqual([[arche], [arche]]);
   });
+
+  it('answers shipped costs as seen, never writes them, and lets own costs win', async () => {
+    const db = testDb();
+    const persistence = gbLevelCostPersistence(db.call);
+    const store = new GbLevelCostStore(createBus(), persistence, () => 1000, [
+      { type: arche, level: 15, fp: 1080 },
+      { type: arche, level: 41, fp: 2170 },
+      { type: arche, level: 50, fp: 2755 },
+    ]);
+    expect(store.cost(archeDef, arche, 10)).toEqual({ fp: 880, estimate: true });
+    expect(store.cost(archeDef, arche, 60)).toEqual({ fp: 3405, estimate: true });
+    // the game raised the step from 40 on: the shipped costs of that segment go
+    store.note([{ type: arche, level: 45, fp: 2460 }]);
+    expect(store.cost(archeDef, arche, 50)).toEqual({ fp: 2810, estimate: true });
+    await store.flushed();
+    expect((await persistence.all()).map((r) => [r.level, r.fp])).toEqual([[45, 2460]]);
+  });
+
+  it('exports own and shipped costs as the lookup sees them, thinned and sorted', () => {
+    const { store: empty } = setup();
+    expect(empty.seedRows(() => undefined)).toEqual([]);
+    const store = new GbLevelCostStore(createBus(), undefined, () => 1000, [
+      { type: zeus, level: 20, fp: 671 },
+      { type: arche, level: 15, fp: 1080 },
+      { type: arche, level: 41, fp: 2170 },
+      { type: arche, level: 50, fp: 2755 },
+    ]);
+    store.note([
+      { type: arche, level: 20, fp: 1280 },
+      { type: arche, level: 30, fp: 1680 },
+      { type: arche, level: 45, fp: 2460 },
+    ]);
+    expect(store.seedRows((type) => (type === arche ? archeDef.levelCosts : undefined))).toEqual([
+      { type: zeus, level: 20, fp: 671 },
+      { type: arche, level: 15, fp: 1080 },
+      { type: arche, level: 30, fp: 1680 },
+      { type: arche, level: 45, fp: 2460 },
+    ]);
+  });
 });
