@@ -165,6 +165,8 @@ export function createGbOwnShareFeature(
         settings: 'gbOwn.title',
         title: () => t('gbOwn.title'),
         width: 500,
+        // the table of seven places with the copy panel under it outgrows the usual 70 % of the window
+        maxHeight: 0.9,
         render: () => ownShareView(vm(), actions, copied),
       });
 

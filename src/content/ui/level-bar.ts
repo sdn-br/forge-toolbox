@@ -2,6 +2,7 @@
 // preview of that level.
 import { html } from 'lit-html';
 import { t } from '../core/texts';
+import { headerIcons } from './icons';
 import { keepKeys } from './inputs';
 
 export interface LevelChoice {
@@ -19,8 +20,9 @@ export function levelChoice(current: number, preview: number | undefined): Level
 }
 
 /**
- * The field alone switches: the current level goes back to the live construction, a later one previews it. The button
- * back only shows in the preview. `pick` gets undefined for the live construction.
+ * The field switches: the current level goes back to the live construction, a later one previews it. The chevrons glued
+ * to it step one level, back is shut on the live construction. The button back only shows in the preview. `pick` gets
+ * undefined for the live construction.
  */
 export function levelBar(l: LevelChoice, pick: (level: number | undefined) => void) {
   const typed = (e: Event) => {
@@ -28,11 +30,18 @@ export function levelBar(l: LevelChoice, pick: (level: number | undefined) => vo
     if (value === l.current) pick(undefined);
     else if (Number.isInteger(value) && value > l.current) pick(value);
   };
+  const step = (level: number) => pick(level > l.current ? level : undefined);
   return html`<div class="gb-levels">
     <span>${t('gbCalc.level')}</span>
-    <input type="number" min=${l.current} step="1" data-tip=${t('gbCalc.previewInput')}
-      aria-label=${t('gbCalc.previewInput')} class=${l.preview ? 'active' : ''}
-      .value=${String(l.chosen)} @keydown=${keepKeys} @change=${typed} />
+    <span class="joined">
+      <button class="action icon-only prev" ?disabled=${!l.preview} data-tip=${t('gbCalc.previousLevel')}
+        aria-label=${t('gbCalc.previousLevel')} @click=${() => step(l.chosen - 1)}>${headerIcons.chevronLeft}</button>
+      <input type="number" min=${l.current} step="1" data-tip=${t('gbCalc.previewInput')}
+        aria-label=${t('gbCalc.previewInput')} class=${l.preview ? 'active' : ''}
+        .value=${String(l.chosen)} @keydown=${keepKeys} @change=${typed} />
+      <button class="action icon-only next" data-tip=${t('gbCalc.nextLevel')} aria-label=${t('gbCalc.nextLevel')}
+        @click=${() => step(l.chosen + 1)}>${headerIcons.chevronRight}</button>
+    </span>
     ${
       l.preview
         ? html`<button class="action" @click=${() => pick(undefined)}>

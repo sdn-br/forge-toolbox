@@ -164,6 +164,13 @@ summary { cursor: pointer; color: var(--accent); }
 .gb-factor, .gb-levels { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 4px 0 6px; }
 .gb-factor input.active, .gb-levels input.active { font-weight: 600; border-color: var(--accent); }
 .gb-factor input[type=number], .gb-levels input[type=number] { width: 5em; }
+/* buttons glued to both sides of a field, one part: square inner corners, the field centred between them */
+.joined { display: inline-flex; align-items: stretch; }
+/* the field keeps its whole frame (accent when active), the buttons drop the side that meets it, so one line parts them */
+.joined > button.action { margin: 0; }
+.joined > button.action:first-child { border-radius: 3px 0 0 3px; border-right: 0; }
+.joined > button.action:last-child { border-radius: 0 3px 3px 0; border-left: 0; }
+.joined > input:not([type=checkbox]):not([type=radio]) { margin: 0; border-radius: 0; text-align: center; }
 /* factor buttons all one width, whatever the number of digits */
 .gb-factor button.action { min-width: 3.6em; text-align: center; }
 .gb-factor label { gap: 3px; }
@@ -260,6 +267,8 @@ button.inv-pick svg { display: block; width: 12px; height: 12px; }
 .fp-line { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
 .fp-line .fp-bar { flex: 1 1 auto; margin-top: 0; }
 /* a thin bar under "paid in / costs", filled towards the level up (investments, GB calculator) */
+/* the progress line of the great building boxes (ui/level-preview.ts) */
+.gb-progress { margin: 0 0 6px; }
 .fp-bar { height: 3px; margin-top: 2px; background: var(--line); border-radius: 2px; overflow: hidden; }
 .fp-bar > div { height: 100%; background: var(--accent); }
 /* the factor of one place and where the factors come from (gb-own-share/factor-state.ts, Eigenanteil and Powerleveln) */

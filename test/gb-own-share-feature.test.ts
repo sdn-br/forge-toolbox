@@ -133,6 +133,10 @@ describe('Eigenanteil', () => {
     await tick();
     expect(box.box.isOpen).toBe(true);
     expect(box.text).toContain('135 → 136');
+    // the progress of the open level over its bar, between the name and the level field, as in the LG-Rechner
+    const progress = box.root.querySelector('.gb-progress');
+    expect(progress?.textContent).toMatch(/Fortschritt: [\d.]+ \/ [\d.]+ · noch [\d.]+ FP bis zum Level-up/);
+    expect(progress?.nextElementSibling?.classList.contains('gb-levels')).toBe(true);
     // the top places hold 10 and 3 FP: safe only once the owner fills almost all of the level
     // own Forge points stand before the place they make safe, with the running total of the own share
     // helpers take P1 and P2 from the placeholders with 10 and 3, which end up below the paid places
@@ -677,7 +681,7 @@ describe('Eigenanteil', () => {
       await tick();
       choose(box.root, 421);
       expect(box.text).toContain('noch nicht freigeschaltet');
-      expect(box.text).toContain('Die Stufe kostet 521.000 FP');
+      expect(box.text).toContain('Vorschau Stufe 421 → 422: 0 / 521.000 FP');
       const p1 = [...box.root.querySelectorAll('tr')].find((tr) => tr.querySelector('td')?.textContent === 'P1');
       const pay = p1?.querySelectorAll('td')[3];
       expect(pay?.className).toBe('num');
@@ -696,11 +700,11 @@ describe('Eigenanteil', () => {
       // definitions are announced once per batch, a moment later
       await new Promise((resolve) => setTimeout(resolve, 60));
       expect(box.text).not.toContain('Definition des LGs ist noch nicht geladen');
-      expect(box.text).toContain('Die Stufe kostet 28.992 FP');
+      expect(box.text).toContain('Vorschau Stufe 140 → 141: 0 / 28.992 FP');
       // nothing is computed past the shipped levels
       choose(box.root, 141);
       expect(box.text).toContain('Für diese Stufe sind die Kosten noch nicht bekannt');
-      expect(box.text).not.toContain('Die Stufe kostet');
+      expect(box.text).not.toContain('0 / ');
     });
 
     it('starts on the open level again when a great building is opened', async () => {
