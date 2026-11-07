@@ -34,7 +34,7 @@ const ignoreWarning = (h: GbHeader, actions: GbCalculatorActions) => {
     if (h.ownerIgnored) actions.toggleOwnerIgnore(false);
   };
   return html`<p class="warn ignore-warning"><span class="warn-icon" role="img" aria-hidden="true">${headerIcons.warning}</span>
-    ${h.ignoreWords.join(' · ')} ${ignoreButton('building', true, release)}</p>`;
+    ${h.ignoreWords.join(' · ')} ${ignoreButton('both', true, release)}</p>`;
 };
 
 function header(h: GbHeader, actions: GbCalculatorActions) {

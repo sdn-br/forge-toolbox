@@ -961,12 +961,12 @@ describe('Investitionen: Ignorieren in Meine Investitionen', () => {
     send(UNNAMED(2001));
     await tick();
     const first = rows()[0];
-    expect(buildingEye(first)?.getAttribute('aria-label')).toBe('LG ignorieren');
-    expect(buildingEye(first)?.getAttribute('data-tip')).toBe('LG ignorieren');
+    expect(buildingEye(first)?.getAttribute('aria-label')).toBe('Dieses LG ignorieren');
+    expect(buildingEye(first)?.getAttribute('data-tip')).toBe('Dieses LG ignorieren');
     expect(buildingEye(first)?.getAttribute('aria-pressed')).toBe('false');
     expect(buildingEye(first)?.classList.contains('on')).toBe(false);
     // the owner of the first row is 2005, a friend: the player store knows them
-    expect(ownerEye(first)?.getAttribute('aria-label')).toBe('Spieler ignorieren');
+    expect(ownerEye(first)?.getAttribute('aria-label')).toBe('Diesen Spieler ignorieren');
     // the eye comes before the funnel, which stays the last thing of the cell
     expect(ownerEye(first)?.nextElementSibling?.classList.contains('inv-pick')).toBe(true);
     expect(first?.querySelector('td.name-cell .row-name > :last-child')?.classList.contains('inv-pick')).toBe(true);
@@ -1011,7 +1011,7 @@ describe('Investitionen: Ignorieren in Meine Investitionen', () => {
     const eye = buildingEye(ignored[0]) as HTMLButtonElement;
     expect(eye.classList.contains('on')).toBe(true);
     expect(eye.getAttribute('aria-pressed')).toBe('true');
-    expect(eye.getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(eye.getAttribute('aria-label')).toBe('Dieses LG nicht mehr ignorieren');
     // still not in the sums
     expect(text(lines(box)[0])).toContain('Umlauf: 4.654 FP');
     eye.click();
@@ -1056,7 +1056,7 @@ describe('Investitionen: Ignorieren in Meine Investitionen', () => {
     expect(shown[0]?.getAttribute('data-tip')).toBe('Spieler ignoriert');
     expect(shown[0]?.classList.contains('muted')).toBe(true);
     const eye = ownerEye(shown[0]) as HTMLButtonElement;
-    expect(eye.getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(eye.getAttribute('aria-label')).toBe('Diesen Spieler nicht mehr ignorieren');
     expect(eye.classList.contains('on')).toBe(true);
     eye.click();
     await tick();

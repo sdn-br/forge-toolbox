@@ -892,9 +892,9 @@ describe('Investitionen: Ignorieren in Mögliche Investitionen', () => {
       rows().find((r) => r.textContent?.includes('Zeusstatue')),
       rows().find((r) => r.textContent?.includes('Orakel')),
     ];
-    expect(buildingEye(known)?.getAttribute('aria-label')).toBe('LG ignorieren');
-    expect(buildingEye(unknown)?.getAttribute('aria-label')).toBe('LG ignorieren');
-    expect(ownerEye(known)?.getAttribute('aria-label')).toBe('Spieler ignorieren');
+    expect(buildingEye(known)?.getAttribute('aria-label')).toBe('Dieses LG ignorieren');
+    expect(buildingEye(unknown)?.getAttribute('aria-label')).toBe('Dieses LG ignorieren');
+    expect(ownerEye(known)?.getAttribute('aria-label')).toBe('Diesen Spieler ignorieren');
     expect(ownerEye(known)?.nextElementSibling?.classList.contains('inv-pick')).toBe(true);
     expect(ownerEye(unknown)).toBeNull();
   });
@@ -928,7 +928,7 @@ describe('Investitionen: Ignorieren in Mögliche Investitionen', () => {
     expect(zeus.getAttribute('data-tip')).toContain('LG ignoriert');
     const eye = buildingEye(zeus) as HTMLButtonElement;
     expect(eye.classList.contains('on')).toBe(true);
-    expect(eye.getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(eye.getAttribute('aria-label')).toBe('Dieses LG nicht mehr ignorieren');
     expect(byName(rows(), cells, 'Orakel von Delphi').classList.contains('muted')).toBe(false);
     eye.click();
     await tick();
@@ -950,7 +950,7 @@ describe('Investitionen: Ignorieren in Mögliche Investitionen', () => {
     await tick();
     const zeus = byName(rows(), cells, 'Zeusstatue');
     expect(zeus.getAttribute('data-tip')).toContain('Spieler ignoriert');
-    expect(ownerEye(zeus)?.getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(ownerEye(zeus)?.getAttribute('aria-label')).toBe('Diesen Spieler nicht mehr ignorieren');
     (ownerEye(zeus) as HTMLButtonElement).click();
     await tick();
     expect(players.get(playerId(1001))?.ignored).toBeUndefined();

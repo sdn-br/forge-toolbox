@@ -1071,7 +1071,7 @@ describe('LG-Rechner: ignorierte LGs und Spieler', () => {
     send(opening(1909).construction);
     await tick();
     expect(box.text).toContain('Zu diesem LG fehlen Stufe und Forge-Punkte');
-    expect(headerEye(box, 'player')?.getAttribute('aria-label')).toBe('Spieler ignorieren');
+    expect(headerEye(box, 'player')?.getAttribute('aria-label')).toBe('Diesen Spieler ignorieren');
   });
 
   it('ignores the building from the header, beside the star, and releases it there', async () => {
@@ -1079,14 +1079,14 @@ describe('LG-Rechner: ignorierte LGs und Spieler', () => {
     open(1909);
     await tick();
     const eye = () => headerEye(box, 'building') as HTMLButtonElement;
-    expect(eye().getAttribute('aria-label')).toBe('LG ignorieren');
+    expect(eye().getAttribute('aria-label')).toBe('Dieses LG ignorieren');
     expect(eye().previousElementSibling?.classList.contains('star')).toBe(true);
     expect(eye().classList.contains('on')).toBe(false);
     eye().click();
     await ctx.greatBuildings.known();
     await tick();
     expect(ctx.greatBuildings.isIgnored(owner, 1909)).toBe(true);
-    expect(eye().getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(eye().getAttribute('aria-label')).toBe('Dieses LG nicht mehr ignorieren');
     expect(eye().getAttribute('aria-pressed')).toBe('true');
     expect(warning(box)).not.toBeNull();
     eye().click();
@@ -1104,12 +1104,12 @@ describe('LG-Rechner: ignorierte LGs und Spieler', () => {
     social(send);
     await tick();
     const eye = () => headerEye(box, 'player') as HTMLButtonElement;
-    expect(eye().getAttribute('aria-label')).toBe('Spieler ignorieren');
+    expect(eye().getAttribute('aria-label')).toBe('Diesen Spieler ignorieren');
     expect(eye().previousElementSibling?.classList.contains('star')).toBe(true);
     eye().click();
     await tick();
     expect(ctx.players.get(owner)?.ignored).toBe(true);
-    expect(eye().getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(eye().getAttribute('aria-label')).toBe('Diesen Spieler nicht mehr ignorieren');
     expect(warning(box)?.textContent).toContain('Spieler ignoriert');
     eye().click();
     await tick();

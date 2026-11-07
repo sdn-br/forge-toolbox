@@ -1233,14 +1233,14 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     social(send);
     list([hitZeus(), hitOracle()]);
     await tick();
-    expect(headerEye(box).getAttribute('aria-label')).toBe('Spieler ignorieren');
+    expect(headerEye(box).getAttribute('aria-label')).toBe('Diesen Spieler ignorieren');
     expect(headerEye(box).previousElementSibling?.classList.contains('star')).toBe(true);
     headerEye(box).click();
     await tick();
     expect(players.get(owner)?.ignored).toBe(true);
     // all hits are ignored now, the header stays and releases
     expect(rows()).toHaveLength(0);
-    expect(headerEye(box).getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(headerEye(box).getAttribute('aria-label')).toBe('Diesen Spieler nicht mehr ignorieren');
     expect(headerEye(box).classList.contains('on')).toBe(true);
     headerEye(box).click();
     await tick();
@@ -1253,7 +1253,7 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     list([hitZeus(), hitOracle()]);
     await tick();
     const zeusRow = () => rows().find((r) => cells(r)[1] === 'Zeusstatue');
-    expect(rowEye(zeusRow()).getAttribute('aria-label')).toBe('LG ignorieren');
+    expect(rowEye(zeusRow()).getAttribute('aria-label')).toBe('Dieses LG ignorieren');
     expect(rowEye(zeusRow()).getAttribute('aria-pressed')).toBe('false');
     rowEye(zeusRow()).click();
     await tick();
@@ -1261,7 +1261,7 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     expect(rows()).toHaveLength(1);
     showToggle(box).click();
     await tick();
-    expect(rowEye(zeusRow()).getAttribute('aria-label')).toBe('Nicht mehr ignorieren');
+    expect(rowEye(zeusRow()).getAttribute('aria-label')).toBe('Dieses LG nicht mehr ignorieren');
     expect(rowEye(zeusRow()).classList.contains('on')).toBe(true);
     rowEye(zeusRow()).click();
     await tick();
