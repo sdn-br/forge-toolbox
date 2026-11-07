@@ -6,5 +6,7 @@ table.power-level th, table.power-level td { overflow: hidden; text-overflow: el
 table.power-level tr.current td { background: rgba(80, 140, 220, .22); }
 table.power-level tr.locked { color: #8a7a60; }
 table.power-level tr.total td { font-weight: 600; }
+/* one line per level row, so every row has the same height and the box keeps its size while the rows move */
+table.power-level tbody td { white-space: nowrap; }
 .gb-levels input.span { width: 4.5em; }
 `;

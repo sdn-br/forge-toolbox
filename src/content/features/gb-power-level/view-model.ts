@@ -11,12 +11,18 @@ import type { GreatBuildingDef, GreatBuildingTier, TierStart } from '../../model
 import type { Construction } from '../../model/great-building';
 import { alikeOn, type PlaceFactorState } from '../../stores/place-factors';
 import { type FactorButton, factorButtons } from '../../ui/factor-bar';
+import { clampTop, type RowWindow, rowWindow } from '../../ui/windowed-rows';
 import { type CopyOptions, copyText } from '../gb-own-share/copy-text';
 
 /** the most levels one table shows */
 export const MAX_ROWS = 100;
 /** levels the table covers from the first one unless the player says otherwise */
 export const DEFAULT_SPAN = 10;
+/** level rows in view at once, so the default span shows whole; the rest moves by wheel and buttons */
+export const VISIBLE_ROWS = 10;
+
+/** the offset kept inside the rows, so a shorter table or a stale offset never leaves it empty */
+export const clampScroll = (top: number, rows: number): number => clampTop(top, rows, VISIBLE_ROWS);
 
 export interface PowerLevelInputs {
   /** the last own construction opened */
@@ -49,6 +55,8 @@ export interface PowerLevelInputs {
   /** the first and the last level of the table; missing ones take the open level and 10 more */
   from?: number;
   to?: number;
+  /** index of the first level row in view */
+  top?: number;
 }
 
 /** what one place pays; `estimate` when the reward behind it is computed */
@@ -108,6 +116,8 @@ export type PowerLevelVm =
       /** the building takes part in the double harvest: the column shows */
       harvestColumn: boolean;
       rows: PowerRow[];
+      /** the level rows in view */
+      window: RowWindow;
       /** a payment comes from a computed reward: the note under the table */
       estimate: boolean;
       /** the table ends before `to`: nothing is known about the reward of this level */
@@ -214,6 +224,7 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
     })),
     harvestColumn,
     rows,
+    window: rowWindow(input.top ?? 0, rows.length, VISIBLE_ROWS),
     estimate: rows.some((r) => r.places.some((p) => p?.estimate)),
     ...(plan.endsAt !== undefined && { endsAt: plan.endsAt }),
     totals: plan.totals,

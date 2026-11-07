@@ -218,6 +218,78 @@ describe('Powerleveln', () => {
     expect(copies[0]).toContain('Die Arche');
   });
 
+  describe('level rows in a window of ten (Nutzer, 2026-11-06)', () => {
+    /** the „von“ and „bis“ fields */
+    const levelFields = (power: { root: HTMLElement }) =>
+      [...power.root.querySelectorAll('.gb-levels input')] as HTMLInputElement[];
+    const down = (power: { root: HTMLElement }) =>
+      power.root.querySelector('button[aria-label="Nach unten"]') as HTMLButtonElement | null;
+    /** shows the levels 135 to 165, 30 rows, and moves two rows down */
+    async function thirtyMoved() {
+      const env = setup();
+      env.openOwn();
+      await tick();
+      env.own.click('Powerleveln');
+      env.type(levelFields(env.power)[1] as HTMLInputElement, '165');
+      await tick();
+      down(env.power)?.click();
+      await tick();
+      down(env.power)?.click();
+      await tick();
+      return env;
+    }
+    const first = (env: Awaited<ReturnType<typeof thirtyMoved>>) => env.cells(env.rows()[0])[0];
+
+    it('shows the default ten levels whole, without buttons', async () => {
+      const { own, power, openOwn, rows } = setup();
+      openOwn();
+      await tick();
+      own.click('Powerleveln');
+      expect(rows()).toHaveLength(10);
+      expect(power.root.querySelector('.win-nav')).toBeNull();
+    });
+
+    it('shows ten of more levels, head and factor row stay, the buttons move the rows', async () => {
+      const env = await thirtyMoved();
+      expect(env.rows()).toHaveLength(10);
+      expect(first(env)).toBe('137→138');
+      // the head and the factor row stand above the window, the notes below it
+      expect(env.power.root.querySelector('.win-area thead tr.factors')).not.toBeNull();
+      expect(env.power.text).toContain('2 oben · 18 unten');
+      (env.power.root.querySelector('button[aria-label="Nach oben"]') as HTMLButtonElement).click();
+      await tick();
+      expect(first(env)).toBe('136→137');
+    });
+
+    it('stays where it is on a factor change and on copying', async () => {
+      const env = await thirtyMoved();
+      env.type(env.fields(env.power)[0] as HTMLInputElement, '1.8');
+      await tick();
+      expect(first(env)).toBe('137→138');
+      (env.power.root.querySelector('button[aria-label="Kopieren"]') as HTMLButtonElement).click();
+      await tick();
+      expect(env.copies).toHaveLength(1);
+      expect(first(env)).toBe('137→138');
+    });
+
+    it('jumps to the top on a new range', async () => {
+      const env = await thirtyMoved();
+      env.type(levelFields(env.power)[1] as HTMLInputElement, '170');
+      await tick();
+      expect(first(env)).toBe('135→136');
+      expect(down(env.power)).not.toBeNull();
+    });
+
+    it('jumps to the top when a building is opened', async () => {
+      const env = await thirtyMoved();
+      env.openOwn();
+      await tick();
+      // the default range again: ten levels from the open one, without buttons
+      expect(first(env)).toBe('135→136');
+      expect(env.power.root.querySelector('.win-nav')).toBeNull();
+    });
+  });
+
   it('asks the player to open a great building first', () => {
     const { power, ctx } = setup();
     ctx.open('gbPowerLevel');
