@@ -16,6 +16,12 @@ export type GreatBuildingsTables = {
   greatBuildingLists: Table<GreatBuildingListTimes, WorldId>;
 };
 
+/** what an opened building does not tell, so the stored row keeps it (the ranking window brought the tier) */
+const KEPT = ['ownContribution', 'marked', 'ignored', 'marksAt', 'tier'] as const;
+
+const kept = (before: KnownGreatBuilding | undefined) =>
+  Object.fromEntries(KEPT.flatMap((k) => (before?.[k] !== undefined && before[k] !== false ? [[k, before[k]]] : [])));
+
 export function greatBuildingsHandlers(db: GreatBuildingsTables): Handlers<GreatBuildingsApi> {
   const writeList = async (world: WorldId, rows: GreatBuildingListRow[], at: number, own: boolean) => {
     const known = await db.greatBuildings.bulkGet(rows.map((r) => gbKey({ world, ...r })));
@@ -36,12 +42,7 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables): Handlers<Great
         const next: KnownGreatBuilding = {
           ...row,
           ...growthSince(before, row, row.seenAt),
-          ...(before?.ownContribution && { ownContribution: true }),
-          ...(before?.marked && { marked: true }),
-          ...(before?.ignored && { ignored: true }),
-          ...(before?.marksAt !== undefined && { marksAt: before.marksAt }),
-          // an opened building does not tell its tier; the ranking window did
-          ...(before?.tier && { tier: before.tier }),
+          ...kept(before),
         };
         latest.set(k, next);
         return next;
@@ -73,11 +74,10 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables): Handlers<Great
       if (!row) return false;
       // the star and the ignore exclude each other: putting one drops the other in the same write
       const other = flag === 'marked' ? 'ignored' : 'marked';
-      const { [flag]: _, [other]: __, ...rest } = row;
+      const { [flag]: _, [other]: otherSet, ...rest } = row;
       await db.greatBuildings.put({
         ...rest,
-        ...(!value && row[other] && { [other]: true }),
-        ...(value && { [flag]: true }),
+        ...(value ? { [flag]: true } : otherSet && { [other]: true }),
         marksAt: at,
       });
       return true;
