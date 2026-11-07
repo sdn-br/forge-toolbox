@@ -2,9 +2,10 @@ import type Dexie from 'dexie';
 import type { Table } from 'dexie';
 import type { PlayerId, WorldId } from '../../shared/ids';
 import { type Battle, type BattleFilter, type BattleSummary, type FoughtBattle, isFought } from '../../shared/model';
-import { FORGE_POINTS } from '../../shared/resources';
 import type { Handlers } from '../../shared/rpc';
 import { playerRows } from '../player-rows';
+import { playerRowsHandlers } from '../player-rows-handlers';
+import { tallyPlunder } from '../plunders/tally';
 import type { PlundersTables } from '../plunders/worker';
 import { relinkRows } from '../pvp-link';
 import type { BattlesApi } from './contract';
@@ -46,7 +47,7 @@ export function battlesHandlers(db: BattlesTables & PlundersTables & Dexie): Han
 
   return {
     'battles.put': ({ rows }) => putBattles(db, rows),
-    'battles.latest': ({ world, opponent }) => all.latest(world, opponent),
+    'battles.latest': playerRowsHandlers('battles', all)['battles.latest'],
     'battles.latestFought': async ({ world, opponent }) => {
       const battle = await fought.latest(world, opponent);
       return battle && isFought(battle) ? battle : null;
@@ -68,13 +69,7 @@ export function battlesHandlers(db: BattlesTables & PlundersTables & Dexie): Han
         if (b.plunderAt !== undefined) battles.push(b);
       });
       for (const p of await plundersOf(battles)) {
-        if (!p) continue;
-        if (p.outcome === 'repelled') {
-          summary.repelled++;
-          continue;
-        }
-        summary.plunders++;
-        summary.fp += p.resources[FORGE_POINTS] ?? 0;
+        if (p) tallyPlunder(summary, p);
       }
       return summary;
     },

@@ -7,8 +7,7 @@ import { playerRowsClient } from '../player-rows-client';
 export function battlePersistence(call: Call): BattlePersistence {
   const rows = playerRowsClient<Battle>(call, 'battles');
   return {
-    latest: rows.latest,
-    prune: rows.prune,
+    ...rows,
     put: (rows) => call('battles.put', { rows }),
     list: (world, query) => call('battles.list', { world, ...query }),
     summary: (world, filter) => call('battles.summary', { world, ...filter }),
