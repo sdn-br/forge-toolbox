@@ -1,8 +1,8 @@
 import type { Table } from 'dexie';
+import type { HandlerDeps } from '../../background/handlers';
 import { isCdnUrl } from '../../shared/cdn-assets';
 import type { Handlers } from '../../shared/rpc';
 import { singleFlight } from '../../shared/single-flight';
-import type { AssetsDeps } from '../assets/worker';
 import type { IncomingTables } from '../incoming/worker';
 import type { PlundersTables } from '../plunders/worker';
 import type { BuildingDefsApi } from './contract';
@@ -25,7 +25,7 @@ export type BuildingDefsTables = { buildingDefFiles: Table<BuildingDefFileRow, s
  */
 export function buildingDefsHandlers(
   db: BuildingDefsTables & PlundersTables & IncomingTables,
-  { now, fetchText }: AssetsDeps,
+  { now, fetchText }: HandlerDeps,
 ): Handlers<BuildingDefsApi> {
   /** two calls for the same file read it once */
   const read = singleFlight(async (url: string, id: string): Promise<unknown> => {

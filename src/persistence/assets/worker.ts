@@ -1,4 +1,5 @@
 import type { Table } from 'dexie';
+import type { HandlerDeps } from '../../background/handlers';
 import { type AssetIndex, isCdnUrl, parseAssetIndex } from '../../shared/cdn-assets';
 import type { Handlers } from '../../shared/rpc';
 import { singleFlight } from '../../shared/single-flight';
@@ -14,19 +15,12 @@ export interface AssetIndexRow {
 
 export type AssetsTables = { assetIndexes: Table<AssetIndexRow, string> };
 
-/** reaches the CDN; tests pass their own */
-export interface AssetsDeps {
-  now: () => number;
-  /** the text of the file at `url`; throws when it cannot be read */
-  fetchText: (url: string) => Promise<string>;
-}
-
 /**
  * The game's script changes its URL with every release, so a stored index stays valid for its URL and is read once per
  * release. Only the newest is kept. A script that cannot be read or parsed is not stored and is tried again on the
  * next call.
  */
-export function assetsHandlers(db: AssetsTables, { now, fetchText }: AssetsDeps): Handlers<AssetsApi> {
+export function assetsHandlers(db: AssetsTables, { now, fetchText }: HandlerDeps): Handlers<AssetsApi> {
   /** two calls for the same script read it once */
   const read = singleFlight(async (script: string): Promise<AssetIndex | undefined> => {
     let source: string;

@@ -66,11 +66,7 @@ export function openDb(name = 'forge-toolbox'): ToolboxDb {
     foestatsDays: '[world+player+date], [world+player]',
     foestatsFetches: '[world+player]',
   });
-  // great buildings keep the rankings, the level they belong to and the own contribution; they are not indexed, so
-  // the schema stays and old rows stay valid, they only lack the new fields
-  db.version(11).stores({
-    greatBuildings: '[world+owner+entityId], [world+owner], world, seenAt',
-  });
+  // there is no version 11: it only added fields to great buildings, which needs no schema change
   // when the town hall list of the own contributions last came, one row per world
   db.version(12).stores({
     greatBuildingLists: 'world',
@@ -79,10 +75,7 @@ export function openDb(name = 'forge-toolbox'): ToolboxDb {
   // their plunder, and a plunder without a stored battle gets an inferred one. The schema stays, the upgrade links what
   // is stored; a database without plunders stays as it is
   db.version(13)
-    .stores({
-      battles: '[world+battleId], [world+at], [world+opponent+at], at',
-      plunders: '[world+opponent+at], [world+at], at',
-    })
+    .stores({})
     .upgrade(async (tx) => {
       const plunders = tx.table<Plunder, [WorldId, PlayerId, number]>('plunders');
       const battles = tx.table<Battle, [WorldId, number]>('battles');

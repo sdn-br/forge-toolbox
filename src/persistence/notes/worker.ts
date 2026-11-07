@@ -12,10 +12,13 @@ export type NotesTables = {
 
 export function notesHandlers(db: NotesTables & Dexie): Handlers<NotesApi> {
   return {
-    'notes.load': async ({ world }) => ({
-      groups: await db.noteGroups.where('world').equals(world).toArray(),
-      pages: await db.notePages.where('world').equals(world).toArray(),
-    }),
+    'notes.load': async ({ world }) => {
+      const [groups, pages] = await Promise.all([
+        db.noteGroups.where('world').equals(world).toArray(),
+        db.notePages.where('world').equals(world).toArray(),
+      ]);
+      return { groups, pages };
+    },
     'notes.save': ({ groups, pages, deletedGroups, deletedPages }) =>
       db.transaction('rw', db.noteGroups, db.notePages, async () => {
         await db.noteGroups.bulkDelete(deletedGroups);
