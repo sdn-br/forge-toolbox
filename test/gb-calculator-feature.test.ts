@@ -837,7 +837,7 @@ describe('LG-Rechner', () => {
       expect(box.text).toContain('Laufend 75 → 76');
       expect(box.text).toContain('Vorschau Stufe 76 → 77');
       expect(box.text).toContain('noch nicht freigeschaltet');
-      expect(box.text).toContain('Die Stufe kostet 3.138 FP');
+      expect(box.text).toContain('Vorschau Stufe 76 → 77: 0 / 3.138 FP');
       expect(box.text).not.toContain('Fortschritt:');
       expect(box.root.querySelector('.gb-overlay')).toBeNull();
       // empty: only the first place can be had, a deposit on any other would land on it
@@ -862,7 +862,7 @@ describe('LG-Rechner', () => {
       open(1909);
       choose(box.root, 90);
       expect(box.text).toContain('Vorschau Stufe 90 → 91');
-      expect(box.text).toContain('Die Stufe kostet 4.202 FP');
+      expect(box.text).toContain('Vorschau Stufe 90 → 91: 0 / 4.202 FP');
       expect(cells(rows()[0])?.[0]).toBe('1');
       // the factor still sets the demand: 612 × 2
       box.click('2');
@@ -883,6 +883,9 @@ describe('LG-Rechner', () => {
       expect(button('prev').disabled).toBe(true);
       button('next').click();
       expect(box.text).toContain('Vorschau Stufe 76 → 77');
+      // the heading takes the place of the progress line, so the level bar below stays where it was
+      expect(box.root.querySelector('.gb-progress')?.textContent).toContain('Vorschau Stufe 76 → 77');
+      expect(box.root.querySelector('.gb-progress .fp-bar')).not.toBeNull();
       button('next').click();
       expect(levelInput(box.root).value).toBe('77');
       button('prev').click();
@@ -917,11 +920,11 @@ describe('LG-Rechner', () => {
       expect(box.text).toContain('Definition des LGs ist noch nicht geladen');
       loadDefinitions();
       choose(box.root, 77);
-      expect(box.text).toContain('Die Stufe kostet 3.214 FP');
+      expect(box.text).toContain('Vorschau Stufe 77 → 78: 0 / 3.214 FP');
       // nothing is computed past the shipped levels
       choose(box.root, 91);
       expect(box.text).toContain('Für diese Stufe sind die Kosten noch nicht bekannt');
-      expect(box.text).not.toContain('Die Stufe kostet');
+      expect(box.text).not.toContain('0 / ');
     });
 
     it('starts live again when another great building is opened', () => {

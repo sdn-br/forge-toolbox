@@ -9,10 +9,10 @@ import { fpBar, progressPercent } from '../../../ui/fp-bar';
 import { headerIcons } from '../../../ui/icons';
 import { ignoreButton } from '../../../ui/ignore';
 import { levelBar } from '../../../ui/level-bar';
-import { previewCost, previewHeading, previewUnknown } from '../../../ui/level-preview';
+import { previewProgress, previewUnknown } from '../../../ui/level-preview';
 import { ownerOf } from '../../../ui/owner-line';
 import { starButton } from '../../../ui/star';
-import type { CostCell, DemandCell, GbCalculatorVm, GbHeader, MeVm, PlaceRow, PreviewVm } from './view-model';
+import type { CostCell, DemandCell, GbCalculatorVm, GbHeader, MeVm, PlaceRow } from './view-model';
 
 export interface GbCalculatorActions extends FactorActions {
   /** preview a later level; undefined goes back to the current construction */
@@ -190,11 +190,6 @@ function overlayText(vm: Extract<GbCalculatorVm, { kind: 'current' }>): string |
   return undefined;
 }
 
-const previewPart = (p: PreviewVm) =>
-  html`${previewHeading(p)}
-    ${p.unknown ? previewUnknown(p) : placesTable(p.places)}
-    ${previewCost(p)}`;
-
 function calculatorBody(vm: GbCalculatorVm, actions: GbCalculatorActions): TemplateResult {
   switch (vm.kind) {
     case 'none':
@@ -203,10 +198,11 @@ function calculatorBody(vm: GbCalculatorVm, actions: GbCalculatorActions): Templ
       return html`<p>${ownerOf(vm, actions.toggleOwnerMark, actions.toggleOwnerIgnore)}</p><p class="warn">${t('gbCalc.noEntity')}</p>`;
     case 'preview':
       return html`${header(vm.header, actions)}
+        ${previewProgress(vm.preview)}
         ${levelBar(vm.header.levels, actions.previewLevel)}
         ${factorBar(vm.factorButtons, vm.effectiveFactor, actions, vm.tier)}
         ${vm.levelUp ? html`<p class="gb-me">${levelUpLine(vm.levelUp)}</p>` : ''}
-        ${previewPart(vm.preview)}`;
+        ${vm.preview.unknown ? previewUnknown(vm.preview) : placesTable(vm.preview.places)}`;
     case 'current': {
       const overlay = overlayText(vm);
       return html`${header(vm.header, actions)}

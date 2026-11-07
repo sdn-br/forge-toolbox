@@ -497,6 +497,7 @@ export const de = {
   'gbCalc.nextLevel': 'Nächste Stufe',
   'gbCalc.previewHeading': 'Vorschau Stufe {level} → {next}',
   'gbCalc.previewLocked': 'noch nicht freigeschaltet',
+  'gbCalc.previewProgress': '0 / {fp} FP',
   'gbCalc.previewCost': 'Die Stufe kostet {fp} FP',
   'gbCalc.previewNoDefinition': 'Die Definition des LGs ist noch nicht geladen, deshalb fehlen Kosten und Belohnungen.',
   'gbCalc.previewNoReward':
