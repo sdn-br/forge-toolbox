@@ -30,7 +30,7 @@ export interface PowerLevelInputs {
   greatBuildingName(def: BuildingDefId): string | undefined;
   /** era, level costs and production of the building; undefined while its definition is not loaded */
   greatBuilding(def: BuildingDefId): GreatBuildingDef | undefined;
-  /** the cost of each level of a building, seen or computed; without it only the levels the definition lists */
+  /** the cost of each level of a building that is not open; without it only the levels the definition lists */
   levelCosts?(def: BuildingDefId, gb: GreatBuildingDef): LevelCosts;
   /** the factor of each place, in percent or the Arc bonus, and where they come from */
   factors: PlaceFactorState;
@@ -59,10 +59,9 @@ export interface PowerLevelInputs {
   top?: number;
 }
 
-/** what one place pays; `estimate` when the reward behind it is computed */
+/** what one place pays */
 export interface PayCell {
   fp: number;
-  estimate: boolean;
 }
 
 export interface PowerRow {
@@ -118,8 +117,6 @@ export type PowerLevelVm =
       rows: PowerRow[];
       /** the level rows in view */
       window: RowWindow;
-      /** a payment comes from a computed reward: the note under the table */
-      estimate: boolean;
       /** the table ends before `to`: nothing is known about the reward of this level */
       endsAt?: number;
       totals: { ownShare: number; harvest: number; net: number };
@@ -162,7 +159,7 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
   const plan = powerLevelPlan({
     def: entity.def,
     greatBuilding: gb,
-    costs: input.levelCosts?.(entity.def, gb) ?? levelCosts(gb.levelCosts, new Map()),
+    costs: input.levelCosts?.(entity.def, gb) ?? levelCosts(gb.levelCosts),
     level: entity.level,
     maxLevel: entity.maxLevel,
     tiers: input.tiers,
@@ -187,7 +184,7 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
     next: r.level + 1,
     current: r.open,
     locked: r.locked,
-    places: payments(r.calc, r.estimate, places),
+    places: payments(r.calc, places),
     ownShare: r.ownShare,
     ...(r.open && { paid: r.calc.myDeposit }),
     ...(r.harvest && { harvest: r.harvest }),
@@ -225,16 +222,15 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
     harvestColumn,
     rows,
     window: rowWindow(input.top ?? 0, rows.length, VISIBLE_ROWS),
-    estimate: rows.some((r) => r.places.some((p) => p?.estimate)),
     ...(plan.endsAt !== undefined && { endsAt: plan.endsAt }),
     totals: plan.totals,
   };
 }
 
 /** the payment per place as the Eigenanteil box shows under „Einzahlen“: none where a holder keeps the place */
-function payments(calc: OwnShareCalc, estimate: boolean, places: number): (PayCell | undefined)[] {
+function payments(calc: OwnShareCalc, places: number): (PayCell | undefined)[] {
   return Array.from({ length: places }, (_, i) => {
     const p = calc.places.find((x) => x.rank === i + 1);
-    return !p || p.holder || p.full || p.unoffered ? undefined : { fp: p.amount, estimate };
+    return !p || p.holder || p.full || p.unoffered ? undefined : { fp: p.amount };
   });
 }

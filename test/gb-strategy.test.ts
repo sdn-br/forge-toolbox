@@ -20,7 +20,7 @@ describe('levelUpAndFirst', () => {
   // round(573 × 2.3) = 1318 for the safe round(2460 / 2) = 1230: +88
   const gb = def('X_ProgressiveEra_Landmark1');
   const NEXT = { arcBonus: 130, factor: 90 };
-  const NEXT_COST = { fp: 2460, estimate: true };
+  const NEXT_COST = 2460;
   const NET = [655, 330, 110, 30, 5];
   const row = (rank: number, fp?: number, self = false, net = NET[rank - 1] as number): RankingRow => ({
     rank,

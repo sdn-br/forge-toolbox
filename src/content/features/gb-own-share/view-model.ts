@@ -54,7 +54,7 @@ export interface OwnShareInputs {
   previewLevel?: number;
   /** era and level costs of the building; undefined (or missing) while its definition is not loaded */
   greatBuilding?(def: BuildingDefId): GreatBuildingDef | undefined;
-  /** the cost of each level of a building, seen or computed; without it only the levels the definition lists */
+  /** the cost of each level of a building that is not open; without it only the levels the definition lists */
   levelCosts?(def: BuildingDefId, gb: GreatBuildingDef): LevelCosts;
 }
 
@@ -67,8 +67,7 @@ export type OwnRow =
   /** `fp` to pay now (0 for none) and the total so far; `paid` is what the owner has paid already, first row only */
   | { kind: 'own'; fp: number; total: number; paid: number }
   /** `factor` in percent for the place's field; missing without a Forge point reward, where it changes nothing */
-  /** `estimate` marks a payment from an estimated cost, in the preview */
-  | { kind: 'place'; place: OwnPlace; ext: number; factor?: number; arc?: boolean; estimate?: boolean }
+  | { kind: 'place'; place: OwnPlace; ext: number; factor?: number; arc?: boolean }
   /** deposits below the paid places, e.g. placeholders a helper pushed down */
   | { kind: 'pushed'; from: number; to: number; fp: number };
 
@@ -130,13 +129,13 @@ export function ownShareViewModel(input: OwnShareInputs): OwnShareVm {
     const base = levelPreview(level, entity.maxLevel);
     const gb = input.greatBuilding?.(entity.def);
     if (!gb) return { kind: 'previewUnknown', name, levels, preview: { ...base, unknown: 'definition' } };
-    const costs = input.levelCosts?.(entity.def, gb) ?? levelCosts(gb.levelCosts, new Map());
+    const costs = input.levelCosts?.(entity.def, gb) ?? levelCosts(gb.levelCosts);
     const empty = emptyLevel(gb, level, costs(level), input.tiers);
     if (empty.required === undefined || !empty.rankings)
       return { kind: 'previewUnknown', name, levels, preview: { ...base, unknown: 'reward' } };
-    const preview = { ...base, required: empty.required, estimate: empty.estimate };
+    const preview = { ...base, required: empty.required };
     return {
-      ...ownTable(input, name, gb, level, empty.required, empty.rankings, [], preview.estimate),
+      ...ownTable(input, name, gb, level, empty.required, empty.rankings, []),
       levels,
       preview,
       addedLive: 0,
@@ -147,16 +146,7 @@ export function ownShareViewModel(input: OwnShareInputs): OwnShareVm {
   if (c.leveled || entity.level !== (input.openedLevel ?? entity.level))
     return { kind: 'leveled', name, level: c.leveled?.level ?? entity.level };
   return {
-    ...ownTable(
-      input,
-      name,
-      input.greatBuilding?.(entity.def),
-      entity.level,
-      entity.required,
-      c.rankings,
-      input.exts,
-      false,
-    ),
+    ...ownTable(input, name, input.greatBuilding?.(entity.def), entity.level, entity.required, c.rankings, input.exts),
     levels,
     addedLive: entity.invested - c.rankings.reduce((sum, r) => sum + (r.fp ?? 0), 0),
   };
@@ -174,7 +164,6 @@ function ownTable(
   required: number,
   rankings: RankingRow[],
   exts: number[],
-  estimate: boolean,
 ): Omit<Extract<OwnShareVm, { kind: 'current' }>, 'levels' | 'preview' | 'addedLive'> {
   const { choices, ...factorState } = input.factors;
   const tier = levelTier(gb, level + 1, input.tiers);
@@ -206,7 +195,7 @@ function ownTable(
     factorState,
     secureExisting: input.secureExisting,
     trust: input.trust,
-    rows: ownRows(calc, exts, estimate, (rank) => {
+    rows: ownRows(calc, exts, (rank) => {
       const choice = choices[rank - 1];
       return choice && { factor: effectiveFactor(choice, arcBonus, tier), arc: choice.arc && arcBonus !== undefined };
     }),
@@ -220,7 +209,6 @@ function ownTable(
 function ownRows(
   calc: OwnShareCalc,
   exts: number[],
-  estimate: boolean,
   factorOf: (rank: number) => { factor: number; arc: boolean } | undefined,
 ): OwnRow[] {
   let total = calc.myDeposit;
@@ -239,7 +227,6 @@ function ownRows(
       place,
       ext: exts[place.rank - 1] ?? 0,
       ...(place.net > 0 && factorOf(place.rank)),
-      ...(estimate && { estimate: true }),
     });
   });
   if (calc.pushed) rows.push({ kind: 'pushed', ...calc.pushed });

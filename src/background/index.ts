@@ -13,7 +13,7 @@ import {
 } from '../shared/messages';
 import { type Profile, profileOfDbName, profileOfStorageKey } from '../shared/profile';
 import type { RpcResponse } from '../shared/rpc';
-import { openDb, openSharedDb } from './db';
+import { openDb } from './db';
 import { adoptLegacy, type LocalStorage } from './legacy';
 import {
   FOLDER_DELAY,
@@ -30,6 +30,12 @@ const storage: LocalStorage = {
   set: (items) => chrome.storage.local.set(items),
   remove: (keys) => chrome.storage.local.remove(keys),
 };
+
+// A build of 2026-11 learned great building level costs into a database all profiles shared; the costs now ship with
+// the toolbox, so the old database goes. Deleting a database that does not exist does nothing.
+// debt: runs at every start of the worker. ceiling: none, the call is cheap. upgrade: remove it some releases later,
+// once every installation has started a build with it.
+indexedDB.deleteDatabase('forge-toolbox-shared');
 
 // the game tab of each profile, as its calls name it; empty after a restart of the worker until the tab calls again,
 // and the rows a tab changes come through its calls
@@ -64,7 +70,6 @@ const dispatch = profileDispatch({
   watch: (profile, db) => watchBackupTables(db, () => signal.rowsChanged(profile)),
   deps: {
     now: Date.now,
-    shared: openSharedDb(),
     // the host permission for the Inno CDN lets the service worker read the game's script past CORS
     fetchText: async (url) => {
       const res = await fetch(url);

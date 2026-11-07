@@ -3,12 +3,12 @@ import { formatNumber, t } from '../../core/texts';
 import type { OwnPlace } from '../../domain/gb-own-share';
 import type { GreatBuildingTier } from '../../model/catalog';
 import { iconButton } from '../../ui/buttons';
-import { emptyCell, estimateCell } from '../../ui/estimate-cell';
+import { emptyCell } from '../../ui/estimate-cell';
 import { type FactorActions, factorBar } from '../../ui/factor-bar';
 import { headerIcons } from '../../ui/icons';
 import { keepKeys } from '../../ui/inputs';
 import { type LevelChoice, levelBar } from '../../ui/level-bar';
-import { previewCost, previewEstimate, previewHeading, previewUnknown } from '../../ui/level-preview';
+import { previewCost, previewHeading, previewUnknown } from '../../ui/level-preview';
 import { type FactorLevelActions, factorLevel, placeFactorField } from './factor-state';
 import type { CopyVm, OwnRow, OwnShareVm } from './view-model';
 
@@ -84,7 +84,6 @@ export function ownShareView(vm: OwnShareVm, actions: OwnShareActions, copied?: 
       · <b>${t('gbOwn.open', { fp: formatNumber(Math.max(0, vm.open)) })}</b></p>
     ${vm.addedLive > 0 ? html`<p class="warn">${t('gbOwn.addedLive', { fp: formatNumber(vm.addedLive) })}</p>` : ''}
     ${vm.preview ? previewCost(vm.preview) : ''}
-    ${vm.preview ? previewEstimate(vm.preview) : ''}
     ${copyPanel(vm.copy, actions, copied)}`;
 }
 
@@ -151,9 +150,8 @@ function placeRow(
     : p.holder
       ? marker(headerIcons.person, p.holder.name)
       : '';
-  // a payment from a computed reward stands italic with „≈“, as the reward in the LG-Rechner
   const pay =
-    p.holder || p.full || p.unoffered ? emptyCell : estimateCell(cell(p.amount, `place${p.rank}`), r.estimate);
+    p.holder || p.full || p.unoffered ? emptyCell : html`<td class="num">${cell(p.amount, `place${p.rank}`)}</td>`;
   const done = p.holder ? fp(p.holder.fp, p.holder.ext ? 'num muted' : 'num') : emptyCell;
   const typed = (e: Event) => {
     const value = (e.target as HTMLInputElement).valueAsNumber;

@@ -8,16 +8,13 @@
 // (X_SS_<era>_<name>), which gives the game id (X_<era>_<name>); the page of each building must show the same asset.
 // The table of a building page has the columns "Stufe" and "Benötigt" (Forge point icon): wiki Stufe n is the cost of
 // our level n - 1. A page is taken, with all its levels, when its levels are gap free and its levels 0 to 9 are linear
-// (k, 2k, ... 10k); otherwise it is skipped whole. A taken page whose levels from 10 do not fit the cost model of
-// gb-level-cost.ts (one integer step per segment, 1.05 at level 100) is reported: the seen values stay exact, only the
-// estimate of that segment is disabled. The wiki levels of a building replace its levels in the file; buildings the
-// wiki does not cover keep theirs. Every difference between a wiki value and a value of the file is printed.
-//
-// Node runs gb-level-cost.ts directly (type stripping), so the check and the file format are the ones of the extension.
+// (k, 2k, ... 10k); otherwise it is skipped whole. A taken page whose levels from 10 do not fit the cost model below
+// (one integer step per segment, 1.05 at level 100) is only reported: the extension computes nothing, it takes the
+// values of the file as they are. The wiki levels of a building replace its levels in the file; buildings the wiki does
+// not cover keep theirs. Every difference between a wiki value and a value of the file is printed.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { learnSteps, seedJson } from '../src/content/domain/gb-level-cost.ts';
 
 const WIKI = 'https://de.wiki.forgeofempires.com';
 const LIST_TITLE = 'Legend%C3%A4re_Bauwerke';
@@ -28,6 +25,65 @@ const FILE = 'src/content/data/gb-level-costs.json';
 
 const dryRun = process.argv.includes('--dry-run');
 const refresh = process.argv.includes('--refresh');
+
+// The cost model, checked against the game on 2026-11-05 (Arche, Zeusstatue, Galataturm, Die blaue Galaxie), a check of
+// the wiki pages only: from level 10 on each level costs the one before plus a step, an integer per type and segment of
+// start levels. Level 100 is the exception: it costs level 99 times 1.05, the steps go on from 101. The value stays
+// unrounded through the chain and is rounded, halves up, at the end. Values are kept in twentieths, so the 1.05 jump
+// stays an exact integer.
+const SCALE = 20;
+const JUMP_LEVEL = 100;
+const JUMP_NUMERATOR = 21;
+const round = (scaled) => Math.floor((scaled + SCALE / 2) / SCALE);
+/** start levels whose costs grow by one step per level; `base` is the level the steps count from */
+const SEGMENTS = [
+  { first: 10, last: 39, base: 9 },
+  { first: 40, last: 69, base: 39 },
+  { first: 70, last: 99, base: 69 },
+  { first: JUMP_LEVEL, last: 300, base: JUMP_LEVEL },
+  { first: 301, last: 400, base: 300 },
+  { first: 401, last: Number.POSITIVE_INFINITY, base: 400 },
+];
+
+/**
+ * The segments whose levels fit no single integer step; `levels` are gap free from 0. A segment is checked from the
+ * exact value the segments before chain to; after a segment that does not fit, from its own first level.
+ */
+function misfits(levels) {
+  const out = [];
+  /** the exact value at the end of the segment before, in twentieths */
+  let carry = levels.get(9) * SCALE;
+  for (const s of SEGMENTS) {
+    const rows = [...levels].filter(([level]) => level >= s.first && level <= s.last);
+    if (rows.length === 0) break;
+    const start = carry === undefined ? undefined : s.first === JUMP_LEVEL ? (carry * JUMP_NUMERATOR) / SCALE : carry;
+    const [base, from] = start === undefined ? rows[0] : [s.base, round(start)];
+    let step;
+    const fits = rows.every(([level, fp]) => {
+      const n = level - base;
+      if (n === 0) return fp === from;
+      // values of a segment share the fraction of its start, so the rounded ones grow by exact steps
+      const rise = (fp - from) / n;
+      if (!Number.isInteger(rise) || (step !== undefined && rise !== step)) return false;
+      step = rise;
+      return true;
+    });
+    if (!fits) out.push(`${s.first} to ${s.last === Number.POSITIVE_INFINITY ? 'end' : s.last}`);
+    carry = fits && start !== undefined && step !== undefined ? start + (s.last - s.base) * step * SCALE : undefined;
+  }
+  return out;
+}
+
+/** the file: one line per type without spaces, its levels ascending, the types sorted; the formatter leaves it alone */
+function fileJson(seen) {
+  const types = [...seen.keys()].filter((type) => seen.get(type).size > 0).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  if (types.length === 0) return '{}\n';
+  const lines = types.map((type) => {
+    const levels = [...seen.get(type)].sort((a, b) => a[0] - b[0]);
+    return `  ${JSON.stringify(type)}: {${levels.map(([level, fp]) => `"${level}":${fp}`).join(',')}}`;
+  });
+  return `{\n${lines.join(',\n')}\n}\n`;
+}
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 let fetched = 0;
@@ -121,9 +177,7 @@ function check(costs) {
   if (!linear) return { reason: `levels 0 to 9 not linear: ${first.join(', ')}` };
   const max = Math.max(...levels.keys());
   for (let level = 0; level <= max; level++) if (!levels.has(level)) return { reason: `level ${level} missing` };
-  const disabled = learnSteps(first, levels).filter((s) => s.disabled);
-  const misfit = disabled.map((s) => `${s.first} to ${s.last === Number.POSITIVE_INFINITY ? 'end' : s.last}`);
-  return { levels, k, max, misfit };
+  return { levels, k, max, misfit: misfits(levels) };
 }
 
 const existing = JSON.parse(await readFile(FILE, 'utf8'));
@@ -156,7 +210,8 @@ for (const b of list) {
     continue;
   }
   console.log(`  ok ${b.type} ${b.name}: levels 0 to ${result.max}, k = ${result.k}`);
-  if (result.misfit.length > 0) whole.push(`${b.type} ${b.name}: no single integer step in levels ${result.misfit.join(', ')}`);
+  if (result.misfit.length > 0)
+    whole.push(`${b.type} ${b.name}: no single integer step in levels ${result.misfit.join(', ')}`);
   wiki.set(b.type, result.levels);
 }
 
@@ -174,7 +229,8 @@ for (const [type, values] of Object.entries(existing)) {
 
 const seen = new Map(wiki);
 const kept = Object.keys(existing).filter((type) => !wiki.has(type));
-for (const type of kept) seen.set(type, new Map(Object.entries(existing[type]).map(([level, fp]) => [Number(level), fp])));
+for (const type of kept)
+  seen.set(type, new Map(Object.entries(existing[type]).map(([level, fp]) => [Number(level), fp])));
 const count = (types) => [...types].reduce((sum, levels) => sum + levels.size, 0);
 const before = Object.values(existing).reduce((sum, levels) => sum + Object.keys(levels).length, 0);
 
@@ -193,6 +249,6 @@ console.log(`values: ${before} before, ${count(seen.values())} after, ${seen.siz
 
 if (dryRun) console.log('dry run, file not written');
 else {
-  await writeFile(FILE, seedJson(seen));
+  await writeFile(FILE, fileJson(seen));
   console.log(`written ${FILE}`);
 }

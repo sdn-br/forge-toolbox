@@ -16,13 +16,8 @@ const def = (id: string): GreatBuildingDef => {
   return gb;
 };
 const roman = def(ROMAN);
-/** the listed levels exact, the later ones as if learned: 10 more per level */
-const costs: LevelCosts = (level) => {
-  const listed = roman.levelCosts[level];
-  if (listed !== undefined) return { fp: listed, estimate: false };
-  const last = roman.levelCosts[9] as number;
-  return { fp: last + 10 * (level - 9), estimate: true };
-};
+/** the listed levels, the later ones as if from the shipped file: 10 more per level */
+const costs: LevelCosts = (level) => roman.levelCosts[level] ?? (roman.levelCosts[9] as number) + 10 * (level - 9);
 // the recorded production per level 0 to 10: 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6
 
 const LEVEL = 3;
@@ -93,12 +88,6 @@ describe('powerLevelPlan', () => {
       true,
       true,
     ]);
-  });
-
-  it('marks levels whose cost, and so whose rewards, are estimated', () => {
-    // the open level 8 has its real cost; 9 is listed, from 10 on the cost is computed
-    const { rows } = plan({ to: 12 }, 8, 20);
-    expect(rows.map((r) => r.estimate)).toEqual([false, false, true, true]);
   });
 
   it('takes the places of each level by its tier: five on copper, seven on gold', () => {

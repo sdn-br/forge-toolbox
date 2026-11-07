@@ -56,7 +56,7 @@ export function createGbPowerLevelFeature(
           construction: shown,
           greatBuildingName: (id) => ctx.catalog.greatBuildingName(id),
           greatBuilding: (id) => ctx.catalog.get(id)?.greatBuilding,
-          levelCosts: (id, gb) => ctx.gbLevelCosts.costs(gb, id),
+          levelCosts: ctx.gbLevelCosts,
           factors: ctx.gbOwn.state(def ?? ''),
           factorButtons: ctx.settings.of(FACTOR_BUTTONS).get(),
           factorButtonsGold: ctx.settings.of(FACTOR_BUTTONS_GOLD).get(),
@@ -156,7 +156,6 @@ export function createGbPowerLevelFeature(
         if (follow()) box.update();
       });
       ctx.bus.on('catalog.updated', () => box.update());
-      ctx.bus.on('gbLevelCosts.changed', () => box.update());
       ctx.settings.onChange(() => box.update());
     },
   };

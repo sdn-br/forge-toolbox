@@ -1,7 +1,6 @@
 // Strategies on the running construction of a foreign great building: ways to pay in that the places alone do not show.
 import type { GreatBuildingDef, TierStart } from '../model/catalog';
 import { type ConstructionCalc, type ConstructionInput, plusPercent } from './gb-calculator';
-import type { LevelCost } from './gb-level-cost';
 import { previewLevel } from './gb-level-preview';
 
 /** Level the building now with everything still missing, then take place 1 of the next level while it is empty. */
@@ -33,7 +32,7 @@ export function levelUpAndFirst(
   input: ConstructionInput,
   calc: ConstructionCalc,
   greatBuilding: GreatBuildingDef | undefined,
-  nextCost: LevelCost | undefined,
+  nextCost: number | undefined,
   next: { arcBonus: number; factor: number } = input,
   tiers?: TierStart[],
 ): LevelUpAndFirst | undefined {

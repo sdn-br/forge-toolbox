@@ -123,14 +123,12 @@ function table(vm: TableVm, actions: PowerLevelActions, copied?: string) {
             net: number(vm.totals.net),
           })
         : t('gbPower.totalsOwnOnly', { own: number(vm.totals.ownShare) })
-    }</p>
-    ${vm.estimate ? html`<p class="muted">${t('gbCalc.estimate')}</p>` : ''}`;
+    }</p>`;
 }
 
-/** a payment from a computed reward stands italic with „≈“, as in the Eigenanteil box */
 function payCell(p: PayCell | undefined) {
   if (!p) return emptyCell;
-  return estimateCell(number(p.fp), p.estimate);
+  return html`<td class="num">${number(p.fp)}</td>`;
 }
 
 function harvestCell(r: PowerRow): TemplateResult {

@@ -1,6 +1,7 @@
 import { createBus, type ToolboxBus } from '../../src/content/core/events';
 import { memoryKv } from '../../src/content/core/kv';
 import { Settings } from '../../src/content/core/settings';
+import type { LevelCostFile } from '../../src/content/domain/gb-level-cost';
 import { createStores, type Stores } from '../../src/content/stores';
 import { UiState } from '../../src/content/ui/ui-state';
 import type { FetchLike } from '../../src/shared/foestats-api';
@@ -16,6 +17,8 @@ export interface TestStoresOptions {
   /** what the own-share state reads; without them empty ones */
   settings?: Settings;
   ui?: UiState;
+  /** the shipped level costs the stores see; without them none, so a test sees only the costs it brings */
+  levelCosts?: LevelCostFile;
   overrides?: (env: { bus: ToolboxBus; world: WorldId; now: () => number }) => Partial<Stores>;
 }
 
@@ -28,13 +31,14 @@ export function testStores({
   fetch = offline,
   settings = new Settings(memoryKv()),
   ui = new UiState(memoryKv()),
+  levelCosts = {},
   overrides,
 }: TestStoresOptions = {}) {
   const db = testDb({ now });
   const world = worldId('de20');
   const bus = createBus();
   const stores: Stores = {
-    ...createStores(world, bus, db.call, { prefs: ui, settings }, now, fetch, {}),
+    ...createStores(world, bus, db.call, { prefs: ui, settings }, now, fetch, levelCosts),
     ...overrides?.({ bus, world, now }),
   };
   return { db, world, bus, now, stores };
