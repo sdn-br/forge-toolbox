@@ -1,6 +1,7 @@
+import type Dexie from 'dexie';
 import type { Table } from 'dexie';
 import type { PlayerId, WorldId } from '../../shared/ids';
-import type { KnownGreatBuilding } from '../../shared/model';
+import type { KnownGreatBuilding, MarkKind } from '../../shared/model';
 import type { Handlers } from '../../shared/rpc';
 import type { GreatBuildingListRow, GreatBuildingsApi } from './contract';
 import { applyListRow, gbKey, growthSince, hasOwnContribution, isFlagged, withoutOwnContribution } from './merge';
@@ -22,7 +23,7 @@ const KEPT = ['ownContribution', 'marked', 'ignored', 'marksAt', 'tier'] as cons
 const kept = (before: KnownGreatBuilding | undefined) =>
   Object.fromEntries(KEPT.flatMap((k) => (before?.[k] !== undefined && before[k] !== false ? [[k, before[k]]] : [])));
 
-export function greatBuildingsHandlers(db: GreatBuildingsTables): Handlers<GreatBuildingsApi> {
+export function greatBuildingsHandlers(db: GreatBuildingsTables & Dexie): Handlers<GreatBuildingsApi> {
   const writeList = async (world: WorldId, rows: GreatBuildingListRow[], at: number, own: boolean) => {
     const known = await db.greatBuildings.bulkGet(rows.map((r) => gbKey({ world, ...r })));
     const changed = rows.flatMap((row, i) => {
@@ -52,16 +53,21 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables): Handlers<Great
     'greatBuildings.putList': async ({ world, rows, at }) => {
       await writeList(world, rows, at, false);
     },
-    'greatBuildings.putContributions': async ({ world, rows, at }) => {
-      await writeList(world, rows, at, true);
-      const listed = new Set(rows.map((r) => gbKey({ world, ...r }).join(':')));
-      const gone = (await db.greatBuildings.where('world').equals(world).toArray()).filter(
-        (b) => b.ownContribution && !listed.has(gbKey(b).join(':')),
-      );
-      await db.greatBuildings.bulkDelete(gone.filter((b) => !isFlagged(b)).map(gbKey));
-      await db.greatBuildings.bulkPut(gone.filter(isFlagged).map(withoutOwnContribution));
-      await db.greatBuildingLists.put({ world, contributionsAt: at });
-    },
+    'greatBuildings.putContributions': ({ world, rows, at }) =>
+      // one transaction commits once for the whole list
+      db.transaction('rw', db.greatBuildings, db.greatBuildingLists, async () => {
+        await writeList(world, rows, at, true);
+        const listed = new Set(rows.map((r) => gbKey({ world, ...r }).join(':')));
+        const gone = await db.greatBuildings
+          .where('world')
+          .equals(world)
+          .filter((b) => !!b.ownContribution && !listed.has(gbKey(b).join(':')))
+          .toArray();
+        await db.greatBuildings.bulkDelete(gone.filter((b) => !isFlagged(b)).map(gbKey));
+        await db.greatBuildings.bulkPut(gone.filter(isFlagged).map(withoutOwnContribution));
+        await db.greatBuildingLists.put({ world, contributionsAt: at });
+        return undefined;
+      }),
     'greatBuildings.contributionsAt': async ({ world }) => (await db.greatBuildingLists.get(world))?.contributionsAt,
     'greatBuildings.prune': async ({ world, before }) => {
       const stale = (await db.greatBuildings.where('seenAt').below(before).toArray())
@@ -82,10 +88,13 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables): Handlers<Great
       });
       return true;
     },
-    'greatBuildings.flagged': async ({ world, flag }) =>
-      (await db.greatBuildings.where('world').equals(world).toArray())
-        .filter((b) => b[flag])
-        .map((b) => ({ owner: b.owner, entityId: b.entityId })),
+    'greatBuildings.flagged': async ({ world }) => {
+      // one scan for both marks, the filter in the cursor: the many unflagged buildings are never collected
+      const flagged = await db.greatBuildings.where('world').equals(world).filter(isFlagged).toArray();
+      const of = (flag: MarkKind) =>
+        flagged.filter((b) => b[flag]).map((b) => ({ owner: b.owner, entityId: b.entityId }));
+      return { marked: of('marked'), ignored: of('ignored') };
+    },
     'greatBuildings.list': ({ world, owner }) =>
       owner === undefined
         ? db.greatBuildings.where('world').equals(world).toArray()

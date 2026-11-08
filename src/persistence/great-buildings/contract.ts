@@ -46,10 +46,10 @@ export interface GreatBuildingsApi {
     arg: { world: WorldId; owner: PlayerId; entityId: number; flag: MarkKind; value: boolean; at: number };
     result: boolean;
   };
-  /** the buildings of the world carrying the star or the ignore */
+  /** the buildings of the world carrying the star, and those carrying the ignore */
   'greatBuildings.flagged': {
-    arg: { world: WorldId; flag: MarkKind };
-    result: { owner: PlayerId; entityId: number }[];
+    arg: { world: WorldId };
+    result: Record<MarkKind, { owner: PlayerId; entityId: number }[]>;
   };
   /** the known buildings of one owner, or of all owners of the world */
   'greatBuildings.list': { arg: { world: WorldId; owner?: PlayerId }; result: KnownGreatBuilding[] };
