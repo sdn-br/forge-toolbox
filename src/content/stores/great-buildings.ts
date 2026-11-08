@@ -1,6 +1,5 @@
-import type { GreatBuildingListRow } from '../../persistence/great-buildings/contract';
 import type { BuildingDefId, PlayerId, WorldId } from '../../shared/ids';
-import type { KnownGreatBuilding, MarkKind } from '../../shared/model';
+import type { GreatBuildingListRow, KnownGreatBuilding, MarkKind } from '../../shared/model';
 import { DAY_MS } from '../../shared/time';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';

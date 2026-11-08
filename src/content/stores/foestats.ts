@@ -1,6 +1,5 @@
-import type { FoestatsState } from '../../persistence/foestats/contract';
 import type { PlayerId, WorldId } from '../../shared/ids';
-import type { FoestatsDay, FoestatsOutcome } from '../../shared/model';
+import type { FoestatsDay, FoestatsOutcome, FoestatsState } from '../../shared/model';
 import { singleFlight } from '../../shared/single-flight';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';

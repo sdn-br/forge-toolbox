@@ -1,6 +1,5 @@
 // Game format → own model. Nothing outside src/content/game sees the game format.
 
-import type { GreatBuildingListRow } from '../../persistence/great-buildings/contract';
 import {
   type BuildingDefId,
   buildingDefId,
@@ -17,6 +16,7 @@ import type {
   BattleSide,
   CityShield,
   FoughtBattle,
+  GreatBuildingListRow,
   GuildRef,
   IncomingAttack,
   Plunder,

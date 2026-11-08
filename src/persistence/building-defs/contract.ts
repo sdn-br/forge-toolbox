@@ -1,9 +1,4 @@
-export interface BuildingDefFileData {
-  id: string;
-  /** on the Inno CDN; it carries the file's hash, so a changed definition has a new URL */
-  url: string;
-  json: unknown;
-}
+import type { BuildingDefFileData } from '../../shared/model';
 
 export interface BuildingDefsApi {
   /** every cached metadata file of a building definition */

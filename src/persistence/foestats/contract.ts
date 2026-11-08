@@ -1,11 +1,5 @@
 import type { PlayerId, WorldId } from '../../shared/ids';
-import type { FoestatsDay, FoestatsOutcome } from '../../shared/model';
-
-/** what the views learn about foestats and the player: foestats is unreachable, or it does not know the player */
-export interface FoestatsState {
-  unreachable: boolean;
-  unknown: boolean;
-}
+import type { FoestatsDay, FoestatsOutcome, FoestatsState } from '../../shared/model';
 
 export interface FoestatsApi {
   /**

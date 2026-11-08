@@ -1,5 +1,5 @@
 import type { Call } from '../../content/core/rpc';
-import type { BuildingDefFileData } from './contract';
+import type { BuildingDefFileData } from '../../shared/model';
 
 /** The cached metadata files as the service worker keeps them: raw JSON, no translation. */
 export interface BuildingDefFiles {

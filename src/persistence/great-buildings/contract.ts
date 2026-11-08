@@ -1,22 +1,5 @@
-import type { BuildingDefId, PlayerId, WorldId } from '../../shared/ids';
-import type { GreatBuildingTier, KnownGreatBuilding, MarkKind } from '../../shared/model';
-
-/** A row of a great building list: the state of one building without its rankings. */
-export interface GreatBuildingListRow {
-  owner: PlayerId;
-  entityId: number;
-  cityEntityId: BuildingDefId;
-  level: number;
-  invested: number;
-  required: number;
-  /** the session player's place, when the list names one: an own contribution */
-  rank?: number;
-  /** own deposit and net reward of that place; the town hall list (getContributions) brings them */
-  forgePoints?: number;
-  reward?: number;
-  /** the prestige tier; only rows of the ranking window bring it */
-  tier?: GreatBuildingTier;
-}
+import type { PlayerId, WorldId } from '../../shared/ids';
+import type { GreatBuildingListRow, KnownGreatBuilding, MarkKind } from '../../shared/model';
 
 export interface GreatBuildingsApi {
   /**
