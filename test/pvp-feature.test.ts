@@ -62,7 +62,6 @@ function controlled(total = 1) {
     latest: async () => undefined,
     list: vi.fn(async () => [plunder(333)]),
     totals: async () => ({ count: 1, repelled: 0, fp: 12 }),
-    prune: vi.fn(async () => 0),
   };
   const incoming: IncomingPersistence = {
     add: async () => {},
@@ -199,17 +198,6 @@ describe('pvp feature', () => {
     expect(lists.length).toBe(loads + 1);
     await ctx.settings.of(KEEP_SETTING).set('90');
     await tick();
-    expect(lists.length).toBe(loads + 1);
-  });
-
-  it('prunes plunders with the battle retention and reloads when that deleted something', async () => {
-    const { ctx, plunders, lists } = setup();
-    await tick();
-    const loads = lists.length;
-    vi.mocked(plunders.prune).mockResolvedValueOnce(2);
-    await ctx.settings.of(KEEP_SETTING).set('30');
-    await tick();
-    expect(plunders.prune).toHaveBeenCalledOnce();
     expect(lists.length).toBe(loads + 1);
   });
 

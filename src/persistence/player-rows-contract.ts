@@ -9,6 +9,4 @@ export type PlayerRowsApi<Name extends string, Row> = {
     arg: OpponentScope & { world: WorldId; limit: number; offset: number };
     result: Row[];
   };
-} & {
-  [M in `${Name}.prune`]: { arg: { before: number }; result: number };
 };

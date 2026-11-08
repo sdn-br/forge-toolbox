@@ -195,7 +195,6 @@ describe('writing battles and plunders', () => {
     await plunders.put([plunder(T), plunder(T - DAY_MS - 1000), plunder(T - 3 * DAY_MS)]);
     for (const before of [T - 2 * DAY_MS + 1, T - 50]) {
       await persistence.prune(before);
-      await plunders.prune(before);
       const battles = await db.battles.toArray();
       for (const p of await db.plunders.toArray()) {
         expect(battles.filter((b) => b.opponent === p.opponent && b.plunderAt === p.at)).toHaveLength(1);

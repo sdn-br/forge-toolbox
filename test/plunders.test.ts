@@ -309,10 +309,4 @@ describe('plunder queries', () => {
     expect((await plunders.latest(playerId(1002)))?.entityId).toBe(2);
     expect(await plunders.latest(playerId(9999))).toBeUndefined();
   });
-
-  it('prunes plunders older than the limit in every world', async () => {
-    const { plunders, db } = await filled();
-    expect(await plunders.prune(260)).toBe(3);
-    expect((await db.plunders.toArray()).map((p) => p.entityId).sort()).toEqual([2, 4]);
-  });
 });

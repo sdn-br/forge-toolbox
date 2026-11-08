@@ -20,7 +20,7 @@ function setup(me: number | null = fixture.me) {
   const ingestion = new Ingestion();
   const { db, bus, now, stores } = testStores({ now: () => 0 });
   registerGameHandlers(ingestion, { world, bus, now, ...stores });
-  const { battles, players } = stores;
+  const { battles, players, plunders } = stores;
   const persistence = db.persistence;
   const recorded: PlayerId[] = [];
   bus.on('battle.recorded', (e) => recorded.push(...e.opponents));
@@ -30,7 +30,7 @@ function setup(me: number | null = fixture.me) {
     send([
       { requestClass: 'StartupService', requestMethod: 'getData', responseData: { user_data: { player_id: me } } },
     ]);
-  return { db: db.db, persistence, battles, players, recorded, send, bus };
+  return { db: db.db, persistence, battles, players, plunders, recorded, send, bus };
 }
 
 /** the fixture batch with the battle response changed */
@@ -248,13 +248,13 @@ describe('recording manual battles', () => {
 
 describe('battle queries', () => {
   async function filled() {
-    const { battles, db } = setup(null);
+    const { battles, plunders, db } = setup(null);
     for (const b of [battle(1, 100), battle(2, 300, 1002), battle(3, 200), battle(4, 400, 1001, worldId('en1'))]) {
       battles.record(b);
     }
     // a battle of another world goes in directly, the store only records its own world
     await db.battles.put(battle(4, 400, 1001, worldId('en1')));
-    return { battles, db };
+    return { battles, plunders, db };
   }
 
   it('lists newest first with paging and an opponent filter', async () => {
@@ -299,8 +299,8 @@ describe('battle queries', () => {
   });
 
   it('prunes battles older than the limit in every world', async () => {
-    const { battles, db } = await filled();
-    expect(await battles.prune(250)).toBe(2);
+    const { battles, plunders, db } = await filled();
+    expect(await battles.prune(250, plunders)).toBe(2);
     expect((await db.battles.toArray()).map((b) => b.battleId).sort()).toEqual([2, 4]);
   });
 });

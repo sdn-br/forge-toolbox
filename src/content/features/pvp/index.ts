@@ -234,7 +234,7 @@ export const pvpFeature: Feature = {
     const prune = () => {
       const before = pruneBefore(keep.get(), Date.now());
       if (before === undefined) return;
-      Promise.all([ctx.battles.prune(before), ctx.plunders.prune(before), ctx.incoming.prune(before)])
+      Promise.all([ctx.battles.prune(before, ctx.plunders), ctx.incoming.prune(before)])
         .then((deleted) => {
           if (selected && prunedBy(selected, before)) {
             selected = undefined;

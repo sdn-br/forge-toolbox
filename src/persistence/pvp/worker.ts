@@ -16,5 +16,19 @@ export type { PvpTables };
 export const relinkPvp = relinkRows;
 
 export function pvpHandlers(db: PvpTables & Dexie): Handlers<PvpApi> {
-  return { ...battlesHandlers(db), ...plundersHandlers(db) };
+  return {
+    ...battlesHandlers(db),
+    ...plundersHandlers(db),
+    'pvp.prune': ({ before }) =>
+      db.transaction('rw', db.battles, db.plunders, async () => {
+        const plunders = await db.plunders.where('at').below(before).delete();
+        // a battle older than the limit stays while its plunder does; the plunders it kept are the only ones left
+        const battles = await db.battles
+          .where('at')
+          .below(before)
+          .filter((b) => b.plunderAt === undefined || b.plunderAt < before)
+          .delete();
+        return plunders + battles;
+      }),
+  };
 }

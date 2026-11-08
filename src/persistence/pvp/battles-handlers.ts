@@ -69,12 +69,5 @@ export function battlesHandlers(db: PvpTables & Dexie): Handlers<BattlesApi> {
       }
       return summary;
     },
-    // a battle older than the limit stays while its plunder does, so every kept plunder keeps its battle
-    'battles.prune': ({ before }) =>
-      db.battles
-        .where('at')
-        .below(before)
-        .filter((b) => b.plunderAt === undefined || b.plunderAt < before)
-        .delete(),
   };
 }
