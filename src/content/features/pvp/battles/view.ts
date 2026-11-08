@@ -6,9 +6,14 @@ import type { RowWindow } from '../../../ui/windowed-rows';
 import { listView, noteMarker, opponentCell, type PvpActions, rowsShown } from '../rows';
 import type { BattlesVm, PvpRow } from './view-model';
 
-/** a click on the row selects the battle for the side panel, a click on its link or buttons does what they do */
-const selectOnClick = (battleId: number, actions: PvpActions) => (e: Event) => {
-  if (!(e.target as Element).closest('a, button')) actions.select(battleId);
+/**
+ * A click on the row selects the battle for the side panel, a click on its link or buttons does what they do. A toggle
+ * redraws before the click reaches the row (the box renders in a microtask, which runs between the listeners of a real
+ * click), so a clicked icon no longer in the row was a button's.
+ */
+export const selectOnClick = (battleId: number, actions: Pick<PvpActions, 'select'>) => (e: Event) => {
+  const target = e.target as Element;
+  if ((e.currentTarget as Element).contains(target) && !target.closest('a, button')) actions.select(battleId);
 };
 
 /** the result as an icon in its colour, the word in tooltip and label */
