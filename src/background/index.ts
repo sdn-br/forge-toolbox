@@ -15,15 +15,8 @@ import { type Profile, profileOfDbName, profileOfStorageKey } from '../shared/pr
 import type { RpcResponse } from '../shared/rpc';
 import { openDb } from './db';
 import { adoptLegacy, type LocalStorage } from './legacy';
-import {
-  FOLDER_DELAY,
-  folderAlarm,
-  PersistedSignal,
-  ProfileTabs,
-  profileOfFolderAlarm,
-  watchBackupTables,
-} from './persisted';
-import { isRpcRequest, profileDispatch } from './profiles';
+import { FOLDER_DELAY, folderAlarm, PersistedSignal, profileOfFolderAlarm, watchBackupTables } from './persisted';
+import { isRpcRequest, ProfileTabs, profileDispatch } from './profiles';
 
 const storage: LocalStorage = {
   get: (keys) => chrome.storage.local.get(keys),

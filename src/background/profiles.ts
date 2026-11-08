@@ -54,3 +54,23 @@ export function profileDispatch(env: ProfileEnv): (req: RpcRequest) => Promise<R
     }
   };
 }
+
+/** The game tab of each profile, as its calls name it. A tab shows one game; a reload may bring another profile. */
+export class ProfileTabs {
+  private tabs = new Map<number, string>();
+
+  /** a call of the profile came from the tab */
+  seen(profile: Profile, tab: number | undefined): void {
+    if (tab !== undefined) this.tabs.set(tab, profileDbName(profile));
+  }
+
+  /** the tab was closed */
+  forget(tab: number): void {
+    this.tabs.delete(tab);
+  }
+
+  of(profile: Profile): number[] {
+    const key = profileDbName(profile);
+    return [...this.tabs].filter(([, k]) => k === key).map(([tab]) => tab);
+  }
+}
