@@ -1,6 +1,6 @@
 import type { Table } from 'dexie';
 import type { PlayerId, WorldId } from '../../shared/ids';
-import type { KnownGreatBuilding } from '../../shared/model';
+import type { KnownGreatBuilding, MarkKind } from '../../shared/model';
 import type { Handlers } from '../../shared/rpc';
 import type { GreatBuildingListRow, GreatBuildingsApi } from './contract';
 import { applyListRow, gbKey, growthSince, hasOwnContribution, isFlagged, withoutOwnContribution } from './merge';
@@ -82,10 +82,13 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables): Handlers<Great
       });
       return true;
     },
-    'greatBuildings.flagged': async ({ world, flag }) =>
-      (await db.greatBuildings.where('world').equals(world).toArray())
-        .filter((b) => b[flag])
-        .map((b) => ({ owner: b.owner, entityId: b.entityId })),
+    'greatBuildings.flagged': async ({ world }) => {
+      // one scan for both marks, the filter in the cursor: the many unflagged buildings are never collected
+      const flagged = await db.greatBuildings.where('world').equals(world).filter(isFlagged).toArray();
+      const of = (flag: MarkKind) =>
+        flagged.filter((b) => b[flag]).map((b) => ({ owner: b.owner, entityId: b.entityId }));
+      return { marked: of('marked'), ignored: of('ignored') };
+    },
     'greatBuildings.list': ({ world, owner }) =>
       owner === undefined
         ? db.greatBuildings.where('world').equals(world).toArray()

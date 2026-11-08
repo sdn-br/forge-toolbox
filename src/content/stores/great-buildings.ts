@@ -27,7 +27,8 @@ export interface GreatBuildingPersistence {
     value: boolean,
     at: number,
   ): Promise<boolean>;
-  flagged(world: WorldId, flag: MarkKind): Promise<{ owner: PlayerId; entityId: number }[]>;
+  /** the buildings carrying the star, and those carrying the ignore */
+  flagged(world: WorldId): Promise<Record<MarkKind, { owner: PlayerId; entityId: number }[]>>;
   list(world: WorldId, owner?: PlayerId): Promise<KnownGreatBuilding[]>;
 }
 
@@ -63,10 +64,9 @@ export class GreatBuildingStore {
 
   /** Reads when the town hall list came before this page load; a list arriving meanwhile is newer. */
   async load(): Promise<void> {
-    const [at, marked, ignored] = await Promise.all([
+    const [at, { marked, ignored }] = await Promise.all([
       this.persistence.contributionsAt(this.world),
-      this.persistence.flagged(this.world, 'marked'),
-      this.persistence.flagged(this.world, 'ignored'),
+      this.persistence.flagged(this.world),
     ]);
     this.listedAt ??= at;
     for (const m of marked) this.flags.marked.add(key(m.owner, m.entityId));

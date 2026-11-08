@@ -94,6 +94,22 @@ describe('marking great buildings', () => {
     expect(reloaded.isMarked(owner, 1)).toBe(false);
   });
 
+  it('reads the stars and the ignores of the world in one call', async () => {
+    const { greatBuildings, db } = setup();
+    greatBuildings.noteList([listRow(3), listRow(1), listRow(2), listRow(4)]);
+    await greatBuildings.mark(owner, 3, true);
+    await greatBuildings.mark(owner, 1, true);
+    await greatBuildings.ignore(owner, 2, true);
+    await db.db.greatBuildings.put(opened(5, { world: worldId('de10'), marked: true }));
+    expect(await db.greatBuildings.flagged(w)).toEqual({
+      marked: [
+        { owner, entityId: 1 },
+        { owner, entityId: 3 },
+      ],
+      ignored: [{ owner, entityId: 2 }],
+    });
+  });
+
   it('keeps a mark that is set while the marks are read', async () => {
     const { greatBuildings, db, world, bus } = setup();
     greatBuildings.noteList([listRow(1), listRow(2)]);

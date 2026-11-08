@@ -11,7 +11,7 @@ export function greatBuildingPersistence(call: Call): GreatBuildingPersistence {
     prune: (world, before) => call('greatBuildings.prune', { world, before }),
     setFlag: (world, owner, entityId, flag, value, at) =>
       call('greatBuildings.setFlag', { world, owner, entityId, flag, value, at }),
-    flagged: (world, flag) => call('greatBuildings.flagged', { world, flag }),
+    flagged: (world) => call('greatBuildings.flagged', { world }),
     list: (world, owner) => call('greatBuildings.list', { world, ...(owner !== undefined && { owner }) }),
   };
 }
