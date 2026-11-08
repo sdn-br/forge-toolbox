@@ -3,9 +3,10 @@ import { openDb, type ToolboxDb } from '../background/db';
 import { hasOwnContribution, isFlagged } from '../persistence/great-buildings/merge';
 import { rowsOfWorld } from '../shared/idb';
 import type { PlayerId, WorldId } from '../shared/ids';
+import type { Player } from '../shared/model';
 import { LEGACY_DB, type Profile, profileOfDbName, profileStorageKey } from '../shared/profile';
 import type { BackupFile, BackupProfile, BackupTables } from './format';
-import { BACKUP_FORMAT, BACKUP_VERSION, playersToKeep, referencedPlayers } from './format';
+import { BACKUP_FORMAT, BACKUP_VERSION, isMarkedPlayer, referencedPlayers } from './format';
 
 /** Where the rows of one entry come from: a profile's database, or one world of the old database. */
 export interface BackupSource {
@@ -50,22 +51,33 @@ async function collectProfile(
 
 /** the rows of `world`; a profile's database holds no other, the old one holds all */
 export async function collectTables(db: ToolboxDb, world: WorldId, now: number): Promise<BackupTables> {
-  const ofWorld = <T extends { world: string }, K>(table: Table<T, K>) => rowsOfWorld(table, world).toArray();
-  const [battles, plunders, incoming, noteGroups, notePages, shields, buildings, allPlayers] = await Promise.all([
-    ofWorld(db.battles),
-    ofWorld(db.plunders),
-    ofWorld(db.incoming),
-    ofWorld(db.noteGroups),
-    ofWorld(db.notePages),
-    ofWorld(db.cityShields),
-    ofWorld(db.greatBuildings),
-    ofWorld(db.players),
+  const ofWorld = <T extends { world: string }, K>(table: Table<T, K>) => rowsOfWorld(table, world);
+  // the filters run in the cursor: rows left out of the backup are never collected
+  const [battles, plunders, incoming, noteGroups, notePages, cityShields, greatBuildings, marked] = await Promise.all([
+    ofWorld(db.battles).toArray(),
+    ofWorld(db.plunders).toArray(),
+    ofWorld(db.incoming).toArray(),
+    ofWorld(db.noteGroups).toArray(),
+    ofWorld(db.notePages).toArray(),
+    ofWorld(db.cityShields)
+      .filter((s) => s.expiresAt > now)
+      .toArray(),
+    ofWorld(db.greatBuildings)
+      .filter((b) => isFlagged(b) || hasOwnContribution(b))
+      .toArray(),
+    ofWorld(db.players).filter(isMarkedPlayer).toArray(),
   ]);
-  const cityShields = shields.filter((s) => s.expiresAt > now);
-  const greatBuildings = buildings.filter((b) => isFlagged(b) || hasOwnContribution(b));
 
   const referenced = referencedPlayers({ battles, plunders, incoming, notePages, cityShields, greatBuildings });
-  const players = playersToKeep(allPlayers, referenced);
+  // every key is `world|id` of this world, since the rows above are
+  const ids = [...referenced].map((k) => Number(k.slice(k.indexOf('|') + 1)) as PlayerId);
+  // the table's type names no key, its schema keys it by `[world+id]`
+  const byKey = db.players as unknown as Table<Player, [WorldId, PlayerId]>;
+  const linked = await byKey.bulkGet(ids.map((id): [WorldId, PlayerId] => [world, id]));
+  const byId = new Map<number, Player>(marked.map((p) => [p.id, p]));
+  for (const p of linked) if (p) byId.set(p.id, p);
+  // in the order of the primary key, as a scan of the table returns them
+  const players = [...byId.values()].sort((a, b) => a.id - b.id);
 
   return { battles, plunders, incoming, noteGroups, notePages, cityShields, greatBuildings, players };
 }

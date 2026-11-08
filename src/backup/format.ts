@@ -91,9 +91,10 @@ export function referencedPlayers(tables: Partial<Omit<BackupTables, 'players' |
 
 /** Of `players`, the ones `referenced` names and the ones the session player marked, ignored or marked for PvP. */
 export const playersToKeep = (players: Player[], referenced: Set<string>): Player[] =>
-  players.filter(
-    (p) => p.marked || p.ignored || p.plunderWorthy || p.noAttack || referenced.has(playerKey(p.world, p.id)),
-  );
+  players.filter((p) => isMarkedPlayer(p) || referenced.has(playerKey(p.world, p.id)));
+
+/** whether the session player marked, ignored or marked the player for PvP; such a player stays without a reference */
+export const isMarkedPlayer = (p: Player): boolean => Boolean(p.marked || p.ignored || p.plunderWorthy || p.noAttack);
 
 /** `forge-toolbox-backup-2026-10-26.json.gz`, by the local day */
 export function backupFileName(at: number): string {
