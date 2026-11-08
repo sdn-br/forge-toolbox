@@ -46,6 +46,9 @@ export function isPersisted(message: unknown): message is Persisted {
 /** the state of the backup in a local folder in chrome.storage.local; the data page and the game tabs watch it */
 export const FOLDER_STATUS = 'folder.status';
 
+/** how many daily copies the folder backup keeps per profile, in chrome.storage.local; global, not per profile */
+export const FOLDER_DAILY_KEEP = 'folder.dailyKeep';
+
 export interface FolderStatus {
   /** when a file was written last */
   lastWrite?: number;

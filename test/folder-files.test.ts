@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   DAILY_KEEP,
+  DAILY_KEEP_MAX,
   dailyFileName,
+  dailyKeepOf,
   dailyToDelete,
   folderFileName,
+  parseDailyKeep,
   profileFiles,
   profilesInFolder,
 } from '../src/backup/folder-files';
@@ -70,7 +73,13 @@ describe('rotating the daily copies', () => {
 
   it(`keeps the newest ${DAILY_KEEP} of the profile and deletes the older ones`, () => {
     const names = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(day).reverse();
-    expect(dailyToDelete(names, me)).toEqual([day(2), day(1)]);
+    expect(dailyToDelete(names, me, DAILY_KEEP)).toEqual([day(2), day(1)]);
+  });
+
+  it('keeps nothing with 0 and the newest one with 1, only of the profile', () => {
+    const names = [1, 2, 3].map(day).concat('forge-toolbox-de20-1234-2026-09-01.json.gz', 'readme.txt');
+    expect(dailyToDelete(names, me, 0)).toEqual([day(3), day(2), day(1)]);
+    expect(dailyToDelete(names, me, 1)).toEqual([day(2), day(1)]);
   });
 
   it('leaves other profiles and other files alone', () => {
@@ -80,6 +89,25 @@ describe('rotating the daily copies', () => {
       'forge-toolbox-de20-123-2026-09-01-PC2.json.gz',
       'readme.txt',
     ];
-    expect(dailyToDelete(names, me)).toEqual([]);
+    expect(dailyToDelete(names, me, DAILY_KEEP)).toEqual([]);
+  });
+});
+
+describe('the setting of the daily copies', () => {
+  it('reads a whole number from 0 to the bound, any other value gives the default', () => {
+    expect(dailyKeepOf(undefined)).toBe(DAILY_KEEP);
+    expect(dailyKeepOf(0)).toBe(0);
+    expect(dailyKeepOf(3)).toBe(3);
+    expect(dailyKeepOf(DAILY_KEEP_MAX)).toBe(DAILY_KEEP_MAX);
+    for (const bad of [-1, 1.5, DAILY_KEEP_MAX + 1, '3', null, Number.NaN]) expect(dailyKeepOf(bad)).toBe(DAILY_KEEP);
+  });
+
+  it('parses the typed text: cuts a fraction, caps, rejects empty and no number', () => {
+    expect(parseDailyKeep('5')).toBe(5);
+    expect(parseDailyKeep('2.9')).toBe(2);
+    expect(parseDailyKeep('-4')).toBe(0);
+    expect(parseDailyKeep('99999')).toBe(DAILY_KEEP_MAX);
+    expect(parseDailyKeep('')).toBeUndefined();
+    expect(parseDailyKeep('abc')).toBeUndefined();
   });
 });

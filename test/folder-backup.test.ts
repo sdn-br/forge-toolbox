@@ -8,7 +8,7 @@ import { BACKUP_FORMAT, type BackupFile, type BackupProfile } from '../src/backu
 import { gzipJson } from '../src/backup/gzip';
 import { readBackupFile } from '../src/backup/import';
 import { playerId, worldId } from '../src/shared/ids';
-import { FOLDER_STATUS, type FolderStatus } from '../src/shared/messages';
+import { FOLDER_DAILY_KEEP, FOLDER_STATUS, type FolderStatus } from '../src/shared/messages';
 import { type Profile, profileDbName } from '../src/shared/profile';
 import { battle, me, tables } from './helpers/backup';
 
@@ -146,6 +146,46 @@ describe('writing the backup folder', () => {
     expect([...daily.data.keys()].sort()).toEqual(
       [2, 3, 4, 5, 6, 7, 8].map((day) => dailyFileName(me, T0 + day * DAY)),
     );
+  });
+
+  /** writes on `days` consecutive days, as the test above */
+  async function writeDays(env: ReturnType<typeof setup>, from: number, to: number, profile: Profile = me) {
+    for (let day = from; day < to; day++) {
+      env.setTime(T0 + day * DAY);
+      const db = env.db(profile);
+      await db.battles.put(battle(day + 1));
+      db.close();
+      await env.backup.changed(profile);
+    }
+  }
+  const dailyNames = (env: ReturnType<typeof setup>) =>
+    [...((env.folder.folders.get(DAILY_FOLDER) as MemoryFolder | undefined)?.data.keys() ?? [])].sort();
+
+  it('keeps as many daily copies as the setting says, and trims on the next write when it is lowered', async () => {
+    const env = setup({ local: { [FOLDER_DAILY_KEEP]: 3 } });
+    await writeDays(env, 0, 5);
+    expect(dailyNames(env)).toEqual([2, 3, 4].map((day) => dailyFileName(me, T0 + day * DAY)));
+    env.local.data[FOLDER_DAILY_KEEP] = 1;
+    await writeDays(env, 5, 6);
+    expect(dailyNames(env)).toEqual([dailyFileName(me, T0 + 5 * DAY)]);
+  });
+
+  it("writes no daily copy with 0 and removes the profile's existing ones, not those of another profile", async () => {
+    const env = setup({ profiles: [me, other] });
+    await writeDays(env, 0, 2);
+    await writeDays(env, 0, 2, other);
+    env.local.data[FOLDER_DAILY_KEEP] = 0;
+    await writeDays(env, 2, 3);
+    expect(dailyNames(env).filter((n) => n.startsWith('forge-toolbox-de20-'))).toEqual([]);
+    expect(dailyNames(env)).toEqual([0, 1].map((day) => dailyFileName(other, T0 + day * DAY)));
+    expect(env.folder.data.has(folderFileName(me))).toBe(true);
+  });
+
+  it('does not create the daily folder with 0', async () => {
+    const env = setup({ local: { [FOLDER_DAILY_KEEP]: 0 } });
+    await writeDays(env, 0, 1);
+    expect(env.folder.folders.has(DAILY_FOLDER)).toBe(false);
+    expect(env.folder.data.has(folderFileName(me))).toBe(true);
   });
 
   it('does nothing without a chosen folder', async () => {

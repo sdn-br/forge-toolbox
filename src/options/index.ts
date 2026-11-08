@@ -11,6 +11,7 @@ import {
   sourceKey,
 } from '../backup/collect';
 import { clearFolderHandle, type FolderHandle, loadFolderHandle, saveFolderHandle } from '../backup/folder';
+import { DAILY_KEEP_MAX, dailyKeepOf, parseDailyKeep } from '../backup/folder-files';
 import { type BackupFile, backupFileName } from '../backup/format';
 import { gzipJson } from '../backup/gzip';
 import {
@@ -26,7 +27,14 @@ import { type Area, DATA_AREAS } from '../backup/merge';
 import { logError } from '../content/core/log';
 import { formatFullDateTime, formatNumber, t } from '../content/core/texts';
 import type { WorldId } from '../shared/ids';
-import { dataImported, FOLDER_CHOSEN, FOLDER_GRANTED, FOLDER_STATUS, type FolderStatus } from '../shared/messages';
+import {
+  dataImported,
+  FOLDER_CHOSEN,
+  FOLDER_DAILY_KEEP,
+  FOLDER_GRANTED,
+  FOLDER_STATUS,
+  type FolderStatus,
+} from '../shared/messages';
 import { type Profile, profileStorageKey } from '../shared/profile';
 
 const getStorage = (keys: string[] | null) => chrome.storage.local.get(keys);
@@ -70,6 +78,8 @@ interface PageState {
   /** the state the service worker stores after each write */
   folderState: FolderStatus | undefined;
   folderBusy: boolean;
+  /** the number of daily copies to keep per profile, as stored */
+  dailyKeep: number;
   folderStatus: string;
 }
 
@@ -86,6 +96,7 @@ const state: PageState = {
   folder: undefined,
   folderState: undefined,
   folderBusy: false,
+  dailyKeep: dailyKeepOf(undefined),
   folderStatus: '',
 };
 
@@ -358,8 +369,21 @@ function importSection(): TemplateResult {
 async function loadFolder() {
   const handle = await loadFolderHandle();
   const folder = handle ? { handle, permission: await handle.queryPermission({ mode: 'readwrite' }) } : null;
-  const folderState = (await getStorage([FOLDER_STATUS]))[FOLDER_STATUS] as FolderStatus | undefined;
-  update({ folder, folderState });
+  const stored = await getStorage([FOLDER_STATUS, FOLDER_DAILY_KEEP]);
+  const folderState = stored[FOLDER_STATUS] as FolderStatus | undefined;
+  update({ folder, folderState, dailyKeep: dailyKeepOf(stored[FOLDER_DAILY_KEEP]) });
+}
+
+/** the field "Tageskopien behalten": stores the number for the next write; an empty or invalid entry goes back */
+function setDailyKeep(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const keep = parseDailyKeep(input.value) ?? state.dailyKeep;
+  input.value = String(keep);
+  update({ dailyKeep: keep });
+  chrome.storage.local.set({ [FOLDER_DAILY_KEEP]: keep }).catch((error) => {
+    logError('storing the number of daily copies failed', error);
+    update({ folderStatus: t('data.folderFailed') });
+  });
 }
 
 /** "Ordner wählen": the service worker merges what the folder holds and writes every profile into it */
@@ -447,6 +471,20 @@ function folderSection(): TemplateResult {
     <p>
       <button ?disabled=${folderBusy} @click=${chooseFolder}>${t('data.folderChoose')}</button>
       ${folder ? html`<button ?disabled=${folderBusy} @click=${removeFolder}>${t('data.folderRemove')}</button>` : ''}
+    </p>
+    <p>
+      <label title=${t('data.dailyKeepHint')}
+        >${t('data.dailyKeep')}
+        <input
+          type="number"
+          min="0"
+          max=${DAILY_KEEP_MAX}
+          step="1"
+          .value=${String(state.dailyKeep)}
+          title=${t('data.dailyKeepHint')}
+          @change=${setDailyKeep}
+        />
+      </label>
     </p>
     <p class="status" role="status">${state.folderStatus}</p>
   `;
