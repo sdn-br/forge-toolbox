@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import { Ingestion } from '../src/content/core/ingestion';
+import { buildingDefLoader } from '../src/content/game/building-def-loader';
 import { toBuildingDef, toBuildingFiles } from '../src/content/game/building-defs';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import type { BuildingDef } from '../src/content/model/catalog';
@@ -11,7 +12,6 @@ import {
   PARALLEL_DOWNLOADS,
   PREFETCH_DELAY,
 } from '../src/content/stores/catalog';
-import { buildingDefLoader } from '../src/persistence/building-defs/client';
 import { type BuildingDefId, buildingDefId, playerId, worldId } from '../src/shared/ids';
 import type { IncomingAttack, Plunder } from '../src/shared/model';
 import { testDb } from './helpers/battle-db';
@@ -238,6 +238,20 @@ describe('building definition files in the service worker', () => {
     // a cached file needs no download
     expect((await loader.load(HERO, url(HERO, 'abc')))?.name).toBe('Hero');
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('stores the raw file and translates it on the read path, skipping a file that holds no definition', async () => {
+    const { call, db } = testDb();
+    const loader = buildingDefLoader(call);
+    const raw = file(HERO, 'Hero');
+    await loader.save([
+      { id: HERO, url: url(HERO, 'abc'), json: raw },
+      { id: buildingDefId('Junk'), url: url('Junk', 'j'), json: { not: 'a definition' } },
+    ]);
+    expect((await db.buildingDefFiles.get(HERO))?.json).toEqual(raw);
+    expect((await call('buildingDefs.all', {})).files).toHaveLength(2);
+    expect(await loader.all()).toEqual([{ def: def(HERO, 'Hero'), url: url(HERO, 'abc') }]);
+    expect(await loader.load(buildingDefId('Junk'), url('Junk', 'j'))).toBeUndefined();
   });
 
   it('lists the buildings of stored plunders and attacks whose file the cache lacks', async () => {

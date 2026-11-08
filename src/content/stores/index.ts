@@ -1,6 +1,5 @@
 // All stores of one world, built in one place: a new store touches this file and nothing else in the wiring.
 import { assetPersistence } from '../../persistence/assets/client';
-import { buildingDefLoader } from '../../persistence/building-defs/client';
 import { foestatsPersistence } from '../../persistence/foestats/client';
 import { greatBuildingPersistence } from '../../persistence/great-buildings/client';
 import { incomingPersistence } from '../../persistence/incoming/client';
@@ -16,6 +15,7 @@ import type { Call } from '../core/rpc';
 import type { Settings } from '../core/settings';
 import shippedLevelCosts from '../data/gb-level-costs.json';
 import { type LevelCostFile, type LevelCosts, levelCosts } from '../domain/gb-level-cost';
+import { buildingDefLoader } from '../game/building-def-loader';
 import type { GreatBuildingDef } from '../model/catalog';
 import { AssetStore } from './assets';
 import { BattleStore } from './battles';
