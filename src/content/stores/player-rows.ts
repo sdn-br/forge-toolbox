@@ -10,6 +10,4 @@ export interface PlayerRowsPersistence<Row> {
   latest(world: WorldId, opponent: PlayerId): Promise<Row | undefined>;
   /** newest first */
   list(world: WorldId, query: PlayerRowQuery): Promise<Row[]>;
-  /** deletes rows of all worlds older than `before`, returns how many */
-  prune(before: number): Promise<number>;
 }

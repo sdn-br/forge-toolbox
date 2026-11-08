@@ -37,7 +37,7 @@ export interface GreatBuildingsApi {
   /** when the town hall list last came in the world, if ever */
   'greatBuildings.contributionsAt': { arg: { world: WorldId }; result: number | undefined };
   /** deletes what was seen before `before`, except buildings with an own contribution, marked and ignored ones */
-  'greatBuildings.prune': { arg: { world: WorldId; before: number }; result: undefined };
+  'greatBuildings.prune': { arg: { world: WorldId; before: number }; result: number };
   /**
    * puts or removes the star or the ignore of a stored building and sets `marksAt` to `at`; false when no such
    * building is stored

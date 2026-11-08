@@ -10,6 +10,8 @@ export interface IncomingPersistence extends PlayerRowsPersistence<IncomingAttac
   /** adds attacks with a new key and leaves known ones as they are */
   add(rows: IncomingAttack[]): Promise<void>;
   totals(world: WorldId, scope?: OpponentScope): Promise<IncomingTotals>;
+  /** deletes attacks of all worlds older than `before`, returns how many */
+  prune(before: number): Promise<number>;
 }
 
 /** Attacks on the session player's city. Lives in the database, queries ask it after pending writes. */

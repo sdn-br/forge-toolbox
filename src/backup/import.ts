@@ -3,7 +3,7 @@
 // of the file is read.
 import type { ToolboxDb } from '../background/db';
 import { gbKey } from '../persistence/great-buildings/merge';
-import { relinkRows } from '../persistence/pvp-link';
+import { relinkPvp } from '../persistence/pvp/worker';
 import { rowsOfWorld } from '../shared/idb';
 import { playerId, type WorldId } from '../shared/ids';
 import type { Player } from '../shared/model';
@@ -310,7 +310,7 @@ async function mergeTables(
       merge(db.cityShields, t.cityShields, (r) => [r.world, r.player], longerShield),
     ]);
     // the file may link differently or bring inferred battles a fought one of this profile replaces
-    await relinkRows(db, [...t.battles, ...t.plunders]);
+    await relinkPvp(db, [...t.battles, ...t.plunders]);
     const notes = await Promise.all([
       merge(db.noteGroups, t.noteGroups, (r) => [r.world, r.id], addMissing),
       merge(db.notePages, t.notePages, (r) => [r.world, r.id], newerPage),

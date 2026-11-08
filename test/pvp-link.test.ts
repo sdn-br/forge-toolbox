@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { openDb } from '../src/background/db';
 import { Ingestion } from '../src/content/core/ingestion';
 import { registerGameHandlers } from '../src/content/game/handlers';
-import { linkedBattles, relink } from '../src/persistence/pvp-link';
+import { linkedBattles, relink } from '../src/persistence/pvp/link';
 import { eraId, playerId, worldId } from '../src/shared/ids';
 import type { Battle, BattleResult, FoughtBattle, InferredBattle, Plunder } from '../src/shared/model';
 import { DAY_MS } from '../src/shared/time';
@@ -195,7 +195,6 @@ describe('writing battles and plunders', () => {
     await plunders.put([plunder(T), plunder(T - DAY_MS - 1000), plunder(T - 3 * DAY_MS)]);
     for (const before of [T - 2 * DAY_MS + 1, T - 50]) {
       await persistence.prune(before);
-      await plunders.prune(before);
       const battles = await db.battles.toArray();
       for (const p of await db.plunders.toArray()) {
         expect(battles.filter((b) => b.opponent === p.opponent && b.plunderAt === p.at)).toHaveLength(1);

@@ -2,6 +2,7 @@ import type { PlayerId, WorldId } from '../../shared/ids';
 import type { Battle, BattleFilter, BattleSummary, BattleWithPlunder, FoughtBattle } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
 import type { PlayerRowQuery, PlayerRowsPersistence } from './player-rows';
+import type { PlunderStore } from './plunders';
 import { WriteBehind } from './write-behind';
 
 export type BattleQuery = PlayerRowQuery & BattleFilter;
@@ -12,6 +13,8 @@ export interface BattlePersistence extends Omit<PlayerRowsPersistence<Battle>, '
   list(world: WorldId, query: BattleQuery): Promise<BattleWithPlunder[]>;
   summary(world: WorldId, filter: BattleFilter): Promise<BattleSummary>;
   latestFought(world: WorldId, opponent: PlayerId): Promise<FoughtBattle | undefined>;
+  /** deletes battles and plunders of all worlds older than `before`, a battle only with its plunder; returns how many */
+  prune(before: number): Promise<number>;
 }
 
 /**
@@ -58,7 +61,8 @@ export class BattleStore {
     return this.writes.afterWrites(() => this.persistence.summary(this.world, filter));
   }
 
-  prune(before: number): Promise<number> {
-    return this.writes.afterWrites(() => this.persistence.prune(before));
+  /** Prunes battles and plunders together, after the pending writes of both stores. */
+  prune(before: number, plunders: PlunderStore): Promise<number> {
+    return this.writes.afterWrites(() => plunders.afterWrites(() => this.persistence.prune(before)));
   }
 }

@@ -8,6 +8,5 @@ export function playerRowsClient<Row>(call: Call, name: Name): PlayerRowsPersist
   return {
     latest: async (world, opponent) => ((await call(`${name}.latest`, { world, opponent })) as Row | null) ?? undefined,
     list: (world, query) => call(`${name}.list`, { world, ...query }) as Promise<Row[]>,
-    prune: (before) => call(`${name}.prune`, { before }),
   };
 }

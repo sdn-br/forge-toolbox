@@ -2,21 +2,19 @@
 // Each stored domain declares its calls in src/persistence/<domain>/contract.ts.
 import type { AssetsApi } from '../persistence/assets/contract';
 import type { BackupApi } from '../persistence/backup/contract';
-import type { BattlesApi } from '../persistence/battles/contract';
 import type { BuildingDefsApi } from '../persistence/building-defs/contract';
 import type { FoestatsApi } from '../persistence/foestats/contract';
 import type { GreatBuildingsApi } from '../persistence/great-buildings/contract';
 import type { IncomingApi } from '../persistence/incoming/contract';
 import type { NotesApi } from '../persistence/notes/contract';
 import type { PlayersApi } from '../persistence/players/contract';
-import type { PlundersApi } from '../persistence/plunders/contract';
+import type { PvpApi } from '../persistence/pvp/contract';
 import type { ShieldsApi } from '../persistence/shields/contract';
 import type { Profile } from './profile';
 
 export interface BackgroundApi
   extends PlayersApi,
-    BattlesApi,
-    PlundersApi,
+    PvpApi,
     IncomingApi,
     NotesApi,
     ShieldsApi,

@@ -46,7 +46,8 @@ export class PlunderStore {
     return this.writes.afterWrites(() => this.persistence.totals(this.world, opponents));
   }
 
-  prune(before: number): Promise<number> {
-    return this.writes.afterWrites(() => this.persistence.prune(before));
+  /** runs `query` after the pending writes */
+  afterWrites<T>(query: () => Promise<T>): Promise<T> {
+    return this.writes.afterWrites(query);
   }
 }

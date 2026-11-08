@@ -22,6 +22,7 @@ export function incomingHandlers(db: IncomingTables & Dexie): Handlers<IncomingA
         return undefined;
       }),
     ...playerRowsHandlers('incoming', rows),
+    'incoming.prune': ({ before }) => rows.prune(before),
     'incoming.totals': async ({ world, ...scope }) => {
       const totals = { battles: 0, held: 0, plunders: 0 };
       await rows.forEach(world, scope, (a) => {
