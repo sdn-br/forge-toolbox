@@ -4,13 +4,14 @@
 // file anew and deletes the copies. That carries the data between computers sharing the folder (OneDrive).
 import type { ToolboxDb } from '../background/db';
 import { playerId } from '../shared/ids';
-import { FOLDER_STATUS, type FolderStatus } from '../shared/messages';
+import { FOLDER_DAILY_KEEP, FOLDER_STATUS, type FolderStatus } from '../shared/messages';
 import { type Profile, profileDbName, profileStorageKey, sameProfile } from '../shared/profile';
 import { collectBackup, storedOfProfile } from './collect';
 import type { RootFolder } from './folder';
 import {
   DAILY_FOLDER,
   dailyFileName,
+  dailyKeepOf,
   dailyToDelete,
   folderFileName,
   profileFiles,
@@ -201,7 +202,8 @@ export class FolderBackup {
 
   /**
    * Writes the profile as its export does, to the main file and the copy of the day, and drops the daily copies past
-   * the last seven. Unless forced, a write at the change number of the one before is skipped.
+   * the number the user set (read anew, so a change applies to the next write; 0 writes none and drops them all).
+   * Unless forced, a write at the change number of the one before is skipped.
    */
   private async write(folder: RootFolder, profile: Profile, force: boolean): Promise<boolean> {
     const { open, local, now } = this.env;
@@ -216,9 +218,13 @@ export class FolderBackup {
     ).finally(() => db.close());
     const file = await gzipJson(backup);
     await folder.write(folderFileName(profile), file);
-    const daily = await folder.subfolder(DAILY_FOLDER);
-    await daily.write(dailyFileName(profile, at), file);
-    for (const name of dailyToDelete(await daily.files(), profile)) await daily.remove(name);
+    const keep = dailyKeepOf((await local.get([FOLDER_DAILY_KEEP]))[FOLDER_DAILY_KEEP]);
+    // without daily copies the subfolder is not created, and an existing one is only trimmed
+    const daily = keep > 0 ? await folder.subfolder(DAILY_FOLDER) : await folder.existingSubfolder(DAILY_FOLDER);
+    if (daily) {
+      if (keep > 0) await daily.write(dailyFileName(profile, at), file);
+      for (const name of dailyToDelete(await daily.files(), profile, keep)) await daily.remove(name);
+    }
     this.written.set(keyOf(profile), change);
     return true;
   }

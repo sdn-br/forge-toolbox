@@ -6,8 +6,28 @@ import type { Profile } from '../shared/profile';
 
 /** the subfolder of the daily copies */
 export const DAILY_FOLDER = 'Tageskopien';
-/** how many daily copies each profile keeps */
+/** how many daily copies each profile keeps unless the user set another number */
 export const DAILY_KEEP = 7;
+/** the upper bound of the setting, a copy per day: a year */
+export const DAILY_KEEP_MAX = 365;
+
+/**
+ * The number of daily copies to keep from a stored value: a whole number from 0 (no daily copies) to `DAILY_KEEP_MAX`.
+ * Anything else, such as nothing stored, a fraction or a negative number, gives the default.
+ */
+export function dailyKeepOf(value: unknown): number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= DAILY_KEEP_MAX
+    ? value
+    : DAILY_KEEP;
+}
+
+/** The number typed into the setting: whole numbers pass, a fraction is cut off, too large a number is capped; empty or no number is undefined. */
+export function parseDailyKeep(text: string): number | undefined {
+  if (text.trim() === '') return undefined;
+  const n = Number(text);
+  if (!Number.isFinite(n)) return undefined;
+  return Math.min(DAILY_KEEP_MAX, Math.max(0, Math.trunc(n)));
+}
 
 const PREFIX = 'forge-toolbox';
 const EXT = '.json.gz';
@@ -58,12 +78,12 @@ export function profilesInFolder(names: string[]): Profile[] {
   return [...found.values()];
 }
 
-/** Of the names in the daily folder, the profile's copies beyond the newest `DAILY_KEEP`, newest first. */
-export function dailyToDelete(names: string[], profile: Profile): string[] {
+/** Of the names in the daily folder, the profile's copies beyond the newest `keep`, newest first; 0 gives all of them. */
+export function dailyToDelete(names: string[], profile: Profile, keep: number): string[] {
   const pattern = new RegExp(`^${literal(stem(profile))}-\\d{4}-\\d{2}-\\d{2}${literal(EXT)}$`);
   return names
     .filter((name) => pattern.test(name))
     .sort()
     .reverse()
-    .slice(DAILY_KEEP);
+    .slice(keep);
 }

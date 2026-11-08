@@ -105,7 +105,10 @@ export const de = {
     'Die Sicherung hat ein anderes Format. Importieren lassen sich nur Dateien im Format Version 2.',
   'data.folder': 'Sicherung in einen Ordner',
   'data.folderAbout':
-    'Die Toolbox schreibt jedes Profil etwa eine halbe Minute nach einer Änderung als Datei in diesen Ordner, dazu eine Kopie je Tag im Unterordner „Tageskopien“ (die letzten 7 bleiben). Liegt der Ordner in OneDrive oder einem ähnlichen Dienst, gleichen sich mehrere Rechner darüber ab: Beim Spielstart führt die Toolbox die Datei mit den Daten hier zusammen.',
+    'Die Toolbox schreibt jedes Profil etwa eine halbe Minute nach einer Änderung als Datei in diesen Ordner, dazu eine Kopie je Tag im Unterordner „Tageskopien“ (wie viele bleiben, stellst du unten ein). Liegt der Ordner in OneDrive oder einem ähnlichen Dienst, gleichen sich mehrere Rechner darüber ab: Beim Spielstart führt die Toolbox die Datei mit den Daten hier zusammen.',
+  'data.dailyKeep': 'Tageskopien behalten',
+  'data.dailyKeepHint':
+    'So viele Tageskopien je Profil bleiben im Unterordner „Tageskopien“, die neuesten. 0 heißt keine Tageskopien: Die Toolbox schreibt keine mehr und löscht die vorhandenen beim nächsten Schreiben. Gilt für alle Profile.',
   'data.folderNone': 'Kein Ordner gewählt.',
   'data.folderName': 'Ordner: {name}',
   'data.folderLast': 'Letzte Sicherung: {date}',

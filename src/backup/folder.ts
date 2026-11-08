@@ -15,6 +15,8 @@ export interface Folder {
   remove(name: string): Promise<void>;
   /** the folder of that name inside, created when missing */
   subfolder(name: string): Promise<Folder>;
+  /** the folder of that name inside, undefined when there is none; creates nothing */
+  existingSubfolder(name: string): Promise<Folder | undefined>;
 }
 
 /** the chosen folder: may it be written without asking the user */
@@ -49,6 +51,14 @@ function directory(handle: FileSystemDirectoryHandle): Folder {
     },
     remove: (name) => handle.removeEntry(name),
     subfolder: async (name) => directory(await handle.getDirectoryHandle(name, { create: true })),
+    existingSubfolder: async (name) => {
+      try {
+        return directory(await handle.getDirectoryHandle(name));
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'NotFoundError') return undefined;
+        throw error;
+      }
+    },
   };
 }
 
@@ -88,6 +98,7 @@ export function memoryFolder(name = 'Sicherung'): MemoryFolder {
       }
       return inner;
     },
+    existingSubfolder: async (sub) => folders.get(sub),
   };
   return folder;
 }
