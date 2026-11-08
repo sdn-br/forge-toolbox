@@ -45,8 +45,8 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 const dispatch = profileDispatch({
   open: openDb,
-  prepare: (profile, db) => adoptLegacy(profile, db, storage),
   watch: (profile, db) => watchBackupTables(db, () => signal.rowsChanged(profile)),
+  prepare: (profile, db) => adoptLegacy(profile, db, storage),
   deps: {
     now: Date.now,
     // the host permission for the Inno CDN lets the service worker read the game's script past CORS

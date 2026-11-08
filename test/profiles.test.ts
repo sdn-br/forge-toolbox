@@ -73,14 +73,14 @@ describe('profile dispatch', () => {
     expect(opened).toEqual([profileDbName(a)]);
   });
 
-  it('watches the database once, after the preparation, so the takeover of old rows is no change', async () => {
+  it('watches the database once, before the preparation, so the takeover of old rows is a change', async () => {
     const order: string[] = [];
     const { world, a, dispatch, watched } = setup(async () => {
       order.push(`prepare, watched ${watched.length}`);
     });
     await dispatch(req(a, 'battles.summary', { world }));
     await dispatch(req(a, 'battles.summary', { world }));
-    expect(order).toEqual(['prepare, watched 0']);
+    expect(order).toEqual(['prepare, watched 1']);
     expect(watched).toEqual([`1 ${profileDbName(a)}`]);
   });
 

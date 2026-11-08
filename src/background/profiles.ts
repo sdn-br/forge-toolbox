@@ -6,10 +6,10 @@ import { createHandlers, type HandlerDeps } from './handlers';
 
 export interface ProfileEnv {
   open: (name: string) => ToolboxDb;
-  /** runs once per database before its first handler, the takeover of the old store */
-  prepare: (profile: Profile, db: ToolboxDb) => Promise<void>;
-  /** runs once per database after the takeover, before its first handler: the hooks of the persisted signal */
+  /** runs once per database, first: the hooks of the persisted signal */
   watch: (profile: Profile, db: ToolboxDb) => void;
+  /** runs once per database before its first handler, the takeover of the old store; its rows count as a change */
+  prepare: (profile: Profile, db: ToolboxDb) => Promise<void>;
   deps: HandlerDeps;
   logError: (what: string, error: unknown) => void;
 }
@@ -30,15 +30,14 @@ export function profileDispatch(env: ProfileEnv): (req: RpcRequest) => Promise<R
     let ready = handlers.get(name);
     if (!ready) {
       const db = env.open(name);
+      // watched before the takeover: the rows it brings have no backup yet
+      env.watch(profile, db);
       const prepared = queue.then(() =>
         // a failed takeover leaves the old rows where they are and runs again on the next start of the worker
         env.prepare(profile, db).catch((error) => env.logError(`taking over the old data of ${name} failed`, error)),
       );
       queue = prepared;
-      ready = prepared.then(() => {
-        env.watch(profile, db);
-        return createHandlers(db, env.deps);
-      });
+      ready = prepared.then(() => createHandlers(db, env.deps));
       handlers.set(name, ready);
     }
     return ready;
