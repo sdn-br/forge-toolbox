@@ -11,9 +11,9 @@ import {
   createGbCalculatorFeature,
   SOUND,
 } from '../src/content/features/gb-calculator';
+import type { FetchLike } from '../src/content/game/foestats-api';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import { FOESTATS_SETTING } from '../src/content/stores/foestats';
-import type { FetchLike } from '../src/shared/foestats-api';
 import { playerId, worldId } from '../src/shared/ids';
 import definitions from './fixtures/gb-definitions.json';
 import levelUp from './fixtures/gb-level-up.json';

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { type FetchLike, foestatsApi, parsePlayer } from '../src/shared/foestats-api';
+import { type FetchLike, foestatsApi, parsePlayer, toFoestatsOutcome } from '../src/content/game/foestats-api';
 import { playerId, worldId } from '../src/shared/ids';
 
 describe('parsePlayer', () => {
@@ -83,5 +83,41 @@ describe('foestats api', () => {
       throw new TypeError('Failed to fetch');
     });
     expect(await offline.player(world, player)).toBe('unreachable');
+  });
+});
+
+describe('toFoestatsOutcome', () => {
+  const [w, p] = [worldId('de20'), playerId(4711)];
+
+  it('tells the snapshot day and the day before, worked out from the changes', () => {
+    const snapshot = {
+      date: '2026-10-22',
+      points: 1000,
+      pointsChange: 50,
+      battles: 20,
+      battlesChange: 2,
+      active: true,
+    };
+    expect(toFoestatsOutcome(w, p, { snapshot })).toEqual({
+      day: { world: w, player: p, date: '2026-10-22', points: 1000, battles: 20, active: true },
+      before: { world: w, player: p, date: '2026-10-21', points: 950, battles: 18 },
+    });
+  });
+
+  it('tells only the snapshot day when a change is missing', () => {
+    const snapshot = { date: '2026-10-22', points: 1000, battles: 20, battlesChange: 2 };
+    expect(toFoestatsOutcome(w, p, { snapshot })).toEqual({
+      day: { world: w, player: p, date: '2026-10-22', points: 1000, battles: 20 },
+    });
+  });
+
+  it('counts a snapshot without its day, points or battles as unknown', () => {
+    expect(toFoestatsOutcome(w, p, { snapshot: { date: '2026-10-22', points: 1 } })).toBe('unknown');
+    expect(toFoestatsOutcome(w, p, { snapshot: { points: 1, battles: 1 } })).toBe('unknown');
+  });
+
+  it('passes unknown and unreachable on', () => {
+    expect(toFoestatsOutcome(w, p, 'unknown')).toBe('unknown');
+    expect(toFoestatsOutcome(w, p, 'unreachable')).toBe('unreachable');
   });
 });

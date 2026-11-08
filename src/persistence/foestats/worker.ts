@@ -1,11 +1,9 @@
 import type { Table } from 'dexie';
 import type { HandlerDeps } from '../../background/handlers';
 import { fetchDue, foestatsDay, RETRY_AFTER } from '../../shared/foestats';
-import type { FoestatsPlayer } from '../../shared/foestats-api';
 import type { PlayerId, WorldId } from '../../shared/ids';
 import type { FoestatsDay, FoestatsFetch } from '../../shared/model';
 import type { Handlers } from '../../shared/rpc';
-import { DAY_MS } from '../../shared/time';
 import type { FoestatsApi } from './contract';
 
 export type FoestatsTables = {
@@ -15,40 +13,6 @@ export type FoestatsTables = {
 
 /** a claimed request that was never stored (the tab closed meanwhile) blocks no longer than this */
 export const CLAIM_TIMEOUT = 60_000;
-
-/** `YYYY-MM-DD` of the calendar day before */
-const dayBefore = (date: string) => new Date(Date.parse(`${date}T00:00:00Z`) - DAY_MS).toISOString().slice(0, 10);
-
-/**
- * The days a snapshot tells: its own day with points, battles and foestats' status, and the day before, worked out
- * from the changes when both are known. Undefined when the snapshot lacks its day, points or battles: a day with one
- * value would never get the other.
- */
-function snapshotDays(
-  world: WorldId,
-  player: PlayerId,
-  s: FoestatsPlayer,
-): { day: FoestatsDay; before?: FoestatsDay } | undefined {
-  const { date, points, battles } = s;
-  if (date === undefined || points === undefined || battles === undefined) return undefined;
-  const day: FoestatsDay = {
-    world,
-    player,
-    date,
-    points,
-    battles,
-    ...(s.active !== undefined && { active: s.active }),
-  };
-  if (s.pointsChange === undefined || s.battlesChange === undefined) return { day };
-  const before = {
-    world,
-    player,
-    date: dayBefore(date),
-    points: points - s.pointsChange,
-    battles: battles - s.battlesChange,
-  };
-  return { day, before };
-}
 
 /**
  * The rules of asking foestats live here, the request itself in the content script: the service worker decides when
@@ -79,15 +43,15 @@ export function foestatsHandlers(db: FoestatsTables, { now }: Pick<HandlerDeps, 
       if (fetch) claims.set(key(world, player), at);
       return { fetch, ...state };
     },
-    'foestats.store': async ({ world, player, answer }) => {
+    'foestats.store': async ({ world, player, outcome }) => {
       const at = now();
       try {
-        if (answer === 'unreachable') {
+        if (outcome === 'unreachable') {
           unreachableAt = at;
           return { unreachable: true, unknown: await unknown(world, player) };
         }
         unreachableAt = undefined;
-        const days = answer !== 'unknown' && snapshotDays(world, player, answer.snapshot);
+        const days = outcome !== 'unknown' && outcome;
         if (days) {
           // what foestats tells for the snapshot day beats a worked out value; a worked out day only fills a gap
           await db.foestatsDays.put(days.day);

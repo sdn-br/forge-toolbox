@@ -2,8 +2,10 @@
 // the game page, while those of the service worker (origin chrome-extension://) seem to be blocked by Cloudflare.
 // The answers are not ours, so everything is read defensively: numbers may come as strings, fields may be missing, and
 // a failed or blocked call gives `'unreachable'` instead of an error.
-import { foestatsWorld } from './foestats';
-import type { PlayerId, WorldId } from './ids';
+import { foestatsWorld } from '../../shared/foestats';
+import type { PlayerId, WorldId } from '../../shared/ids';
+import type { FoestatsDay, FoestatsOutcome } from '../../shared/model';
+import { DAY_MS } from '../../shared/time';
 
 /** the part of `fetch` the client needs; tests pass their own */
 export type FetchLike = (
@@ -68,6 +70,46 @@ export function parsePlayer(json: unknown): FoestatsPlayer | undefined {
       d.is_active === undefined || d.is_active === null ? undefined : d.is_active === true || num(d.is_active) === 1,
     date: day(d.data_date),
   });
+}
+
+/** `YYYY-MM-DD` of the calendar day before */
+const dayBefore = (date: string) => new Date(Date.parse(`${date}T00:00:00Z`) - DAY_MS).toISOString().slice(0, 10);
+
+/**
+ * The days a snapshot tells: its own day with points, battles and foestats' status, and the day before, worked out
+ * from the changes when both are known. Undefined when the snapshot lacks its day, points or battles: a day with one
+ * value would never get the other.
+ */
+function snapshotDays(
+  world: WorldId,
+  player: PlayerId,
+  s: FoestatsPlayer,
+): { day: FoestatsDay; before?: FoestatsDay } | undefined {
+  const { date, points, battles } = s;
+  if (date === undefined || points === undefined || battles === undefined) return undefined;
+  const day: FoestatsDay = {
+    world,
+    player,
+    date,
+    points,
+    battles,
+    ...(s.active !== undefined && { active: s.active }),
+  };
+  if (s.pointsChange === undefined || s.battlesChange === undefined) return { day };
+  const before = {
+    world,
+    player,
+    date: dayBefore(date),
+    points: points - s.pointsChange,
+    battles: battles - s.battlesChange,
+  };
+  return { day, before };
+}
+
+/** An answer of foestats in the domain model; a snapshot without its day, points or battles tells as little as `'unknown'`. */
+export function toFoestatsOutcome(world: WorldId, player: PlayerId, answer: FoestatsAnswer): FoestatsOutcome {
+  if (answer === 'unreachable' || answer === 'unknown') return answer;
+  return snapshotDays(world, player, answer.snapshot) ?? 'unknown';
 }
 
 export function foestatsApi(fetch: FetchLike) {

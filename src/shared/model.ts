@@ -343,6 +343,12 @@ export interface FoestatsDay {
   active?: boolean;
 }
 
+/**
+ * What a request to foestats came to, as the service worker keeps it: foestats did not answer, it does not know the
+ * player (or its snapshot is too thin to tell a day), or the snapshot day with the day before it when that is known.
+ */
+export type FoestatsOutcome = 'unreachable' | 'unknown' | { day: FoestatsDay; before?: FoestatsDay };
+
 /** The last time foestats was asked about a player. */
 export interface FoestatsFetch {
   world: WorldId;
