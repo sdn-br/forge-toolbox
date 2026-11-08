@@ -9,6 +9,7 @@ import {
 } from '../src/background/persisted';
 import { collectTables } from '../src/backup/collect';
 import { BACKUP_CHANGES } from '../src/backup/format';
+import { greatBuildingsHandlers } from '../src/persistence/great-buildings/worker';
 import { buildingDefId, eraId, playerId } from '../src/shared/ids';
 import type { KnownGreatBuilding, Player } from '../src/shared/model';
 import type { Profile } from '../src/shared/profile';
@@ -123,6 +124,30 @@ describe('the hooks on the export tables', () => {
     expect(counted()).toBe(0);
     await db.greatBuildings.put(building({ ownContribution: true, marked: true, marksAt: 3 }));
     expect(counted()).toBe(1);
+  });
+
+  it('count each row the town hall list changes, all written in one transaction', async () => {
+    const { db, counted } = watched();
+    const handlers = greatBuildingsHandlers(db);
+    await db.greatBuildings.bulkPut([
+      building({ entityId: 1, ownContribution: true }),
+      building({ entityId: 2, ownContribution: true, marked: true, marksAt: 1 }),
+      building({ entityId: 3 }),
+    ]);
+    counted();
+    const row = { owner: playerId(2), entityId: 4, cityEntityId: buildingDefId('X_Arc'), level: 10, invested: 0 };
+    await handlers['greatBuildings.putContributions']({
+      world: de20,
+      rows: [{ ...row, required: 100, rank: 1, forgePoints: 10, reward: 5 }],
+      at: 5,
+    });
+    // the new own contribution, the gone one deleted, the gone marked one kept as a plain building
+    expect(counted()).toBe(3);
+    expect((await db.greatBuildings.toArray()).map((b) => [b.entityId, b.ownContribution ?? false])).toEqual([
+      [2, false],
+      [3, false],
+      [4, true],
+    ]);
   });
 
   it('do not count writes of tables outside the export', async () => {
