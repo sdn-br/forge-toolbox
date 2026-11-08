@@ -74,6 +74,7 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables & Dexie): Handle
         .filter((b) => b.world === world && !hasOwnContribution(b) && !isFlagged(b))
         .map(gbKey);
       await db.greatBuildings.bulkDelete(stale);
+      return stale.length;
     },
     'greatBuildings.setFlag': async ({ world, owner, entityId, flag, value, at }) => {
       const row = await db.greatBuildings.get([world, owner, entityId]);

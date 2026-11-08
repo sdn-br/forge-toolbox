@@ -15,8 +15,8 @@ export interface GreatBuildingPersistence {
   putContributions(world: WorldId, rows: GreatBuildingListRow[], at: number): Promise<void>;
   /** when the town hall list last came, if ever */
   contributionsAt(world: WorldId): Promise<number | undefined>;
-  /** deletes what was seen before `before`, except buildings with an own contribution, marked and ignored ones */
-  prune(world: WorldId, before: number): Promise<void>;
+  /** deletes what was seen before `before`, except buildings with an own contribution, marked and ignored ones; returns how many */
+  prune(world: WorldId, before: number): Promise<number>;
   /** puts or removes the star or the ignore of a stored building, putting one clears the other in the same write, and
    * sets `marksAt` to `at`; false when it is not stored */
   setFlag(
