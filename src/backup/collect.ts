@@ -1,4 +1,4 @@
-import type { Table } from 'dexie';
+import type { IndexableType, Table } from 'dexie';
 import { openDb, type ToolboxDb } from '../background/db';
 import { hasOwnContribution, isFlagged } from '../shared/great-buildings';
 import { rowsOfWorld } from '../shared/idb';
@@ -6,7 +6,8 @@ import type { PlayerId, WorldId } from '../shared/ids';
 import type { Player } from '../shared/model';
 import { LEGACY_DB, type Profile, profileOfDbName, profileStorageKey } from '../shared/profile';
 import type { BackupFile, BackupProfile, BackupTables } from './format';
-import { BACKUP_FORMAT, BACKUP_VERSION, isMarkedPlayer, referencedPlayers } from './format';
+import { BACKUP_FORMAT, BACKUP_VERSION, isMarkedPlayer } from './format';
+import { mapTablesAsync, type Row, referencedPlayers, type TableName } from './tables';
 
 /** Where the rows of one entry come from: a profile's database, or one world of the old database. */
 export interface BackupSource {
@@ -51,35 +52,33 @@ async function collectProfile(
 
 /** the rows of `world`; a profile's database holds no other, the old one holds all */
 export async function collectTables(db: ToolboxDb, world: WorldId, now: number): Promise<BackupTables> {
-  const ofWorld = <T extends { world: string }, K>(table: Table<T, K>) => rowsOfWorld(table, world);
   // the filters run in the cursor: rows left out of the backup are never collected
-  const [battles, plunders, incoming, noteGroups, notePages, cityShields, greatBuildings, marked] = await Promise.all([
-    ofWorld(db.battles).toArray(),
-    ofWorld(db.plunders).toArray(),
-    ofWorld(db.incoming).toArray(),
-    ofWorld(db.noteGroups).toArray(),
-    ofWorld(db.notePages).toArray(),
-    ofWorld(db.cityShields)
-      .filter((s) => s.expiresAt > now)
-      .toArray(),
-    ofWorld(db.greatBuildings)
-      .filter((b) => isFlagged(b) || hasOwnContribution(b))
-      .toArray(),
-    ofWorld(db.players).filter(isMarkedPlayer).toArray(),
-  ]);
+  const keep: { [K in TableName]?: (row: Row<K>) => boolean } = {
+    // shields still running; ended ones say nothing any more
+    cityShields: (s) => s.expiresAt > now,
+    // the rows the retention never prunes
+    greatBuildings: (b) => isFlagged(b) || hasOwnContribution(b),
+    // the marked ones; the players the rows refer to come below
+    players: isMarkedPlayer,
+  };
+  const rows = await mapTablesAsync(<K extends TableName>(name: K) => {
+    const ofWorld = rowsOfWorld(db.table<Row<K>, IndexableType>(name), world);
+    const filter = keep[name];
+    return (filter ? ofWorld.filter(filter) : ofWorld).toArray();
+  });
 
-  const referenced = referencedPlayers({ battles, plunders, incoming, notePages, cityShields, greatBuildings });
+  const referenced = referencedPlayers(rows);
   // every key is `world|id` of this world, since the rows above are
   const ids = [...referenced].map((k) => Number(k.slice(k.indexOf('|') + 1)) as PlayerId);
   // the table's type names no key, its schema keys it by `[world+id]`
   const byKey = db.players as unknown as Table<Player, [WorldId, PlayerId]>;
   const linked = await byKey.bulkGet(ids.map((id): [WorldId, PlayerId] => [world, id]));
-  const byId = new Map<number, Player>(marked.map((p) => [p.id, p]));
+  const byId = new Map<number, Player>(rows.players.map((p) => [p.id, p]));
   for (const p of linked) if (p) byId.set(p.id, p);
   // in the order of the primary key, as a scan of the table returns them
   const players = [...byId.values()].sort((a, b) => a.id - b.id);
 
-  return { battles, plunders, incoming, noteGroups, notePages, cityShields, greatBuildings, players };
+  return { ...rows, players };
 }
 
 /** the own player name and the settings of a profile in chrome.storage.local, the ones that are stored */

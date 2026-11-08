@@ -1,9 +1,9 @@
 // The import of a backup file on the page "Daten verwalten": reading the file, the choice per profile and area, and
 // merging the chosen rows into the profile databases or replacing the chosen areas with them. Only the current version
 // of the file is read.
+import type { IndexableType } from 'dexie';
 import type { ToolboxDb } from '../background/db';
 import { relinkPvp } from '../persistence/pvp/worker';
-import { gbKey } from '../shared/great-buildings';
 import { rowsOfWorld } from '../shared/idb';
 import { playerId, type WorldId } from '../shared/ids';
 import type { Player } from '../shared/model';
@@ -12,34 +12,13 @@ import type { ProfileCall } from '../shared/rpc';
 import { BACKUP_FORMAT, BACKUP_VERSION, type BackupFile, type BackupProfile, type BackupTables } from './format';
 import { unpackText } from './gzip';
 import { type LocalRows, withoutKnown } from './legacy/known';
-import {
-  type Area,
-  addMissing,
-  DATA_AREAS,
-  longerShield,
-  type MergeRule,
-  mergeMarked,
-  mergePlayer,
-  mergeRows,
-  newerPage,
-  selectTables,
-} from './merge';
+import { type Area, DATA_AREAS, type DataArea, mergeRows } from './merge';
+import { BACKUP_TABLES, mapTables, type Row, selectTables, TABLE_NAMES, type TableName, tablesOf } from './tables';
 
 /** why a file cannot be imported */
 export type ReadError = 'notJson' | 'notBackup' | 'version';
 
 export type ReadResult = { ok: true; backup: BackupFile } | { ok: false; error: ReadError };
-
-const TABLES: (keyof BackupTables)[] = [
-  'battles',
-  'plunders',
-  'incoming',
-  'noteGroups',
-  'notePages',
-  'cityShields',
-  'greatBuildings',
-  'players',
-];
 
 function isProfileEntry(value: unknown): value is BackupProfile {
   const p = value as Partial<BackupProfile> | null;
@@ -49,7 +28,7 @@ function isProfileEntry(value: unknown): value is BackupProfile {
     (p.player === undefined || typeof p.player === 'number') &&
     typeof tables === 'object' &&
     tables !== null &&
-    TABLES.every((name) => Array.isArray(tables[name]))
+    TABLE_NAMES.every((name) => Array.isArray(tables[name]))
   );
 }
 
@@ -84,12 +63,14 @@ export interface ImportChoice {
 }
 
 /** rows per area of a profile entry; settings count 1 when it has them */
-export const areaCounts = ({ tables, settings }: BackupProfile): Record<Area, number> => ({
-  pvp: tables.battles.length + tables.plunders.length + tables.incoming.length + tables.cityShields.length,
-  notes: tables.noteGroups.length + tables.notePages.length,
-  greatBuildings: tables.greatBuildings.length,
-  settings: settings ? 1 : 0,
-});
+export function areaCounts({ tables, settings }: BackupProfile): Record<Area, number> {
+  const counts = { pvp: 0, notes: 0, greatBuildings: 0, settings: settings ? 1 : 0 };
+  for (const name of TABLE_NAMES) {
+    const { area } = BACKUP_TABLES[name];
+    if (area !== 'players') counts[area] += tables[name].length;
+  }
+  return counts;
+}
 
 /**
  * The choice per profile of the file. Every area with rows is preselected, except the settings: they would replace the
@@ -229,7 +210,7 @@ export async function newLegacyTables(
 
 /** Merges the chosen areas of old toolbox data, leaving out what the profile holds already; in one transaction. */
 export function importLegacy(db: ToolboxDb, entry: BackupProfile, areas: ReadonlySet<Area>): Promise<ImportedRows> {
-  return db.transaction('rw', TABLES, async () =>
+  return db.transaction('rw', TABLE_NAMES, async () =>
     mergeTables(db, await newLegacyTables(db, entry, areas), entry.world, []),
   );
 }
@@ -252,28 +233,11 @@ async function localRows(db: ToolboxDb, world: WorldId, source: BackupTables): P
 
 /** a profile's database holds only its own world, rows of another world in the file stay out */
 function ofWorld(tables: BackupTables, world: WorldId): BackupTables {
-  const own = <T extends { world: string }>(rows: T[]) => rows.filter((r) => r.world === world);
-  return {
-    battles: own(tables.battles),
-    plunders: own(tables.plunders),
-    incoming: own(tables.incoming),
-    noteGroups: own(tables.noteGroups),
-    notePages: own(tables.notePages),
-    cityShields: own(tables.cityShields),
-    greatBuildings: own(tables.greatBuildings),
-    players: own(tables.players),
-  };
+  return mapTables((name) => tables[name].filter((r) => r.world === world));
 }
 
 /** the rows one profile's import wrote */
 export type ImportedRows = Pick<ImportCounts, 'pvp' | 'notes' | 'greatBuildings' | 'players'>;
-
-/** the tables of a data area, emptied before replacing it */
-const AREA_TABLES = {
-  pvp: ['battles', 'plunders', 'incoming', 'cityShields'],
-  notes: ['noteGroups', 'notePages'],
-  greatBuildings: ['greatBuildings'],
-} as const satisfies Record<(typeof DATA_AREAS)[number], (keyof BackupTables)[]>;
 
 /**
  * Empties the tables of the areas in `empty` for `world`, then merges `t` and links the battles and plunders of every
@@ -283,44 +247,28 @@ async function mergeTables(
   db: ToolboxDb,
   t: BackupTables,
   world: WorldId,
-  empty: readonly (typeof DATA_AREAS)[number][],
+  empty: readonly DataArea[],
 ): Promise<ImportedRows> {
-  /** reads the local rows with the keys of `rows`, applies the rule and writes what changed; returns how many */
-  const merge = async <T>(
-    table: { bulkGet(keys: unknown[]): Promise<(T | undefined)[]>; bulkPut(rows: T[]): Promise<unknown> },
-    rows: T[],
-    key: (row: T) => unknown[],
-    rule: MergeRule<T>,
-  ) => {
+  /** reads the stored rows with the keys of the table's rows, applies its rule, writes what changed; returns how many */
+  const merge = async <K extends TableName>(name: K) => {
+    const rows: Row<K>[] = t[name];
     if (rows.length === 0) return 0;
+    const { key, merge: rule } = BACKUP_TABLES[name];
+    const table = db.table<Row<K>, IndexableType>(name);
     const changed = mergeRows(rows, await table.bulkGet(rows.map(key)), rule);
     await table.bulkPut(changed);
     return changed.length;
   };
-  return db.transaction('rw', TABLES, async () => {
+  return db.transaction('rw', TABLE_NAMES, async () => {
     for (const area of empty) {
-      for (const name of AREA_TABLES[area]) {
+      for (const name of tablesOf(area)) {
         await rowsOfWorld(db.table<{ world: string }>(name), world).delete();
       }
     }
-    const pvp = await Promise.all([
-      merge(db.battles, t.battles, (r) => [r.world, r.battleId], addMissing),
-      merge(db.plunders, t.plunders, (r) => [r.world, r.opponent, r.at], addMissing),
-      merge(db.incoming, t.incoming, (r) => [r.world, r.kind, r.key], addMissing),
-      merge(db.cityShields, t.cityShields, (r) => [r.world, r.player], longerShield),
-    ]);
+    const written: ImportedRows = { pvp: 0, notes: 0, greatBuildings: 0, players: 0 };
+    for (const name of TABLE_NAMES) written[BACKUP_TABLES[name].area] += await merge(name);
     // the file may link differently or bring inferred battles a fought one of this profile replaces
     await relinkPvp(db, [...t.battles, ...t.plunders]);
-    const notes = await Promise.all([
-      merge(db.noteGroups, t.noteGroups, (r) => [r.world, r.id], addMissing),
-      merge(db.notePages, t.notePages, (r) => [r.world, r.id], newerPage),
-    ]);
-    const sum = (ns: number[]) => ns.reduce((a, b) => a + b, 0);
-    return {
-      pvp: sum(pvp),
-      notes: sum(notes),
-      greatBuildings: await merge(db.greatBuildings, t.greatBuildings, gbKey, mergeMarked),
-      players: await merge(db.players, t.players, (r) => [r.world, r.id], mergePlayer),
-    };
+    return written;
   });
 }

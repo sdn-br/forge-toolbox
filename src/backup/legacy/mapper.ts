@@ -18,6 +18,7 @@ import type {
 } from '../../shared/model';
 import type { Profile } from '../../shared/profile';
 import type { BackupTables } from '../format';
+import { emptyTables } from '../tables';
 import { htmlToMarkdown } from './html-markdown';
 import type { LegacyDump } from './types';
 
@@ -328,13 +329,12 @@ function map(dump: LegacyDump, profile: Profile, now: number, notes: boolean): L
 
   return {
     tables: {
+      ...emptyTables(),
       battles: out.battles,
       plunders: out.plunders,
       incoming: out.incoming,
       noteGroups: out.noteGroups,
       notePages: out.notePages,
-      cityShields: [],
-      greatBuildings: [],
       players: [...players.values()],
     },
     unmapped: out.unmapped,

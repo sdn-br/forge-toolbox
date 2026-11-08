@@ -1,8 +1,8 @@
 // The signal that persisted data changed: Dexie hooks on the export tables count the writes that change what the
-// backup holds (`BACKUP_CHANGES`). A change number per profile goes to the game tab of the profile, for its backup copy,
-// and makes the backup in a local folder due. The backups need not know which events of the game lead to such a write.
+// backup holds (`changes` in `BACKUP_TABLES`). A change number per profile goes to the game tab of the profile, for its
+// backup copy, and makes the backup in a local folder due. The backups need not know which events of the game lead to such a write.
 import Dexie from 'dexie';
-import { BACKUP_CHANGES } from '../backup/format';
+import { BACKUP_TABLES, TABLE_NAMES } from '../backup/tables';
 import { type Profile, profileDbName } from '../shared/profile';
 import type { ToolboxDb } from './db';
 
@@ -17,7 +17,8 @@ const touches = (fields: readonly string[], path: string) => fields.some((f) => 
  * write went through. A write that stores the same row again counts as none.
  */
 export function watchBackupTables(db: ToolboxDb, changed: () => void): void {
-  for (const [name, rule] of Object.entries(BACKUP_CHANGES)) {
+  for (const name of TABLE_NAMES) {
+    const rule = BACKUP_TABLES[name].changes;
     const fields: readonly string[] | undefined = rule === 'every' ? undefined : rule;
     const counts = (row: Record<string, unknown>) => !fields || fields.some((f) => row[f] !== undefined);
     const table = db.table(name);

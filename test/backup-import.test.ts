@@ -13,8 +13,8 @@ import {
   mergePlayer,
   mergeRows,
   newerPage,
-  selectTables,
 } from '../src/backup/merge';
+import { selectTables } from '../src/backup/tables';
 import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
 import type { Battle, FoughtBattle, KnownGreatBuilding, NotePage, Player, Plunder } from '../src/shared/model';
 import { DAY_MS } from '../src/shared/time';

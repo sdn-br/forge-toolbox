@@ -1,13 +1,14 @@
 // The rules of the import "Zusammenführen": what a row of the file does to the row the profile already holds. Each rule
 // returns the row to write, or undefined when the local row stays as it is.
 import type { CityShield, NotePage, Player } from '../shared/model';
-import { type BackupTables, playersToKeep, referencedPlayers } from './format';
 
 /** The parts of a profile the import offers one by one. */
 export type Area = 'pvp' | 'notes' | 'greatBuildings' | 'settings';
 
 /** the areas with rows in the databases; settings live in chrome.storage.local */
 export const DATA_AREAS = ['pvp', 'notes', 'greatBuildings'] as const satisfies readonly Area[];
+
+export type DataArea = (typeof DATA_AREAS)[number];
 
 /** A rule: the local row with the same key (undefined when there is none) and the row of the file. */
 export type MergeRule<T> = (local: T | undefined, source: T) => T | undefined;
@@ -90,24 +91,3 @@ export const mergePlayer: MergeRule<Player> = (local, source) => {
   if (!merged && !pvp && Object.keys(filled).length === 0) return undefined;
   return withPvpMarks({ ...base, ...filled }, pvp ? source : local);
 };
-
-/**
- * The rows of the chosen areas, and the players that go with them: the ones those rows refer to and the marked or
- * ignored ones. Without any area with rows there are no players either.
- */
-export function selectTables(tables: BackupTables, areas: ReadonlySet<Area>): BackupTables {
-  const pvp = areas.has('pvp');
-  const notes = areas.has('notes');
-  const buildings = areas.has('greatBuildings');
-  const picked: Omit<BackupTables, 'players'> = {
-    battles: pvp ? tables.battles : [],
-    plunders: pvp ? tables.plunders : [],
-    incoming: pvp ? tables.incoming : [],
-    cityShields: pvp ? tables.cityShields : [],
-    noteGroups: notes ? tables.noteGroups : [],
-    notePages: notes ? tables.notePages : [],
-    greatBuildings: buildings ? tables.greatBuildings : [],
-  };
-  const players = pvp || notes || buildings ? playersToKeep(tables.players, referencedPlayers(picked)) : [];
-  return { ...picked, players };
-}
