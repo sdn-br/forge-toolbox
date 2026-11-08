@@ -9,6 +9,9 @@ import type { ToolboxDb } from './db';
 /** whether a key path of a Dexie modification is one of the fields or lies inside one */
 const touches = (fields: readonly string[], path: string) => fields.some((f) => path === f || path.startsWith(`${f}.`));
 
+// debt: with a hook on a table Dexie reads the stored rows before every put and delete, to hand them to the hooks; that
+// holds for `players` too, which every ranking list writes. ceiling: saving a ranking list gets measurably slow.
+// upgrade: the handlers report their changes themselves instead of hooks.
 /**
  * Installs hooks on the export tables of `db`. `changed` runs once per row whose write changes the backup, after the
  * write went through. A write that stores the same row again counts as none.
