@@ -6,7 +6,7 @@ import type { RpcResponse } from '../shared/rpc';
 import { openDb } from './db';
 import { adoptLegacy, type LocalStorage } from './legacy';
 import { PersistedSignal, watchBackupTables } from './persisted';
-import { isRpcRequest, ProfileTabs, profileDispatch } from './profiles';
+import { isRpcRequest, ProfileTabs, profileDispatch, workerCall } from './profiles';
 
 const storage: LocalStorage = {
   get: (keys) => chrome.storage.local.get(keys),
@@ -45,8 +45,8 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 const dispatch = profileDispatch({
   open: openDb,
-  prepare: (profile, db) => adoptLegacy(profile, db, storage),
   watch: (profile, db) => watchBackupTables(db, () => signal.rowsChanged(profile)),
+  prepare: (profile, db) => adoptLegacy(profile, db, storage),
   deps: {
     now: Date.now,
     // the host permission for the Inno CDN lets the service worker read the game's script past CORS
@@ -59,7 +59,11 @@ const dispatch = profileDispatch({
   logError,
 });
 
-const folder = folderService({ local: storage, change: (profile) => signal.current(profile) });
+const folder = folderService({
+  local: storage,
+  call: workerCall(dispatch),
+  change: (profile) => signal.current(profile),
+});
 
 chrome.alarms.onAlarm.addListener(({ name }) => folder.onAlarm(name));
 
@@ -77,7 +81,8 @@ chrome.runtime.onMessage.addListener((message: unknown) => {
 
 chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse: (res: RpcResponse) => void) => {
   if (!isRpcRequest(message)) return false;
-  tabs.seen(message.profile, sender.tab?.id);
+  // the data page imports through these calls too, but it is no game tab of the profile
+  if (!sender.url?.startsWith(chrome.runtime.getURL(''))) tabs.seen(message.profile, sender.tab?.id);
   dispatch(message).then(sendResponse);
   return true;
 });

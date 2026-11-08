@@ -4,7 +4,7 @@ import { PersistedSignal, watchBackupTables } from '../src/background/persisted'
 import { ProfileTabs } from '../src/background/profiles';
 import { collectTables } from '../src/backup/collect';
 import { folderAlarm, profileOfFolderAlarm } from '../src/backup/folder-worker';
-import { BACKUP_CHANGES } from '../src/backup/format';
+import { BACKUP_TABLES } from '../src/backup/tables';
 import { greatBuildingsHandlers } from '../src/persistence/great-buildings/worker';
 import { buildingDefId, eraId, playerId } from '../src/shared/ids';
 import type { KnownGreatBuilding, Player } from '../src/shared/model';
@@ -62,7 +62,7 @@ describe('the rules which writes of the export tables count', () => {
   it('name every table of the export, and only tables of the database', async () => {
     const db = openDb(`persisted-${++dbCount}`);
     const exported = Object.keys(await collectTables(db, de20, 0)).sort();
-    expect(Object.keys(BACKUP_CHANGES).sort()).toEqual(exported);
+    expect(Object.keys(BACKUP_TABLES).sort()).toEqual(exported);
     const tables = db.tables.map((t) => t.name);
     for (const name of exported) expect(tables).toContain(name);
   });

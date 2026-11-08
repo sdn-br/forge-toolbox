@@ -1,7 +1,9 @@
 import Dexie from 'dexie';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { openDb, type ToolboxDb } from '../src/background/db';
 import { adoptLegacy, type LocalStorage, SEEN_KEY } from '../src/background/legacy';
+import { watchBackupTables } from '../src/background/persisted';
+import { profileDispatch } from '../src/background/profiles';
 import { eraId, playerId, worldId } from '../src/shared/ids';
 import type { FoughtBattle, Player } from '../src/shared/model';
 import { type Profile, profileDbName } from '../src/shared/profile';
@@ -177,5 +179,31 @@ describe('takeover of the old store', () => {
     expect(await db.battles.count()).toBe(0);
     expect(await Dexie.exists('forge-toolbox')).toBe(false);
     expect(data[SEEN_KEY]).toEqual([profileDbName(first)]);
+  });
+});
+
+describe('takeover of the old store in the service worker', () => {
+  beforeEach(async () => {
+    for (const { name } of await indexedDB.databases()) if (name) await Dexie.delete(name);
+  });
+
+  it('raises the change number, so the backups take the rows it brought', async () => {
+    await legacyWith(async (db) => {
+      await db.battles.bulkPut([battle(de20, 1), battle(de20, 2)]);
+    });
+    const { storage } = memoryStorage();
+    let changes = 0;
+    const dispatch = profileDispatch({
+      open: openDb,
+      watch: (_profile, db) => watchBackupTables(db, () => changes++),
+      prepare: (profile, db) => adoptLegacy(profile, db, storage),
+      deps: { now: () => 1000, fetchText: async () => '' },
+      logError: vi.fn(),
+    });
+    expect(await dispatch({ profile: first, rpc: 'battles.summary', arg: { world: de20 } })).toMatchObject({
+      ok: true,
+      result: { battles: 2 },
+    });
+    expect(changes).toBe(2);
   });
 });

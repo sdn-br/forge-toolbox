@@ -7,6 +7,7 @@ import type { LocalStorage } from '../background/legacy';
 import { logError } from '../content/core/log';
 import { type DataImported, dataImported, FOLDER_CHOSEN, FOLDER_GRANTED, isFolderRequest } from '../shared/messages';
 import { type Profile, profileOfDbName, profileOfStorageKey, profileStorageKey } from '../shared/profile';
+import type { ProfileCall } from '../shared/rpc';
 import { handleFolder, loadFolderHandle } from './folder';
 import { FolderBackup } from './folder-backup';
 
@@ -42,18 +43,21 @@ export async function notifyGameTabs(message: DataImported): Promise<void> {
 
 export interface FolderServiceEnv {
   local: LocalStorage;
+  /** the calls into the profile databases, through the connections the hooks of the backups watch */
+  call: ProfileCall;
   /** the change number of the profile's backed up data */
   change(profile: Profile): number;
 }
 
 /** the service worker writes the backup folder itself, through the handle the data page stored */
-export function folderService({ local, change }: FolderServiceEnv) {
+export function folderService({ local, call, change }: FolderServiceEnv) {
   const backup = new FolderBackup({
     folder: async () => {
       const handle = await loadFolderHandle();
       return handle && handleFolder(handle);
     },
     open: openDb,
+    call,
     local,
     session: { get: (keys) => chrome.storage.session.get(keys), set: (items) => chrome.storage.session.set(items) },
     localProfiles: async () =>

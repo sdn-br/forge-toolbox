@@ -17,38 +17,26 @@ export const BACKUP_FORMAT = 'forge-toolbox-backup';
 /** raised when the shape of the file changes; an import maps older versions */
 export const BACKUP_VERSION = 2;
 
-/** Only what cannot come back from the game or foestats, and the players it refers to. */
-export interface BackupTables {
-  battles: Battle[];
-  plunders: Plunder[];
-  incoming: IncomingAttack[];
-  noteGroups: NoteGroup[];
-  notePages: NotePage[];
+/**
+ * The row type of each backed up table. Only what cannot come back from the game or foestats, and the players it refers
+ * to. What the backup does with each table stands in `BACKUP_TABLES` (src/backup/tables.ts).
+ */
+export interface BackupRows {
+  battles: Battle;
+  plunders: Plunder;
+  incoming: IncomingAttack;
+  noteGroups: NoteGroup;
+  notePages: NotePage;
   /** shields still running; ended ones say nothing any more */
-  cityShields: CityShield[];
+  cityShields: CityShield;
   /** the rows the retention never prunes: own contribution, marked, ignored */
-  greatBuildings: KnownGreatBuilding[];
+  greatBuildings: KnownGreatBuilding;
   /** the players the rows above refer to, and the ones the session player marked or ignored */
-  players: Player[];
+  players: Player;
 }
 
-/**
- * Which writes of an export table change the backup, for the service worker's signal that persisted data changed:
- * `every` write, or only a change of the fields named. The other fields of players and great buildings are game data
- * that comes again with each sighting; the export carries them along, but they alone are no reason for a new copy.
- */
-export const BACKUP_CHANGES: {
-  [T in keyof BackupTables]: 'every' | readonly (keyof BackupTables[T][number] & string)[];
-} = {
-  battles: 'every',
-  plunders: 'every',
-  incoming: 'every',
-  noteGroups: 'every',
-  notePages: 'every',
-  cityShields: 'every',
-  greatBuildings: ['marksAt', 'ownContribution', 'contribution'],
-  players: ['marksAt', 'pvpMarksAt'],
-};
+/** The rows of each backed up table. */
+export type BackupTables = { [K in keyof BackupRows]: BackupRows[K][] };
 
 /** One profile: a world and the own player id, with its settings and rows. */
 export interface BackupProfile {
@@ -75,23 +63,8 @@ export interface BackupFile {
   profiles: BackupProfile[];
 }
 
-const playerKey = (world: string, id: number) => `${world}|${id}`;
-
-/** The players the rows refer to, as `world|id`; a table left out refers to none. */
-export function referencedPlayers(tables: Partial<Omit<BackupTables, 'players' | 'noteGroups'>>): Set<string> {
-  const keys = new Set<string>();
-  for (const b of tables.battles ?? []) keys.add(playerKey(b.world, b.opponent));
-  for (const p of tables.plunders ?? []) keys.add(playerKey(p.world, p.opponent));
-  for (const a of tables.incoming ?? []) keys.add(playerKey(a.world, a.attacker));
-  for (const p of tables.notePages ?? []) if (p.player !== undefined) keys.add(playerKey(p.world, p.player));
-  for (const s of tables.cityShields ?? []) keys.add(playerKey(s.world, s.player));
-  for (const b of tables.greatBuildings ?? []) keys.add(playerKey(b.world, b.owner));
-  return keys;
-}
-
-/** Of `players`, the ones `referenced` names and the ones the session player marked, ignored or marked for PvP. */
-export const playersToKeep = (players: Player[], referenced: Set<string>): Player[] =>
-  players.filter((p) => isMarkedPlayer(p) || referenced.has(playerKey(p.world, p.id)));
+/** `world|id`, how the backup tells players of several worlds apart */
+export const playerKey = (world: string, id: number) => `${world}|${id}`;
 
 /** whether the session player marked, ignored or marked the player for PvP; such a player stays without a reference */
 export const isMarkedPlayer = (p: Player): boolean => Boolean(p.marked || p.ignored || p.plunderWorthy || p.noAttack);

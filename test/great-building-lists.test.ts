@@ -3,7 +3,7 @@ import { createBus } from '../src/content/core/events';
 import { Ingestion } from '../src/content/core/ingestion';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import { GreatBuildingStore } from '../src/content/stores/great-buildings';
-import { applyListRow, growthSince, hasOwnContribution } from '../src/persistence/great-buildings/merge';
+import { applyListRow, growthSince, hasOwnContribution } from '../src/shared/great-buildings';
 import { playerId, worldId } from '../src/shared/ids';
 import type { KnownGreatBuilding } from '../src/shared/model';
 import contributionFixture from './fixtures/gb-contribution.json';

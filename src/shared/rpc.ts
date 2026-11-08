@@ -39,4 +39,7 @@ export interface RpcRequest<M extends Method = Method> {
   arg: Arg<M>;
 }
 
+/** a call into the database of any profile, for code that serves several profiles */
+export type ProfileCall = <M extends Method>(profile: Profile, rpc: M, arg: Arg<M>) => Promise<Result<M>>;
+
 export type RpcResponse<M extends Method = Method> = { ok: true; result: Result<M> } | { ok: false; error: string };

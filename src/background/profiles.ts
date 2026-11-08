@@ -1,15 +1,15 @@
 // The service worker serves every profile from its own database: opened on the first call of the profile, then kept.
 import { isProfile, type Profile, profileDbName } from '../shared/profile';
-import type { BackgroundApi, Handlers, Method, RpcRequest, RpcResponse } from '../shared/rpc';
+import type { BackgroundApi, Handlers, Method, ProfileCall, RpcRequest, RpcResponse } from '../shared/rpc';
 import type { ToolboxDb } from './db';
 import { createHandlers, type HandlerDeps } from './handlers';
 
 export interface ProfileEnv {
   open: (name: string) => ToolboxDb;
-  /** runs once per database before its first handler, the takeover of the old store */
-  prepare: (profile: Profile, db: ToolboxDb) => Promise<void>;
-  /** runs once per database after the takeover, before its first handler: the hooks of the persisted signal */
+  /** runs once per database, first: the hooks of the persisted signal */
   watch: (profile: Profile, db: ToolboxDb) => void;
+  /** runs once per database before its first handler, the takeover of the old store; its rows count as a change */
+  prepare: (profile: Profile, db: ToolboxDb) => Promise<void>;
   deps: HandlerDeps;
   logError: (what: string, error: unknown) => void;
 }
@@ -30,15 +30,14 @@ export function profileDispatch(env: ProfileEnv): (req: RpcRequest) => Promise<R
     let ready = handlers.get(name);
     if (!ready) {
       const db = env.open(name);
+      // watched before the takeover: the rows it brings have no backup yet
+      env.watch(profile, db);
       const prepared = queue.then(() =>
         // a failed takeover leaves the old rows where they are and runs again on the next start of the worker
         env.prepare(profile, db).catch((error) => env.logError(`taking over the old data of ${name} failed`, error)),
       );
       queue = prepared;
-      ready = prepared.then(() => {
-        env.watch(profile, db);
-        return createHandlers(db, env.deps);
-      });
+      ready = prepared.then(() => createHandlers(db, env.deps));
       handlers.set(name, ready);
     }
     return ready;
@@ -52,6 +51,18 @@ export function profileDispatch(env: ProfileEnv): (req: RpcRequest) => Promise<R
     } catch (error) {
       return { ok: false, error: String(error) };
     }
+  };
+}
+
+/**
+ * Calls of the service worker itself into a profile's database, through the dispatch the tabs' calls take: the same
+ * connection, so its writes pass the hooks of the persisted signal. A failed call throws.
+ */
+export function workerCall(dispatch: (req: RpcRequest) => Promise<RpcResponse>): ProfileCall {
+  return async (profile, rpc, arg) => {
+    const res = await dispatch({ profile, rpc, arg } as RpcRequest);
+    if (!res.ok) throw new Error(res.error);
+    return res.result as never;
   };
 }
 

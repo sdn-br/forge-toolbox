@@ -1,5 +1,5 @@
-import type { PlayerId, WorldId } from '../../shared/ids';
-import type { GreatBuildingListRow, KnownGreatBuilding } from '../../shared/model';
+import type { PlayerId, WorldId } from './ids';
+import type { GreatBuildingListRow, KnownGreatBuilding } from './model';
 
 /** the primary key of a known building */
 export const gbKey = (b: Pick<KnownGreatBuilding, 'world' | 'owner' | 'entityId'>): [WorldId, PlayerId, number] => [
@@ -97,3 +97,10 @@ function withoutLevelBound(b: KnownGreatBuilding): KnownGreatBuilding {
   const { contribution, growthBase, rankings, rankingsLevel, rankingsAt, rankingsInvested, ...rest } = b;
   return rest;
 }
+
+/** what an opened building does not tell, so the stored row keeps it (the ranking window brought the tier) */
+const KEPT = ['ownContribution', 'marked', 'ignored', 'marksAt', 'tier'] as const;
+
+/** the fields of the stored row that survive a write of an opened building */
+export const kept = (before: KnownGreatBuilding | undefined) =>
+  Object.fromEntries(KEPT.flatMap((k) => (before?.[k] !== undefined && before[k] !== false ? [[k, before[k]]] : [])));
