@@ -3,7 +3,7 @@
 // and makes the backup in a local folder due. The backups need not know which events of the game lead to such a write.
 import Dexie from 'dexie';
 import { BACKUP_CHANGES } from '../backup/format';
-import { type Profile, profileDbName, profileOfStorageKey, profileStorageKey } from '../shared/profile';
+import { type Profile, profileDbName } from '../shared/profile';
 import type { ToolboxDb } from './db';
 
 /** whether a key path of a Dexie modification is one of the fields or lies inside one */
@@ -94,15 +94,3 @@ export class PersistedSignal {
     }
   }
 }
-
-/** how long after the last change the backup folder is written, as the copy on the game page */
-export const FOLDER_DELAY = 30_000;
-
-/**
- * The service worker writes the folder on a `chrome.alarms` alarm per profile: a timer would die with the worker, which
- * the browser stops after half a minute without events, and creating the alarm again moves it on.
- */
-export const folderAlarm = (profile: Profile): string => profileStorageKey('folder', profile);
-
-/** the profile of an alarm of `folderAlarm`, null for any other alarm */
-export const profileOfFolderAlarm = (name: string): Profile | null => profileOfStorageKey(name, 'folder');
