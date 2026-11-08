@@ -1,17 +1,16 @@
-import type { FoestatsState } from '../../persistence/foestats/contract';
-import type { FoestatsAnswer, FoestatsClient } from '../../shared/foestats-api';
 import type { PlayerId, WorldId } from '../../shared/ids';
-import type { FoestatsDay } from '../../shared/model';
+import type { FoestatsDay, FoestatsOutcome, FoestatsState } from '../../shared/model';
 import { singleFlight } from '../../shared/single-flight';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
 import { toggleDef } from '../core/settings';
+import { type FoestatsClient, toFoestatsOutcome } from '../game/foestats-api';
 
 export interface FoestatsPersistence {
   /** whether to ask foestats now; `fetch: true` reserves the request until `store` */
   claim(world: WorldId, player: PlayerId): Promise<{ fetch: boolean } & FoestatsState>;
-  /** what foestats answered to a claimed request */
-  store(world: WorldId, player: PlayerId, answer: FoestatsAnswer): Promise<FoestatsState>;
+  /** what a claimed request came to, in the domain model */
+  store(world: WorldId, player: PlayerId, outcome: FoestatsOutcome): Promise<FoestatsState>;
   /** the known days of the player, oldest first */
   history(world: WorldId, player: PlayerId): Promise<FoestatsDay[]>;
 }
@@ -77,7 +76,7 @@ export class FoestatsStore {
       if (fetch) {
         // the request never fails, a missing answer is 'unreachable'
         const answer = await this.requests.player(this.world, player);
-        state = await this.persistence.store(this.world, player, answer);
+        state = await this.persistence.store(this.world, player, toFoestatsOutcome(this.world, player, answer));
       }
       const days = await this.persistence.history(this.world, player);
       this.records.set(player, { days, ...state, loading: false });

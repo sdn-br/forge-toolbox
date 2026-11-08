@@ -1,6 +1,5 @@
 import type { PlayerId, WorldId } from '../../shared/ids';
-import type { KnownGreatBuilding } from '../../shared/model';
-import type { GreatBuildingListRow } from './contract';
+import type { GreatBuildingListRow, KnownGreatBuilding } from '../../shared/model';
 
 /** the primary key of a known building */
 export const gbKey = (b: Pick<KnownGreatBuilding, 'world' | 'owner' | 'entityId'>): [WorldId, PlayerId, number] => [

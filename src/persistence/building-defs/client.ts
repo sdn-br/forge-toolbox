@@ -1,23 +1,22 @@
 import type { Call } from '../../content/core/rpc';
-import { toBuildingDef } from '../../content/game/building-defs';
-import type { BuildingDef } from '../../content/model/catalog';
-import type { BuildingDefLoader } from '../../content/stores/catalog';
-import type { BuildingDefId } from '../../shared/ids';
+import type { BuildingDefFileData } from '../../shared/model';
 
-const parse = (json: unknown): BuildingDef | undefined =>
-  json === undefined ? undefined : (toBuildingDef(json) ?? undefined);
+/** The cached metadata files as the service worker keeps them: raw JSON, no translation. */
+export interface BuildingDefFiles {
+  all(): Promise<BuildingDefFileData[]>;
+  /** the file from the database, else downloaded; `json` is missing when it cannot be read */
+  file(id: string, url: string): Promise<{ json?: unknown }>;
+  missing(): Promise<string[]>;
+  put(files: BuildingDefFileData[]): Promise<void>;
+}
 
 /** The service worker reads the files: a request from the content script would be held to the page's CORS. */
-export function buildingDefLoader(call: Call): BuildingDefLoader {
+export function buildingDefFiles(call: Call): BuildingDefFiles {
   return {
-    all: async () =>
-      (await call('buildingDefs.all', {})).files.flatMap(({ url, json }) => {
-        const def = parse(json);
-        return def ? [{ def, url }] : [];
-      }),
-    load: async (id, url) => parse((await call('buildingDefs.file', { id, url })).json),
-    missing: async () => (await call('buildingDefs.missing', {})).ids as BuildingDefId[],
-    save: async (files) => {
+    all: async () => (await call('buildingDefs.all', {})).files,
+    file: (id, url) => call('buildingDefs.file', { id, url }),
+    missing: async () => (await call('buildingDefs.missing', {})).ids,
+    put: async (files) => {
       await call('buildingDefs.put', { files });
     },
   };

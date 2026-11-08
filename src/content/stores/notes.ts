@@ -1,6 +1,5 @@
-import type { NoteChanges } from '../../persistence/notes/contract';
 import { type PlayerId, playerId, type WorldId } from '../../shared/ids';
-import type { NoteGroup, NotePage } from '../../shared/model';
+import type { NoteChanges, NoteGroup, NotePage } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
 

@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createBus } from '../src/content/core/events';
+import { type FetchLike, foestatsApi } from '../src/content/game/foestats-api';
 import { FoestatsStore } from '../src/content/stores/foestats';
 import { CLAIM_TIMEOUT } from '../src/persistence/foestats/worker';
 import { RETRY_AFTER } from '../src/shared/foestats';
-import { type FetchLike, foestatsApi } from '../src/shared/foestats-api';
 import { playerId, worldId } from '../src/shared/ids';
 import { testDb } from './helpers/battle-db';
 

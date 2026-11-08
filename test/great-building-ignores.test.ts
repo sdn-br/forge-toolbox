@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GreatBuildingStore } from '../src/content/stores/great-buildings';
-import type { GreatBuildingListRow } from '../src/persistence/great-buildings/contract';
 import { type BuildingDefId, playerId, worldId } from '../src/shared/ids';
-import type { KnownGreatBuilding } from '../src/shared/model';
+import type { GreatBuildingListRow, KnownGreatBuilding } from '../src/shared/model';
 import { testStores } from './helpers/stores';
 
 const DAY = 24 * 60 * 60 * 1000;

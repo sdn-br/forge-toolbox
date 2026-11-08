@@ -343,6 +343,12 @@ export interface FoestatsDay {
   active?: boolean;
 }
 
+/**
+ * What a request to foestats came to, as the service worker keeps it: foestats did not answer, it does not know the
+ * player (or its snapshot is too thin to tell a day), or the snapshot day with the day before it when that is known.
+ */
+export type FoestatsOutcome = 'unreachable' | 'unknown' | { day: FoestatsDay; before?: FoestatsDay };
+
 /** The last time foestats was asked about a player. */
 export interface FoestatsFetch {
   world: WorldId;
@@ -354,4 +360,43 @@ export interface FoestatsFetch {
   ok: boolean;
   /** foestats does not know the player; older records lack it */
   unknown?: boolean;
+}
+
+/** The raw metadata file of one building definition as the service worker caches it; the content side translates it. */
+export interface BuildingDefFileData {
+  id: string;
+  /** on the Inno CDN; it carries the file's hash, so a changed definition has a new URL */
+  url: string;
+  json: unknown;
+}
+
+/** A row of a great building list: the state of one building without its rankings. */
+export interface GreatBuildingListRow {
+  owner: PlayerId;
+  entityId: number;
+  cityEntityId: BuildingDefId;
+  level: number;
+  invested: number;
+  required: number;
+  /** the session player's place, when the list names one: an own contribution */
+  rank?: number;
+  /** own deposit and net reward of that place; the town hall list (getContributions) brings them */
+  forgePoints?: number;
+  reward?: number;
+  /** the prestige tier; only rows of the ranking window bring it */
+  tier?: GreatBuildingTier;
+}
+
+/** what the views learn about foestats and the player: foestats is unreachable, or it does not know the player */
+export interface FoestatsState {
+  unreachable: boolean;
+  unknown: boolean;
+}
+
+/** One write of the notes: rows to put and keys to delete, applied together. */
+export interface NoteChanges {
+  groups: NoteGroup[];
+  pages: NotePage[];
+  deletedGroups: [WorldId, string][];
+  deletedPages: [WorldId, string][];
 }

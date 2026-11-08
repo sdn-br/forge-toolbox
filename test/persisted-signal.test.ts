@@ -1,13 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { openDb } from '../src/background/db';
-import {
-  folderAlarm,
-  PersistedSignal,
-  ProfileTabs,
-  profileOfFolderAlarm,
-  watchBackupTables,
-} from '../src/background/persisted';
+import { PersistedSignal, watchBackupTables } from '../src/background/persisted';
+import { ProfileTabs } from '../src/background/profiles';
 import { collectTables } from '../src/backup/collect';
+import { folderAlarm, profileOfFolderAlarm } from '../src/backup/folder-worker';
 import { BACKUP_CHANGES } from '../src/backup/format';
 import { greatBuildingsHandlers } from '../src/persistence/great-buildings/worker';
 import { buildingDefId, eraId, playerId } from '../src/shared/ids';

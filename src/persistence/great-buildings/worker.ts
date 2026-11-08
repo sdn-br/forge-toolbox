@@ -1,9 +1,9 @@
 import type Dexie from 'dexie';
 import type { Table } from 'dexie';
 import type { PlayerId, WorldId } from '../../shared/ids';
-import type { KnownGreatBuilding, MarkKind } from '../../shared/model';
+import type { GreatBuildingListRow, KnownGreatBuilding, MarkKind } from '../../shared/model';
 import type { Handlers } from '../../shared/rpc';
-import type { GreatBuildingListRow, GreatBuildingsApi } from './contract';
+import type { GreatBuildingsApi } from './contract';
 import { applyListRow, gbKey, growthSince, hasOwnContribution, isFlagged, withoutOwnContribution } from './merge';
 
 /** when the town hall list of the own contributions last came in a world */

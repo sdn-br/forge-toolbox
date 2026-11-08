@@ -1,12 +1,5 @@
-import type { FoestatsAnswer } from '../../shared/foestats-api';
 import type { PlayerId, WorldId } from '../../shared/ids';
-import type { FoestatsDay } from '../../shared/model';
-
-/** what the views learn about foestats and the player: foestats is unreachable, or it does not know the player */
-export interface FoestatsState {
-  unreachable: boolean;
-  unknown: boolean;
-}
+import type { FoestatsDay, FoestatsOutcome, FoestatsState } from '../../shared/model';
 
 export interface FoestatsApi {
   /**
@@ -16,11 +9,11 @@ export interface FoestatsApi {
    */
   'foestats.claim': { arg: { world: WorldId; player: PlayerId }; result: { fetch: boolean } & FoestatsState };
   /**
-   * What foestats answered to a claimed request. Keeps the snapshot day and the day before it and remembers the request
+   * What a claimed request to foestats came to. Keeps the snapshot day and the day before it and remembers the request
    * per player; an unreachable foestats is remembered for all players instead.
    */
   'foestats.store': {
-    arg: { world: WorldId; player: PlayerId; answer: FoestatsAnswer };
+    arg: { world: WorldId; player: PlayerId; outcome: FoestatsOutcome };
     result: FoestatsState;
   };
   /** the known days of the player, oldest first */
