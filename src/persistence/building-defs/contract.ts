@@ -9,7 +9,7 @@ export interface BuildingDefsApi {
    * is no JSON; a URL off the CDN is refused.
    */
   'buildingDefs.file': { arg: { id: string; url: string }; result: { json?: unknown } };
-  /** the buildings of stored plunders and attacks on the own city whose file the cache lacks */
+  /** the buildings of stored plunders, attacks on the own city and great buildings whose file the cache lacks */
   'buildingDefs.missing': { arg: Record<string, never>; result: { ids: string[] } };
   /** keeps files the game loaded itself, each in place of an older file of its id; files off the CDN are skipped */
   'buildingDefs.put': { arg: { files: BuildingDefFileData[] }; result: Record<string, never> };

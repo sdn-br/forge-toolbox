@@ -13,7 +13,7 @@ import {
   PREFETCH_DELAY,
 } from '../src/content/stores/catalog';
 import { type BuildingDefId, buildingDefId, playerId, worldId } from '../src/shared/ids';
-import type { IncomingAttack, Plunder } from '../src/shared/model';
+import type { IncomingAttack, KnownGreatBuilding, Plunder } from '../src/shared/model';
 import { testDb } from './helpers/battle-db';
 import { testStores } from './helpers/stores';
 
@@ -254,7 +254,7 @@ describe('building definition files in the service worker', () => {
     expect(await loader.load(buildingDefId('Junk'), url('Junk', 'j'))).toBeUndefined();
   });
 
-  it('lists the buildings of stored plunders and attacks whose file the cache lacks', async () => {
+  it('lists the buildings of stored plunders, attacks and great buildings whose file the cache lacks', async () => {
     const { loader, db } = setup(async () => '{}');
     const world = worldId('de10');
     const opponent = playerId(7);
@@ -270,8 +270,14 @@ describe('building definition files in the service worker', () => {
       at: 4,
       cityEntityId: buildingDefId('G_Own'),
     } as IncomingAttack);
+    await db.greatBuildings.put({
+      world,
+      owner: opponent,
+      entityId: 5,
+      cityEntityId: buildingDefId('X_Landmark'),
+    } as KnownGreatBuilding);
     await loader.save([{ id: buildingDefId('P_Cached'), url: url('P_Cached', 'c'), json: file('P_Cached', 'C') }]);
-    expect((await loader.missing()).sort()).toEqual(['G_Own', HERO]);
+    expect((await loader.missing()).sort()).toEqual(['G_Own', HERO, 'X_Landmark']);
   });
 
   it('refuses a URL off the Inno CDN without downloading it', async () => {

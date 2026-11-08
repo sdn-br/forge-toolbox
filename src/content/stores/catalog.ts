@@ -17,7 +17,7 @@ export interface BuildingDefLoader {
   all(): Promise<{ def: BuildingDef; url: string }[]>;
   /** from the cache, else downloaded; undefined when the file cannot be read or holds no definition */
   load(id: BuildingDefId, url: string): Promise<BuildingDef | undefined>;
-  /** the buildings of stored plunders and attacks whose file the cache lacks, as after an import of old data */
+  /** the buildings of stored plunders, attacks and great buildings whose file the cache lacks, as after an import of old data */
   missing(): Promise<BuildingDefId[]>;
   /** keeps files the game loaded itself, each in place of an older file of its id */
   save(files: BuildingDefFile[]): Promise<void>;

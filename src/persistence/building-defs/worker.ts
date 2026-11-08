@@ -3,6 +3,7 @@ import type { HandlerDeps } from '../../background/handlers';
 import { isCdnUrl } from '../../shared/cdn-assets';
 import type { Handlers } from '../../shared/rpc';
 import { singleFlight } from '../../shared/single-flight';
+import type { GreatBuildingsTables } from '../great-buildings/worker';
 import type { IncomingTables } from '../incoming/worker';
 import type { PvpTables } from '../pvp/worker';
 import type { BuildingDefsApi } from './contract';
@@ -24,7 +25,7 @@ export type BuildingDefsTables = { buildingDefFiles: Table<BuildingDefFileRow, s
  * and is tried again on the next call.
  */
 export function buildingDefsHandlers(
-  db: BuildingDefsTables & Pick<PvpTables, 'plunders'> & IncomingTables,
+  db: BuildingDefsTables & Pick<PvpTables, 'plunders'> & IncomingTables & Pick<GreatBuildingsTables, 'greatBuildings'>,
   { now, fetchText }: HandlerDeps,
 ): Handlers<BuildingDefsApi> {
   /** two calls for the same file read it once */
@@ -47,6 +48,7 @@ export function buildingDefsHandlers(
       const ids = new Set<string>();
       await db.plunders.each((p) => p.cityEntityId && ids.add(p.cityEntityId));
       await db.incoming.each((a) => a.cityEntityId && ids.add(a.cityEntityId));
+      await db.greatBuildings.each((b) => ids.add(b.cityEntityId));
       const cached = new Set(await db.buildingDefFiles.toCollection().primaryKeys());
       return { ids: [...ids].filter((id) => !cached.has(id)) };
     },
