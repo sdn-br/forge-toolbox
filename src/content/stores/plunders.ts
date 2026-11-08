@@ -1,10 +1,7 @@
 import type { PlayerId, WorldId } from '../../shared/ids';
 import type { Plunder, PlunderTotals } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
-import type { PlayerRowQuery, PlayerRowsPersistence } from './player-rows';
-import { WriteBehind } from './write-behind';
-
-export type PlunderQuery = PlayerRowQuery;
+import { PlayerRowStore, type PlayerRowsPersistence } from './player-rows';
 
 export interface PlunderPersistence extends PlayerRowsPersistence<Plunder> {
   put(rows: Plunder[]): Promise<void>;
@@ -12,42 +9,22 @@ export interface PlunderPersistence extends PlayerRowsPersistence<Plunder> {
 }
 
 /** Plunders of the session player. Lives in the database, queries ask it after pending writes. */
-export class PlunderStore {
-  private writes: WriteBehind<Plunder, string>;
-
+export class PlunderStore extends PlayerRowStore<Plunder, string> {
   constructor(
-    private bus: ToolboxBus,
-    private world: WorldId,
+    bus: ToolboxBus,
+    world: WorldId,
     private persistence: PlunderPersistence,
   ) {
-    this.writes = new WriteBehind(
-      (p) => `${p.opponent}:${p.at}`,
-      (rows) => persistence.put(rows),
-      'saving plunders failed',
-      (rows) => this.bus.emit('plunder.recorded', { opponents: [...new Set(rows.map((r) => r.opponent))] }),
-    );
-  }
-
-  /** A plunder seen twice is stored once, announced after the write. */
-  record(plunder: Plunder): void {
-    if (plunder.world === this.world) this.writes.put(plunder);
-  }
-
-  latest(opponent: PlayerId): Promise<Plunder | undefined> {
-    return this.writes.afterWrites(() => this.persistence.latest(this.world, opponent));
-  }
-
-  /** newest first */
-  list(query: PlunderQuery): Promise<Plunder[]> {
-    return this.writes.afterWrites(() => this.persistence.list(this.world, query));
+    super(bus, world, persistence, {
+      keyOf: (p) => `${p.opponent}:${p.at}`,
+      write: (rows) => persistence.put(rows),
+      errorText: 'saving plunders failed',
+      event: 'plunder.recorded',
+      opponentOf: (p) => p.opponent,
+    });
   }
 
   totals(opponents?: PlayerId[]): Promise<PlunderTotals> {
-    return this.writes.afterWrites(() => this.persistence.totals(this.world, opponents));
-  }
-
-  /** runs `query` after the pending writes */
-  afterWrites<T>(query: () => Promise<T>): Promise<T> {
-    return this.writes.afterWrites(query);
+    return this.afterWrites(() => this.persistence.totals(this.world, opponents));
   }
 }
