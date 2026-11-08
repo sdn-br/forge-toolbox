@@ -1,10 +1,10 @@
 // The link between a plunder and the battle that allowed it. The game sends none, so it follows from the rules of the
 // game: a player can be attacked once per 24 h, and a plunder is possible up to 24 h after a won battle.
 import type { Table } from 'dexie';
-import type { PlayerId, WorldId } from '../shared/ids';
-import { type Battle, type FoughtBattle, type InferredBattle, isFought, type Plunder } from '../shared/model';
-import { DAY_MS } from '../shared/time';
-import { playerRows } from './player-rows';
+import type { PlayerId, WorldId } from '../../shared/ids';
+import { type Battle, type FoughtBattle, type InferredBattle, isFought, type Plunder } from '../../shared/model';
+import { DAY_MS } from '../../shared/time';
+import { playerRows } from '../player-rows';
 
 /** the battle a plunder stands for when no fought battle is stored for it */
 const inferredFor = (p: Plunder): InferredBattle => ({

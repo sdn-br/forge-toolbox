@@ -4,7 +4,7 @@ import { isCdnUrl } from '../../shared/cdn-assets';
 import type { Handlers } from '../../shared/rpc';
 import { singleFlight } from '../../shared/single-flight';
 import type { IncomingTables } from '../incoming/worker';
-import type { PlundersTables } from '../plunders/worker';
+import type { PvpTables } from '../pvp/worker';
 import type { BuildingDefsApi } from './contract';
 
 /** the metadata file of one building definition, keyed by the definition's id */
@@ -24,7 +24,7 @@ export type BuildingDefsTables = { buildingDefFiles: Table<BuildingDefFileRow, s
  * and is tried again on the next call.
  */
 export function buildingDefsHandlers(
-  db: BuildingDefsTables & PlundersTables & IncomingTables,
+  db: BuildingDefsTables & Pick<PvpTables, 'plunders'> & IncomingTables,
   { now, fetchText }: HandlerDeps,
 ): Handlers<BuildingDefsApi> {
   /** two calls for the same file read it once */

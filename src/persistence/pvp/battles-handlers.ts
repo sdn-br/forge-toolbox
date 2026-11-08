@@ -1,19 +1,15 @@
 import type Dexie from 'dexie';
-import type { Table } from 'dexie';
 import type { PlayerId, WorldId } from '../../shared/ids';
 import { type Battle, type BattleFilter, type BattleSummary, type FoughtBattle, isFought } from '../../shared/model';
 import type { Handlers } from '../../shared/rpc';
 import { playerRows } from '../player-rows';
 import { playerRowsHandlers } from '../player-rows-handlers';
-import { tallyPlunder } from '../plunders/tally';
-import type { PlundersTables } from '../plunders/worker';
-import { relinkRows } from '../pvp-link';
-import type { BattlesApi } from './contract';
-
-export type BattlesTables = { battles: Table<Battle, [WorldId, number]> };
+import type { BattlesApi } from './battles-contract';
+import { type PvpTables, relinkRows } from './link';
+import { tallyPlunder } from './tally';
 
 /** Writes battles and relinks their opponents to the plunders, in one transaction over both tables. */
-async function putBattles(db: BattlesTables & PlundersTables & Dexie, rows: FoughtBattle[]) {
+async function putBattles(db: PvpTables & Dexie, rows: FoughtBattle[]) {
   return db.transaction('rw', db.battles, db.plunders, async () => {
     // a battle seen again comes from the game without its plunder; it keeps the one it has
     const stored = await db.battles.bulkGet(rows.map((b) => [b.world, b.battleId]));
@@ -28,7 +24,7 @@ async function putBattles(db: BattlesTables & PlundersTables & Dexie, rows: Foug
   });
 }
 
-export function battlesHandlers(db: BattlesTables & PlundersTables & Dexie): Handlers<BattlesApi> {
+export function battlesHandlers(db: PvpTables & Dexie): Handlers<BattlesApi> {
   const all = playerRows(db.battles, 'opponent');
   // debt: the plunder filter and summary scan without an index on plunderAt. ceiling: tens of thousands of battles per world
   // make the battles tab slow. upgrade: measured open time over a second, then an index in a later Dexie version.

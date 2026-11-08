@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { openDb } from '../src/background/db';
 import { Ingestion } from '../src/content/core/ingestion';
 import { registerGameHandlers } from '../src/content/game/handlers';
-import { linkedBattles, relink } from '../src/persistence/pvp-link';
+import { linkedBattles, relink } from '../src/persistence/pvp/link';
 import { eraId, playerId, worldId } from '../src/shared/ids';
 import type { Battle, BattleResult, FoughtBattle, InferredBattle, Plunder } from '../src/shared/model';
 import { DAY_MS } from '../src/shared/time';

@@ -1,13 +1,13 @@
 import { openDb } from '../../src/background/db';
 import { createHandlers, type HandlerDeps } from '../../src/background/handlers';
 import type { Call } from '../../src/content/core/rpc';
-import { battlePersistence } from '../../src/persistence/battles/client';
 import { foestatsPersistence } from '../../src/persistence/foestats/client';
 import { greatBuildingPersistence } from '../../src/persistence/great-buildings/client';
 import { incomingPersistence } from '../../src/persistence/incoming/client';
 import { notePersistence } from '../../src/persistence/notes/client';
 import { playerPersistence } from '../../src/persistence/players/client';
-import { plunderPersistence } from '../../src/persistence/plunders/client';
+import { battlePersistence } from '../../src/persistence/pvp/battles-client';
+import { plunderPersistence } from '../../src/persistence/pvp/plunders-client';
 import { shieldPersistence } from '../../src/persistence/shields/client';
 
 let dbCount = 0;

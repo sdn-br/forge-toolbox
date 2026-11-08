@@ -1,13 +1,13 @@
 // All stores of one world, built in one place: a new store touches this file and nothing else in the wiring.
 import { assetPersistence } from '../../persistence/assets/client';
-import { battlePersistence } from '../../persistence/battles/client';
 import { buildingDefLoader } from '../../persistence/building-defs/client';
 import { foestatsPersistence } from '../../persistence/foestats/client';
 import { greatBuildingPersistence } from '../../persistence/great-buildings/client';
 import { incomingPersistence } from '../../persistence/incoming/client';
 import { notePersistence } from '../../persistence/notes/client';
 import { playerPersistence } from '../../persistence/players/client';
-import { plunderPersistence } from '../../persistence/plunders/client';
+import { battlePersistence } from '../../persistence/pvp/battles-client';
+import { plunderPersistence } from '../../persistence/pvp/plunders-client';
 import { shieldPersistence } from '../../persistence/shields/client';
 import { type FetchLike, foestatsApi } from '../../shared/foestats-api';
 import type { BuildingDefId, WorldId } from '../../shared/ids';

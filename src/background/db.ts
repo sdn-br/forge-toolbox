@@ -1,22 +1,19 @@
 import Dexie from 'dexie';
 import type { AssetsTables } from '../persistence/assets/worker';
-import type { BattlesTables } from '../persistence/battles/worker';
 import type { BuildingDefsTables } from '../persistence/building-defs/worker';
 import type { FoestatsTables } from '../persistence/foestats/worker';
 import type { GreatBuildingsTables } from '../persistence/great-buildings/worker';
 import type { IncomingTables } from '../persistence/incoming/worker';
 import type { NotesTables } from '../persistence/notes/worker';
 import type { PlayersTables } from '../persistence/players/worker';
-import type { PlundersTables } from '../persistence/plunders/worker';
-import { relinkRows } from '../persistence/pvp-link';
+import { type PvpTables, relinkPvp } from '../persistence/pvp/worker';
 import type { ShieldsTables } from '../persistence/shields/worker';
 import type { PlayerId, WorldId } from '../shared/ids';
 import type { Battle, Plunder } from '../shared/model';
 
 export type ToolboxDb = Dexie &
   PlayersTables &
-  BattlesTables &
-  PlundersTables &
+  PvpTables &
   IncomingTables &
   NotesTables &
   ShieldsTables &
@@ -79,7 +76,7 @@ export function openDb(name = 'forge-toolbox'): ToolboxDb {
     .upgrade(async (tx) => {
       const plunders = tx.table<Plunder, [WorldId, PlayerId, number]>('plunders');
       const battles = tx.table<Battle, [WorldId, number]>('battles');
-      await relinkRows({ battles, plunders }, await plunders.toArray());
+      await relinkPvp({ battles, plunders }, await plunders.toArray());
     });
   // the asset index of the game's script by its URL, only the newest; no world, not in the backup
   db.version(14).stores({
