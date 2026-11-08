@@ -54,7 +54,7 @@ export const contributionWarningFeature: Feature = {
     /** shows or hides the cover for the open building; the owner's name is named first when both are ignored */
     const evaluate = () => {
       if (!open || dismissed) return hide();
-      if (ctx.players.ignored(open.owner)) {
+      if (ctx.players.flag(open.owner, 'ignored')) {
         const name = ctx.players.get(open.owner)?.name;
         return show(name ? t('contributionWarning.player', { name }) : t('contributionWarning.playerUnnamed'));
       }

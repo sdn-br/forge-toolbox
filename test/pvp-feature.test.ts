@@ -475,9 +475,9 @@ describe('pvp feature', () => {
         [seen(111, 'Alpha'), seen(222, 'Alpine'), seen(333, 'Beta'), seen(444, 'Gamma')],
         'visit',
       );
-      ctx.players.setPlunderWorthy(playerId(111), true);
-      ctx.players.setPlunderWorthy(playerId(333), true);
-      ctx.players.setNoAttack(playerId(222), true);
+      ctx.players.setFlag(playerId(111), 'plunderWorthy', true);
+      ctx.players.setFlag(playerId(333), 'plunderWorthy', true);
+      ctx.players.setFlag(playerId(222), 'noAttack', true);
       await tick();
       // only "zum Plündern" on: the former "nur gut zu plündern"
       box.click('Als nicht angreifen markierte zeigen');
@@ -582,7 +582,7 @@ describe('pvp feature', () => {
     it('toggles the marks of a known player and shows the warning mark of a player not to attack', async () => {
       const { ctx, box, lists } = setup();
       ctx.players.apply(worldId('de20'), [seen(111, 'Alpha')], 'visit');
-      ctx.players.setNoAttack(playerId(111), true);
+      ctx.players.setFlag(playerId(111), 'noAttack', true);
       await tick();
       lists[0]?.resolve([battle(1, 111), battle(2, 222)]);
       await tick();
@@ -593,8 +593,8 @@ describe('pvp feature', () => {
       expect(nameCell(box, '222').querySelector('button.plunder, button.no-attack')).toBeNull();
 
       (known.querySelector('button.plunder') as HTMLElement).click();
-      expect(ctx.players.plunderWorthy(playerId(111))).toBe(true);
-      expect(ctx.players.noAttack(playerId(111))).toBe(false);
+      expect(ctx.players.flag(playerId(111), 'plunderWorthy')).toBe(true);
+      expect(ctx.players.flag(playerId(111), 'noAttack')).toBe(false);
       await tick();
       expect(nameCell(box, 'Alpha').querySelector('button.plunder')?.getAttribute('aria-pressed')).toBe('true');
       // no new read without a filter on the marks
@@ -972,7 +972,7 @@ describe('pvp feature loading', () => {
   it('ignores records of players the mark toggles leave out, and reads for unknown ones', async () => {
     const { ctx, box, lists } = setup();
     ctx.players.apply(worldId('de20'), [seen(111, 'Alpha')], 'visit');
-    ctx.players.setNoAttack(playerId(111), true);
+    ctx.players.setFlag(playerId(111), 'noAttack', true);
     await tick();
     box.click('Als nicht angreifen markierte zeigen');
     await tick();

@@ -739,7 +739,7 @@ describe('Investitionen: Merken', () => {
     const { box, list, rows, cells, showPossible, ui, greatBuildings } = setup();
     list([hitZeus(), hitOracle()]);
     await tick();
-    await greatBuildings.mark(playerId(1001), zeus.entity_id, true);
+    await greatBuildings.flag('marked', playerId(1001), zeus.entity_id, true);
     await showPossible();
     const toggles = () => [...box.root.querySelectorAll('.inv-marked-filter button')] as HTMLButtonElement[];
     expect(toggles().map((b) => [b.getAttribute('aria-label'), b.getAttribute('aria-pressed')])).toEqual([
@@ -794,7 +794,7 @@ describe('Investitionen: Merken', () => {
     await tick();
     await showPossible();
     expect(rows()).toHaveLength(2);
-    players.setMarked(playerId(1002), true);
+    players.setFlag(playerId(1002), 'marked', true);
     await tick();
     // a marked owner shows its star on, the other a star off
     const ownerStar = (row: Element | undefined) => row?.querySelector('.row-name button.star');
@@ -806,7 +806,7 @@ describe('Investitionen: Merken', () => {
     await tick();
     expect(rows().map((r) => cells(r)[3])).toEqual(['Orakel von Delphi']);
     // the mark comes live: marking the other owner shows its building too
-    players.setMarked(playerId(1001), true);
+    players.setFlag(playerId(1001), 'marked', true);
     await tick();
     expect(rows()).toHaveLength(2);
   });

@@ -33,10 +33,10 @@ export const playerLookups = (ctx: FeatureContext): PvpPlayerLookups => ({
   },
   relations: (id) => ctx.players.get(id)?.relations,
   friendInvited: (id) => ctx.players.get(id)?.friendInvited === true,
-  playerMarked: (id) => ctx.players.marked(id),
-  ownerIgnored: (id) => ctx.players.ignored(id),
-  plunderWorthy: (id) => ctx.players.plunderWorthy(id),
-  noAttack: (id) => ctx.players.noAttack(id),
+  playerMarked: (id) => ctx.players.flag(id, 'marked'),
+  ownerIgnored: (id) => ctx.players.flag(id, 'ignored'),
+  plunderWorthy: (id) => ctx.players.flag(id, 'plunderWorthy'),
+  noAttack: (id) => ctx.players.flag(id, 'noAttack'),
 });
 
 /** what a row with a player does with their star and eye */
@@ -56,8 +56,8 @@ export interface PvpRowActions extends PlayerRowActions {
 }
 
 export const playerRowActions = (ctx: FeatureContext): PvpRowActions => ({
-  markPlayer: (player, marked) => ctx.players.setMarked(player, marked),
-  ignorePlayer: (player, ignored) => ctx.players.setIgnored(player, ignored),
-  plunderPlayer: (player, value) => ctx.players.setPlunderWorthy(player, value),
-  noAttackPlayer: (player, value) => ctx.players.setNoAttack(player, value),
+  markPlayer: (player, marked) => ctx.players.setFlag(player, 'marked', marked),
+  ignorePlayer: (player, ignored) => ctx.players.setFlag(player, 'ignored', ignored),
+  plunderPlayer: (player, value) => ctx.players.setFlag(player, 'plunderWorthy', value),
+  noAttackPlayer: (player, value) => ctx.players.setFlag(player, 'noAttack', value),
 });

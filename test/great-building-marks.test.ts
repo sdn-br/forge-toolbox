@@ -53,10 +53,10 @@ describe('marking great buildings', () => {
     const events: unknown[] = [];
     bus.on('greatBuilding.marked', (e) => events.push(e));
     expect(greatBuildings.isMarked(owner, 1)).toBe(false);
-    await greatBuildings.mark(owner, 1, true);
+    await greatBuildings.flag('marked', owner, 1, true);
     expect(greatBuildings.isMarked(owner, 1)).toBe(true);
     expect((await row(1))?.marked).toBe(true);
-    await greatBuildings.mark(owner, 1, false);
+    await greatBuildings.flag('marked', owner, 1, false);
     expect(greatBuildings.isMarked(owner, 1)).toBe(false);
     expect((await row(1))?.marked).toBeUndefined();
     expect(events).toEqual([
@@ -69,7 +69,7 @@ describe('marking great buildings', () => {
     const { greatBuildings } = setup();
     greatBuildings.noteList([listRow(1)]);
     // no wait for the list write: the mark queues behind it
-    await greatBuildings.mark(owner, 1, true);
+    await greatBuildings.flag('marked', owner, 1, true);
     expect(greatBuildings.isMarked(owner, 1)).toBe(true);
   });
 
@@ -77,7 +77,7 @@ describe('marking great buildings', () => {
     const { greatBuildings, bus } = setup();
     const events: unknown[] = [];
     bus.on('greatBuilding.marked', (e) => events.push(e));
-    await greatBuildings.mark(owner, 99, true);
+    await greatBuildings.flag('marked', owner, 99, true);
     expect(greatBuildings.isMarked(owner, 99)).toBe(false);
     expect(events).toEqual([]);
   });
@@ -85,7 +85,7 @@ describe('marking great buildings', () => {
   it('knows its marks again after a reload', async () => {
     const { greatBuildings, db, world, bus } = setup();
     greatBuildings.noteList([listRow(1), listRow(2)]);
-    await greatBuildings.mark(owner, 2, true);
+    await greatBuildings.flag('marked', owner, 2, true);
     const reloaded = new GreatBuildingStore(bus, world, db.greatBuildings);
     expect(reloaded.isMarked(owner, 2)).toBe(false);
     await reloaded.load();
@@ -96,9 +96,9 @@ describe('marking great buildings', () => {
   it('reads the stars and the ignores of the world in one call', async () => {
     const { greatBuildings, db } = setup();
     greatBuildings.noteList([listRow(3), listRow(1), listRow(2), listRow(4)]);
-    await greatBuildings.mark(owner, 3, true);
-    await greatBuildings.mark(owner, 1, true);
-    await greatBuildings.ignore(owner, 2, true);
+    await greatBuildings.flag('marked', owner, 3, true);
+    await greatBuildings.flag('marked', owner, 1, true);
+    await greatBuildings.flag('ignored', owner, 2, true);
     await db.db.greatBuildings.put(opened(5, { world: worldId('de10'), marked: true }));
     expect(await db.greatBuildings.flagged(w)).toEqual({
       marked: [
@@ -112,10 +112,10 @@ describe('marking great buildings', () => {
   it('keeps a mark that is set while the marks are read', async () => {
     const { greatBuildings, db, world, bus } = setup();
     greatBuildings.noteList([listRow(1), listRow(2)]);
-    await greatBuildings.mark(owner, 1, true);
+    await greatBuildings.flag('marked', owner, 1, true);
     const reloaded = new GreatBuildingStore(bus, world, db.greatBuildings);
     const loading = reloaded.load();
-    await reloaded.mark(owner, 2, true);
+    await reloaded.flag('marked', owner, 2, true);
     await loading;
     expect(reloaded.isMarked(owner, 1)).toBe(true);
     expect(reloaded.isMarked(owner, 2)).toBe(true);
@@ -126,7 +126,7 @@ describe('the mark survives every write path', () => {
   it('a newer list', async () => {
     const { greatBuildings, at, row } = setup();
     greatBuildings.noteList([listRow(1)]);
-    await greatBuildings.mark(owner, 1, true);
+    await greatBuildings.flag('marked', owner, 1, true);
     at(2_000);
     greatBuildings.noteList([listRow(1, { invested: 300 })]);
     expect(await row(1)).toMatchObject({ invested: 300, marked: true });
@@ -135,7 +135,7 @@ describe('the mark survives every write path', () => {
   it('a list with a new level', async () => {
     const { greatBuildings, at, row } = setup();
     greatBuildings.noteList([listRow(1)]);
-    await greatBuildings.mark(owner, 1, true);
+    await greatBuildings.flag('marked', owner, 1, true);
     at(2_000);
     greatBuildings.noteList([listRow(1, { level: 6, invested: 0 })]);
     expect(await row(1)).toMatchObject({ level: 6, marked: true });
@@ -145,7 +145,7 @@ describe('the mark survives every write path', () => {
     const { greatBuildings, at, row } = setup();
     at(5_000);
     greatBuildings.noteList([listRow(1)]);
-    await greatBuildings.mark(owner, 1, true);
+    await greatBuildings.flag('marked', owner, 1, true);
     at(2_000);
     greatBuildings.noteList([listRow(1, { rank: 2, forgePoints: 10, reward: 5 })]);
     expect(await row(1)).toMatchObject({ ownContribution: true, marked: true });
@@ -154,7 +154,7 @@ describe('the mark survives every write path', () => {
   it('an opened building', async () => {
     const { greatBuildings, db, row } = setup();
     greatBuildings.noteList([listRow(1)]);
-    await greatBuildings.mark(owner, 1, true);
+    await greatBuildings.flag('marked', owner, 1, true);
     await db.greatBuildings.put([opened(1, { seenAt: 3_000, invested: 250 })]);
     expect(await row(1)).toMatchObject({ invested: 250, rankingsLevel: 5, marked: true });
   });
@@ -162,7 +162,7 @@ describe('the mark survives every write path', () => {
   it('the town hall list', async () => {
     const { greatBuildings, at, row } = setup();
     greatBuildings.noteList([listRow(1)]);
-    await greatBuildings.mark(owner, 1, true);
+    await greatBuildings.flag('marked', owner, 1, true);
     at(2_000);
     greatBuildings.noteContributions([listRow(1, { rank: 3, forgePoints: 40, reward: 20 })]);
     expect(await row(1)).toMatchObject({ ownContribution: true, marked: true });
@@ -175,7 +175,7 @@ describe('the mark survives every write path', () => {
       listRow(1, { rank: 3, forgePoints: 40, reward: 20 }),
       listRow(2, { rank: 1, forgePoints: 40, reward: 20 }),
     ]);
-    await greatBuildings.mark(owner, 1, true);
+    await greatBuildings.flag('marked', owner, 1, true);
     at(2_000);
     greatBuildings.noteContributions([listRow(2, { rank: 1, forgePoints: 40, reward: 20 })]);
     const kept = await row(1);
@@ -199,7 +199,7 @@ describe('retention of marked buildings', () => {
   it('prunes by the given days but never a marked building', async () => {
     const { greatBuildings, at, row } = setup();
     greatBuildings.noteList([listRow(1), listRow(2)]);
-    await greatBuildings.mark(owner, 1, true);
+    await greatBuildings.flag('marked', owner, 1, true);
     at(1_000 + 31 * DAY);
     await greatBuildings.prune(30);
     expect(await row(1)).toBeDefined();
@@ -209,8 +209,8 @@ describe('retention of marked buildings', () => {
   it('prunes a building again once it is unmarked', async () => {
     const { greatBuildings, at, row } = setup();
     greatBuildings.noteList([listRow(1)]);
-    await greatBuildings.mark(owner, 1, true);
-    await greatBuildings.mark(owner, 1, false);
+    await greatBuildings.flag('marked', owner, 1, true);
+    await greatBuildings.flag('marked', owner, 1, false);
     at(1_000 + 31 * DAY);
     await greatBuildings.prune(30);
     expect(await row(1)).toBeUndefined();
@@ -223,13 +223,13 @@ describe('the time of the marks', () => {
     greatBuildings.noteList([listRow(1)]);
     expect((await row(1))?.marksAt).toBeUndefined();
     const steps: [number, () => Promise<void>][] = [
-      [2_000, () => greatBuildings.mark(owner, 1, true)],
-      [3_000, () => greatBuildings.mark(owner, 1, false)],
-      [4_000, () => greatBuildings.ignore(owner, 1, true)],
-      [5_000, () => greatBuildings.ignore(owner, 1, false)],
-      [6_000, () => greatBuildings.mark(owner, 1, true)],
+      [2_000, () => greatBuildings.flag('marked', owner, 1, true)],
+      [3_000, () => greatBuildings.flag('marked', owner, 1, false)],
+      [4_000, () => greatBuildings.flag('ignored', owner, 1, true)],
+      [5_000, () => greatBuildings.flag('ignored', owner, 1, false)],
+      [6_000, () => greatBuildings.flag('marked', owner, 1, true)],
       // ignoring clears the star
-      [7_000, () => greatBuildings.ignore(owner, 1, true)],
+      [7_000, () => greatBuildings.flag('ignored', owner, 1, true)],
     ];
     for (const [time, step] of steps) {
       at(time);
@@ -244,7 +244,7 @@ describe('the time of the marks', () => {
     const { greatBuildings, db, at, row } = setup();
     greatBuildings.noteList([listRow(1)]);
     at(1_500);
-    await greatBuildings.mark(owner, 1, true);
+    await greatBuildings.flag('marked', owner, 1, true);
     at(2_000);
     greatBuildings.noteList([listRow(1, { invested: 300 })]);
     expect(await row(1)).toMatchObject({ invested: 300, marksAt: 1_500 });

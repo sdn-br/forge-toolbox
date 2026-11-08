@@ -297,7 +297,7 @@ describe('Investitionen: LG-Finder', () => {
     const { send, rows, cells, showFinder, greatBuildings } = setup();
     send(ranking.page as Entry);
     await tick();
-    await greatBuildings.ignore(playerId(2018), 3831, true);
+    await greatBuildings.flag('ignored', playerId(2018), 3831, true);
     await showFinder();
     expect(
       rows()

@@ -965,7 +965,7 @@ describe('LG-Rechner: ignorierte LGs und Spieler', () => {
     expect(tones()).toBe(1);
     expect(warning(box)).toBeNull();
     box.box.close();
-    await ctx.greatBuildings.ignore(owner, 1909, true);
+    await ctx.greatBuildings.flag('ignored', owner, 1909, true);
     open(1909);
     await tick();
     expect(box.box.isOpen).toBe(false);
@@ -997,7 +997,7 @@ describe('LG-Rechner: ignorierte LGs und Spieler', () => {
     open(1909);
     await tick();
     box.box.close();
-    expect(ctx.players.setIgnored(owner, true)).toBe(true);
+    expect(ctx.players.setFlag(owner, 'ignored', true)).toBe(true);
     open(1909);
     await tick();
     expect(box.box.isOpen).toBe(false);
@@ -1016,8 +1016,8 @@ describe('LG-Rechner: ignorierte LGs und Spieler', () => {
     social(send);
     open(1909);
     await tick();
-    await ctx.greatBuildings.ignore(owner, 1909, true);
-    ctx.players.setIgnored(owner, true);
+    await ctx.greatBuildings.flag('ignored', owner, 1909, true);
+    ctx.players.setFlag(owner, 'ignored', true);
     await tick();
     expect(warning(box)?.textContent).toContain('LG ignoriert');
     expect(warning(box)?.textContent).toContain('Spieler ignoriert');
@@ -1034,8 +1034,8 @@ describe('LG-Rechner: ignorierte LGs und Spieler', () => {
     open(1909);
     await tick();
     box.box.close();
-    await ctx.greatBuildings.ignore(owner, 1909, true);
-    await ctx.greatBuildings.ignore(owner, 1909, false);
+    await ctx.greatBuildings.flag('ignored', owner, 1909, true);
+    await ctx.greatBuildings.flag('ignored', owner, 1909, false);
     open(1909);
     await tick();
     expect(box.box.isOpen).toBe(true);
@@ -1046,7 +1046,7 @@ describe('LG-Rechner: ignorierte LGs und Spieler', () => {
     const { open, opening, send, ws, tones, ctx } = setup();
     open(1909);
     await tick();
-    await ctx.greatBuildings.ignore(owner, 1909, true);
+    await ctx.greatBuildings.flag('ignored', owner, 1909, true);
     const current = opening(1909).construction;
     send({
       ...current,
