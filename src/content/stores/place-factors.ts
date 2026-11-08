@@ -6,7 +6,7 @@ import { tierPlaces } from '../domain/gb-tier';
 import type { GreatBuildingTier } from '../model/catalog';
 
 /** the places with a reward on a gold level, the most a level has */
-export const PLACES = 7;
+const PLACES = 7;
 /** the places stored before 2026-11-05, when every level had five */
 const OLD_PLACES = 5;
 
@@ -41,7 +41,7 @@ export const savedKey = (def: string) => `gbOwn.factors.${def}`;
 export const sameChoice = (a: FactorChoice, b: FactorChoice) => sameOn(a, b, 'copper') && sameOn(a, b, 'gold');
 
 /** alike on a level of `tier`: both follow the Arc bonus, or both hold the same fixed factor of the tier */
-export const sameOn = (a: FactorChoice, b: FactorChoice, tier: GreatBuildingTier) =>
+const sameOn = (a: FactorChoice, b: FactorChoice, tier: GreatBuildingTier) =>
   a.arc === b.arc && (a.arc || fixedFactor(a, tier) === fixedFactor(b, tier));
 
 /** the choice all places of a level of `tier` share, else undefined; a copper level looks at places 1 to 5 only */
