@@ -4,8 +4,7 @@ import type { OpponentScope } from '../shared/model';
 
 /**
  * Reads of a table whose rows belong to one other player per row (`field`) and carry `world` and `at`.
- * Needs the indexes `[world+at]` and `[world+<field>+at]`. With `keep` the reads see only the rows it keeps; they then
- * scan the index range instead of counting it.
+ * Needs the indexes `[world+at]` and `[world+<field>+at]`. With `keep` the reads see only the rows it keeps.
  */
 export function playerRows<Row extends { world: WorldId; at: number }, Key>(
   table: Table<Row, Key>,
@@ -20,7 +19,7 @@ export function playerRows<Row extends { world: WorldId; at: number }, Key>(
   const ofWorld = (world: WorldId) =>
     kept(table.where('[world+at]').between([world, Dexie.minKey], [world, Dexie.maxKey]));
 
-  /** the rows of the world but those of `except`; without any to leave out the plain range, which counts fast */
+  /** the rows of the world but those of `except`; without any to leave out the plain range */
   const ofWorldExcept = (world: WorldId, except: PlayerId[] | undefined) => {
     if (!except?.length) return ofWorld(world);
     const left = new Set(except);
@@ -29,39 +28,24 @@ export function playerRows<Row extends { world: WorldId; at: number }, Key>(
 
   const distinct = (players: PlayerId[]) => [...new Set(players)];
 
+  /** the collections the scope reads: one per named player, or the world's rows */
+  const scoped = (world: WorldId, { opponents, exceptOpponents }: OpponentScope) =>
+    opponents ? distinct(opponents).map((player) => byPlayer(world, player)) : [ofWorldExcept(world, exceptOpponents)];
+
   /** Calls `each` for the rows of the scope, one player after the other when it names them. */
-  const forEach = async (
-    world: WorldId,
-    { opponents: players, exceptOpponents }: OpponentScope,
-    each: (row: Row) => void,
-  ) => {
-    if (!players) {
-      await ofWorldExcept(world, exceptOpponents).each(each);
-      return;
-    }
-    for (const player of distinct(players)) await byPlayer(world, player).each(each);
+  const forEach = async (world: WorldId, scope: OpponentScope, each: (row: Row) => void) => {
+    for (const rows of scoped(world, scope)) await rows.each(each);
   };
 
   /** newest first */
-  const list = async (
-    world: WorldId,
-    { opponents: players, exceptOpponents }: OpponentScope,
-    limit: number,
-    offset: number,
-  ) => {
-    if (!players) return ofWorldExcept(world, exceptOpponents).reverse().offset(offset).limit(limit).toArray();
-    const wanted = distinct(players);
-    if (wanted.length === 1) {
-      return byPlayer(world, wanted[0] as PlayerId)
-        .reverse()
-        .offset(offset)
-        .limit(limit)
-        .toArray();
-    }
+  const list = async (world: WorldId, scope: OpponentScope, limit: number, offset: number) => {
+    const collections = scoped(world, scope);
+    if (collections.length === 1)
+      return (collections[0] as Collection<Row, Key>).reverse().offset(offset).limit(limit).toArray();
     // each player needs at most offset + limit rows to fill the page, whatever the others hold
     const perPlayer = await Promise.all(
-      wanted.map((player) =>
-        byPlayer(world, player)
+      collections.map((rows) =>
+        rows
           .reverse()
           .limit(offset + limit)
           .toArray(),
@@ -73,16 +57,10 @@ export function playerRows<Row extends { world: WorldId; at: number }, Key>(
       .slice(offset, offset + limit);
   };
 
-  const count = async (world: WorldId, { opponents: players, exceptOpponents }: OpponentScope) => {
-    if (!players) return ofWorldExcept(world, exceptOpponents).count();
-    const counts = await Promise.all(distinct(players).map((player) => byPlayer(world, player).count()));
-    return counts.reduce((sum, n) => sum + n, 0);
-  };
-
   return {
     forEach,
     list,
-    count,
+    ofPlayer: byPlayer,
     latest: async (world: WorldId, player: PlayerId) => (await byPlayer(world, player).last()) ?? null,
     prune: (before: number) => table.where('at').below(before).delete(),
   };

@@ -2,6 +2,7 @@ import type { FoestatsState } from '../../persistence/foestats/contract';
 import type { FoestatsAnswer, FoestatsClient } from '../../shared/foestats-api';
 import type { PlayerId, WorldId } from '../../shared/ids';
 import type { FoestatsDay } from '../../shared/model';
+import { singleFlight } from '../../shared/single-flight';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
 import { toggleDef } from '../core/settings';
@@ -45,8 +46,6 @@ export type FoestatsRequests = Pick<FoestatsClient, 'player'>;
  */
 export class FoestatsStore {
   private records = new Map<PlayerId, FoestatsRecord>();
-  /** views of a player running in this tab; a second one waits for the first */
-  private running = new Map<PlayerId, Promise<void>>();
 
   constructor(
     private bus: ToolboxBus,
@@ -60,15 +59,8 @@ export class FoestatsStore {
     return this.records.get(player);
   }
 
-  /** a view shows the player: bring the days up to date and read them */
-  view(player: PlayerId): Promise<void> {
-    let pending = this.running.get(player);
-    if (!pending) {
-      pending = this.update(player).finally(() => this.running.delete(player));
-      this.running.set(player, pending);
-    }
-    return pending;
-  }
+  /** a view shows the player: bring the days up to date and read them; a second view of a player running waits for the first */
+  view = singleFlight((player: PlayerId) => this.update(player));
 
   private async update(player: PlayerId): Promise<void> {
     const before = this.records.get(player);

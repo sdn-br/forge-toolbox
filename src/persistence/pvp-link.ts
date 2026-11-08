@@ -1,9 +1,10 @@
 // The link between a plunder and the battle that allowed it. The game sends none, so it follows from the rules of the
 // game: a player can be attacked once per 24 h, and a plunder is possible up to 24 h after a won battle.
-import Dexie, { type Table } from 'dexie';
+import type { Table } from 'dexie';
 import type { PlayerId, WorldId } from '../shared/ids';
 import { type Battle, type FoughtBattle, type InferredBattle, isFought, type Plunder } from '../shared/model';
 import { DAY_MS } from '../shared/time';
+import { playerRows } from './player-rows';
 
 /** the battle a plunder stands for when no fought battle is stored for it */
 const inferredFor = (p: Plunder): InferredBattle => ({
@@ -57,19 +58,9 @@ const sameRow = (a: Battle, b: Battle) =>
  */
 export async function relink(tables: PvpTables, world: WorldId, opponents: Iterable<PlayerId>): Promise<void> {
   for (const opponent of new Set(opponents)) {
-    const range = [
-      [world, opponent, Dexie.minKey],
-      [world, opponent, Dexie.maxKey],
-    ] as const;
     const [battles, plunders] = await Promise.all([
-      tables.battles
-        .where('[world+opponent+at]')
-        .between(...range)
-        .toArray(),
-      tables.plunders
-        .where('[world+opponent+at]')
-        .between(...range)
-        .toArray(),
+      playerRows(tables.battles, 'opponent').ofPlayer(world, opponent).toArray(),
+      playerRows(tables.plunders, 'opponent').ofPlayer(world, opponent).toArray(),
     ]);
     const target = linkedBattles(battles, plunders);
     const stored = new Map(battles.map((b) => [b.battleId, b]));

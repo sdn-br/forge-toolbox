@@ -1,6 +1,13 @@
-import type { WorldId } from '../../shared/ids';
+import type { PlayerId, WorldId } from '../../shared/ids';
 import type { KnownGreatBuilding } from '../../shared/model';
 import type { GreatBuildingListRow } from './contract';
+
+/** the primary key of a known building */
+export const gbKey = (b: Pick<KnownGreatBuilding, 'world' | 'owner' | 'entityId'>): [WorldId, PlayerId, number] => [
+  b.world,
+  b.owner,
+  b.entityId,
+];
 
 /**
  * What a list row does to the known building. Level, sum, costs and `seenAt` change only when the list is newer than
@@ -33,8 +40,9 @@ export function applyListRow(
       ? { ...existing, ...own, ...placed, ...based }
       : undefined;
   }
+  const { growth, growthFrom, growthAt, ...kept } = existing;
   const next: KnownGreatBuilding = {
-    ...existing,
+    ...(state.level === existing.level ? kept : withoutLevelBound(kept)),
     cityEntityId: state.cityEntityId,
     level: state.level,
     invested: state.invested,
@@ -42,19 +50,8 @@ export function applyListRow(
     ...(state.tier && { tier: state.tier }),
     ...own,
     seenAt: at,
+    ...growthSince(existing, state, at),
   };
-  delete next.growth;
-  delete next.growthFrom;
-  delete next.growthAt;
-  Object.assign(next, growthSince(existing, state, at));
-  if (state.level !== existing.level) {
-    delete next.rankings;
-    delete next.rankingsLevel;
-    delete next.rankingsAt;
-    delete next.rankingsInvested;
-    delete next.contribution;
-    delete next.growthBase;
-  }
   if (ownContribution && next.growthBase === undefined) next.growthBase = state.invested;
   return { ...next, ...place };
 }
@@ -92,7 +89,12 @@ export const hasOwnContribution = (b: KnownGreatBuilding): boolean =>
  * investment. The star and the ignore are the player's own and stay with the building, which then stands as a plain foreign one.
  */
 export function withoutOwnContribution(b: KnownGreatBuilding): KnownGreatBuilding {
-  const { ownContribution, contribution, growthBase, rankings, rankingsLevel, rankingsAt, rankingsInvested, ...rest } =
-    b;
+  const { ownContribution, ...rest } = b;
+  return withoutLevelBound(rest);
+}
+
+/** what belongs to one level of the building: the rankings, the own place and the progress of the growth base */
+function withoutLevelBound(b: KnownGreatBuilding): KnownGreatBuilding {
+  const { contribution, growthBase, rankings, rankingsLevel, rankingsAt, rankingsInvested, ...rest } = b;
   return rest;
 }

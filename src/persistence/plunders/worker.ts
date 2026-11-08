@@ -2,12 +2,13 @@ import type Dexie from 'dexie';
 import type { Table } from 'dexie';
 import type { PlayerId, WorldId } from '../../shared/ids';
 import type { Plunder } from '../../shared/model';
-import { FORGE_POINTS } from '../../shared/resources';
 import type { Handlers } from '../../shared/rpc';
 import type { BattlesTables } from '../battles/worker';
 import { playerRows } from '../player-rows';
+import { playerRowsHandlers } from '../player-rows-handlers';
 import { relinkRows } from '../pvp-link';
 import type { PlundersApi } from './contract';
+import { tallyPlunder } from './tally';
 
 export type PlundersTables = { plunders: Table<Plunder, [WorldId, PlayerId, number]> };
 
@@ -22,20 +23,11 @@ export function plundersHandlers(db: PlundersTables & BattlesTables & Dexie): Ha
         await relinkRows(db, rows);
         return undefined;
       }),
-    'plunders.latest': ({ world, opponent }) => rows.latest(world, opponent),
-    'plunders.list': ({ world, limit, offset, ...scope }) => rows.list(world, scope, limit, offset),
+    ...playerRowsHandlers('plunders', rows),
     'plunders.totals': async ({ world, opponents }) => {
-      const totals = { count: 0, repelled: 0, fp: 0 };
-      await rows.forEach(world, { opponents }, (p) => {
-        if (p.outcome === 'repelled') {
-          totals.repelled++;
-          return;
-        }
-        totals.count++;
-        totals.fp += p.resources[FORGE_POINTS] ?? 0;
-      });
-      return totals;
+      const tally = { plunders: 0, repelled: 0, fp: 0 };
+      await rows.forEach(world, { opponents }, (p) => tallyPlunder(tally, p));
+      return { count: tally.plunders, repelled: tally.repelled, fp: tally.fp };
     },
-    'plunders.prune': ({ before }) => rows.prune(before),
   };
 }

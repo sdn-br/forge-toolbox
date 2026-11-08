@@ -1,4 +1,5 @@
 import type { Table } from 'dexie';
+import type { HandlerDeps } from '../../background/handlers';
 import { fetchDue, foestatsDay, RETRY_AFTER } from '../../shared/foestats';
 import type { FoestatsPlayer } from '../../shared/foestats-api';
 import type { PlayerId, WorldId } from '../../shared/ids';
@@ -12,11 +13,6 @@ export type FoestatsTables = {
   foestatsFetches: Table<FoestatsFetch, [WorldId, PlayerId]>;
 };
 
-/** the clock of the handlers; tests pass their own */
-export interface FoestatsDeps {
-  now: () => number;
-}
-
 /** a claimed request that was never stored (the tab closed meanwhile) blocks no longer than this */
 export const CLAIM_TIMEOUT = 60_000;
 
@@ -28,7 +24,7 @@ const dayBefore = (date: string) => new Date(Date.parse(`${date}T00:00:00Z`) - D
  * from the changes when both are known. Undefined when the snapshot lacks its day, points or battles: a day with one
  * value would never get the other.
  */
-export function snapshotDays(
+function snapshotDays(
   world: WorldId,
   player: PlayerId,
   s: FoestatsPlayer,
@@ -60,9 +56,7 @@ export function snapshotDays(
  * foestats day. An unreachable foestats holds back every player for `RETRY_AFTER`; that is kept in memory only, a
  * restarted service worker just asks again.
  */
-export function foestatsHandlers(db: FoestatsTables, { now }: FoestatsDeps): Handlers<FoestatsApi> {
-  const history = (world: WorldId, player: PlayerId) =>
-    db.foestatsDays.where('[world+player]').equals([world, player]).sortBy('date');
+export function foestatsHandlers(db: FoestatsTables, { now }: Pick<HandlerDeps, 'now'>): Handlers<FoestatsApi> {
   /** claimed requests not stored yet, with the time of the claim */
   const claims = new Map<string, number>();
   const key = (world: WorldId, player: PlayerId) => `${world}:${player}`;
@@ -77,15 +71,13 @@ export function foestatsHandlers(db: FoestatsTables, { now }: FoestatsDeps): Han
       const at = now();
       const state = { unreachable: unreachableAt !== undefined, unknown: last?.unknown === true };
       const claimed = claims.get(key(world, player));
-      if (
+      const fetch = !(
         (unreachableAt !== undefined && at - unreachableAt < RETRY_AFTER) ||
         !fetchDue(last, at) ||
         (claimed !== undefined && at - claimed < CLAIM_TIMEOUT)
-      ) {
-        return { fetch: false, ...state };
-      }
-      claims.set(key(world, player), at);
-      return { fetch: true, ...state };
+      );
+      if (fetch) claims.set(key(world, player), at);
+      return { fetch, ...state };
     },
     'foestats.store': async ({ world, player, answer }) => {
       const at = now();
@@ -116,6 +108,7 @@ export function foestatsHandlers(db: FoestatsTables, { now }: FoestatsDeps): Han
         claims.delete(key(world, player));
       }
     },
-    'foestats.history': ({ world, player }) => history(world, player),
+    'foestats.history': ({ world, player }) =>
+      db.foestatsDays.where('[world+player]').equals([world, player]).sortBy('date'),
   };
 }

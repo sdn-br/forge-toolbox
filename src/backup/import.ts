@@ -2,7 +2,9 @@
 // merging the chosen rows into the profile databases or replacing the chosen areas with them. Only the current version
 // of the file is read.
 import type { ToolboxDb } from '../background/db';
+import { gbKey } from '../persistence/great-buildings/merge';
 import { relinkRows } from '../persistence/pvp-link';
+import { rowsOfWorld } from '../shared/idb';
 import { playerId, type WorldId } from '../shared/ids';
 import type { Player } from '../shared/model';
 import { type Profile, profileDbName, profileStorageKey, sameProfile } from '../shared/profile';
@@ -298,10 +300,7 @@ async function mergeTables(
   return db.transaction('rw', TABLES, async () => {
     for (const area of empty) {
       for (const name of AREA_TABLES[area]) {
-        await db
-          .table<{ world: string }>(name)
-          .filter((row) => row.world === world)
-          .delete();
+        await rowsOfWorld(db.table<{ world: string }>(name), world).delete();
       }
     }
     const pvp = await Promise.all([
@@ -320,12 +319,7 @@ async function mergeTables(
     return {
       pvp: sum(pvp),
       notes: sum(notes),
-      greatBuildings: await merge(
-        db.greatBuildings,
-        t.greatBuildings,
-        (r) => [r.world, r.owner, r.entityId],
-        mergeMarked,
-      ),
+      greatBuildings: await merge(db.greatBuildings, t.greatBuildings, gbKey, mergeMarked),
       players: await merge(db.players, t.players, (r) => [r.world, r.id], mergePlayer),
     };
   });

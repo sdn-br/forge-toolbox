@@ -4,6 +4,7 @@ import type { WorldId } from '../../shared/ids';
 import type { IncomingAttack, IncomingKind } from '../../shared/model';
 import type { Handlers } from '../../shared/rpc';
 import { playerRows } from '../player-rows';
+import { playerRowsHandlers } from '../player-rows-handlers';
 import type { IncomingApi } from './contract';
 
 export type IncomingTables = { incoming: Table<IncomingAttack, [WorldId, IncomingKind, number]> };
@@ -20,8 +21,7 @@ export function incomingHandlers(db: IncomingTables & Dexie): Handlers<IncomingA
         await db.incoming.bulkAdd(rows.filter((_, i) => !known[i]));
         return undefined;
       }),
-    'incoming.latest': ({ world, opponent }) => rows.latest(world, opponent),
-    'incoming.list': ({ world, limit, offset, ...scope }) => rows.list(world, scope, limit, offset),
+    ...playerRowsHandlers('incoming', rows),
     'incoming.totals': async ({ world, ...scope }) => {
       const totals = { battles: 0, held: 0, plunders: 0 };
       await rows.forEach(world, scope, (a) => {
@@ -31,6 +31,5 @@ export function incomingHandlers(db: IncomingTables & Dexie): Handlers<IncomingA
       });
       return totals;
     },
-    'incoming.prune': ({ before }) => rows.prune(before),
   };
 }
