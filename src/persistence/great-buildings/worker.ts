@@ -1,10 +1,18 @@
 import type Dexie from 'dexie';
 import type { Table } from 'dexie';
+import {
+  applyListRow,
+  gbKey,
+  growthSince,
+  hasOwnContribution,
+  isFlagged,
+  kept,
+  withoutOwnContribution,
+} from '../../shared/great-buildings';
 import type { PlayerId, WorldId } from '../../shared/ids';
 import type { GreatBuildingListRow, KnownGreatBuilding, MarkKind } from '../../shared/model';
 import type { Handlers } from '../../shared/rpc';
 import type { GreatBuildingsApi } from './contract';
-import { applyListRow, gbKey, growthSince, hasOwnContribution, isFlagged, withoutOwnContribution } from './merge';
 
 /** when the town hall list of the own contributions last came in a world */
 export interface GreatBuildingListTimes {
@@ -16,12 +24,6 @@ export type GreatBuildingsTables = {
   greatBuildings: Table<KnownGreatBuilding, [WorldId, PlayerId, number]>;
   greatBuildingLists: Table<GreatBuildingListTimes, WorldId>;
 };
-
-/** what an opened building does not tell, so the stored row keeps it (the ranking window brought the tier) */
-const KEPT = ['ownContribution', 'marked', 'ignored', 'marksAt', 'tier'] as const;
-
-const kept = (before: KnownGreatBuilding | undefined) =>
-  Object.fromEntries(KEPT.flatMap((k) => (before?.[k] !== undefined && before[k] !== false ? [[k, before[k]]] : [])));
 
 export function greatBuildingsHandlers(db: GreatBuildingsTables & Dexie): Handlers<GreatBuildingsApi> {
   const writeList = async (world: WorldId, rows: GreatBuildingListRow[], at: number, own: boolean) => {

@@ -8,7 +8,7 @@ import {
 } from '../src/content/features/investments/mine/view-model';
 import { toGreatBuildingListRows } from '../src/content/game/convert';
 import type { RankingRow } from '../src/content/model/great-building';
-import { applyListRow } from '../src/persistence/great-buildings/merge';
+import { applyListRow } from '../src/shared/great-buildings';
 import { type BuildingDefId, playerId, worldId } from '../src/shared/ids';
 import type { KnownGreatBuilding, Relations } from '../src/shared/model';
 import contributions from './fixtures/gb-contributions.json';

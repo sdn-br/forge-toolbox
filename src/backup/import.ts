@@ -2,8 +2,8 @@
 // merging the chosen rows into the profile databases or replacing the chosen areas with them. Only the current version
 // of the file is read.
 import type { ToolboxDb } from '../background/db';
-import { gbKey } from '../persistence/great-buildings/merge';
 import { relinkPvp } from '../persistence/pvp/worker';
+import { gbKey } from '../shared/great-buildings';
 import { rowsOfWorld } from '../shared/idb';
 import { playerId, type WorldId } from '../shared/ids';
 import type { Player } from '../shared/model';

@@ -1,6 +1,6 @@
 import type { Table } from 'dexie';
 import { openDb, type ToolboxDb } from '../background/db';
-import { hasOwnContribution, isFlagged } from '../persistence/great-buildings/merge';
+import { hasOwnContribution, isFlagged } from '../shared/great-buildings';
 import { rowsOfWorld } from '../shared/idb';
 import type { PlayerId, WorldId } from '../shared/ids';
 import type { Player } from '../shared/model';

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { openDb, type ToolboxDb } from '../src/background/db';
 import { collectTables } from '../src/backup/collect';
 import { type BackupTables, playersToKeep, referencedPlayers } from '../src/backup/format';
-import { hasOwnContribution, isFlagged } from '../src/persistence/great-buildings/merge';
+import { hasOwnContribution, isFlagged } from '../src/shared/great-buildings';
 import { buildingDefId, eraId, playerId, type WorldId, worldId } from '../src/shared/ids';
 import type { KnownGreatBuilding, Player } from '../src/shared/model';
 import { battle, de20 } from './helpers/backup';
