@@ -7,7 +7,8 @@ import { gbKey } from '../shared/great-buildings';
 import { rowsOfWorld } from '../shared/idb';
 import { playerId, type WorldId } from '../shared/ids';
 import type { Player } from '../shared/model';
-import { type Profile, profileDbName, profileStorageKey, sameProfile } from '../shared/profile';
+import { type Profile, profileStorageKey, sameProfile } from '../shared/profile';
+import type { ProfileCall } from '../shared/rpc';
 import { BACKUP_FORMAT, BACKUP_VERSION, type BackupFile, type BackupProfile, type BackupTables } from './format';
 import { unpackText } from './gzip';
 import { type LocalRows, withoutKnown } from './legacy/known';
@@ -147,9 +148,13 @@ export interface ImportCounts {
 
 export const NO_IMPORT: ImportCounts = { profiles: 0, pvp: 0, notes: 0, greatBuildings: 0, players: 0, settings: 0 };
 
-/** what the import needs from outside: the databases and chrome.storage.local */
+/** what the import needs from outside: the calls into the profile databases and chrome.storage.local */
 export interface ImportEnv {
-  open: (name: string) => ToolboxDb;
+  /**
+   * the calls into the service worker: the rows go through its connection, whose hooks count the change for the
+   * backups (`watchBackupTables`); a database opened elsewhere would write past them
+   */
+  call: ProfileCall;
   get(keys: string[]): Promise<Record<string, unknown>>;
   set(items: Record<string, unknown>): Promise<void>;
 }
@@ -161,10 +166,10 @@ export interface ImportItem {
 }
 
 /**
- * Merges the chosen areas of each profile into its database, created under the usual name when the profile is new
- * here (another computer). In the mode "replace" the chosen data areas are emptied first, in the same transaction, so
- * a failure leaves the old rows; the players are merged in both modes. Chosen settings replace the stored ones; the
- * profile name is stored when it is missing.
+ * Merges the chosen areas of each profile into its database through the service worker (`backup.merge`), created
+ * under the usual name when the profile is new here (another computer). In the mode "replace" the chosen data areas
+ * are emptied first, in the same transaction, so a failure leaves the old rows; the players are merged in both modes.
+ * Chosen settings replace the stored ones; the profile name is stored when it is missing.
  */
 export async function importBackup(
   items: ImportItem[],
@@ -178,13 +183,8 @@ export async function importBackup(
     const profile: Profile = { world: entry.world, player: playerId(entry.player) };
     total.profiles++;
     if (DATA_AREAS.some((area) => areas.has(area))) {
-      const db = env.open(profileDbName(profile));
-      try {
-        const counts = await importTables(db, entry, areas, mode);
-        for (const key of ['pvp', 'notes', 'greatBuildings', 'players'] as const) total[key] += counts[key];
-      } finally {
-        db.close();
-      }
+      const counts = await env.call(profile, 'backup.merge', { entry, areas: [...areas], mode });
+      for (const key of ['pvp', 'notes', 'greatBuildings', 'players'] as const) total[key] += counts[key];
     }
     const settingsKey = profileStorageKey('settings', profile);
     const nameKey = profileStorageKey('profile', profile);

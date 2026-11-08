@@ -11,6 +11,7 @@ import { playerId, worldId } from '../src/shared/ids';
 import { FOLDER_DAILY_KEEP, FOLDER_STATUS, type FolderStatus } from '../src/shared/messages';
 import { type Profile, profileDbName } from '../src/shared/profile';
 import { battle, me, tables } from './helpers/backup';
+import { workerCalls } from './helpers/worker-call';
 
 const DAY = 24 * 60 * 60 * 1000;
 /** noon, so a few hours later is the same local day */
@@ -40,14 +41,17 @@ function setup(options: { folder?: MemoryFolder | null; local?: Record<string, u
   /** the change number of the test profile, as the service worker counts it */
   let change = 0;
   const open = (name: string) => openDb(`${prefix}${name}`);
+  /** the service worker's connections, with the hooks that count the changes */
+  const worker = workerCalls(open);
   const backup = new FolderBackup({
     folder: async () => folder,
     open,
+    call: worker.call,
     local,
     session,
     localProfiles: async () => options.profiles ?? [me],
     now: () => time,
-    change: () => change,
+    change: () => change + worker.changes(),
     logError: (what) => errors.push(what),
   });
   /** the profile's database, for arranging rows, with the hooks of the service worker; close it after */
@@ -62,6 +66,8 @@ function setup(options: { folder?: MemoryFolder | null; local?: Record<string, u
     local,
     db,
     errors,
+    /** the changes the hooks of the service worker's connections counted */
+    workerChanges: worker.changes,
     status: () => local.data[FOLDER_STATUS] as FolderStatus | undefined,
     setTime: (at: number) => {
       time = at;
@@ -216,6 +222,18 @@ describe('the first write of a session', () => {
     expect([...folder.data.keys()].sort()).toEqual([folderFileName(me), 'forge-toolbox-de20-12.json.gz']);
     const written = await readFolderFile(folder, folderFileName(me));
     expect(written?.profiles[0]?.tables.battles.map((b) => b.battleId)).toEqual([1, 2, 3]);
+  });
+
+  it('merges through the connection the service worker watches, so the merged rows raise the change number', async () => {
+    const folder = memoryFolder();
+    folder.data.set(folderFileName(me), await fileOf({ ...me, tables: tables({ battles: [battle(1), battle(2)] }) }));
+    const env = setup({ folder });
+
+    await env.backup.start(me);
+
+    expect(env.workerChanges()).toBe(2);
+    // the write after the merge took the raised number, the next one finds nothing new
+    expect(await env.backup.changed(me)).toBe('unchanged');
   });
 
   it('keeps the own settings, a file brings settings only to a profile without', async () => {

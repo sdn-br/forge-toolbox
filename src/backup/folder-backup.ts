@@ -6,6 +6,7 @@ import type { ToolboxDb } from '../background/db';
 import { playerId } from '../shared/ids';
 import { FOLDER_DAILY_KEEP, FOLDER_STATUS, type FolderStatus } from '../shared/messages';
 import { type Profile, profileDbName, profileStorageKey, sameProfile } from '../shared/profile';
+import type { ProfileCall } from '../shared/rpc';
 import { collectBackup, storedOfProfile } from './collect';
 import type { RootFolder } from './folder';
 import {
@@ -36,7 +37,10 @@ export interface StorageArea {
 export interface FolderBackupEnv {
   /** the chosen folder, undefined when none is chosen */
   folder(): Promise<RootFolder | undefined>;
+  /** a connection of its own to a profile database, for reading the rows to write */
   open(name: string): ToolboxDb;
+  /** the calls into the profile databases; the merge writes through them, so it counts as a change (see `ImportEnv`) */
+  call: ProfileCall;
   local: StorageArea;
   session: StorageArea;
   /** the profiles with a database here */
@@ -191,11 +195,11 @@ export class FolderBackup {
     const hasSettings = (await this.env.local.get([settingsKey]))[settingsKey] !== undefined;
     // the settings carry no time, the own ones stay; only a profile without any takes them
     const areas = new Set<Area>([...DATA_AREAS, ...(entry.settings && !hasSettings ? ['settings' as const] : [])]);
-    const { open, local } = this.env;
+    const { call, local } = this.env;
     const counts = await importBackup(
       [{ profile: { ...entry, player: playerId(profile.player) }, areas }],
       read.backup.createdAt,
-      { open, get: (keys) => local.get(keys), set: (items) => local.set(items) },
+      { call, get: (keys) => local.get(keys), set: (items) => local.set(items) },
     );
     return counts.pvp + counts.notes + counts.greatBuildings + counts.players + counts.settings > 0;
   }

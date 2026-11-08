@@ -18,6 +18,7 @@ import {
 import { buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
 import type { Battle, FoughtBattle, KnownGreatBuilding, NotePage, Player, Plunder } from '../src/shared/model';
 import { DAY_MS } from '../src/shared/time';
+import { workerCalls } from './helpers/worker-call';
 
 const de20 = worldId('de20');
 const me = playerId(1);
@@ -291,7 +292,7 @@ describe('importBackup', () => {
   const storage = (values: Record<string, unknown> = {}) => {
     const env: ImportEnv & { values: Record<string, unknown> } = {
       values,
-      open: openDb,
+      call: workerCalls().call,
       get: async (keys) => Object.fromEntries(keys.filter((k) => k in values).map((k) => [k, values[k]])),
       set: async (items) => {
         Object.assign(values, items);
@@ -451,13 +452,33 @@ describe('replaceSummary', () => {
   });
 });
 
+describe('importBackup through the service worker', () => {
+  afterEach(async () => {
+    for (const { name } of await indexedDB.databases()) if (name?.startsWith('forge-toolbox')) await Dexie.delete(name);
+  });
+
+  it('writes past the hooks of the backups, so merging and replacing raise the change number', async () => {
+    const worker = workerCalls();
+    const env: ImportEnv = { call: worker.call, get: async () => ({}), set: async () => {} };
+    const entry: BackupProfile = { world: de20, player: me, tables: tables({ battles: [battle(1, 11)] }) };
+
+    await importBackup([{ profile: entry, areas: areas('pvp') }], 500, env);
+    expect(worker.changes()).toBe(1);
+
+    const other: BackupProfile = { ...entry, tables: tables({ battles: [battle(2, 11)] }) };
+    await importBackup([{ profile: other, areas: areas('pvp') }], 500, env, 'replace');
+    // battle 1 deleted, battle 2 added
+    expect(worker.changes()).toBe(3);
+  });
+});
+
 describe('importBackup replacing', () => {
   afterEach(async () => {
     for (const { name } of await indexedDB.databases()) if (name?.startsWith('forge-toolbox')) await Dexie.delete(name);
   });
   const env = (values: Record<string, unknown> = {}): ImportEnv & { values: Record<string, unknown> } => ({
     values,
-    open: openDb,
+    call: workerCalls().call,
     get: async (keys) => Object.fromEntries(keys.filter((k) => k in values).map((k) => [k, values[k]])),
     set: async (items) => {
       Object.assign(values, items);

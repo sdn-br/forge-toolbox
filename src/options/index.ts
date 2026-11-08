@@ -1,7 +1,7 @@
 // The extension's own page "Daten verwalten": export and import of the stored data as a file, per profile, also
-// without the game open. It lives in the extension origin and opens the databases itself, like the service worker.
+// without the game open. It lives in the extension origin and reads the databases itself; the import writes through the
+// service worker, whose hooks count the change for the backups.
 import { html, render, type TemplateResult } from 'lit-html';
-import { openDb } from '../background/db';
 import {
   type BackupSource,
   closeBackupSources,
@@ -17,6 +17,7 @@ import { gzipJson } from '../backup/gzip';
 import {
   type ImportChoice,
   type ImportCounts,
+  type ImportEnv,
   type ImportMode,
   importBackup,
   importChoices,
@@ -25,6 +26,7 @@ import {
 } from '../backup/import';
 import { type Area, DATA_AREAS } from '../backup/merge';
 import { logError } from '../content/core/log';
+import { backgroundCall } from '../content/core/rpc';
 import { formatFullDateTime, formatNumber, t } from '../content/core/texts';
 import type { WorldId } from '../shared/ids';
 import {
@@ -173,7 +175,11 @@ function startImport() {
     areas: new Set((Object.keys(c.checked) as Area[]).filter((a) => c.checked[a])),
   }));
   update({ importBusy: true, importAsking: false, importStatus: t('data.importing') });
-  const env = { open: openDb, get: getStorage, set: (i: Record<string, unknown>) => chrome.storage.local.set(i) };
+  const env: ImportEnv = {
+    call: (profile, rpc, arg) => backgroundCall(profile)(rpc, arg),
+    get: getStorage,
+    set: (i: Record<string, unknown>) => chrome.storage.local.set(i),
+  };
   importBackup(items, file.backup.createdAt, env, state.importMode)
     .then((counts) => {
       update({ importStatus: importedText(counts) });

@@ -1,6 +1,6 @@
 // The service worker serves every profile from its own database: opened on the first call of the profile, then kept.
 import { isProfile, type Profile, profileDbName } from '../shared/profile';
-import type { BackgroundApi, Handlers, Method, RpcRequest, RpcResponse } from '../shared/rpc';
+import type { BackgroundApi, Handlers, Method, ProfileCall, RpcRequest, RpcResponse } from '../shared/rpc';
 import type { ToolboxDb } from './db';
 import { createHandlers, type HandlerDeps } from './handlers';
 
@@ -51,6 +51,18 @@ export function profileDispatch(env: ProfileEnv): (req: RpcRequest) => Promise<R
     } catch (error) {
       return { ok: false, error: String(error) };
     }
+  };
+}
+
+/**
+ * Calls of the service worker itself into a profile's database, through the dispatch the tabs' calls take: the same
+ * connection, so its writes pass the hooks of the persisted signal. A failed call throws.
+ */
+export function workerCall(dispatch: (req: RpcRequest) => Promise<RpcResponse>): ProfileCall {
+  return async (profile, rpc, arg) => {
+    const res = await dispatch({ profile, rpc, arg } as RpcRequest);
+    if (!res.ok) throw new Error(res.error);
+    return res.result as never;
   };
 }
 
