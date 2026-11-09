@@ -46,8 +46,9 @@ export function applyListRow(
       : undefined;
   }
   const { growth, growthFrom, growthAt, ...kept } = existing;
+  const sameLevel = state.level === existing.level;
   const next: KnownGreatBuilding = {
-    ...(state.level === existing.level ? kept : withoutLevelBound(kept)),
+    ...withoutStaleMaxLevel(sameLevel ? kept : withoutLevelBound(kept), state),
     cityEntityId: state.cityEntityId,
     level: state.level,
     invested: state.invested,
@@ -59,6 +60,21 @@ export function applyListRow(
   };
   if (ownContribution && next.growthBase === undefined) next.growthBase = state.invested;
   return { ...next, ...place };
+}
+
+/**
+ * A list brings no unlocked level, so the one of the last opening stays, unless the list shows it is past: the building
+ * stands at or above it on a new level, or someone paid into a level that was locked. Kept, it would block every place
+ * (seen 2026-11-09: a building opened at 80 of 80, listed later at 81, showed no snipe hit until opened again).
+ */
+function withoutStaleMaxLevel(
+  b: KnownGreatBuilding,
+  state: Pick<KnownGreatBuilding, 'level' | 'invested'>,
+): KnownGreatBuilding {
+  if (b.maxLevel === undefined || b.maxLevel > state.level) return b;
+  if (b.level === state.level && state.invested === 0) return b;
+  const { maxLevel, ...rest } = b;
+  return rest;
 }
 
 /**

@@ -136,11 +136,41 @@ describe('known great buildings from lists', () => {
     at(6_000);
     list([row(1909, 76, 0, 3100)]);
     const [b] = await greatBuildings.known(playerId(1001));
-    expect(b).toMatchObject({ level: 76, invested: 0, required: 3100, seenAt: 6_000, maxLevel: 76 });
+    // the unlocked level of the opening (76) is past at level 76, so it goes with the rankings
+    expect(b).toMatchObject({ level: 76, invested: 0, required: 3100, seenAt: 6_000 });
+    expect(b?.maxLevel).toBeUndefined();
     expect(b?.rankings).toBeUndefined();
     expect(b?.rankingsLevel).toBeUndefined();
     expect(b?.rankingsAt).toBeUndefined();
     expect(b?.rankingsInvested).toBeUndefined();
+  });
+
+  describe('unlocked level of an earlier opening', () => {
+    const row = (level: number, invested: number) => ({
+      owner: playerId(1001),
+      entityId: 1,
+      cityEntityId: 'X' as KnownGreatBuilding['cityEntityId'],
+      level,
+      invested,
+      required: 500,
+    });
+    const maxAfter = (maxLevel: number, level: number, invested: number) =>
+      applyListRow(worldId('de20'), known({ maxLevel }), row(level, invested), 2_000)?.maxLevel;
+
+    it('drops it when a new level reaches it', () => {
+      expect(maxAfter(5, 6, 100)).toBeUndefined();
+      expect(maxAfter(6, 6, 0)).toBeUndefined();
+    });
+
+    it('keeps it while it lies above the listed level', () => {
+      expect(maxAfter(8, 6, 100)).toBe(8);
+      expect(maxAfter(8, 5, 300)).toBe(8);
+    });
+
+    it('drops it when someone paid into the level it locked, and keeps it while nothing is paid in', () => {
+      expect(maxAfter(5, 5, 300)).toBeUndefined();
+      expect(maxAfter(5, 5, 0)).toBe(5);
+    });
   });
 
   it('ignores a list that is not newer than the entry', async () => {
