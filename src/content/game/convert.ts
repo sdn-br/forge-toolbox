@@ -19,6 +19,8 @@ import type {
   GreatBuildingListRow,
   GuildRef,
   IncomingAttack,
+  InventoryItem,
+  ItemPayload,
   Plunder,
   Session,
 } from '../../shared/model';
@@ -38,7 +40,6 @@ import type {
 import type { GreatBuildingEntity, PlaceReward, RankingRow } from '../model/great-building';
 import type { ResearchExpansion } from '../model/research';
 import type { VisitInfo } from '../stores/cities';
-import type { InventoryItem, ItemPayload } from '../stores/inventory';
 import type { ListedPlayer, PlayerObservation } from '../stores/players';
 import type {
   GameArmyContext,
