@@ -7,7 +7,7 @@ import { calculateOwnShare, type OwnPlace, type OwnShareCalc } from '../../domai
 import { levelTier, tierPlaces } from '../../domain/gb-tier';
 import type { GreatBuildingDef, GreatBuildingTier, TierStart } from '../../model/catalog';
 import type { Construction, RankingRow } from '../../model/great-building';
-import type { PlaceFactorState } from '../../stores/place-factors';
+import type { PlaceFactorState } from '../../stores/gb-own-state';
 import { type FactorButton, factorButtons } from '../../ui/factor-bar';
 import { type LevelChoice, levelChoice } from '../../ui/level-bar';
 import { type LevelPreview, levelPreview } from '../../ui/level-preview';

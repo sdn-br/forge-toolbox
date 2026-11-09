@@ -3,8 +3,8 @@ import { logError } from '../../core/log';
 import { toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
 import type { Construction } from '../../model/great-building';
-import { ownArcBonus, SECURE, TRUST, viewFlag } from '../../stores/gb-own-state';
 import { icons } from '../../ui/icons';
+import { ownArcBonus, SECURE, TRUST, viewFlag } from '../shared/gb-own-view';
 import {
   ARC_BUTTON,
   FACTOR,

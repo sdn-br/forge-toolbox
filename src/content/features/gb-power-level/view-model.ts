@@ -9,7 +9,7 @@ import { powerLevelPlan } from '../../domain/gb-power-level';
 import { levelTier, tierPlaces } from '../../domain/gb-tier';
 import type { GreatBuildingDef, GreatBuildingTier, TierStart } from '../../model/catalog';
 import type { Construction } from '../../model/great-building';
-import type { PlaceFactorState } from '../../stores/place-factors';
+import type { PlaceFactorState } from '../../stores/gb-own-state';
 import { type FactorButton, factorButtons } from '../../ui/factor-bar';
 import { clampTop, type RowWindow, rowWindow } from '../../ui/windowed-rows';
 import { type CopyOptions, copyText } from '../gb-own-share/copy-text';
