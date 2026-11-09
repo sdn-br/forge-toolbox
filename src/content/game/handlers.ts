@@ -1,5 +1,6 @@
 // Which game response feeds which store, all in one place. A response may have several handlers that each feed their
 // own part, for example `updatePlayer` (players, plunder) and `CityMapService.reset` (plunder, own buildings).
+import type { GbWindowState } from '../../shared/gb-window-protocol';
 import { eraId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import type { Ingestion } from '../core/ingestion';
@@ -490,6 +491,11 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   });
   ingestion.onBatchEnd(() => inventory.commit());
 
+  // the great building window the game shows, as the engine last said; `none` while the engine says nothing
+  let gbWindow: GbWindowState = 'none';
+  bus.on('gbWindow.changed', ({ state }) => {
+    gbWindow = state;
+  });
   // names of great buildings, which the level up event uses instead of an id; the definitions may not be loaded
   ingestion.on('InventoryService', 'getGreatBuildings', ({ data }) => {
     catalog.setGreatBuildingNames(toGreatBuildingNames(data));
@@ -499,7 +505,18 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     catalog.setGreatBuildingNames(toGreatBuildingNames(data));
     // the owner first, so the views the list redraws already know the name
     players.applyListed(world, toListedPlayers(data, me));
-    greatBuildings.noteList(toGreatBuildingListRows(data, me));
+    const rows = toGreatBuildingListRows(data, me);
+    greatBuildings.noteList(rows);
+    const owner = rows[0]?.owner;
+    if (owner === undefined) return;
+    // After a contribution that levels a building and after paging back to a finished level the game asks for the
+    // owner's list itself (seen 2026-10-31), the request looks the same. Who asked is not decided (Nutzer, 2026-11-09):
+    // every list counts, but while a great building window shows, the list comes quietly.
+    const quiet = gbWindow === 'foreign' || gbWindow === 'own';
+    // debt: a quiet list goes to the console, to check the rule in the game. ceiling: one line per list the game asks
+    // for. upgrade: remove it once the rule has held in the game for some weeks.
+    if (quiet) logInfo('great building list taken quietly', { owner, window: gbWindow });
+    bus.emit('greatBuildings.listed', { owner, entityIds: rows.map((r) => r.entityId), at: now(), quiet });
   });
   // The ranking window, tab "Legendäre Bauwerke" (recorded 2026-11-04 on de10): opening the tab, paging (blocks of 50)
   // and both searches answer with rows of buildings of many players. The other tabs use the same methods.

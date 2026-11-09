@@ -406,6 +406,8 @@ describe('LG-Rechner', () => {
     /** the Zeusstatue of another player 7 → 8 as recorded on de20 2026-10-23, the player pays 135 FP into place 2 */
     const openZeus = async () => {
       const env = setup();
+      // the game shows the building's window, so the list it asks for after the level up comes quietly
+      env.ctx.bus.emit('gbWindow.changed', { state: 'foreign' });
       env.send(...(levelUp.opening as Entry[]));
       await tick();
       expect(env.box.text).toContain('St. 7 → 8');

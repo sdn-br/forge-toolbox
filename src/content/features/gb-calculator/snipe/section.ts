@@ -148,15 +148,16 @@ export function createSnipeSection(
     chime.ring(key, settings.sound.get());
   };
 
-  ctx.bus.on('greatBuildings.listed', ({ owner, entityIds, at, askedByGame }) => {
-    // the game asked for the list itself, the player did not open it, so it leaves the box alone
-    if (askedByGame) {
-      logInfo('snipe list skipped, asked by the game', { owner, entityIds });
-      return;
-    }
+  // every list replaces the shown one, it is the newest; a quiet one (a great building window shows, so the game may
+  // have asked for it itself) neither opens, unfolds nor beeps, and keeps the place in the rows of the same owner
+  ctx.bus.on('greatBuildings.listed', ({ owner, entityIds, at, quiet }) => {
+    if (!quiet || list?.owner !== owner) scroll = 0;
     list = { owner, at, entityIds: new Set(entityIds) };
     listed = [];
-    scroll = 0;
+    if (quiet) {
+      loadList().catch((error) => logError('reading the great building list failed', error));
+      return;
+    }
     hooks.listArrived();
     onList().catch((error) => logError('reading the great building list failed', error));
   });
