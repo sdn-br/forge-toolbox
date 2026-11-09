@@ -35,8 +35,6 @@ export interface GreatBuildingPersistence {
 const NO_CHANGE = { changed: false, cleared: false };
 /** openings remembered until their construction arrives; the game sends both right after each other */
 const MAX_ENTITIES = 20;
-/** a list this soon after the owner's building was opened or paid into is the game's own question, not the player's */
-const ASKED_BY_GAME = 3000;
 
 /**
  * The great building construction the player has open in the game, and what is known about other players' great
@@ -47,8 +45,6 @@ export class GreatBuildingStore {
   private open?: Construction;
   private entities = new Map<string, GreatBuildingEntity>();
   private listedAt?: number;
-  /** when the game last showed the open construction anew: opened, paid into or paged to another level */
-  private shownAt = 0;
   private pending: KnownGreatBuilding[] = [];
   private writes: Promise<unknown> = Promise.resolve();
   private flushQueued = false;
@@ -167,7 +163,6 @@ export class GreatBuildingStore {
       ...(entity && nextProduction && { nextProduction: { level: entity.level, ...nextProduction } }),
       seenAt: this.now(),
     };
-    this.shownAt = this.now();
     this.remember();
     this.bus.emit('greatBuilding.opened', { owner, entityId, own });
   }
@@ -180,7 +175,6 @@ export class GreatBuildingStore {
   levelRanking(owner: PlayerId, entityId: number, level: number, rankings: RankingRow[]): void {
     const open = this.matching(owner, entityId);
     if (!open) return;
-    this.shownAt = this.now();
     if (open.entity !== undefined && level <= open.entity.level) return;
     this.open = { ...open, rankings, rankingsLevel: level - 1, seenAt: this.now() };
     this.remember();
@@ -209,7 +203,6 @@ export class GreatBuildingStore {
     const leveled =
       open.leveled && rankingsLevel !== undefined && rankingsLevel >= open.leveled.level ? undefined : open.leveled;
     this.open = { ...open, entity, rankings, rankingsLevel, leveled, seenAt: this.now() };
-    this.shownAt = this.now();
     this.remember();
     this.changed('contributed');
   }
@@ -233,11 +226,9 @@ export class GreatBuildingStore {
   }
 
   /**
-   * The great building list of another player (`getOtherPlayerOverview`); the caller leaves out the own list. After a
-   * contribution that levels a building, and after paging back to a finished level (seen 2026-10-31: right after its
-   * `getConstructionRanking`, in a request of its own), the game asks for the owner's list to learn names: a list of the
-   * owner of the open construction less than `ASKED_BY_GAME` after it was opened, paid into or paged counts as asked by
-   * the game. There is no other sign, the request looks the same.
+   * The great building list of another player (`getOtherPlayerOverview`); the caller leaves out the own list. Once
+   * written, `greatBuildings.stored` names its owner. The ingestion announces the list itself (`greatBuildings.listed`), with
+   * the window the game shows.
    */
   noteList(rows: GreatBuildingListRow[]): void {
     const owner = rows[0]?.owner;
@@ -248,19 +239,12 @@ export class GreatBuildingStore {
       await this.persistence.putList(this.world, rows, at);
       this.bus.emit('greatBuildings.stored', { owner, entityIds });
     });
-    const open = this.open;
-    this.bus.emit('greatBuildings.listed', {
-      owner,
-      entityIds,
-      at,
-      askedByGame: open?.owner === owner && at - this.shownAt < ASKED_BY_GAME,
-    });
   }
 
   /**
    * Rows of the great building ranking (RankingService, recorded 2026-11-04): buildings of many owners, written like a
-   * list. Once written, `greatBuildings.stored` names each owner. It is no list of a player, so `greatBuildings.listed`
-   * stays silent: the snipe helper, foestats and the window detection mean a list the game shows for one owner.
+   * list. Once written, `greatBuildings.stored` names each owner. It is no list of a player the player opened, so
+   * `greatBuildings.listed` stays silent.
    */
   noteRanking(rows: GreatBuildingListRow[]): void {
     const at = this.now();

@@ -48,10 +48,10 @@ describe('foestats feature', () => {
     expect(asked()).toEqual(['8']);
   });
 
-  it('asks about the owner of a great building list, unless the game asked for the list itself', async () => {
+  it('asks about the owner of a great building list, unless it came quietly', async () => {
     const { ctx, asked } = setup();
-    const list = (owner: number, askedByGame: boolean) =>
-      ctx.bus.emit('greatBuildings.listed', { owner: playerId(owner), entityIds: [], at: 0, askedByGame });
+    const list = (owner: number, quiet: boolean) =>
+      ctx.bus.emit('greatBuildings.listed', { owner: playerId(owner), entityIds: [], at: 0, quiet });
     list(9, true);
     list(10, false);
     await vi.waitFor(() => expect(ctx.foestats.get(playerId(10))?.loading).toBe(false));

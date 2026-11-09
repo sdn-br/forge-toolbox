@@ -105,14 +105,14 @@ describe('Investitionen box', () => {
     expect((progress.querySelector('.fp-bar > div') as HTMLElement).style.width).toMatch(/^98\.1/);
   });
 
-  it('takes the owner name from the player store after a list the game asked for itself, reading nothing for the event', async () => {
+  it('takes the owner name from the player store after a quiet list, reading nothing for the event', async () => {
     const { box, send, bus, greatBuildings, players, world } = setup();
     send(contributions.contributions as Entry);
     await tick();
     const known = vi.spyOn(greatBuildings, 'known');
     // the handler of the list teaches the player store the name first
     players.applyListed(world, [{ id: playerId(2005), name: 'Leuchtturmwärter' }]);
-    bus.emit('greatBuildings.listed', { owner: playerId(2005), entityIds: [], at: Date.now(), askedByGame: true });
+    bus.emit('greatBuildings.listed', { owner: playerId(2005), entityIds: [], at: Date.now(), quiet: true });
     expect(known).not.toHaveBeenCalled();
     await tick();
     expect(box.text).toContain('Leuchtturmwärter');
@@ -319,7 +319,7 @@ describe('Investitionen: reading the known buildings', () => {
     const own = contributions.contributions.responseData[0];
     const owner = own?.player.player_id as number;
     // what the game sends is no reason to read: the box waits for the write
-    bus.emit('greatBuildings.listed', { owner: playerId(owner), entityIds: [], at: Date.now(), askedByGame: false });
+    bus.emit('greatBuildings.listed', { owner: playerId(owner), entityIds: [], at: Date.now(), quiet: false });
     bus.emit('greatBuilding.changed', { owner: playerId(owner), entityId: 1, reason: 'leveled' });
     await Promise.resolve();
     await Promise.resolve();

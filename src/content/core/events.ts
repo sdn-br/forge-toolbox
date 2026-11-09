@@ -68,14 +68,14 @@ export interface ToolboxEvents {
   'greatBuilding.ignored': { owner: PlayerId; entityId: number; ignored: boolean };
   /**
    * the great building list of another player arrived (not the own one); `at` is when, `entityIds` its buildings.
-   * `askedByGame`: the game asked for it itself, not the player (it came right after a building of that owner was opened
-   * or paid into), so it opens and unfolds nothing
+   * Sent by the ingestion. `quiet`: a great building window showed when it came, so the list is not what the player
+   * looks at; take it, but open, unfold, beep and ask nothing for it
    */
   'greatBuildings.listed': {
     owner: PlayerId;
     entityIds: number[];
     at: number;
-    askedByGame: boolean;
+    quiet: boolean;
   };
   /** the town hall list of the own contributions arrived at `at`; `known()` has it once read */
   'greatBuildings.contributions': { at: number };

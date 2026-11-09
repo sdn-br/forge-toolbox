@@ -18,9 +18,9 @@ export const foestatsFeature: Feature = {
       if (!own) view(owner);
     });
     ctx.bus.on('city.visited', ({ owner }) => view(owner));
-    // a list the game asked for itself comes right after the owner's building, which asked already
-    ctx.bus.on('greatBuildings.listed', ({ owner, askedByGame }) => {
-      if (!askedByGame) view(owner);
+    // a quiet list comes while a great building window shows, whose owner was asked about at its opening
+    ctx.bus.on('greatBuildings.listed', ({ owner, quiet }) => {
+      if (!quiet) view(owner);
     });
   },
 };

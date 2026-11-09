@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import { Ingestion } from '../src/content/core/ingestion';
 import { registerGameHandlers } from '../src/content/game/handlers';
@@ -150,49 +150,36 @@ describe('known great buildings from lists', () => {
     expect((await greatBuildings.known(playerId(1001)))[0]).toMatchObject({ level: 75, invested: 251 });
   });
 
-  it("flags a list of the open building's owner within 3 s of opening or paying in as asked by the game", () => {
-    const { bus, open, list, row, at } = setup();
-    const asked: string[] = [];
-    bus.on('greatBuildings.listed', (e) => asked.push(`${e.owner}:${e.at}:${e.askedByGame}`));
-    // 1909 of 1001 opened at 5 000
-    open(1909);
-    at(7_999);
-    list([row(1909, 75, 300, 3062)]);
-    at(8_000);
-    list([row(1909, 75, 300, 3062)]);
-    // another owner's list right after the opening is the player's own question
-    at(5_500);
-    list([row(650, 49, 917, 2000, 1002)], 1002);
-    expect(asked).toEqual(['1001:7999:true', '1001:8000:false', '1002:5500:false']);
-  });
-
-  it('flags a list of the owner within 3 s of paging the open building to another level as asked by the game', () => {
-    const { bus, send, open, list, row, at } = setup();
-    const asked: string[] = [];
-    bus.on('greatBuildings.listed', (e) => asked.push(`${e.at}:${e.askedByGame}`));
-    open(1909);
-    // paging back to a finished level: the game asks for its rankings, then for the owner's list (seen 2026-10-31)
-    at(20_000);
-    send({
-      requestClass: 'GreatBuildingsService',
-      requestMethod: 'getConstructionRanking',
-      requestData: [1909, 1001, 70],
-      responseData: [],
-    });
-    at(20_500);
-    list([row(1909, 75, 300, 3062)]);
-    at(23_000);
-    list([row(1909, 75, 300, 3062)]);
-    expect(asked).toEqual(['20500:true', '23000:false']);
-  });
-
-  it('counts a list as asked by the player while no building is open', () => {
-    const { bus, list, row, at } = setup();
-    const asked: boolean[] = [];
-    bus.on('greatBuildings.listed', (e) => asked.push(e.askedByGame));
+  it('announces every list at once, quiet while a great building window shows, and says so', async () => {
+    const { bus, greatBuildings, open, list, row, at } = setup();
+    const announced: string[] = [];
+    bus.on('greatBuildings.listed', (e) => announced.push(`${e.owner}:${e.entityIds.join(',')}:${e.at}:${e.quiet}`));
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
     at(6_000);
     list([row(1909, 75, 300, 3062)]);
-    expect(asked).toEqual([false]);
+    open(1909);
+    // a contribution that levels the building: the game asks for the list while the building window shows
+    bus.emit('gbWindow.changed', { state: 'foreign' });
+    at(7_000);
+    list([row(1909, 76, 0, 3100)]);
+    expect((await greatBuildings.known(playerId(1001)))[0]).toMatchObject({ level: 76 });
+    bus.emit('gbWindow.changed', { state: 'own' });
+    at(7_500);
+    list([row(1909, 76, 0, 3100)]);
+    bus.emit('gbWindow.changed', { state: 'list' });
+    at(8_000);
+    list([row(1909, 76, 0, 3100)]);
+    expect(announced).toEqual([
+      '1001:1909:6000:false',
+      '1001:1909:7000:true',
+      '1001:1909:7500:true',
+      '1001:1909:8000:false',
+    ]);
+    expect(info.mock.calls).toEqual([
+      ['[Forge Toolbox]', 'great building list taken quietly', { owner: playerId(1001), window: 'foreign' }],
+      ['[Forge Toolbox]', 'great building list taken quietly', { owner: playerId(1001), window: 'own' }],
+    ]);
+    info.mockRestore();
   });
 
   it('writes nothing for the own list', async () => {

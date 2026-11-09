@@ -71,6 +71,7 @@ function setup(prefs: Record<string, string> = {}) {
       requestData: [owner],
       responseData,
     });
+  const shows = (state: GbWindowState) => ctx.bus.emit('gbWindow.changed', { state });
   const open = (entityId: number) => {
     const o = fixture.openings.find((x) => x.entity.requestData[0] === entityId);
     if (!o) throw new Error(`no opening ${entityId}`);
@@ -86,6 +87,7 @@ function setup(prefs: Record<string, string> = {}) {
     ...ctx,
     box,
     send,
+    shows,
     list,
     open,
     rows,
@@ -527,21 +529,58 @@ describe('Snipehilfe: stacked box', () => {
     expect(expanded(box)).toBe(false);
   });
 
-  it('neither unfolds nor beeps for a list the game asked for itself', async () => {
-    const { box, list, open, advance, tones } = setup();
+  it('takes a list quietly while a great building window shows: replaced, but no box, no unfolding, no tone', async () => {
+    const { box, list, open, shows, advance, tones } = setup();
     list([hitZeus()]);
     await tick();
     advance(10_000);
+    shows('foreign');
     open(1909);
     await tick();
-    toggle(box)?.click();
-    await tick();
+    // the building window folds the section of its owner's list
+    expect(expanded(box)).toBe(false);
+    box.box.close();
     const toned = tones();
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    // a contribution that levels 1909: the game asks for the owner's list, the construction window stays in front
     list([hitOracle()], 1001);
     await tick();
-    expect(expanded(box)).toBe(false);
+    expect(box.box.isOpen).toBe(false);
     expect(tones()).toBe(toned);
+    box.box.open();
+    await tick();
+    expect(expanded(box)).toBe(false);
+    // the newest list replaced the shown one: closing the building shows it with the game's list underneath
+    shows('list');
+    await tick();
+    expect(expanded(box)).toBe(true);
+    expect(box.text).toContain('Orakel');
+    expect(box.text).not.toContain('Zeusstatue');
   });
+
+  it('takes a list quietly over an own great building window too', async () => {
+    const { box, list, shows, tones } = setup();
+    shows('own');
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    list([hitZeus()]);
+    await tick();
+    expect(box.box.isOpen).toBe(false);
+    expect(tones()).toBe(0);
+  });
+
+  it.each<GbWindowState>(['none', 'list'])(
+    'opens, unfolds and beeps for a list while the window is %s',
+    async (state) => {
+      const { box, list, shows, tones } = setup();
+      shows('foreign');
+      shows(state);
+      list([hitZeus()]);
+      await tick();
+      expect(box.box.isOpen).toBe(true);
+      expect(expanded(box)).toBe(true);
+      expect(tones()).toBe(1);
+    },
+  );
 
   it('opens with a list that has hits, shows the owner, its age and the rows by profit', async () => {
     const { box, list, rows, cells, tones, advance } = setup();
