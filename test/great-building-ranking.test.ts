@@ -177,7 +177,9 @@ describe('great buildings from the ranking window', () => {
     const [b] = await greatBuildings.known(opened.owner);
     expect(b).toMatchObject({ level: opened.level + 1, invested: 7, tier: 'copper', marked: true, seenAt: 6_000 });
     expect(b?.rankings).toBeUndefined();
-    expect(b?.maxLevel).toBe(opened.maxLevel);
+    // the opening unlocked up to the new level, which the row now reaches: that bound is past
+    expect(opened.maxLevel).toBe(opened.level + 1);
+    expect(b?.maxLevel).toBeUndefined();
   });
 
   it('ignores a row that is not newer than the entry', async () => {

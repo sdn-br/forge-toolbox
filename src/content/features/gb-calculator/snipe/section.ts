@@ -85,6 +85,8 @@ export function createSnipeSection(
         level: b.level,
         invested: b.invested,
         required: b.required,
+        maxLevel: b.maxLevel,
+        connected: b.connected,
         seenAt: b.seenAt,
         rankingsLevel: b.rankingsLevel,
         rankingsInvested: b.rankingsInvested,
