@@ -1,13 +1,14 @@
 // Which game response feeds which store, all in one place. A response may have several handlers that each feed their
 // own part, for example `updatePlayer` (players, plunder) and `CityMapService.reset` (plunder, own buildings).
 import type { GbWindowState } from '../../shared/gb-window-protocol';
-import { eraId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
+import { type BuildingDefId, eraId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import type { Ingestion } from '../core/ingestion';
 import { logInfo } from '../core/log';
 import type { Building } from '../model/city';
 import type { GreatBuildingEntity, RankingRow } from '../model/great-building';
 import type { Stores } from '../stores';
+import type { CatalogStore } from '../stores/catalog';
 import type { PlayerObservation } from '../stores/players';
 import { toBuildingDef, toBuildingFiles, toGreatBuildingTiers } from './building-defs';
 import {
@@ -15,6 +16,7 @@ import {
   greatBuildingOf,
   greatBuildingRequest,
   isBattleState,
+  isGreatBuildingType,
   isOwnPvpBattle,
   isPlunderedEntity,
   isRepelledPlunder,
@@ -89,6 +91,14 @@ const withAttack = (list: unknown, now: number) =>
   (Array.isArray(list) ? list : [])
     .map((p) => toObservationWithAttack(p, now))
     .filter((o): o is PlayerObservation => o !== null);
+
+/** all great buildings with this display name; the game names a building only so in some events */
+function greatBuildingsNamed(catalog: CatalogStore, name: string): BuildingDefId[] {
+  const ids = new Set<BuildingDefId>();
+  for (const [id, n] of catalog.greatBuildingNames()) if (n === name) ids.add(id);
+  for (const def of catalog.definitions()) if (isGreatBuildingType(def.type) && def.name === name) ids.add(def.id);
+  return [...ids];
+}
 
 export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps): void {
   const {
@@ -546,7 +556,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   // entity_level_up instead, which is not read: the contribution's response already brings the new level.
   ingestion.on('OtherPlayerService', 'newEvent', ({ data }) => {
     const up = toGreatBuildingLevelUp(data as GameEvent);
-    if (up) greatBuildings.leveled(up.owner, catalog.greatBuildingsNamed(up.name), up.level, up.rank);
+    if (up) greatBuildings.leveled(up.owner, greatBuildingsNamed(catalog, up.name), up.level, up.rank);
   });
 
   // debt: own city ignores placeBuilding, removeBuilding and moveEntity. ceiling: own city is stale after building

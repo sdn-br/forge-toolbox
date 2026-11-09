@@ -137,6 +137,9 @@ function toState(s: GameState | undefined): BuildingState {
   }
 }
 
+/** whether the game type (of an entity or a building definition) is a great building */
+export const isGreatBuildingType = (type: string | undefined): boolean => type === 'greatbuilding';
+
 /** Groups by the game type of the entity; types the toolbox does not know are `other`. */
 const CATEGORY_OF: Record<string, BuildingCategory> = {
   residential: 'residential',
@@ -171,7 +174,7 @@ export function toBuilding(e: GameCityEntity, owner: PlayerId): Building | null 
     connected: e.connected !== 0,
     state: toState(e.state),
   };
-  if (e.type === 'greatbuilding') {
+  if (isGreatBuildingType(e.type)) {
     building.greatBuilding = {
       level: e.level ?? 0,
       maxLevel: e.max_level ?? 0,
