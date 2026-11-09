@@ -4,6 +4,7 @@ import { type GreatBuildingListRow, type KnownGreatBuilding, type MarkKind, OTHE
 import { DAY_MS } from '../../shared/time';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
+import { knownRowOf, ownDepositGrowth } from '../domain/gb-known-row';
 import type { Construction, GreatBuildingEntity, RankingRow } from '../model/great-building';
 import { WriteQueue } from './write-queue';
 
@@ -196,8 +197,7 @@ export class GreatBuildingStore {
   ): void {
     const open = target ? this.matching(target.owner, target.entityId) : this.open;
     if (!open) return;
-    const mine = (rows: RankingRow[]) => rows.find((r) => r.self && r.rank !== undefined)?.fp ?? 0;
-    const added = mine(rankings) - mine(open.rankings);
+    const added = ownDepositGrowth(open.rankings, rankings);
     const fits = building?.owner === open.owner && building.entityId === open.entityId;
     const entity = fits ? building : open.entity && { ...open.entity, invested: open.entity.invested + added };
     const rankingsLevel = entity?.level;
@@ -290,33 +290,9 @@ export class GreatBuildingStore {
   /** keeps the state of a foreign building with the rankings of its current level */
   private remember() {
     const open = this.open;
-    const entity = open?.entity;
-    if (!open || open.own || !entity) return;
-    const invested = open.rankings.reduce((sum, r) => sum + (r.fp ?? 0), 0);
-    const self = open.rankings.find((r) => r.self && r.rank !== undefined);
-    const at = this.now();
-    this.pending.set(gbIdKey(open.owner, open.entityId), {
-      world: this.world,
-      owner: open.owner,
-      entityId: open.entityId,
-      cityEntityId: entity.def,
-      level: entity.level,
-      invested: entity.invested,
-      required: entity.required,
-      maxLevel: entity.maxLevel,
-      connected: entity.connected,
-      rankings: open.rankings,
-      rankingsLevel: open.rankingsLevel ?? entity.level,
-      rankingsAt: open.seenAt,
-      rankingsInvested: invested,
-      ...(self?.rank !== undefined && {
-        ownContribution: true,
-        contribution: { rank: self.rank, forgePoints: self.fp ?? 0, reward: self.reward?.fp ?? 0, at },
-      }),
-      // the building is open in the game now: what is paid in from here on is growth
-      growthBase: entity.invested,
-      seenAt: at,
-    });
+    const row = open && knownRowOf(open, this.world, this.now());
+    if (!open || !row) return;
+    this.pending.set(gbIdKey(open.owner, open.entityId), row);
     this.queue.batch(async () => {
       const rows = [...this.pending.values()];
       this.pending.clear();
