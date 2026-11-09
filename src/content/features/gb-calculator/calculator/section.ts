@@ -70,16 +70,16 @@ export function createCalculatorSection(
       hooks.refresh();
     },
     toggleMark: (marked) => {
-      if (shown) ctx.greatBuildings.setMarked(shown.owner, shown.entityId, marked);
+      if (shown) ctx.greatBuildings.setFlag('marked', shown.owner, shown.entityId, marked);
     },
     toggleOwnerMark: (marked) => {
-      if (shown) ctx.players.setMarked(shown.owner, marked);
+      if (shown) ctx.players.setFlag(shown.owner, 'marked', marked);
     },
     toggleIgnore: (ignored) => {
-      if (shown) ctx.greatBuildings.setIgnored(shown.owner, shown.entityId, ignored);
+      if (shown) ctx.greatBuildings.setFlag('ignored', shown.owner, shown.entityId, ignored);
     },
     toggleOwnerIgnore: (ignored) => {
-      if (shown) ctx.players.setIgnored(shown.owner, ignored);
+      if (shown) ctx.players.setFlag(shown.owner, 'ignored', ignored);
     },
   };
 

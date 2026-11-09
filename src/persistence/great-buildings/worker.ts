@@ -3,6 +3,7 @@ import type { Table } from 'dexie';
 import {
   applyListRow,
   gbKey,
+  gbStringKey,
   growthSince,
   hasOwnContribution,
   isFlagged,
@@ -10,7 +11,7 @@ import {
   withoutOwnContribution,
 } from '../../shared/great-buildings';
 import type { PlayerId, WorldId } from '../../shared/ids';
-import type { GreatBuildingListRow, KnownGreatBuilding, MarkKind } from '../../shared/model';
+import { type GreatBuildingListRow, type KnownGreatBuilding, type MarkKind, OTHER_MARK } from '../../shared/model';
 import type { Handlers } from '../../shared/rpc';
 import type { GreatBuildingsApi } from './contract';
 
@@ -40,7 +41,7 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables & Dexie): Handle
       // a batch may hold several writes of one building: each one is measured against the one before it
       const latest = new Map<string, KnownGreatBuilding>();
       const written = rows.map((row, i) => {
-        const k = gbKey(row).join(':');
+        const k = gbStringKey(row);
         const before = latest.get(k) ?? known[i];
         const next: KnownGreatBuilding = {
           ...row,
@@ -59,11 +60,11 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables & Dexie): Handle
       // one transaction commits once for the whole list
       db.transaction('rw', db.greatBuildings, db.greatBuildingLists, async () => {
         await writeList(world, rows, at, true);
-        const listed = new Set(rows.map((r) => gbKey({ world, ...r }).join(':')));
+        const listed = new Set(rows.map((r) => gbStringKey({ world, ...r })));
         const gone = await db.greatBuildings
           .where('world')
           .equals(world)
-          .filter((b) => !!b.ownContribution && !listed.has(gbKey(b).join(':')))
+          .filter((b) => !!b.ownContribution && !listed.has(gbStringKey(b)))
           .toArray();
         await db.greatBuildings.bulkDelete(gone.filter((b) => !isFlagged(b)).map(gbKey));
         await db.greatBuildings.bulkPut(gone.filter(isFlagged).map(withoutOwnContribution));
@@ -82,7 +83,7 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables & Dexie): Handle
       const row = await db.greatBuildings.get([world, owner, entityId]);
       if (!row) return false;
       // the star and the ignore exclude each other: putting one drops the other in the same write
-      const other = flag === 'marked' ? 'ignored' : 'marked';
+      const other = OTHER_MARK[flag];
       const { [flag]: _, [other]: otherSet, ...rest } = row;
       await db.greatBuildings.put({
         ...rest,

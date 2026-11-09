@@ -53,13 +53,9 @@ const PAIRS = {
   noAttack: { other: 'plunderWorthy', at: 'pvpMarksAt', source: 'noAttack' },
 } as const;
 
-type FlagKind = keyof typeof PAIRS;
-const PAIR_GROUPS = [
-  ['marked', 'ignored', 'marksAt'],
-  ['plunderWorthy', 'noAttack', 'pvpMarksAt'],
-] as const;
-const MARK_FIELDS = ['marked', 'ignored', 'marksAt', 'plunderWorthy', 'noAttack', 'pvpMarksAt'] as const;
-type MarkField = (typeof MARK_FIELDS)[number];
+export type FlagKind = keyof typeof PAIRS;
+type MarkField = FlagKind | (typeof PAIRS)[FlagKind]['at'];
+const MARK_FIELDS = [...Object.keys(PAIRS), ...new Set(Object.values(PAIRS).map((p) => p.at))] as MarkField[];
 
 /** the marks of a player, the part no game source reports */
 const marksOf = (p: Player | undefined): Pick<Player, MarkField> =>
@@ -108,6 +104,7 @@ export class PlayerStore {
     const rows = await this.persistence.load(world);
     for (const row of rows) {
       let live = this.players.get(row.id);
+      let touched = false;
       if (!live) {
         this.players.set(row.id, row);
         continue;
@@ -118,23 +115,22 @@ export class PlayerStore {
         for (const k of MARK_FIELDS) delete data[k];
         live = { ...listedOnto(data, live, live.seenAt), ...marksOf(live) };
         this.players.set(row.id, live);
-        this.dirty.add(row.id);
-        this.scheduleFlush();
+        touched = true;
       }
       // the marks are the player's own and the game never reports them, so what the database holds stays
       // (a flag the player set this session wins over the other one of the database, the two exclude each other;
       // their time goes with them, a change this session is newer than any in the database)
       const patch: Partial<Player> = {};
-      for (const [a, b, at] of PAIR_GROUPS) {
-        for (const [kind, other] of [
-          [a, b],
-          [b, a],
-        ] as const)
-          if (row[kind] && !live[kind] && !live[other]) patch[kind] = true;
+      for (const [kind, { other, at }] of Object.entries(PAIRS) as [FlagKind, (typeof PAIRS)[FlagKind]][]) {
+        if (row[kind] && !live[kind] && !live[other]) patch[kind] = true;
         if (live[at] === undefined && row[at] !== undefined) patch[at] = row[at];
       }
       if (Object.keys(patch).length > 0) {
-        this.players.set(row.id, { ...live, ...patch });
+        live = { ...live, ...patch };
+        this.players.set(row.id, live);
+        touched = true;
+      }
+      if (touched) {
         this.dirty.add(row.id);
         this.scheduleFlush();
       }
@@ -145,28 +141,10 @@ export class PlayerStore {
     return this.players.get(id);
   }
 
-  /** whether the player carries a star; undefined for a player the store does not know */
-  marked(id: PlayerId): boolean | undefined {
+  /** whether the player carries this flag; undefined for a player the store does not know */
+  flag(id: PlayerId, kind: FlagKind): boolean | undefined {
     const p = this.players.get(id);
-    return p && p.marked === true;
-  }
-
-  /** whether the player is ignored; undefined for a player the store does not know */
-  ignored(id: PlayerId): boolean | undefined {
-    const p = this.players.get(id);
-    return p && p.ignored === true;
-  }
-
-  /** whether the player is good to plunder; undefined for a player the store does not know */
-  plunderWorthy(id: PlayerId): boolean | undefined {
-    const p = this.players.get(id);
-    return p && p.plunderWorthy === true;
-  }
-
-  /** whether the player is not to be attacked; undefined for a player the store does not know */
-  noAttack(id: PlayerId): boolean | undefined {
-    const p = this.players.get(id);
-    return p && p.noAttack === true;
+    return p && p[kind] === true;
   }
 
   list(filter: { relation?: keyof Relations } = {}): Player[] {
@@ -174,29 +152,12 @@ export class PlayerStore {
     return filter.relation ? all.filter((p) => p.relations[filter.relation as keyof Relations]) : all;
   }
 
-  /** Puts a star on a player or takes it away. Only a player the store knows can be marked; false for any other.
-   * A star clears the ignore, the two exclude each other. */
-  setMarked(id: PlayerId, marked: boolean): boolean {
-    return this.setFlag(id, 'marked', marked);
-  }
-
-  /** Ignores a player or releases them, with the same rules as the star. Ignoring clears the star. */
-  setIgnored(id: PlayerId, ignored: boolean): boolean {
-    return this.setFlag(id, 'ignored', ignored);
-  }
-
-  /** Marks a player as good to plunder or takes it away, with the rules of the star but its own time. It clears
-   * `noAttack`. The great building marks are not touched. */
-  setPlunderWorthy(id: PlayerId, value: boolean): boolean {
-    return this.setFlag(id, 'plunderWorthy', value);
-  }
-
-  /** Marks a player as not to attack, with the same rules. It clears `plunderWorthy`. */
-  setNoAttack(id: PlayerId, value: boolean): boolean {
-    return this.setFlag(id, 'noAttack', value);
-  }
-
-  private setFlag(id: PlayerId, kind: FlagKind, value: boolean): boolean {
+  /**
+   * Sets or clears a flag on a player. Only a player the store knows can be flagged; false for any other. Setting a
+   * flag clears the one that excludes it (star and ignore, `plunderWorthy` and `noAttack`) and stamps the time of the
+   * pair. The great building marks are not touched.
+   */
+  setFlag(id: PlayerId, kind: FlagKind, value: boolean): boolean {
     const p = this.players.get(id);
     if (!p) return false;
     if ((p[kind] === true) !== value) {

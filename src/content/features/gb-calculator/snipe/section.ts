@@ -4,9 +4,9 @@ import type { TemplateResult } from 'lit-html';
 import type { PlayerId } from '../../../../shared/ids';
 import type { KnownGreatBuilding } from '../../../../shared/model';
 import type { FeatureContext } from '../../../core/feature';
-import { logError } from '../../../core/log';
+import { logError, logInfo } from '../../../core/log';
 import type { Setting } from '../../../core/settings';
-import { type SnipeList, snipeList } from '../../../domain/gb-snipe';
+import { type SnipeList, snipeBuildings, snipeList } from '../../../domain/gb-snipe';
 import type { Box } from '../../../ui/box';
 import { nextSort } from '../../../ui/sortable';
 import { createChime } from '../../../ui/sound';
@@ -71,6 +71,29 @@ export function createSnipeSection(
   /** keyed by the hits of the list: the same hits stay quiet */
   const chime = createChime(hooks.tone);
   let loads = 0;
+  /** the inputs of the last update, for the diagnosis log */
+  let inputs: Pick<GbShared, 'greatBuilding' | 'arcBonus' | 'tiers'> | undefined;
+
+  // debt: diagnosis of lists that showed no hit until a building was opened (2026-11-08, twice, not reproduced).
+  // ceiling: one console line per list. upgrade: remove once the cause is found and fixed.
+  const diagnose = (step: string, details?: Record<string, unknown>) => {
+    const rows =
+      inputs &&
+      snipeBuildings(listed, inputs.greatBuilding, inputs.arcBonus, inputs.tiers).map(({ building: b, result }) => ({
+        entityId: b.entityId,
+        def: b.cityEntityId,
+        level: b.level,
+        invested: b.invested,
+        required: b.required,
+        seenAt: b.seenAt,
+        rankingsLevel: b.rankingsLevel,
+        rankingsInvested: b.rankingsInvested,
+        rankingsAt: b.rankingsAt,
+        ownContribution: b.ownContribution,
+        result: typeof result === 'string' ? result : `${result.tier} P${result.place.rank} +${result.place.profit}`,
+      }));
+    logInfo(`snipe list ${step}`, { owner: list?.owner, ids: list && [...list.entityIds], ...details, rows });
+  };
 
   const actions: SnipeActions = {
     sort: (column, append) => {
@@ -97,7 +120,10 @@ export function createSnipeSection(
     if (!current) return false;
     const load = ++loads;
     const known = await ctx.greatBuildings.known(current.owner);
-    if (load !== loads || list !== current) return false;
+    if (load !== loads || list !== current) {
+      diagnose('read dropped', { newerLoad: load !== loads, newerList: list !== current });
+      return false;
+    }
     listed = known.filter((b) => current.entityIds.has(b.entityId));
     hooks.refresh();
     return true;
@@ -105,9 +131,17 @@ export function createSnipeSection(
 
   /** a new list: open the box when something pays, once per set of hits a tone */
   const onList = async () => {
-    if (!(await loadList()) || !snipe) return;
+    if (!(await loadList())) return;
+    if (!snipe) return diagnose('without result');
     // ignored buildings and owners are no reason to open the box or to beep
     const hits = snipe.hits.filter((h) => !ignores(ctx, h.owner, h.entityId));
+    diagnose('read', {
+      hits: hits.length,
+      ignored: snipe.hits.length - hits.length,
+      known: listed.length,
+      opens: settings.open.get(),
+      sound: settings.sound.get(),
+    });
     if (hits.length === 0) return;
     const key = `${list?.owner}|${hits.map((h) => `${h.entityId}:${h.tier}:${h.place.rank}:${h.place.cost}`).join(',')}`;
     if (settings.open.get()) box.open();
@@ -116,7 +150,10 @@ export function createSnipeSection(
 
   ctx.bus.on('greatBuildings.listed', ({ owner, entityIds, at, askedByGame }) => {
     // the game asked for the list itself, the player did not open it, so it leaves the box alone
-    if (askedByGame) return;
+    if (askedByGame) {
+      logInfo('snipe list skipped, asked by the game', { owner, entityIds });
+      return;
+    }
     list = { owner, at, entityIds: new Set(entityIds) };
     listed = [];
     scroll = 0;
@@ -137,6 +174,7 @@ export function createSnipeSection(
     listOwner: () => list?.owner,
     hasList: () => vm.kind !== 'none',
     update: ({ lookups, greatBuilding, arcBonus, tiers, now }) => {
+      inputs = { greatBuilding, arcBonus, tiers };
       snipe = list && snipeList({ buildings: listed, greatBuilding, arcBonus, tiers });
       vm = snipeViewModel({ ...lookups, list, result: snipe, showIgnored, now, sort, scroll });
     },

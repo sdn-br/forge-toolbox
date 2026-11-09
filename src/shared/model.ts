@@ -41,6 +41,9 @@ export type PlayerSource =
 /** what the session player may put on a player or a great building: a star, or an ignore */
 export type MarkKind = 'marked' | 'ignored';
 
+/** the mark that setting a mark clears, the two exclude each other */
+export const OTHER_MARK: Record<MarkKind, MarkKind> = { marked: 'ignored', ignored: 'marked' };
+
 /** what the session player may put on a player for PvP, separate from the great building marks: good to plunder, or not to attack */
 export type PvpMarkKind = 'plunderWorthy' | 'noAttack';
 

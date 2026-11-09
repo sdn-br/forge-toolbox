@@ -46,7 +46,7 @@ export const attackWarningFeature: Feature = {
     };
 
     ctx.bus.on('army.target', ({ opponent }) => {
-      if (ctx.players.noAttack(opponent)) show(ctx.players.get(opponent)?.name);
+      if (ctx.players.flag(opponent, 'noAttack')) show(ctx.players.get(opponent)?.name);
       else hide();
     });
     ctx.bus.on('army.opened', hide);

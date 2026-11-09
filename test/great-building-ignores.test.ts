@@ -53,10 +53,10 @@ describe('ignoring great buildings', () => {
     const events: unknown[] = [];
     bus.on('greatBuilding.ignored', (e) => events.push(e));
     expect(greatBuildings.isIgnored(owner, 1)).toBe(false);
-    await greatBuildings.ignore(owner, 1, true);
+    await greatBuildings.flag('ignored', owner, 1, true);
     expect(greatBuildings.isIgnored(owner, 1)).toBe(true);
     expect((await row(1))?.ignored).toBe(true);
-    await greatBuildings.ignore(owner, 1, false);
+    await greatBuildings.flag('ignored', owner, 1, false);
     expect(greatBuildings.isIgnored(owner, 1)).toBe(false);
     expect((await row(1))?.ignored).toBeUndefined();
     expect(events).toEqual([
@@ -68,11 +68,11 @@ describe('ignoring great buildings', () => {
   it('clears the star when ignoring, in memory and database, telling the bus about both', async () => {
     const { greatBuildings, bus, row } = setup();
     greatBuildings.noteList([listRow(1)]);
-    await greatBuildings.mark(owner, 1, true);
+    await greatBuildings.flag('marked', owner, 1, true);
     const events: unknown[] = [];
     bus.on('greatBuilding.marked', (e) => events.push(e));
     bus.on('greatBuilding.ignored', (e) => events.push(e));
-    await greatBuildings.ignore(owner, 1, true);
+    await greatBuildings.flag('ignored', owner, 1, true);
     expect(greatBuildings.isIgnored(owner, 1)).toBe(true);
     expect(greatBuildings.isMarked(owner, 1)).toBe(false);
     expect(await row(1)).toMatchObject({ ignored: true });
@@ -86,11 +86,11 @@ describe('ignoring great buildings', () => {
   it('clears the ignore when marking, in memory and database, telling the bus about both', async () => {
     const { greatBuildings, bus, row } = setup();
     greatBuildings.noteList([listRow(1)]);
-    await greatBuildings.ignore(owner, 1, true);
+    await greatBuildings.flag('ignored', owner, 1, true);
     const events: unknown[] = [];
     bus.on('greatBuilding.marked', (e) => events.push(e));
     bus.on('greatBuilding.ignored', (e) => events.push(e));
-    await greatBuildings.mark(owner, 1, true);
+    await greatBuildings.flag('marked', owner, 1, true);
     expect(greatBuildings.isMarked(owner, 1)).toBe(true);
     expect(greatBuildings.isIgnored(owner, 1)).toBe(false);
     expect(await row(1)).toMatchObject({ marked: true });
@@ -104,8 +104,8 @@ describe('ignoring great buildings', () => {
   it('keeps the other flag when a flag is only released', async () => {
     const { greatBuildings, row } = setup();
     greatBuildings.noteList([listRow(1)]);
-    await greatBuildings.ignore(owner, 1, true);
-    await greatBuildings.mark(owner, 1, false);
+    await greatBuildings.flag('ignored', owner, 1, true);
+    await greatBuildings.flag('marked', owner, 1, false);
     expect(greatBuildings.isIgnored(owner, 1)).toBe(true);
     expect(await row(1)).toMatchObject({ ignored: true });
   });
@@ -113,7 +113,7 @@ describe('ignoring great buildings', () => {
   it('ignores a building whose row is still being written', async () => {
     const { greatBuildings } = setup();
     greatBuildings.noteList([listRow(1)]);
-    await greatBuildings.ignore(owner, 1, true);
+    await greatBuildings.flag('ignored', owner, 1, true);
     expect(greatBuildings.isIgnored(owner, 1)).toBe(true);
   });
 
@@ -121,7 +121,7 @@ describe('ignoring great buildings', () => {
     const { greatBuildings, bus } = setup();
     const events: unknown[] = [];
     bus.on('greatBuilding.ignored', (e) => events.push(e));
-    await greatBuildings.ignore(owner, 99, true);
+    await greatBuildings.flag('ignored', owner, 99, true);
     expect(greatBuildings.isIgnored(owner, 99)).toBe(false);
     expect(events).toEqual([]);
   });
@@ -129,7 +129,7 @@ describe('ignoring great buildings', () => {
   it('knows its ignores again after a reload', async () => {
     const { greatBuildings, db, world, bus } = setup();
     greatBuildings.noteList([listRow(1), listRow(2)]);
-    await greatBuildings.ignore(owner, 2, true);
+    await greatBuildings.flag('ignored', owner, 2, true);
     const reloaded = new GreatBuildingStore(bus, world, db.greatBuildings);
     expect(reloaded.isIgnored(owner, 2)).toBe(false);
     await reloaded.load();
@@ -143,7 +143,7 @@ describe('the ignore survives every write path', () => {
   it('a newer list', async () => {
     const { greatBuildings, at, row } = setup();
     greatBuildings.noteList([listRow(1)]);
-    await greatBuildings.ignore(owner, 1, true);
+    await greatBuildings.flag('ignored', owner, 1, true);
     at(2_000);
     greatBuildings.noteList([listRow(1, { invested: 300 })]);
     expect(await row(1)).toMatchObject({ invested: 300, ignored: true });
@@ -152,7 +152,7 @@ describe('the ignore survives every write path', () => {
   it('a list with a new level', async () => {
     const { greatBuildings, at, row } = setup();
     greatBuildings.noteList([listRow(1)]);
-    await greatBuildings.ignore(owner, 1, true);
+    await greatBuildings.flag('ignored', owner, 1, true);
     at(2_000);
     greatBuildings.noteList([listRow(1, { level: 6, invested: 0 })]);
     expect(await row(1)).toMatchObject({ level: 6, ignored: true });
@@ -162,7 +162,7 @@ describe('the ignore survives every write path', () => {
     const { greatBuildings, at, row } = setup();
     at(5_000);
     greatBuildings.noteList([listRow(1)]);
-    await greatBuildings.ignore(owner, 1, true);
+    await greatBuildings.flag('ignored', owner, 1, true);
     at(2_000);
     greatBuildings.noteList([listRow(1, { rank: 2, forgePoints: 10, reward: 5 })]);
     expect(await row(1)).toMatchObject({ ownContribution: true, ignored: true });
@@ -171,7 +171,7 @@ describe('the ignore survives every write path', () => {
   it('an opened building', async () => {
     const { greatBuildings, db, row } = setup();
     greatBuildings.noteList([listRow(1)]);
-    await greatBuildings.ignore(owner, 1, true);
+    await greatBuildings.flag('ignored', owner, 1, true);
     await db.greatBuildings.put([opened(1, { seenAt: 3_000, invested: 250 })]);
     expect(await row(1)).toMatchObject({ invested: 250, rankingsLevel: 5, ignored: true });
   });
@@ -179,7 +179,7 @@ describe('the ignore survives every write path', () => {
   it('the town hall list', async () => {
     const { greatBuildings, at, row } = setup();
     greatBuildings.noteList([listRow(1)]);
-    await greatBuildings.ignore(owner, 1, true);
+    await greatBuildings.flag('ignored', owner, 1, true);
     at(2_000);
     greatBuildings.noteContributions([listRow(1, { rank: 3, forgePoints: 40, reward: 20 })]);
     expect(await row(1)).toMatchObject({ ownContribution: true, ignored: true });
@@ -192,7 +192,7 @@ describe('the ignore survives every write path', () => {
       listRow(1, { rank: 3, forgePoints: 40, reward: 20 }),
       listRow(2, { rank: 1, forgePoints: 40, reward: 20 }),
     ]);
-    await greatBuildings.ignore(owner, 1, true);
+    await greatBuildings.flag('ignored', owner, 1, true);
     at(2_000);
     greatBuildings.noteContributions([listRow(2, { rank: 1, forgePoints: 40, reward: 20 })]);
     const kept = await row(1);
@@ -215,7 +215,7 @@ describe('retention of ignored buildings', () => {
   it('prunes by the given days but never an ignored building', async () => {
     const { greatBuildings, at, row } = setup();
     greatBuildings.noteList([listRow(1), listRow(2)]);
-    await greatBuildings.ignore(owner, 1, true);
+    await greatBuildings.flag('ignored', owner, 1, true);
     at(1_000 + 31 * DAY);
     await greatBuildings.prune(30);
     expect(await row(1)).toBeDefined();
@@ -225,8 +225,8 @@ describe('retention of ignored buildings', () => {
   it('prunes a building again once it is released', async () => {
     const { greatBuildings, at, row } = setup();
     greatBuildings.noteList([listRow(1)]);
-    await greatBuildings.ignore(owner, 1, true);
-    await greatBuildings.ignore(owner, 1, false);
+    await greatBuildings.flag('ignored', owner, 1, true);
+    await greatBuildings.flag('ignored', owner, 1, false);
     at(1_000 + 31 * DAY);
     await greatBuildings.prune(30);
     expect(await row(1)).toBeUndefined();

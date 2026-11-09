@@ -2,7 +2,7 @@ import { logError } from '../core/log';
 
 /** Rows seen once are written in the background; reads wait for the writes started before them. */
 export class WriteBehind<Row, Key> {
-  private pending = new Map<Key, Row>();
+  private pending: Row[] = [];
   private recorded = new Set<Key>();
   private writes: Promise<unknown> = Promise.resolve();
   private flushQueued = false;
@@ -20,7 +20,7 @@ export class WriteBehind<Row, Key> {
     const key = this.keyOf(row);
     if (this.recorded.has(key)) return false;
     this.recorded.add(key);
-    this.pending.set(key, row);
+    this.pending.push(row);
     this.scheduleFlush();
     return true;
   }
@@ -36,8 +36,7 @@ export class WriteBehind<Row, Key> {
     // the callback runs in a microtask, so every row of one game response goes in one write
     this.writes = this.writes.then(() => {
       this.flushQueued = false;
-      const rows = [...this.pending.values()];
-      this.pending.clear();
+      const rows = this.pending.splice(0);
       return this.write(rows).then(
         () => this.stored?.(rows),
         (error) => logError(this.errorText, error),

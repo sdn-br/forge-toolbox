@@ -21,7 +21,7 @@ export const gbLookups = (ctx: FeatureContext): GbLookups => ({
 
 /** the building, or its owner, is ignored */
 export const ignores = (ctx: FeatureContext, owner: PlayerId, entityId: number): boolean =>
-  countsIgnored(ctx.greatBuildings.isIgnored(owner, entityId), ctx.players.ignored(owner));
+  countsIgnored(ctx.greatBuildings.isIgnored(owner, entityId), ctx.players.flag(owner, 'ignored'));
 
 /** what a row of great buildings does with its stars and eyes */
 export interface GbRowActions extends PlayerRowActions {
@@ -33,6 +33,6 @@ export interface GbRowActions extends PlayerRowActions {
 
 export const gbRowActions = (ctx: FeatureContext): GbRowActions => ({
   ...playerRowActions(ctx),
-  mark: (owner, entityId, marked) => ctx.greatBuildings.setMarked(owner, entityId, marked),
-  ignore: (owner, entityId, ignored) => ctx.greatBuildings.setIgnored(owner, entityId, ignored),
+  mark: (owner, entityId, marked) => ctx.greatBuildings.setFlag('marked', owner, entityId, marked),
+  ignore: (owner, entityId, ignored) => ctx.greatBuildings.setFlag('ignored', owner, entityId, ignored),
 });

@@ -159,7 +159,7 @@ describe('great buildings from the ranking window', () => {
     send(o.entity, o.construction);
     const [opened] = await greatBuildings.known();
     if (!opened) throw new Error('nothing opened');
-    await greatBuildings.mark(opened.owner, opened.entityId, true);
+    await greatBuildings.flag('marked', opened.owner, opened.entityId, true);
     at(6_000);
     const row = rowOf(ranking.opened as RankingEntry, 3475);
     send(

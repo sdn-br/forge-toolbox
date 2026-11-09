@@ -1,5 +1,6 @@
+import { gbIdKey } from '../../shared/great-buildings';
 import type { BuildingDefId, PlayerId, WorldId } from '../../shared/ids';
-import type { GreatBuildingListRow, KnownGreatBuilding, MarkKind } from '../../shared/model';
+import { type GreatBuildingListRow, type KnownGreatBuilding, type MarkKind, OTHER_MARK } from '../../shared/model';
 import { DAY_MS } from '../../shared/time';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
@@ -31,11 +32,11 @@ export interface GreatBuildingPersistence {
   list(world: WorldId, owner?: PlayerId): Promise<KnownGreatBuilding[]>;
 }
 
-const key = (owner: PlayerId, entityId: number) => `${owner}:${entityId}`;
+const NO_CHANGE = { changed: false, cleared: false };
 /** openings remembered until their construction arrives; the game sends both right after each other */
 const MAX_ENTITIES = 20;
 /** a list this soon after the owner's building was opened or paid into is the game's own question, not the player's */
-export const ASKED_BY_GAME = 3000;
+const ASKED_BY_GAME = 3000;
 
 /**
  * The great building construction the player has open in the game, and what is known about other players' great
@@ -68,71 +69,60 @@ export class GreatBuildingStore {
       this.persistence.flagged(this.world),
     ]);
     this.listedAt ??= at;
-    for (const m of marked) this.flags.marked.add(key(m.owner, m.entityId));
-    for (const m of ignored) this.flags.ignored.add(key(m.owner, m.entityId));
+    for (const m of marked) this.flags.marked.add(gbIdKey(m.owner, m.entityId));
+    for (const m of ignored) this.flags.ignored.add(gbIdKey(m.owner, m.entityId));
   }
 
   /** whether the player put a star on the building */
   isMarked(owner: PlayerId, entityId: number): boolean {
-    return this.flags.marked.has(key(owner, entityId));
+    return this.flags.marked.has(gbIdKey(owner, entityId));
   }
 
   /** whether the player ignores the building */
   isIgnored(owner: PlayerId, entityId: number): boolean {
-    return this.flags.ignored.has(key(owner, entityId));
+    return this.flags.ignored.has(gbIdKey(owner, entityId));
   }
 
   /**
-   * Puts or removes the star. The write queues behind the pending ones, so a building opened a moment ago is stored by
-   * then. A building that is not stored (an own one) takes no star. A star clears the ignore.
+   * Puts or removes the star or the ignore. The write queues behind the pending ones, so a building opened a moment ago
+   * is stored by then. A building that is not stored (an own one) takes neither. Setting one clears the other.
    */
-  mark(owner: PlayerId, entityId: number, marked: boolean): Promise<void> {
-    return this.setFlag('marked', owner, entityId, marked).then((r) => {
-      if (r.cleared) this.bus.emit('greatBuilding.ignored', { owner, entityId, ignored: false });
-      if (r.changed) this.bus.emit('greatBuilding.marked', { owner, entityId, marked });
+  flag(kind: MarkKind, owner: PlayerId, entityId: number, value: boolean): Promise<void> {
+    return this.persistFlag(kind, owner, entityId, value).then((r) => {
+      if (r.cleared) this.emitFlag(OTHER_MARK[kind], owner, entityId, false);
+      if (r.changed) this.emitFlag(kind, owner, entityId, value);
     });
   }
 
-  /** Ignores the building or releases it, with the same rules as the star. Ignoring clears the star. */
-  ignore(owner: PlayerId, entityId: number, ignored: boolean): Promise<void> {
-    return this.setFlag('ignored', owner, entityId, ignored).then((r) => {
-      if (r.cleared) this.bus.emit('greatBuilding.marked', { owner, entityId, marked: false });
-      if (r.changed) this.bus.emit('greatBuilding.ignored', { owner, entityId, ignored });
-    });
+  /** `flag` for a click: nobody waits for it, a failure goes to the log */
+  setFlag(kind: MarkKind, owner: PlayerId, entityId: number, value: boolean): void {
+    this.flag(kind, owner, entityId, value).catch((error) =>
+      logError(kind === 'marked' ? 'marking a great building failed' : 'ignoring a great building failed', error),
+    );
   }
 
-  /** `mark` for a click: nobody waits for it, a failure goes to the log */
-  setMarked(owner: PlayerId, entityId: number, marked: boolean): void {
-    this.mark(owner, entityId, marked).catch((error) => logError('marking a great building failed', error));
+  private emitFlag(kind: MarkKind, owner: PlayerId, entityId: number, value: boolean) {
+    if (kind === 'marked') this.bus.emit('greatBuilding.marked', { owner, entityId, marked: value });
+    else this.bus.emit('greatBuilding.ignored', { owner, entityId, ignored: value });
   }
 
-  /** `ignore` for a click: nobody waits for it, a failure goes to the log */
-  setIgnored(owner: PlayerId, entityId: number, ignored: boolean): void {
-    this.ignore(owner, entityId, ignored).catch((error) => logError('ignoring a great building failed', error));
-  }
-
-  private setFlag(
+  private persistFlag(
     kind: MarkKind,
     owner: PlayerId,
     entityId: number,
     value: boolean,
   ): Promise<{ changed: boolean; cleared: boolean }> {
-    return new Promise((resolve) => {
-      this.enqueue(async () => {
-        let result = { changed: false, cleared: false };
-        try {
-          if (!(await this.persistence.setFlag(this.world, owner, entityId, kind, value, this.now()))) return;
-          const k = key(owner, entityId);
-          const other = this.flags[kind === 'marked' ? 'ignored' : 'marked'];
-          const cleared = value && other.delete(k);
-          if (value) this.flags[kind].add(k);
-          else this.flags[kind].delete(k);
-          result = { changed: true, cleared };
-        } finally {
-          resolve(result);
-        }
-      });
+    const run = this.writes.then(async () => {
+      if (!(await this.persistence.setFlag(this.world, owner, entityId, kind, value, this.now()))) return NO_CHANGE;
+      const k = gbIdKey(owner, entityId);
+      const cleared = value && this.flags[OTHER_MARK[kind]].delete(k);
+      if (value) this.flags[kind].add(k);
+      else this.flags[kind].delete(k);
+      return { changed: true, cleared };
     });
+    this.writes = run.catch((error) => logError('saving great buildings failed', error));
+    // a failed write is logged once above; the caller sees no change
+    return run.catch(() => NO_CHANGE);
   }
 
   /** the construction open in the game, or the last one opened */
@@ -142,7 +132,7 @@ export class GreatBuildingStore {
 
   /** The building as the opening reports it. Its construction follows with `openConstruction`. */
   noteEntity(entity: GreatBuildingEntity): void {
-    const k = key(entity.owner, entity.entityId);
+    const k = gbIdKey(entity.owner, entity.entityId);
     this.entities.delete(k);
     this.entities.set(k, entity);
     if (this.entities.size > MAX_ENTITIES) this.entities.delete(this.entities.keys().next().value as string);
@@ -166,7 +156,7 @@ export class GreatBuildingStore {
     known?: GreatBuildingEntity,
     nextProduction?: { fp?: number },
   ): void {
-    const entity = this.entities.get(key(owner, entityId)) ?? known;
+    const entity = this.entities.get(gbIdKey(owner, entityId)) ?? known;
     this.open = {
       owner,
       entityId,
@@ -276,9 +266,7 @@ export class GreatBuildingStore {
     const at = this.now();
     this.enqueue(async () => {
       await this.persistence.putList(this.world, rows, at);
-      const written = new Map<PlayerId, number[]>();
-      for (const r of rows) written.set(r.owner, [...(written.get(r.owner) ?? []), r.entityId]);
-      for (const [owner, entityIds] of written) this.bus.emit('greatBuildings.stored', { owner, entityIds });
+      this.announceStored(rows);
     });
   }
 
@@ -351,10 +339,15 @@ export class GreatBuildingStore {
       this.flushQueued = false;
       const rows = this.pending.splice(0);
       await this.persistence.put(rows);
-      const written = new Map<PlayerId, Set<number>>();
-      for (const r of rows) written.set(r.owner, (written.get(r.owner) ?? new Set()).add(r.entityId));
-      for (const [owner, ids] of written) this.bus.emit('greatBuildings.stored', { owner, entityIds: [...ids] });
+      this.announceStored(rows);
     });
+  }
+
+  /** names each owner of the written rows once, with the distinct buildings in the order they came */
+  private announceStored(rows: { owner: PlayerId; entityId: number }[]) {
+    const written = new Map<PlayerId, Set<number>>();
+    for (const r of rows) written.set(r.owner, (written.get(r.owner) ?? new Set()).add(r.entityId));
+    for (const [owner, ids] of written) this.bus.emit('greatBuildings.stored', { owner, entityIds: [...ids] });
   }
 
   private enqueue(write: () => Promise<unknown>) {

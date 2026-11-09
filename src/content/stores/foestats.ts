@@ -36,7 +36,7 @@ export interface FoestatsRecord {
 }
 
 /** the requests the store makes to foestats */
-export type FoestatsRequests = Pick<FoestatsClient, 'player'>;
+type FoestatsRequests = Pick<FoestatsClient, 'player'>;
 
 /**
  * Days of players at foestats, kept in the database. A view of a player asks the service worker whether a request is
@@ -63,12 +63,7 @@ export class FoestatsStore {
 
   private async update(player: PlayerId): Promise<void> {
     const before = this.records.get(player);
-    this.records.set(player, {
-      days: before?.days ?? [],
-      unreachable: before?.unreachable ?? false,
-      unknown: before?.unknown ?? false,
-      loading: true,
-    });
+    this.records.set(player, { days: [], unreachable: false, unknown: false, ...before, loading: true });
     this.bus.emit('foestats.updated', { player });
     try {
       const { fetch, ...claimed } = await this.persistence.claim(this.world, player);

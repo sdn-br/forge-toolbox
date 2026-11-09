@@ -115,14 +115,14 @@ describe('PlayerStore: marks', () => {
     store.apply(world, [obs(1)], 'visit');
     await Promise.resolve();
     put.mockClear();
-    expect(store.setMarked(playerId(1), true)).toBe(true);
+    expect(store.setFlag(playerId(1), 'marked', true)).toBe(true);
     expect(store.get(playerId(1))?.marked).toBe(true);
     // the data came from a visit and stay that way
     expect(store.get(playerId(1))?.source).toBe('visit');
     expect(events.at(-1)).toEqual({ ids: [playerId(1)], source: 'mark' });
     await Promise.resolve();
     expect(put.mock.calls[0]?.[0][0]).toMatchObject({ id: 1, marked: true });
-    expect(store.setMarked(playerId(1), false)).toBe(true);
+    expect(store.setFlag(playerId(1), 'marked', false)).toBe(true);
     expect(store.get(playerId(1))).not.toHaveProperty('marked');
     await Promise.resolve();
     expect(put.mock.calls[1]?.[0][0]).not.toHaveProperty('marked');
@@ -130,7 +130,7 @@ describe('PlayerStore: marks', () => {
 
   it('does not mark a player the store does not know', () => {
     const { store, events } = setup();
-    expect(store.setMarked(playerId(9), true)).toBe(false);
+    expect(store.setFlag(playerId(9), 'marked', true)).toBe(false);
     expect(store.get(playerId(9))).toBeUndefined();
     expect(events).toEqual([]);
   });
@@ -138,17 +138,17 @@ describe('PlayerStore: marks', () => {
   it('tells nothing when the mark does not change', () => {
     const { store, events } = setup();
     store.apply(world, [obs(1)], 'visit');
-    store.setMarked(playerId(1), true);
+    store.setFlag(playerId(1), 'marked', true);
     const before = events.length;
-    store.setMarked(playerId(1), true);
-    store.setMarked(playerId(2), false);
+    store.setFlag(playerId(1), 'marked', true);
+    store.setFlag(playerId(2), 'marked', false);
     expect(events).toHaveLength(before);
   });
 
   it('keeps the mark through every other source and every change of relations', () => {
     const { store } = setup();
     store.applySocialList(world, { neighbor: [obs(1)], guildMember: [], friend: [] });
-    store.setMarked(playerId(1), true);
+    store.setFlag(playerId(1), 'marked', true);
     store.apply(world, [obs(1, 'Visited')], 'visit');
     expect(store.get(playerId(1))).toMatchObject({ name: 'Visited', marked: true });
     store.applySocialList(world, { neighbor: [obs(1)], guildMember: [], friend: [obs(1, 'Social')] });
@@ -222,7 +222,7 @@ describe('PlayerStore: marks', () => {
     };
     const { store } = setup([old]);
     store.apply(world, [obs(1, 'New')], 'visit');
-    store.setMarked(playerId(1), true);
+    store.setFlag(playerId(1), 'marked', true);
     await store.load(world);
     expect(store.get(playerId(1))?.marked).toBe(true);
   });
@@ -247,13 +247,13 @@ describe('PlayerStore: ignores', () => {
     store.apply(world, [obs(1)], 'visit');
     await Promise.resolve();
     put.mockClear();
-    expect(store.setIgnored(playerId(1), true)).toBe(true);
+    expect(store.setFlag(playerId(1), 'ignored', true)).toBe(true);
     expect(store.get(playerId(1))?.ignored).toBe(true);
     expect(store.get(playerId(1))?.source).toBe('visit');
     expect(events.at(-1)).toEqual({ ids: [playerId(1)], source: 'ignore' });
     await Promise.resolve();
     expect(put.mock.calls[0]?.[0][0]).toMatchObject({ id: 1, ignored: true });
-    expect(store.setIgnored(playerId(1), false)).toBe(true);
+    expect(store.setFlag(playerId(1), 'ignored', false)).toBe(true);
     expect(store.get(playerId(1))).not.toHaveProperty('ignored');
     await Promise.resolve();
     expect(put.mock.calls[1]?.[0][0]).not.toHaveProperty('ignored');
@@ -261,18 +261,18 @@ describe('PlayerStore: ignores', () => {
 
   it('does not ignore a player the store does not know, and stays quiet when nothing changes', () => {
     const { store, events } = setup();
-    expect(store.setIgnored(playerId(9), true)).toBe(false);
+    expect(store.setFlag(playerId(9), 'ignored', true)).toBe(false);
     store.apply(world, [obs(1)], 'visit');
-    store.setIgnored(playerId(1), false);
+    store.setFlag(playerId(1), 'ignored', false);
     expect(events).toEqual([{ ids: [playerId(1)], source: 'visit' }]);
   });
 
   it('clears the star when ignoring and tells the bus about both flags', async () => {
     const { store, events, put } = setup();
     store.apply(world, [obs(1)], 'visit');
-    store.setMarked(playerId(1), true);
+    store.setFlag(playerId(1), 'marked', true);
     events.length = 0;
-    store.setIgnored(playerId(1), true);
+    store.setFlag(playerId(1), 'ignored', true);
     expect(store.get(playerId(1))).toMatchObject({ ignored: true });
     expect(store.get(playerId(1))).not.toHaveProperty('marked');
     expect(events).toEqual([
@@ -287,9 +287,9 @@ describe('PlayerStore: ignores', () => {
   it('clears the ignore when marking and tells the bus about both flags', () => {
     const { store, events } = setup();
     store.apply(world, [obs(1)], 'visit');
-    store.setIgnored(playerId(1), true);
+    store.setFlag(playerId(1), 'ignored', true);
     events.length = 0;
-    store.setMarked(playerId(1), true);
+    store.setFlag(playerId(1), 'marked', true);
     expect(store.get(playerId(1))).toMatchObject({ marked: true });
     expect(store.get(playerId(1))).not.toHaveProperty('ignored');
     expect(events).toEqual([
@@ -301,21 +301,21 @@ describe('PlayerStore: ignores', () => {
   it('keeps the other flag when a flag is only released', () => {
     const { store } = setup();
     store.apply(world, [obs(1)], 'visit');
-    store.setIgnored(playerId(1), true);
-    store.setMarked(playerId(1), false);
+    store.setFlag(playerId(1), 'ignored', true);
+    store.setFlag(playerId(1), 'marked', false);
     expect(store.get(playerId(1))?.ignored).toBe(true);
   });
 
   it('lets the choice of this session win over the other flag the database holds', async () => {
     const { store } = setup([persistedPlayer({ ignored: true })]);
     store.apply(world, [obs(1)], 'visit');
-    store.setMarked(playerId(1), true);
+    store.setFlag(playerId(1), 'marked', true);
     await store.load(world);
     expect(store.get(playerId(1))).toMatchObject({ marked: true });
     expect(store.get(playerId(1))).not.toHaveProperty('ignored');
     const other = setup([persistedPlayer({ marked: true })]);
     other.store.apply(world, [obs(1)], 'visit');
-    other.store.setIgnored(playerId(1), true);
+    other.store.setFlag(playerId(1), 'ignored', true);
     await other.store.load(world);
     expect(other.store.get(playerId(1))).toMatchObject({ ignored: true });
     expect(other.store.get(playerId(1))).not.toHaveProperty('marked');
@@ -324,7 +324,7 @@ describe('PlayerStore: ignores', () => {
   it('survives every source and the loss of every relation', () => {
     const { store } = setup();
     store.apply(world, [obs(1)], 'visit');
-    store.setIgnored(playerId(1), true);
+    store.setFlag(playerId(1), 'ignored', true);
     store.apply(world, [obs(1, 'Renamed')], 'update');
     expect(store.get(playerId(1))).toMatchObject({ name: 'Renamed', ignored: true });
     store.applySocialList(world, { neighbor: [obs(1)], guildMember: [], friend: [] });
@@ -378,13 +378,13 @@ describe('PlayerStore: time of the marks', () => {
     store.apply(world, [obs(1)], 'visit');
     expect(marksAt()).toBeUndefined();
     const steps: [number, () => boolean][] = [
-      [2000, () => store.setMarked(playerId(1), true)],
-      [3000, () => store.setMarked(playerId(1), false)],
-      [4000, () => store.setIgnored(playerId(1), true)],
-      [5000, () => store.setIgnored(playerId(1), false)],
-      [6000, () => store.setIgnored(playerId(1), true)],
+      [2000, () => store.setFlag(playerId(1), 'marked', true)],
+      [3000, () => store.setFlag(playerId(1), 'marked', false)],
+      [4000, () => store.setFlag(playerId(1), 'ignored', true)],
+      [5000, () => store.setFlag(playerId(1), 'ignored', false)],
+      [6000, () => store.setFlag(playerId(1), 'ignored', true)],
       // marking clears the ignore
-      [7000, () => store.setMarked(playerId(1), true)],
+      [7000, () => store.setFlag(playerId(1), 'marked', true)],
     ];
     for (const [time, step] of steps) {
       at(time);
@@ -396,14 +396,14 @@ describe('PlayerStore: time of the marks', () => {
     expect(put.mock.calls.at(-1)?.[0][0]).toMatchObject({ marked: true, marksAt: 7000 });
     // nothing changes, so the time stays
     at(8000);
-    store.setMarked(playerId(1), true);
+    store.setFlag(playerId(1), 'marked', true);
     expect(marksAt()).toBe(7000);
   });
 
   it('stays through every other source and every change of relations', () => {
     const { store, at, marksAt } = clocked();
     store.applySocialList(world, { neighbor: [obs(1)], guildMember: [], friend: [] });
-    store.setMarked(playerId(1), true);
+    store.setFlag(playerId(1), 'marked', true);
     at(2000);
     store.apply(world, [obs(1, 'Visited')], 'visit');
     store.applySocialList(world, { neighbor: [], guildMember: [], friend: [obs(1)] });
@@ -437,7 +437,7 @@ describe('PlayerStore: time of the marks', () => {
     expect(released.marksAt()).toBe(500);
     const changed = clocked([row({ ignored: true, marksAt: 500 })]);
     changed.store.apply(world, [obs(1)], 'visit');
-    changed.store.setMarked(playerId(1), true);
+    changed.store.setFlag(playerId(1), 'marked', true);
     await changed.store.load(world);
     expect(changed.store.get(playerId(1))).toMatchObject({ marked: true, marksAt: 1000 });
   });
@@ -495,7 +495,7 @@ describe('PlayerStore: owners of great building lists', () => {
       guildMember: [],
       friend: [],
     });
-    store.setMarked(playerId(1), true);
+    store.setFlag(playerId(1), 'marked', true);
     const before = store.get(playerId(1));
     at(2000);
     store.applyListed(world, [{ id: playerId(1), name: 'Anna II' }]);
@@ -547,7 +547,7 @@ describe('PlayerStore: owners of great building lists', () => {
     };
     const { store, put } = clocked([stored]);
     store.applyListed(world, [{ id: playerId(1), name: 'New name' }]);
-    store.setMarked(playerId(1), true);
+    store.setFlag(playerId(1), 'marked', true);
     await store.load(world);
     const { ignored: _, ...rest } = stored;
     expect(store.get(playerId(1))).toEqual({ ...rest, name: 'New name', marked: true, marksAt: 1000, seenAt: 1000 });
@@ -591,34 +591,34 @@ describe('PlayerStore: PvP marks', () => {
 
   it('answers undefined for an unknown player and false for a known one without the marks', () => {
     const { store } = setup();
-    expect(store.plunderWorthy(playerId(1))).toBeUndefined();
-    expect(store.noAttack(playerId(1))).toBeUndefined();
-    expect(store.setPlunderWorthy(playerId(1), true)).toBe(false);
-    expect(store.setNoAttack(playerId(1), true)).toBe(false);
+    expect(store.flag(playerId(1), 'plunderWorthy')).toBeUndefined();
+    expect(store.flag(playerId(1), 'noAttack')).toBeUndefined();
+    expect(store.setFlag(playerId(1), 'plunderWorthy', true)).toBe(false);
+    expect(store.setFlag(playerId(1), 'noAttack', true)).toBe(false);
     store.apply(world, [obs(1)], 'visit');
-    expect(store.plunderWorthy(playerId(1))).toBe(false);
-    expect(store.noAttack(playerId(1))).toBe(false);
+    expect(store.flag(playerId(1), 'plunderWorthy')).toBe(false);
+    expect(store.flag(playerId(1), 'noAttack')).toBe(false);
   });
 
   it('excludes the two marks, keeps the great building marks apart and times them on their own', () => {
     const { store, events } = setup();
     store.apply(world, [obs(1)], 'visit');
-    store.setMarked(playerId(1), true);
+    store.setFlag(playerId(1), 'marked', true);
     events.length = 0;
-    store.setPlunderWorthy(playerId(1), true);
+    store.setFlag(playerId(1), 'plunderWorthy', true);
     expect(store.get(playerId(1))).toMatchObject({
       marked: true,
       marksAt: 1000,
       plunderWorthy: true,
       pvpMarksAt: 1000,
     });
-    store.setNoAttack(playerId(1), true);
+    store.setFlag(playerId(1), 'noAttack', true);
     const p = store.get(playerId(1));
     expect(p).toMatchObject({ marked: true, noAttack: true });
     expect(p).not.toHaveProperty('plunderWorthy');
     // the clearing mark and the new one each announce themselves
     expect(events.map((e) => (e as { source: string }).source)).toEqual(['plunderWorthy', 'plunderWorthy', 'noAttack']);
-    store.setNoAttack(playerId(1), false);
+    store.setFlag(playerId(1), 'noAttack', false);
     expect(store.get(playerId(1))).not.toHaveProperty('noAttack');
     expect(store.get(playerId(1))).toMatchObject({ marked: true });
   });
@@ -626,7 +626,7 @@ describe('PlayerStore: PvP marks', () => {
   it('survive every game source and a list', () => {
     const { store } = setup();
     store.apply(world, [obs(1)], 'visit');
-    store.setPlunderWorthy(playerId(1), true);
+    store.setFlag(playerId(1), 'plunderWorthy', true);
     store.applySocialList(world, { neighbor: [], guildMember: [], friend: [] });
     store.apply(world, [obs(1, 'New')], 'update');
     store.applyListed(world, [{ id: playerId(1), name: 'Listed' }]);
@@ -640,7 +640,7 @@ describe('PlayerStore: PvP marks', () => {
     expect(kept.store.get(playerId(1))).toMatchObject({ noAttack: true, pvpMarksAt: 500 });
     const changed = setup([row({ noAttack: true, pvpMarksAt: 500 })]);
     changed.store.apply(world, [obs(1)], 'visit');
-    changed.store.setPlunderWorthy(playerId(1), true);
+    changed.store.setFlag(playerId(1), 'plunderWorthy', true);
     await changed.store.load(world);
     const p = changed.store.get(playerId(1));
     expect(p).toMatchObject({ plunderWorthy: true, pvpMarksAt: 1000 });
@@ -650,7 +650,7 @@ describe('PlayerStore: PvP marks', () => {
   it('stay with a player known only from a list when the database row arrives', async () => {
     const { store } = setup([row({ noAttack: true, pvpMarksAt: 5, ignored: true, marksAt: 5 })]);
     store.applyListed(world, [{ id: playerId(1), name: 'Listed' }]);
-    store.setPlunderWorthy(playerId(1), true);
+    store.setFlag(playerId(1), 'plunderWorthy', true);
     await store.load(world);
     expect(store.get(playerId(1))).toMatchObject({ name: 'Listed', plunderWorthy: true, ignored: true, marksAt: 5 });
     expect(store.get(playerId(1))).not.toHaveProperty('noAttack');

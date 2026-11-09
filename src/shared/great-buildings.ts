@@ -8,6 +8,12 @@ export const gbKey = (b: Pick<KnownGreatBuilding, 'world' | 'owner' | 'entityId'
   b.entityId,
 ];
 
+/** the key of a building within one world as a string, `owner:entityId`, for a Map or Set in memory */
+export const gbIdKey = (owner: PlayerId, entityId: number): string => `${owner}:${entityId}`;
+
+/** the primary key of a known building as one string, `world:owner:entityId` (in memory only, never persisted) */
+export const gbStringKey = (b: Pick<KnownGreatBuilding, 'world' | 'owner' | 'entityId'>): string => gbKey(b).join(':');
+
 /**
  * What a list row does to the known building. Level, sum, costs and `seenAt` change only when the list is newer than
  * the entry. A changed level drops the rankings (they belong to another level), the own place and the progress of the

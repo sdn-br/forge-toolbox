@@ -21,7 +21,7 @@ function setup() {
   const { ctx } = featureContext();
   attackWarningFeature.setup(ctx);
   ctx.players.apply(worldId('de20'), [seen(111, 'Redcowboy'), seen(222, 'Friend')], 'visit');
-  ctx.players.setNoAttack(playerId(111), true);
+  ctx.players.setFlag(playerId(111), 'noAttack', true);
   const cover = () =>
     document.querySelector('[data-forge-toolbox="attack-warning"]')?.shadowRoot?.querySelector('.cover') ?? null;
   return { ctx, cover };

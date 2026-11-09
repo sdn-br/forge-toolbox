@@ -219,7 +219,7 @@ describe('sabotage feature', () => {
   it('marks the visited player as not to attack after the first mark, which it clears', async () => {
     const { ctx, box } = setup();
     ctx.players.apply(world, [observed(1, { canPlunder: false })], 'visit');
-    ctx.players.setPlunderWorthy(playerId(1), true);
+    ctx.players.setFlag(playerId(1), 'plunderWorthy', true);
     ctx.cities.setVisited(city(1));
     await tick();
     const noAttack = () => box.root.querySelector('button.no-attack') as HTMLElement;

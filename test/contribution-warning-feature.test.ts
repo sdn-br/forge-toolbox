@@ -41,7 +41,7 @@ afterEach(() => {
 describe('contribution warning', () => {
   it('covers the contribution buttons of a building of an ignored player, naming the player', () => {
     const { ctx, cover, open } = setup();
-    ctx.players.setIgnored(owner, true);
+    ctx.players.setFlag(owner, 'ignored', true);
     open();
     expect(cover()?.textContent).toContain('Spieler Redcowboy steht auf Ignorieren.');
   });
@@ -55,7 +55,7 @@ describe('contribution warning', () => {
 
   it('names the player when both are ignored', () => {
     const { ctx, cover, open, ignoredBuildings } = setup();
-    ctx.players.setIgnored(owner, true);
+    ctx.players.setFlag(owner, 'ignored', true);
     ignoredBuildings.add(1);
     open();
     expect(cover()?.textContent).toContain('Spieler Redcowboy');
@@ -63,7 +63,7 @@ describe('contribution warning', () => {
 
   it('shows nothing for an own building, even when its owner is ignored', () => {
     const { ctx, cover, open, ignoredBuildings } = setup();
-    ctx.players.setIgnored(owner, true);
+    ctx.players.setFlag(owner, 'ignored', true);
     ignoredBuildings.add(1);
     open(owner, 1, true);
     expect(cover()).toBeNull();
@@ -123,10 +123,10 @@ describe('contribution warning', () => {
     ignoredBuildings.delete(1);
     ctx.bus.emit('greatBuilding.ignored', { owner, entityId: 1, ignored: false });
     expect(cover()).toBeNull();
-    ctx.players.setIgnored(owner, true);
+    ctx.players.setFlag(owner, 'ignored', true);
     ctx.bus.emit('player.updated', { ids: [owner], source: 'ignore' });
     expect(cover()?.textContent).toContain('Redcowboy');
-    ctx.players.setIgnored(owner, false);
+    ctx.players.setFlag(owner, 'ignored', false);
     ctx.bus.emit('player.updated', { ids: [owner], source: 'ignore' });
     expect(cover()).toBeNull();
   });

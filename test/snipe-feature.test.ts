@@ -901,7 +901,12 @@ describe('Snipehilfe: marking with a star', () => {
     expect(head('Sicherheit').classList.contains('sortable')).toBe(true);
     expect(head('Gemerkte LGs').classList.contains('sortable')).toBe(true);
     const last = names()[names().length - 1];
-    await greatBuildings.mark(playerId(1001), last === 'Zeusstatue' ? zeus.entity_id : oracle.entity_id, true);
+    await greatBuildings.flag(
+      'marked',
+      playerId(1001),
+      last === 'Zeusstatue' ? zeus.entity_id : oracle.entity_id,
+      true,
+    );
     head('Gemerkte LGs').click();
     await tick();
     expect(names()[0]).toBe(last);
@@ -960,7 +965,7 @@ describe('Snipehilfe: marking with a star', () => {
     const { greatBuildings, list, open, advance } = setup();
     list([hitZeus()]);
     await tick();
-    await greatBuildings.mark(playerId(1001), zeus.entity_id, true);
+    await greatBuildings.flag('marked', playerId(1001), zeus.entity_id, true);
     advance(10_000);
     open(1909);
     await tick();
@@ -1081,7 +1086,7 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     await tick();
     expect(rows()).toHaveLength(2);
     expect(box.text).not.toContain('ignoriert');
-    await greatBuildings.ignore(owner, zeus.entity_id, true);
+    await greatBuildings.flag('ignored', owner, zeus.entity_id, true);
     await tick();
     expect(rows()).toHaveLength(1);
     expect(cells(rows()[0])[1]).toBe('Orakel von Delphi');
@@ -1092,7 +1097,7 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     const { box, greatBuildings, list, rows, cells, ui } = setup();
     list([hitZeus(), hitOracle()]);
     await tick();
-    await greatBuildings.ignore(owner, zeus.entity_id, true);
+    await greatBuildings.flag('ignored', owner, zeus.entity_id, true);
     await tick();
     expect(showToggle(box).getAttribute('aria-label')).toBe('ignorierte zeigen');
     expect(showToggle(box).getAttribute('aria-pressed')).toBe('false');
@@ -1116,7 +1121,7 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     const { box, greatBuildings, list, rows } = setup({ 'snipe.showIgnored': 'true' });
     list([hitZeus(), hitOracle()]);
     await tick();
-    await greatBuildings.ignore(owner, zeus.entity_id, true);
+    await greatBuildings.flag('ignored', owner, zeus.entity_id, true);
     await tick();
     expect(showToggle(box).getAttribute('aria-pressed')).toBe('true');
     expect(rows()).toHaveLength(2);
@@ -1127,7 +1132,7 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     social(send);
     list([hitZeus(), hitOracle()]);
     await tick();
-    players.setIgnored(owner, true);
+    players.setFlag(owner, 'ignored', true);
     await tick();
     expect(rows()).toHaveLength(0);
     expect(box.text).toContain('Kein LG mit lohnendem Platz.');
@@ -1144,7 +1149,7 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     await tick();
     expect(tones()).toBe(1);
     box.box.close();
-    await greatBuildings.ignore(owner, zeus.entity_id, true);
+    await greatBuildings.flag('ignored', owner, zeus.entity_id, true);
     // other hits than before: a visible one would open the box and beep
     list([withRequired(zeus, 90, 70)]);
     await tick();
@@ -1158,7 +1163,7 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     list([hitZeus()]);
     await tick();
     box.box.close();
-    players.setIgnored(owner, true);
+    players.setFlag(owner, 'ignored', true);
     list([withRequired(zeus, 90, 70)]);
     await tick();
     expect(box.box.isOpen).toBe(false);
@@ -1170,7 +1175,7 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     list([hitZeus()]);
     await tick();
     box.box.close();
-    await greatBuildings.ignore(owner, zeus.entity_id, true);
+    await greatBuildings.flag('ignored', owner, zeus.entity_id, true);
     list([withRequired(zeus, 90, 70), hitOracle()]);
     await tick();
     expect(box.box.isOpen).toBe(true);
@@ -1186,7 +1191,7 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     list([hitZeus(), hitOracle()]);
     await tick();
     // the better hit of the two is the ignored one
-    await greatBuildings.ignore(owner, oracle.entity_id, true);
+    await greatBuildings.flag('ignored', owner, oracle.entity_id, true);
     await tick();
     showToggle(box).click();
     await tick();
@@ -1199,11 +1204,11 @@ describe('Snipehilfe: ignorierte LGs und Spieler', () => {
     const { box, greatBuildings, list, rows } = setup();
     list([hitZeus(), hitOracle()]);
     await tick();
-    await greatBuildings.ignore(owner, zeus.entity_id, true);
+    await greatBuildings.flag('ignored', owner, zeus.entity_id, true);
     await tick();
     showToggle(box).click();
     await tick();
-    await greatBuildings.ignore(owner, zeus.entity_id, false);
+    await greatBuildings.flag('ignored', owner, zeus.entity_id, false);
     await tick();
     expect(rows()).toHaveLength(2);
     expect(box.text).not.toContain('ignoriert');

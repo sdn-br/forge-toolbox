@@ -68,6 +68,11 @@ export class CatalogStore {
   private prefetched = false;
   private saves = new Map<BuildingDefId, BuildingDefFile>();
   private saveQueued = false;
+  private units = new Map<string, UnitType>();
+  private gbNames = new Map<BuildingDefId, string>();
+  private tiers?: TierStart[];
+  private eraOrder: EraId[] = [];
+  private grid?: CityGrid;
 
   /** reads the cache of definition files, before the game's traffic comes in */
   async loadCache(): Promise<void> {
@@ -224,8 +229,6 @@ export class CatalogStore {
     return this.names.get(id);
   }
 
-  private units = new Map<string, UnitType>();
-
   /** Unit types with their names in the game's language, era and class, from the metadata file `unit_types`. */
   setUnitTypes(types: UnitType[]): void {
     for (const u of types) this.units.set(u.id, u);
@@ -234,8 +237,6 @@ export class CatalogStore {
   unitType(id: string): UnitType | undefined {
     return this.units.get(id);
   }
-
-  private gbNames = new Map<BuildingDefId, string>();
 
   /** Display names of great buildings, from the game's lists of them; the definitions may not be loaded. */
   setGreatBuildingNames(names: Record<string, string>): void {
@@ -255,8 +256,6 @@ export class CatalogStore {
     return [...ids];
   }
 
-  private tiers?: TierStart[];
-
   /** The tiers of great building levels from the metadata file `great_building_tiers`; the boxes redraw. */
   setGreatBuildingTiers(tiers: TierStart[]): void {
     if (tiers.length === 0) return;
@@ -269,8 +268,6 @@ export class CatalogStore {
     return this.tiers ?? DEFAULT_TIERS;
   }
 
-  private eraOrder: EraId[] = [];
-
   /** Eras in game order with their names. The order turns a building level into its era. */
   setEras(eras: { id: EraId; name: string }[]): void {
     this.eraOrder = eras.map((e) => e.id);
@@ -282,8 +279,6 @@ export class CatalogStore {
     const i = this.eraOrder.indexOf(era);
     return i < 0 ? undefined : i;
   }
-
-  private grid?: CityGrid;
 
   cityGrid(): CityGrid | undefined {
     return this.grid;
