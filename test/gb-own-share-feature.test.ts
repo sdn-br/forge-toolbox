@@ -8,8 +8,8 @@ import {
   CLOSE_WITHOUT_WINDOW as OWN_CLOSE_WITHOUT_WINDOW,
 } from '../src/content/features/gb-own-share';
 import { COPY_MANUAL, COPY_MODE, COPY_PLAYER, COPY_TOGGLE_DEFS } from '../src/content/features/gb-own-share/copy-text';
+import { ARC_BUTTON, FACTOR, FACTOR_BUTTONS, ONE_FP } from '../src/content/features/shared/settings';
 import { registerGameHandlers } from '../src/content/game/handlers';
-import { ARC_BUTTON, FACTOR, FACTOR_BUTTONS, ONE_FP } from '../src/content/stores/gb-own-state';
 import type { GbWindowState } from '../src/shared/gb-window-protocol';
 import definitions from './fixtures/gb-definitions.json';
 import levelUp from './fixtures/gb-own-level-up.json';

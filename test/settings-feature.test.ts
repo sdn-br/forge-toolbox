@@ -8,7 +8,7 @@ import { createGbOwnShareFeature } from '../src/content/features/gb-own-share';
 import { COPY_MODE, COPY_PLAYER } from '../src/content/features/gb-own-share/copy-text';
 import { RECORD, recorderFeature } from '../src/content/features/recorder';
 import { profileCopyFeature, settingsFeature } from '../src/content/features/settings-feature';
-import { FACTOR, FACTOR_BUTTONS } from '../src/content/stores/gb-own-state';
+import { FACTOR, FACTOR_BUTTONS } from '../src/content/features/shared/settings';
 import { featureContext } from './helpers/feature-context';
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));

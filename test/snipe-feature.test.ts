@@ -7,8 +7,8 @@ import {
   SNIPE_OPEN,
   SNIPE_SOUND,
 } from '../src/content/features/gb-calculator';
+import { FOESTATS_SETTING } from '../src/content/features/shared/settings';
 import { registerGameHandlers } from '../src/content/game/handlers';
-import { FOESTATS_SETTING } from '../src/content/stores/foestats';
 import type { GbWindowState } from '../src/shared/gb-window-protocol';
 import { playerId } from '../src/shared/ids';
 import definitions from './fixtures/gb-definitions.json';

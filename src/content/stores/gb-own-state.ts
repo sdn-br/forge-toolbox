@@ -1,77 +1,13 @@
 // What the Eigenanteil and the Powerleveln box share for an own great building: the factors per place on their three
 // levels and the Ext of the open level. Neither box owns it; each reads and writes here and hears of the other's change
 // on the bus. The view switches "Absichern" and "Vertrauen" and the Arc bonus are not kept here: both boxes read them
-// from the view choices and settings with the helpers below. The Eigenanteil box registers the settings, the readers take them with `settings.of`.
+// from the view choices and settings with the helpers below. The settings definitions live in `features/shared/settings.ts`.
 import type { ToolboxBus } from '../core/events';
-import { listDef, numberDef, type Settings, toggleDef } from '../core/settings';
-import { type FactorChoice, GOLD_FACTOR } from '../domain/gb-factor';
+import type { FactorChoice } from '../domain/gb-factor';
 import type { GreatBuildingTier } from '../model/catalog';
 import { type PlaceFactorState, PlaceFactors, type PrefStore } from './place-factors';
 import type { PlayerBonusStore } from './player-bonuses';
 
-/** the settings of the Eigenanteil group the factors rest on */
-export const FACTOR = numberDef({
-  key: 'gbOwn.factor',
-  group: 'gbOwn.title',
-  label: 'gbOwn.factorSetting',
-  default: 90,
-  min: -100,
-  max: 200,
-  step: 0.1,
-  asFactor: true,
-});
-export const FACTOR_BUTTONS = listDef({
-  key: 'gbOwn.factorButtons',
-  group: 'gbOwn.title',
-  label: 'gbCalc.factorButtonsSetting',
-  hint: 'gbCalc.factorButtonsHint',
-  default: [80, 90, 100],
-  min: -100,
-  max: 200,
-  step: 0.1,
-  asFactor: true,
-});
-/** the fixed factor and the buttons on gold levels, where the Arc bonus is 0 to 50 % (Nutzer, 2026-11-05) */
-export const FACTOR_GOLD = numberDef({
-  key: 'gbOwn.factorGold',
-  group: 'gbOwn.title',
-  label: 'gbOwn.factorGoldSetting',
-  default: GOLD_FACTOR,
-  min: 0,
-  max: 100,
-  step: 0.1,
-  asFactor: true,
-});
-export const FACTOR_BUTTONS_GOLD = listDef({
-  key: 'gbOwn.factorButtonsGold',
-  group: 'gbOwn.title',
-  label: 'gbCalc.factorButtonsGoldSetting',
-  hint: 'gbCalc.factorButtonsGoldHint',
-  default: [10, 15, 20],
-  min: 0,
-  max: 100,
-  step: 1,
-  asFactor: true,
-});
-export const ARC_BUTTON = toggleDef({
-  key: 'gbOwn.arcButton',
-  group: 'gbOwn.title',
-  label: 'gbCalc.arcButtonSetting',
-  default: true,
-});
-export const FACTOR_ARC = toggleDef({
-  key: 'gbOwn.factorArc',
-  group: 'gbOwn.title',
-  label: 'gbOwn.factorArcSetting',
-  default: false,
-});
-export const ONE_FP = toggleDef({
-  key: 'gbOwn.oneFpForNoReward',
-  group: 'gbOwn.title',
-  label: 'gbOwn.oneFpSetting',
-  hint: 'gbOwn.oneFpHint',
-  default: true,
-});
 /** view choices, kept like the mode of a map rather than in the settings box */
 export const SECURE = 'gbOwn.secure';
 export const TRUST = 'gbOwn.trust';
@@ -82,9 +18,9 @@ export const viewFlag = (prefs: Pick<PrefStore, 'pref'>, key: string, fallback: 
   return value === undefined ? fallback : value === 'true';
 };
 
-/** the own Arc bonus, both tiers, while its factor button shows */
-export const ownArcBonus = (settings: Settings, bonuses: PlayerBonusStore) =>
-  settings.of(ARC_BUTTON).get() ? bonuses.arcBonus() : undefined;
+/** the own Arc bonus, both tiers, while its factor button shows (`arcButton`: the value of that setting) */
+export const ownArcBonus = (arcButton: boolean, bonuses: PlayerBonusStore) =>
+  arcButton ? bonuses.arcBonus() : undefined;
 
 export class GbOwnState {
   private factors: PlaceFactors;
@@ -153,11 +89,3 @@ export class GbOwnState {
     this.bus.emit('gbOwn.factorsChanged', def === undefined ? {} : { def });
   }
 }
-
-/** the state of a world: the factor of the settings is the single factor of the places */
-export const createGbOwnState = (bus: ToolboxBus, prefs: PrefStore, settings: Settings) =>
-  new GbOwnState(bus, prefs, () => ({
-    value: settings.of(FACTOR).get(),
-    arc: settings.of(FACTOR_ARC).get(),
-    gold: settings.of(FACTOR_GOLD).get(),
-  }));

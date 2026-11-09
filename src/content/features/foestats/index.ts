@@ -1,6 +1,6 @@
 import type { PlayerId } from '../../../shared/ids';
 import type { Feature } from '../../core/feature';
-import { FOESTATS_SETTING } from '../../stores/foestats';
+import { FOESTATS_SETTING } from '../shared/settings';
 
 /**
  * Asks foestats about the players the viewer looks at: the owner of a foreign great building opened in the game and

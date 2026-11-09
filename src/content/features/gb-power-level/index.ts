@@ -2,16 +2,9 @@ import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
 import { t } from '../../core/texts';
 import type { Construction } from '../../model/great-building';
-import {
-  FACTOR_BUTTONS,
-  FACTOR_BUTTONS_GOLD,
-  ONE_FP,
-  ownArcBonus,
-  SECURE,
-  TRUST,
-  viewFlag,
-} from '../../stores/gb-own-state';
+import { ownArcBonus, SECURE, TRUST, viewFlag } from '../../stores/gb-own-state';
 import { COPY_PLAYER, copyBuildingKey, readCopyOptions } from '../gb-own-share/copy-text';
+import { ARC_BUTTON, FACTOR_BUTTONS, FACTOR_BUTTONS_GOLD, ONE_FP } from '../shared/settings';
 import { powerLevelCss } from './styles';
 import { powerLevelView, tableEm } from './view';
 import { clampScroll, powerLevelViewModel, VISIBLE_ROWS } from './view-model';
@@ -60,7 +53,7 @@ export function createGbPowerLevelFeature(
           factors: ctx.gbOwn.state(def ?? ''),
           factorButtons: ctx.settings.of(FACTOR_BUTTONS).get(),
           factorButtonsGold: ctx.settings.of(FACTOR_BUTTONS_GOLD).get(),
-          arcBonus: ownArcBonus(ctx.settings, ctx.playerBonuses),
+          arcBonus: ownArcBonus(ctx.settings.of(ARC_BUTTON).get(), ctx.playerBonuses),
           tiers: ctx.catalog.greatBuildingTiers(),
           secureExisting: viewFlag(ctx.ui, SECURE, true),
           trust: viewFlag(ctx.ui, TRUST, false),

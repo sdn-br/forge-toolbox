@@ -2,6 +2,7 @@ import { createBus, type ToolboxBus } from '../../src/content/core/events';
 import { memoryKv } from '../../src/content/core/kv';
 import { Settings } from '../../src/content/core/settings';
 import type { LevelCostFile } from '../../src/content/domain/gb-level-cost';
+import { singleFactor } from '../../src/content/features/shared/settings';
 import type { FetchLike } from '../../src/content/game/foestats-api';
 import { createStores, type Stores } from '../../src/content/stores';
 import { UiState } from '../../src/content/ui/ui-state';
@@ -38,7 +39,7 @@ export function testStores({
   const world = worldId('de20');
   const bus = createBus();
   const stores: Stores = {
-    ...createStores(world, bus, db.call, { prefs: ui, settings }, now, fetch, levelCosts),
+    ...createStores(world, bus, db.call, { prefs: ui, singleFactor: singleFactor(settings) }, now, fetch, levelCosts),
     ...overrides?.({ bus, world, now }),
   };
   return { db, world, bus, now, stores };

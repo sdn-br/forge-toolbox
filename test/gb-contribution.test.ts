@@ -2,8 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import { Ingestion } from '../src/content/core/ingestion';
 import { createGbCalculatorFeature } from '../src/content/features/gb-calculator';
+import { FOESTATS_SETTING } from '../src/content/features/shared/settings';
 import { registerGameHandlers } from '../src/content/game/handlers';
-import { FOESTATS_SETTING } from '../src/content/stores/foestats';
 import fixture from './fixtures/gb-contribution.json';
 import belowOwn from './fixtures/gb-contribution-below-own.json';
 import { featureContext } from './helpers/feature-context';
