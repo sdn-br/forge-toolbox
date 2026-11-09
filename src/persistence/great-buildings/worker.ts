@@ -46,7 +46,7 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables & Dexie): Handle
         const next: KnownGreatBuilding = {
           ...row,
           ...growthSince(before, row, row.seenAt),
-          ...kept(before),
+          ...kept(before, row.level),
         };
         latest.set(k, next);
         return next;

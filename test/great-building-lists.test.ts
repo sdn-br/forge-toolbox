@@ -3,7 +3,7 @@ import { createBus } from '../src/content/core/events';
 import { Ingestion } from '../src/content/core/ingestion';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import { GreatBuildingStore } from '../src/content/stores/great-buildings';
-import { applyListRow, growthSince, hasOwnContribution } from '../src/shared/great-buildings';
+import { applyListRow, growthSince, hasOwnContribution, kept } from '../src/shared/great-buildings';
 import { playerId, worldId } from '../src/shared/ids';
 import type { KnownGreatBuilding } from '../src/shared/model';
 import contributionFixture from './fixtures/gb-contribution.json';
@@ -170,6 +170,37 @@ describe('known great buildings from lists', () => {
     it('drops it when someone paid into the level it locked, and keeps it while nothing is paid in', () => {
       expect(maxAfter(5, 5, 300)).toBeUndefined();
       expect(maxAfter(5, 5, 0)).toBe(5);
+    });
+  });
+
+  describe('own contribution mark of an earlier level', () => {
+    const row = (level: number) => ({
+      owner: playerId(1001),
+      entityId: 1,
+      cityEntityId: 'X' as KnownGreatBuilding['cityEntityId'],
+      level,
+      invested: 100,
+      required: 500,
+    });
+    const own = known({ ownContribution: true });
+    const ownAfter = (level: number, at: number, townHall = false) =>
+      applyListRow(worldId('de20'), own, row(level), at, townHall)?.ownContribution;
+
+    it('drops it with a newer list of a new level: the level up paid it out (seen 2026-11-09)', () => {
+      expect(ownAfter(6, 2_000)).toBeUndefined();
+    });
+
+    it('keeps it on the same level, from an older list and from the town hall list', () => {
+      expect(ownAfter(5, 2_000)).toBe(true);
+      // an older list writes nothing, the stored mark stays
+      expect(applyListRow(worldId('de20'), own, row(6), 500)).toBeUndefined();
+      expect(ownAfter(6, 2_000, true)).toBe(true);
+    });
+
+    it('keeps it through an opening of the same level only, the star always', () => {
+      const before = known({ ownContribution: true, marked: true });
+      expect(kept(before, 5)).toEqual({ ownContribution: true, marked: true });
+      expect(kept(before, 6)).toEqual({ marked: true });
     });
   });
 

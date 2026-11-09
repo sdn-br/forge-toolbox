@@ -30,7 +30,9 @@ export function applyListRow(
 ): KnownGreatBuilding | undefined {
   // a list row with a rank is an own contribution, like a row of the contribution list
   const { rank, forgePoints, reward, ...state } = row;
-  const own = ownContribution || rank !== undefined || existing?.ownContribution ? { ownContribution: true } : {};
+  // an own contribution belongs to its level: the level up paid it out, so a new level drops the mark of an older one
+  const stillOwn = existing?.ownContribution && (at <= existing.seenAt || existing.level === row.level);
+  const own = ownContribution || rank !== undefined || stillOwn ? { ownContribution: true } : {};
   const place: Pick<KnownGreatBuilding, 'contribution'> =
     rank !== undefined && forgePoints !== undefined && at > (existing?.contribution?.at ?? Number.NEGATIVE_INFINITY)
       ? { contribution: { rank, forgePoints, reward: reward ?? 0, at } }
@@ -48,7 +50,7 @@ export function applyListRow(
   const { growth, growthFrom, growthAt, ...kept } = existing;
   const sameLevel = state.level === existing.level;
   const next: KnownGreatBuilding = {
-    ...withoutStaleMaxLevel(sameLevel ? kept : withoutLevelBound(kept), state),
+    ...withoutStaleMaxLevel(sameLevel ? kept : withoutOwnContribution(kept), state),
     cityEntityId: state.cityEntityId,
     level: state.level,
     invested: state.invested,
@@ -123,6 +125,15 @@ function withoutLevelBound(b: KnownGreatBuilding): KnownGreatBuilding {
 /** what an opened building does not tell, so the stored row keeps it (the ranking window brought the tier) */
 const KEPT = ['ownContribution', 'marked', 'ignored', 'marksAt', 'tier'] as const;
 
-/** the fields of the stored row that survive a write of an opened building */
-export const kept = (before: KnownGreatBuilding | undefined) =>
-  Object.fromEntries(KEPT.flatMap((k) => (before?.[k] !== undefined && before[k] !== false ? [[k, before[k]]] : [])));
+/**
+ * The fields of the stored row that survive a write of an opened building at `level`. The own contribution mark only
+ * on the same level: on a new one the level up paid it out, and an own place on it comes with the opened rankings.
+ */
+export const kept = (before: KnownGreatBuilding | undefined, level: number) =>
+  Object.fromEntries(
+    KEPT.flatMap((k) =>
+      before?.[k] === undefined || before[k] === false || (k === 'ownContribution' && before.level !== level)
+        ? []
+        : [[k, before[k]]],
+    ),
+  );
