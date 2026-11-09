@@ -77,6 +77,21 @@ describe('foestats store', () => {
     expect(updated).toEqual([player, player]);
   });
 
+  it('shows loading only while there is no record yet, and tells the views once when it refreshes', async () => {
+    const { store, clock, updated } = setup(day22);
+    const loading: boolean[] = [];
+    store.view(player).catch(() => undefined);
+    loading.push(store.get(player)?.loading ?? false);
+    await store.view(player);
+    expect(loading).toEqual([true]);
+    updated.length = 0;
+    clock.now = at(23, 9);
+    const refresh = store.view(player);
+    expect(store.get(player)?.loading).toBe(false);
+    await refresh;
+    expect(updated).toEqual([player]);
+  });
+
   it('keeps only the snapshot day when a change is missing', async () => {
     const { store, values } = setup({ ...day22, battles_change: null });
     await store.view(player);
@@ -169,13 +184,13 @@ describe('foestats store', () => {
     expect(store.get(player)).toMatchObject({ unreachable: false, unknown: false, days: [{}, {}] });
   });
 
-  it('marks the player as loading while foestats is asked, keeping what was known', async () => {
+  it('keeps what was known on show, not loading, while foestats is asked again', async () => {
     const { store, state, clock } = setup(day22);
     await store.view(player);
     clock.now = at(23, 9);
     state.data = snapshot('2026-10-23', 1210, 10, 70, 0);
     const pending = store.view(player);
-    expect(store.get(player)).toMatchObject({ loading: true, days: [{ date: '2026-10-21' }, { date: '2026-10-22' }] });
+    expect(store.get(player)).toMatchObject({ loading: false, days: [{ date: '2026-10-21' }, { date: '2026-10-22' }] });
     await pending;
     expect(store.get(player)?.loading).toBe(false);
     expect(store.get(player)?.days).toHaveLength(3);
