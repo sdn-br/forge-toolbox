@@ -99,9 +99,10 @@ export function greatBuildingsHandlers(db: GreatBuildingsTables & Dexie): Handle
         flagged.filter((b) => b[flag]).map((b) => ({ owner: b.owner, entityId: b.entityId }));
       return { marked: of('marked'), ignored: of('ignored') };
     },
-    'greatBuildings.list': ({ world, owner }) =>
-      owner === undefined
-        ? db.greatBuildings.where('world').equals(world).toArray()
-        : db.greatBuildings.where('[world+owner]').equals([world, owner]).toArray(),
+    'greatBuildings.list': async ({ world, owner, owners }) => {
+      const of = (o: PlayerId) => db.greatBuildings.where('[world+owner]').equals([world, o]).toArray();
+      if (owners) return (await Promise.all(owners.map(of))).flat();
+      return owner === undefined ? db.greatBuildings.where('world').equals(world).toArray() : of(owner);
+    },
   };
 }

@@ -300,7 +300,7 @@ describe('Investitionen: reading the known buildings', () => {
     menuClick('investments');
     await tick();
     const reads = vi.spyOn(greatBuildings, 'known');
-    const changed = () => bus.emit('greatBuildings.stored', { owner: playerId(1001), entityIds: [1] });
+    const changed = () => bus.emit('greatBuildings.stored', { owners: [{ owner: playerId(1001), entityIds: [1] }] });
     changed();
     await vi.waitFor(() => expect(reads).toHaveBeenCalledTimes(1));
     changed();
@@ -337,8 +337,27 @@ describe('Investitionen: reading the known buildings', () => {
     await tick();
     // one read of the box for that owner alone, one of the test waiting for it
     expect(reads).toHaveBeenCalledTimes(2);
-    expect(reads).toHaveBeenCalledWith(playerId(owner));
+    expect(reads).toHaveBeenCalledWith([playerId(owner)]);
     expect(rows()).toHaveLength(12);
+  });
+
+  it('reads several owners stored by one write with a single read', async () => {
+    const { send, bus, box, greatBuildings } = setup();
+    // the town hall list opens the box
+    send(contributions.contributions as Entry);
+    await tick();
+    expect(box.box.isOpen).toBe(true);
+    const reads = vi.spyOn(greatBuildings, 'known');
+    bus.emit('greatBuildings.stored', {
+      owners: [
+        { owner: playerId(1001), entityIds: [1] },
+        { owner: playerId(1002), entityIds: [2] },
+      ],
+    });
+    await tick();
+    // one read of the box for both owners, one of the test waiting for it
+    expect(reads).toHaveBeenCalledTimes(2);
+    expect(reads).toHaveBeenCalledWith([playerId(1001), playerId(1002)]);
   });
 
   it('reads every owner when it opens after something was stored while it was closed', async () => {
@@ -348,11 +367,11 @@ describe('Investitionen: reading the known buildings', () => {
     menuClick('investments');
     expect(box.box.isOpen).toBe(false);
     const reads = vi.spyOn(greatBuildings, 'known');
-    bus.emit('greatBuildings.stored', { owner: playerId(1001), entityIds: [1] });
+    bus.emit('greatBuildings.stored', { owners: [{ owner: playerId(1001), entityIds: [1] }] });
     expect(reads).not.toHaveBeenCalled();
     menuClick('investments');
     await vi.waitFor(() => expect(reads).toHaveBeenCalledWith());
-    expect(reads).not.toHaveBeenCalledWith(playerId(1001));
+    expect(reads).not.toHaveBeenCalledWith([playerId(1001)]);
   });
 
   it('rates the read buildings anew on other inputs without reading them again', async () => {

@@ -34,7 +34,7 @@ function setup() {
   send(...(fixture.startup as Entry[]));
   const events: string[] = [];
   bus.on('greatBuildings.stored', (e) =>
-    events.push(`stored:${e.owner ?? 'all'}:${e.owner ? e.entityIds.join(',') : ''}`),
+    events.push(`stored:${e.owners ? e.owners.map((o) => `${o.owner}:${o.entityIds.join(',')}`).join(' ') : 'all'}`),
   );
   bus.on('greatBuildings.listed', (e) => events.push(`listed:${e.owner}`));
   return {
@@ -115,7 +115,7 @@ describe('great buildings from the ranking window', () => {
     const { greatBuildings, send, events } = setup();
     send(ranking.playerSearch as Entry);
     await greatBuildings.known();
-    expect(events).toEqual(['stored:2021:1391,6749,8734,4797,802', 'stored:2022:4205']);
+    expect(events).toEqual(['stored:2021:1391,6749,8734,4797,802 2022:4205']);
   });
 
   it('teaches the player store each owner with name, era and guild', () => {

@@ -29,7 +29,7 @@ export interface GreatBuildingPersistence {
   ): Promise<boolean>;
   /** the buildings carrying the star, and those carrying the ignore */
   flagged(world: WorldId): Promise<Record<MarkKind, { owner: PlayerId; entityId: number }[]>>;
-  list(world: WorldId, owner?: PlayerId): Promise<KnownGreatBuilding[]>;
+  list(world: WorldId, owner?: PlayerId | PlayerId[]): Promise<KnownGreatBuilding[]>;
 }
 
 const NO_CHANGE = { changed: false, cleared: false };
@@ -45,7 +45,8 @@ export class GreatBuildingStore {
   private open?: Construction;
   private entities = new Map<string, GreatBuildingEntity>();
   private listedAt?: number;
-  private pending: KnownGreatBuilding[] = [];
+  /** the last row of each building not written yet */
+  private pending = new Map<string, KnownGreatBuilding>();
   private writes: Promise<unknown> = Promise.resolve();
   private flushQueued = false;
   /** the stars and the ignores; they change only through `mark` and `ignore`, so memory and database agree */
@@ -220,8 +221,8 @@ export class GreatBuildingStore {
     this.changed('leveled');
   }
 
-  /** what is known about other players' great buildings, for the snipe helper */
-  known(owner?: PlayerId): Promise<KnownGreatBuilding[]> {
+  /** what is known about other players' great buildings: of one owner, of several in one read, or of all */
+  known(owner?: PlayerId | PlayerId[]): Promise<KnownGreatBuilding[]> {
     return this.writes.then(() => this.persistence.list(this.world, owner));
   }
 
@@ -237,7 +238,7 @@ export class GreatBuildingStore {
     const entityIds = rows.map((r) => r.entityId);
     this.enqueue(async () => {
       await this.persistence.putList(this.world, rows, at);
-      this.bus.emit('greatBuildings.stored', { owner, entityIds });
+      this.bus.emit('greatBuildings.stored', { owners: [{ owner, entityIds }] });
     });
   }
 
@@ -295,7 +296,7 @@ export class GreatBuildingStore {
     const invested = open.rankings.reduce((sum, r) => sum + (r.fp ?? 0), 0);
     const self = open.rankings.find((r) => r.self && r.rank !== undefined);
     const at = this.now();
-    this.pending.push({
+    this.pending.set(gbIdKey(open.owner, open.entityId), {
       world: this.world,
       owner: open.owner,
       entityId: open.entityId,
@@ -321,17 +322,21 @@ export class GreatBuildingStore {
     this.flushQueued = true;
     this.enqueue(async () => {
       this.flushQueued = false;
-      const rows = this.pending.splice(0);
+      const rows = [...this.pending.values()];
+      this.pending.clear();
       await this.persistence.put(rows);
       this.announceStored(rows);
     });
   }
 
-  /** names each owner of the written rows once, with the distinct buildings in the order they came */
+  /** one event for the write, naming each owner of the written rows once, with the distinct buildings in the order they came */
   private announceStored(rows: { owner: PlayerId; entityId: number }[]) {
     const written = new Map<PlayerId, Set<number>>();
     for (const r of rows) written.set(r.owner, (written.get(r.owner) ?? new Set()).add(r.entityId));
-    for (const [owner, ids] of written) this.bus.emit('greatBuildings.stored', { owner, entityIds: [...ids] });
+    if (written.size === 0) return;
+    this.bus.emit('greatBuildings.stored', {
+      owners: [...written].map(([owner, ids]) => ({ owner, entityIds: [...ids] })),
+    });
   }
 
   private enqueue(write: () => Promise<unknown>) {

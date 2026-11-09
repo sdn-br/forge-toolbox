@@ -1,8 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { createBus } from '../src/content/core/events';
 import { Ingestion } from '../src/content/core/ingestion';
 import { toGreatBuildingEntity } from '../src/content/game/convert';
 import { registerGameHandlers } from '../src/content/game/handlers';
-import { playerId } from '../src/shared/ids';
+import { GreatBuildingStore } from '../src/content/stores/great-buildings';
+import { playerId, worldId } from '../src/shared/ids';
 import fixture from './fixtures/great-buildings.json';
 import { testStores } from './helpers/stores';
 
@@ -239,5 +241,33 @@ describe('great building handlers and store', () => {
     const e = { id: 1, player_id: 2, cityentity_id: 'X', type: 'greatbuilding', level: 1, max_level: 2, state: {} };
     expect(toGreatBuildingEntity(e)).toMatchObject({ connected: false, invested: 0, required: 0 });
     expect(toGreatBuildingEntity({ ...e, type: 'residential' })).toBeNull();
+  });
+});
+
+describe('great building writes', () => {
+  it('writes the last row of a building opened and changed within one tick, not every row', async () => {
+    const put = vi.fn(async () => {});
+    const persistence = { put, list: async () => [] } as unknown as ConstructorParameters<typeof GreatBuildingStore>[2];
+    const store = new GreatBuildingStore(createBus(), worldId('de20'), persistence);
+    const entity = (invested: number) => ({
+      owner: playerId(1001),
+      entityId: 7,
+      def: 'X' as never,
+      level: 5,
+      maxLevel: 6,
+      invested,
+      required: 500,
+      connected: true,
+    });
+    const self = { player: playerId(1001), name: 'a', self: false, fp: 10 };
+    store.noteEntity(entity(10));
+    store.openConstruction(playerId(1001), 7, false, [self]);
+    store.levelRanking(playerId(1001), 7, 7, [{ ...self, fp: 20 }]);
+    store.noteEntity(entity(30));
+    await store.known();
+    expect(put).toHaveBeenCalledTimes(1);
+    const [rows] = put.mock.calls[0] as unknown as [{ entityId: number; invested: number }[]];
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.invested).toBe(30);
   });
 });
