@@ -2,6 +2,7 @@
 // effect with the own Arc bonus, and the way between percent and factor. A fixed factor is kept per tier of the level
 // (copper or gold), the choice of the Arc bonus for both.
 import type { GreatBuildingTier } from '../model/catalog';
+import { tierPlaces } from './gb-tier';
 
 /**
  * the factor picked: a number in percent, or the own Arc bonus, which follows the bonus when it changes. `value` is
@@ -41,3 +42,19 @@ export const effectiveFactor = (choice: FactorChoice, arcBonus: number | undefin
 /** the factor of each place, one choice per place */
 export const effectiveFactors = (choices: FactorChoice[], arcBonus: number | undefined, tier?: GreatBuildingTier) =>
   choices.map((c) => effectiveFactor(c, arcBonus, tier));
+
+/** both follow the Arc bonus, or both hold the same fixed factors on copper and on gold levels */
+export const sameChoice = (a: FactorChoice, b: FactorChoice) => sameOn(a, b, 'copper') && sameOn(a, b, 'gold');
+
+/** alike on a level of `tier`: both follow the Arc bonus, or both hold the same fixed factor of the tier */
+const sameOn = (a: FactorChoice, b: FactorChoice, tier: GreatBuildingTier) =>
+  a.arc === b.arc && (a.arc || fixedFactor(a, tier) === fixedFactor(b, tier));
+
+/** the choice all places of a level of `tier` share, else undefined; a copper level looks at places 1 to 5 only */
+export const alikeOn = (choices: FactorChoice[], tier: GreatBuildingTier): FactorChoice | undefined => {
+  const first = choices[0];
+  return first && choices.slice(0, tierPlaces(tier)).every((c) => sameOn(c, first, tier)) ? first : undefined;
+};
+/** every place holds the same choice in both lists */
+export const sameChoices = (a: FactorChoice[], b: FactorChoice[]) =>
+  a.every((c, i) => sameChoice(c, b[i] as FactorChoice));

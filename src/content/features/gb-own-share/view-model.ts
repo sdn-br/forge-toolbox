@@ -1,13 +1,13 @@
 import type { BuildingDefId } from '../../../shared/ids';
 import type { ArcBonus } from '../../domain/arc-bonus';
-import { effectiveFactor, effectiveFactors } from '../../domain/gb-factor';
+import { alikeOn, effectiveFactor, effectiveFactors } from '../../domain/gb-factor';
 import { type LevelCosts, levelCosts } from '../../domain/gb-level-cost';
 import { emptyLevel } from '../../domain/gb-level-preview';
 import { calculateOwnShare, type OwnPlace, type OwnShareCalc } from '../../domain/gb-own-share';
 import { levelTier, tierPlaces } from '../../domain/gb-tier';
 import type { GreatBuildingDef, GreatBuildingTier, TierStart } from '../../model/catalog';
 import type { Construction, RankingRow } from '../../model/great-building';
-import { alikeOn, type PlaceFactorState } from '../../stores/place-factors';
+import type { PlaceFactorState } from '../../stores/place-factors';
 import { type FactorButton, factorButtons } from '../../ui/factor-bar';
 import { type LevelChoice, levelChoice } from '../../ui/level-bar';
 import { type LevelPreview, levelPreview } from '../../ui/level-preview';
