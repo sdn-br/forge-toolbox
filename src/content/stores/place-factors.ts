@@ -1,8 +1,7 @@
 // The factor of each of the seven places of an own great building, on three levels: the standard for every building,
 // the seven saved for one building, and a change in the box not saved, kept per building until the page reloads.
 // Copper levels have five places and use places 1 to 5 only.
-import { type FactorChoice, fixedFactor, withFixed } from '../domain/gb-factor';
-import { tierPlaces } from '../domain/gb-tier';
+import { type FactorChoice, sameChoices, withFixed } from '../domain/gb-factor';
 import type { GreatBuildingTier } from '../model/catalog';
 
 /** the places with a reward on a gold level, the most a level has */
@@ -36,20 +35,6 @@ export interface PrefStore {
 export const STANDARD_KEY = 'gbOwn.factorDefault';
 /** the factors saved for one building, by its definition */
 export const savedKey = (def: string) => `gbOwn.factors.${def}`;
-
-/** both follow the Arc bonus, or both hold the same fixed factors on copper and on gold levels */
-export const sameChoice = (a: FactorChoice, b: FactorChoice) => sameOn(a, b, 'copper') && sameOn(a, b, 'gold');
-
-/** alike on a level of `tier`: both follow the Arc bonus, or both hold the same fixed factor of the tier */
-const sameOn = (a: FactorChoice, b: FactorChoice, tier: GreatBuildingTier) =>
-  a.arc === b.arc && (a.arc || fixedFactor(a, tier) === fixedFactor(b, tier));
-
-/** the choice all places of a level of `tier` share, else undefined; a copper level looks at places 1 to 5 only */
-export const alikeOn = (choices: FactorChoice[], tier: GreatBuildingTier): FactorChoice | undefined => {
-  const first = choices[0];
-  return first && choices.slice(0, tierPlaces(tier)).every((c) => sameOn(c, first, tier)) ? first : undefined;
-};
-const sameChoices = (a: FactorChoice[], b: FactorChoice[]) => a.every((c, i) => sameChoice(c, b[i] as FactorChoice));
 
 /**
  * seven choices as stored; anything else, e.g. from an older version, counts as not stored. Five choices (stored before

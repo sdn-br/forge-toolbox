@@ -4,7 +4,9 @@ import { type GreatBuildingListRow, type KnownGreatBuilding, type MarkKind, OTHE
 import { DAY_MS } from '../../shared/time';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
+import { knownRowOf, ownDepositGrowth } from '../domain/gb-known-row';
 import type { Construction, GreatBuildingEntity, RankingRow } from '../model/great-building';
+import { WriteQueue } from './write-queue';
 
 export interface GreatBuildingPersistence {
   /** a row of an opened building replaces what was known about that building */
@@ -32,6 +34,7 @@ export interface GreatBuildingPersistence {
   list(world: WorldId, owner?: PlayerId | PlayerId[]): Promise<KnownGreatBuilding[]>;
 }
 
+const SAVE_ERROR = 'saving great buildings failed';
 const NO_CHANGE = { changed: false, cleared: false };
 /** openings remembered until their construction arrives; the game sends both right after each other */
 const MAX_ENTITIES = 20;
@@ -47,8 +50,7 @@ export class GreatBuildingStore {
   private listedAt?: number;
   /** the last row of each building not written yet */
   private pending = new Map<string, KnownGreatBuilding>();
-  private writes: Promise<unknown> = Promise.resolve();
-  private flushQueued = false;
+  private queue = new WriteQueue();
   /** the stars and the ignores; they change only through `mark` and `ignore`, so memory and database agree */
   private flags: Record<MarkKind, Set<string>> = { marked: new Set(), ignored: new Set() };
 
@@ -109,17 +111,16 @@ export class GreatBuildingStore {
     entityId: number,
     value: boolean,
   ): Promise<{ changed: boolean; cleared: boolean }> {
-    const run = this.writes.then(async () => {
-      if (!(await this.persistence.setFlag(this.world, owner, entityId, kind, value, this.now()))) return NO_CHANGE;
-      const k = gbIdKey(owner, entityId);
-      const cleared = value && this.flags[OTHER_MARK[kind]].delete(k);
-      if (value) this.flags[kind].add(k);
-      else this.flags[kind].delete(k);
-      return { changed: true, cleared };
-    });
-    this.writes = run.catch((error) => logError('saving great buildings failed', error));
-    // a failed write is logged once above; the caller sees no change
-    return run.catch(() => NO_CHANGE);
+    return this.queue
+      .enqueue(async () => {
+        if (!(await this.persistence.setFlag(this.world, owner, entityId, kind, value, this.now()))) return NO_CHANGE;
+        const k = gbIdKey(owner, entityId);
+        const cleared = value && this.flags[OTHER_MARK[kind]].delete(k);
+        if (value) this.flags[kind].add(k);
+        else this.flags[kind].delete(k);
+        return { changed: true, cleared };
+      }, SAVE_ERROR)
+      .then((r) => r ?? NO_CHANGE); // a failed write is logged once; the caller sees no change
   }
 
   /** the construction open in the game, or the last one opened */
@@ -196,8 +197,7 @@ export class GreatBuildingStore {
   ): void {
     const open = target ? this.matching(target.owner, target.entityId) : this.open;
     if (!open) return;
-    const mine = (rows: RankingRow[]) => rows.find((r) => r.self && r.rank !== undefined)?.fp ?? 0;
-    const added = mine(rankings) - mine(open.rankings);
+    const added = ownDepositGrowth(open.rankings, rankings);
     const fits = building?.owner === open.owner && building.entityId === open.entityId;
     const entity = fits ? building : open.entity && { ...open.entity, invested: open.entity.invested + added };
     const rankingsLevel = entity?.level;
@@ -223,7 +223,7 @@ export class GreatBuildingStore {
 
   /** what is known about other players' great buildings: of one owner, of several in one read, or of all */
   known(owner?: PlayerId | PlayerId[]): Promise<KnownGreatBuilding[]> {
-    return this.writes.then(() => this.persistence.list(this.world, owner));
+    return this.queue.afterWrites(() => this.persistence.list(this.world, owner));
   }
 
   /**
@@ -236,7 +236,7 @@ export class GreatBuildingStore {
     if (owner === undefined) return;
     const at = this.now();
     const entityIds = rows.map((r) => r.entityId);
-    this.enqueue(async () => {
+    this.write(async () => {
       await this.persistence.putList(this.world, rows, at);
       this.bus.emit('greatBuildings.stored', { owners: [{ owner, entityIds }] });
     });
@@ -249,7 +249,7 @@ export class GreatBuildingStore {
    */
   noteRanking(rows: GreatBuildingListRow[]): void {
     const at = this.now();
-    this.enqueue(async () => {
+    this.write(async () => {
       await this.persistence.putList(this.world, rows, at);
       this.announceStored(rows);
     });
@@ -259,7 +259,7 @@ export class GreatBuildingStore {
   noteContributions(rows: GreatBuildingListRow[]): void {
     const at = this.now();
     this.listedAt = at;
-    this.enqueue(async () => {
+    this.write(async () => {
       await this.persistence.putContributions(this.world, rows, at);
       this.bus.emit('greatBuildings.stored', {});
     });
@@ -274,8 +274,7 @@ export class GreatBuildingStore {
   /** Deletes buildings not seen for `days`, except those with an own contribution, marked and ignored ones; run at the start. */
   prune(days: number): Promise<void> {
     const before = this.now() - days * DAY_MS;
-    this.enqueue(() => this.persistence.prune(this.world, before));
-    return this.writes.then(() => undefined);
+    return this.queue.enqueue(() => this.persistence.prune(this.world, before), SAVE_ERROR).then(() => undefined);
   }
 
   private matching(owner: PlayerId, entityId: number): Construction | undefined {
@@ -291,42 +290,15 @@ export class GreatBuildingStore {
   /** keeps the state of a foreign building with the rankings of its current level */
   private remember() {
     const open = this.open;
-    const entity = open?.entity;
-    if (!open || open.own || !entity) return;
-    const invested = open.rankings.reduce((sum, r) => sum + (r.fp ?? 0), 0);
-    const self = open.rankings.find((r) => r.self && r.rank !== undefined);
-    const at = this.now();
-    this.pending.set(gbIdKey(open.owner, open.entityId), {
-      world: this.world,
-      owner: open.owner,
-      entityId: open.entityId,
-      cityEntityId: entity.def,
-      level: entity.level,
-      invested: entity.invested,
-      required: entity.required,
-      maxLevel: entity.maxLevel,
-      connected: entity.connected,
-      rankings: open.rankings,
-      rankingsLevel: open.rankingsLevel ?? entity.level,
-      rankingsAt: open.seenAt,
-      rankingsInvested: invested,
-      ...(self?.rank !== undefined && {
-        ownContribution: true,
-        contribution: { rank: self.rank, forgePoints: self.fp ?? 0, reward: self.reward?.fp ?? 0, at },
-      }),
-      // the building is open in the game now: what is paid in from here on is growth
-      growthBase: entity.invested,
-      seenAt: at,
-    });
-    if (this.flushQueued) return;
-    this.flushQueued = true;
-    this.enqueue(async () => {
-      this.flushQueued = false;
+    const row = open && knownRowOf(open, this.world, this.now());
+    if (!open || !row) return;
+    this.pending.set(gbIdKey(open.owner, open.entityId), row);
+    this.queue.batch(async () => {
       const rows = [...this.pending.values()];
       this.pending.clear();
       await this.persistence.put(rows);
       this.announceStored(rows);
-    });
+    }, SAVE_ERROR);
   }
 
   /** one event for the write, naming each owner of the written rows once, with the distinct buildings in the order they came */
@@ -339,7 +311,7 @@ export class GreatBuildingStore {
     });
   }
 
-  private enqueue(write: () => Promise<unknown>) {
-    this.writes = this.writes.then(() => write().catch((error) => logError('saving great buildings failed', error)));
+  private write(task: () => Promise<unknown>) {
+    void this.queue.enqueue(task, SAVE_ERROR);
   }
 }

@@ -250,12 +250,14 @@ export class CatalogStore {
     return this.gbNames.get(id) ?? this.defs.get(id)?.name;
   }
 
-  /** all great buildings with this display name; the game names a building only so in some events */
-  greatBuildingsNamed(name: string): BuildingDefId[] {
-    const ids = new Set<BuildingDefId>();
-    for (const [id, n] of this.gbNames) if (n === name) ids.add(id);
-    for (const def of this.defs.values()) if (def.type === 'greatbuilding' && def.name === name) ids.add(def.id);
-    return [...ids];
+  /** the display names of great buildings from the game's lists, by definition */
+  greatBuildingNames(): ReadonlyMap<BuildingDefId, string> {
+    return this.gbNames;
+  }
+
+  /** every definition of this session */
+  definitions(): IterableIterator<BuildingDef> {
+    return this.defs.values();
   }
 
   /** The tiers of great building levels from the metadata file `great_building_tiers`; the boxes redraw. */

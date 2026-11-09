@@ -1,27 +1,6 @@
-import type { BuildingDefId } from '../../shared/ids';
+import type { InventoryItem } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
-
-/**
- * What an item does, as far as a feature reads it. The game names the kind by the payload class; kinds no feature
- * reads yet are `other` and keep only that class.
- */
-export type ItemPayload =
-  | { kind: 'forgePoints'; gain: number }
-  | { kind: 'building'; def: BuildingDefId; level?: number }
-  | { kind: 'boost'; boostType: string; value: number; duration?: number }
-  | { kind: 'other' };
-
-export interface InventoryItem {
-  /** the game's id of this stack in the inventory */
-  id: number;
-  name: string;
-  inStock: number;
-  /** payload class of the game, e.g. `ForgePointPackagePayload` */
-  gameClass: string;
-  /** picture of the item in the game's assets */
-  asset?: string;
-  payload: ItemPayload;
-}
+import { forgePointPackagesOf } from '../domain/inventory';
 
 /**
  * The inventory of the player: the full list from the start, kept current by the updates the game sends. Nothing is
@@ -111,8 +90,6 @@ export class InventoryStore {
 
   /** stock times gain of each Forge point package */
   computedForgePointPackages(): number {
-    let sum = 0;
-    for (const i of this.items()) if (i.payload.kind === 'forgePoints') sum += i.inStock * i.payload.gain;
-    return sum;
+    return forgePointPackagesOf(this.items());
   }
 }

@@ -4,7 +4,7 @@ import { singleFlight } from '../../shared/single-flight';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
 import { toggleDef } from '../core/settings';
-import { type FoestatsClient, toFoestatsOutcome } from '../game/foestats-api';
+import type { FoestatsClient } from '../game/foestats-api';
 
 export interface FoestatsPersistence {
   /** whether to ask foestats now; `fetch: true` reserves the request until `store` */
@@ -72,8 +72,8 @@ export class FoestatsStore {
       let state = claimed;
       if (fetch) {
         // the request never fails, a missing answer is 'unreachable'
-        const answer = await this.requests.player(this.world, player);
-        state = await this.persistence.store(this.world, player, toFoestatsOutcome(this.world, player, answer));
+        const outcome = await this.requests.player(this.world, player);
+        state = await this.persistence.store(this.world, player, outcome);
       }
       const days = await this.persistence.history(this.world, player);
       this.records.set(player, { days, ...state, loading: false });

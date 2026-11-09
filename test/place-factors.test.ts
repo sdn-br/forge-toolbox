@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { memoryKv } from '../src/content/core/kv';
 import type { FactorChoice } from '../src/content/domain/gb-factor';
-import { alikeOn, PlaceFactors, STANDARD_KEY, sameChoice, savedKey } from '../src/content/stores/place-factors';
+import { PlaceFactors, STANDARD_KEY, savedKey } from '../src/content/stores/place-factors';
 import { UiState } from '../src/content/ui/ui-state';
 
 const fixed = (value: number): FactorChoice => ({ value, arc: false });
@@ -148,20 +148,5 @@ describe('the factors by tier (Nutzer, 2026-11-05)', () => {
     const { ui, values } = setup();
     ui.savePref(savedKey('Arc'), JSON.stringify(Array(6).fill(fixed(100))));
     expect(values('Arc')).toEqual(Array(7).fill(90));
-  });
-
-  it('are alike on a copper level by places 1 to 5, on a gold level by all seven', () => {
-    const c = { value: 90, arc: false, gold: 15 };
-    const other = { value: 80, arc: false, gold: 12 };
-    const choices = [c, c, c, c, c, other, other];
-    expect(alikeOn(choices, 'copper')).toEqual(c);
-    expect(alikeOn(choices, 'gold')).toBeUndefined();
-  });
-
-  it('are alike on a tier when the fixed factor of that tier is', () => {
-    const a = { value: 90, arc: false, gold: 15 };
-    expect(alikeOn([a, { ...a, value: 80 }], 'gold')).toEqual(a);
-    expect(alikeOn([a, { ...a, value: 80 }], 'copper')).toBeUndefined();
-    expect(sameChoice(a, { ...a, gold: 20 })).toBe(false);
   });
 });

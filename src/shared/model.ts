@@ -403,3 +403,25 @@ export interface NoteChanges {
   deletedGroups: [WorldId, string][];
   deletedPages: [WorldId, string][];
 }
+
+/**
+ * What an item does, as far as a feature reads it. The game names the kind by the payload class; kinds no feature
+ * reads yet are `other` and keep only that class.
+ */
+export type ItemPayload =
+  | { kind: 'forgePoints'; gain: number }
+  | { kind: 'building'; def: BuildingDefId; level?: number }
+  | { kind: 'boost'; boostType: string; value: number; duration?: number }
+  | { kind: 'other' };
+
+export interface InventoryItem {
+  /** the game's id of this stack in the inventory */
+  id: number;
+  name: string;
+  inStock: number;
+  /** payload class of the game, e.g. `ForgePointPackagePayload` */
+  gameClass: string;
+  /** picture of the item in the game's assets */
+  asset?: string;
+  payload: ItemPayload;
+}
