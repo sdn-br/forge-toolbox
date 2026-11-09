@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import { Markers } from '../src/content/core/markers';
+import { OwnSelection, SELECTION } from '../src/content/core/selection';
 import type { BuildingDef } from '../src/content/model/catalog';
 import type { Building, City } from '../src/content/model/city';
 import { CityStore } from '../src/content/stores/cities';
-import { OwnSelection, SELECTION } from '../src/content/stores/selection';
 import { selectionEntries } from '../src/content/ui/selection-list';
 import { type BuildingDefId, buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';
 import { MAX_MARKERS } from '../src/shared/marker-protocol';

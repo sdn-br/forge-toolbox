@@ -32,6 +32,7 @@ import { chromeProfileStorage, type ProfileCopy, profileCopy } from './core/prof
 import { connectProxy } from './core/proxy-link';
 import { Recorder } from './core/recorder';
 import { backgroundCall } from './core/rpc';
+import { OwnSelection } from './core/selection';
 import { Settings } from './core/settings';
 import { SettingsControls } from './core/settings-controls';
 import { createShell } from './core/shell';
@@ -58,7 +59,6 @@ import { watchEngine } from './game/engine';
 import { registerGameHandlers } from './game/handlers';
 import { identifyStartup } from './game/identify';
 import { createStores } from './stores';
-import { OwnSelection } from './stores/selection';
 import { Menu } from './ui/menu';
 import { UiState } from './ui/ui-state';
 

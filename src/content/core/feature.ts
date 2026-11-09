@@ -1,13 +1,13 @@
 import type { WorldId } from '../../shared/ids';
 import type { FoundData } from '../backup/found-data';
 import type { Stores } from '../stores';
-import type { OwnSelection } from '../stores/selection';
 import { Box, type BoxOptions } from '../ui/box';
 import type { Menu } from '../ui/menu';
 import type { UiState } from '../ui/ui-state';
 import type { ToolboxBus } from './events';
 import type { Markers } from './markers';
 import type { Recorder } from './recorder';
+import type { OwnSelection } from './selection';
 import type { Settings } from './settings';
 import type { SettingsControls } from './settings-controls';
 import type { Shell } from './shell';
