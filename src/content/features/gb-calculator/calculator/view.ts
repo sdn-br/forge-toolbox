@@ -38,18 +38,19 @@ const ignoreWarning = (h: GbHeader, actions: GbCalculatorActions) => {
 };
 
 function header(h: GbHeader, actions: GbCalculatorActions) {
-  const fp =
-    h.availableFp === undefined
-      ? t('gbCalc.availableUnknown')
-      : t('gbCalc.availableFp', { fp: formatNumber(h.availableFp) });
-  const part = (n: number | undefined) => (n === undefined ? '?' : formatNumber(n));
-  const split = t('gbCalc.fpSplit', { bar: part(h.fpBar), packages: part(h.fpPackages) });
   return html`${ignoreWarning(h, actions)}<p><span class="gb-title">${t('gbCalc.heading', { name: h.name, level: h.level, next: h.next })}</span>
     ${starButton('building', h.marked, () => actions.toggleMark(!h.marked))}${ignoreButton('building', h.ignored, () => actions.toggleIgnore(!h.ignored))}
     <span class="muted">· ${t('gbCalc.unlocked', { max: h.maxLevel })}</span>
-    <br />${ownerOf(h, actions.toggleOwnerMark, actions.toggleOwnerIgnore)}${h.activity ? activityLine(h.activity) : ''}
-    <br /><span class="muted"><span class="gb-fp" data-tip=${split}>${fp}</span> ·
-      <span data-tip=${arcTip(h.arcBonuses)}>${t('gbCalc.arc', { arc: formatNumber(h.arcBonus) })}</span></span></p>`;
+    <br />${ownerOf(h, actions.toggleOwnerMark, actions.toggleOwnerIgnore)}${h.activity ? activityLine(h.activity) : ''}</p>`;
+}
+
+/** the player's own values on top of the "Du" box, apart from the building and its owner above */
+function ownLine(h: GbHeader) {
+  const fp = h.availableFp === undefined ? t('gbCalc.availableUnknown') : formatNumber(h.availableFp);
+  const part = (n: number | undefined) => (n === undefined ? '?' : formatNumber(n));
+  const split = t('gbCalc.fpSplit', { bar: part(h.fpBar), packages: part(h.fpPackages) });
+  return html`<span class="gb-own"><span class="gb-fp" data-tip=${split}>${t('gbCalc.availableFp')} <span class="muted">${fp}</span></span>
+    <span data-tip=${arcTip(h.arcBonuses)}>${t('gbCalc.arc')} <span class="muted">${formatPercent(h.arcBonus)}</span></span></span>`;
 }
 
 /** what the player still has to add, muted after the cost; nothing when it is the whole cost or nothing */
@@ -93,11 +94,11 @@ function levelUpLine(l: LevelUpAndFirst) {
 }
 
 /** the own deposit: safe, or the places still to make safe with what is missing for each */
-function meLine(me: MeVm) {
+function meLine(me: MeVm, own: TemplateResult) {
   const levelUp = me.levelUp ? html`<br />${levelUpLine(me.levelUp)}` : '';
   const deposit = t('gbCalc.me', { fp: formatNumber(me.fp), rank: me.rank ?? '?' });
   if (me.secured)
-    return html`<p class="gb-me safe">${deposit} · ${t('gbCalc.meSecured')}
+    return html`<p class="gb-me safe">${own}${deposit} · ${t('gbCalc.meSecured')}
       <span class="secured-icon" role="img" aria-hidden="true">${headerIcons.checkCircle}</span>${levelUp}</p>`;
   const where =
     me.fp > 0 ? `${deposit}${me.secured === false ? ` · ${t('gbCalc.meUnsafe')}` : ''}` : t('gbCalc.meNone');
@@ -112,7 +113,7 @@ function meLine(me: MeVm) {
   const targets = me.targets.length
     ? me.targets.map((x, i) => html`${i ? ' · ' : ''}${target(x)}`)
     : t(me.noneWorthwhile ? 'gbCalc.meNoneWorthwhile' : 'gbCalc.meNoTarget');
-  return html`<p class="gb-me">${where}<br /><span class="muted">${targets}</span>${levelUp}</p>`;
+  return html`<p class="gb-me">${own}${where}<br /><span class="muted">${targets}</span>${levelUp}</p>`;
 }
 
 const placeTitle = (p: PlaceRow) =>
@@ -186,7 +187,7 @@ function calculatorBody(vm: GbCalculatorVm, actions: GbCalculatorActions): Templ
         ${previewProgress(vm.preview)}
         ${levelBar(vm.header.levels, actions.previewLevel)}
         ${factorBar(vm.factorButtons, vm.effectiveFactor, actions, vm.tier)}
-        ${vm.levelUp ? html`<p class="gb-me">${levelUpLine(vm.levelUp)}</p>` : ''}
+        <p class="gb-me">${ownLine(vm.header)}${vm.levelUp ? levelUpLine(vm.levelUp) : ''}</p>
         ${vm.preview.unknown ? previewUnknown(vm.preview) : placesTable(vm.preview.places)}`;
     case 'current': {
       const overlay = overlayText(vm);
@@ -194,7 +195,7 @@ function calculatorBody(vm: GbCalculatorVm, actions: GbCalculatorActions): Templ
         ${levelProgress(vm.invested, vm.required, vm.missing, vm.ownerFp)}
         ${levelBar(vm.header.levels, actions.previewLevel)}
         ${factorBar(vm.factorButtons, vm.effectiveFactor, actions, vm.tier)}
-        ${vm.me ? meLine(vm.me) : ''}
+        ${vm.me ? meLine(vm.me, ownLine(vm.header)) : html`<p class="gb-me">${ownLine(vm.header)}</p>`}
         <div class="gb-places">
           ${placesTable(vm.places)}
           ${overlay ? html`<div class="gb-overlay"><p>${overlay}</p></div>` : ''}

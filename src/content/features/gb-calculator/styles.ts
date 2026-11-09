@@ -19,6 +19,11 @@ tr.gb-mine { background: var(--row-mine); }
 td.over-rest { color: var(--bad); }
 /* the circled check where a place is safe, in the cell and after "sicher" in the own line */
 td.secured svg, .gb-me .secured-icon svg { display: inline-block; }
+/* the own values open the "Du" box in the box's own colours, the safe green does not reach them; a rule parts them from
+   the deposit below, none when nothing follows */
+.gb-me .gb-own { display: flex; gap: 14px; color: var(--ink); padding-bottom: 3px; margin-bottom: 3px;
+  border-bottom: 1px solid var(--line); }
+.gb-me .gb-own:last-child { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; }
 td.below-safe { font-style: italic; opacity: .75; }
 .gb-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 8px;
   background: rgba(43, 29, 16, .88); text-align: center; color: var(--accent); }

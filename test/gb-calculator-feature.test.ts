@@ -518,8 +518,10 @@ describe('LG-Rechner', () => {
       );
     /** the lines about the own deposit, the second lists the places still to make safe */
     const meLines = (root: HTMLElement) => {
-      const me = root.querySelector('.gb-me');
-      const targets = me?.querySelector('.muted')?.textContent?.trim();
+      // the own values on top of the box are not part of the deposit lines
+      const me = root.querySelector('.gb-me')?.cloneNode(true) as HTMLElement | undefined;
+      me?.querySelector('.gb-own')?.remove();
+      const targets = me?.querySelector(':scope > .muted')?.textContent?.trim();
       const first = me?.textContent
         ?.replace(targets ?? '', '')
         .replace(/\s+/g, ' ')
@@ -818,6 +820,10 @@ describe('LG-Rechner', () => {
       choose(box.root, 54);
       expect(box.text).toContain('Vorschau Stufe 54 → 55');
       expect(box.root.querySelector('.gb-levelup')).toBeNull();
+      // the own values stay in the box at the same place, alone without the line
+      expect(box.root.querySelector('.gb-me')?.textContent?.replace(/\s+/g, ' ').trim()).toMatch(
+        /^Verfügbare FP: \S+ Arche-Bonus: \S+ %$/,
+      );
     });
 
     it('leaves it out when it does not pay', () => {

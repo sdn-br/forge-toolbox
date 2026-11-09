@@ -142,7 +142,9 @@ describe('recorded contribution to place 2 with empty places below', () => {
     expect([cells(rows()[0])[4], cells(rows()[0])[5], cells(rows()[0])[7]]).toEqual(['–', '–', '–']);
     // rest 557, no successor: round(557 / 2) = 279, already paid: safe, the rate is the own 279 of 205
     expect(cells(rows()[1])).toEqual(['2', '279', 'secured', '205', '-74', '−0,27', '390 (+111)', '136,1 %']);
-    expect(box.root.querySelector('.gb-me')?.textContent?.trim()).toBe('Du: 279 FP auf P2 · sicher');
+    const me = box.root.querySelector('.gb-me')?.cloneNode(true) as HTMLElement;
+    me.querySelector('.gb-own')?.remove();
+    expect(me.textContent?.trim()).toBe('Du: 279 FP auf P2 · sicher');
     expect(box.root.querySelector('.gb-me .secured-icon svg')).not.toBeNull();
     expect(box.root.querySelector('.gb-me')?.className).toBe('gb-me safe');
     for (const row of rows().slice(2)) {
