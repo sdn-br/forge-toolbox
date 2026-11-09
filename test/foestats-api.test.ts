@@ -56,9 +56,12 @@ describe('foestats api', () => {
   const world = worldId('de20');
   const player = playerId(4711);
 
-  it('asks the snapshot of a player without cookies', async () => {
-    const fetch = vi.fn<FetchLike>(async () => response(200, JSON.stringify({ success: true, data: { points: 5 } })));
-    expect(await foestatsApi(fetch).player(world, player)).toEqual({ snapshot: { points: 5 } });
+  it('asks the snapshot of a player without cookies and tells it in the domain model', async () => {
+    const data = { data_date: '2026-10-22', points: 5, battles: 7 };
+    const fetch = vi.fn<FetchLike>(async () => response(200, JSON.stringify({ success: true, data })));
+    expect(await foestatsApi(fetch).player(world, player)).toEqual({
+      day: { world, player, date: '2026-10-22', points: 5, battles: 7 },
+    });
     expect(fetch.mock.calls[0]?.[0]).toBe('https://api.forge-db.com/api/players/de/de20/4711');
     expect(fetch.mock.calls[0]?.[1]).toMatchObject({ credentials: 'omit' });
   });

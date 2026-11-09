@@ -119,20 +119,24 @@ export function foestatsApi(fetch: FetchLike) {
     const w = foestatsWorld(world);
     return `${BASE}/${w.server}/${w.world}/${player}`;
   };
+  const answer = async (world: WorldId, player: PlayerId): Promise<FoestatsAnswer> => {
+    try {
+      const res = await fetch(playerUrl(world, player), {
+        credentials: 'omit',
+        headers: { accept: 'application/json' },
+      });
+      if (res.status === 404) return 'unknown';
+      if (!res.ok) return 'unreachable';
+      const snapshot = parsePlayer(JSON.parse(await res.text()));
+      return snapshot ? { snapshot } : 'unreachable';
+    } catch {
+      return 'unreachable';
+    }
+  };
   return {
-    async player(world: WorldId, player: PlayerId): Promise<FoestatsAnswer> {
-      try {
-        const res = await fetch(playerUrl(world, player), {
-          credentials: 'omit',
-          headers: { accept: 'application/json' },
-        });
-        if (res.status === 404) return 'unknown';
-        if (!res.ok) return 'unreachable';
-        const snapshot = parsePlayer(JSON.parse(await res.text()));
-        return snapshot ? { snapshot } : 'unreachable';
-      } catch {
-        return 'unreachable';
-      }
+    /** what foestats says about the player, in the domain model; a missing answer is `'unreachable'` */
+    async player(world: WorldId, player: PlayerId): Promise<FoestatsOutcome> {
+      return toFoestatsOutcome(world, player, await answer(world, player));
     },
   };
 }
