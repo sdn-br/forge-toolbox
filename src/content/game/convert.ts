@@ -837,24 +837,25 @@ export function toGreatBuildingLevelUp(
 }
 
 function toItemPayload(p: GameInventoryItem['item']): ItemPayload {
+  const other = { kind: 'other', gameClass: p?.__class__ ?? 'missing' } as const;
   switch (p?.__class__) {
     case 'ForgePointPackagePayload': {
       const gain = num(p.resource_package?.gain);
-      return gain === undefined ? { kind: 'other' } : { kind: 'forgePoints', gain };
+      return gain === undefined ? other : { kind: 'forgePoints', gain };
     }
     case 'BuildingItemPayload': {
-      if (!p.cityEntityId) return { kind: 'other' };
+      if (!p.cityEntityId) return other;
       const level = num(p.level);
       return { kind: 'building', def: buildingDefId(p.cityEntityId), ...(level !== undefined && { level }) };
     }
     case 'BoostItemPayload': {
       const value = num(p.value);
-      if (!p.boostType || value === undefined) return { kind: 'other' };
+      if (!p.boostType || value === undefined) return other;
       const duration = num(p.duration);
       return { kind: 'boost', boostType: p.boostType, value, ...(duration !== undefined && { duration }) };
     }
     default:
-      return { kind: 'other' };
+      return other;
   }
 }
 
@@ -895,7 +896,6 @@ export function toInventory(data: unknown): InventoryItem[] | null {
         id,
         name: i.name ?? '',
         inStock: num(i.inStock) ?? 0,
-        gameClass: i.item?.__class__ ?? 'missing',
         ...(i.itemAssetName && { asset: i.itemAssetName }),
         payload: toItemPayload(i.item),
       },

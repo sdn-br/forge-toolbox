@@ -317,7 +317,6 @@ describe('LG-Rechner', () => {
         id: 1,
         name: '',
         inStock: 100,
-        gameClass: 'ForgePointPackagePayload',
         payload: { kind: 'forgePoints', gain: 2 },
       },
     ]);

@@ -6,7 +6,6 @@ const item = (id: number, inStock: number, payload: InventoryItem['payload']): I
   id,
   name: `I${id}`,
   inStock,
-  gameClass: 'X',
   payload,
 });
 
@@ -16,7 +15,7 @@ describe('forgePointPackagesOf', () => {
       forgePointPackagesOf([
         item(1, 3, { kind: 'forgePoints', gain: 10 }),
         item(2, 2, { kind: 'forgePoints', gain: 5 }),
-        item(3, 9, { kind: 'other' }),
+        item(3, 9, { kind: 'other', gameClass: 'X' }),
       ]),
     ).toBe(40);
     expect(forgePointPackagesOf([])).toBe(0);
