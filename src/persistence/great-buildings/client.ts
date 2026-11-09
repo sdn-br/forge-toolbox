@@ -12,6 +12,10 @@ export function greatBuildingPersistence(call: Call): GreatBuildingPersistence {
     setFlag: (world, owner, entityId, flag, value, at) =>
       call('greatBuildings.setFlag', { world, owner, entityId, flag, value, at }),
     flagged: (world) => call('greatBuildings.flagged', { world }),
-    list: (world, owner) => call('greatBuildings.list', { world, ...(owner !== undefined && { owner }) }),
+    list: (world, owner) =>
+      call('greatBuildings.list', {
+        world,
+        ...(Array.isArray(owner) ? { owners: owner } : owner !== undefined && { owner }),
+      }),
   };
 }

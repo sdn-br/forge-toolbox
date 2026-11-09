@@ -137,8 +137,10 @@ export class CatalogStore {
   /** a definition the game loaded; its file goes to the cache unless it is there already */
   addFromGame(def: BuildingDef, file: BuildingDefFile): void {
     this.unchecked.delete(def.id);
-    this.add(def);
-    if (!this.loader || this.cachedUrls.get(def.id) === file.url) return;
+    const known = this.cachedUrls.get(def.id) === file.url;
+    // the same URL is the same file: the catalog holds it already and no box needs to hear of it
+    if (!known || !this.defs.has(def.id)) this.add(def);
+    if (!this.loader || known) return;
     this.cachedUrls.set(def.id, file.url);
     this.saves.set(def.id, file);
     if (this.saveQueued) return;

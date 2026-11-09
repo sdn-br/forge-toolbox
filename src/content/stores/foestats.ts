@@ -62,9 +62,11 @@ export class FoestatsStore {
   view = singleFlight((player: PlayerId) => this.update(player));
 
   private async update(player: PlayerId): Promise<void> {
-    const before = this.records.get(player);
-    this.records.set(player, { days: [], unreachable: false, unknown: false, ...before, loading: true });
-    this.bus.emit('foestats.updated', { player });
+    // what is known stays on show while it is brought up to date; only a player without a record is loading
+    if (!this.records.has(player)) {
+      this.records.set(player, { days: [], unreachable: false, unknown: false, loading: true });
+      this.bus.emit('foestats.updated', { player });
+    }
     try {
       const { fetch, ...claimed } = await this.persistence.claim(this.world, player);
       let state = claimed;

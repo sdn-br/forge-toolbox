@@ -135,10 +135,12 @@ export const investmentsFeature: Feature = {
           if (next === 'all') ratings.replaceAll(await ctx.greatBuildings.known());
           else {
             const owners = [...next];
-            const rows = await Promise.all(owners.map((owner) => ctx.greatBuildings.known(owner)));
-            owners.forEach((owner, i) => {
-              ratings.replace(owner, rows[i] ?? []);
-            });
+            const rows = await ctx.greatBuildings.known(owners);
+            for (const owner of owners)
+              ratings.replace(
+                owner,
+                rows.filter((b) => b.owner === owner),
+              );
           }
         }
       } catch (error) {
@@ -166,9 +168,9 @@ export const investmentsFeature: Feature = {
     });
     // a list, an opened or a changed building of another player, or the town hall list, once it is in the database:
     // the box reads that owner alone, every owner after the town hall list or when it was closed meanwhile
-    ctx.bus.on('greatBuildings.stored', ({ owner }) => {
-      if (owner === undefined || !box.isOpen) pending = 'all';
-      else if (pending !== 'all') pending.add(owner);
+    ctx.bus.on('greatBuildings.stored', ({ owners }) => {
+      if (owners === undefined || !box.isOpen) pending = 'all';
+      else if (pending !== 'all') for (const { owner } of owners) pending.add(owner);
       if (box.isOpen) read();
     });
     // a star put on or taken from a building shows at once, the data stay as read

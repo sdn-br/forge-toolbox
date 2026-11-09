@@ -211,8 +211,16 @@ describe('stored signal', () => {
     const seen: { event: string; rows: number }[] = [];
     const reads: Promise<unknown>[] = [];
     bus.on('greatBuildings.stored', (e) => {
-      const event = e.owner === undefined ? 'all' : `${e.owner}:${e.entityIds.join(',')}`;
-      reads.push(db.greatBuildings.list(world, e.owner).then((rows) => seen.push({ event, rows: rows.length })));
+      const event =
+        e.owners === undefined ? 'all' : e.owners.map((o) => `${o.owner}:${o.entityIds.join(',')}`).join(' ');
+      reads.push(
+        db.greatBuildings
+          .list(
+            world,
+            e.owners?.map((o) => o.owner),
+          )
+          .then((rows) => seen.push({ event, rows: rows.length })),
+      );
     });
     return async () => {
       await db.greatBuildings.list(world);
@@ -228,6 +236,14 @@ describe('stored signal', () => {
     expect(await stored()).toEqual([]);
     await env.greatBuildings.known();
     expect(await stored()).toEqual([{ event: '1001:1909,777', rows: 2 }]);
+  });
+
+  it('reads the buildings of several owners in one call', async () => {
+    const env = setup();
+    for (const owner of [1001, 1002, 1003]) env.list([env.row(owner, 1, 1, 10, owner)], owner);
+    await env.greatBuildings.known();
+    const rows = await env.greatBuildings.known([playerId(1001), playerId(1003)]);
+    expect(rows.map((b) => b.owner)).toEqual([1001, 1003]);
   });
 
   it('names the owner of an opened building once per write, and nothing for an own building', async () => {

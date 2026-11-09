@@ -88,6 +88,15 @@ const listedOnto = <T extends Omit<Player, MarkField>>(old: T, l: ListedPlayer, 
   return next;
 };
 
+/** the row as a view sees it: the time of the last sighting is no change, key order is none either */
+const visible = (p: Player | undefined) =>
+  p &&
+  JSON.stringify({ ...p, seenAt: 0 }, (_, v) =>
+    v && typeof v === 'object' && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : 1)))
+      : v,
+  );
+
 export class PlayerStore {
   private players = new Map<PlayerId, Player>();
   private dirty = new Set<PlayerId>();
@@ -251,6 +260,7 @@ export class PlayerStore {
     this.merge(world, o, 'friend', { ...(this.players.get(o.id)?.relations ?? NO_RELATIONS), friend: true }, touched);
     const { friendInvited: _, ...friend } = this.players.get(o.id) as Player;
     this.players.set(o.id, friend);
+    touched.add(o.id);
     this.changed(touched, 'friend');
   }
 
@@ -265,6 +275,7 @@ export class PlayerStore {
     const known = this.players.get(o.id) as Player;
     // an invitation to a friend is no invitation: the list or an acceptance named the friend already
     if (!known.relations.friend) this.players.set(o.id, { ...known, friendInvited: true });
+    touched.add(o.id);
     this.changed(touched, 'friend');
   }
 
@@ -287,7 +298,7 @@ export class PlayerStore {
     const now = this.now();
     const { guild, attack, score, rank, ...fields } = o;
     const known = attack ?? old?.attack;
-    this.players.set(o.id, {
+    const next: Player = {
       ...fields,
       score: score ?? old?.score ?? 0,
       rank: rank ?? old?.rank ?? 0,
@@ -300,12 +311,18 @@ export class PlayerStore {
       firstSeenAt: old?.firstSeenAt ?? now,
       seenAt: now,
       source,
-    });
-    touched.add(o.id);
+    };
+    this.players.set(o.id, next);
+    // a sighting that changes only the time is saved and tells no view
+    if (visible(next) !== visible(old)) touched.add(o.id);
+    else this.dirty.add(o.id);
   }
 
   private changed(ids: Set<PlayerId>, source: ToolboxEvents['player.updated']['source']) {
-    if (ids.size === 0) return;
+    if (ids.size === 0) {
+      if (this.dirty.size > 0) this.scheduleFlush();
+      return;
+    }
     for (const id of ids) this.dirty.add(id);
     this.scheduleFlush();
     this.bus.emit('player.updated', { ids: [...ids], source });

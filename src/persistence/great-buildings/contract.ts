@@ -34,6 +34,9 @@ export interface GreatBuildingsApi {
     arg: { world: WorldId };
     result: Record<MarkKind, { owner: PlayerId; entityId: number }[]>;
   };
-  /** the known buildings of one owner, or of all owners of the world */
-  'greatBuildings.list': { arg: { world: WorldId; owner?: PlayerId }; result: KnownGreatBuilding[] };
+  /** the known buildings of one owner, of several owners, or of all owners of the world */
+  'greatBuildings.list': {
+    arg: { world: WorldId; owner?: PlayerId; owners?: PlayerId[] };
+    result: KnownGreatBuilding[];
+  };
 }

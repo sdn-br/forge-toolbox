@@ -35,6 +35,26 @@ describe('PlayerStore', () => {
     expect(events).toEqual([{ ids: [playerId(1), playerId(2)], source: 'socialList' }]);
   });
 
+  it('writes a sighting that changes only the time without telling the views', async () => {
+    let clock = 1000;
+    const bus = createBus();
+    const put = vi.fn(async (_rows: Player[]) => {});
+    const store = new PlayerStore(bus, { load: async () => [], put }, () => clock);
+    const events: unknown[] = [];
+    bus.on('player.updated', (e) => events.push(e));
+    store.apply(world, [obs(1)], 'visit');
+    await Promise.resolve();
+    clock = 2000;
+    store.apply(world, [obs(1)], 'visit');
+    await Promise.resolve();
+    expect(events).toHaveLength(1);
+    expect(store.get(playerId(1))?.seenAt).toBe(2000);
+    expect(put).toHaveBeenCalledTimes(2);
+    expect(put.mock.calls[1]?.[0].map((p) => p.seenAt)).toEqual([2000]);
+    store.apply(world, [obs(1, 'Renamed')], 'visit');
+    expect(events).toHaveLength(2);
+  });
+
   it('drops relations of players missing from a new social list', () => {
     const { store } = setup();
     store.applySocialList(world, { neighbor: [obs(1), obs(2)], guildMember: [], friend: [] });
