@@ -4,6 +4,7 @@ import { memoryKv, profileKv } from '../src/content/core/kv';
 import { backgroundCall } from '../src/content/core/rpc';
 import { Settings, toggleDef } from '../src/content/core/settings';
 import { startupGate } from '../src/content/core/startup-gate';
+import { singleFactor } from '../src/content/features/shared/settings';
 import { identifyStartup } from '../src/content/game/identify';
 import { createStores } from '../src/content/stores';
 import { UiState } from '../src/content/ui/ui-state';
@@ -108,7 +109,7 @@ describe('background call', () => {
       de20,
       createBus(),
       backgroundCall(profile),
-      { prefs: new UiState(memoryKv()), settings: new Settings(memoryKv()) },
+      { prefs: new UiState(memoryKv()), singleFactor: singleFactor(new Settings(memoryKv())) },
       () => 1000,
     );
 

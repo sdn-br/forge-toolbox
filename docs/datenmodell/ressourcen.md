@@ -19,13 +19,12 @@ interface InventoryItem {
   id: number;
   name: string;
   inStock: number;
-  gameClass: string;            // Klasse der Nutzlast, z.B. 'ForgePointPackagePayload'
   asset?: string;               // itemAssetName
   payload:
     | { kind: 'forgePoints'; gain: number }                        // item.resource_package.gain
     | { kind: 'building'; def: BuildingDefId; level?: number }      // item.cityEntityId, item.level
     | { kind: 'boost'; boostType: string; value: number; duration?: number }
-    | { kind: 'other' };        // alle übrigen Klassen, bis ein Feature sie braucht
+    | { kind: 'other'; gameClass: string }; // alle übrigen Klassen, bis ein Feature sie braucht (gameClass = item.__class__)
 }
 ```
 

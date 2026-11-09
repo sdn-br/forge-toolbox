@@ -412,15 +412,14 @@ export type ItemPayload =
   | { kind: 'forgePoints'; gain: number }
   | { kind: 'building'; def: BuildingDefId; level?: number }
   | { kind: 'boost'; boostType: string; value: number; duration?: number }
-  | { kind: 'other' };
+  /** a kind the toolbox does not read; `gameClass` is the payload class of the game, e.g. `SelfAidKitPayload` */
+  | { kind: 'other'; gameClass: string };
 
 export interface InventoryItem {
   /** the game's id of this stack in the inventory */
   id: number;
   name: string;
   inStock: number;
-  /** payload class of the game, e.g. `ForgePointPackagePayload` */
-  gameClass: string;
   /** picture of the item in the game's assets */
   asset?: string;
   payload: ItemPayload;

@@ -2,11 +2,11 @@
 // city map are views on it, and the arrows in the game show exactly it. Kept in memory only: a reload starts empty.
 import type { BuildingDefId } from '../../shared/ids';
 import { MAX_MARKERS } from '../../shared/marker-protocol';
-import type { ToolboxBus } from '../core/events';
-import { type Markers, spotOf } from '../core/markers';
 import { type Footprint, footprints, nameOf } from '../domain/city-grid';
 import type { BuildingDef } from '../model/catalog';
 import type { City } from '../model/city';
+import type { ToolboxBus } from './events';
+import { type Markers, spotOf } from './markers';
 
 /** the marking the selection sets in `Markers` */
 export const SELECTION = 'selection';

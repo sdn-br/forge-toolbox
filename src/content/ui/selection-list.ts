@@ -3,9 +3,9 @@
 // button after them that removes all. The building search and the city map show
 // the same list.
 import { html, type TemplateResult } from 'lit-html';
+import type { OwnSelection } from '../core/selection';
 import { compareText, formatNumber, t } from '../core/texts';
 import { nameOf } from '../domain/city-grid';
-import type { OwnSelection } from '../stores/selection';
 import { iconButton } from './buttons';
 import { headerIcons } from './icons';
 

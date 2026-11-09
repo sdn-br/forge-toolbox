@@ -3,6 +3,8 @@ import { logError } from '../../core/log';
 import { toggleDef } from '../../core/settings';
 import { t } from '../../core/texts';
 import type { Construction } from '../../model/great-building';
+import { icons } from '../../ui/icons';
+import { ownArcBonus, SECURE, TRUST, viewFlag } from '../shared/gb-own-view';
 import {
   ARC_BUTTON,
   FACTOR,
@@ -11,12 +13,7 @@ import {
   FACTOR_BUTTONS_GOLD,
   FACTOR_GOLD,
   ONE_FP,
-  ownArcBonus,
-  SECURE,
-  TRUST,
-  viewFlag,
-} from '../../stores/gb-own-state';
-import { icons } from '../../ui/icons';
+} from '../shared/settings';
 import {
   COPY_MANUAL,
   COPY_MODE,
@@ -133,7 +130,7 @@ export function createGbOwnShareFeature(
         update();
       };
 
-      const arcNow = () => ownArcBonus(ctx.settings, ctx.playerBonuses);
+      const arcNow = () => ownArcBonus(ctx.settings.of(ARC_BUTTON).get(), ctx.playerBonuses);
       const update = () => box.update();
 
       const vm = () => {

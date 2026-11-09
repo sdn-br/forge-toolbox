@@ -11,8 +11,8 @@ import { shieldPersistence } from '../../persistence/shields/client';
 import type { BuildingDefId, WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import type { Call } from '../core/rpc';
-import type { Settings } from '../core/settings';
 import shippedLevelCosts from '../data/gb-level-costs.json';
+import type { FactorChoice } from '../domain/gb-factor';
 import { type LevelCostFile, type LevelCosts, levelCosts } from '../domain/gb-level-cost';
 import { buildingDefLoader } from '../game/building-def-loader';
 import { type FetchLike, foestatsApi } from '../game/foestats-api';
@@ -22,12 +22,12 @@ import { BattleStore } from './battles';
 import { CatalogStore } from './catalog';
 import { CityStore } from './cities';
 import { FoestatsStore } from './foestats';
-import { createGbOwnState, type GbOwnState } from './gb-own-state';
+import type { PrefStore } from './gb-own-state';
+import { GbOwnState } from './gb-own-state';
 import { GreatBuildingStore } from './great-buildings';
 import { IncomingStore } from './incoming';
 import { InventoryStore } from './inventory';
 import { NoteStore } from './notes';
-import type { PrefStore } from './place-factors';
 import { PlayerBonusStore } from './player-bonuses';
 import { PlayerStore } from './players';
 import { PlunderStore } from './plunders';
@@ -61,7 +61,7 @@ export interface Stores {
 }
 
 /**
- * `call` reaches the persistence in the service worker; `view` holds the view choices and settings the shared state of
+ * `call` reaches the persistence in the service worker; `view` holds the view choices and the single factor the shared state of
  * the own-share boxes rests on; `now` is the clock of the stores that keep times; `fetch` makes the requests to
  * foestats from the content script. `shippedCosts` are the level costs shipped with the toolbox; tests pass their own, so
  * they see only the costs they bring.
@@ -70,7 +70,7 @@ export function createStores(
   world: WorldId,
   bus: ToolboxBus,
   call: Call,
-  view: { prefs: PrefStore; settings: Settings },
+  view: { prefs: PrefStore; singleFactor: () => FactorChoice },
   now: () => number = Date.now,
   fetch: FetchLike = (url, init) => globalThis.fetch(url, init),
   shippedCosts: LevelCostFile = shippedLevelCosts,
@@ -94,6 +94,6 @@ export function createStores(
     gbLevelCosts: (type, gb) => levelCosts(gb.levelCosts, shippedCosts[type]),
     playerBonuses: new PlayerBonusStore(cities),
     foestats: new FoestatsStore(bus, world, foestatsPersistence(call), foestatsApi(fetch)),
-    gbOwn: createGbOwnState(bus, view.prefs, view.settings),
+    gbOwn: new GbOwnState(bus, view.prefs, view.singleFactor),
   };
 }

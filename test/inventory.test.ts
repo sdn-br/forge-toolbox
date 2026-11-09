@@ -32,7 +32,6 @@ describe('inventory', () => {
       id: 9001,
       name: '10 Forge-Punkte',
       inStock: 9931,
-      gameClass: 'ForgePointPackagePayload',
       asset: 'large_forgepoints',
       payload: { kind: 'forgePoints', gain: 10 },
     });
@@ -59,11 +58,10 @@ describe('inventory', () => {
         id: 1,
         name: 'B',
         inStock: 2,
-        gameClass: 'BuildingItemPayload',
         payload: { kind: 'building', def: 'W_X', level: 3 },
       },
-      { id: 2, name: 'K', inStock: 5, gameClass: 'SelfAidKitPayload', payload: { kind: 'other' } },
-      { id: 3, name: '', inStock: 0, gameClass: 'ForgePointPackagePayload', payload: { kind: 'other' } },
+      { id: 2, name: 'K', inStock: 5, payload: { kind: 'other', gameClass: 'SelfAidKitPayload' } },
+      { id: 3, name: '', inStock: 0, payload: { kind: 'other', gameClass: 'ForgePointPackagePayload' } },
     ]);
     expect(toInventory({})).toBeNull();
   });

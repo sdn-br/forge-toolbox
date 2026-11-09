@@ -32,6 +32,7 @@ import { chromeProfileStorage, type ProfileCopy, profileCopy } from './core/prof
 import { connectProxy } from './core/proxy-link';
 import { Recorder } from './core/recorder';
 import { backgroundCall } from './core/rpc';
+import { OwnSelection } from './core/selection';
 import { Settings } from './core/settings';
 import { SettingsControls } from './core/settings-controls';
 import { createShell } from './core/shell';
@@ -53,11 +54,11 @@ import { pvpFeature } from './features/pvp';
 import { RECORD, RECORD_REQUESTS, recorderFeature } from './features/recorder';
 import { sabotageFeature } from './features/sabotage';
 import { profileCopyFeature, settingsFeature } from './features/settings-feature';
+import { singleFactor } from './features/shared/settings';
 import { watchEngine } from './game/engine';
 import { registerGameHandlers } from './game/handlers';
 import { identifyStartup } from './game/identify';
 import { createStores } from './stores';
-import { OwnSelection } from './stores/selection';
 import { Menu } from './ui/menu';
 import { UiState } from './ui/ui-state';
 
@@ -118,7 +119,7 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
   const settings = new Settings(kv);
   const ui = new UiState(kv);
   const call = backgroundCall(profile);
-  const stores = createStores(world, bus, call, { prefs: ui, settings }, now);
+  const stores = createStores(world, bus, call, { prefs: ui, singleFactor: singleFactor(settings) }, now);
   const backupCopy = new BackupCopy({
     profile,
     name,

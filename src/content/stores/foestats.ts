@@ -3,7 +3,6 @@ import type { FoestatsDay, FoestatsOutcome, FoestatsState } from '../../shared/m
 import { singleFlight } from '../../shared/single-flight';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
-import { toggleDef } from '../core/settings';
 import type { FoestatsClient } from '../game/foestats-api';
 
 export interface FoestatsPersistence {
@@ -14,15 +13,6 @@ export interface FoestatsPersistence {
   /** the known days of the player, oldest first */
   history(world: WorldId, player: PlayerId): Promise<FoestatsDay[]>;
 }
-
-/** Off: no requests to foestats, and the views hide what they know from it. Links to foestats stay. */
-export const FOESTATS_SETTING = toggleDef({
-  key: 'foestats.fetch',
-  group: 'foestats.group',
-  label: 'foestats.fetchSetting',
-  hint: 'foestats.fetchHint',
-  default: true,
-});
 
 export interface FoestatsRecord {
   /** oldest first */
