@@ -115,6 +115,18 @@ describe('building names from the cache and the CDN', () => {
     expect(catalog.buildingName(HERO)).toBe('From the game');
   });
 
+  it('does not add a definition again, nor tell the boxes, when the game loads the cached URL', async () => {
+    loader.all.mockResolvedValue([{ def: def(HERO, 'Cached'), url: url(HERO, 'abc') }]);
+    await catalog.loadCache();
+    await vi.advanceTimersByTimeAsync(BATCH);
+    updated.length = 0;
+    const add = vi.spyOn(catalog, 'add');
+    fromGame(HERO, 'abc');
+    await vi.advanceTimersByTimeAsync(BATCH);
+    expect(add).not.toHaveBeenCalled();
+    expect(updated).toEqual([]);
+  });
+
   it('caches the files the game loads, together, and only new or changed ones', async () => {
     loader.all.mockResolvedValue([{ def: def(HERO, 'Cached'), url: url(HERO, 'abc') }]);
     await catalog.loadCache();

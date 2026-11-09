@@ -134,7 +134,8 @@ describe('LG-Rechner', () => {
     const arche = definitions.files.find((f) => f.json.id === 'X_FutureEra_Landmark1');
     if (!arche) throw new Error('no Arc definition');
     const json = { ...arche.json, maxTier: { __enum__: 'GreatBuildingTier', value: 'gold' } };
-    ingestion.accept({ kind: 'meta', url: arche.url, response: JSON.stringify(json), at: 0 });
+    // a changed file has a new URL on the CDN; the same URL would be the same file and is not read again
+    ingestion.accept({ kind: 'meta', url: `${arche.url}-gold`, response: JSON.stringify(json), at: 0 });
     send({
       requestClass: 'BonusService',
       requestMethod: 'getLimitedBonuses',
