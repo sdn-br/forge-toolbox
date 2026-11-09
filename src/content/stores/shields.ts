@@ -1,7 +1,7 @@
 import type { PlayerId, WorldId } from '../../shared/ids';
 import type { CityShield } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
-import { logError } from '../core/log';
+import { WriteQueue } from './write-queue';
 
 export interface ShieldPersistence {
   /** replaces the shield of each player in `rows` */
@@ -14,8 +14,7 @@ export interface ShieldPersistence {
 /** City shields of other players. Lives in the database, queries ask it after pending writes. */
 export class ShieldStore {
   private pending: CityShield[] = [];
-  private writes: Promise<unknown> = Promise.resolve();
-  private flushQueued = false;
+  private queue = new WriteQueue();
 
   constructor(
     private bus: ToolboxBus,
@@ -35,7 +34,7 @@ export class ShieldStore {
 
   /** the shield of the player, unless it has ended */
   active(player: PlayerId): Promise<CityShield | undefined> {
-    return this.afterWrites(async () => {
+    return this.queue.afterWrites(async () => {
       const shield = await this.persistence.get(this.world, player);
       return shield && shield.expiresAt > this.now() ? shield : undefined;
     });
@@ -43,21 +42,10 @@ export class ShieldStore {
 
   /** deletes ended shields */
   prune(): Promise<number> {
-    return this.afterWrites(() => this.persistence.prune(this.now()));
-  }
-
-  private async afterWrites<T>(query: () => Promise<T>): Promise<T> {
-    await this.writes;
-    return query();
+    return this.queue.afterWrites(() => this.persistence.prune(this.now()));
   }
 
   private scheduleFlush() {
-    if (this.flushQueued) return;
-    this.flushQueued = true;
-    this.writes = this.writes.then(() => {
-      this.flushQueued = false;
-      const rows = this.pending.splice(0);
-      return this.persistence.put(rows).catch((error) => logError('saving city shields failed', error));
-    });
+    this.queue.batch(() => this.persistence.put(this.pending.splice(0)), 'saving city shields failed');
   }
 }

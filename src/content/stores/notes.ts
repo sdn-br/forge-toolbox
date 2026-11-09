@@ -1,7 +1,7 @@
 import { type PlayerId, playerId, type WorldId } from '../../shared/ids';
 import type { NoteChanges, NoteGroup, NotePage } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
-import { logError } from '../core/log';
+import { WriteQueue } from './write-queue';
 
 export interface NotePersistence {
   load(world: WorldId): Promise<{ groups: NoteGroup[]; pages: NotePage[] }>;
@@ -29,7 +29,7 @@ export class NoteStore {
   private dirtyPages = new Set<string>();
   private deletedGroups = new Set<string>();
   private deletedPages = new Set<string>();
-  private writes: Promise<unknown> = Promise.resolve();
+  private queue = new WriteQueue();
   private flushQueued = false;
 
   constructor(
@@ -225,9 +225,7 @@ export class NoteStore {
       this.dirtyPages.clear();
       this.deletedGroups.clear();
       this.deletedPages.clear();
-      this.writes = this.writes
-        .then(() => this.persistence.save(changes))
-        .catch((error) => logError('saving notes failed', error));
+      void this.queue.enqueue(() => this.persistence.save(changes), 'saving notes failed');
     });
   }
 }

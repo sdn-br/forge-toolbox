@@ -1,11 +1,10 @@
-import { logError } from '../core/log';
+import { WriteQueue } from './write-queue';
 
 /** Rows seen once are written in the background; reads wait for the writes started before them. */
 export class WriteBehind<Row, Key> {
   private pending: Row[] = [];
   private recorded = new Set<Key>();
-  private writes: Promise<unknown> = Promise.resolve();
-  private flushQueued = false;
+  private queue = new WriteQueue();
 
   constructor(
     private keyOf: (row: Row) => Key,
@@ -25,22 +24,16 @@ export class WriteBehind<Row, Key> {
     return true;
   }
 
-  async afterWrites<T>(query: () => Promise<T>): Promise<T> {
-    await this.writes;
-    return query();
+  afterWrites<T>(query: () => Promise<T>): Promise<T> {
+    return this.queue.afterWrites(query);
   }
 
   private scheduleFlush() {
-    if (this.flushQueued) return;
-    this.flushQueued = true;
-    // the callback runs in a microtask, so every row of one game response goes in one write
-    this.writes = this.writes.then(() => {
-      this.flushQueued = false;
+    // the flush takes the rows when its turn comes, so every row of one game response goes in one write
+    this.queue.batch(async () => {
       const rows = this.pending.splice(0);
-      return this.write(rows).then(
-        () => this.stored?.(rows),
-        (error) => logError(this.errorText, error),
-      );
-    });
+      await this.write(rows);
+      this.stored?.(rows);
+    }, this.errorText);
   }
 }
