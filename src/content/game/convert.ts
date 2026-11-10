@@ -54,6 +54,7 @@ import type {
   GameGreatBuildingConstruction,
   GameGreatBuildingListRow,
   GameGreatBuildingName,
+  GameGreatBuildingRanking,
   GameGreatBuildingRankingRow,
   GameGreatBuildingReward,
   GameGrid,
@@ -715,31 +716,56 @@ export function greatBuildingRequest(request: unknown): { entityId: number; owne
   return { entityId, owner: playerId(owner), ...(level !== undefined && { level }) };
 }
 
+/** The fields a row of a great building list or of the ranking needs, however the source names them. */
+interface RowKey {
+  owner: PlayerId;
+  entityId: number;
+  cityEntityId: BuildingDefId;
+  level: number;
+  required: number;
+}
+
+/** The key of a row; null when building, owner, level or costs are missing, or when the owner is `except`. */
+function rowKey(
+  fields: { entityId: unknown; owner: unknown; level: unknown; required: unknown; def: string | undefined },
+  except?: PlayerId,
+): RowKey | null {
+  const entityId = num(fields.entityId);
+  const owner = num(fields.owner);
+  const level = num(fields.level);
+  const required = num(fields.required);
+  const def = fields.def;
+  if (entityId === undefined || owner === undefined || level === undefined || required === undefined || !def) {
+    return null;
+  }
+  if (owner === except) return null;
+  return { owner: playerId(owner), entityId, cityEntityId: buildingDefId(def), level, required };
+}
+
 /**
  * The rows of a great building list (getOtherPlayerOverview, getContributions) as known buildings' state. Rows without
  * building, owner or costs are skipped, so are those of `except` (the session player: its own list says nothing new).
  */
 export function toGreatBuildingListRows(data: unknown, except?: PlayerId): GreatBuildingListRow[] {
   return list<GameGreatBuildingListRow | null>(data).flatMap((r) => {
-    const entityId = num(r?.entity_id);
-    const owner = num(r?.player?.player_id);
-    const level = num(r?.level);
-    const required = num(r?.max_progress);
-    const def = r?.city_entity_id;
-    if (entityId === undefined || owner === undefined || level === undefined || required === undefined || !def)
-      return [];
-    if (owner === except) return [];
+    const key = rowKey(
+      {
+        entityId: r?.entity_id,
+        owner: r?.player?.player_id,
+        level: r?.level,
+        required: r?.max_progress,
+        def: r?.city_entity_id,
+      },
+      except,
+    );
+    if (!key) return [];
     const rank = num(r?.rank);
     const forgePoints = num(r?.forge_points);
     const reward = num(r?.reward?.strategy_point_amount);
     return [
       {
-        owner: playerId(owner),
-        entityId,
-        cityEntityId: buildingDefId(def),
-        level,
+        ...key,
         invested: num(r?.current_progress) ?? 0,
-        required,
         ...(rank !== undefined && { rank }),
         ...(rank !== undefined && forgePoints !== undefined && { forgePoints, reward: reward ?? 0 }),
       },
@@ -749,20 +775,19 @@ export function toGreatBuildingListRows(data: unknown, except?: PlayerId): Great
 
 /** The owners of the rows of a great building list as the list gives them, each once; `except` (the own id) is left out. */
 export function toListedPlayers(data: unknown, except?: PlayerId): ListedPlayer[] {
-  const owners = new Map<PlayerId, ListedPlayer>();
-  for (const r of list<GameGreatBuildingListRow | null>(data)) {
-    const id = num(r?.player?.player_id);
-    const name = r?.player?.name;
-    if (id === undefined || id === except || typeof name !== 'string' || name === '') continue;
-    const avatar = r?.player?.avatar;
-    owners.set(playerId(id), {
-      id: playerId(id),
-      name,
-      ...(typeof avatar === 'string' && avatar !== '' && { avatar }),
-    });
-  }
-  return [...owners.values()];
+  return uniqueOwners(
+    list<GameGreatBuildingListRow | null>(data).flatMap((r) => {
+      const id = num(r?.player?.player_id);
+      const name = r?.player?.name;
+      if (id === undefined || id === except || typeof name !== 'string' || name === '') return [];
+      const avatar = r?.player?.avatar;
+      return [{ id: playerId(id), name, ...(typeof avatar === 'string' && avatar !== '' && { avatar }) }];
+    }),
+  );
 }
+
+/** Each owner once, in the order of first appearance; a later entry of the same player replaces the earlier one. */
+const uniqueOwners = (owners: ListedPlayer[]): ListedPlayer[] => [...new Map(owners.map((o) => [o.id, o])).values()];
 
 /** What a page of the great building ranking tells: the rows as list rows, their owners and the building names. */
 export interface GreatBuildingRanking {
@@ -777,35 +802,34 @@ export interface GreatBuildingRanking {
  * The ranking's own `rank` is the place in the ranking, not an own contribution, so it is not passed on.
  */
 export function toGreatBuildingRanking(data: unknown, except?: PlayerId): GreatBuildingRanking | null {
-  const list = data as GameRankingList | null;
-  if (list?.category?.value !== 'great_building') return null;
+  const page = data as GameRankingList | null;
+  if (page?.category?.value !== 'great_building') return null;
   const result: GreatBuildingRanking = { rows: [], owners: [], names: {} };
-  const owners = new Map<PlayerId, ListedPlayer>();
-  for (const r of Array.isArray(list.rankings) ? list.rankings : []) {
-    const entityId = num(r?.entityId);
-    const owner = num(r?.player?.player_id);
-    const level = num(r?.level);
-    const required = num(r?.requiredPoints);
-    const def = r?.cityEntityId;
-    if (entityId === undefined || owner === undefined || level === undefined || required === undefined || !def)
-      continue;
-    if (owner === except) continue;
+  const owners: ListedPlayer[] = [];
+  for (const r of list<GameGreatBuildingRanking | null>(page.rankings)) {
+    const key = rowKey(
+      {
+        entityId: r?.entityId,
+        owner: r?.player?.player_id,
+        level: r?.level,
+        required: r?.requiredPoints,
+        def: r?.cityEntityId,
+      },
+      except,
+    );
+    if (!r || !key) continue;
     const tier = r.currentTier?.value;
     result.rows.push({
-      owner: playerId(owner),
-      entityId,
-      cityEntityId: buildingDefId(def),
-      level,
+      ...key,
       invested: num(r.points) ?? 0,
-      required,
       ...((tier === 'copper' || tier === 'gold') && { tier }),
     });
-    if (typeof r.name === 'string' && r.name !== '') result.names[def] = r.name;
+    if (typeof r.name === 'string' && r.name !== '') result.names[key.cityEntityId] = r.name;
     const p = r.player;
     if (typeof p?.name !== 'string' || p.name === '') continue;
     const guild = num(r.clan?.id);
-    owners.set(playerId(owner), {
-      id: playerId(owner),
+    owners.push({
+      id: key.owner,
       name: p.name,
       // a missing field keeps what the player store knows
       avatar: p.avatar,
@@ -814,7 +838,7 @@ export function toGreatBuildingRanking(data: unknown, except?: PlayerId): GreatB
       guild: guild === undefined ? null : { id: guildId(guild), name: r.clan?.name ?? '' },
     });
   }
-  result.owners = [...owners.values()];
+  result.owners = uniqueOwners(owners);
   return result;
 }
 
