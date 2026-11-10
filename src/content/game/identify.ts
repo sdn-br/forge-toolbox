@@ -8,7 +8,7 @@ import { toSession } from './convert';
 import type { GameStartup } from './game-types';
 
 /** the own profile and player name, as the startup data name them */
-export interface Identity {
+interface Identity {
   profile: Profile;
   name: string;
 }

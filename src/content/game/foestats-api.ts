@@ -14,7 +14,7 @@ export type FetchLike = (
 ) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>;
 
 /** the daily snapshot of a player */
-export interface FoestatsPlayer {
+interface FoestatsPlayer {
   rank?: number;
   points?: number;
   pointsChange?: number;
@@ -31,7 +31,7 @@ export interface FoestatsPlayer {
  * What foestats answered about a player: the snapshot, `'unknown'` when foestats does not know the player (404), or
  * `'unreachable'` when it did not answer usefully (network error, any other failing status, no snapshot in the body).
  */
-export type FoestatsAnswer = { snapshot: FoestatsPlayer } | 'unknown' | 'unreachable';
+type FoestatsAnswer = { snapshot: FoestatsPlayer } | 'unknown' | 'unreachable';
 
 const BASE = 'https://api.forge-db.com/api/players';
 

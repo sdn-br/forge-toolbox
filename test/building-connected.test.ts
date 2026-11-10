@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { greatBuildingOf, toBuilding, toGreatBuildingEntity } from '../src/content/game/convert';
+import { greatBuildingOfBuilding, toBuilding, toGreatBuildingEntity } from '../src/content/game/convert';
 import type { GameCityEntity } from '../src/content/game/game-types';
 import { playerId } from '../src/shared/ids';
 import fixture from './fixtures/unconnected-buildings.json';
@@ -22,7 +22,7 @@ describe('connected of a building', () => {
 
   it('carries into the great building of a known city', () => {
     const b = building(first('greatbuilding'));
-    expect(greatBuildingOf(b ?? undefined)?.connected).toBe(false);
+    expect(greatBuildingOfBuilding(b ?? undefined)?.connected).toBe(false);
     expect(toGreatBuildingEntity(first('greatbuilding'))?.connected).toBe(false);
   });
 
@@ -35,7 +35,7 @@ describe('connected of a building', () => {
     for (const connected of [1, 2]) {
       const e = { ...first('greatbuilding'), connected, state: { __class__: 'IdleState' } } as GameCityEntity;
       expect(building(e)?.connected).toBe(true);
-      expect(greatBuildingOf(building(e) ?? undefined)?.connected).toBe(true);
+      expect(greatBuildingOfBuilding(building(e) ?? undefined)?.connected).toBe(true);
       expect(toGreatBuildingEntity(e)?.connected).toBe(true);
     }
   });

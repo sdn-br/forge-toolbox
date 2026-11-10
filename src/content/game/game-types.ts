@@ -45,7 +45,7 @@ export interface GameCityEntity {
   bonuses?: GameGreatBuildingBonus[];
 }
 
-export interface GameGreatBuildingBonus {
+interface GameGreatBuildingBonus {
   type?: string;
   value?: number;
   amount?: number;
@@ -87,7 +87,7 @@ export interface GameGrid {
   sectors?: { type?: { value?: string }; tilePositions?: { x?: number; y?: number }[] }[];
 }
 
-export interface GameClan {
+interface GameClan {
   id?: number;
   name?: string;
   flag?: string;
@@ -144,7 +144,7 @@ export interface GameVisit {
   other_player_era?: string;
 }
 
-export interface GameUnitBonus {
+interface GameUnitBonus {
   type?: string;
   value?: number;
 }
@@ -238,7 +238,7 @@ export interface GameEventPage {
 }
 
 /** A reward of a technology in the metadata `research-<hash>`; main city expansions are `expansion` / `main`. */
-export interface GameResearchReward {
+interface GameResearchReward {
   type?: string;
   subType?: string;
   amount?: number;
@@ -362,4 +362,12 @@ export interface GameInventoryItem {
     value?: number;
     duration?: number;
   };
+}
+
+/** an entry of the metadata file `unit_types-<hash>`, every field unchecked */
+export interface GameUnitType {
+  unitTypeId?: unknown;
+  name?: unknown;
+  minEra?: unknown;
+  unitClass?: unknown;
 }

@@ -13,11 +13,11 @@ import {
   type TierStart,
 } from '../model/catalog';
 import type { Product } from '../model/city';
+import { isObject, list, numbers } from './json';
 
 type Json = Record<string, unknown>;
 
-const isObject = (v: unknown): v is Json => typeof v === 'object' && v !== null && !Array.isArray(v);
-const list = (v: unknown): Json[] => (Array.isArray(v) ? v.filter(isObject) : []);
+const objects = (v: unknown): Json[] => list(v).filter(isObject);
 
 function toBoost(hint: unknown): Boost | null {
   if (!isObject(hint) || typeof hint.type !== 'string') return null;
@@ -28,21 +28,14 @@ function toBoost(hint: unknown): Boost | null {
   };
 }
 
-function resources(v: unknown): Record<string, number> {
-  const out: Record<string, number> = {};
-  const r = isObject(v) ? v.resources : undefined;
-  if (isObject(r)) for (const [k, n] of Object.entries(r)) if (typeof n === 'number') out[k] = n;
-  return out;
-}
-
 /** What the first option yields without motivation; products marked `onlyWhenMotivated` need it. */
 function genericProduct(production: unknown): Product | undefined {
-  const option = list(isObject(production) ? production.options : undefined)[0];
+  const option = objects(isObject(production) ? production.options : undefined)[0];
   if (!option) return undefined;
   const product: Product = { resources: {} };
-  for (const p of list(option.products)) {
+  for (const p of objects(option.products)) {
     if (p.onlyWhenMotivated === true) continue;
-    for (const [k, n] of Object.entries(resources(p.playerResources)))
+    for (const [k, n] of Object.entries(numbers(isObject(p.playerResources) ? p.playerResources.resources : undefined)))
       product.resources[k] = (product.resources[k] ?? 0) + n;
   }
   return product;
@@ -60,9 +53,9 @@ function boostMap(map: unknown): BoostsByEra {
 }
 
 function levelBonuses(bonuses: unknown): LevelBonus[] {
-  return list(bonuses).map((b) => {
+  return objects(bonuses).map((b) => {
     // generic chains list plain boosts, classic definitions a boost per era
-    const plain = list(b.boosts)
+    const plain = objects(b.boosts)
       .map(toBoost)
       .filter((x): x is Boost => x !== null);
     return { level: Number(b.level ?? 1), boosts: plain.length ? { AllAge: plain } : boostMap(b.boost) };
@@ -70,7 +63,7 @@ function levelBonuses(bonuses: unknown): LevelBonus[] {
 }
 
 function rects(linkPositions: unknown): Rect[] {
-  return list(linkPositions).map((p) => {
+  return objects(linkPositions).map((p) => {
     const a = isObject(p.topLeftPoint) ? p.topLeftPoint : {};
     const b = isObject(p.bottomRightPoint) ? p.bottomRightPoint : {};
     // the game leaves out coordinates that are 0
@@ -140,7 +133,7 @@ function tierOf(v: unknown): GreatBuildingTier | undefined {
  * counts. Unknown tiers are skipped.
  */
 export function toGreatBuildingTiers(json: unknown): TierStart[] {
-  return list(json).flatMap((t) => {
+  return objects(json).flatMap((t) => {
     const tier = tierOf(t.tier);
     return tier && typeof t.startLevel === 'number' ? [{ tier, startLevel: t.startLevel }] : [];
   });
@@ -151,7 +144,7 @@ const PLUNDERABLE_TYPES = ['production', 'goods', 'residential', 'clan_power_pro
 
 export function toBuildingDef(json: unknown): BuildingDef | null {
   if (!isObject(json) || typeof json.id !== 'string') return null;
-  const abilities = list(json.abilities);
+  const abilities = objects(json.abilities);
   const has = (cls: string) => abilities.some((a) => a.__class__ === cls);
   const components = isObject(json.components) ? json.components : undefined;
   const generic = json.__class__ === 'GenericCityEntity';
@@ -167,7 +160,7 @@ export function toBuildingDef(json: unknown): BuildingDef | null {
   if (components) {
     for (const [era, c] of Object.entries(components)) {
       if (!isObject(c)) continue;
-      for (const b of list(isObject(c.boosts) ? c.boosts.boosts : undefined)) add(era, toBoost(b));
+      for (const b of objects(isObject(c.boosts) ? c.boosts.boosts : undefined)) add(era, toBoost(b));
       const product = genericProduct(c.production);
       if (product) productByEra[era] = product;
       if (isObject(c.socialInteraction) && typeof c.socialInteraction.interactionType === 'string') {
@@ -184,16 +177,14 @@ export function toBuildingDef(json: unknown): BuildingDef | null {
       }
     }
   }
-  for (const a of abilities) {
-    if (a.__class__ !== 'BoostAbility') continue;
-    for (const hint of list(a.boostHints)) {
-      const map = isObject(hint.boostHintEraMap) ? hint.boostHintEraMap : {};
-      for (const [era, b] of Object.entries(map)) add(era, toBoost(b));
-    }
-  }
-
   let set: BuildingDef['set'];
   for (const a of abilities) {
+    if (a.__class__ === 'BoostAbility') {
+      for (const hint of objects(a.boostHints)) {
+        const map = isObject(hint.boostHintEraMap) ? hint.boostHintEraMap : {};
+        for (const [era, b] of Object.entries(map)) add(era, toBoost(b));
+      }
+    }
     if (a.__class__ === 'BonusOnSetAdjacencyAbility' && typeof a.setId === 'string') {
       set = { id: a.setId, bonuses: levelBonuses(a.bonuses) };
     }
@@ -244,7 +235,7 @@ const FILE_PREFIX = 'building_entity_';
  */
 export function toBuildingFiles(json: unknown): Map<BuildingDefId, string> {
   const files = new Map<BuildingDefId, string>();
-  for (const e of list(json)) {
+  for (const e of objects(json)) {
     const { identifier, url } = e;
     if (typeof identifier === 'string' && identifier.startsWith(FILE_PREFIX) && typeof url === 'string')
       files.set(identifier.slice(FILE_PREFIX.length) as BuildingDefId, url);

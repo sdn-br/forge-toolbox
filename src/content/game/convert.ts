@@ -24,6 +24,7 @@ import type {
   Plunder,
   Session,
 } from '../../shared/model';
+import { SECOND_MS } from '../../shared/time';
 import type { LimitedBonus } from '../model/bonus';
 import type { CityGrid, UnitType } from '../model/catalog';
 import type {
@@ -54,6 +55,7 @@ import type {
   GameGreatBuildingConstruction,
   GameGreatBuildingListRow,
   GameGreatBuildingName,
+  GameGreatBuildingRanking,
   GameGreatBuildingRankingRow,
   GameGreatBuildingReward,
   GameGrid,
@@ -66,23 +68,16 @@ import type {
   GameRankingList,
   GameResearchProgress,
   GameResearchTechnology,
-  GameResources,
   GameState,
   GameTileset,
+  GameUnitType,
   GameUserData,
 } from './game-types';
+import { list, num, numbers, numbersOrNull } from './json';
 
 // In visited cities the game hides all times behind the largest 32 bit integer (seen 2026-10-19).
 const HIDDEN = 2147483647;
-const seconds = (s: number | undefined) => (typeof s === 'number' && s > 0 && s < HIDDEN ? s * 1000 : undefined);
-
-function resourcesOf(r: GameResources | undefined): Record<string, number> {
-  const out: Record<string, number> = {};
-  if (r?.resources && !Array.isArray(r.resources)) {
-    for (const [k, v] of Object.entries(r.resources)) if (typeof v === 'number') out[k] = v;
-  }
-  return out;
-}
+const seconds = (s: number | undefined) => (typeof s === 'number' && s > 0 && s < HIDDEN ? s * SECOND_MS : undefined);
 
 function toProduct(p: GameProduct | undefined): Product | undefined {
   if (!p) return undefined;
@@ -94,7 +89,7 @@ function toProduct(p: GameProduct | undefined): Product | undefined {
   if (p.__class__ === 'CityEntityMilitaryProduct') {
     return { resources: {}, units: { type: p.name ?? 'unknown', amount: p.amount ?? 0 } };
   }
-  return { resources: resourcesOf(p.product) };
+  return { resources: numbers(p.product?.resources) };
 }
 
 function productOfOption(o: GameProductionOption | undefined): Product | undefined {
@@ -102,8 +97,8 @@ function productOfOption(o: GameProductionOption | undefined): Product | undefin
   const resources: Record<string, number> = {};
   const guildGoods: Record<string, number> = {};
   for (const p of o.products) {
-    for (const [k, v] of Object.entries(resourcesOf(p.playerResources))) resources[k] = (resources[k] ?? 0) + v;
-    for (const [k, v] of Object.entries(resourcesOf(p.guildResources))) guildGoods[k] = (guildGoods[k] ?? 0) + v;
+    for (const [k, v] of Object.entries(numbers(p.playerResources?.resources))) resources[k] = (resources[k] ?? 0) + v;
+    for (const [k, v] of Object.entries(numbers(p.guildResources?.resources))) guildGoods[k] = (guildGoods[k] ?? 0) + v;
   }
   return Object.keys(guildGoods).length ? { resources, guildGoods } : { resources };
 }
@@ -209,8 +204,8 @@ export function toBuilding(e: GameCityEntity, owner: PlayerId): Building | null 
  * `bonuses` beside `bonus` (seen 2026-10-19), so only a list with entries counts.
  */
 function toGreatBuildingBonuses(e: GameCityEntity): GreatBuildingBonus[] {
-  const list = Array.isArray(e.bonuses) && e.bonuses.length > 0 ? e.bonuses : e.bonus ? [e.bonus] : [];
-  return list.flatMap((b) =>
+  const bonuses = Array.isArray(e.bonuses) && e.bonuses.length > 0 ? e.bonuses : e.bonus ? [e.bonus] : [];
+  return bonuses.flatMap((b) =>
     b?.type
       ? [
           {
@@ -241,12 +236,19 @@ function toBlockedAreas(positions: { x?: number; y?: number }[] | undefined): Ar
   return positions.map((p) => ({ x: p?.x ?? 0, y: p?.y ?? 0, width: 4, length: 4 }));
 }
 
+/** The buildings of a list of city entities; entries that are no building are skipped, anything but a list gives none. */
+export function toBuildings(data: unknown, owner: PlayerId): Building[] {
+  return list<GameCityEntity>(data)
+    .map((e) => toBuilding(e, owner))
+    .filter((b): b is Building => b !== null);
+}
+
+/** Whether the request of a map service names the main map; no request or an empty one counts as main. */
+export const isMainMap = (request: unknown): boolean =>
+  !Array.isArray(request) || request.length === 0 || request[0] === 'main';
+
 export function toCity(world: WorldId, owner: PlayerId, era: string, map: GameCityMap | undefined, now: number): City {
-  const buildings = new Map<number, Building>();
-  for (const e of map?.entities ?? []) {
-    const b = toBuilding(e, owner);
-    if (b) buildings.set(b.id, b);
-  }
+  const buildings = new Map(toBuildings(map?.entities, owner).map((b) => [b.id, b]));
   const areas = toAreas(map?.unlocked_areas);
   const blocked = toBlockedAreas(map?.blocked_areas);
   const expansions = Array.isArray(map?.tilesets) ? toExpansionOffers(map.tilesets) : undefined;
@@ -262,14 +264,6 @@ export function toCity(world: WorldId, owner: PlayerId, era: string, map: GameCi
     ...(expansions && { expansions }),
   };
 }
-
-const numbers = (v: unknown): Record<string, number> => {
-  const out: Record<string, number> = {};
-  if (v && typeof v === 'object' && !Array.isArray(v)) {
-    for (const [k, n] of Object.entries(v)) if (typeof n === 'number') out[k] = n;
-  }
-  return out;
-};
 
 /**
  * Expansion kinds by the game type of a tileset: `tileset_premium` (diamonds), `tileset_reward` (coins or diamonds, yet
@@ -298,14 +292,12 @@ export function toResourceBag(data: unknown): Record<string, number> | null {
   // other bag types (seen only PlayerMain) belong to other stocks, not the player's
   const type = bag?.type?.value;
   if (type !== undefined && type !== 'PlayerMain') return null;
-  const resources = bag?.resources?.resources;
-  return resources && typeof resources === 'object' && !Array.isArray(resources) ? numbers(resources) : null;
+  return numbersOrNull(bag?.resources?.resources);
 }
 
 /** ResourceService.getPlayerResources (not recorded yet): `{ resources: { money, strategy_points, … } }`, the full stock */
 export function toPlayerResources(data: unknown): Record<string, number> | null {
-  const resources = (data as { resources?: unknown } | null)?.resources;
-  return resources && typeof resources === 'object' && !Array.isArray(resources) ? numbers(resources) : null;
+  return numbersOrNull((data as { resources?: unknown } | null)?.resources);
 }
 
 /**
@@ -313,7 +305,7 @@ export function toPlayerResources(data: unknown): Record<string, number> | null 
  * Only `type: 'expansion'` with `subType: 'main'` counts; outposts and other cities have their own types.
  */
 export function toResearchExpansions(json: unknown): ResearchExpansion[] {
-  return (Array.isArray(json) ? (json as GameResearchTechnology[]) : []).flatMap((tech) => {
+  return list<GameResearchTechnology>(json).flatMap((tech) => {
     if (typeof tech?.id !== 'string') return [];
     const amount = (tech.rewards ?? [])
       .filter((r) => r?.type === 'expansion' && r.subType === 'main' && typeof r.amount === 'number')
@@ -331,7 +323,7 @@ export function toUnlockedNodes(data: unknown): string[] | null {
 
 /** The main grid of the metadata file `grid-<hash>`, its blocks from the sectors of type `Regular`. */
 export function toCityGrid(json: unknown): CityGrid | null {
-  const grid = (Array.isArray(json) ? (json as GameGrid[]) : []).find((g) => g?.id === 'main');
+  const grid = list<GameGrid>(json).find((g) => g?.id === 'main');
   if (!grid) return null;
   const blocks = (grid.sectors ?? [])
     .filter((s) => s?.type?.value === 'Regular')
@@ -339,19 +331,12 @@ export function toCityGrid(json: unknown): CityGrid | null {
   return { width: grid.width ?? 0, height: grid.height ?? 0, blocks };
 }
 
-interface GameUnitType {
-  unitTypeId?: unknown;
-  name?: unknown;
-  minEra?: unknown;
-  unitClass?: unknown;
-}
-
 /**
  * The unit types of the metadata file `unit_types-<hash>` by their id; entries without id or name are skipped. A unit
  * of every era (`NoAge`: agent, guild raids, event units, legends) has no era.
  */
 export function toUnitTypes(json: unknown): UnitType[] {
-  return (Array.isArray(json) ? (json as GameUnitType[]) : []).flatMap((u) =>
+  return list<GameUnitType>(json).flatMap((u) =>
     typeof u?.unitTypeId === 'string' && typeof u.name === 'string'
       ? [
           {
@@ -417,10 +402,10 @@ export function toFormerFriend(data: unknown): PlayerId | null {
  * `canSabotage` is gone (seen 2026-10-21), so the player is no longer plunderable.
  */
 function toAttackTimer(p: GamePlayer, now: number): AttackTimer {
-  const seconds = p.next_interaction_in;
+  const wait = p.next_interaction_in;
   return {
     canPlunder: p.canSabotage === true,
-    ...(typeof seconds === 'number' && seconds > 0 && { nextInteractionAt: now + seconds * 1000 }),
+    ...(typeof wait === 'number' && wait > 0 && { nextInteractionAt: now + wait * SECOND_MS }),
   };
 }
 
@@ -428,6 +413,14 @@ function toAttackTimer(p: GamePlayer, now: number): AttackTimer {
 export function toObservationWithAttack(p: GamePlayer, now: number): PlayerObservation | null {
   const o = toObservation(p);
   return o && { ...o, attack: toAttackTimer(p, now) };
+}
+
+/** The observations of a list of players; with `now` they carry the attack timers. Players without id are skipped. */
+export function toObservations(players: GamePlayer[], now?: number): PlayerObservation[] {
+  return players.flatMap((p) => {
+    const o = now === undefined ? toObservation(p) : toObservationWithAttack(p, now);
+    return o ? [o] : [];
+  });
 }
 
 /** The visit carries no attack timers (seen 2026-10-21); they come from the player store. */
@@ -483,8 +476,11 @@ function resultOf(state: GameBattleState): BattleResult | null {
   return null;
 }
 
+/** A battle that passed isOwnPvpBattle: the fields it checks are there. */
+export type OwnPvpBattle = GameBattle & { battleId: number; defenderPlayerId: number; state: GameBattleState };
+
 /** A PvP battle the session player attacks in, finished or still running. */
-export function isOwnPvpBattle(b: GameBattle, me: PlayerId): boolean {
+export function isOwnPvpBattle(b: GameBattle, me: PlayerId): b is OwnPvpBattle {
   return (
     b.battleType?.type === 'pvp' &&
     b.attackerPlayerId === me &&
@@ -504,15 +500,15 @@ export function isBattleState(data: unknown): data is GameBattleState {
  * the result (auto battle). With `end`, the final state of a manual battle, the result comes from there.
  */
 export function toBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: GameBattleState): FoughtBattle | null {
-  if (!isOwnPvpBattle(b, me) || !b.state) return null;
+  if (!isOwnPvpBattle(b, me)) return null;
   const final = end ?? b.state;
   const result = resultOf(final);
   if (!result) return null;
   return {
     world,
-    battleId: b.battleId as number,
-    at: (b.startTime ?? 0) * 1000,
-    opponent: playerId(b.defenderPlayerId as number),
+    battleId: b.battleId,
+    at: (b.startTime ?? 0) * SECOND_MS,
+    opponent: playerId(b.defenderPlayerId),
     result,
     auto: end ? false : b.isAutoBattle === true,
     // the game counts rounds from 0 and omits the field while it is 0
@@ -525,7 +521,7 @@ export function toBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: Game
 
 /** The battle type the army window is opened for, from the request of getArmyInfo. */
 export function armyBattleType(request: unknown): string | undefined {
-  const context = (Array.isArray(request) ? request : []).find(
+  const context = list(request).find(
     (r): r is GameArmyContext => (r as GameArmyContext | null)?.__class__ === 'ArmyContext',
   );
   return typeof context?.battleType === 'string' ? context.battleType : undefined;
@@ -534,11 +530,14 @@ export function armyBattleType(request: unknown): string | undefined {
 /** The loot of a successful plunder; other results are unknown and give null. */
 export function plunderLoot(data: unknown): Record<string, number> | null {
   const r = data as GamePlunderResult | null;
-  return r?.result === 'success' ? resourcesOf(r.product?.product) : null;
+  return r?.result === 'success' ? numbers(r.product?.product?.resources) : null;
 }
 
+/** An entity that passed isPlunderedEntity: the fields it checks are there. */
+export type PlunderedEntity = GameCityEntity & { id: number; player_id: number; cityentity_id: string };
+
 /** A building in another player's city that the game reports as just plundered. */
-export function isPlunderedEntity(e: GameCityEntity, me: PlayerId): boolean {
+export function isPlunderedEntity(e: GameCityEntity, me: PlayerId): e is PlunderedEntity {
   return (
     e.state?.__class__ === 'PlunderedState' &&
     typeof e.id === 'number' &&
@@ -575,21 +574,21 @@ export const toRepelledPlunder = (
   doubleLoot: false,
 });
 
-/** `entity` must pass isPlunderedEntity. The loot comes already doubled with Double Loot. */
+/** The loot comes already doubled with Double Loot. */
 export function toPlunder(
   world: WorldId,
   at: number,
-  entity: GameCityEntity,
+  entity: PlunderedEntity,
   resources: Record<string, number>,
   doubleLoot: boolean,
 ): Plunder {
   return {
     world,
     at,
-    opponent: playerId(entity.player_id as number),
+    opponent: playerId(entity.player_id),
     outcome: 'plundered',
-    entityId: entity.id as number,
-    cityEntityId: buildingDefId(entity.cityentity_id as string),
+    entityId: entity.id,
+    cityEntityId: buildingDefId(entity.cityentity_id),
     resources,
     doubleLoot,
   };
@@ -621,15 +620,13 @@ export function toIncoming(world: WorldId, e: GameEvent, me: PlayerId, at: numbe
  * skipped, as is `expireTime` -1 (cannot be attacked at all, which is no shield).
  */
 export function toShields(world: WorldId, data: unknown): CityShield[] {
-  return (Array.isArray(data) ? data : []).flatMap((e: GameCityProtection | null) => {
+  return list<GameCityProtection | null>(data).flatMap((e) => {
     const player = e?.playerId;
     const end = e?.expireTime;
     if (typeof player !== 'number' || typeof end !== 'number' || !(end > 0)) return [];
-    return [{ world, player: playerId(player), expiresAt: end * 1000 }];
+    return [{ world, player: playerId(player), expiresAt: end * SECOND_MS }];
   });
 }
-
-const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
 
 function toPlaceReward(r: GameGreatBuildingReward | undefined): PlaceReward | undefined {
   if (!r || typeof r !== 'object') return undefined;
@@ -691,7 +688,7 @@ export function toGreatBuildingEntity(e: GameCityEntity | null | undefined): Gre
 }
 
 /** A great building of a known city, for constructions that come without an opening (the own ones). */
-export function greatBuildingOf(b: Building | undefined): GreatBuildingEntity | undefined {
+export function greatBuildingOfBuilding(b: Building | undefined): GreatBuildingEntity | undefined {
   const gb = b?.greatBuilding;
   if (!b || !gb) return undefined;
   return {
@@ -714,31 +711,56 @@ export function greatBuildingRequest(request: unknown): { entityId: number; owne
   return { entityId, owner: playerId(owner), ...(level !== undefined && { level }) };
 }
 
+/** The fields a row of a great building list or of the ranking needs, however the source names them. */
+interface RowKey {
+  owner: PlayerId;
+  entityId: number;
+  cityEntityId: BuildingDefId;
+  level: number;
+  required: number;
+}
+
+/** The key of a row; null when building, owner, level or costs are missing, or when the owner is `except`. */
+function rowKey(
+  fields: { entityId: unknown; owner: unknown; level: unknown; required: unknown; def: string | undefined },
+  except?: PlayerId,
+): RowKey | null {
+  const entityId = num(fields.entityId);
+  const owner = num(fields.owner);
+  const level = num(fields.level);
+  const required = num(fields.required);
+  const def = fields.def;
+  if (entityId === undefined || owner === undefined || level === undefined || required === undefined || !def) {
+    return null;
+  }
+  if (owner === except) return null;
+  return { owner: playerId(owner), entityId, cityEntityId: buildingDefId(def), level, required };
+}
+
 /**
  * The rows of a great building list (getOtherPlayerOverview, getContributions) as known buildings' state. Rows without
  * building, owner or costs are skipped, so are those of `except` (the session player: its own list says nothing new).
  */
 export function toGreatBuildingListRows(data: unknown, except?: PlayerId): GreatBuildingListRow[] {
-  return ((Array.isArray(data) ? data : []) as (GameGreatBuildingListRow | null)[]).flatMap((r) => {
-    const entityId = num(r?.entity_id);
-    const owner = num(r?.player?.player_id);
-    const level = num(r?.level);
-    const required = num(r?.max_progress);
-    const def = r?.city_entity_id;
-    if (entityId === undefined || owner === undefined || level === undefined || required === undefined || !def)
-      return [];
-    if (owner === except) return [];
+  return list<GameGreatBuildingListRow | null>(data).flatMap((r) => {
+    const key = rowKey(
+      {
+        entityId: r?.entity_id,
+        owner: r?.player?.player_id,
+        level: r?.level,
+        required: r?.max_progress,
+        def: r?.city_entity_id,
+      },
+      except,
+    );
+    if (!key) return [];
     const rank = num(r?.rank);
     const forgePoints = num(r?.forge_points);
     const reward = num(r?.reward?.strategy_point_amount);
     return [
       {
-        owner: playerId(owner),
-        entityId,
-        cityEntityId: buildingDefId(def),
-        level,
+        ...key,
         invested: num(r?.current_progress) ?? 0,
-        required,
         ...(rank !== undefined && { rank }),
         ...(rank !== undefined && forgePoints !== undefined && { forgePoints, reward: reward ?? 0 }),
       },
@@ -748,20 +770,19 @@ export function toGreatBuildingListRows(data: unknown, except?: PlayerId): Great
 
 /** The owners of the rows of a great building list as the list gives them, each once; `except` (the own id) is left out. */
 export function toListedPlayers(data: unknown, except?: PlayerId): ListedPlayer[] {
-  const owners = new Map<PlayerId, ListedPlayer>();
-  for (const r of (Array.isArray(data) ? data : []) as (GameGreatBuildingListRow | null)[]) {
-    const id = num(r?.player?.player_id);
-    const name = r?.player?.name;
-    if (id === undefined || id === except || typeof name !== 'string' || name === '') continue;
-    const avatar = r?.player?.avatar;
-    owners.set(playerId(id), {
-      id: playerId(id),
-      name,
-      ...(typeof avatar === 'string' && avatar !== '' && { avatar }),
-    });
-  }
-  return [...owners.values()];
+  return uniqueOwners(
+    list<GameGreatBuildingListRow | null>(data).flatMap((r) => {
+      const id = num(r?.player?.player_id);
+      const name = r?.player?.name;
+      if (id === undefined || id === except || typeof name !== 'string' || name === '') return [];
+      const avatar = r?.player?.avatar;
+      return [{ id: playerId(id), name, ...(typeof avatar === 'string' && avatar !== '' && { avatar }) }];
+    }),
+  );
 }
+
+/** Each owner once, in the order of first appearance; a later entry of the same player replaces the earlier one. */
+const uniqueOwners = (owners: ListedPlayer[]): ListedPlayer[] => [...new Map(owners.map((o) => [o.id, o])).values()];
 
 /** What a page of the great building ranking tells: the rows as list rows, their owners and the building names. */
 export interface GreatBuildingRanking {
@@ -776,35 +797,34 @@ export interface GreatBuildingRanking {
  * The ranking's own `rank` is the place in the ranking, not an own contribution, so it is not passed on.
  */
 export function toGreatBuildingRanking(data: unknown, except?: PlayerId): GreatBuildingRanking | null {
-  const list = data as GameRankingList | null;
-  if (list?.category?.value !== 'great_building') return null;
+  const page = data as GameRankingList | null;
+  if (page?.category?.value !== 'great_building') return null;
   const result: GreatBuildingRanking = { rows: [], owners: [], names: {} };
-  const owners = new Map<PlayerId, ListedPlayer>();
-  for (const r of Array.isArray(list.rankings) ? list.rankings : []) {
-    const entityId = num(r?.entityId);
-    const owner = num(r?.player?.player_id);
-    const level = num(r?.level);
-    const required = num(r?.requiredPoints);
-    const def = r?.cityEntityId;
-    if (entityId === undefined || owner === undefined || level === undefined || required === undefined || !def)
-      continue;
-    if (owner === except) continue;
+  const owners: ListedPlayer[] = [];
+  for (const r of list<GameGreatBuildingRanking | null>(page.rankings)) {
+    const key = rowKey(
+      {
+        entityId: r?.entityId,
+        owner: r?.player?.player_id,
+        level: r?.level,
+        required: r?.requiredPoints,
+        def: r?.cityEntityId,
+      },
+      except,
+    );
+    if (!r || !key) continue;
     const tier = r.currentTier?.value;
     result.rows.push({
-      owner: playerId(owner),
-      entityId,
-      cityEntityId: buildingDefId(def),
-      level,
+      ...key,
       invested: num(r.points) ?? 0,
-      required,
       ...((tier === 'copper' || tier === 'gold') && { tier }),
     });
-    if (typeof r.name === 'string' && r.name !== '') result.names[def] = r.name;
+    if (typeof r.name === 'string' && r.name !== '') result.names[key.cityEntityId] = r.name;
     const p = r.player;
     if (typeof p?.name !== 'string' || p.name === '') continue;
     const guild = num(r.clan?.id);
-    owners.set(playerId(owner), {
-      id: playerId(owner),
+    owners.push({
+      id: key.owner,
       name: p.name,
       // a missing field keeps what the player store knows
       avatar: p.avatar,
@@ -813,14 +833,14 @@ export function toGreatBuildingRanking(data: unknown, except?: PlayerId): GreatB
       guild: guild === undefined ? null : { id: guildId(guild), name: r.clan?.name ?? '' },
     });
   }
-  result.owners = [...owners.values()];
+  result.owners = uniqueOwners(owners);
   return result;
 }
 
 /** Display names of great buildings by definition, from the inventory list or the overview of a player. */
 export function toGreatBuildingNames(data: unknown): Record<string, string> {
   const names: Record<string, string> = {};
-  for (const g of (Array.isArray(data) ? data : []) as (GameGreatBuildingName | null)[]) {
+  for (const g of list<GameGreatBuildingName | null>(data)) {
     const id = g?.cityentity_id ?? g?.city_entity_id;
     if (id && typeof g?.name === 'string') names[id] = g.name;
   }
@@ -829,7 +849,7 @@ export function toGreatBuildingNames(data: unknown): Record<string, string> {
 
 /** The active limited bonuses; `isActive: false` ones are dropped. */
 export function toLimitedBonuses(data: unknown): LimitedBonus[] {
-  return ((Array.isArray(data) ? data : []) as (GameLimitedBonus | null)[]).flatMap((b) => {
+  return list<GameLimitedBonus | null>(data).flatMap((b) => {
     const value = num(b?.value);
     if (!b?.type || value === undefined || b.isActive === false) return [];
     const entityId = num(b.entityId);
