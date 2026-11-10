@@ -38,11 +38,11 @@ import type {
   ExpansionOffer,
   GreatBuildingBonus,
   Product,
+  VisitInfo,
 } from '../model/city';
 import type { GreatBuildingEntity, PlaceReward, RankingRow } from '../model/great-building';
+import type { ListedPlayer, PlayerObservation } from '../model/player';
 import type { ResearchExpansion } from '../model/research';
-import type { VisitInfo } from '../stores/cities';
-import type { ListedPlayer, PlayerObservation } from '../stores/players';
 import type {
   GameArmyContext,
   GameBattle,

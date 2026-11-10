@@ -105,3 +105,10 @@ export interface City {
   /** expansions not obtained yet; own city only */
   expansions?: ExpansionOffer[];
 }
+
+/** What the visit tells about the relation to the visited player at that moment. */
+export interface VisitInfo {
+  neighbor: boolean;
+  friend: boolean;
+  guildMember: boolean;
+}

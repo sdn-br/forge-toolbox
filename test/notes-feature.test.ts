@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { notesFeature } from '../src/content/features/notes/index';
+import type { PlayerObservation } from '../src/content/model/player';
 import { PLAYER_GROUP } from '../src/content/stores/notes';
-import type { PlayerObservation } from '../src/content/stores/players';
 import { SAVE_DELAY } from '../src/content/ui/note-editor';
 import { eraId, playerId, worldId } from '../src/shared/ids';
 import { featureContext } from './helpers/feature-context';

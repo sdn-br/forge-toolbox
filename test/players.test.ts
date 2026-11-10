@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createBus } from '../src/content/core/events';
-import { type PlayerObservation, PlayerStore, SEEN_WRITE_INTERVAL } from '../src/content/stores/players';
+import type { PlayerObservation } from '../src/content/model/player';
+import { PlayerStore, SEEN_WRITE_INTERVAL } from '../src/content/stores/players';
 import { eraId, playerId, worldId } from '../src/shared/ids';
 import type { Player } from '../src/shared/model';
 

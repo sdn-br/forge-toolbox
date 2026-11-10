@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from 'vitest';
 import { attackWarningFeature } from '../src/content/features/attack-warning';
-import type { PlayerObservation } from '../src/content/stores/players';
+import type { PlayerObservation } from '../src/content/model/player';
 import { eraId, playerId, worldId } from '../src/shared/ids';
 import { featureContext } from './helpers/feature-context';
 
