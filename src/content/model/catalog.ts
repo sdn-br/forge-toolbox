@@ -40,7 +40,8 @@ export interface BuildingDef {
   /** the game's `asset_id`, which names the building's images; mostly the id itself, not for event levels */
   assetId?: string;
   generic: boolean;
-  type?: string;
+  /** the game types it as a great building; `greatBuilding` below needs the level costs as well */
+  isGreatBuilding?: true;
   size: { width: number; length: number };
   /** street level the building needs to work, 0 for none; missing when the definition does not tell */
   street?: number;

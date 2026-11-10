@@ -13,6 +13,7 @@ import {
   type TierStart,
 } from '../model/catalog';
 import type { Product } from '../model/city';
+import { isGreatBuildingType } from './convert';
 import { isObject, list, numbers } from './json';
 
 type Json = Record<string, unknown>;
@@ -209,7 +210,7 @@ export function toBuildingDef(json: unknown): BuildingDef | null {
     name: typeof json.name === 'string' ? json.name : json.id,
     ...(typeof json.asset_id === 'string' && { assetId: json.asset_id }),
     generic,
-    type,
+    ...(isGreatBuildingType(type) && { isGreatBuilding: true as const }),
     flags: {
       motivatable,
       polishable: has('PolishableAbility') || interaction === 'polish',
