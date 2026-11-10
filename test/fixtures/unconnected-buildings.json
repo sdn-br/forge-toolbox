@@ -1,0 +1,275 @@
+{
+  "note": "Own city entities from StartupService.getData recorded on de20 2026-11-10, player anonymized (1000). The game leaves out `connected` when it is 0: the great buildings are unconnected, the generic buildings need no road.",
+  "entities": [
+    {
+      "id": 402,
+      "player_id": 1000,
+      "cityentity_id": "X_IronAge_Landmark2",
+      "type": "greatbuilding",
+      "x": 8,
+      "y": 15,
+      "state": {
+        "invested_forge_points": 243,
+        "forge_points_for_level_up": 480,
+        "pausedAt": 1794320140,
+        "paused_state": {
+          "current_product": {
+            "production_time": 86400,
+            "products": [
+              {
+                "name": "random_goods",
+                "production_time": 86400,
+                "asset_name": "random_goods",
+                "product": {
+                  "resources": {
+                    "coffee": 54
+                  },
+                  "__class__": "Resources"
+                },
+                "slot": 3,
+                "__class__": "CityEntityProductionProduct"
+              }
+            ],
+            "slot": 3,
+            "__class__": "CityEntityGreatBuildingProducts"
+          },
+          "__class__": "ProductionFinishedState"
+        },
+        "__class__": "UnconnectedState"
+      },
+      "level": 9,
+      "max_level": 10,
+      "bonuses": [
+        {
+          "value": 184.0,
+          "type": "supplies_boost",
+          "amount": 40,
+          "bonusCategory": {
+            "__enum__": "GreatBuildingBonusCategory",
+            "value": "passiveBonus"
+          },
+          "__class__": "GreatBuildingCityMapBonus"
+        },
+        {
+          "value": 54.0,
+          "type": "random_goods",
+          "amount": -1,
+          "bonusCategory": {
+            "__enum__": "GreatBuildingBonusCategory",
+            "value": "productionBonus"
+          },
+          "__class__": "GreatBuildingCityMapBonus"
+        }
+      ],
+      "__class__": "CityMapEntity"
+    },
+    {
+      "id": 576,
+      "player_id": 1000,
+      "cityentity_id": "X_BronzeAge_Landmark2",
+      "type": "greatbuilding",
+      "x": 13,
+      "y": 16,
+      "state": {
+        "forge_points_for_level_up": 713,
+        "pausedAt": 1794320140,
+        "paused_state": {
+          "__class__": "IdleState"
+        },
+        "__class__": "UnconnectedState"
+      },
+      "level": 22,
+      "max_level": 23,
+      "bonuses": [
+        {
+          "value": 89.0,
+          "type": "military_boost",
+          "bonusCategory": {
+            "__enum__": "GreatBuildingBonusCategory",
+            "value": "passiveBonus"
+          },
+          "targetedFeature": "all",
+          "__class__": "GreatBuildingUnitBonus"
+        }
+      ],
+      "__class__": "CityMapEntity"
+    },
+    {
+      "id": 1254,
+      "player_id": 1000,
+      "cityentity_id": "X_LateMiddleAge_Landmark3",
+      "type": "greatbuilding",
+      "x": 20,
+      "y": 8,
+      "state": {
+        "forge_points_for_level_up": 3445,
+        "pausedAt": 1794320140,
+        "paused_state": {
+          "current_product": {
+            "production_time": 86400,
+            "products": [
+              {
+                "name": "strategy_points",
+                "production_time": 86400,
+                "asset_name": "strategy_points",
+                "product": {
+                  "resources": {
+                    "strategy_points": 557
+                  },
+                  "__class__": "Resources"
+                },
+                "__class__": "CityEntityProductionProduct"
+              }
+            ],
+            "slot": 4,
+            "__class__": "CityEntityGreatBuildingProducts"
+          },
+          "__class__": "ProductionFinishedState"
+        },
+        "__class__": "UnconnectedState"
+      },
+      "level": 74,
+      "max_level": 75,
+      "bonuses": [
+        {
+          "value": 627.0,
+          "type": "military_boost",
+          "bonusCategory": {
+            "__enum__": "GreatBuildingBonusCategory",
+            "value": "passiveBonus"
+          },
+          "targetedFeature": "all",
+          "__class__": "GreatBuildingUnitBonus"
+        },
+        {
+          "value": 557.0,
+          "type": "strategy_points",
+          "amount": -1,
+          "bonusCategory": {
+            "__enum__": "GreatBuildingBonusCategory",
+            "value": "productionBonus"
+          },
+          "__class__": "GreatBuildingCityMapBonus"
+        }
+      ],
+      "__class__": "CityMapEntity"
+    },
+    {
+      "id": 95,
+      "player_id": 1000,
+      "cityentity_id": "R_MultiAge_SportBonus19j",
+      "type": "residential",
+      "x": 34,
+      "y": 25,
+      "state": {
+        "pausedAt": 1794320140,
+        "socialInteractionId": "motivate",
+        "paused_state": {
+          "current_product": {
+            "name": "money",
+            "production_time": 86400,
+            "asset_name": "production_icon_money",
+            "product": {
+              "resources": {
+                "money": 18000,
+                "strategy_points": 6,
+                "medals": 42
+              },
+              "__class__": "Resources"
+            },
+            "__class__": "CityEntityProductionProduct"
+          },
+          "boosted": true,
+          "is_motivated": true,
+          "__class__": "ProductionFinishedState"
+        },
+        "__class__": "UnconnectedState"
+      },
+      "level": 6,
+      "bonuses": [],
+      "__class__": "CityMapEntity"
+    },
+    {
+      "id": 2765,
+      "player_id": 1000,
+      "cityentity_id": "W_MultiAge_ARCH19A10",
+      "type": "generic_building",
+      "x": 8,
+      "y": 19,
+      "state": {
+        "pausedAt": 1794320140,
+        "socialInteractionStartedAt": 1794134022,
+        "socialInteractionId": "motivate",
+        "productionOption": {
+          "asset": "production_icon_money",
+          "name": "Option 1",
+          "time": 86400,
+          "products": [
+            {
+              "type": "resources",
+              "flags": [],
+              "playerResources": {
+                "resources": {
+                  "money": 21400
+                },
+                "__class__": "Resources"
+              },
+              "__class__": "ResourceProduct"
+            },
+            {
+              "type": "resources",
+              "onlyWhenMotivated": true,
+              "flags": [],
+              "playerResources": {
+                "resources": {
+                  "strategy_points": 10,
+                  "silk": 2,
+                  "gunpowder": 2,
+                  "brass": 2,
+                  "basalt": 2,
+                  "talc": 2
+                },
+                "__class__": "Resources"
+              },
+              "__class__": "ResourceProduct"
+            }
+          ],
+          "__class__": "ProductionOption"
+        },
+        "__class__": "ProductionFinishedState"
+      },
+      "level": 5,
+      "bonuses": [],
+      "__class__": "CityMapEntity"
+    },
+    {
+      "id": 5126,
+      "player_id": 1000,
+      "cityentity_id": "W_MultiAge_Expedition16bBase",
+      "type": "generic_building",
+      "x": 34,
+      "y": 39,
+      "state": {
+        "pausedAt": 1794320140,
+        "__class__": "IdleState"
+      },
+      "level": 5,
+      "bonuses": [],
+      "__class__": "CityMapEntity"
+    },
+    {
+      "id": 3655,
+      "player_id": 1000,
+      "cityentity_id": "S_HighMiddleAge_Street1",
+      "type": "street",
+      "x": 18,
+      "y": 24,
+      "connected": 1,
+      "state": {
+        "__class__": "IdleState"
+      },
+      "bonuses": [],
+      "__class__": "CityMapEntity"
+    }
+  ]
+}

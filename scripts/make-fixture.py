@@ -51,6 +51,11 @@
 # guilds anonymized (me 1000, players from 2001, guilds from 3001), city names and avatars replaced, the own name in
 # the request replaced, a player search text too.
 
+# Unconnected buildings: python3 -I scripts/make-fixture.py gb-unconnected <recording.json> <out.json>
+# keeps a few city entities of the own city from the startup data (StartupService.getData) that come without `connected`:
+# the first 3 unconnected great buildings, one unconnected residential, one generic_building in ProductionFinishedState
+# and one in IdleState (they need no road), plus the first street (connected: 1). Player id 1000.
+
 # Friend accepted: python3 -I scripts/make-fixture.py friend-accept <recording.json> <out.json>
 # Friend deleted: python3 -I scripts/make-fixture.py friend-delete <recording.json> <out.json>
 # keeps the first FriendService.acceptInvitation (request: the player id, response: the new friend as a whole player),
@@ -567,6 +572,17 @@ def gb_ranking_fixture(recs,out):
           'responseData':{**d,'rankings':[row(x) if 'player' in x else x for x in d['rankings'][cut]]}}
     json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
 
+def gb_unconnected_fixture(rec,out):
+    ents=next(e['responseData']['city_map']['entities'] for r in rec if r['kind']=='json' for e in json.loads(r['response'])
+              if e.get('requestMethod')=='getData' and e.get('requestClass')=='StartupService')
+    def pick(type_,state,n=1):
+        return [x for x in ents if x.get('type')==type_ and x['state']['__class__']==state and 'connected' not in x][:n]
+    keep=pick('greatbuilding','UnconnectedState',3)+pick('residential','UnconnectedState')+pick('generic_building','ProductionFinishedState')\
+        +pick('generic_building','IdleState')+[x for x in ents if x.get('type')=='street' and x.get('connected')==1][:1]
+    fixture={'note':'Own city entities from StartupService.getData recorded on de20 2026-11-10, player anonymized (1000). The game leaves out `connected` when it is 0: the great buildings are unconnected, the generic buildings need no road.',
+      'entities':[dict(x,player_id=1000) for x in keep]}
+    json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
+
 def friend_accept_fixture(rec,out):
     FRIEND=1001
     entry=world=None
@@ -601,6 +617,8 @@ def friend_delete_fixture(rec,out):
       'delete':{'requestClass':'FriendService','requestMethod':'deleteFriend','requestData':[FRIEND],'responseData':FRIEND}}
     json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
 
+if sys.argv[1]=='gb-unconnected':
+    gb_unconnected_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
 if sys.argv[1]=='gb-ranking':
     gb_ranking_fixture([json.load(open(f)) for f in [sys.argv[2],*sys.argv[4:]]],sys.argv[3]); sys.exit()
 if sys.argv[1]=='friend-delete':

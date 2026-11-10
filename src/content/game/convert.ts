@@ -161,6 +161,22 @@ const CATEGORY_OF: Record<string, BuildingCategory> = {
 // Arctic Harbour and the Ocean Terminal with their parts (seen 2026-10-29).
 const OFF_GRID = new Set(['off_grid', 'outpost_ship', 'friends_tavern', 'hub_main', 'hub_part']);
 
+/**
+ * Whether a city entity has a road connection. The game leaves out fields that are 0, so an unconnected building can
+ * come without `connected`. That alone says nothing for most buildings: 70 `generic_building` entities without
+ * `connected` were producing in a visited city (recording 2026-11-10), they need no road. So only two signals count:
+ * the state `UnconnectedState` (seen on great buildings, residential and production buildings), and for a great
+ * building a missing or 0 `connected`. In the own city at start (StartupService.getData) all 11 great buildings had no
+ * `connected` and `UnconnectedState`, while an earlier CityMapService.getEntities showed `connected: 1` for them
+ * (the 6 great buildings of a visit, OtherPlayerService.visitPlayer, came without it too). Every other building keeps
+ * the rule that a missing `connected` means connected.
+ */
+function isConnected(e: GameCityEntity): boolean {
+  if (e.state?.__class__ === 'UnconnectedState') return false;
+  if (isGreatBuildingType(e.type)) return (num(e.connected) ?? 0) > 0;
+  return e.connected !== 0;
+}
+
 export function toBuilding(e: GameCityEntity, owner: PlayerId): Building | null {
   if (typeof e.id !== 'number' || !e.cityentity_id) return null;
   const building: Building = {
@@ -172,7 +188,7 @@ export function toBuilding(e: GameCityEntity, owner: PlayerId): Building | null 
     x: e.x ?? 0,
     y: e.y ?? 0,
     level: e.level,
-    connected: e.connected !== 0,
+    connected: isConnected(e),
     state: toState(e.state),
   };
   if (isGreatBuildingType(e.type)) {
@@ -661,7 +677,7 @@ export function toNextProduction(data: GameGreatBuildingConstruction | null | un
 export function toGreatBuildingEntity(e: GameCityEntity | null | undefined): GreatBuildingEntity | null {
   const id = num(e?.id);
   const owner = num(e?.player_id);
-  if (e?.type !== 'greatbuilding' || id === undefined || owner === undefined || !e.cityentity_id) return null;
+  if (!e || !isGreatBuildingType(e.type) || id === undefined || owner === undefined || !e.cityentity_id) return null;
   return {
     owner: playerId(owner),
     entityId: id,
@@ -670,7 +686,7 @@ export function toGreatBuildingEntity(e: GameCityEntity | null | undefined): Gre
     maxLevel: num(e.max_level) ?? 0,
     invested: num(e.state?.invested_forge_points) ?? 0,
     required: num(e.state?.forge_points_for_level_up) ?? 0,
-    connected: (num(e.connected) ?? 0) > 0,
+    connected: isConnected(e),
   };
 }
 
