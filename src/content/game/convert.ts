@@ -24,6 +24,7 @@ import type {
   Plunder,
   Session,
 } from '../../shared/model';
+import { SECOND_MS } from '../../shared/time';
 import type { LimitedBonus } from '../model/bonus';
 import type { CityGrid, UnitType } from '../model/catalog';
 import type {
@@ -69,13 +70,14 @@ import type {
   GameResearchTechnology,
   GameState,
   GameTileset,
+  GameUnitType,
   GameUserData,
 } from './game-types';
 import { list, num, numbers, numbersOrNull } from './json';
 
 // In visited cities the game hides all times behind the largest 32 bit integer (seen 2026-10-19).
 const HIDDEN = 2147483647;
-const seconds = (s: number | undefined) => (typeof s === 'number' && s > 0 && s < HIDDEN ? s * 1000 : undefined);
+const seconds = (s: number | undefined) => (typeof s === 'number' && s > 0 && s < HIDDEN ? s * SECOND_MS : undefined);
 
 function toProduct(p: GameProduct | undefined): Product | undefined {
   if (!p) return undefined;
@@ -329,13 +331,6 @@ export function toCityGrid(json: unknown): CityGrid | null {
   return { width: grid.width ?? 0, height: grid.height ?? 0, blocks };
 }
 
-interface GameUnitType {
-  unitTypeId?: unknown;
-  name?: unknown;
-  minEra?: unknown;
-  unitClass?: unknown;
-}
-
 /**
  * The unit types of the metadata file `unit_types-<hash>` by their id; entries without id or name are skipped. A unit
  * of every era (`NoAge`: agent, guild raids, event units, legends) has no era.
@@ -407,10 +402,10 @@ export function toFormerFriend(data: unknown): PlayerId | null {
  * `canSabotage` is gone (seen 2026-10-21), so the player is no longer plunderable.
  */
 function toAttackTimer(p: GamePlayer, now: number): AttackTimer {
-  const seconds = p.next_interaction_in;
+  const wait = p.next_interaction_in;
   return {
     canPlunder: p.canSabotage === true,
-    ...(typeof seconds === 'number' && seconds > 0 && { nextInteractionAt: now + seconds * 1000 }),
+    ...(typeof wait === 'number' && wait > 0 && { nextInteractionAt: now + wait * SECOND_MS }),
   };
 }
 
@@ -512,7 +507,7 @@ export function toBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: Game
   return {
     world,
     battleId: b.battleId,
-    at: (b.startTime ?? 0) * 1000,
+    at: (b.startTime ?? 0) * SECOND_MS,
     opponent: playerId(b.defenderPlayerId),
     result,
     auto: end ? false : b.isAutoBattle === true,
@@ -629,7 +624,7 @@ export function toShields(world: WorldId, data: unknown): CityShield[] {
     const player = e?.playerId;
     const end = e?.expireTime;
     if (typeof player !== 'number' || typeof end !== 'number' || !(end > 0)) return [];
-    return [{ world, player: playerId(player), expiresAt: end * 1000 }];
+    return [{ world, player: playerId(player), expiresAt: end * SECOND_MS }];
   });
 }
 
@@ -693,7 +688,7 @@ export function toGreatBuildingEntity(e: GameCityEntity | null | undefined): Gre
 }
 
 /** A great building of a known city, for constructions that come without an opening (the own ones). */
-export function greatBuildingOf(b: Building | undefined): GreatBuildingEntity | undefined {
+export function greatBuildingOfBuilding(b: Building | undefined): GreatBuildingEntity | undefined {
   const gb = b?.greatBuilding;
   if (!b || !gb) return undefined;
   return {

@@ -1,3 +1,6 @@
+/** one second in milliseconds */
+export const SECOND_MS = 1000;
+
 /** one day in milliseconds */
 export const DAY_MS = 86_400_000;
 

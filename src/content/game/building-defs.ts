@@ -177,16 +177,14 @@ export function toBuildingDef(json: unknown): BuildingDef | null {
       }
     }
   }
-  for (const a of abilities) {
-    if (a.__class__ !== 'BoostAbility') continue;
-    for (const hint of objects(a.boostHints)) {
-      const map = isObject(hint.boostHintEraMap) ? hint.boostHintEraMap : {};
-      for (const [era, b] of Object.entries(map)) add(era, toBoost(b));
-    }
-  }
-
   let set: BuildingDef['set'];
   for (const a of abilities) {
+    if (a.__class__ === 'BoostAbility') {
+      for (const hint of objects(a.boostHints)) {
+        const map = isObject(hint.boostHintEraMap) ? hint.boostHintEraMap : {};
+        for (const [era, b] of Object.entries(map)) add(era, toBoost(b));
+      }
+    }
     if (a.__class__ === 'BonusOnSetAdjacencyAbility' && typeof a.setId === 'string') {
       set = { id: a.setId, bonuses: levelBonuses(a.bonuses) };
     }

@@ -11,7 +11,7 @@ import type { CatalogStore } from '../stores/catalog';
 import { toBuildingDef, toBuildingFiles, toGreatBuildingTiers } from './building-defs';
 import {
   armyBattleType,
-  greatBuildingOf,
+  greatBuildingOfBuilding,
   greatBuildingRequest,
   isBattleState,
   isGreatBuildingType,
@@ -74,7 +74,7 @@ import type {
 import { list } from './json';
 
 /** The stores the responses feed, plus what the handlers need besides them. */
-export type GameHandlerDeps = Stores & {
+type GameHandlerDeps = Stores & {
   world: WorldId;
   bus: ToolboxBus;
   now: () => number;
@@ -414,7 +414,8 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     if (!target || !rows) return;
     const own = target.owner === session.current?.playerId;
     const city = own ? cities.own() : cities.visited();
-    const known = city?.owner === target.owner ? greatBuildingOf(city.buildings.get(target.entityId)) : undefined;
+    const known =
+      city?.owner === target.owner ? greatBuildingOfBuilding(city.buildings.get(target.entityId)) : undefined;
     greatBuildings.openConstruction(target.owner, target.entityId, own, rows, known, toNextProduction(construction));
   });
   // [entityId, playerId, level]: the level being built repeats the current rankings, a lower one is finished

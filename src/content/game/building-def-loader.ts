@@ -5,8 +5,7 @@ import type { BuildingDef } from '../model/catalog';
 import type { BuildingDefLoader } from '../stores/catalog';
 import { toBuildingDef } from './building-defs';
 
-const parse = (json: unknown): BuildingDef | undefined =>
-  json === undefined ? undefined : (toBuildingDef(json) ?? undefined);
+const parse = (json: unknown): BuildingDef | undefined => toBuildingDef(json) ?? undefined;
 
 /** The cache of definition files translated into the domain model; the service worker only sees the raw files. */
 export function buildingDefLoader(call: Call): BuildingDefLoader {
