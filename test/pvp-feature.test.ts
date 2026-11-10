@@ -997,6 +997,26 @@ describe('pvp feature loading', () => {
     expect(box.updates.length).toBe(updates + 2);
   });
 
+  it('builds no view model for changes while the box is closed, and shows current data on opening', async () => {
+    const { ctx, box, lists, menu } = setup();
+    await tick();
+    lists[0]?.resolve([battle(1, 111)]);
+    await tick();
+    box.box.close();
+    const built = vi.spyOn(ctx.notes, 'playerPage');
+    ctx.bus.emit('player.updated', { ids: [playerId(111)], source: 'update' });
+    ctx.bus.emit('catalog.updated', { defs: [] });
+    await tick();
+    expect(built).not.toHaveBeenCalled();
+    ctx.players.apply(worldId('de20'), [seen(111, 'Renamed')], 'visit');
+    ctx.bus.emit('player.updated', { ids: [playerId(111)], source: 'update' });
+    menu('pvp');
+    await tick();
+    lists.at(-1)?.resolve([battle(1, 111)]);
+    await tick();
+    expect(box.text).toContain('Renamed');
+  });
+
   it('reads again on a player change while the name field or a mark filter goes by the players', async () => {
     const { ctx, box, lists } = setup();
     await tick();

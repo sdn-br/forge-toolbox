@@ -1,7 +1,7 @@
 // Which game response feeds which store, all in one place. A response may have several handlers that each feed their
 // own part, for example `updatePlayer` (players, plunder) and `CityMapService.reset` (plunder, own buildings).
 import type { GbWindowState } from '../../shared/gb-window-protocol';
-import { type BuildingDefId, eraId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
+import { type BuildingDefId, buildingDefId, eraId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import type { Ingestion } from '../core/ingestion';
 import { logInfo } from '../core/log';

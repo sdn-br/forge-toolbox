@@ -143,7 +143,9 @@ export const pvpFeature: Feature = {
       });
     };
     // names, guilds, marks and notes are looked up when the view model is built, so a change of them needs no reading
+    // a closed box builds nothing: opening reads the rows again and builds with the data of that moment
     const rebuild = () => {
+      if (!box.isOpen) return;
       if (shown) vm = shown();
       box.update();
     };
