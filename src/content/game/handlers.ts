@@ -31,7 +31,7 @@ import {
   toGoodsNames,
   toGreatBuildingEntity,
   toGreatBuildingLevelUp,
-  toGreatBuildingListRows,
+  toGreatBuildingList,
   toGreatBuildingNames,
   toGreatBuildingRanking,
   toIncoming,
@@ -41,7 +41,6 @@ import {
   toItemAmount,
   toItemUpdates,
   toLimitedBonuses,
-  toListedPlayers,
   toNewFriend,
   toNextProduction,
   toObservation,
@@ -491,10 +490,10 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   });
   ingestion.on('GreatBuildingsService', 'getOtherPlayerOverview', ({ data }) => {
     const me = session.current?.playerId;
-    catalog.setGreatBuildingNames(toGreatBuildingNames(data));
+    const { names, owners, rows } = toGreatBuildingList(data, me);
+    catalog.setGreatBuildingNames(names);
     // the owner first, so the views the list redraws already know the name
-    players.applyListed(world, toListedPlayers(data, me));
-    const rows = toGreatBuildingListRows(data, me);
+    players.applyListed(world, owners);
     greatBuildings.noteList(rows);
     const owner = rows[0]?.owner;
     if (owner === undefined) return;
@@ -523,9 +522,10 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   ingestion.on('GreatBuildingsService', 'getContributions', ({ data }) => {
     if (!Array.isArray(data)) return;
     const me = session.current?.playerId;
-    catalog.setGreatBuildingNames(toGreatBuildingNames(data));
-    players.applyListed(world, toListedPlayers(data, me));
-    greatBuildings.noteContributions(toGreatBuildingListRows(data, me));
+    const { names, owners, rows } = toGreatBuildingList(data, me);
+    catalog.setGreatBuildingNames(names);
+    players.applyListed(world, owners);
+    greatBuildings.noteContributions(rows);
   });
   ingestion.on('BonusService', 'getLimitedBonuses', ({ data }) => {
     playerBonuses.setLimited(toLimitedBonuses(data));

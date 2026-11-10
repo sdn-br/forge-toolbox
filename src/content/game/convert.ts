@@ -753,6 +753,12 @@ interface RowKey {
   required: number;
 }
 
+/**
+ * The session player (`except`) is left out of what the lists tell: its own rows and entry say nothing new. Every
+ * great building list converter takes the rule from here.
+ */
+const isExcepted = (owner: number, except?: PlayerId): boolean => owner === except;
+
 /** The key of a row; null when building, owner, level or costs are missing, or when the owner is `except`. */
 function rowKey(
   fields: { entityId: unknown; owner: unknown; level: unknown; required: unknown; def: string | undefined },
@@ -766,7 +772,7 @@ function rowKey(
   if (entityId === undefined || owner === undefined || level === undefined || required === undefined || !def) {
     return null;
   }
-  if (owner === except) return null;
+  if (isExcepted(owner, except)) return null;
   return { owner: playerId(owner), entityId, cityEntityId: buildingDefId(def), level, required };
 }
 
@@ -807,11 +813,27 @@ export function toListedPlayers(data: unknown, except?: PlayerId): ListedPlayer[
     list<GameGreatBuildingListRow | null>(data).flatMap((r) => {
       const id = num(r?.player?.player_id);
       const name = r?.player?.name;
-      if (id === undefined || id === except || typeof name !== 'string' || name === '') return [];
+      if (id === undefined || isExcepted(id, except) || typeof name !== 'string' || name === '') return [];
       const avatar = r?.player?.avatar;
       return [{ id: playerId(id), name, ...(typeof avatar === 'string' && avatar !== '' && { avatar }) }];
     }),
   );
+}
+
+/** What a great building list (getOtherPlayerOverview, getContributions) tells: the building names, the owners, the rows. */
+export interface GreatBuildingList {
+  names: Record<string, string>;
+  /** the owners of all rows, also of those without costs that `rows` drops */
+  owners: ListedPlayer[];
+  rows: GreatBuildingListRow[];
+}
+
+export function toGreatBuildingList(data: unknown, except?: PlayerId): GreatBuildingList {
+  return {
+    names: toGreatBuildingNames(data),
+    owners: toListedPlayers(data, except),
+    rows: toGreatBuildingListRows(data, except),
+  };
 }
 
 /** Each owner once, in the order of first appearance; a later entry of the same player replaces the earlier one. */
