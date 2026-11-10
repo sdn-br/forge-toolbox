@@ -5,11 +5,9 @@ import { type BuildingDefId, eraId, type PlayerId, playerId, type WorldId } from
 import type { ToolboxBus } from '../core/events';
 import type { Ingestion } from '../core/ingestion';
 import { logInfo } from '../core/log';
-import type { Building } from '../model/city';
 import type { GreatBuildingEntity, RankingRow } from '../model/great-building';
 import type { Stores } from '../stores';
 import type { CatalogStore } from '../stores/catalog';
-import type { PlayerObservation } from '../stores/players';
 import { toBuildingDef, toBuildingFiles, toGreatBuildingTiers } from './building-defs';
 import {
   armyBattleType,
@@ -17,6 +15,7 @@ import {
   greatBuildingRequest,
   isBattleState,
   isGreatBuildingType,
+  isMainMap,
   isOwnPvpBattle,
   isPlunderedEntity,
   isRepelledPlunder,
@@ -24,7 +23,7 @@ import {
   plunderTarget,
   toAcceptedTrade,
   toBattle,
-  toBuilding,
+  toBuildings,
   toCity,
   toCityGrid,
   toFormerFriend,
@@ -44,7 +43,7 @@ import {
   toNewFriend,
   toNextProduction,
   toObservation,
-  toObservationWithAttack,
+  toObservations,
   toPlayerResources,
   toPlunder,
   toRankingRows,
@@ -80,18 +79,14 @@ export type GameHandlerDeps = Stores & {
   now: () => number;
 };
 
-const observations = (list: unknown) =>
-  (Array.isArray(list) ? list : []).map(toObservation).filter((o): o is PlayerObservation => o !== null);
+const observations = (data: unknown) => toObservations(list<GamePlayer>(data));
 
 /** the entries of a list that pass `keep`, as observations */
-const observationsWhere = (list: unknown, keep: (p: GamePlayer) => boolean) =>
-  observations((Array.isArray(list) ? list : []).filter((p) => p && typeof p === 'object' && keep(p)));
+const observationsWhere = (data: unknown, keep: (p: GamePlayer) => boolean) =>
+  toObservations(list<GamePlayer>(data).filter((p) => p && typeof p === 'object' && keep(p)));
 
 /** For sources that carry the whole player: a missing timer field there clears what the store knows. */
-const withAttack = (list: unknown, now: number) =>
-  (Array.isArray(list) ? list : [])
-    .map((p) => toObservationWithAttack(p, now))
-    .filter((o): o is PlayerObservation => o !== null);
+const withAttack = (data: unknown, now: number) => toObservations(list<GamePlayer>(data), now);
 
 /** all great buildings with this display name; the game names a building only so in some events */
 function greatBuildingsNamed(catalog: CatalogStore, name: string): BuildingDefId[] {
@@ -174,21 +169,18 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   let visit = false;
   ingestion.on('CityMapService', 'getEntities', ({ request, data }) => {
     // another map (a settlement, a colony) is not the own city
-    if (Array.isArray(request) && request.length > 0 && request[0] !== 'main') return;
+    if (!isMainMap(request)) return;
     home = true;
     onMain = true;
     // all buildings of the main map (596 of 596, recording of 2026-10-29): what changed while another map was open
     const owner = session.current?.playerId;
-    if (owner && Array.isArray(data))
-      cities.replaceOwnBuildings(
-        (data as GameCityEntity[]).map((e) => toBuilding(e, owner)).filter((b): b is Building => b !== null),
-      );
+    if (owner && Array.isArray(data)) cities.replaceOwnBuildings(toBuildings(data, owner));
   });
   // Entering a settlement loads its map (`getCityMap` with `cultural_outpost`), and its harvests bring its buildings as
   // `updatedEntities` like those of the own city, without saying which map they belong to (recording of 2026-10-29).
   // Until the game loads the main map again, building updates are not the own city's.
   ingestion.on('CityMapService', 'getCityMap', ({ request }) => {
-    onMain = !Array.isArray(request) || request.length === 0 || request[0] === 'main';
+    onMain = isMainMap(request);
   });
   ingestion.on('AnnouncementsService', 'fetchAllAnnouncements', () => {
     home = true;
@@ -337,10 +329,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     const owner = session.current?.playerId;
     // an update of an own building while another map is open is lost here; `getEntities` brings it on the way back
     if (!owner || !onMain || !Array.isArray(data)) return;
-    const buildings = (data as GameCityEntity[])
-      .map((e) => toBuilding(e, owner))
-      .filter((b): b is Building => b !== null);
-    cities.updateBuildings(buildings);
+    cities.updateBuildings(toBuildings(data, owner));
   };
   ingestion.on('CityMapService', 'updateEntity', updateBuildings);
   ingestion.on('CityMapService', 'reset', updateBuildings);

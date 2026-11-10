@@ -233,12 +233,19 @@ function toBlockedAreas(positions: { x?: number; y?: number }[] | undefined): Ar
   return positions.map((p) => ({ x: p?.x ?? 0, y: p?.y ?? 0, width: 4, length: 4 }));
 }
 
+/** The buildings of a list of city entities; entries that are no building are skipped, anything but a list gives none. */
+export function toBuildings(data: unknown, owner: PlayerId): Building[] {
+  return list<GameCityEntity>(data)
+    .map((e) => toBuilding(e, owner))
+    .filter((b): b is Building => b !== null);
+}
+
+/** Whether the request of a map service names the main map; no request or an empty one counts as main. */
+export const isMainMap = (request: unknown): boolean =>
+  !Array.isArray(request) || request.length === 0 || request[0] === 'main';
+
 export function toCity(world: WorldId, owner: PlayerId, era: string, map: GameCityMap | undefined, now: number): City {
-  const buildings = new Map<number, Building>();
-  for (const e of map?.entities ?? []) {
-    const b = toBuilding(e, owner);
-    if (b) buildings.set(b.id, b);
-  }
+  const buildings = new Map(toBuildings(map?.entities, owner).map((b) => [b.id, b]));
   const areas = toAreas(map?.unlocked_areas);
   const blocked = toBlockedAreas(map?.blocked_areas);
   const expansions = Array.isArray(map?.tilesets) ? toExpansionOffers(map.tilesets) : undefined;
@@ -410,6 +417,14 @@ function toAttackTimer(p: GamePlayer, now: number): AttackTimer {
 export function toObservationWithAttack(p: GamePlayer, now: number): PlayerObservation | null {
   const o = toObservation(p);
   return o && { ...o, attack: toAttackTimer(p, now) };
+}
+
+/** The observations of a list of players; with `now` they carry the attack timers. Players without id are skipped. */
+export function toObservations(players: GamePlayer[], now?: number): PlayerObservation[] {
+  return players.flatMap((p) => {
+    const o = now === undefined ? toObservation(p) : toObservationWithAttack(p, now);
+    return o ? [o] : [];
+  });
 }
 
 /** The visit carries no attack timers (seen 2026-10-21); they come from the player store. */
