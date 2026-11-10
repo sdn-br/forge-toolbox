@@ -128,6 +128,16 @@ describe('resource updates', () => {
     expect(s.events).toEqual(['resources', 'resources']);
   });
 
+  it('stays silent when the game sends the stock it has already', () => {
+    const s = setup();
+    s.json(['ResourceService', 'getPlayerResourceBag', bag({ strategy_points: 5, money: 100 }, 'PlayerMain')]);
+    s.ws(['ResourceService', 'getPlayerResources', { resources: { money: 100, strategy_points: 5 } }]);
+    expect(s.events).toEqual(['resources']);
+    s.ws(['ResourceService', 'getPlayerResources', { resources: { money: 100, strategy_points: 6 } }]);
+    s.ws(['ResourceService', 'getPlayerResources', { resources: { money: 100 } }]);
+    expect(s.events).toEqual(['resources', 'resources', 'resources']);
+  });
+
   it('getPlayerResources replaces the whole stock (assumed format)', () => {
     for (const via of ['json', 'ws'] as const) {
       const s = setup();

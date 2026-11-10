@@ -24,8 +24,17 @@ export class ResourceStore {
     this.bus.emit('resources.changed', {});
   }
 
+  /** replaces the stock; no event when it equals the one held */
   set(bag: Record<ResourceId, number>): void {
+    if (this.bag && sameBag(this.bag, bag)) return;
     this.bag = { ...bag };
     this.bus.emit('resources.changed', {});
   }
+}
+
+function sameBag(a: Record<ResourceId, number>, b: Record<ResourceId, number>): boolean {
+  const keys = Object.keys(a);
+  return (
+    keys.length === Object.keys(b).length && keys.every((k) => k in b && a[k as ResourceId] === b[k as ResourceId])
+  );
 }
