@@ -57,6 +57,15 @@ export function buildingDefsHandlers(
       await db.buildingDefFiles.bulkPut(files.filter((f) => isCdnUrl(f.url)).map((f) => ({ ...f, at })));
       return {};
     },
+    'buildingDefs.prune': async ({ current }) => {
+      const listed = new Map(current.map((f) => [f.id, f.url]));
+      const stale: string[] = [];
+      await db.buildingDefFiles.each((row) => {
+        if (listed.get(row.id) !== row.url) stale.push(row.id);
+      });
+      await db.buildingDefFiles.bulkDelete(stale);
+      return { deleted: stale.length };
+    },
     'buildingDefs.file': async ({ id, url }) => {
       if (!isCdnUrl(url)) throw new Error(`not a file on the Inno CDN: ${url}`);
       const stored = await db.buildingDefFiles.get(id);

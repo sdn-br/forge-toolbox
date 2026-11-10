@@ -21,6 +21,8 @@ export interface BuildingDefLoader {
   missing(): Promise<BuildingDefId[]>;
   /** keeps files the game loaded itself, each in place of an older file of its id */
   save(files: BuildingDefFile[]): Promise<void>;
+  /** deletes the cached files the current lookup does not list under the same URL */
+  prune(current: ReadonlyMap<BuildingDefId, string>): Promise<void>;
 }
 
 /** the game often loads the definition of a building it shows itself; this long the catalog waits before a download */
@@ -96,11 +98,19 @@ export class CatalogStore {
     }
     // a lookup that came first finds the stale ones now
     if (this.files) this.dropStale(this.files);
+    this.pruneCache(loader);
+  }
+
+  /** with the cache and the lookup both there, the database loses the files the lookup outdated, as the catalog did */
+  private pruneCache(loader: BuildingDefLoader): void {
+    if (!this.files) return;
+    loader.prune(this.files).catch((error) => logError('pruning the building definition cache failed', error));
   }
 
   setBuildingFiles(files: Map<BuildingDefId, string>): void {
     this.files = files;
     this.dropStale(files);
+    if (this.cacheRead && this.loader) this.pruneCache(this.loader);
     if (this.downloads.size) this.queueDownload();
     this.prefetch();
   }
@@ -132,6 +142,11 @@ export class CatalogStore {
       if (files.get(id) !== this.cachedUrls.get(id)) this.defs.delete(id);
     }
     this.unchecked.clear();
+  }
+
+  /** whether the catalog holds this definition from this very file; such a file needs no translation */
+  hasFile(id: BuildingDefId, url: string): boolean {
+    return this.cachedUrls.get(id) === url && this.defs.has(id);
   }
 
   /** a definition the game loaded; its file goes to the cache unless it is there already */

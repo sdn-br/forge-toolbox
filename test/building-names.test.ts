@@ -54,9 +54,38 @@ describe('building lookup', () => {
   });
 });
 
+describe('building files from the game', () => {
+  it('translates only files whose URL the catalog does not have cached', async () => {
+    const { world, bus, now, stores } = testStores();
+    const loader: BuildingDefLoader = {
+      all: async () => [{ def: def(HERO, 'Cached'), url: url(HERO, 'abc') }],
+      load: async () => undefined,
+      missing: async () => [],
+      save: async () => {},
+      prune: async () => {},
+    };
+    const catalog = new CatalogStore(bus, loader);
+    await catalog.loadCache();
+    const registry = new Ingestion();
+    registerGameHandlers(registry, { world, bus, now, ...stores, catalog });
+    const add = vi.spyOn(catalog, 'addFromGame');
+    const accept = (hash: string) =>
+      registry.accept({
+        kind: 'meta',
+        url: url(HERO, hash),
+        response: JSON.stringify(file(HERO, 'From the game')),
+        at: 0,
+      });
+    accept('abc');
+    expect(add).not.toHaveBeenCalled();
+    accept('new');
+    expect(add).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('building names from the cache and the CDN', () => {
   type Fn = ReturnType<typeof vi.fn>;
-  let loader: BuildingDefLoader & { all: Fn; load: Fn; missing: Fn; save: Fn };
+  let loader: BuildingDefLoader & { all: Fn; load: Fn; missing: Fn; save: Fn; prune: Fn };
   let catalog: CatalogStore;
   let updated: string[][];
   const OTHER = buildingDefId('P_MultiAge_SummerBonus18');
@@ -73,6 +102,7 @@ describe('building names from the cache and the CDN', () => {
       load: vi.fn(async (id: string) => def(id, `Name of ${id}`)),
       missing: vi.fn(async () => []),
       save: vi.fn(async () => {}),
+      prune: vi.fn(async () => {}),
     };
     const bus = createBus();
     catalog = new CatalogStore(bus, loader);
@@ -98,6 +128,22 @@ describe('building names from the cache and the CDN', () => {
     await vi.advanceTimersByTimeAsync(LOAD_DELAY + BATCH);
     expect(loader.load).toHaveBeenCalledWith(HERO, url(HERO, 'new'));
     expect(catalog.buildingName(HERO)).toBe(`Name of ${HERO}`);
+  });
+
+  it('prunes the database once cache and lookup are both there, in either order', async () => {
+    loader.all.mockResolvedValue([{ def: def(HERO, 'Old'), url: url(HERO, 'old') }]);
+    catalog.setBuildingFiles(files('new'));
+    expect(loader.prune).not.toHaveBeenCalled();
+    await catalog.loadCache();
+    expect(loader.prune).toHaveBeenCalledTimes(1);
+    expect(loader.prune).toHaveBeenCalledWith(files('new'));
+
+    const other = new CatalogStore(createBus(), loader);
+    loader.prune.mockClear();
+    await other.loadCache();
+    expect(loader.prune).not.toHaveBeenCalled();
+    other.setBuildingFiles(files('new'));
+    expect(loader.prune).toHaveBeenCalledTimes(1);
   });
 
   it('checks the cache against a lookup that came before it', async () => {
@@ -264,6 +310,23 @@ describe('building definition files in the service worker', () => {
     expect((await call('buildingDefs.all', {})).files).toHaveLength(2);
     expect(await loader.all()).toEqual([{ def: def(HERO, 'Hero'), url: url(HERO, 'abc') }]);
     expect(await loader.load(buildingDefId('Junk'), url('Junk', 'j'))).toBeUndefined();
+  });
+
+  it('deletes the cached files the lookup lacks or lists under another URL', async () => {
+    const { loader, db } = setup(async () => '{}');
+    const other = buildingDefId('P_Other');
+    await loader.save([
+      { id: HERO, url: url(HERO, 'abc'), json: file(HERO, 'Hero') },
+      { id: other, url: url(other, 'old'), json: file(other, 'Other') },
+      { id: buildingDefId('G_Gone'), url: url('G_Gone', 'g'), json: file('G_Gone', 'Gone') },
+    ]);
+    await loader.prune(
+      new Map([
+        [HERO, url(HERO, 'abc')],
+        [other, url(other, 'new')],
+      ]),
+    );
+    expect(await db.buildingDefFiles.toCollection().primaryKeys()).toEqual([HERO]);
   });
 
   it('lists the buildings of stored plunders, attacks and great buildings whose file the cache lacks', async () => {

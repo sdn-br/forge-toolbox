@@ -1,7 +1,7 @@
 // Which game response feeds which store, all in one place. A response may have several handlers that each feed their
 // own part, for example `updatePlayer` (players, plunder) and `CityMapService.reset` (plunder, own buildings).
 import type { GbWindowState } from '../../shared/gb-window-protocol';
-import { type BuildingDefId, eraId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
+import { type BuildingDefId, buildingDefId, eraId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import type { Ingestion } from '../core/ingestion';
 import { logInfo } from '../core/log';
@@ -344,6 +344,8 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
       catalog.setBuildingFiles(toBuildingFiles(file.json));
       return;
     }
+    // the id is in the name; a file the catalog holds already is not translated again
+    if (catalog.hasFile(buildingDefId(file.name.slice('building_entity_'.length)), file.url)) return;
     const def = toBuildingDef(file.json);
     if (def) catalog.addFromGame(def, { id: def.id, url: file.url, json: file.json });
   });

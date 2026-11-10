@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createBus } from '../src/content/core/events';
-import { type PlayerObservation, PlayerStore } from '../src/content/stores/players';
+import { type PlayerObservation, PlayerStore, SEEN_WRITE_INTERVAL } from '../src/content/stores/players';
 import { eraId, playerId, worldId } from '../src/shared/ids';
 import type { Player } from '../src/shared/model';
 
@@ -35,7 +35,7 @@ describe('PlayerStore', () => {
     expect(events).toEqual([{ ids: [playerId(1), playerId(2)], source: 'socialList' }]);
   });
 
-  it('writes a sighting that changes only the time without telling the views', async () => {
+  it('keeps a sighting that changes only the time in memory and writes it at most once an hour', async () => {
     let clock = 1000;
     const bus = createBus();
     const put = vi.fn(async (_rows: Player[]) => {});
@@ -49,10 +49,41 @@ describe('PlayerStore', () => {
     await Promise.resolve();
     expect(events).toHaveLength(1);
     expect(store.get(playerId(1))?.seenAt).toBe(2000);
+    expect(put).toHaveBeenCalledTimes(1);
+    // the hour counts from the last write, not from the last sighting
+    clock = 1000 + SEEN_WRITE_INTERVAL - 1;
+    store.apply(world, [obs(1)], 'visit');
+    await Promise.resolve();
+    expect(put).toHaveBeenCalledTimes(1);
+    clock = 1000 + SEEN_WRITE_INTERVAL;
+    store.apply(world, [obs(1)], 'visit');
+    await Promise.resolve();
     expect(put).toHaveBeenCalledTimes(2);
-    expect(put.mock.calls[1]?.[0].map((p) => p.seenAt)).toEqual([2000]);
+    expect(put.mock.calls[1]?.[0].map((p) => p.seenAt)).toEqual([clock]);
+    expect(events).toHaveLength(1);
+    // any other change writes at once
+    clock += 1;
     store.apply(world, [obs(1, 'Renamed')], 'visit');
+    await Promise.resolve();
     expect(events).toHaveLength(2);
+    expect(put).toHaveBeenCalledTimes(3);
+  });
+
+  it('throttles the sighting of a listed player the same way and counts a loaded row as written', async () => {
+    let clock = 1000;
+    const bus = createBus();
+    const put = vi.fn(async (_rows: Player[]) => {});
+    const row = { ...obs(1), world, relations: {}, firstSeenAt: 1, seenAt: 500, source: 'visit' } as unknown as Player;
+    const store = new PlayerStore(bus, { load: async () => [row], put }, () => clock);
+    await store.load(world);
+    store.applyListed(world, [{ id: playerId(1), name: row.name }]);
+    await Promise.resolve();
+    expect(put).not.toHaveBeenCalled();
+    expect(store.get(playerId(1))?.seenAt).toBe(1000);
+    clock = 500 + SEEN_WRITE_INTERVAL;
+    store.applyListed(world, [{ id: playerId(1), name: row.name }]);
+    await Promise.resolve();
+    expect(put).toHaveBeenCalledTimes(1);
   });
 
   it('drops relations of players missing from a new social list', () => {
@@ -539,7 +570,7 @@ describe('PlayerStore: owners of great building lists', () => {
     expect(store.get(playerId(2))?.cityName).toBe('');
   });
 
-  it('saves a known player seen again with the same name without an event', async () => {
+  it('keeps a known player seen again with the same name quiet, saved once the interval has passed', async () => {
     const { store, put, events, at } = clocked();
     store.applyListed(world, [{ id: playerId(1), name: 'Anna' }]);
     await Promise.resolve();
@@ -548,8 +579,16 @@ describe('PlayerStore: owners of great building lists', () => {
     store.applyListed(world, [{ id: playerId(1), name: 'Anna' }]);
     expect(events).toEqual([]);
     await Promise.resolve();
+    expect(put).toHaveBeenCalledTimes(1);
+    expect(store.get(playerId(1))?.seenAt).toBe(5000);
+    at(SEEN_WRITE_INTERVAL + 5000);
+    store.applyListed(world, [{ id: playerId(1), name: 'Anna' }]);
+    expect(events).toEqual([]);
+    await Promise.resolve();
     expect(put).toHaveBeenCalledTimes(2);
-    expect(put.mock.calls[1]?.[0]).toEqual([expect.objectContaining({ id: playerId(1), seenAt: 5000 })]);
+    expect(put.mock.calls[1]?.[0]).toEqual([
+      expect.objectContaining({ id: playerId(1), seenAt: SEEN_WRITE_INTERVAL + 5000 }),
+    ]);
   });
 
   it('takes the database row of an owner learned from a list before the load, with the name and the marks of the session', async () => {
