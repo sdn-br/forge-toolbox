@@ -25,6 +25,7 @@ import type {
   Session,
 } from '../../shared/model';
 import { SECOND_MS } from '../../shared/time';
+import type { ArmyBattleKind } from '../core/events';
 import type { LimitedBonus } from '../model/bonus';
 import type { CityGrid, UnitType } from '../model/catalog';
 import type {
@@ -549,12 +550,14 @@ export function toBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: Game
   };
 }
 
-/** The battle type the army window is opened for, from the request of getArmyInfo. */
-export function armyBattleType(request: unknown): string | undefined {
+/** What the army window is opened for, from the request of getArmyInfo; undefined when the request names no type. */
+export function armyBattleKind(request: unknown): ArmyBattleKind | undefined {
   const context = list(request).find(
     (r): r is GameArmyContext => (r as GameArmyContext | null)?.__class__ === 'ArmyContext',
   );
-  return typeof context?.battleType === 'string' ? context.battleType : undefined;
+  const type = context?.battleType;
+  if (typeof type !== 'string') return undefined;
+  return type === 'pvp' ? 'pvp' : type === 'pvp_arena' ? 'pvpArena' : 'other';
 }
 
 /** The loot of a successful plunder; other results are unknown and give null. */

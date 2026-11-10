@@ -15,7 +15,7 @@ function setup() {
   bus.on('city.visited', () => events.push('visited'));
   bus.on('city.visitedChanged', () => events.push('visitedChanged'));
   bus.on('city.ownChanged', (e) => events.push(e.reset ? 'ownReset' : 'ownChanged'));
-  bus.on('army.opened', (e) => events.push(`army:${e.battleType}`));
+  bus.on('army.opened', (e) => events.push(`army:${e.kind}`));
   bus.on('catalog.grid', () => events.push('grid'));
   bus.on('resources.changed', () => events.push('resources'));
   bus.on('research.changed', () => events.push('research'));
@@ -373,13 +373,14 @@ describe('game handlers', () => {
     expect(events).toEqual(['visitedChanged']);
   });
 
-  it('announces the army window with the battle type the request names', () => {
+  it('announces the army window with the kind of battle the request names', () => {
     const { events, send } = setup();
     send('ArmyUnitManagementService', 'getArmyInfo', {}, [{ __class__: 'ArmyContext', battleType: 'pvp' }]);
     send('ArmyUnitManagementService', 'getArmyInfo', {}, [{ __class__: 'ArmyContext', battleType: 'gvg' }]);
+    send('ArmyUnitManagementService', 'getArmyInfo', {}, [{ __class__: 'ArmyContext', battleType: 'pvp_arena' }]);
     send('ArmyUnitManagementService', 'getArmyInfo', {});
     send('ArmyUnitManagementService', 'getArmyInfo', {}, [{ __class__: 'Other' }]);
-    expect(events).toEqual(['army:pvp', 'army:gvg']);
+    expect(events).toEqual(['army:pvp', 'army:other', 'army:pvpArena']);
   });
 
   describe('the city the game shows', () => {

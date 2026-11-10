@@ -9,7 +9,7 @@ import type { GreatBuildingEntity, RankingRow } from '../model/great-building';
 import type { Stores } from '../stores';
 import { toBuildingDef, toBuildingFiles, toGreatBuildingTiers } from './building-defs';
 import {
-  armyBattleType,
+  armyBattleKind,
   doubledLootIds,
   greatBuildingOfBuilding,
   greatBuildingRequest,
@@ -226,8 +226,8 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   // The army window before a battle asks for the army with the battle type in the request. It names no opponent;
   // that comes only with startByBattleType once the battle runs.
   ingestion.on('ArmyUnitManagementService', 'getArmyInfo', ({ request }) => {
-    const battleType = armyBattleType(request);
-    if (battleType) bus.emit('army.opened', { battleType });
+    const kind = armyBattleKind(request);
+    if (kind) bus.emit('army.opened', { kind });
   });
 
   // A plunder comes as several entries of one response (seen 2026-10-19): plunderById has the loot, the reset the

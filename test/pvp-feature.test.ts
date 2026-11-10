@@ -327,7 +327,7 @@ describe('pvp feature', () => {
     it('opens the box on the battles tab for a pvp battle', async () => {
       const { ctx, box, lists } = setup(1, false);
       expect(box.box.isOpen).toBe(false);
-      ctx.bus.emit('army.opened', { battleType: 'pvp' });
+      ctx.bus.emit('army.opened', { kind: 'pvp' });
       expect(box.box.isOpen).toBe(true);
       await tick();
       lists[0]?.resolve([battle(1, 111)]);
@@ -343,7 +343,7 @@ describe('pvp feature', () => {
       box.click('Angriffe auf mich');
       await tick();
       expect(box.text).toContain('555');
-      ctx.bus.emit('army.opened', { battleType: 'pvp' });
+      ctx.bus.emit('army.opened', { kind: 'pvp' });
       await tick();
       lists.at(-1)?.resolve([battle(1, 111)]);
       await tick();
@@ -353,15 +353,15 @@ describe('pvp feature', () => {
       expect(incoming.list).toHaveBeenCalledOnce();
     });
 
-    it.each(['gvg', 'guild_expedition', 'campaign', 'pvp_arena'])('stays closed for a %s battle', (battleType) => {
+    it.each(['other', 'pvpArena'] as const)('stays closed for a %s battle', (kind) => {
       const { ctx, box } = setup(1, false);
-      ctx.bus.emit('army.opened', { battleType });
+      ctx.bus.emit('army.opened', { kind });
       expect(box.box.isOpen).toBe(false);
     });
 
     it('writes the opponent the page module read from the army window into the name field', async () => {
       const { ctx, box, lists } = setup(1, false);
-      ctx.bus.emit('army.opened', { battleType: 'pvp' });
+      ctx.bus.emit('army.opened', { kind: 'pvp' });
       ctx.bus.emit('army.target', { opponent: playerId(222) });
       await tick();
       expect(lists.at(-1)?.query.opponents).toEqual([playerId(222)]);
@@ -371,7 +371,7 @@ describe('pvp feature', () => {
 
     it('writes the name and turns all toggles back on, so the opponent always shows', async () => {
       const { ctx, box, lists } = setup(1, false);
-      ctx.bus.emit('army.opened', { battleType: 'pvp' });
+      ctx.bus.emit('army.opened', { kind: 'pvp' });
       await tick();
       box.click('Kämpfe ohne Plünderung zeigen');
       ctx.bus.emit('army.target', { opponent: playerId(222) });
@@ -387,7 +387,7 @@ describe('pvp feature', () => {
 
     it('stays on all battles without the opponent', async () => {
       const { ctx, lists } = setup(1, false);
-      ctx.bus.emit('army.opened', { battleType: 'pvp' });
+      ctx.bus.emit('army.opened', { kind: 'pvp' });
       await tick();
       expect(lists.at(-1)?.query.opponents).toBeUndefined();
     });
@@ -403,7 +403,7 @@ describe('pvp feature', () => {
     it('stays closed when the setting is off', async () => {
       const { ctx, box } = setup(1, false);
       await ctx.settings.of(OPEN_WITH_ARMY).set(false);
-      ctx.bus.emit('army.opened', { battleType: 'pvp' });
+      ctx.bus.emit('army.opened', { kind: 'pvp' });
       expect(box.box.isOpen).toBe(false);
     });
 

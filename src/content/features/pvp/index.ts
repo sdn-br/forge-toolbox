@@ -251,8 +251,8 @@ export const pvpFeature: Feature = {
 
     // The game traffic names no opponent before the battle starts, so the box opens on the battles to search them
     // there. When the page module reads the opponent from the game engine, the box shows that opponent alone.
-    ctx.bus.on('army.opened', ({ battleType }) => {
-      if (battleType !== 'pvp' || !openWithArmy.get()) return;
+    ctx.bus.on('army.opened', ({ kind }) => {
+      if (kind !== 'pvp' || !openWithArmy.get()) return;
       box.open();
       actions.tab('battles');
     });

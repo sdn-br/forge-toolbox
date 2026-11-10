@@ -44,8 +44,8 @@ export function watchArmyTarget(bus: ToolboxBus, link: ArmyLink): void {
     shown = 0;
     bus.emit('army.closed', {});
   });
-  bus.on('army.opened', ({ battleType }) => {
-    if (battleType !== 'pvp') return;
+  bus.on('army.opened', ({ kind }) => {
+    if (kind !== 'pvp') return;
     open = ++seq;
     link.post({ tag: ARMY_TAG, from: 'content', type: 'target', seq });
   });
