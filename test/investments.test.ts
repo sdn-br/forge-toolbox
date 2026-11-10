@@ -89,6 +89,41 @@ describe('status of an own place', () => {
     expect(mine([otherLevel], 0).rows[0]?.status).toBe('unknown');
   });
 
+  describe('after foreign progress on the same level', () => {
+    // own 150, P2 100, P3 60, rest 40: safe with these rankings
+    const safeRankings: RankingRow[] = [
+      { rank: 1, name: 'Ich', self: true, fp: 150, reward: reward(80) },
+      { rank: 2, player: playerId(3001), name: 'B', self: false, fp: 100, reward: reward(40) },
+      { rank: 3, player: playerId(3002), name: 'C', self: false, fp: 60, reward: reward(20) },
+    ];
+    const safeBuilding = (over: Partial<KnownGreatBuilding> = {}) =>
+      withRankings(safeRankings, {
+        required: 350,
+        contribution: { rank: 1, forgePoints: 150, reward: 80, at: 1 },
+        ...over,
+      });
+
+    it('stays safe when the place was safe and someone else paid in', () => {
+      const [row] = mine([safeBuilding({ invested: 330 })], 0).rows;
+      expect(row).toMatchObject({ rest: 20, status: 'safe' });
+    });
+
+    it('stays unknown when the place was unsafe and someone else paid in', () => {
+      const [row] = mine([withRankings(counterRankings, { invested: 200 })], 0).rows;
+      expect(row?.status).toBe('unknown');
+    });
+
+    it('does not carry the state over to another level', () => {
+      const [row] = mine([safeBuilding({ invested: 330, rankingsLevel: 9 })], 0).rows;
+      expect(row?.status).toBe('unknown');
+    });
+
+    it('keeps deciding by the rankings at equal progress', () => {
+      expect(mine([safeBuilding()], 0).rows[0]?.status).toBe('safe');
+      expect(mine([withRankings(counterRankings)], 0).rows[0]?.status).toBe('unsafe');
+    });
+  });
+
   it('decides with the rankings also on a building at its highest level or not connected', () => {
     const blocked = withRankings(counterRankings, { maxLevel: 10, connected: false });
     expect(mine([blocked], 0).rows[0]?.status).toBe('unsafe');
