@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { foestatsFeature } from '../src/content/features/foestats';
 import { settingsFeature } from '../src/content/features/settings-feature';
 import { FOESTATS_SETTING } from '../src/content/features/shared/settings';
-import type { FetchLike } from '../src/content/game/foestats-api';
+import type { FetchLike } from '../src/content/stores/foestats-api';
 import { eraId, playerId, worldId } from '../src/shared/ids';
 import { featureContext } from './helpers/feature-context';
 

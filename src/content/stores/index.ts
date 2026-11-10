@@ -14,14 +14,13 @@ import type { Call } from '../core/rpc';
 import shippedLevelCosts from '../data/gb-level-costs.json';
 import type { FactorChoice } from '../domain/gb-factor';
 import { type LevelCostFile, type LevelCosts, levelCosts } from '../domain/gb-level-cost';
-import { buildingDefLoader } from '../game/building-def-loader';
-import { type FetchLike, foestatsApi } from '../game/foestats-api';
 import type { GreatBuildingDef } from '../model/catalog';
 import { AssetStore } from './assets';
 import { BattleStore } from './battles';
-import { CatalogStore } from './catalog';
+import { type BuildingDefLoader, CatalogStore } from './catalog';
 import { CityStore } from './cities';
 import { FoestatsStore } from './foestats';
+import { type FetchLike, foestatsApi } from './foestats-api';
 import type { PrefStore } from './gb-own-state';
 import { GbOwnState } from './gb-own-state';
 import { GreatBuildingStore } from './great-buildings';
@@ -61,7 +60,8 @@ export interface Stores {
 }
 
 /**
- * `call` reaches the persistence in the service worker; `view` holds the view choices and the single factor the shared state of
+ * `call` reaches the persistence in the service worker; `defLoader` reads the cached building definitions (it translates
+ * them, which the stores do not know how to); `view` holds the view choices and the single factor the shared state of
  * the own-share boxes rests on; `now` is the clock of the stores that keep times; `fetch` makes the requests to
  * foestats from the content script. `shippedCosts` are the level costs shipped with the toolbox; tests pass their own, so
  * they see only the costs they bring.
@@ -70,6 +70,7 @@ export function createStores(
   world: WorldId,
   bus: ToolboxBus,
   call: Call,
+  defLoader: BuildingDefLoader,
   view: { prefs: PrefStore; singleFactor: () => FactorChoice },
   now: () => number = Date.now,
   fetch: FetchLike = (url, init) => globalThis.fetch(url, init),
@@ -80,7 +81,7 @@ export function createStores(
     session: new SessionStore(bus),
     players: new PlayerStore(bus, playerPersistence(call), now),
     cities,
-    catalog: new CatalogStore(bus, buildingDefLoader(call)),
+    catalog: new CatalogStore(bus, defLoader),
     assets: new AssetStore(bus, assetPersistence(call)),
     resources: new ResourceStore(bus),
     inventory: new InventoryStore(bus),

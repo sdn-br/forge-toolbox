@@ -3,7 +3,7 @@ import type { FoestatsDay, FoestatsOutcome, FoestatsState } from '../../shared/m
 import { singleFlight } from '../../shared/single-flight';
 import type { ToolboxBus } from '../core/events';
 import { logError } from '../core/log';
-import type { FoestatsClient } from '../game/foestats-api';
+import type { FoestatsClient } from './foestats-api';
 
 export interface FoestatsPersistence {
   /** whether to ask foestats now; `fetch: true` reserves the request until `store` */

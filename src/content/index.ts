@@ -55,6 +55,7 @@ import { RECORD, RECORD_REQUESTS, recorderFeature } from './features/recorder';
 import { sabotageFeature } from './features/sabotage';
 import { profileCopyFeature, settingsFeature } from './features/settings-feature';
 import { singleFactor } from './features/shared/settings';
+import { buildingDefLoader } from './game/building-def-loader';
 import { watchEngine } from './game/engine';
 import { registerGameHandlers } from './game/handlers';
 import { identifyStartup } from './game/identify';
@@ -119,7 +120,14 @@ async function start(profile: Profile, name: string, menu: Menu): Promise<(traff
   const settings = new Settings(kv);
   const ui = new UiState(kv);
   const call = backgroundCall(profile);
-  const stores = createStores(world, bus, call, { prefs: ui, singleFactor: singleFactor(settings) }, now);
+  const stores = createStores(
+    world,
+    bus,
+    call,
+    buildingDefLoader(call),
+    { prefs: ui, singleFactor: singleFactor(settings) },
+    now,
+  );
   const backupCopy = new BackupCopy({
     profile,
     name,
