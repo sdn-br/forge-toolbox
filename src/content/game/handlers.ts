@@ -531,5 +531,5 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   });
 
   // debt: own city ignores placeBuilding, removeBuilding and moveEntity. ceiling: own city is stale after building
-  // changes until reload. upgrade: handle them with the first feature that reads the own city (phase 3).
+  // changes until reload. upgrade: handle them once recordings of placeBuilding, removeBuilding and moveEntity exist.
 }
