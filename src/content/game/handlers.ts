@@ -19,6 +19,7 @@ import {
   isOwnPvpBattle,
   isPlunderedEntity,
   isRepelledPlunder,
+  type PlunderedEntity,
   plunderLoot,
   plunderTarget,
   toAcceptedTrade,
@@ -247,7 +248,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   let loot: Record<string, number> | null = null;
   let repelled = false;
   let target: ReturnType<typeof plunderTarget> = null;
-  let plundered: GameCityEntity | undefined;
+  let plundered: PlunderedEntity | undefined;
   const doubled = new Set<number>();
   const updated: PlayerId[] = [];
   ingestion.on('OtherPlayerService', 'plunderById', ({ data, request }) => {
@@ -261,7 +262,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   ingestion.on('CityMapService', 'reset', ({ data }) => {
     const me = session.current?.playerId;
     if (me === undefined || !Array.isArray(data)) return;
-    plundered = (data as GameCityEntity[]).find((e) => isPlunderedEntity(e, me)) ?? plundered;
+    plundered = list<GameCityEntity>(data).find((e): e is PlunderedEntity => isPlunderedEntity(e, me)) ?? plundered;
   });
   ingestion.on('CityMapService', 'showEntityIcons', ({ data }) => {
     for (const icon of list<GameEntityIcon>(data)) {
@@ -269,11 +270,10 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     }
   });
   ingestion.onBatchEnd(() => {
-    const tried =
-      target ?? (plundered && { opponent: playerId(plundered.player_id as number), entityId: plundered.id as number });
+    const tried = target ?? (plundered && { opponent: playerId(plundered.player_id), entityId: plundered.id });
     if ((loot || repelled) && tried) bus.emit('plunder.attempted', tried);
     if (loot && plundered) {
-      plunders.record(toPlunder(world, now(), plundered, loot, doubled.has(plundered.id as number)));
+      plunders.record(toPlunder(world, now(), plundered, loot, doubled.has(plundered.id)));
     }
     const me = session.current?.playerId;
     if (repelled && target && target.opponent !== me) {

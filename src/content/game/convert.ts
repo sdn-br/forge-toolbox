@@ -480,8 +480,11 @@ function resultOf(state: GameBattleState): BattleResult | null {
   return null;
 }
 
+/** A battle that passed isOwnPvpBattle: the fields it checks are there. */
+export type OwnPvpBattle = GameBattle & { battleId: number; defenderPlayerId: number; state: GameBattleState };
+
 /** A PvP battle the session player attacks in, finished or still running. */
-export function isOwnPvpBattle(b: GameBattle, me: PlayerId): boolean {
+export function isOwnPvpBattle(b: GameBattle, me: PlayerId): b is OwnPvpBattle {
   return (
     b.battleType?.type === 'pvp' &&
     b.attackerPlayerId === me &&
@@ -501,15 +504,15 @@ export function isBattleState(data: unknown): data is GameBattleState {
  * the result (auto battle). With `end`, the final state of a manual battle, the result comes from there.
  */
 export function toBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: GameBattleState): FoughtBattle | null {
-  if (!isOwnPvpBattle(b, me) || !b.state) return null;
+  if (!isOwnPvpBattle(b, me)) return null;
   const final = end ?? b.state;
   const result = resultOf(final);
   if (!result) return null;
   return {
     world,
-    battleId: b.battleId as number,
+    battleId: b.battleId,
     at: (b.startTime ?? 0) * 1000,
-    opponent: playerId(b.defenderPlayerId as number),
+    opponent: playerId(b.defenderPlayerId),
     result,
     auto: end ? false : b.isAutoBattle === true,
     // the game counts rounds from 0 and omits the field while it is 0
@@ -534,8 +537,11 @@ export function plunderLoot(data: unknown): Record<string, number> | null {
   return r?.result === 'success' ? numbers(r.product?.product?.resources) : null;
 }
 
+/** An entity that passed isPlunderedEntity: the fields it checks are there. */
+export type PlunderedEntity = GameCityEntity & { id: number; player_id: number; cityentity_id: string };
+
 /** A building in another player's city that the game reports as just plundered. */
-export function isPlunderedEntity(e: GameCityEntity, me: PlayerId): boolean {
+export function isPlunderedEntity(e: GameCityEntity, me: PlayerId): e is PlunderedEntity {
   return (
     e.state?.__class__ === 'PlunderedState' &&
     typeof e.id === 'number' &&
@@ -572,21 +578,21 @@ export const toRepelledPlunder = (
   doubleLoot: false,
 });
 
-/** `entity` must pass isPlunderedEntity. The loot comes already doubled with Double Loot. */
+/** The loot comes already doubled with Double Loot. */
 export function toPlunder(
   world: WorldId,
   at: number,
-  entity: GameCityEntity,
+  entity: PlunderedEntity,
   resources: Record<string, number>,
   doubleLoot: boolean,
 ): Plunder {
   return {
     world,
     at,
-    opponent: playerId(entity.player_id as number),
+    opponent: playerId(entity.player_id),
     outcome: 'plundered',
-    entityId: entity.id as number,
-    cityEntityId: buildingDefId(entity.cityentity_id as string),
+    entityId: entity.id,
+    cityEntityId: buildingDefId(entity.cityentity_id),
     resources,
     doubleLoot,
   };
