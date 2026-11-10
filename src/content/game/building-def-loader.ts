@@ -19,5 +19,8 @@ export function buildingDefLoader(call: Call): BuildingDefLoader {
     load: async (id, url) => parse((await files.file(id, url)).json),
     missing: async () => (await files.missing()) as BuildingDefId[],
     save: (defs) => files.put(defs),
+    prune: async (current) => {
+      await files.prune([...current].map(([id, url]) => ({ id, url })));
+    },
   };
 }

@@ -8,6 +8,8 @@ export interface BuildingDefFiles {
   file(id: string, url: string): Promise<{ json?: unknown }>;
   missing(): Promise<string[]>;
   put(files: BuildingDefFileData[]): Promise<void>;
+  /** deletes every file the current lookup no longer lists under the same URL */
+  prune(current: { id: string; url: string }[]): Promise<number>;
 }
 
 /** The service worker reads the files: a request from the content script would be held to the page's CORS. */
@@ -19,5 +21,6 @@ export function buildingDefFiles(call: Call): BuildingDefFiles {
     put: async (files) => {
       await call('buildingDefs.put', { files });
     },
+    prune: async (current) => (await call('buildingDefs.prune', { current })).deleted,
   };
 }
