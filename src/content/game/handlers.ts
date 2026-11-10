@@ -71,6 +71,7 @@ import type {
   GameStartup,
   GameVisit,
 } from './game-types';
+import { list } from './json';
 
 /** The stores the responses feed, plus what the handlers need besides them. */
 export type GameHandlerDeps = Stores & {
@@ -271,7 +272,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     plundered = (data as GameCityEntity[]).find((e) => isPlunderedEntity(e, me)) ?? plundered;
   });
   ingestion.on('CityMapService', 'showEntityIcons', ({ data }) => {
-    for (const icon of (Array.isArray(data) ? data : []) as GameEntityIcon[]) {
+    for (const icon of list<GameEntityIcon>(data)) {
       if (icon.type === 'citymap_icon_plunder_and_pillage' && typeof icon.id === 'number') doubled.add(icon.id);
     }
   });
@@ -388,9 +389,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   });
 
   ingestion.onMeta('research_eras', (file) => {
-    const eras = ((Array.isArray(file.json) ? file.json : []) as GameEra[]).flatMap((e) =>
-      e.era ? [{ id: eraId(e.era), name: e.name ?? e.era }] : [],
-    );
+    const eras = list<GameEra>(file.json).flatMap((e) => (e.era ? [{ id: eraId(e.era), name: e.name ?? e.era }] : []));
     catalog.setEras(eras);
   });
 
@@ -455,7 +454,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     bus.emit('greatBuilding.contributing', { owner, entityId, own: owner === session.current?.playerId });
   });
   const noteGreatBuildings = ({ data }: { data: unknown }) => {
-    for (const e of Array.isArray(data) ? (data as GameCityEntity[]) : []) {
+    for (const e of list<GameCityEntity>(data)) {
       const building = toGreatBuildingEntity(e);
       if (building) resetBuildings.push(building);
     }

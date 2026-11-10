@@ -66,23 +66,15 @@ import type {
   GameRankingList,
   GameResearchProgress,
   GameResearchTechnology,
-  GameResources,
   GameState,
   GameTileset,
   GameUserData,
 } from './game-types';
+import { list, num, numbers, numbersOrNull } from './json';
 
 // In visited cities the game hides all times behind the largest 32 bit integer (seen 2026-10-19).
 const HIDDEN = 2147483647;
 const seconds = (s: number | undefined) => (typeof s === 'number' && s > 0 && s < HIDDEN ? s * 1000 : undefined);
-
-function resourcesOf(r: GameResources | undefined): Record<string, number> {
-  const out: Record<string, number> = {};
-  if (r?.resources && !Array.isArray(r.resources)) {
-    for (const [k, v] of Object.entries(r.resources)) if (typeof v === 'number') out[k] = v;
-  }
-  return out;
-}
 
 function toProduct(p: GameProduct | undefined): Product | undefined {
   if (!p) return undefined;
@@ -94,7 +86,7 @@ function toProduct(p: GameProduct | undefined): Product | undefined {
   if (p.__class__ === 'CityEntityMilitaryProduct') {
     return { resources: {}, units: { type: p.name ?? 'unknown', amount: p.amount ?? 0 } };
   }
-  return { resources: resourcesOf(p.product) };
+  return { resources: numbers(p.product?.resources) };
 }
 
 function productOfOption(o: GameProductionOption | undefined): Product | undefined {
@@ -102,8 +94,8 @@ function productOfOption(o: GameProductionOption | undefined): Product | undefin
   const resources: Record<string, number> = {};
   const guildGoods: Record<string, number> = {};
   for (const p of o.products) {
-    for (const [k, v] of Object.entries(resourcesOf(p.playerResources))) resources[k] = (resources[k] ?? 0) + v;
-    for (const [k, v] of Object.entries(resourcesOf(p.guildResources))) guildGoods[k] = (guildGoods[k] ?? 0) + v;
+    for (const [k, v] of Object.entries(numbers(p.playerResources?.resources))) resources[k] = (resources[k] ?? 0) + v;
+    for (const [k, v] of Object.entries(numbers(p.guildResources?.resources))) guildGoods[k] = (guildGoods[k] ?? 0) + v;
   }
   return Object.keys(guildGoods).length ? { resources, guildGoods } : { resources };
 }
@@ -209,8 +201,8 @@ export function toBuilding(e: GameCityEntity, owner: PlayerId): Building | null 
  * `bonuses` beside `bonus` (seen 2026-10-19), so only a list with entries counts.
  */
 function toGreatBuildingBonuses(e: GameCityEntity): GreatBuildingBonus[] {
-  const list = Array.isArray(e.bonuses) && e.bonuses.length > 0 ? e.bonuses : e.bonus ? [e.bonus] : [];
-  return list.flatMap((b) =>
+  const bonuses = Array.isArray(e.bonuses) && e.bonuses.length > 0 ? e.bonuses : e.bonus ? [e.bonus] : [];
+  return bonuses.flatMap((b) =>
     b?.type
       ? [
           {
@@ -263,14 +255,6 @@ export function toCity(world: WorldId, owner: PlayerId, era: string, map: GameCi
   };
 }
 
-const numbers = (v: unknown): Record<string, number> => {
-  const out: Record<string, number> = {};
-  if (v && typeof v === 'object' && !Array.isArray(v)) {
-    for (const [k, n] of Object.entries(v)) if (typeof n === 'number') out[k] = n;
-  }
-  return out;
-};
-
 /**
  * Expansion kinds by the game type of a tileset: `tileset_premium` (diamonds), `tileset_reward` (coins or diamonds, yet
  * only won as a reward), `raidMedals` (medals of the Quantum Incursions).
@@ -298,14 +282,12 @@ export function toResourceBag(data: unknown): Record<string, number> | null {
   // other bag types (seen only PlayerMain) belong to other stocks, not the player's
   const type = bag?.type?.value;
   if (type !== undefined && type !== 'PlayerMain') return null;
-  const resources = bag?.resources?.resources;
-  return resources && typeof resources === 'object' && !Array.isArray(resources) ? numbers(resources) : null;
+  return numbersOrNull(bag?.resources?.resources);
 }
 
 /** ResourceService.getPlayerResources (not recorded yet): `{ resources: { money, strategy_points, … } }`, the full stock */
 export function toPlayerResources(data: unknown): Record<string, number> | null {
-  const resources = (data as { resources?: unknown } | null)?.resources;
-  return resources && typeof resources === 'object' && !Array.isArray(resources) ? numbers(resources) : null;
+  return numbersOrNull((data as { resources?: unknown } | null)?.resources);
 }
 
 /**
@@ -313,7 +295,7 @@ export function toPlayerResources(data: unknown): Record<string, number> | null 
  * Only `type: 'expansion'` with `subType: 'main'` counts; outposts and other cities have their own types.
  */
 export function toResearchExpansions(json: unknown): ResearchExpansion[] {
-  return (Array.isArray(json) ? (json as GameResearchTechnology[]) : []).flatMap((tech) => {
+  return list<GameResearchTechnology>(json).flatMap((tech) => {
     if (typeof tech?.id !== 'string') return [];
     const amount = (tech.rewards ?? [])
       .filter((r) => r?.type === 'expansion' && r.subType === 'main' && typeof r.amount === 'number')
@@ -331,7 +313,7 @@ export function toUnlockedNodes(data: unknown): string[] | null {
 
 /** The main grid of the metadata file `grid-<hash>`, its blocks from the sectors of type `Regular`. */
 export function toCityGrid(json: unknown): CityGrid | null {
-  const grid = (Array.isArray(json) ? (json as GameGrid[]) : []).find((g) => g?.id === 'main');
+  const grid = list<GameGrid>(json).find((g) => g?.id === 'main');
   if (!grid) return null;
   const blocks = (grid.sectors ?? [])
     .filter((s) => s?.type?.value === 'Regular')
@@ -351,7 +333,7 @@ interface GameUnitType {
  * of every era (`NoAge`: agent, guild raids, event units, legends) has no era.
  */
 export function toUnitTypes(json: unknown): UnitType[] {
-  return (Array.isArray(json) ? (json as GameUnitType[]) : []).flatMap((u) =>
+  return list<GameUnitType>(json).flatMap((u) =>
     typeof u?.unitTypeId === 'string' && typeof u.name === 'string'
       ? [
           {
@@ -525,7 +507,7 @@ export function toBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: Game
 
 /** The battle type the army window is opened for, from the request of getArmyInfo. */
 export function armyBattleType(request: unknown): string | undefined {
-  const context = (Array.isArray(request) ? request : []).find(
+  const context = list(request).find(
     (r): r is GameArmyContext => (r as GameArmyContext | null)?.__class__ === 'ArmyContext',
   );
   return typeof context?.battleType === 'string' ? context.battleType : undefined;
@@ -534,7 +516,7 @@ export function armyBattleType(request: unknown): string | undefined {
 /** The loot of a successful plunder; other results are unknown and give null. */
 export function plunderLoot(data: unknown): Record<string, number> | null {
   const r = data as GamePlunderResult | null;
-  return r?.result === 'success' ? resourcesOf(r.product?.product) : null;
+  return r?.result === 'success' ? numbers(r.product?.product?.resources) : null;
 }
 
 /** A building in another player's city that the game reports as just plundered. */
@@ -621,15 +603,13 @@ export function toIncoming(world: WorldId, e: GameEvent, me: PlayerId, at: numbe
  * skipped, as is `expireTime` -1 (cannot be attacked at all, which is no shield).
  */
 export function toShields(world: WorldId, data: unknown): CityShield[] {
-  return (Array.isArray(data) ? data : []).flatMap((e: GameCityProtection | null) => {
+  return list<GameCityProtection | null>(data).flatMap((e) => {
     const player = e?.playerId;
     const end = e?.expireTime;
     if (typeof player !== 'number' || typeof end !== 'number' || !(end > 0)) return [];
     return [{ world, player: playerId(player), expiresAt: end * 1000 }];
   });
 }
-
-const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
 
 function toPlaceReward(r: GameGreatBuildingReward | undefined): PlaceReward | undefined {
   if (!r || typeof r !== 'object') return undefined;
@@ -719,7 +699,7 @@ export function greatBuildingRequest(request: unknown): { entityId: number; owne
  * building, owner or costs are skipped, so are those of `except` (the session player: its own list says nothing new).
  */
 export function toGreatBuildingListRows(data: unknown, except?: PlayerId): GreatBuildingListRow[] {
-  return ((Array.isArray(data) ? data : []) as (GameGreatBuildingListRow | null)[]).flatMap((r) => {
+  return list<GameGreatBuildingListRow | null>(data).flatMap((r) => {
     const entityId = num(r?.entity_id);
     const owner = num(r?.player?.player_id);
     const level = num(r?.level);
@@ -749,7 +729,7 @@ export function toGreatBuildingListRows(data: unknown, except?: PlayerId): Great
 /** The owners of the rows of a great building list as the list gives them, each once; `except` (the own id) is left out. */
 export function toListedPlayers(data: unknown, except?: PlayerId): ListedPlayer[] {
   const owners = new Map<PlayerId, ListedPlayer>();
-  for (const r of (Array.isArray(data) ? data : []) as (GameGreatBuildingListRow | null)[]) {
+  for (const r of list<GameGreatBuildingListRow | null>(data)) {
     const id = num(r?.player?.player_id);
     const name = r?.player?.name;
     if (id === undefined || id === except || typeof name !== 'string' || name === '') continue;
@@ -820,7 +800,7 @@ export function toGreatBuildingRanking(data: unknown, except?: PlayerId): GreatB
 /** Display names of great buildings by definition, from the inventory list or the overview of a player. */
 export function toGreatBuildingNames(data: unknown): Record<string, string> {
   const names: Record<string, string> = {};
-  for (const g of (Array.isArray(data) ? data : []) as (GameGreatBuildingName | null)[]) {
+  for (const g of list<GameGreatBuildingName | null>(data)) {
     const id = g?.cityentity_id ?? g?.city_entity_id;
     if (id && typeof g?.name === 'string') names[id] = g.name;
   }
@@ -829,7 +809,7 @@ export function toGreatBuildingNames(data: unknown): Record<string, string> {
 
 /** The active limited bonuses; `isActive: false` ones are dropped. */
 export function toLimitedBonuses(data: unknown): LimitedBonus[] {
-  return ((Array.isArray(data) ? data : []) as (GameLimitedBonus | null)[]).flatMap((b) => {
+  return list<GameLimitedBonus | null>(data).flatMap((b) => {
     const value = num(b?.value);
     if (!b?.type || value === undefined || b.isActive === false) return [];
     const entityId = num(b.entityId);
