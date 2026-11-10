@@ -97,9 +97,14 @@ const visible = (p: Player | undefined) =>
       : v,
   );
 
+/** a row whose only change is the time of the last sighting is written at most this often (ms) */
+export const SEEN_WRITE_INTERVAL = 3_600_000;
+
 export class PlayerStore {
   private players = new Map<PlayerId, Player>();
   private dirty = new Set<PlayerId>();
+  /** the `seenAt` each row holds in the database, for the throttle of sightings that change nothing else */
+  private writtenSeenAt = new Map<PlayerId, number>();
   private flushQueued = false;
 
   constructor(
@@ -116,6 +121,7 @@ export class PlayerStore {
       let touched = false;
       if (!live) {
         this.players.set(row.id, row);
+        this.writtenSeenAt.set(row.id, row.seenAt);
         continue;
       }
       if (live.source === 'list') {
@@ -248,7 +254,7 @@ export class PlayerStore {
       this.players.set(l.id, next);
       // the same name again changes no view; only the sighting is saved
       if (shownOf(next) !== shownOf(old)) touched.add(l.id);
-      else this.dirty.add(l.id);
+      else this.markSeen(l.id, now);
     }
     if (touched.size === 0 && this.dirty.size > 0) this.scheduleFlush();
     this.changed(touched, 'list');
@@ -315,7 +321,13 @@ export class PlayerStore {
     this.players.set(o.id, next);
     // a sighting that changes only the time is saved and tells no view
     if (visible(next) !== visible(old)) touched.add(o.id);
-    else this.dirty.add(o.id);
+    else this.markSeen(o.id, now);
+  }
+
+  /** a sighting that changed nothing else: the time stays current in memory and reaches the database once per interval */
+  private markSeen(id: PlayerId, now: number): void {
+    const written = this.writtenSeenAt.get(id);
+    if (written === undefined || now - written >= SEEN_WRITE_INTERVAL) this.dirty.add(id);
   }
 
   private changed(ids: Set<PlayerId>, source: ToolboxEvents['player.updated']['source']) {
@@ -337,6 +349,7 @@ export class PlayerStore {
       this.flushQueued = false;
       const rows = [...this.dirty].map((id) => this.players.get(id)).filter((p): p is Player => p !== undefined);
       this.dirty.clear();
+      for (const row of rows) this.writtenSeenAt.set(row.id, row.seenAt);
       this.persistence.put(rows).catch((error) => logError('saving players failed', error));
     });
   }
