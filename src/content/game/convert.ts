@@ -51,6 +51,8 @@ import type {
   GameCityMap,
   GameCityMapArea,
   GameCityProtection,
+  GameEntityIcon,
+  GameEra,
   GameEvent,
   GameGreatBuildingConstruction,
   GameGreatBuildingListRow,
@@ -68,6 +70,7 @@ import type {
   GameRankingList,
   GameResearchProgress,
   GameResearchTechnology,
+  GameStartup,
   GameState,
   GameTileset,
   GameUnitType,
@@ -431,6 +434,33 @@ export function toVisitInfo(p: GamePlayer): VisitInfo {
     guildMember: p.is_guild_member === true,
   };
 }
+
+/** Display names of the goods by id, from the `goodsList` of the startup data. */
+export function toGoodsNames(startup: GameStartup): Record<string, string> {
+  const goods: Record<string, string> = {};
+  for (const g of startup.goodsList ?? []) if (g.id && g.name) goods[g.id] = g.name;
+  return goods;
+}
+
+/** The buildings the game marks with the Double Loot icon (`showEntityIcons`). */
+export function doubledLootIds(data: unknown): number[] {
+  return list<GameEntityIcon>(data).flatMap((icon) =>
+    icon.type === 'citymap_icon_plunder_and_pillage' && typeof icon.id === 'number' ? [icon.id] : [],
+  );
+}
+
+/** The buildings a production result brings in their new state, to be read like `CityMapService.updateEntity`. */
+export const updatedEntities = (data: unknown): unknown =>
+  (data as { updatedEntities?: unknown } | null)?.updatedEntities;
+
+/** The eras of the metadata file `research_eras`; an entry without an id is skipped. */
+export function toEras(json: unknown): { id: EraId; name: string }[] {
+  return list<GameEra>(json).flatMap((e) => (e.era ? [{ id: eraId(e.era), name: e.name ?? e.era }] : []));
+}
+
+/** The game's own sum of Forge points in packages: `[108198]`. */
+export const toPackageForgePoints = (data: unknown): number | undefined =>
+  num(Array.isArray(data) ? data[0] : undefined);
 
 export function toSession(world: WorldId, u: GameUserData | undefined): Session | null {
   if (typeof u?.player_id !== 'number') return null;
