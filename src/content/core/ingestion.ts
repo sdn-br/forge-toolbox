@@ -38,7 +38,7 @@ export class Ingestion {
   private game = new Map<string, GameHandler[]>();
   private services = new Map<string, GameHandler[]>();
   private requestHandlers = new Map<string, RequestHandler[]>();
-  private meta: { prefix: string; handler: MetaHandler }[] = [];
+  private meta: { matches: (name: string) => boolean; handler: MetaHandler }[] = [];
   private batchEnds: (() => void)[] = [];
 
   on(service: string, method: string, handler: GameHandler): void {
@@ -62,8 +62,14 @@ export class Ingestion {
     this.batchEnds.push(handler);
   }
 
-  onMeta(prefix: string, handler: MetaHandler): void {
-    this.meta.push({ prefix, handler });
+  /** a metadata file by its exact name; `research` does not hear `research_eras` */
+  onMeta(name: string, handler: MetaHandler): void {
+    this.meta.push({ matches: (n) => n === name, handler });
+  }
+
+  /** every metadata file whose name starts with `prefix`, for a family of files such as `building_entity_<id>` */
+  onMetaPrefix(prefix: string, handler: MetaHandler): void {
+    this.meta.push({ matches: (n) => n.startsWith(prefix), handler });
   }
 
   accept(traffic: Traffic): void {
@@ -122,7 +128,7 @@ export class Ingestion {
   private acceptMeta(url: string, response: string): void {
     const id = metaId(url);
     if (!id) return;
-    const handlers = this.meta.filter((m) => id.name.startsWith(m.prefix));
+    const handlers = this.meta.filter((m) => m.matches(id.name));
     if (handlers.length === 0) return;
     let json: unknown;
     try {

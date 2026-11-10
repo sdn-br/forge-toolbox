@@ -327,7 +327,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   ingestion.onService('CityProductionService', ({ data }) => {
     updateBuildings({ data: updatedEntities(data) });
   });
-  ingestion.onMeta('building_entity_', (file) => {
+  ingestion.onMetaPrefix('building_entity_', (file) => {
     if (file.name === 'building_entity_lookup') {
       catalog.setBuildingFiles(toBuildingFiles(file.json));
       return;
@@ -356,30 +356,22 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   });
 
   ingestion.onMeta('grid', (file) => {
-    if (file.name !== 'grid') return;
     const grid = toCityGrid(file.json);
     if (grid) catalog.setCityGrid(grid);
   });
 
   // the unit types with their names, loaded by the game at start (seen 2026-11-01: 188 types, `name` in the game's
   // language, e.g. `EarlyMiddleAge_champion` → „Held“)
-  ingestion.onMeta('unit_types', (file) => {
-    if (file.name === 'unit_types') catalog.setUnitTypes(toUnitTypes(file.json));
-  });
+  ingestion.onMeta('unit_types', (file) => catalog.setUnitTypes(toUnitTypes(file.json)));
 
   ingestion.onMeta('research_eras', (file) => {
     catalog.setEras(toEras(file.json));
   });
 
-  // the tiers of great building levels, copper and gold (seen 2026-11-05); an exact name, as with `research`
-  ingestion.onMeta('great_building_tiers', (file) => {
-    if (file.name === 'great_building_tiers') catalog.setGreatBuildingTiers(toGreatBuildingTiers(file.json));
-  });
+  // the tiers of great building levels, copper and gold (seen 2026-11-05)
+  ingestion.onMeta('great_building_tiers', (file) => catalog.setGreatBuildingTiers(toGreatBuildingTiers(file.json)));
 
-  // `research_eras` shares the prefix and is another file
-  ingestion.onMeta('research', (file) => {
-    if (file.name === 'research') research.setExpansions(toResearchExpansions(file.json));
-  });
+  ingestion.onMeta('research', (file) => research.setExpansions(toResearchExpansions(file.json)));
 
   // comes with the startup data; some batches carry a getProgress that is no object, those are skipped.
   // debt: only the progress of the start is read. ceiling: a technology finished during play still counts as open
