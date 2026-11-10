@@ -134,6 +134,11 @@ export class CatalogStore {
     this.unchecked.clear();
   }
 
+  /** whether the catalog holds this definition from this very file; such a file needs no translation */
+  hasFile(id: BuildingDefId, url: string): boolean {
+    return this.cachedUrls.get(id) === url && this.defs.has(id);
+  }
+
   /** a definition the game loaded; its file goes to the cache unless it is there already */
   addFromGame(def: BuildingDef, file: BuildingDefFile): void {
     this.unchecked.delete(def.id);

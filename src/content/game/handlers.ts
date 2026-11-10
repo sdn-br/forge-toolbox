@@ -344,6 +344,8 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
       catalog.setBuildingFiles(toBuildingFiles(file.json));
       return;
     }
+    // the id is in the name; a file the catalog holds already is not translated again
+    if (catalog.hasFile(buildingDefId(file.name.slice('building_entity_'.length)), file.url)) return;
     const def = toBuildingDef(file.json);
     if (def) catalog.addFromGame(def, { id: def.id, url: file.url, json: file.json });
   });

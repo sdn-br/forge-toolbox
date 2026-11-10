@@ -54,6 +54,34 @@ describe('building lookup', () => {
   });
 });
 
+describe('building files from the game', () => {
+  it('translates only files whose URL the catalog does not have cached', async () => {
+    const { world, bus, now, stores } = testStores();
+    const loader: BuildingDefLoader = {
+      all: async () => [{ def: def(HERO, 'Cached'), url: url(HERO, 'abc') }],
+      load: async () => undefined,
+      missing: async () => [],
+      save: async () => {},
+    };
+    const catalog = new CatalogStore(bus, loader);
+    await catalog.loadCache();
+    const registry = new Ingestion();
+    registerGameHandlers(registry, { world, bus, now, ...stores, catalog });
+    const add = vi.spyOn(catalog, 'addFromGame');
+    const accept = (hash: string) =>
+      registry.accept({
+        kind: 'meta',
+        url: url(HERO, hash),
+        response: JSON.stringify(file(HERO, 'From the game')),
+        at: 0,
+      });
+    accept('abc');
+    expect(add).not.toHaveBeenCalled();
+    accept('new');
+    expect(add).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('building names from the cache and the CDN', () => {
   type Fn = ReturnType<typeof vi.fn>;
   let loader: BuildingDefLoader & { all: Fn; load: Fn; missing: Fn; save: Fn };
