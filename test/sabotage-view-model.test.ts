@@ -115,6 +115,27 @@ describe('sabotage view model', () => {
     ]);
   });
 
+  it('gives a plundered good the name of its era', () => {
+    const catalog = new CatalogStore(createBus());
+    catalog.setResourceNames({ wine: 'Wein' });
+    catalog.setGoodEras({ wine: eraId('BronzeAge') });
+    catalog.setEras([{ id: eraId('BronzeAge'), name: 'Bronzezeit' }]);
+    const vm = sabotageViewModel({
+      city,
+      player: undefined,
+      lookups,
+      assessment: { ...assessment, plunderable: [{ building: 1, name: 'Haus', resources: { wine: 5, money: 20 } }] },
+      catalog,
+      showArmy: false,
+      now,
+      record: {},
+    });
+    expect(vm.plunderable[0]?.items).toEqual([
+      { label: 'Wein', amount: 5, era: 'Bronzezeit' },
+      { label: 'Münzen', amount: 20 },
+    ]);
+  });
+
   it('gives the plunderable buildings and the last plunder the image of their building once it is known', () => {
     const catalog = new CatalogStore(createBus());
     catalog.add({

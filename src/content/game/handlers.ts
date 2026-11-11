@@ -28,6 +28,7 @@ import {
   toCityGrid,
   toEras,
   toFormerFriend,
+  toGoodEras,
   toGoodsNames,
   toGreatBuildingEntity,
   toGreatBuildingLevelUp,
@@ -118,6 +119,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     const s = toSession(world, d.user_data);
     if (!s) return;
     catalog.setResourceNames(toGoodsNames(d));
+    catalog.setGoodEras(toGoodEras(d));
     session.start(s);
     cities.setOwn(toCity(world, s.playerId, s.era, d.city_map, now()));
   });

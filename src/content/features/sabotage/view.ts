@@ -71,7 +71,8 @@ const lootLines = (items: PlunderItem['items']) => {
 };
 
 /** the whole name and loot, one item per line, for the tooltip of the row's cells */
-const lootTip = (p: PlunderItem) => [p.name, ...p.items.map((i) => `${formatNumber(i.amount)} ${i.label}`)].join('\n');
+const lootTip = (p: PlunderItem) =>
+  [p.name, ...p.items.map((i) => `${formatNumber(i.amount)} ${i.label}${i.era ? ` (${i.era})` : ''}`)].join('\n');
 
 const plunderTable = (items: PlunderItem[], inView: PlunderItem[], marks?: PlunderMarks) => {
   // the image column stays while any building has an image, so the width does not jump when the window moves

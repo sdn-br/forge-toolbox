@@ -45,6 +45,7 @@ export class CatalogStore {
   private defs = new Map<BuildingDefId, BuildingDef>();
   private names = new Map<string, string>();
   private eras = new Map<string, string>();
+  private goodEras = new Map<string, EraId>();
   private pending: BuildingDefId[] = [];
   private queued = false;
 
@@ -244,6 +245,16 @@ export class CatalogStore {
 
   resourceName(id: string): string | undefined {
     return this.names.get(id);
+  }
+
+  /** The era of each good, from the startup data. */
+  setGoodEras(eras: Record<string, EraId>): void {
+    for (const [id, era] of Object.entries(eras)) this.goodEras.set(id, era);
+  }
+
+  /** the era of a good; undefined for other resources and unknown goods */
+  goodEra(id: string): EraId | undefined {
+    return this.goodEras.get(id);
   }
 
   /** Unit types with their names in the game's language, era and class, from the metadata file `unit_types`. */

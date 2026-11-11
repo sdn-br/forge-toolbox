@@ -24,7 +24,8 @@ export interface PlunderItem {
   image?: string;
   /** loot beyond coins and supplies; the others show muted */
   important: boolean;
-  items: { label: string; amount: number }[];
+  /** `era` names the era of a good, for the tooltip */
+  items: { label: string; amount: number; era?: string }[];
 }
 
 /** the catalog's resource names as the formatters take them */
@@ -116,10 +117,10 @@ export function sabotageViewModel({
       name: p.name,
       ...(url && { image: url }),
       important,
-      items: Object.entries(p.resources).map(([id, amount]) => ({
-        label: resourceLabel(id, resourceName(catalog)),
-        amount,
-      })),
+      items: Object.entries(p.resources).map(([id, amount]) => {
+        const era = catalog.goodEra(id);
+        return { label: resourceLabel(id, resourceName(catalog)), amount, ...(era && { era: catalog.eraName(era) }) };
+      }),
     };
   };
   // an inferred battle measured nothing, so the values come from the last fought one

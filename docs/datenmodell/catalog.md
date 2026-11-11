@@ -22,7 +22,7 @@ interface Boost {
 }
 ```
 
-Dazu kommen Zeitalter (Reihenfolge, Namen), Güter (aus `goodsList` beim Start) und Ressourcen-Definitionen.
+Dazu kommen Zeitalter (Reihenfolge, Namen), Güter (Name und Zeitalter aus `goodsList` beim Start) und Ressourcen-Definitionen.
 
 **Straßenbedarf (`BuildingDef.street`):** Stufe der Straße, die ein Gebäude braucht, 0 für keine. Klassische Definitionen: `requirements.street_connection_level`, generische: Komponente `streetConnectionRequirement.requiredLevel` in irgendeinem Zeitalter. Fehlt `requirements` bei einer klassischen Definition ganz, bleibt der Wert unbekannt. Beide Felder kommen in echten Definitionen vor (geprüft 2026-10-21 an einer Aufnahme), die Fixtures sind gekürzt und enthalten sie nicht.
 
