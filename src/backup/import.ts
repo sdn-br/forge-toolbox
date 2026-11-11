@@ -1,6 +1,6 @@
 // The import of a backup file on the page "Daten verwalten": reading the file, the choice per profile and area, and
 // merging the chosen rows into the profile databases or replacing the chosen areas with them. Only the current version
-// of the file is read.
+// of the file is read, an older one is first upgraded to it.
 import type { IndexableType } from 'dexie';
 import type { ToolboxDb } from '../background/db';
 import { relinkPvp } from '../persistence/pvp/worker';
@@ -8,6 +8,7 @@ import { rowsOfWorld } from '../shared/idb';
 import { playerId, type WorldId } from '../shared/ids';
 import type { Player } from '../shared/model';
 import { type Profile, profileStorageKey, sameProfile } from '../shared/profile';
+import { renameCityEntityId } from '../shared/rename-def';
 import type { ProfileCall } from '../shared/rpc';
 import { BACKUP_FORMAT, BACKUP_VERSION, type BackupFile, type BackupProfile, type BackupTables } from './format';
 import { unpackText } from './gzip';
@@ -32,7 +33,27 @@ function isProfileEntry(value: unknown): value is BackupProfile {
   );
 }
 
-/** Reads a backup file, gzipped or plain JSON. Only version 2 is taken; anything else says why not. */
+/** Backup version 2 named the building definition of plunders, incoming plunders and great buildings `cityEntityId`. */
+function upgradeV2(backup: BackupFile): BackupFile {
+  const rename = <T extends object>(rows: T[]): T[] =>
+    rows.map((row) => {
+      const copy = { ...row } as Record<string, unknown>;
+      renameCityEntityId(copy);
+      return copy as T;
+    });
+  const profiles = backup.profiles.map(({ tables, ...p }) => ({
+    ...p,
+    tables: {
+      ...tables,
+      plunders: rename(tables.plunders),
+      incoming: rename(tables.incoming),
+      greatBuildings: rename(tables.greatBuildings),
+    },
+  }));
+  return { ...backup, version: BACKUP_VERSION, profiles };
+}
+
+/** Reads a backup file, gzipped or plain JSON. The current version and version 2 are taken; anything else says why not. */
 export async function readBackupFile(file: Blob): Promise<ReadResult> {
   let value: unknown;
   try {
@@ -40,11 +61,12 @@ export async function readBackupFile(file: Blob): Promise<ReadResult> {
   } catch {
     return { ok: false, error: 'notJson' };
   }
-  const v = value as Partial<BackupFile> | null;
+  const v = value as (Omit<Partial<BackupFile>, 'version'> & { version?: number }) | null;
   if (v?.format !== BACKUP_FORMAT) return { ok: false, error: 'notBackup' };
-  if (v.version !== BACKUP_VERSION) return { ok: false, error: 'version' };
+  if (v.version !== BACKUP_VERSION && v.version !== 2) return { ok: false, error: 'version' };
   if (!Array.isArray(v.profiles) || !v.profiles.every(isProfileEntry)) return { ok: false, error: 'notBackup' };
-  return { ok: true, backup: value as BackupFile };
+  const backup = value as BackupFile;
+  return { ok: true, backup: v.version === 2 ? upgradeV2(backup) : backup };
 }
 
 /** the entry of a profile in a backup file */

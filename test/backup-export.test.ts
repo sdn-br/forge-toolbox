@@ -51,7 +51,7 @@ const building = (owner: number, entityId: number, change: Partial<KnownGreatBui
   world: de20,
   owner: playerId(owner),
   entityId,
-  cityEntityId: buildingDefId('X_Arc'),
+  def: buildingDefId('X_Arc'),
   level: 10,
   invested: 0,
   required: 100,
@@ -91,7 +91,7 @@ describe('collectBackup', () => {
     );
 
     expect(backup).toMatchObject({ format: BACKUP_FORMAT, version: BACKUP_VERSION, createdAt: 1000 });
-    expect(BACKUP_VERSION).toBe(2);
+    expect(BACKUP_VERSION).toBe(3);
     expect(backup.profiles).toHaveLength(1);
     const [profile] = backup.profiles;
     expect(profile).toMatchObject({ world: de20, player: me, settings: { 'pvp.openWithArmy': false } });

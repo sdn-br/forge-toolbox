@@ -56,7 +56,7 @@ const building = (owner: number, entityId: number, change: Partial<KnownGreatBui
   world: de20,
   owner: playerId(owner),
   entityId,
-  cityEntityId: buildingDefId('X_Arc'),
+  def: buildingDefId('X_Arc'),
   level: 10,
   invested: 0,
   required: 100,
@@ -86,7 +86,7 @@ const tables = (change: Partial<BackupTables> = {}): BackupTables => ({
 });
 const backupOf = (...profiles: BackupProfile[]): BackupFile => ({
   format: BACKUP_FORMAT,
-  version: 2,
+  version: 3,
   createdAt: 500,
   profiles,
 });
@@ -253,8 +253,36 @@ describe('readBackupFile', () => {
     expect(await readBackupFile(json(backup))).toEqual({ ok: true, backup });
   });
 
+  it('upgrades a version 2 file: the building definition is `def` now', async () => {
+    const { def: _def, ...asV2 } = building(1, 2);
+    const plunder = { world: de20, opponent: 5, at: 1, outcome: 'plundered', resources: {}, doubleLoot: false };
+    const file = {
+      ...backupOf(),
+      version: 2,
+      profiles: [
+        {
+          world: de20,
+          player: me,
+          tables: tables({
+            greatBuildings: [{ ...asV2, cityEntityId: 'X_Arc' }],
+            plunders: [{ ...plunder, cityEntityId: 'W_X' }, plunder],
+            incoming: [{ world: de20, kind: 'plunder', key: 1, at: 1, attacker: 5, cityEntityId: 'W_Y' }],
+          } as never),
+        },
+      ],
+    };
+    const read = await readBackupFile(json(file));
+    if (!read.ok) throw new Error('not read');
+    const t = read.backup.profiles[0]?.tables;
+    expect(read.backup.version).toBe(3);
+    expect(t?.greatBuildings).toEqual([building(1, 2)]);
+    expect(t?.plunders).toEqual([{ ...plunder, def: 'W_X' }, plunder]);
+    expect(t?.incoming).toEqual([{ world: de20, kind: 'plunder', key: 1, at: 1, attacker: 5, def: 'W_Y' }]);
+  });
+
   it('refuses another version, a foreign file and broken data', async () => {
     expect(await readBackupFile(json({ ...backupOf(), version: 1 }))).toEqual({ ok: false, error: 'version' });
+    expect(await readBackupFile(json({ ...backupOf(), version: 4 }))).toEqual({ ok: false, error: 'version' });
     expect(await readBackupFile(json({ some: 'thing' }))).toEqual({ ok: false, error: 'notBackup' });
     expect(await readBackupFile(new Blob(['not json']))).toEqual({ ok: false, error: 'notJson' });
     const broken = { ...backupOf(), profiles: [{ world: de20, tables: { battles: [] } }] };

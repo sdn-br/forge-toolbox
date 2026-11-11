@@ -15,7 +15,7 @@ import type {
 
 export const BACKUP_FORMAT = 'forge-toolbox-backup';
 /** raised when the shape of the file changes; an import maps older versions */
-export const BACKUP_VERSION = 2;
+export const BACKUP_VERSION = 3;
 
 /**
  * The row type of each backed up table. Only what cannot come back from the game or foestats, and the players it refers
