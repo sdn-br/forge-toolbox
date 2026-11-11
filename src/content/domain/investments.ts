@@ -7,7 +7,7 @@ import { calculateConstruction, constructionOf, plusPercent } from './gb-calcula
 import { currentRankings, type SnipeHit, snipeBuildings } from './gb-snipe';
 
 /**
- * `safe`: nobody can pass the own place anymore. `unsafe`: the stored rankings fit the progress and someone can. `unknown`:
+ * `safe`: nobody can pass the own place anymore; it stays safe on the same level, however much others pay in. `unsafe`: the stored rankings fit the progress and someone can. `unknown`:
  * without fitting rankings the rule without them cannot tell; opening the building does.
  */
 export type InvestmentStatus = 'safe' | 'unsafe' | 'unknown';
@@ -51,19 +51,23 @@ export interface Investments {
 }
 
 /**
- * The own place decided with stored rankings, when they belong to the building's level and their sum is its progress:
- * the "own place" rule of the calculator. A building at its highest level or not connected is still decided by the
- * places, as the calculator would once it opens again. Undefined when the rankings do not fit or hold no own place.
+ * The own place decided with stored rankings of the building's level: the "own place" rule of the calculator, with the
+ * progress the rankings were taken at (the calculator reads it from their sum). A building at its highest level or not
+ * connected is still decided by the places, as the calculator would once it opens again. When the progress only grew
+ * since, a safe place stays safe and an unsafe one is undecided: nobody can pass a safe place even if one rival pays
+ * the whole rest, and every foreign deposit lowers the rest by at least what that rival gains. Undefined when the
+ * rankings do not fit, hold no own place or cannot decide the grown building.
  */
 function statusByRankings(b: KnownGreatBuilding): InvestmentStatus | undefined {
   const rankings = currentRankings(b);
-  if (!rankings || b.rankingsInvested !== b.invested) return undefined;
+  if (!rankings) return undefined;
   const calc = calculateConstruction(
     constructionOf({ level: b.level, required: b.required }, rankings, { arcBonus: 0, factor: 0 }),
   );
   const mine = calc.places.find((p) => p.mine);
   if (!mine) return undefined;
-  return mine.secured ? 'safe' : 'unsafe';
+  if (mine.secured) return 'safe';
+  return b.rankingsInvested === b.invested ? 'unsafe' : undefined;
 }
 
 /**
