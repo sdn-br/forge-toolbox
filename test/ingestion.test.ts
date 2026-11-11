@@ -104,7 +104,7 @@ describe('Ingestion', () => {
   it('passes metadata files with name and hash to prefix handlers', () => {
     const ingestion = new Ingestion();
     const handler = vi.fn();
-    ingestion.onMeta('building_entity_', handler);
+    ingestion.onMetaPrefix('building_entity_', handler);
     ingestion.accept({
       kind: 'meta',
       url: 'https://cdn/start/metadata?id=building_entity_R_X-ab12',
@@ -118,6 +118,22 @@ describe('Ingestion', () => {
       hash: 'ab12',
       json: { id: 'R_X' },
     });
+  });
+});
+
+describe('Ingestion metadata by exact name', () => {
+  it('gives a handler only the file of its name, not one that shares the prefix', () => {
+    const ingestion = new Ingestion();
+    const research = vi.fn();
+    const eras = vi.fn();
+    ingestion.onMeta('research', research);
+    ingestion.onMeta('research_eras', eras);
+    ingestion.accept({ kind: 'meta', url: 'https://cdn/m?id=research-cd34', response: '[]', at: 0 });
+    ingestion.accept({ kind: 'meta', url: 'https://cdn/m?id=research_eras-ef56', response: '[]', at: 0 });
+    expect(research).toHaveBeenCalledTimes(1);
+    expect(research.mock.calls[0]?.[0]).toMatchObject({ name: 'research' });
+    expect(eras).toHaveBeenCalledTimes(1);
+    expect(eras.mock.calls[0]?.[0]).toMatchObject({ name: 'research_eras' });
   });
 });
 

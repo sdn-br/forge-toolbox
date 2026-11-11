@@ -37,22 +37,22 @@ function setup() {
 describe('watchArmyTarget', () => {
   it('asks the page for the opponent of a pvp army window and passes the answer on', () => {
     const { bus, posted, answer, targets } = setup();
-    bus.emit('army.opened', { battleType: 'pvp' });
+    bus.emit('army.opened', { kind: 'pvp' });
     expect(posted).toEqual([{ tag: ARMY_TAG, from: 'content', type: 'target', seq: 1 }]);
     answer(1, 5412792);
     expect(targets).toHaveBeenCalledExactlyOnceWith({ opponent: playerId(5412792) });
   });
 
-  it.each(['gvg', 'guild_expedition', 'pvp_arena'])('does not ask for a %s battle', (battleType) => {
+  it.each(['other', 'pvpArena'] as const)('does not ask for a %s battle', (kind) => {
     const { bus, posted } = setup();
-    bus.emit('army.opened', { battleType });
+    bus.emit('army.opened', { kind });
     expect(posted).toEqual([]);
   });
 
   it('ignores a late answer to an older window', () => {
     const { bus, answer, targets } = setup();
-    bus.emit('army.opened', { battleType: 'pvp' });
-    bus.emit('army.opened', { battleType: 'pvp' });
+    bus.emit('army.opened', { kind: 'pvp' });
+    bus.emit('army.opened', { kind: 'pvp' });
     answer(1, 111);
     expect(targets).not.toHaveBeenCalled();
     answer(2, 222);
@@ -61,7 +61,7 @@ describe('watchArmyTarget', () => {
 
   it('takes only the first answer to an ask', () => {
     const { bus, answer, targets } = setup();
-    bus.emit('army.opened', { battleType: 'pvp' });
+    bus.emit('army.opened', { kind: 'pvp' });
     answer(1, 111);
     answer(1, 222);
     expect(targets).toHaveBeenCalledExactlyOnceWith({ opponent: playerId(111) });
@@ -78,7 +78,7 @@ describe('watchArmyTarget', () => {
 describe('army window closed', () => {
   it('passes on the close of the window that showed its opponent, once', () => {
     const { bus, answer, close, closed } = setup();
-    bus.emit('army.opened', { battleType: 'pvp' });
+    bus.emit('army.opened', { kind: 'pvp' });
     answer(1, 111);
     close(1);
     close(1);
@@ -88,9 +88,9 @@ describe('army window closed', () => {
   it('ignores the close of an older window and of a window without an opponent', () => {
     const { bus, answer, close, closed } = setup();
     close(1);
-    bus.emit('army.opened', { battleType: 'pvp' });
+    bus.emit('army.opened', { kind: 'pvp' });
     answer(1, 111);
-    bus.emit('army.opened', { battleType: 'pvp' });
+    bus.emit('army.opened', { kind: 'pvp' });
     answer(2, 222);
     close(1);
     expect(closed).not.toHaveBeenCalled();

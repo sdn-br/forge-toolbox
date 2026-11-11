@@ -3,8 +3,9 @@ import { memoryKv } from '../../src/content/core/kv';
 import { Settings } from '../../src/content/core/settings';
 import type { LevelCostFile } from '../../src/content/domain/gb-level-cost';
 import { singleFactor } from '../../src/content/features/shared/settings';
-import type { FetchLike } from '../../src/content/game/foestats-api';
+import { buildingDefLoader } from '../../src/content/game/building-def-loader';
 import { createStores, type Stores } from '../../src/content/stores';
+import type { FetchLike } from '../../src/content/stores/foestats-api';
 import { UiState } from '../../src/content/ui/ui-state';
 import { type WorldId, worldId } from '../../src/shared/ids';
 import { testDb } from './battle-db';
@@ -39,7 +40,16 @@ export function testStores({
   const world = worldId('de20');
   const bus = createBus();
   const stores: Stores = {
-    ...createStores(world, bus, db.call, { prefs: ui, singleFactor: singleFactor(settings) }, now, fetch, levelCosts),
+    ...createStores(
+      world,
+      bus,
+      db.call,
+      buildingDefLoader(db.call),
+      { prefs: ui, singleFactor: singleFactor(settings) },
+      now,
+      fetch,
+      levelCosts,
+    ),
     ...overrides?.({ bus, world, now }),
   };
   return { db, world, bus, now, stores };

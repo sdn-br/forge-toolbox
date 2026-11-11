@@ -1,20 +1,19 @@
 // Which game response feeds which store, all in one place. A response may have several handlers that each feed their
 // own part, for example `updatePlayer` (players, plunder) and `CityMapService.reset` (plunder, own buildings).
 import type { GbWindowState } from '../../shared/gb-window-protocol';
-import { type BuildingDefId, buildingDefId, eraId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
+import { buildingDefId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
 import type { Ingestion } from '../core/ingestion';
 import { logInfo } from '../core/log';
 import type { GreatBuildingEntity, RankingRow } from '../model/great-building';
 import type { Stores } from '../stores';
-import type { CatalogStore } from '../stores/catalog';
 import { toBuildingDef, toBuildingFiles, toGreatBuildingTiers } from './building-defs';
 import {
-  armyBattleType,
+  armyBattleKind,
+  doubledLootIds,
   greatBuildingOfBuilding,
   greatBuildingRequest,
   isBattleState,
-  isGreatBuildingType,
   isMainMap,
   isOwnPvpBattle,
   isPlunderedEntity,
@@ -27,10 +26,12 @@ import {
   toBuildings,
   toCity,
   toCityGrid,
+  toEras,
   toFormerFriend,
+  toGoodsNames,
   toGreatBuildingEntity,
   toGreatBuildingLevelUp,
-  toGreatBuildingListRows,
+  toGreatBuildingList,
   toGreatBuildingNames,
   toGreatBuildingRanking,
   toIncoming,
@@ -40,11 +41,11 @@ import {
   toItemAmount,
   toItemUpdates,
   toLimitedBonuses,
-  toListedPlayers,
   toNewFriend,
   toNextProduction,
   toObservation,
   toObservations,
+  toPackageForgePoints,
   toPlayerResources,
   toPlunder,
   toRankingRows,
@@ -56,13 +57,12 @@ import {
   toUnitTypes,
   toUnlockedNodes,
   toVisitInfo,
+  updatedEntities,
 } from './convert';
 import { parseEventDate } from './event-date';
 import type {
   GameBattle,
   GameCityEntity,
-  GameEntityIcon,
-  GameEra,
   GameEvent,
   GameEventPage,
   GameGreatBuildingConstruction,
@@ -88,14 +88,6 @@ const observationsWhere = (data: unknown, keep: (p: GamePlayer) => boolean) =>
 
 /** For sources that carry the whole player: a missing timer field there clears what the store knows. */
 const withAttack = (data: unknown, now: number) => toObservations(list<GamePlayer>(data), now);
-
-/** all great buildings with this display name; the game names a building only so in some events */
-function greatBuildingsNamed(catalog: CatalogStore, name: string): BuildingDefId[] {
-  const ids = new Set<BuildingDefId>();
-  for (const [id, n] of catalog.greatBuildingNames()) if (n === name) ids.add(id);
-  for (const def of catalog.definitions()) if (isGreatBuildingType(def.type) && def.name === name) ids.add(def.id);
-  return [...ids];
-}
 
 export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps): void {
   const {
@@ -125,9 +117,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     const d = data as GameStartup;
     const s = toSession(world, d.user_data);
     if (!s) return;
-    const goods: Record<string, string> = {};
-    for (const g of d.goodsList ?? []) if (g.id && g.name) goods[g.id] = g.name;
-    catalog.setResourceNames(goods);
+    catalog.setResourceNames(toGoodsNames(d));
     session.start(s);
     cities.setOwn(toCity(world, s.playerId, s.era, d.city_map, now()));
   });
@@ -235,8 +225,8 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   // The army window before a battle asks for the army with the battle type in the request. It names no opponent;
   // that comes only with startByBattleType once the battle runs.
   ingestion.on('ArmyUnitManagementService', 'getArmyInfo', ({ request }) => {
-    const battleType = armyBattleType(request);
-    if (battleType) bus.emit('army.opened', { battleType });
+    const kind = armyBattleKind(request);
+    if (kind) bus.emit('army.opened', { kind });
   });
 
   // A plunder comes as several entries of one response (seen 2026-10-19): plunderById has the loot, the reset the
@@ -265,9 +255,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
     plundered = list<GameCityEntity>(data).find((e): e is PlunderedEntity => isPlunderedEntity(e, me)) ?? plundered;
   });
   ingestion.on('CityMapService', 'showEntityIcons', ({ data }) => {
-    for (const icon of list<GameEntityIcon>(data)) {
-      if (icon.type === 'citymap_icon_plunder_and_pillage' && typeof icon.id === 'number') doubled.add(icon.id);
-    }
+    for (const id of doubledLootIds(data)) doubled.add(id);
   });
   ingestion.onBatchEnd(() => {
     const tried = target ?? (plundered && { opponent: playerId(plundered.player_id), entityId: plundered.id });
@@ -337,9 +325,9 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   // `updatedEntities` of a CityProductionResult, without a CityMapService entry (seen 2026-10-23 and 2026-10-26). An
   // item that finishes a production answers with CityMapService.updateEntity, read above.
   ingestion.onService('CityProductionService', ({ data }) => {
-    updateBuildings({ data: (data as { updatedEntities?: unknown } | null)?.updatedEntities });
+    updateBuildings({ data: updatedEntities(data) });
   });
-  ingestion.onMeta('building_entity_', (file) => {
+  ingestion.onMetaPrefix('building_entity_', (file) => {
     if (file.name === 'building_entity_lookup') {
       catalog.setBuildingFiles(toBuildingFiles(file.json));
       return;
@@ -368,31 +356,22 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   });
 
   ingestion.onMeta('grid', (file) => {
-    if (file.name !== 'grid') return;
     const grid = toCityGrid(file.json);
     if (grid) catalog.setCityGrid(grid);
   });
 
   // the unit types with their names, loaded by the game at start (seen 2026-11-01: 188 types, `name` in the game's
   // language, e.g. `EarlyMiddleAge_champion` → „Held“)
-  ingestion.onMeta('unit_types', (file) => {
-    if (file.name === 'unit_types') catalog.setUnitTypes(toUnitTypes(file.json));
-  });
+  ingestion.onMeta('unit_types', (file) => catalog.setUnitTypes(toUnitTypes(file.json)));
 
   ingestion.onMeta('research_eras', (file) => {
-    const eras = list<GameEra>(file.json).flatMap((e) => (e.era ? [{ id: eraId(e.era), name: e.name ?? e.era }] : []));
-    catalog.setEras(eras);
+    catalog.setEras(toEras(file.json));
   });
 
-  // the tiers of great building levels, copper and gold (seen 2026-11-05); an exact name, as with `research`
-  ingestion.onMeta('great_building_tiers', (file) => {
-    if (file.name === 'great_building_tiers') catalog.setGreatBuildingTiers(toGreatBuildingTiers(file.json));
-  });
+  // the tiers of great building levels, copper and gold (seen 2026-11-05)
+  ingestion.onMeta('great_building_tiers', (file) => catalog.setGreatBuildingTiers(toGreatBuildingTiers(file.json)));
 
-  // `research_eras` shares the prefix and is another file
-  ingestion.onMeta('research', (file) => {
-    if (file.name === 'research') research.setExpansions(toResearchExpansions(file.json));
-  });
+  ingestion.onMeta('research', (file) => research.setExpansions(toResearchExpansions(file.json)));
 
   // comes with the startup data; some batches carry a getProgress that is no object, those are skipped.
   // debt: only the progress of the start is read. ceiling: a technology finished during play still counts as open
@@ -487,8 +466,8 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   });
   // the game's own sum of Forge points in packages (seen 2026-10-21 after a contribution: `[108198]`)
   ingestion.on('GreatBuildingsService', 'getAvailablePackageForgePoints', ({ data }) => {
-    const fp = Array.isArray(data) ? data[0] : undefined;
-    if (typeof fp === 'number' && Number.isFinite(fp)) inventory.reportPackageForgePoints(fp);
+    const fp = toPackageForgePoints(data);
+    if (fp !== undefined) inventory.reportPackageForgePoints(fp);
   });
   ingestion.onBatchEnd(() => inventory.commit());
 
@@ -503,10 +482,10 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   });
   ingestion.on('GreatBuildingsService', 'getOtherPlayerOverview', ({ data }) => {
     const me = session.current?.playerId;
-    catalog.setGreatBuildingNames(toGreatBuildingNames(data));
+    const { names, owners, rows } = toGreatBuildingList(data, me);
+    catalog.setGreatBuildingNames(names);
     // the owner first, so the views the list redraws already know the name
-    players.applyListed(world, toListedPlayers(data, me));
-    const rows = toGreatBuildingListRows(data, me);
+    players.applyListed(world, owners);
     greatBuildings.noteList(rows);
     const owner = rows[0]?.owner;
     if (owner === undefined) return;
@@ -535,9 +514,10 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   ingestion.on('GreatBuildingsService', 'getContributions', ({ data }) => {
     if (!Array.isArray(data)) return;
     const me = session.current?.playerId;
-    catalog.setGreatBuildingNames(toGreatBuildingNames(data));
-    players.applyListed(world, toListedPlayers(data, me));
-    greatBuildings.noteContributions(toGreatBuildingListRows(data, me));
+    const { names, owners, rows } = toGreatBuildingList(data, me);
+    catalog.setGreatBuildingNames(names);
+    players.applyListed(world, owners);
+    greatBuildings.noteContributions(rows);
   });
   ingestion.on('BonusService', 'getLimitedBonuses', ({ data }) => {
     playerBonuses.setLimited(toLimitedBonuses(data));
@@ -547,9 +527,9 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   // entity_level_up instead, which is not read: the contribution's response already brings the new level.
   ingestion.on('OtherPlayerService', 'newEvent', ({ data }) => {
     const up = toGreatBuildingLevelUp(data as GameEvent);
-    if (up) greatBuildings.leveled(up.owner, greatBuildingsNamed(catalog, up.name), up.level, up.rank);
+    if (up) greatBuildings.leveled(up.owner, catalog.greatBuildingIdsNamed(up.name), up.level, up.rank);
   });
 
   // debt: own city ignores placeBuilding, removeBuilding and moveEntity. ceiling: own city is stale after building
-  // changes until reload. upgrade: handle them with the first feature that reads the own city (phase 3).
+  // changes until reload. upgrade: handle them once recordings of placeBuilding, removeBuilding and moveEntity exist.
 }

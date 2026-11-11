@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from 'vitest';
 import { attackWarningFeature } from '../src/content/features/attack-warning';
-import type { PlayerObservation } from '../src/content/stores/players';
+import type { PlayerObservation } from '../src/content/model/player';
 import { eraId, playerId, worldId } from '../src/shared/ids';
 import { featureContext } from './helpers/feature-context';
 
@@ -66,7 +66,7 @@ describe('attack warning', () => {
   it('goes when another army window opens and comes back for the next marked opponent', () => {
     const { ctx, cover } = setup();
     ctx.bus.emit('army.target', { opponent: playerId(111) });
-    ctx.bus.emit('army.opened', { battleType: 'pvp' });
+    ctx.bus.emit('army.opened', { kind: 'pvp' });
     expect(cover()).toBeNull();
     ctx.bus.emit('army.target', { opponent: playerId(111) });
     expect(cover()).not.toBeNull();

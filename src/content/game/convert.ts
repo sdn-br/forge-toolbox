@@ -25,6 +25,7 @@ import type {
   Session,
 } from '../../shared/model';
 import { SECOND_MS } from '../../shared/time';
+import type { ArmyBattleKind } from '../core/events';
 import type { LimitedBonus } from '../model/bonus';
 import type { CityGrid, UnitType } from '../model/catalog';
 import type {
@@ -37,11 +38,11 @@ import type {
   ExpansionOffer,
   GreatBuildingBonus,
   Product,
+  VisitInfo,
 } from '../model/city';
 import type { GreatBuildingEntity, PlaceReward, RankingRow } from '../model/great-building';
+import type { ListedPlayer, PlayerObservation } from '../model/player';
 import type { ResearchExpansion } from '../model/research';
-import type { VisitInfo } from '../stores/cities';
-import type { ListedPlayer, PlayerObservation } from '../stores/players';
 import type {
   GameArmyContext,
   GameBattle,
@@ -51,6 +52,8 @@ import type {
   GameCityMap,
   GameCityMapArea,
   GameCityProtection,
+  GameEntityIcon,
+  GameEra,
   GameEvent,
   GameGreatBuildingConstruction,
   GameGreatBuildingListRow,
@@ -68,6 +71,7 @@ import type {
   GameRankingList,
   GameResearchProgress,
   GameResearchTechnology,
+  GameStartup,
   GameState,
   GameTileset,
   GameUnitType,
@@ -432,6 +436,33 @@ export function toVisitInfo(p: GamePlayer): VisitInfo {
   };
 }
 
+/** Display names of the goods by id, from the `goodsList` of the startup data. */
+export function toGoodsNames(startup: GameStartup): Record<string, string> {
+  const goods: Record<string, string> = {};
+  for (const g of startup.goodsList ?? []) if (g.id && g.name) goods[g.id] = g.name;
+  return goods;
+}
+
+/** The buildings the game marks with the Double Loot icon (`showEntityIcons`). */
+export function doubledLootIds(data: unknown): number[] {
+  return list<GameEntityIcon>(data).flatMap((icon) =>
+    icon.type === 'citymap_icon_plunder_and_pillage' && typeof icon.id === 'number' ? [icon.id] : [],
+  );
+}
+
+/** The buildings a production result brings in their new state, to be read like `CityMapService.updateEntity`. */
+export const updatedEntities = (data: unknown): unknown =>
+  (data as { updatedEntities?: unknown } | null)?.updatedEntities;
+
+/** The eras of the metadata file `research_eras`; an entry without an id is skipped. */
+export function toEras(json: unknown): { id: EraId; name: string }[] {
+  return list<GameEra>(json).flatMap((e) => (e.era ? [{ id: eraId(e.era), name: e.name ?? e.era }] : []));
+}
+
+/** The game's own sum of Forge points in packages: `[108198]`. */
+export const toPackageForgePoints = (data: unknown): number | undefined =>
+  num(Array.isArray(data) ? data[0] : undefined);
+
 export function toSession(world: WorldId, u: GameUserData | undefined): Session | null {
   if (typeof u?.player_id !== 'number') return null;
   return {
@@ -519,12 +550,14 @@ export function toBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: Game
   };
 }
 
-/** The battle type the army window is opened for, from the request of getArmyInfo. */
-export function armyBattleType(request: unknown): string | undefined {
+/** What the army window is opened for, from the request of getArmyInfo; undefined when the request names no type. */
+export function armyBattleKind(request: unknown): ArmyBattleKind | undefined {
   const context = list(request).find(
     (r): r is GameArmyContext => (r as GameArmyContext | null)?.__class__ === 'ArmyContext',
   );
-  return typeof context?.battleType === 'string' ? context.battleType : undefined;
+  const type = context?.battleType;
+  if (typeof type !== 'string') return undefined;
+  return type === 'pvp' ? 'pvp' : type === 'pvp_arena' ? 'pvpArena' : 'other';
 }
 
 /** The loot of a successful plunder; other results are unknown and give null. */
@@ -720,6 +753,12 @@ interface RowKey {
   required: number;
 }
 
+/**
+ * The session player (`except`) is left out of what the lists tell: its own rows and entry say nothing new. Every
+ * great building list converter takes the rule from here.
+ */
+const isExcepted = (owner: number, except?: PlayerId): boolean => owner === except;
+
 /** The key of a row; null when building, owner, level or costs are missing, or when the owner is `except`. */
 function rowKey(
   fields: { entityId: unknown; owner: unknown; level: unknown; required: unknown; def: string | undefined },
@@ -733,7 +772,7 @@ function rowKey(
   if (entityId === undefined || owner === undefined || level === undefined || required === undefined || !def) {
     return null;
   }
-  if (owner === except) return null;
+  if (isExcepted(owner, except)) return null;
   return { owner: playerId(owner), entityId, cityEntityId: buildingDefId(def), level, required };
 }
 
@@ -774,11 +813,27 @@ export function toListedPlayers(data: unknown, except?: PlayerId): ListedPlayer[
     list<GameGreatBuildingListRow | null>(data).flatMap((r) => {
       const id = num(r?.player?.player_id);
       const name = r?.player?.name;
-      if (id === undefined || id === except || typeof name !== 'string' || name === '') return [];
+      if (id === undefined || isExcepted(id, except) || typeof name !== 'string' || name === '') return [];
       const avatar = r?.player?.avatar;
       return [{ id: playerId(id), name, ...(typeof avatar === 'string' && avatar !== '' && { avatar }) }];
     }),
   );
+}
+
+/** What a great building list (getOtherPlayerOverview, getContributions) tells: the building names, the owners, the rows. */
+export interface GreatBuildingList {
+  names: Record<string, string>;
+  /** the owners of all rows, also of those without costs that `rows` drops */
+  owners: ListedPlayer[];
+  rows: GreatBuildingListRow[];
+}
+
+export function toGreatBuildingList(data: unknown, except?: PlayerId): GreatBuildingList {
+  return {
+    names: toGreatBuildingNames(data),
+    owners: toListedPlayers(data, except),
+    rows: toGreatBuildingListRows(data, except),
+  };
 }
 
 /** Each owner once, in the order of first appearance; a later entry of the same player replaces the earlier one. */

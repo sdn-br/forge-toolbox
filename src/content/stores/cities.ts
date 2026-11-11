@@ -1,14 +1,7 @@
 import type { PlayerId } from '../../shared/ids';
 import type { CityKey } from '../../shared/model';
 import type { ToolboxBus } from '../core/events';
-import type { Building, City } from '../model/city';
-
-/** What the visit tells about the relation to the visited player at that moment. */
-export interface VisitInfo {
-  neighbor: boolean;
-  friend: boolean;
-  guildMember: boolean;
-}
+import type { Building, City, VisitInfo } from '../model/city';
 
 export interface VisitedCity extends City {
   visit: VisitInfo;

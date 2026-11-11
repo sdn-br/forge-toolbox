@@ -4,6 +4,9 @@ import type { BuildingDefId, PlayerId } from '../../shared/ids';
 import type { CityKey, PlayerSource, PvpMarkKind, Session } from '../../shared/model';
 import { EventBus } from './bus';
 
+/** what the army window is opened for: a battle against a player's city, the arena, or anything else */
+export type ArmyBattleKind = 'pvp' | 'pvpArena' | 'other';
+
 export interface ToolboxEvents {
   'session.started': { session: Session };
   /** `source` is where the data came from, or `mark` when the player put a star on a player or took it away */
@@ -39,7 +42,7 @@ export interface ToolboxEvents {
   /** new city shields of these players */
   'shield.recorded': { players: PlayerId[] };
   /** the game opened the army window before a battle; the opponent is not known yet */
-  'army.opened': { battleType: string };
+  'army.opened': { kind: ArmyBattleKind };
   /** the page module read the opponent of the open pvp army window from the game engine; may never come */
   'army.target': { opponent: PlayerId };
   /** the army window of the last `army.target` no longer shows, read from the game engine; may never come */
