@@ -115,6 +115,27 @@ describe('sabotage view model', () => {
     ]);
   });
 
+  it('gives a plundered good the name of its era', () => {
+    const catalog = new CatalogStore(createBus());
+    catalog.setResourceNames({ wine: 'Wein' });
+    catalog.setGoodEras({ wine: eraId('BronzeAge') });
+    catalog.setEras([{ id: eraId('BronzeAge'), name: 'Bronzezeit' }]);
+    const vm = sabotageViewModel({
+      city,
+      player: undefined,
+      lookups,
+      assessment: { ...assessment, plunderable: [{ building: 1, name: 'Haus', resources: { wine: 5, money: 20 } }] },
+      catalog,
+      showArmy: false,
+      now,
+      record: {},
+    });
+    expect(vm.plunderable[0]?.items).toEqual([
+      { label: 'Wein', amount: 5, era: 'Bronzezeit' },
+      { label: 'Münzen', amount: 20 },
+    ]);
+  });
+
   it('gives the plunderable buildings and the last plunder the image of their building once it is known', () => {
     const catalog = new CatalogStore(createBus());
     catalog.add({
@@ -200,6 +221,8 @@ describe('sabotage view model', () => {
   it('shows the last own plunder here with building, loot and Double Loot, and the totals', () => {
     const catalog = new CatalogStore(createBus());
     catalog.setResourceNames({ marble: 'Marmor' });
+    catalog.setGoodEras({ marble: eraId('BronzeAge') });
+    catalog.setEras([{ id: eraId('BronzeAge'), name: 'Bronzezeit' }]);
     catalog.add({ id: buildingDefId('R_IronAge_Residential2'), name: 'Strohdachhaus' } as BuildingDef);
     const last: Plunder = {
       world: city.world,
@@ -228,6 +251,7 @@ describe('sabotage view model', () => {
         outcome: 'plundered',
         building: 'Strohdachhaus',
         loot: ['30 Marmor', '2 Forge-Punkte'],
+        lootTip: '30 Marmor (Bronzezeit)\n2 Forge-Punkte',
         doubleLoot: true,
       },
       totals: '3 Plünderungen, 9 FP',

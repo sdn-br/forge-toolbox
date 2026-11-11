@@ -124,7 +124,7 @@ export interface GameUserData {
 export interface GameStartup {
   user_data?: GameUserData;
   city_map?: GameCityMap;
-  goodsList?: { id?: string; name?: string }[];
+  goodsList?: { id?: string; name?: string; era?: string }[];
 }
 
 export interface GameEra {

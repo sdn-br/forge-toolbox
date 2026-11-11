@@ -73,6 +73,20 @@ describe('game handlers', () => {
     expect(events).toEqual(['ownReset']);
   });
 
+  it('names the goods and knows their era from the startup data', () => {
+    const { catalog, send } = setup();
+    send('StartupService', 'getData', {
+      user_data: { player_id: 7 },
+      goodsList: [
+        { id: 'wine', name: 'Wein', era: 'BronzeAge' },
+        { id: 'money', name: 'Münzen' },
+      ],
+    });
+    expect(catalog.resourceName('wine')).toBe('Wein');
+    expect(catalog.goodEraName('wine')).toBe('BronzeAge');
+    expect(catalog.goodEraName('money')).toBeUndefined();
+  });
+
   it('takes the buildings in their new state from a harvest and a production start', () => {
     const { cities, send } = setup();
     send('StartupService', 'getData', {

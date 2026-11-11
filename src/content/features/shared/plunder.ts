@@ -14,6 +14,8 @@ export interface PlunderVm {
   building: string;
   /** one line per resource, "1.220 Münzen"; empty when repelled */
   loot: string[];
+  /** the loot again with the era of each good, "5 Wein (Bronzezeit)", for the tooltip; missing without a known era */
+  lootTip?: string;
   doubleLoot: boolean;
   /** the game's Double Loot mark, shown beside the building; missing while the index is not known */
   doubleLootIcon?: string;
@@ -25,6 +27,8 @@ export interface PlunderVm {
 export interface PlunderLookups {
   building: (id: BuildingDefId) => string | undefined;
   resourceName: (id: string) => string | undefined;
+  /** the name of a good's era, from the catalog */
+  goodEra?: (id: string) => string | undefined;
   /** the URL of a game image on the Inno CDN, once the index is known */
   assetUrl?: (path: string) => string | undefined;
   /** the URL of a building's image on the Inno CDN, once the catalog and the index know it */
@@ -35,11 +39,15 @@ export interface PlunderLookups {
 export function plunderVm(p: Plunder, input: PlunderLookups): PlunderVm {
   const icon = p.doubleLoot ? input.assetUrl?.(DOUBLE_LOOT_ICON_PATH) : undefined;
   const image = p.cityEntityId && input.buildingImage?.(p.cityEntityId);
+  const loot = p.outcome === 'repelled' ? [] : formatResourceLines(p.resources, input.resourceName);
+  const withEras = formatResourceLines(p.resources, input.resourceName, input.goodEra);
+  const lootTip = loot.length > 0 && withEras.some((line, i) => line !== loot[i]) ? withEras.join('\n') : undefined;
   return {
     when: formatWhen(p.at, input.now),
     outcome: p.outcome,
     building: p.cityEntityId === undefined ? '–' : (input.building(p.cityEntityId) ?? p.cityEntityId),
-    loot: p.outcome === 'repelled' ? [] : formatResourceLines(p.resources, input.resourceName),
+    loot,
+    ...(lootTip && { lootTip }),
     doubleLoot: p.doubleLoot,
     ...(icon && { doubleLootIcon: icon }),
     ...(image && { image }),

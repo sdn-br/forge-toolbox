@@ -18,9 +18,15 @@ export function resourceLabel(id: string, resourceName: ResourceName): string {
   return hasText(key) ? t(key) : (resourceName(id) ?? id);
 }
 
-/** ["1.220 Münzen", "5 Forge-Punkte"], one entry per resource in the game's order */
-export const formatResourceLines = (resources: Record<string, number>, resourceName: ResourceName) =>
-  Object.entries(resources).map(([id, amount]) => `${formatNumber(amount)} ${resourceLabel(id, resourceName)}`);
+/** The name of a good's era; undefined for other resources and unknown goods. */
+type GoodEra = (id: string) => string | undefined;
+
+/** ["1.220 Münzen", "5 Wein (Bronzezeit)"], one entry per resource in the game's order, a good with its era */
+export const formatResourceLines = (resources: Record<string, number>, resourceName: ResourceName, goodEra?: GoodEra) =>
+  Object.entries(resources).map(([id, amount]) => {
+    const era = goodEra?.(id);
+    return `${formatNumber(amount)} ${resourceLabel(id, resourceName)}${era ? ` (${era})` : ''}`;
+  });
 
 /** "1.220 Münzen, 5 Forge-Punkte" */
 export const formatResources = (resources: Record<string, number>, resourceName: ResourceName) =>

@@ -949,6 +949,17 @@ describe('sabotage feature', () => {
       expect(tip).toHaveLength(8);
     });
 
+    it('names the era of a good in the tooltip, not in the row', async () => {
+      const { text, lines, ctx } = lootCity({ wine: 5, money: 1 });
+      ctx.catalog.setResourceNames({ wine: 'Wein' });
+      ctx.catalog.setGoodEras({ wine: eraId('BronzeAge') });
+      ctx.catalog.setEras([{ id: eraId('BronzeAge'), name: 'Bronzezeit' }]);
+      ctx.cities.setVisited(withBuildings(1, [house(5, 1, 'Coins', 0, { wine: 5, money: 1 })]));
+      await tick();
+      expect(lines()[0]).toBe('5 Wein');
+      expect(text().dataset.tip?.split('\n').slice(1)).toEqual(['5 Wein (Bronzezeit)', '1 Münzen']);
+    });
+
     it('puts the loot tip on the text and the pin tip on the pin', async () => {
       const { box, text } = lootCity({ money: 1 });
       await tick();

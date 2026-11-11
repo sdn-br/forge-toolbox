@@ -443,6 +443,13 @@ export function toGoodsNames(startup: GameStartup): Record<string, string> {
   return goods;
 }
 
+/** The era of each good by id, from the `goodsList` of the startup data; a good without an era is left out. */
+export function toGoodEras(startup: GameStartup): Record<string, EraId> {
+  const eras: Record<string, EraId> = {};
+  for (const g of startup.goodsList ?? []) if (g.id && g.era) eras[g.id] = eraId(g.era);
+  return eras;
+}
+
 /** The buildings the game marks with the Double Loot icon (`showEntityIcons`). */
 export function doubledLootIds(data: unknown): number[] {
   return list<GameEntityIcon>(data).flatMap((icon) =>

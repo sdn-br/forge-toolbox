@@ -38,6 +38,13 @@ describe('plunder card', () => {
     expect(word.querySelector('p.plunder-when')?.textContent).toContain('Plünderung verdoppelt');
   });
 
+  it('puts the loot tooltip on the loot when there is one, and none without', () => {
+    const tip = '5 Wein (Bronzezeit)\n2 Forge-Punkte';
+    const loot = (root: HTMLElement) => root.querySelector<HTMLElement>('.plunder-card p:last-child');
+    expect(loot(card({ loot: ['5 Wein', '2 Forge-Punkte'], lootTip: tip }))?.dataset.tip).toBe(tip);
+    expect(loot(card({}))?.hasAttribute('data-tip')).toBe(false);
+  });
+
   it('shows no mark without Double Loot', () => {
     const root = card({ image: 'https://cdn/building.png', doubleLoot: false });
     expect(root.querySelector('.double-loot')).toBeNull();
