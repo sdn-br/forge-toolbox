@@ -221,6 +221,8 @@ describe('sabotage view model', () => {
   it('shows the last own plunder here with building, loot and Double Loot, and the totals', () => {
     const catalog = new CatalogStore(createBus());
     catalog.setResourceNames({ marble: 'Marmor' });
+    catalog.setGoodEras({ marble: eraId('BronzeAge') });
+    catalog.setEras([{ id: eraId('BronzeAge'), name: 'Bronzezeit' }]);
     catalog.add({ id: buildingDefId('R_IronAge_Residential2'), name: 'Strohdachhaus' } as BuildingDef);
     const last: Plunder = {
       world: city.world,
@@ -248,7 +250,7 @@ describe('sabotage view model', () => {
         when: 'heute 14:05',
         outcome: 'plundered',
         building: 'Strohdachhaus',
-        loot: ['30 Marmor', '2 Forge-Punkte'],
+        loot: ['30 Marmor (Bronzezeit)', '2 Forge-Punkte'],
         doubleLoot: true,
       },
       totals: '3 Plünderungen, 9 FP',

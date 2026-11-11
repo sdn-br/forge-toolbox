@@ -137,6 +137,8 @@ export interface ViewInput {
   lookups: PvpPlayerLookups;
   building: (id: BuildingDefId) => string | undefined;
   resourceName: (id: string) => string | undefined;
+  /** the name of a good's era, from the catalog */
+  goodEra?: (id: string) => string | undefined;
   /** a unit type as the battle details show it, from the catalog */
   unit: (id: string) => UnitInfo | undefined;
   /** the URL of a game image on the Inno CDN, once the index is known */

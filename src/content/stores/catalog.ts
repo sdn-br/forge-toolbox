@@ -252,9 +252,10 @@ export class CatalogStore {
     for (const [id, era] of Object.entries(eras)) this.goodEras.set(id, era);
   }
 
-  /** the era of a good; undefined for other resources and unknown goods */
-  goodEra(id: string): EraId | undefined {
-    return this.goodEras.get(id);
+  /** the name of a good's era, its id while the eras are not loaded; undefined for other resources */
+  goodEraName(id: string): string | undefined {
+    const era = this.goodEras.get(id);
+    return era && this.eraName(era);
   }
 
   /** Unit types with their names in the game's language, era and class, from the metadata file `unit_types`. */

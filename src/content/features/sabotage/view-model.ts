@@ -118,8 +118,8 @@ export function sabotageViewModel({
       ...(url && { image: url }),
       important,
       items: Object.entries(p.resources).map(([id, amount]) => {
-        const era = catalog.goodEra(id);
-        return { label: resourceLabel(id, resourceName(catalog)), amount, ...(era && { era: catalog.eraName(era) }) };
+        const era = catalog.goodEraName(id);
+        return { label: resourceLabel(id, resourceName(catalog)), amount, ...(era && { era }) };
       }),
     };
   };
@@ -150,6 +150,7 @@ export function sabotageViewModel({
         plunderVm(plunders.last, {
           building: (id) => catalog.buildingName(id),
           resourceName: resourceName(catalog),
+          goodEra: (id) => catalog.goodEraName(id),
           assetUrl: (path) => assets?.url(path),
           buildingImage: (id) => buildingImage(catalog, assets, id),
           now,

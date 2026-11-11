@@ -112,6 +112,7 @@ export const pvpFeature: Feature = {
         lookups,
         building: (id: BuildingDefId) => ctx.catalog.buildingName(id),
         resourceName: (id: string) => ctx.catalog.resourceName(id),
+        goodEra: (id: string) => ctx.catalog.goodEraName(id),
         unit: catalogUnits(ctx.catalog, ctx.assets),
         assetUrl: (path: string) => ctx.assets.url(path),
         buildingImage: (id: BuildingDefId) => buildingImage(ctx.catalog, ctx.assets, id),

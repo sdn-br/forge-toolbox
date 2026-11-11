@@ -12,7 +12,7 @@ export interface PlunderVm {
   outcome: PlunderOutcome;
   /** the catalog name, the game's id for an unknown building, "–" when the game named none */
   building: string;
-  /** one line per resource, "1.220 Münzen"; empty when repelled */
+  /** one line per resource, "1.220 Münzen", a good with its era; empty when repelled */
   loot: string[];
   doubleLoot: boolean;
   /** the game's Double Loot mark, shown beside the building; missing while the index is not known */
@@ -25,6 +25,8 @@ export interface PlunderVm {
 export interface PlunderLookups {
   building: (id: BuildingDefId) => string | undefined;
   resourceName: (id: string) => string | undefined;
+  /** the name of a good's era, from the catalog */
+  goodEra?: (id: string) => string | undefined;
   /** the URL of a game image on the Inno CDN, once the index is known */
   assetUrl?: (path: string) => string | undefined;
   /** the URL of a building's image on the Inno CDN, once the catalog and the index know it */
@@ -39,7 +41,7 @@ export function plunderVm(p: Plunder, input: PlunderLookups): PlunderVm {
     when: formatWhen(p.at, input.now),
     outcome: p.outcome,
     building: p.cityEntityId === undefined ? '–' : (input.building(p.cityEntityId) ?? p.cityEntityId),
-    loot: p.outcome === 'repelled' ? [] : formatResourceLines(p.resources, input.resourceName),
+    loot: p.outcome === 'repelled' ? [] : formatResourceLines(p.resources, input.resourceName, input.goodEra),
     doubleLoot: p.doubleLoot,
     ...(icon && { doubleLootIcon: icon }),
     ...(image && { image }),

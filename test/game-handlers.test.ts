@@ -83,8 +83,8 @@ describe('game handlers', () => {
       ],
     });
     expect(catalog.resourceName('wine')).toBe('Wein');
-    expect(catalog.goodEra('wine')).toBe('BronzeAge');
-    expect(catalog.goodEra('money')).toBeUndefined();
+    expect(catalog.goodEraName('wine')).toBe('BronzeAge');
+    expect(catalog.goodEraName('money')).toBeUndefined();
   });
 
   it('takes the buildings in their new state from a harvest and a production start', () => {

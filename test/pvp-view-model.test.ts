@@ -171,6 +171,19 @@ describe('pvp view model', () => {
     expect(battlePanelVm(battle(2, 1002), base).guild).toBeUndefined();
   });
 
+  it('names the era of a plundered good in the panel', () => {
+    const input: ViewInput = {
+      ...base,
+      resourceName: (id) => (id === 'wine' ? 'Wein' : undefined),
+      goodEra: (id) => (id === 'wine' ? 'Bronzezeit' : undefined),
+    };
+    const p = plunder(1001, { resources: { wine: 5, money: 20 } });
+    expect(battlePanelVm({ ...battle(1, 1001), plunder: p }, input).plunder?.loot).toEqual([
+      '5 Wein (Bronzezeit)',
+      '20 Münzen',
+    ]);
+  });
+
   it('names the building of the plunder in the panel, unknown by its id, none by a dash', () => {
     const plunderOf = (p: Plunder) => battlePanelVm({ ...battle(1, 1001), plunder: p }, base).plunder;
     expect(plunderOf(plunder(1001, { cityEntityId: buildingDefId('R_Unknown') }))).toEqual({
