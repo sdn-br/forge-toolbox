@@ -105,7 +105,7 @@ export interface CommonFilter {
 export interface RowBuilding {
   owner: PlayerId;
   entityId: number;
-  cityEntityId: BuildingDefId;
+  def: BuildingDefId;
   level: number;
   invested: number;
   required: number;
@@ -132,7 +132,7 @@ const guildName = (guild: { name: string } | undefined) => (guild ? { ownerGuild
 export const rowNames = (input: GbLookups, b: RowBuilding): RowNames => ({
   ownerName: input.playerName(b.owner) ?? String(b.owner),
   ...guildName(input.playerGuild(b.owner)),
-  name: input.greatBuildingName(b.cityEntityId) ?? b.cityEntityId,
+  name: input.greatBuildingName(b.def) ?? b.def,
   reasons: reasonsOf(input.relations(b.owner), input.friendInvited(b.owner)),
   marked: input.isMarked(b.owner, b.entityId),
   ownerMarked: input.playerMarked(b.owner) === true,

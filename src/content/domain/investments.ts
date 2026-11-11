@@ -15,7 +15,7 @@ export type InvestmentStatus = 'safe' | 'unsafe' | 'unknown';
 export interface Investment {
   owner: PlayerId;
   entityId: number;
-  cityEntityId: BuildingDefId;
+  def: BuildingDefId;
   level: number;
   rank: number;
   /** own deposit */
@@ -102,14 +102,14 @@ export function myInvestments(
   const rows = buildings.flatMap<Investment>((b) => {
     const c = b.contribution;
     if (!c) return [];
-    const gross = plusPercent(c.reward, arcBonusAt(arc, greatBuilding(b.cityEntityId), b.level, tiers));
+    const gross = plusPercent(c.reward, arcBonusAt(arc, greatBuilding(b.def), b.level, tiers));
     const rest = Math.max(0, b.required - b.invested);
     const growth = b.growthBase !== undefined && b.growthBase < b.invested ? b.invested - b.growthBase : undefined;
     return [
       {
         owner: b.owner,
         entityId: b.entityId,
-        cityEntityId: b.cityEntityId,
+        def: b.def,
         level: b.level,
         rank: c.rank,
         forgePoints: c.forgePoints,

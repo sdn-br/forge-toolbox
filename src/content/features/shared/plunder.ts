@@ -38,14 +38,14 @@ export interface PlunderLookups {
 
 export function plunderVm(p: Plunder, input: PlunderLookups): PlunderVm {
   const icon = p.doubleLoot ? input.assetUrl?.(DOUBLE_LOOT_ICON_PATH) : undefined;
-  const image = p.cityEntityId && input.buildingImage?.(p.cityEntityId);
+  const image = p.def && input.buildingImage?.(p.def);
   const loot = p.outcome === 'repelled' ? [] : formatResourceLines(p.resources, input.resourceName);
   const withEras = formatResourceLines(p.resources, input.resourceName, input.goodEra);
   const lootTip = loot.length > 0 && withEras.some((line, i) => line !== loot[i]) ? withEras.join('\n') : undefined;
   return {
     when: formatWhen(p.at, input.now),
     outcome: p.outcome,
-    building: p.cityEntityId === undefined ? '–' : (input.building(p.cityEntityId) ?? p.cityEntityId),
+    building: p.def === undefined ? '–' : (input.building(p.def) ?? p.def),
     loot,
     ...(lootTip && { lootTip }),
     doubleLoot: p.doubleLoot,

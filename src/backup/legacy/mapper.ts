@@ -136,7 +136,7 @@ function mapAttacks(rows: unknown[], profile: Profile, out: Collected) {
         opponent: playerId(opponent),
         outcome: type === LOOTED ? 'plundered' : 'repelled',
         ...(entityId !== undefined && { entityId }),
-        ...(building && { cityEntityId: buildingDefId(building) }),
+        ...(building && { def: buildingDefId(building) }),
         resources: type === LOOTED ? resources(row.resources) : {},
         doubleLoot: type === LOOTED && row.doubleLoot === true,
       });
@@ -191,7 +191,7 @@ function mapEvents(rows: unknown[], profile: Profile, out: Collected) {
     const building = str(row.entityid);
     out.incoming.push(
       plunder
-        ? { ...base, kind: 'plunder', key, ...(building && { cityEntityId: buildingDefId(building) }) }
+        ? { ...base, kind: 'plunder', key, ...(building && { def: buildingDefId(building) }) }
         : // the game's battle id is unknown: the negative event id stands in and never meets one
           { ...base, kind: 'battle', key: -key },
     );

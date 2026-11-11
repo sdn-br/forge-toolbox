@@ -76,7 +76,7 @@ describe('great buildings from the ranking window', () => {
       world: expect.anything(),
       owner: playerId(2001),
       entityId: 3475,
-      cityEntityId: buildingDefId('X_FutureEra_Landmark1'),
+      def: buildingDefId('X_FutureEra_Landmark1'),
       level: 137,
       // `points` is missing at 0
       invested: 0,
@@ -168,7 +168,7 @@ describe('great buildings from the ranking window', () => {
           ...row,
           player: { ...row.player, player_id: opened.owner },
           entityId: opened.entityId,
-          cityEntityId: opened.cityEntityId,
+          cityEntityId: opened.def,
           level: opened.level + 1,
           points: 7,
         },
@@ -206,7 +206,7 @@ describe('the tier of a building', () => {
           ...row,
           player: { ...row.player, player_id: opened.owner },
           entityId: opened.entityId,
-          cityEntityId: opened.cityEntityId,
+          cityEntityId: opened.def,
           level: opened.level,
           points: opened.invested,
         },
@@ -222,7 +222,7 @@ describe('the tier of a building', () => {
       responseData: [
         {
           entity_id: opened.entityId,
-          city_entity_id: opened.cityEntityId,
+          city_entity_id: opened.def,
           name: 'x',
           level: opened.level,
           current_progress: opened.invested + 5,

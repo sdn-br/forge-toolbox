@@ -10,7 +10,7 @@ const share = (s: OwnerShare) => s;
 const hit = (ownerShare: OwnerShare, over: Partial<SnipeHit> = {}): SnipeHit => ({
   owner: playerId(1001),
   entityId: 1,
-  cityEntityId: buildingDefId('X_HighMiddleAge_Landmark1'),
+  def: buildingDefId('X_HighMiddleAge_Landmark1'),
   level: 50,
   invested: 400,
   required: 800,

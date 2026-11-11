@@ -94,7 +94,7 @@ describe('recording attacks on the own city', () => {
       key: 9004,
       at: NOW,
       attacker: 1004,
-      cityEntityId: 'R_VirtualFuture_Residential4',
+      def: 'R_VirtualFuture_Residential4',
     });
     expect(recorded).toEqual([1004]);
   });
@@ -151,7 +151,7 @@ describe('queries of attacks on the own city', () => {
     for (const a of [
       attack(1, 100),
       attack(2, 300, 1002, { defense: 'held' }),
-      attack(9, 200, 1003, { kind: 'plunder', defense: undefined, cityEntityId: buildingDefId('R_X') }),
+      attack(9, 200, 1003, { kind: 'plunder', defense: undefined, def: buildingDefId('R_X') }),
       attack(3, 250, 1003, { defense: 'held' }),
     ]) {
       incoming.record(a);

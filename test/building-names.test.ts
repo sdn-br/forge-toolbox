@@ -334,8 +334,8 @@ describe('building definition files in the service worker', () => {
     const world = worldId('de10');
     const opponent = playerId(7);
     await db.plunders.bulkPut([
-      { world, opponent, at: 1, cityEntityId: HERO } as Plunder,
-      { world, opponent, at: 2, cityEntityId: buildingDefId('P_Cached') } as Plunder,
+      { world, opponent, at: 1, def: HERO } as Plunder,
+      { world, opponent, at: 2, def: buildingDefId('P_Cached') } as Plunder,
       { world, opponent, at: 3 } as Plunder,
     ]);
     await db.incoming.put({
@@ -343,13 +343,13 @@ describe('building definition files in the service worker', () => {
       kind: 'plunder',
       key: 1,
       at: 4,
-      cityEntityId: buildingDefId('G_Own'),
+      def: buildingDefId('G_Own'),
     } as IncomingAttack);
     await db.greatBuildings.put({
       world,
       owner: opponent,
       entityId: 5,
-      cityEntityId: buildingDefId('X_Landmark'),
+      def: buildingDefId('X_Landmark'),
     } as KnownGreatBuilding);
     await loader.save([{ id: buildingDefId('P_Cached'), url: url('P_Cached', 'c'), json: file('P_Cached', 'C') }]);
     expect((await loader.missing()).sort()).toEqual(['G_Own', HERO, 'X_Landmark']);

@@ -20,7 +20,7 @@ const building = (over: Partial<KnownGreatBuilding> = {}): KnownGreatBuilding =>
   world,
   owner: playerId(2001),
   entityId: 1,
-  cityEntityId: 'X_Test_Landmark1' as BuildingDefId,
+  def: 'X_Test_Landmark1' as BuildingDefId,
   level: 10,
   invested: 190,
   required: 240,
@@ -308,13 +308,13 @@ describe('relation and filters of the own investments', () => {
     const safe = building({
       owner: playerId(2001),
       entityId: 1,
-      cityEntityId: 'X_Test_Alpha' as BuildingDefId,
+      def: 'X_Test_Alpha' as BuildingDefId,
       contribution: { rank: 1, forgePoints: 150, reward: 200, at: 1 },
     });
     const unknown = building({
       owner: playerId(2002),
       entityId: 2,
-      cityEntityId: 'X_Test_Beta' as BuildingDefId,
+      def: 'X_Test_Beta' as BuildingDefId,
       invested: 1000,
       required: 2000,
       contribution: { rank: 2, forgePoints: 80, reward: 60, at: 1 },
@@ -322,7 +322,7 @@ describe('relation and filters of the own investments', () => {
     const unsafe = withRankings(counterRankings, {
       owner: playerId(2003),
       entityId: 3,
-      cityEntityId: 'X_Test_Gamma' as BuildingDefId,
+      def: 'X_Test_Gamma' as BuildingDefId,
       contribution: { rank: 1, forgePoints: 100, reward: 110, at: 1 },
     });
     return [safe, unknown, unsafe];

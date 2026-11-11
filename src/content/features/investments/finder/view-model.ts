@@ -120,14 +120,14 @@ export function finderRows(input: FinderRowsInput): FinderRows {
   const { filter, buildings } = input;
   const from = bound(filter.levelFrom) ?? Number.NEGATIVE_INFINITY;
   const to = bound(filter.levelTo) ?? Number.POSITIVE_INFINITY;
-  const defs = [...new Set(buildings.map((b) => b.cityEntityId))];
+  const defs = [...new Set(buildings.map((b) => b.def))];
   const types = defs
     .map((def) => ({ def, name: input.greatBuildingName(def) ?? def }))
     .sort((a, b) => a.name.localeCompare(b.name, 'de'));
   const rows: Named[] = buildings
     .filter(
       (b) =>
-        (filter.type === '' || b.cityEntityId === filter.type) &&
+        (filter.type === '' || b.def === filter.type) &&
         b.level >= from &&
         b.level <= to &&
         (b.invested > 0 ? filter.progress.started : filter.progress.notStarted),

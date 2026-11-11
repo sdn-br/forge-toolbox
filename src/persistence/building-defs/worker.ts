@@ -46,9 +46,9 @@ export function buildingDefsHandlers(
     }),
     'buildingDefs.missing': async () => {
       const ids = new Set<string>();
-      await db.plunders.each((p) => p.cityEntityId && ids.add(p.cityEntityId));
-      await db.incoming.each((a) => a.cityEntityId && ids.add(a.cityEntityId));
-      await db.greatBuildings.each((b) => ids.add(b.cityEntityId));
+      await db.plunders.each((p) => p.def && ids.add(p.def));
+      await db.incoming.each((a) => a.def && ids.add(a.def));
+      await db.greatBuildings.each((b) => ids.add(b.def));
       const cached = new Set(await db.buildingDefFiles.toCollection().primaryKeys());
       return { ids: [...ids].filter((id) => !cached.has(id)) };
     },

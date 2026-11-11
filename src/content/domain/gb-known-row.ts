@@ -22,7 +22,7 @@ export function knownRowOf(open: Construction, world: WorldId, at: number): Know
     world,
     owner: open.owner,
     entityId: open.entityId,
-    cityEntityId: entity.def,
+    def: entity.def,
     level: entity.level,
     invested: entity.invested,
     required: entity.required,

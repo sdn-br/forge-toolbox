@@ -2,6 +2,7 @@ import type Dexie from 'dexie';
 import { relinkPvp } from '../persistence/pvp/worker';
 import type { PlayerId, WorldId } from '../shared/ids';
 import type { Battle, Plunder } from '../shared/model';
+import { renameCityEntityId } from '../shared/rename-def';
 
 /** The whole version history lives here; the domains in src/persistence only bring their tables. */
 export function defineVersions(db: Dexie): void {
@@ -66,4 +67,17 @@ export function defineVersions(db: Dexie): void {
   db.version(15).stores({
     buildingDefFiles: 'id',
   });
+  // the building definition of a plunder, an incoming plunder and a known great building is called `def` everywhere in
+  // the model, as in `Building.def`; it was `cityEntityId`. No index names it, so the schema stays and the upgrade
+  // renames the field of the stored rows
+  db.version(16)
+    .stores({})
+    .upgrade(async (tx) => {
+      for (const name of ['plunders', 'incoming', 'greatBuildings']) {
+        await tx
+          .table(name)
+          .toCollection()
+          .modify((row: Record<string, unknown>) => renameCityEntityId(row));
+      }
+    });
 }

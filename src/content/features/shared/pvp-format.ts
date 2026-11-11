@@ -56,7 +56,7 @@ export const formatIncomingTotals = ({ battles, held, plunders }: IncomingTotals
 export function formatIncoming(a: IncomingAttack, building: (id: BuildingDefId) => string | undefined): string {
   // the old toolbox did not keep the outcome of a battle on the own city
   if (a.kind === 'battle') return t(a.defense ? `incoming.${a.defense}` : 'incoming.battle');
-  const id = a.cityEntityId;
+  const id = a.def;
   return t('incoming.plunder', { building: id === undefined ? '–' : (building(id) ?? id) });
 }
 

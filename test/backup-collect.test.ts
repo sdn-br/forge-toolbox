@@ -32,7 +32,7 @@ const building = (owner: number, entityId: number, change: Partial<KnownGreatBui
   world: de20,
   owner: playerId(owner),
   entityId,
-  cityEntityId: buildingDefId('X_Arc'),
+  def: buildingDefId('X_Arc'),
   level: 10,
   invested: 0,
   required: 100,

@@ -51,7 +51,7 @@ export function applyListRow(
   const sameLevel = state.level === existing.level;
   const next: KnownGreatBuilding = {
     ...withoutStaleMaxLevel(sameLevel ? kept : withoutOwnContribution(kept), state),
-    cityEntityId: state.cityEntityId,
+    def: state.def,
     level: state.level,
     invested: state.invested,
     required: state.required,

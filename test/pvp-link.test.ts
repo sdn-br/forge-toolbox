@@ -367,3 +367,31 @@ describe('a recorded battle and the plunder after it', () => {
     expect(await db.db.plunders.toArray()).toMatchObject([{ opponent: 1001, at: recorded.plunderAt }]);
   });
 });
+
+describe('database upgrade to version 16', () => {
+  it('renames cityEntityId to def in plunders, incoming attacks and great buildings', async () => {
+    const old = new Dexie('upgrade-v16');
+    old.version(15).stores({
+      battles: '[world+battleId], [world+at], [world+opponent+at], at',
+      plunders: '[world+opponent+at], [world+at], at',
+      incoming: '[world+kind+key], [world+at], [world+attacker+at], at',
+      greatBuildings: '[world+owner+entityId], [world+owner], world, seenAt',
+    });
+    await old.table('plunders').bulkPut([
+      { world, opponent: 1, at: 1, cityEntityId: 'W_X' },
+      { world, opponent: 1, at: 2, cityEntityId: undefined },
+      { world, opponent: 1, at: 3 },
+    ]);
+    await old.table('incoming').put({ world, kind: 'plunder', key: 1, at: 1, attacker: 2, cityEntityId: 'W_Y' });
+    await old.table('greatBuildings').put({ world, owner: 3, entityId: 4, cityEntityId: 'X_Arc', seenAt: 1 });
+    old.close();
+    const db = openDb('upgrade-v16');
+    expect(await db.plunders.orderBy('at').toArray()).toEqual([
+      { world, opponent: 1, at: 1, def: 'W_X' },
+      { world, opponent: 1, at: 2 },
+      { world, opponent: 1, at: 3 },
+    ]);
+    expect(await db.incoming.toArray()).toEqual([{ world, kind: 'plunder', key: 1, at: 1, attacker: 2, def: 'W_Y' }]);
+    expect(await db.greatBuildings.toArray()).toEqual([{ world, owner: 3, entityId: 4, def: 'X_Arc', seenAt: 1 }]);
+  });
+});

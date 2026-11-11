@@ -44,7 +44,7 @@ const plunder = (opponent: number, at: number, change: Partial<Plunder> = {}): P
   opponent: playerId(opponent),
   outcome: 'plundered',
   entityId: 350,
-  cityEntityId: buildingDefId('R_IronAge_Residential2'),
+  def: buildingDefId('R_IronAge_Residential2'),
   resources: { strategy_points: 4 },
   doubleLoot: false,
   ...change,
@@ -500,7 +500,7 @@ describe('sabotage feature', () => {
     const { ctx, box } = setup();
     ctx.plunders.record(plunder(1, Date.now() - 1000));
     ctx.plunders.record(
-      plunder(1, Date.now(), { outcome: 'repelled', entityId: undefined, cityEntityId: undefined, resources: {} }),
+      plunder(1, Date.now(), { outcome: 'repelled', entityId: undefined, def: undefined, resources: {} }),
     );
     ctx.cities.setVisited(city(1));
     await vi.waitFor(() => expect(box.text).toContain('1 Plünderung, 1 abgewehrt, 4 FP'));
