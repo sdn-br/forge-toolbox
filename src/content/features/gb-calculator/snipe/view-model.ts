@@ -133,7 +133,7 @@ const sortKey: Record<SnipeColumn, (r: Built) => number | string | undefined> = 
 export function snipeViewModel(input: SnipeInput): SnipeVm {
   const { list, result } = input;
   if (!list || !result) return { kind: 'none' };
-  const name = (h: SnipeHit) => input.greatBuildingName(h.cityEntityId) ?? h.cityEntityId;
+  const name = (h: SnipeHit) => input.greatBuildingName(h.def) ?? h.def;
   const places = new Map([...list.entityIds].map((id, i) => [id, i + 1]));
   const kept = result.hits.filter(
     (h) => !countsIgnored(input.isIgnored(h.owner, h.entityId), input.ownerIgnored(h.owner)),

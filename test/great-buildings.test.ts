@@ -87,7 +87,7 @@ describe('great building handlers and store', () => {
       world: 'de20',
       owner: 1001,
       entityId: 1909,
-      cityEntityId: 'X_EarlyMiddleAge_Landmark2',
+      def: 'X_EarlyMiddleAge_Landmark2',
       level: 75,
       maxLevel: 76,
       connected: true,

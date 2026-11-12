@@ -10,7 +10,7 @@ describe('pruning great buildings', () => {
     world,
     owner: playerId(1001),
     entityId,
-    cityEntityId: 'X' as KnownGreatBuilding['cityEntityId'],
+    def: 'X' as KnownGreatBuilding['def'],
     level: 5,
     invested: 100,
     required: 500,

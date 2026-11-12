@@ -32,7 +32,7 @@ const plunder = (opponent: number): Plunder => ({
   opponent: playerId(opponent),
   outcome: 'plundered',
   entityId: 350,
-  cityEntityId: buildingDefId('R_IronAge_Residential2'),
+  def: buildingDefId('R_IronAge_Residential2'),
   resources: { strategy_points: 12 },
   doubleLoot: true,
 });
@@ -245,7 +245,7 @@ describe('pvp feature', () => {
       kind: 'plunder',
       key: 2,
       defense: undefined,
-      cityEntityId: buildingDefId('R_X'),
+      def: buildingDefId('R_X'),
     });
     await vi.waitFor(() => expect(box.text).toContain('1 Angriff, 1 Plünderung'));
     expect(box.text).toContain('Plünderung: R_X');

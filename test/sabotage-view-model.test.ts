@@ -153,7 +153,7 @@ describe('sabotage view model', () => {
       opponent: city.owner,
       outcome: 'plundered',
       entityId: 7,
-      cityEntityId: buildingDefId('W_AllAge_CupBonus1'),
+      def: buildingDefId('W_AllAge_CupBonus1'),
       resources: { strategy_points: 5 },
       doubleLoot: false,
     };
@@ -230,7 +230,7 @@ describe('sabotage view model', () => {
       opponent: city.owner,
       outcome: 'plundered',
       entityId: 350,
-      cityEntityId: buildingDefId('R_IronAge_Residential2'),
+      def: buildingDefId('R_IronAge_Residential2'),
       resources: { marble: 30, strategy_points: 2 },
       doubleLoot: true,
     };
@@ -286,7 +286,7 @@ describe('sabotage view model', () => {
       last: { when: 'heute 14:05', outcome: 'repelled', building: '–', loot: [], doubleLoot: false },
       totals: '5 Plünderungen, 2 abgewehrt, 120 FP',
     });
-    const at = { ...last, entityId: 904, cityEntityId: buildingDefId('R_MultiAge_PatrickBonusSet20b') };
+    const at = { ...last, entityId: 904, def: buildingDefId('R_MultiAge_PatrickBonusSet20b') };
     const named = sabotageViewModel({
       city,
       player: undefined,
@@ -331,7 +331,7 @@ describe('sabotage view model', () => {
       ...last,
       kind: 'plunder' as const,
       defense: undefined,
-      cityEntityId: buildingDefId('R_IronAge_Residential2'),
+      def: buildingDefId('R_IronAge_Residential2'),
     };
     expect(vm({ last: plunder, totals: { battles: 0, held: 0, plunders: 1 } })?.what).toBe('Plünderung: Strohdachhaus');
     expect(vm({ totals: { battles: 0, held: 0, plunders: 0 } })).toBeUndefined();

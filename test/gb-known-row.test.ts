@@ -53,7 +53,7 @@ describe('knownRowOf', () => {
       world,
       owner: 7,
       entityId: 12,
-      cityEntityId: 'X_Gb',
+      def: 'X_Gb',
       level: 3,
       invested: 40,
       rankingsLevel: 3,

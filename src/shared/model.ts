@@ -187,7 +187,7 @@ export interface Plunder {
   outcome: PlunderOutcome;
   /** the building in the opponent's city; the game names none for a repelled plunder */
   entityId?: number;
-  cityEntityId?: BuildingDefId;
+  def?: BuildingDefId;
   /** loot as the game reports it, Double Loot already included; empty when repelled */
   resources: Record<string, number>;
   doubleLoot: boolean;
@@ -214,7 +214,7 @@ export interface IncomingAttack {
   /** battle only: whether the own defense held */
   defense?: 'held' | 'broken';
   /** plunder only: the plundered own building */
-  cityEntityId?: BuildingDefId;
+  def?: BuildingDefId;
 }
 
 /** A city shield of another player: until `expiresAt` the city cannot be attacked. */
@@ -273,7 +273,7 @@ export interface KnownGreatBuilding {
   owner: PlayerId;
   /** the building in the owner's city */
   entityId: number;
-  cityEntityId: BuildingDefId;
+  def: BuildingDefId;
   /** from the newer source, the building or a list */
   level: number;
   invested: number;
@@ -377,7 +377,7 @@ export interface BuildingDefFileData {
 export interface GreatBuildingListRow {
   owner: PlayerId;
   entityId: number;
-  cityEntityId: BuildingDefId;
+  def: BuildingDefId;
   level: number;
   invested: number;
   required: number;

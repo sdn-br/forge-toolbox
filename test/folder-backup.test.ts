@@ -4,7 +4,7 @@ import { watchBackupTables } from '../src/background/persisted';
 import { type MemoryFolder, memoryFolder } from '../src/backup/folder';
 import { FolderBackup } from '../src/backup/folder-backup';
 import { DAILY_FOLDER, dailyFileName, folderFileName } from '../src/backup/folder-files';
-import { BACKUP_FORMAT, type BackupFile, type BackupProfile } from '../src/backup/format';
+import { BACKUP_FORMAT, BACKUP_VERSION, type BackupFile, type BackupProfile } from '../src/backup/format';
 import { gzipJson } from '../src/backup/gzip';
 import { readBackupFile } from '../src/backup/import';
 import { playerId, worldId } from '../src/shared/ids';
@@ -76,7 +76,12 @@ function setup(options: { folder?: MemoryFolder | null; local?: Record<string, u
 }
 
 async function fileOf(entry: BackupProfile, createdAt = T0 - DAY): Promise<Blob> {
-  return gzipJson({ format: BACKUP_FORMAT, version: 2, createdAt, profiles: [entry] } satisfies BackupFile);
+  return gzipJson({
+    format: BACKUP_FORMAT,
+    version: BACKUP_VERSION,
+    createdAt,
+    profiles: [entry],
+  } satisfies BackupFile);
 }
 
 async function readFolderFile(folder: MemoryFolder, name: string): Promise<BackupFile | undefined> {

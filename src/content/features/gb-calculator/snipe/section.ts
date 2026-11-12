@@ -81,7 +81,7 @@ export function createSnipeSection(
       inputs &&
       snipeBuildings(listed, inputs.greatBuilding, inputs.arcBonus, inputs.tiers).map(({ building: b, result }) => ({
         entityId: b.entityId,
-        def: b.cityEntityId,
+        def: b.def,
         level: b.level,
         invested: b.invested,
         required: b.required,

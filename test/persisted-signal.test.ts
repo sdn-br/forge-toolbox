@@ -33,7 +33,7 @@ const building = (change: Partial<KnownGreatBuilding> = {}): KnownGreatBuilding 
   world: de20,
   owner: playerId(2),
   entityId: 1,
-  cityEntityId: buildingDefId('X_Arc'),
+  def: buildingDefId('X_Arc'),
   level: 10,
   invested: 0,
   required: 100,
@@ -131,7 +131,7 @@ describe('the hooks on the export tables', () => {
       building({ entityId: 3 }),
     ]);
     counted();
-    const row = { owner: playerId(2), entityId: 4, cityEntityId: buildingDefId('X_Arc'), level: 10, invested: 0 };
+    const row = { owner: playerId(2), entityId: 4, def: buildingDefId('X_Arc'), level: 10, invested: 0 };
     await handlers['greatBuildings.putContributions']({
       world: de20,
       rows: [{ ...row, required: 100, rank: 1, forgePoints: 10, reward: 5 }],

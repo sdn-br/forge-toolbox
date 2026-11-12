@@ -54,7 +54,7 @@ const plunder = (entityId: number, at: number, opp = 1001, change: Partial<Plund
   opponent: playerId(opp),
   outcome: 'plundered',
   entityId,
-  cityEntityId: buildingDefId('R_IronAge_Residential2'),
+  def: buildingDefId('R_IronAge_Residential2'),
   resources: { money: 110 },
   doubleLoot: false,
   ...change,
@@ -79,7 +79,7 @@ describe('recording plunders', () => {
       opponent,
       outcome: 'plundered',
       entityId: 350,
-      cityEntityId: 'R_IronAge_Residential2',
+      def: 'R_IronAge_Residential2',
       resources: { money: 110 },
       doubleLoot: false,
     });
@@ -91,7 +91,7 @@ describe('recording plunders', () => {
     send(doubleLoot.batch);
     expect(await plunders.latest(opponent)).toMatchObject({
       entityId: 1230,
-      cityEntityId: 'R_ProgressiveEra_Residential2',
+      def: 'R_ProgressiveEra_Residential2',
       resources: { money: 1220 },
       doubleLoot: true,
     });
@@ -165,7 +165,7 @@ describe('recording plunders', () => {
     expect(await plunders.latest(opponent)).toMatchObject({
       outcome: 'repelled',
       entityId: 904,
-      cityEntityId: 'R_MultiAge_PatrickBonusSet20b',
+      def: 'R_MultiAge_PatrickBonusSet20b',
     });
     expect(recorded).toEqual([opponent]);
   });
@@ -176,7 +176,7 @@ describe('recording plunders', () => {
     send(result, plunderRequest(1001, 904));
     const stored = await plunders.latest(opponent);
     expect(stored).toMatchObject({ outcome: 'repelled', entityId: 904 });
-    expect(stored).not.toHaveProperty('cityEntityId');
+    expect(stored).not.toHaveProperty('def');
   });
 
   it('ignores a repelled plunder unless its response names exactly one other player', async () => {

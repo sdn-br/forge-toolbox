@@ -50,7 +50,7 @@ const plunder = (opponent: number, change: Partial<Plunder> = {}): Plunder => ({
   opponent: playerId(opponent),
   outcome: 'plundered',
   entityId: 350,
-  cityEntityId: buildingDefId('R_IronAge_Residential2'),
+  def: buildingDefId('R_IronAge_Residential2'),
   resources: { money: 1220, strategy_points: 5 },
   doubleLoot: false,
   ...change,
@@ -186,7 +186,7 @@ describe('pvp view model', () => {
 
   it('names the building of the plunder in the panel, unknown by its id, none by a dash', () => {
     const plunderOf = (p: Plunder) => battlePanelVm({ ...battle(1, 1001), plunder: p }, base).plunder;
-    expect(plunderOf(plunder(1001, { cityEntityId: buildingDefId('R_Unknown') }))).toEqual({
+    expect(plunderOf(plunder(1001, { def: buildingDefId('R_Unknown') }))).toEqual({
       when: 'heute 14:05',
       outcome: 'plundered',
       building: 'R_Unknown',
@@ -194,14 +194,14 @@ describe('pvp view model', () => {
       doubleLoot: false,
     });
     expect(
-      plunderOf(plunder(1001, { outcome: 'repelled', resources: {}, entityId: undefined, cityEntityId: undefined })),
+      plunderOf(plunder(1001, { outcome: 'repelled', resources: {}, entityId: undefined, def: undefined })),
     ).toEqual({ when: 'heute 14:05', outcome: 'repelled', building: '–', loot: [], doubleLoot: false });
   });
 
   it('gives the plunder in the panel the image of its building once it is known', () => {
     const images = { ...base, buildingImage: (id: string) => (id === 'R_Unknown' ? 'https://cdn/r.png' : undefined) };
     const plunderOf = (p: Plunder) => battlePanelVm({ ...battle(1, 1001), plunder: p }, images).plunder;
-    expect(plunderOf(plunder(1001, { cityEntityId: buildingDefId('R_Unknown') }))?.image).toBe('https://cdn/r.png');
+    expect(plunderOf(plunder(1001, { def: buildingDefId('R_Unknown') }))?.image).toBe('https://cdn/r.png');
     expect(plunderOf(plunder(1001))).not.toHaveProperty('image');
   });
 
@@ -314,8 +314,8 @@ describe('pvp view model', () => {
       incoming: [
         attack(1, { defense: 'broken' }),
         attack(2, { defense: 'held', attacker: playerId(1002), at: at - 3 * DAY }),
-        attack(3, { kind: 'plunder', cityEntityId: buildingDefId('R_IronAge_Residential2') }),
-        attack(4, { kind: 'plunder', cityEntityId: buildingDefId('R_Unknown') }),
+        attack(3, { kind: 'plunder', def: buildingDefId('R_IronAge_Residential2') }),
+        attack(4, { kind: 'plunder', def: buildingDefId('R_Unknown') }),
         // from the old toolbox, without the outcome
         attack(5, {}),
       ],

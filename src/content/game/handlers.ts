@@ -270,7 +270,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
       const { opponent, entityId } = target;
       const visited = cities.visited();
       const def = visited?.owner === opponent ? visited.buildings.get(entityId)?.def : undefined;
-      plunders.record(toRepelledPlunder(world, now(), opponent, { entityId, ...(def && { cityEntityId: def }) }));
+      plunders.record(toRepelledPlunder(world, now(), opponent, { entityId, ...(def && { def }) }));
     } else if (repelled) {
       const [opponent, ...more] = updated;
       if (opponent !== undefined && more.length === 0 && me !== undefined && opponent !== me) {

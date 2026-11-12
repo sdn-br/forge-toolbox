@@ -47,7 +47,7 @@ interface KnownGreatBuilding {  // persistiert, für die Snipehilfe
   world: WorldId;
   owner: PlayerId;
   entityId: number;
-  cityEntityId: BuildingDefId;
+  def: BuildingDefId;
   level: number;                // aus der neueren Quelle (LG oder Liste)
   invested: number;             // aus der neueren Quelle
   required: number;             // aus der neueren Quelle
@@ -70,7 +70,7 @@ interface KnownGreatBuilding {  // persistiert, für die Snipehilfe
 }
 ```
 
-**GreatBuildingStore:** hält nur die gerade geöffnete Konstruktion im Speicher. Das Gebäude aus `getOtherPlayerCityMapEntity` merkt er sich, bis die Konstruktion kommt (höchstens 20 Öffnungen). Ohne Request lässt sich eine Konstruktion keinem Gebäude zuordnen und wird übergangen. Fremde LGs schreibt er bei jedem Öffnen und jeder Änderung der laufenden Stufe in die Tabelle `greatBuildings` (Dexie-Version 9, Schlüssel `[world+owner+entityId]`, Indizes `[world+owner]`, `world`, `seenAt`). Eigene LGs werden nicht gespeichert. Abfrage: `known(owner?)`.
+**GreatBuildingStore:** hält nur die gerade geöffnete Konstruktion im Speicher. Das Gebäude aus `getOtherPlayerCityMapEntity` merkt er sich, bis die Konstruktion kommt (höchstens 20 Öffnungen). Ohne Request lässt sich eine Konstruktion keinem Gebäude zuordnen und wird übergangen. Fremde LGs schreibt er bei jedem Öffnen und jeder Änderung der laufenden Stufe in die Tabelle `greatBuildings` (Dexie-Version 9, Schlüssel `[world+owner+entityId]`, Indizes `[world+owner]`, `world`, `seenAt`). Eigene LGs werden nicht gespeichert. Abfrage: `known(owner?)`. Die Kennung der Gebäudedefinition heißt im Modell `def`, wie bei `Building.def`; bis Dexie-Version 16 hieß das Feld `cityEntityId` (auch bei Plünderungen und eingehenden Plünderungen). Version 16 behält das Schema, kein Index nennt es, und benennt das Feld in den Zeilen von `plunders`, `incoming` und `greatBuildings` um. Nur das Spiel nennt es noch `cityEntityId`.
 
 ## Bekannte fremde LGs
 

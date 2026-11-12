@@ -11,7 +11,7 @@ const w = worldId('de20');
 const listRow = (entityId: number, over: Partial<GreatBuildingListRow> = {}): GreatBuildingListRow => ({
   owner,
   entityId,
-  cityEntityId: 'X' as BuildingDefId,
+  def: 'X' as BuildingDefId,
   level: 5,
   invested: 100,
   required: 500,
@@ -22,7 +22,7 @@ const opened = (entityId: number, over: Partial<KnownGreatBuilding> = {}): Known
   world: w,
   owner,
   entityId,
-  cityEntityId: 'X' as BuildingDefId,
+  def: 'X' as BuildingDefId,
   level: 5,
   invested: 100,
   required: 500,

@@ -80,7 +80,7 @@ const known = (over: Partial<KnownGreatBuilding> = {}): KnownGreatBuilding => ({
   world: worldId('de20'),
   owner: playerId(1001),
   entityId: 1,
-  cityEntityId: 'X' as KnownGreatBuilding['cityEntityId'],
+  def: 'X' as KnownGreatBuilding['def'],
   level: 5,
   invested: 100,
   required: 500,
@@ -149,7 +149,7 @@ describe('known great buildings from lists', () => {
     const row = (level: number, invested: number) => ({
       owner: playerId(1001),
       entityId: 1,
-      cityEntityId: 'X' as KnownGreatBuilding['cityEntityId'],
+      def: 'X' as KnownGreatBuilding['def'],
       level,
       invested,
       required: 500,
@@ -177,7 +177,7 @@ describe('known great buildings from lists', () => {
     const row = (level: number) => ({
       owner: playerId(1001),
       entityId: 1,
-      cityEntityId: 'X' as KnownGreatBuilding['cityEntityId'],
+      def: 'X' as KnownGreatBuilding['def'],
       level,
       invested: 100,
       required: 500,
@@ -344,7 +344,7 @@ describe('stored signal', () => {
       {
         owner: playerId(1001),
         entityId: 1,
-        cityEntityId: 'X' as KnownGreatBuilding['cityEntityId'],
+        def: 'X' as KnownGreatBuilding['def'],
         level: 1,
         invested: 0,
         required: 10,
@@ -663,7 +663,7 @@ describe('retention', () => {
 });
 
 describe('applyListRow', () => {
-  const r = { owner: playerId(1001), entityId: 1, cityEntityId: 'X' as never, level: 5, invested: 150, required: 500 };
+  const r = { owner: playerId(1001), entityId: 1, def: 'X' as never, level: 5, invested: 150, required: 500 };
   const w = worldId('de20');
 
   it('creates an entry without rankings', () => {

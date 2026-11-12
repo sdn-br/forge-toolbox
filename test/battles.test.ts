@@ -326,7 +326,7 @@ describe('database upgrade', () => {
       opponent,
       outcome: 'plundered',
       entityId: 1,
-      cityEntityId: buildingDefId('R_X'),
+      def: buildingDefId('R_X'),
       resources: {},
       doubleLoot: false,
     });

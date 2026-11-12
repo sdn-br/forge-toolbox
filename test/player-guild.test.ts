@@ -60,7 +60,7 @@ describe('investments owner cell', () => {
     const b = {
       owner: playerId(1001),
       entityId: 1,
-      cityEntityId: buildingDefId('X_Arche'),
+      def: buildingDefId('X_Arche'),
       level: 10,
       invested: 0,
       required: 100,
@@ -93,7 +93,7 @@ describe('pvp opponent name', () => {
         key: id,
         at: 0,
         attacker: playerId(id),
-        cityEntityId: buildingDefId('R_X'),
+        def: buildingDefId('R_X'),
       })),
       incomingTotals: { battles: 0, held: 0, plunders: 2 },
       from: 0,

@@ -21,7 +21,7 @@ export interface SnipePlace {
 export interface SnipeHit {
   owner: KnownGreatBuilding['owner'];
   entityId: number;
-  cityEntityId: KnownGreatBuilding['cityEntityId'];
+  def: KnownGreatBuilding['def'];
   level: number;
   invested: number;
   required: number;
@@ -76,7 +76,7 @@ export function ownerShare(b: KnownGreatBuilding): OwnerShare {
 
 export interface SnipeInput {
   buildings: KnownGreatBuilding[];
-  greatBuilding(def: KnownGreatBuilding['cityEntityId']): GreatBuildingDef | undefined;
+  greatBuilding(def: KnownGreatBuilding['def']): GreatBuildingDef | undefined;
   /** Arc bonus of the session player in percent per tier; each building takes the one of its level */
   arcBonus: ArcBonus;
   /** the tiers of great building levels; the default ones when missing */
@@ -182,7 +182,7 @@ export function snipeBuilding(
   return {
     owner: b.owner,
     entityId: b.entityId,
-    cityEntityId: b.cityEntityId,
+    def: b.def,
     level: b.level,
     invested: b.invested,
     required: b.required,
@@ -230,7 +230,7 @@ export const snipeBuildings = (
   arc: ArcBonus,
   tiers?: TierStart[],
 ): { building: KnownGreatBuilding; result: SnipeResult }[] =>
-  buildings.map((b) => ({ building: b, result: snipeBuilding(b, greatBuilding(b.cityEntityId), arc, tiers) }));
+  buildings.map((b) => ({ building: b, result: snipeBuilding(b, greatBuilding(b.def), arc, tiers) }));
 
 /** The whole list: hits by profit, the rest counted. */
 export function snipeList(input: SnipeInput): SnipeList {

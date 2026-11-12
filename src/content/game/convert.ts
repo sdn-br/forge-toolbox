@@ -603,7 +603,7 @@ export const toRepelledPlunder = (
   world: WorldId,
   at: number,
   opponent: PlayerId,
-  building?: { entityId: number; cityEntityId?: BuildingDefId },
+  building?: { entityId: number; def?: BuildingDefId },
 ): Plunder => ({
   world,
   at,
@@ -628,7 +628,7 @@ export function toPlunder(
     opponent: playerId(entity.player_id),
     outcome: 'plundered',
     entityId: entity.id,
-    cityEntityId: buildingDefId(entity.cityentity_id),
+    def: buildingDefId(entity.cityentity_id),
     resources,
     doubleLoot,
   };
@@ -650,7 +650,7 @@ export function toIncoming(world: WorldId, e: GameEvent, me: PlayerId, at: numbe
   const defense = e.type === 'battle' && e.status ? DEFENSE[e.status] : undefined;
   if (defense && typeof e.battle_id === 'number') return { ...base, kind: 'battle', key: e.battle_id, defense };
   if (e.type === 'social_interaction' && e.interaction_type === 'plunder' && typeof e.id === 'number' && e.entity_id) {
-    return { ...base, kind: 'plunder', key: e.id, cityEntityId: buildingDefId(e.entity_id) };
+    return { ...base, kind: 'plunder', key: e.id, def: buildingDefId(e.entity_id) };
   }
   return null;
 }
@@ -755,7 +755,7 @@ export function greatBuildingRequest(request: unknown): { entityId: number; owne
 interface RowKey {
   owner: PlayerId;
   entityId: number;
-  cityEntityId: BuildingDefId;
+  def: BuildingDefId;
   level: number;
   required: number;
 }
@@ -780,7 +780,7 @@ function rowKey(
     return null;
   }
   if (isExcepted(owner, except)) return null;
-  return { owner: playerId(owner), entityId, cityEntityId: buildingDefId(def), level, required };
+  return { owner: playerId(owner), entityId, def: buildingDefId(def), level, required };
 }
 
 /**
@@ -881,7 +881,7 @@ export function toGreatBuildingRanking(data: unknown, except?: PlayerId): GreatB
       invested: num(r.points) ?? 0,
       ...((tier === 'copper' || tier === 'gold') && { tier }),
     });
-    if (typeof r.name === 'string' && r.name !== '') result.names[key.cityEntityId] = r.name;
+    if (typeof r.name === 'string' && r.name !== '') result.names[key.def] = r.name;
     const p = r.player;
     if (typeof p?.name !== 'string' || p.name === '') continue;
     const guild = num(r.clan?.id);

@@ -30,7 +30,7 @@ const building = (over: Partial<KnownGreatBuilding> = {}): KnownGreatBuilding =>
   world: worldId('de20'),
   owner: playerId(1001),
   entityId: 1,
-  cityEntityId: DEF_ID,
+  def: DEF_ID,
   level: 50,
   invested: 0,
   required: 800,
@@ -90,7 +90,7 @@ const possible = building({ owner: playerId(1002), entityId: 2, level: 150, inve
 /** no place pays: 6.000 pays 1.362 on place 1, safe at 2.800 */
 const none = building({ owner: playerId(1003), entityId: 3, level: 150, invested: 400, required: 6_000 });
 /** rewards unknown */
-const unknown = building({ owner: playerId(1003), entityId: 4, cityEntityId: OTHER_DEF });
+const unknown = building({ owner: playerId(1003), entityId: 4, def: OTHER_DEF });
 
 describe('possibleInvestments', () => {
   it('rates every building of others and leaves out the own ones and those with an own contribution', () => {
