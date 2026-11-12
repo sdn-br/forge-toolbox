@@ -13,8 +13,7 @@ import { registerResources } from './resources';
 
 /**
  * The Ingestion calls the listeners of one message in registration order, so the order below is part of the behaviour.
- * It is the order the handlers had in one list before the split; where a module's handlers of one message must stay
- * behind another's, that is why it stands here:
+ * Where a module's handlers of one message must stay behind another's, that is why it stands here:
  * - `city` first: it owns the session start and the `onMain` flag that its own `updatedEntities` reading needs, and its
  *   batch end shows the own city before pvp reads the visited one.
  * - `players` before `pvp`: `updatePlayer` applies the players before the plunder bookkeeping notes who was named.
