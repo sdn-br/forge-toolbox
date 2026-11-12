@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createBus } from '../src/content/core/events';
 import { Ingestion } from '../src/content/core/ingestion';
-import { toGreatBuildingEntity } from '../src/content/game/convert';
+import { toGreatBuildingEntity } from '../src/content/game/great-buildings';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import { GreatBuildingStore } from '../src/content/stores/great-buildings';
 import { playerId, worldId } from '../src/shared/ids';

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { greatBuildingOfBuilding, toBuilding, toGreatBuildingEntity } from '../src/content/game/convert';
+import { toBuilding } from '../src/content/game/city';
 import type { GameCityEntity } from '../src/content/game/game-types';
+import { greatBuildingOfBuilding, toGreatBuildingEntity } from '../src/content/game/great-buildings';
 import { playerId } from '../src/shared/ids';
 import fixture from './fixtures/unconnected-buildings.json';
 

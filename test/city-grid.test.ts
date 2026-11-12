@@ -11,7 +11,7 @@ import {
   tileKey,
 } from '../src/content/domain/city-grid';
 import { toBuildingDef } from '../src/content/game/building-defs';
-import { toBuilding, toCity } from '../src/content/game/convert';
+import { toBuilding, toCity } from '../src/content/game/city';
 import type { GameCityEntity } from '../src/content/game/game-types';
 import type { BuildingDef } from '../src/content/model/catalog';
 import type { Building, BuildingCategory, BuildingState } from '../src/content/model/city';

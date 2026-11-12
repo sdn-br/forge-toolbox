@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Ingestion } from '../src/content/core/ingestion';
-import { toInventory } from '../src/content/game/convert';
 import { registerGameHandlers } from '../src/content/game/handlers';
+import { toInventory } from '../src/content/game/resources';
 import fixture from './fixtures/great-buildings.json';
 import { testStores } from './helpers/stores';
 
