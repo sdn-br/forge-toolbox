@@ -4,7 +4,7 @@ import type { WorldId } from '../../shared/ids';
 import type { Profile } from '../../shared/profile';
 import type { Traffic } from '../../shared/proxy-protocol';
 import { Ingestion } from '../core/ingestion';
-import { toSession } from './convert';
+import { toSession } from './city';
 import type { GameStartup } from './game-types';
 
 /** the own profile and player name, as the startup data name them */

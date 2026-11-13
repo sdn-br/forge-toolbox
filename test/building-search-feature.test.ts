@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { buildingSearchFeature } from '../src/content/features/building-search/index';
 import { cityMapFeature } from '../src/content/features/city-map/index';
 import { toBuildingDef } from '../src/content/game/building-defs';
-import { toCity } from '../src/content/game/convert';
+import { toCity } from '../src/content/game/city';
 import type { GameCityEntity } from '../src/content/game/game-types';
 import { playerId, worldId } from '../src/shared/ids';
 import ownCity from './fixtures/own-city.json';

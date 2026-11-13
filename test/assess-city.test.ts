@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { type AssessContext, assessCity } from '../src/content/domain/assess-city';
 import { toBuildingDef } from '../src/content/game/building-defs';
-import { toCity } from '../src/content/game/convert';
+import { toCity } from '../src/content/game/city';
 import type { GameCityEntity } from '../src/content/game/game-types';
 import type { BuildingDef } from '../src/content/model/catalog';
 import { type BuildingDefId, buildingDefId, eraId, playerId, worldId } from '../src/shared/ids';

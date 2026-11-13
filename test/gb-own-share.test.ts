@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { calculateOwnShare } from '../src/content/domain/gb-own-share';
-import { toRankingRows } from '../src/content/game/convert';
+import { toRankingRows } from '../src/content/game/great-buildings';
 import type { RankingRow } from '../src/content/model/great-building';
 import fixture from './fixtures/great-buildings.json';
 

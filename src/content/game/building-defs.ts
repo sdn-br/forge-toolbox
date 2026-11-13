@@ -13,7 +13,7 @@ import {
   type TierStart,
 } from '../model/catalog';
 import type { Product } from '../model/city';
-import { isGreatBuildingType } from './convert';
+import { isGreatBuildingType } from './city';
 import { isObject, list, numbers } from './json';
 
 type Json = Record<string, unknown>;

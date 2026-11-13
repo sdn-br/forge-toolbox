@@ -6,7 +6,7 @@ import {
   investmentsViewModel,
   type MineFilter,
 } from '../src/content/features/investments/mine/view-model';
-import { toGreatBuildingListRows } from '../src/content/game/convert';
+import { toGreatBuildingListRows } from '../src/content/game/great-buildings';
 import type { RankingRow } from '../src/content/model/great-building';
 import { applyListRow } from '../src/shared/great-buildings';
 import { type BuildingDefId, playerId, worldId } from '../src/shared/ids';

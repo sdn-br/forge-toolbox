@@ -9,8 +9,8 @@ import {
   profitable,
   profitablePlaces,
 } from '../src/content/domain/gb-calculator';
-import { toGreatBuildingEntity, toRankingRows } from '../src/content/game/convert';
 import type { GameCityEntity } from '../src/content/game/game-types';
+import { toGreatBuildingEntity, toRankingRows } from '../src/content/game/great-buildings';
 import type { RankingRow } from '../src/content/model/great-building';
 import { roundHalfUp } from '../src/shared/math';
 import fixture from './fixtures/great-buildings.json';

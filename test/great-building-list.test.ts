@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toGreatBuildingList } from '../src/content/game/convert';
+import { toGreatBuildingList } from '../src/content/game/great-buildings';
 import { playerId } from '../src/shared/ids';
 
 const row = (owner: number, extra: Record<string, unknown> = {}) => ({
