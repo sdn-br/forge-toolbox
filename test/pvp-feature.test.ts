@@ -4,6 +4,7 @@ import { toggleDef } from '../src/content/core/settings';
 import { OPEN_WITH_ARMY } from '../src/content/features/pvp';
 import { pvpFeature, VISIBLE_ROWS } from '../src/content/features/pvp/index';
 import { KEEP_SETTING } from '../src/content/features/pvp/retention';
+import { FOESTATS_SETTING } from '../src/content/features/shared/settings';
 import type { PlayerObservation } from '../src/content/model/player';
 import { type BattlePersistence, type BattleQuery, BattleStore } from '../src/content/stores/battles';
 import { type IncomingPersistence, IncomingStore } from '../src/content/stores/incoming';
@@ -447,6 +448,19 @@ describe('pvp feature', () => {
       expect(field(box).value).toBe('Ann');
       await tick();
       expect(lists.at(-1)?.query).toMatchObject({ opponents: [playerId(111)], offset: 0 });
+    });
+
+    it('links the names to the chosen site at once when the setting changes', async () => {
+      const { ctx, box, lists } = setup();
+      const source = ctx.settings.register(FOESTATS_SETTING);
+      ctx.players.apply(worldId('de20'), [seen(111, 'Ann')], 'visit');
+      await tick();
+      lists[0]?.resolve([battle(1, 111)]);
+      await tick();
+      await source.set('scoredb');
+      await tick();
+      const link = nameCell(box, 'Ann').querySelector('a') as HTMLAnchorElement;
+      expect(link.getAttribute('href')).toBe('https://foe.scoredb.io/DE20/Player/111');
     });
 
     it('shows three mark toggles and two sack toggles, all on', async () => {

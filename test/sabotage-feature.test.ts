@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AUTO_OPEN, SHOW_ARMY } from '../src/content/features/sabotage';
 import { sabotageFeature } from '../src/content/features/sabotage/index';
+import { FOESTATS_SETTING } from '../src/content/features/shared/settings';
 import type { BuildingDef } from '../src/content/model/catalog';
 import type { Building } from '../src/content/model/city';
 import type { PlayerObservation } from '../src/content/model/player';
@@ -195,6 +196,17 @@ describe('sabotage feature', () => {
       ['P1', 'https://foestats.com/de/de20/players/1', '_blank'],
       ['Gilde', 'https://foestats.com/de/de20/guilds/77', '_blank'],
     ]);
+  });
+
+  it('links the names to the chosen site at once when the setting changes', async () => {
+    const { ctx, box } = setup();
+    const source = ctx.settings.register(FOESTATS_SETTING);
+    ctx.players.apply(world, [observed(1, { canPlunder: false })], 'visit');
+    ctx.cities.setVisited(city(1));
+    await tick();
+    await source.set('scoredb');
+    await tick();
+    expect(box.root.querySelector('a')?.getAttribute('href')).toBe('https://foe.scoredb.io/DE20/Player/1');
   });
 
   it('marks the visited player as good to plunder next to the name and takes it away again', async () => {

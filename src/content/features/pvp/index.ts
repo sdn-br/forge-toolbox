@@ -10,6 +10,7 @@ import { rowWindow } from '../../ui/windowed-rows';
 import { catalogUnits } from '../shared/battle-details';
 import { buildingImage } from '../shared/building-image';
 import { playerLookups, playerRowActions } from '../shared/player-lookups';
+import { FOESTATS_SETTING } from '../shared/settings';
 import { createBattlesSection } from './battles/section';
 import { prunedBy, reselect } from './battles/selection';
 import { battlePanelVm } from './battles/view-model';
@@ -249,6 +250,10 @@ export const pvpFeature: Feature = {
     };
     ctx.bus.on('session.started', prune);
     keep.onChange(prune);
+    // the links of the names follow the chosen site
+    ctx.settings.onChange((key) => {
+      if (key === FOESTATS_SETTING.key) rebuild();
+    });
 
     // The game traffic names no opponent before the battle starts, so the box opens on the battles to search them
     // there. When the page module reads the opponent from the game engine, the box shows that opponent alone.
