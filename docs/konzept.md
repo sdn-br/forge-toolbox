@@ -241,7 +241,7 @@ Je Feature eine Datei mit Umfang, Entscheidungen und Annahmen. Neue Features bek
 - [LG-Finder](features/lg-finder.md): Reiter der Investitionen, sucht in allen gespeicherten fremden LGs nach Typ, Stufe und Fortschritt
 - [Einzahlwarnung](features/einzahlwarnung.md): Leiste über den Einzahlknöpfen eines fremden LGs, wenn der Besitzer oder das LG auf Ignorieren steht
 - [Doppel-FP-Sperre](features/doppel-fp-sperre.md): Leiste über der Einzahlreihe für ein paar Sekunden nach einer Einzahlung in ein fremdes LG, gegen Doppelklick
-- [foestats](features/foestats.md): Links, täglicher Verlauf, Aktivität
+- [foestats](features/foestats.md): Links, täglicher Verlauf, Aktivität, mit ScoreDB als zweiter Quelle
 - [Sicherung, Export und Import](features/sicherung.md): Export, Import, Sicherungskopie auf der Spielseite, Sicherung in einen Ordner, Altdaten-Import
 
 ## Feature-Checkliste
@@ -330,6 +330,7 @@ Querschnitt aus der FoE Toolbox, der in die passenden Features eingeht: Fenster 
 - Das Spielskript `ForgeHX-<hash>.js` vom Inno-CDN, aus dem Service Worker, einmal je Version des Spiels (siehe [Bilder vom Inno-CDN](#bilder-vom-inno-cdn)).
 - `api.foe-rechner.de` nur nach Double-Opt-In, nur über den Service Worker.
 - `api.forge-db.com` (foestats) aus dem Content Script, ohne Cookies, nur für angesehene Spieler, abschaltbar (siehe foestats). Wann gefragt wird, entscheidet der Service Worker.
+- `foe.scoredb.io` (ScoreDB) aus dem Service Worker mit der Host-Berechtigung `https://foe.scoredb.io/*`, ohne Cookies, nur für angesehene Spieler. Die Einstellung „Abfrage“ wählt zwischen foestats, ScoreDB und keiner Abfrage (siehe foestats).
 - Discord-Webhooks und eigene Server nur mit URLs, die der Nutzer einträgt.
 
 ## Bilder vom Inno-CDN

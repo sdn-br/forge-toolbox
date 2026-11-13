@@ -347,10 +347,12 @@ export interface FoestatsDay {
 }
 
 /**
- * What a request to foestats came to, as the service worker keeps it: foestats did not answer, it does not know the
- * player (or its snapshot is too thin to tell a day), or the snapshot day with the day before it when that is known.
+ * What a request to foestats or ScoreDB came to, as the service worker keeps it: the site did not answer, it does not
+ * know the player (or its answer is too thin to tell a day), or the days it reports. `days` are what the site tells
+ * (foestats: the snapshot day, ScoreDB: up to 30 days) and replace stored values of the same day; `before` is a day
+ * worked out from changes (foestats: the day before the snapshot) and only fills a gap.
  */
-export type FoestatsOutcome = 'unreachable' | 'unknown' | { day: FoestatsDay; before?: FoestatsDay };
+export type FoestatsOutcome = 'unreachable' | 'unknown' | { days: FoestatsDay[]; before?: FoestatsDay };
 
 /** The last time foestats was asked about a player. */
 export interface FoestatsFetch {

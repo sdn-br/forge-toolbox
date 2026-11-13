@@ -55,6 +55,8 @@ const dispatch = profileDispatch({
       if (!res.ok) throw new Error(`${url} answered ${res.status}`);
       return res.text();
     },
+    // the host permission for ScoreDB lets the service worker read its pages, which send no CORS headers
+    fetchPage: (url, init) => fetch(url, init),
   },
   logError,
 });

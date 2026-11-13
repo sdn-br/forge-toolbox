@@ -4,6 +4,7 @@ import { ALL_REACH } from '../../domain/reach';
 import { PLAYER_GROUP, playerPageId } from '../../stores/notes';
 import { icons } from '../../ui/icons';
 import { NoteEditor } from '../../ui/note-editor';
+import { activitySource } from '../shared/settings';
 import { notesCss } from './styles';
 import { type NotesActions, notesView } from './view';
 import { type NotesUi, type NotesVm, notesViewModel } from './view-model';
@@ -19,6 +20,7 @@ export const notesFeature: Feature = {
       notesViewModel({
         ui,
         world: ctx.world,
+        source: activitySource(ctx.settings),
         groups: notes.groups(),
         pages: notes.allPages(),
         player: (id) => ctx.players.get(id),

@@ -197,7 +197,11 @@ describe('takeover of the old store in the service worker', () => {
       open: openDb,
       watch: (_profile, db) => watchBackupTables(db, () => changes++),
       prepare: (profile, db) => adoptLegacy(profile, db, storage),
-      deps: { now: () => 1000, fetchText: async () => '' },
+      deps: {
+        now: () => 1000,
+        fetchText: async () => '',
+        fetchPage: async () => ({ ok: false, status: 503, text: async () => '' }),
+      },
       logError: vi.fn(),
     });
     expect(await dispatch({ profile: first, rpc: 'battles.summary', arg: { world: de20 } })).toMatchObject({

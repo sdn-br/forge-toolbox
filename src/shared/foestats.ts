@@ -25,7 +25,14 @@ export const foestatsPlayerUrl = (world: WorldId, player: PlayerId) =>
 export const foestatsGuildUrl = (world: WorldId, guild: GuildId) =>
   `https://foestats.com/${path(world)}/guilds/${guild}`;
 
-/** foestats takes its daily snapshot early in the morning; from this local time on, today's data counts */
+/**
+ * foestats takes its daily snapshot early in the morning; from this local time on, today's data counts. ScoreDB is
+ * asked by the same day.
+ *
+ * debt: when ScoreDB updates is unknown, it gets the 05:40 of foestats. Ceiling: a player is asked at most once per
+ * day, so an update of ScoreDB after the first view of the day shows only on the next day. Upgrade: compare the
+ * newest day of its pages (`data-startdate`) with the time of the requests and give ScoreDB its own update time.
+ */
 const UPDATE_MINUTE = 5 * 60 + 40;
 /** after foestats was unreachable, it is asked again about any player no sooner than this */
 export const RETRY_AFTER = 30 * 60_000;

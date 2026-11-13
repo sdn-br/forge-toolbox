@@ -303,7 +303,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
     next: entity.level + 1,
     maxLevel: entity.maxLevel,
     ...owner,
-    ...(foestats && { activity: activityVm(foestats, input.today) }),
+    ...(foestats && { activity: activityVm(foestats, input.today, input.activitySource) }),
     availableFp,
     fpBar: input.fpBar,
     fpPackages: input.fpPackages,

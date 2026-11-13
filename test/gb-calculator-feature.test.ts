@@ -90,7 +90,7 @@ describe('LG-Rechner', () => {
     expect(box.text).toContain('Aachener Dom St. 75 → 76');
     expect(box.text).toContain('Eigentümer: Eigentümer 1001');
     const owner = [...box.root.querySelectorAll('a')].find((a) => a.textContent === 'Eigentümer 1001');
-    expect(owner?.getAttribute('href')).toBe('https://foestats.com/de/de20/players/1001');
+    expect(owner?.getAttribute('href')).toBe('https://foe.scoredb.io/DE20/Player/1001');
     expect(owner?.target).toBe('_blank');
     expect(box.text).toContain('Arche-Bonus: 95,5 %');
     expect(box.text).toContain('Verfügbare FP: unbekannt');
@@ -650,6 +650,8 @@ describe('LG-Rechner', () => {
       vi.useFakeTimers({ toFake: ['Date'] });
       vi.setSystemTime(new Date(2026, 9, 22, 9, 0));
       const env = setup({ fetch });
+      // these tests ask foestats; the default site is ScoreDB
+      void env.ctx.settings.of(FOESTATS_SETTING).set('foestats');
       const stored = env.db.db.foestatsDays.bulkPut(
         known.map(([date, points, battles]) => ({
           world: worldId('de20'),
@@ -749,10 +751,10 @@ describe('LG-Rechner', () => {
       expect(line(box.root)?.className).toBe('gb-activity muted');
     });
 
-    it('asks nothing and hides the activity when the setting is off, but keeps the link', async () => {
+    it('asks nothing and hides the activity when no site is asked, but keeps the link to foestats', async () => {
       const fetch = foestats();
       const { box, open, ctx } = activitySetup(fetch);
-      await ctx.settings.of(FOESTATS_SETTING).set(false);
+      await ctx.settings.of(FOESTATS_SETTING).set('none');
       open(1909);
       await tick();
       await tick();
@@ -761,9 +763,9 @@ describe('LG-Rechner', () => {
       expect(box.root.querySelector('a')?.getAttribute('href')).toBe('https://foestats.com/de/de20/players/1001');
     });
 
-    it('is a setting that is on by default and tells what it sends', () => {
+    it('is a setting that asks ScoreDB by default and tells what it sends', () => {
       const { ctx } = setup();
-      expect(ctx.settings.of(FOESTATS_SETTING).get()).toBe(true);
+      expect(ctx.settings.of(FOESTATS_SETTING).get()).toBe('scoredb');
       expect(ctx.settings.defs.find((d) => d.key === 'foestats.fetch')).toMatchObject({
         label: 'foestats.fetchSetting',
         hint: 'foestats.fetchHint',

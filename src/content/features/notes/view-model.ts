@@ -1,4 +1,4 @@
-import { foestatsGuildUrl, foestatsPlayerUrl } from '../../../shared/foestats';
+import { type ActivitySource, sourceGuildUrl, sourcePlayerUrl } from '../../../shared/activity-source';
 import type { PlayerId, WorldId } from '../../../shared/ids';
 import type { NoteGroup, NotePage, Player, Relations } from '../../../shared/model';
 import { foldCase, formatWhen, t, textFilter } from '../../core/texts';
@@ -50,7 +50,7 @@ export interface RowVm {
 export interface PlayerVm {
   id: PlayerId;
   name: string;
-  /** the player's page at foestats */
+  /** the player's page at the site chosen in the setting "Abfrage" */
   url: string;
   guild?: { name: string; url: string };
   /** drawn as icons; missing for a player the store does not know */
@@ -101,6 +101,8 @@ export interface NotesVm {
 export interface NotesInput {
   ui: NotesUi;
   world: WorldId;
+  /** the site names link to, as chosen in the setting "Abfrage"; foestats when missing or none */
+  source?: ActivitySource;
   groups: NoteGroup[];
   /** all pages of the world */
   pages: NotePage[];
@@ -230,9 +232,9 @@ export function notesViewModel(input: NotesInput): NotesVm {
       player: {
         id: playerId,
         name,
-        url: foestatsPlayerUrl(input.world, playerId),
+        url: sourcePlayerUrl(input.source ?? 'none', input.world, playerId),
         ...(known?.guild && {
-          guild: { name: known.guild.name, url: foestatsGuildUrl(input.world, known.guild.id) },
+          guild: { name: known.guild.name, url: sourceGuildUrl(input.source ?? 'none', input.world, known.guild.id) },
         }),
         ...relationsOf(known),
       },

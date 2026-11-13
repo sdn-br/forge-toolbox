@@ -84,7 +84,7 @@ function snapshotDays(
   world: WorldId,
   player: PlayerId,
   s: FoestatsPlayer,
-): { day: FoestatsDay; before?: FoestatsDay } | undefined {
+): { days: FoestatsDay[]; before?: FoestatsDay } | undefined {
   const { date, points, battles } = s;
   if (date === undefined || points === undefined || battles === undefined) return undefined;
   const day: FoestatsDay = {
@@ -95,7 +95,7 @@ function snapshotDays(
     battles,
     ...(s.active !== undefined && { active: s.active }),
   };
-  if (s.pointsChange === undefined || s.battlesChange === undefined) return { day };
+  if (s.pointsChange === undefined || s.battlesChange === undefined) return { days: [day] };
   const before = {
     world,
     player,
@@ -103,7 +103,7 @@ function snapshotDays(
     points: points - s.pointsChange,
     battles: battles - s.battlesChange,
   };
-  return { day, before };
+  return { days: [day], before };
 }
 
 /** An answer of foestats in the domain model; a snapshot without its day, points or battles tells as little as `'unknown'`. */

@@ -3,6 +3,7 @@ import { createBus } from '../src/content/core/events';
 import { FoestatsStore } from '../src/content/stores/foestats';
 import { type FetchLike, foestatsApi } from '../src/content/stores/foestats-api';
 import { CLAIM_TIMEOUT } from '../src/persistence/foestats/worker';
+import { scoredbRequests } from '../src/persistence/scoredb/client';
 import { RETRY_AFTER } from '../src/shared/foestats';
 import { playerId, worldId } from '../src/shared/ids';
 import { testDb } from './helpers/battle-db';
@@ -54,8 +55,9 @@ function setup(data: Snapshot, start = at(22, 9)) {
   const updated: number[] = [];
   bus.on('foestats.updated', ({ player }) => updated.push(player));
   /** a store as one tab of the game has it; the requests go out from there, the database is shared */
-  const tab = () => new FoestatsStore(createBus(), world, db.foestats, foestatsApi(foestats.fetch));
-  const store = new FoestatsStore(bus, world, db.foestats, foestatsApi(foestats.fetch));
+  const requests = { foestats: foestatsApi(foestats.fetch), scoredb: scoredbRequests(db.call) };
+  const tab = () => new FoestatsStore(createBus(), world, db.foestats, requests);
+  const store = new FoestatsStore(bus, world, db.foestats, requests);
   const values = () => store.get(player)?.days.map((d) => [d.date, d.points, d.battles]);
   return { ...foestats, clock, db, store, tab, updated, values };
 }

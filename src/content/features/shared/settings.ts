@@ -1,14 +1,32 @@
-import { listDef, numberDef, type Settings, toggleDef } from '../../core/settings';
+import type { ActivitySource } from '../../../shared/activity-source';
+import { choiceDef, listDef, numberDef, type Settings, toggleDef } from '../../core/settings';
 import { type FactorChoice, GOLD_FACTOR } from '../../domain/gb-factor';
 
-/** Off: no requests to foestats, and the views hide what they know from it. Links to foestats stay. */
-export const FOESTATS_SETTING = toggleDef({
+/**
+ * The site asked about players (setting "Abfrage"), ScoreDB by default since foestats wants a paid key (2026-11-13).
+ * "Keine Abfrage": no requests, the views hide the activity, names link to foestats. The key is the one of the former
+ * toggle "foestats-Daten abrufen": a stored `false` reads "Keine Abfrage", a stored `true` the default.
+ */
+export const FOESTATS_SETTING = choiceDef({
   key: 'foestats.fetch',
   group: 'foestats.group',
   label: 'foestats.fetchSetting',
   hint: 'foestats.fetchHint',
-  default: true,
+  default: 'scoredb',
+  choices: [
+    { value: 'none', label: 'foestats.sourceNone' },
+    { value: 'foestats', label: 'foestats.sourceFoestats' },
+    { value: 'scoredb', label: 'foestats.sourceScoredb' },
+  ],
+  legacy: (stored) => (stored === false ? 'none' : undefined),
 });
+
+/**
+ * The chosen site as the links read it; "Keine Abfrage" while the setting is not registered, as in tests of a feature
+ * without the foestats feature, so names link to foestats there.
+ */
+export const activitySource = (settings: Settings): ActivitySource =>
+  settings.defs.includes(FOESTATS_SETTING) ? settings.of(FOESTATS_SETTING).get() : 'none';
 
 /** the settings of the Eigenanteil group the factors rest on */
 export const FACTOR = numberDef({

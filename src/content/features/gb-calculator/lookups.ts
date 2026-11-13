@@ -1,4 +1,5 @@
 // What both sections of the box, the calculator and the snipe list, look up about buildings and players.
+import { type DataSource, linkSource } from '../../../shared/activity-source';
 import { foestatsDay } from '../../../shared/foestats';
 import type { BuildingDefId, PlayerId } from '../../../shared/ids';
 import type { FeatureContext } from '../../core/feature';
@@ -7,12 +8,14 @@ import type { LevelCosts } from '../../domain/gb-level-cost';
 import type { GreatBuildingDef, TierStart } from '../../model/catalog';
 import type { FoestatsRecord } from '../../stores/foestats';
 import { type GbLookups, gbLookups } from '../shared/gb-lookups';
-import { FOESTATS_SETTING } from '../shared/settings';
+import { activitySource, FOESTATS_SETTING } from '../shared/settings';
 
 /** what the calculator and the snipe list look up: what every list of great buildings does, and foestats */
 export interface GbCalcLookups extends GbLookups {
-  /** the owner's days at foestats; undefined while foestats is off or was not asked yet */
+  /** the owner's days at foestats or ScoreDB; undefined while no site is asked or it was not asked yet */
   foestats(id: PlayerId): FoestatsRecord | undefined;
+  /** the site chosen now, which the activity texts name */
+  activitySource: DataSource;
   /** the current foestats day, `YYYY-MM-DD` */
   today: string;
 }
@@ -35,7 +38,8 @@ export function gbShared(ctx: FeatureContext, now: number): GbShared {
   return {
     lookups: {
       ...gbLookups(ctx),
-      foestats: (id) => (ctx.settings.of(FOESTATS_SETTING).get() ? ctx.foestats.get(id) : undefined),
+      foestats: (id) => (ctx.settings.of(FOESTATS_SETTING).get() !== 'none' ? ctx.foestats.get(id) : undefined),
+      activitySource: linkSource(activitySource(ctx.settings)),
       today: foestatsDay(now),
     },
     greatBuilding: (def) => ctx.catalog.get(def)?.greatBuilding,

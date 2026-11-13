@@ -16,14 +16,18 @@ let dbCount = 0;
 const offline = async (url: string): Promise<string> => {
   throw new Error(`offline: ${url}`);
 };
+/** ScoreDB as unreachable, for the same reason */
+const offlinePage: HandlerDeps['fetchPage'] = async (url) => {
+  throw new Error(`offline: ${url}`);
+};
 
 /**
  * The real service worker handlers on an in-memory IndexedDB, called directly instead of through chrome messaging.
- * `deps` hold the clock of the handlers and the requests to the Inno CDN.
+ * `deps` hold the clock of the handlers and the requests to the Inno CDN and to ScoreDB.
  */
 export function testDb(deps: Partial<HandlerDeps> = {}) {
   const db = openDb(`test-${++dbCount}`);
-  const handlers = createHandlers(db, { now: Date.now, fetchText: offline, ...deps }) as Record<
+  const handlers = createHandlers(db, { now: Date.now, fetchText: offline, fetchPage: offlinePage, ...deps }) as Record<
     string,
     (arg: unknown) => Promise<unknown>
   >;

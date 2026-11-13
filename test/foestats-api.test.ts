@@ -60,7 +60,7 @@ describe('foestats api', () => {
     const data = { data_date: '2026-10-22', points: 5, battles: 7 };
     const fetch = vi.fn<FetchLike>(async () => response(200, JSON.stringify({ success: true, data })));
     expect(await foestatsApi(fetch).player(world, player)).toEqual({
-      day: { world, player, date: '2026-10-22', points: 5, battles: 7 },
+      days: [{ world, player, date: '2026-10-22', points: 5, battles: 7 }],
     });
     expect(fetch.mock.calls[0]?.[0]).toBe('https://api.forge-db.com/api/players/de/de20/4711');
     expect(fetch.mock.calls[0]?.[1]).toMatchObject({ credentials: 'omit' });
@@ -102,7 +102,7 @@ describe('toFoestatsOutcome', () => {
       active: true,
     };
     expect(toFoestatsOutcome(w, p, { snapshot })).toEqual({
-      day: { world: w, player: p, date: '2026-10-22', points: 1000, battles: 20, active: true },
+      days: [{ world: w, player: p, date: '2026-10-22', points: 1000, battles: 20, active: true }],
       before: { world: w, player: p, date: '2026-10-21', points: 950, battles: 18 },
     });
   });
@@ -110,7 +110,7 @@ describe('toFoestatsOutcome', () => {
   it('tells only the snapshot day when a change is missing', () => {
     const snapshot = { date: '2026-10-22', points: 1000, battles: 20, battlesChange: 2 };
     expect(toFoestatsOutcome(w, p, { snapshot })).toEqual({
-      day: { world: w, player: p, date: '2026-10-22', points: 1000, battles: 20 },
+      days: [{ world: w, player: p, date: '2026-10-22', points: 1000, battles: 20 }],
     });
   });
 

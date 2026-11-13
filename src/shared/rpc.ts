@@ -9,6 +9,7 @@ import type { IncomingApi } from '../persistence/incoming/contract';
 import type { NotesApi } from '../persistence/notes/contract';
 import type { PlayersApi } from '../persistence/players/contract';
 import type { PvpApi } from '../persistence/pvp/contract';
+import type { ScoredbApi } from '../persistence/scoredb/contract';
 import type { ShieldsApi } from '../persistence/shields/contract';
 import type { Profile } from './profile';
 
@@ -20,6 +21,7 @@ export interface BackgroundApi
     ShieldsApi,
     GreatBuildingsApi,
     FoestatsApi,
+    ScoredbApi,
     BackupApi,
     AssetsApi,
     BuildingDefsApi {}
