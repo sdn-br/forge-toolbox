@@ -124,7 +124,7 @@ describe('foestats feature', () => {
     const on = featureContext();
     await on.ctx.settings.replace({ 'foestats.fetch': true });
     foestatsFeature.setup(on.ctx);
-    expect(on.ctx.settings.of(FOESTATS_SETTING).get()).toBe('scoredb');
+    expect(on.ctx.settings.of(FOESTATS_SETTING).get()).toBe('foestats');
   });
 
   it('offers the choice of the site with a hint on what is sent', async () => {

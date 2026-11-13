@@ -12,7 +12,7 @@ export const FOESTATS_SETTING = choiceDef({
   group: 'foestats.group',
   label: 'foestats.fetchSetting',
   hint: 'foestats.fetchHint',
-  default: 'scoredb',
+  default: 'foestats',
   choices: [
     { value: 'none', label: 'foestats.sourceNone' },
     { value: 'foestats', label: 'foestats.sourceFoestats' },
