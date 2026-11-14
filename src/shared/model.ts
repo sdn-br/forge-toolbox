@@ -69,6 +69,11 @@ export interface Player {
   era?: EraId;
   score?: number;
   rank?: number;
+  /**
+   * when the game last told `score`: a social list, a visit, the player ranking. Missing on rows stored before
+   * 2026-11-14 and on players no such source named yet
+   */
+  scoreAt?: number;
   active?: boolean;
   guild?: GuildRef;
   relations: Relations;

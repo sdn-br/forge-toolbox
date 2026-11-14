@@ -33,9 +33,12 @@ const marksOf = (p: Player | undefined): Pick<Player, MarkField> =>
 /** what a listed player says about the fields beyond the name: what it does not bring stays as known */
 const listedFields = (
   l: ListedPlayer,
+  seenAt: number,
   old?: Pick<Player, 'guild'>,
-): Pick<Player, 'avatar' | 'cityName' | 'era' | 'guild'> => ({
+): Pick<Player, 'avatar' | 'cityName' | 'era' | 'guild' | 'score' | 'rank' | 'scoreAt'> => ({
   ...(l.avatar && { avatar: l.avatar }),
+  ...(l.score !== undefined && { score: l.score, scoreAt: seenAt }),
+  ...(l.rank !== undefined && { rank: l.rank }),
   ...(l.cityName !== undefined && { cityName: l.cityName }),
   ...(l.era !== undefined && { era: l.era }),
   ...(l.guild && {
@@ -48,19 +51,22 @@ const listedFields = (
 
 /** what a view shows of a listed player, as one key */
 const shownOf = (p: Player | undefined) =>
-  JSON.stringify([p?.name, p?.avatar, p?.cityName, p?.era, p?.guild?.id, p?.guild?.name]);
+  JSON.stringify([p?.name, p?.avatar, p?.cityName, p?.era, p?.guild?.id, p?.guild?.name, p?.score, p?.rank]);
 
 /** A known player seen in a list: the name follows the newest sighting, an empty avatar keeps the known one. */
 const listedOnto = <T extends Omit<Player, MarkField>>(old: T, l: ListedPlayer, seenAt: number): T => {
-  const next: T = { ...old, name: l.name, ...listedFields(l, old), seenAt: Math.max(old.seenAt, seenAt) };
+  const next: T = { ...old, name: l.name, ...listedFields(l, seenAt, old), seenAt: Math.max(old.seenAt, seenAt) };
   if (l.guild === null) delete next.guild;
   return next;
 };
 
-/** the row as a view sees it: the time of the last sighting is no change, key order is none either */
+/**
+ * the row as a view sees it: the time of the last sighting is no change, nor the time the same score was told again;
+ * key order is none either
+ */
 const visible = (p: Player | undefined) =>
   p &&
-  JSON.stringify({ ...p, seenAt: 0 }, (_, v) =>
+  JSON.stringify({ ...p, seenAt: 0, scoreAt: 0 }, (_, v) =>
     v && typeof v === 'object' && !Array.isArray(v)
       ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : 1)))
       : v,
@@ -198,9 +204,10 @@ export class PlayerStore {
   }
 
   /**
-   * Owners of great building lists (the town hall list, the list of another player): an unknown one is learned with
-   * the name and no relation, a known one takes only the name and the avatar, as every sighting does. Nothing else
-   * changes, neither the richer fields of other sources nor relations, timers or marks.
+   * Owners of great building lists (the town hall list, the list of another player) and players of the player ranking:
+   * an unknown one is learned with the name and no relation, a known one takes only the name and the avatar, as every
+   * sighting does, and from the player ranking points and rank. Nothing else changes, neither the richer fields of
+   * other sources nor relations, timers or marks.
    */
   applyListed(world: WorldId, listed: ListedPlayer[]): void {
     const touched = new Set<PlayerId>();
@@ -214,7 +221,7 @@ export class PlayerStore {
               world,
               id: l.id,
               name: l.name,
-              ...listedFields(l),
+              ...listedFields(l, now),
               relations: NO_RELATIONS,
               firstSeenAt: now,
               seenAt: now,
@@ -273,10 +280,12 @@ export class PlayerStore {
     const now = this.now();
     const { guild, attack, score, rank, ...fields } = o;
     const known = attack ?? old?.attack;
+    const scoreAt = score !== undefined ? now : old?.scoreAt;
     const next: Player = {
       ...fields,
       score: score ?? old?.score ?? 0,
       rank: rank ?? old?.rank ?? 0,
+      ...(scoreAt !== undefined && { scoreAt }),
       world,
       guild: guild ?? undefined,
       relations: relations ?? old?.relations ?? NO_RELATIONS,

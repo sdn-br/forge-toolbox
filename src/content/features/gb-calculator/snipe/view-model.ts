@@ -168,7 +168,13 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
     result.hits.length > kept.length && t('snipe.countIgnored', { count: result.hits.length - kept.length }),
   ].filter((c): c is string => typeof c === 'string');
   const best = [...kept].sort(bySnipeProfit)[0];
-  const activity = activityVm(input.foestats(list.owner), input.today, input.activitySource);
+  const activity = activityVm(
+    input.foestats(list.owner),
+    input.today,
+    input.activitySource,
+    input.gameScore(list.owner),
+    input.now,
+  );
   return {
     kind: 'list',
     ...ownerVm(input, list.owner, input.playerName(list.owner) ?? String(list.owner)),

@@ -1,4 +1,6 @@
-// How active a player is, from their days at foestats.
+// How active a player is, from their days at foestats or ScoreDB. Points that change either way count, as tearing down a
+// great building costs points; battles only rise. Neither is proof: others may level a great building of an idle player,
+// an active player may only level buildings. Good enough as a hint (Nutzer, 2026-11-14).
 import { DAY_MS } from '../../shared/time';
 
 /** a day as foestats saw it; a value is missing when foestats did not tell it */
@@ -11,21 +13,21 @@ export interface ActivityDay {
 
 export interface Activity {
   /**
-   * the last day with more points or battles than the calendar day before; missing when no such increase is known,
-   * also when the last increase lies in a gap between two known days
+   * the last day with other points or more battles than the calendar day before; missing when no such change is known,
+   * also when the last change lies in a gap between two known days
    */
   lastActive?: string;
   /** days from `lastActive` to the current foestats day, 0 for today */
   daysAgo?: number;
-  /** without a known `lastActive`: days from the oldest day known without an increase to the current foestats day */
+  /** without a known `lastActive`: days from the oldest day known without a change to the current foestats day */
   flatFor?: number;
-  /** `IDLE_DAYS` or more days without an increase */
+  /** `IDLE_DAYS` or more days without a change */
   idle: boolean;
   /** change from a week before the newest day (or from the oldest day, if that is younger) to the newest day */
   week: { points?: number; battles?: number; days: number };
 }
 
-/** from this many days without an increase on, a player counts as idle */
+/** from this many days without a change on, a player counts as idle */
 const IDLE_DAYS = 3;
 const WEEK = 7;
 
@@ -34,6 +36,9 @@ const daysBetween = (from: string, to: string) => dayNumber(to) - dayNumber(from
 
 const rose = (before: number | undefined, after: number | undefined) =>
   before !== undefined && after !== undefined && after > before;
+
+const differs = (before: number | undefined, after: number | undefined) =>
+  before !== undefined && after !== undefined && after !== before;
 
 const change = (from: number | undefined, to: number | undefined) =>
   from === undefined || to === undefined ? undefined : to - from;
@@ -45,12 +50,12 @@ export function playerActivity(history: ActivityDay[], today: string): Activity 
   const newest = days.at(-1);
   if (!first || !newest) return undefined;
 
-  // the newest increase decides; across a gap its day is not known, only that it was quiet since the day after the gap
+  // the newest change decides; across a gap its day is not known, only that it was quiet since the day after the gap
   let lastActive: string | undefined;
   let flatSince = first.date;
   for (let i = days.length - 1; i > 0; i--) {
     const [before, after] = [days[i - 1] as ActivityDay, days[i] as ActivityDay];
-    if (!rose(before.points, after.points) && !rose(before.battles, after.battles)) continue;
+    if (!differs(before.points, after.points) && !rose(before.battles, after.battles)) continue;
     if (daysBetween(before.date, after.date) === 1) lastActive = after.date;
     else flatSince = after.date;
     break;

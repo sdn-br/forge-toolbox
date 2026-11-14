@@ -687,9 +687,9 @@ describe('LG-Rechner', () => {
       await vi.waitFor(() => done(box.root));
       expect(fetch.mock.calls.map(([url]) => url)).toEqual(['https://api.forge-db.com/api/players/de/de20/1001']);
       const activity = line(box.root) as HTMLElement;
-      expect(activity.textContent).toBe('zuletzt aktiv heute · 1 Tag: +300 Punkte, +3 Kämpfe');
+      expect(activity.textContent).toBe('zuletzt Änderung am 22.10. · 1 Tag: +300 Punkte, +3 Kämpfe');
       expect(activity.className).toBe('gb-activity muted');
-      expect(activity.dataset.tip).toBe('Punkte und Kämpfe, Stand 2026-10-22');
+      expect(activity.dataset.tip).toBe('Punkte und Kämpfe, Stand 22.10. (foestats)');
     });
 
     it('shows the last active day and the last week from the stored days, flagged after three quiet days', async () => {
@@ -698,7 +698,7 @@ describe('LG-Rechner', () => {
       open(1909);
       await vi.waitFor(() => done(box.root));
       const activity = line(box.root) as HTMLElement;
-      expect(activity.textContent).toBe('zuletzt aktiv vor 4 Tagen · 7 Tage: +500 Punkte, +3 Kämpfe');
+      expect(activity.textContent).toBe('zuletzt Änderung am 18.10. · 7 Tage: +500 Punkte, +3 Kämpfe');
       expect(activity.className).toBe('gb-activity warn');
     });
 
@@ -706,15 +706,15 @@ describe('LG-Rechner', () => {
       const { box, open } = activitySetup(foestats({ is_active: 0 }));
       open(1909);
       await vi.waitFor(() => done(box.root));
-      expect(line(box.root)?.textContent).toBe('zuletzt aktiv heute · 1 Tag: +300 Punkte, +3 Kämpfe');
+      expect(line(box.root)?.textContent).toBe('zuletzt Änderung am 22.10. · 1 Tag: +300 Punkte, +3 Kämpfe');
       expect(line(box.root)?.className).toBe('gb-activity muted');
     });
 
-    it('reads a quiet day as no increase', async () => {
+    it('reads a quiet day as no change', async () => {
       const { box, open } = activitySetup(foestats({ points_change: 0, battles_change: 0 }));
       open(1909);
       await vi.waitFor(() => done(box.root));
-      expect(line(box.root)?.textContent).toBe('noch keine Zunahme bekannt · 1 Tag: 0 Punkte, 0 Kämpfe');
+      expect(line(box.root)?.textContent).toBe('noch keine Änderung bekannt · 1 Tag: 0 Punkte, 0 Kämpfe');
     });
 
     it('reads the stored days when the owner is opened again the same day', async () => {
@@ -726,7 +726,7 @@ describe('LG-Rechner', () => {
       await vi.waitFor(() => expect(ctx.foestats.get(1001 as never)?.loading).toBe(false));
       await tick();
       expect(fetch).toHaveBeenCalledTimes(1);
-      expect(line(box.root)?.textContent).toBe('zuletzt aktiv heute · 1 Tag: +300 Punkte, +3 Kämpfe');
+      expect(line(box.root)?.textContent).toBe('zuletzt Änderung am 22.10. · 1 Tag: +300 Punkte, +3 Kämpfe');
     });
 
     it('labels the line and shows that foestats is being asked before anything is known', async () => {
@@ -747,7 +747,7 @@ describe('LG-Rechner', () => {
       expect(header.querySelector('.spinner')).not.toBeNull();
       answer();
       await vi.waitFor(() => expect(header.querySelector('.spinner')).toBeNull());
-      expect(line(box.root)?.textContent).toBe('zuletzt aktiv heute · 1 Tag: +300 Punkte, +3 Kämpfe');
+      expect(line(box.root)?.textContent).toBe('zuletzt Änderung am 22.10. · 1 Tag: +300 Punkte, +3 Kämpfe');
     });
 
     it('says when foestats cannot be reached', async () => {

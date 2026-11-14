@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createBus } from '../src/content/core/events';
+import { toPlayerRanking } from '../src/content/game/players';
 import type { PlayerObservation } from '../src/content/model/player';
 import { PlayerStore, SEEN_WRITE_INTERVAL } from '../src/content/stores/players';
 import { eraId, playerId, worldId } from '../src/shared/ids';
@@ -714,5 +715,96 @@ describe('PlayerStore: PvP marks', () => {
     await store.load(world);
     expect(store.get(playerId(1))).toMatchObject({ name: 'Listed', plunderWorthy: true, ignored: true, marksAt: 5 });
     expect(store.get(playerId(1))).not.toHaveProperty('noAttack');
+  });
+});
+
+describe('PlayerStore: when the score was told', () => {
+  function clocked() {
+    let clock = 1000;
+    const store = new PlayerStore(createBus(), { load: async () => [], put: async () => {} }, () => clock);
+    return {
+      store,
+      at: (t: number) => {
+        clock = t;
+      },
+    };
+  }
+
+  it('keeps the time of the last score a source told, a source without a score leaves it', () => {
+    const { store, at } = clocked();
+    store.applySocialList(world, { neighbor: [obs(1)], guildMember: [], friend: [] });
+    expect(store.get(playerId(1))).toMatchObject({ score: 1, scoreAt: 1000 });
+    at(2000);
+    const { score: _, rank: __, ...withoutScore } = obs(1);
+    store.apply(world, [withoutScore], 'update');
+    expect(store.get(playerId(1))).toMatchObject({ score: 1, scoreAt: 1000 });
+    at(3000);
+    store.apply(world, [{ ...obs(1), score: 5 }], 'visit');
+    expect(store.get(playerId(1))).toMatchObject({ score: 5, scoreAt: 3000 });
+  });
+
+  it('takes points and rank of the player ranking with the time, and leaves relations and marks', () => {
+    const { store, at } = clocked();
+    store.applySocialList(world, { neighbor: [obs(1)], guildMember: [], friend: [] });
+    store.setFlag(playerId(1), 'marked', true);
+    at(2000);
+    store.applyListed(world, [
+      { id: playerId(1), name: 'P1', score: 900, rank: 7 },
+      { id: playerId(2), name: 'P2', score: 50, rank: 8 },
+    ]);
+    expect(store.get(playerId(1))).toMatchObject({
+      score: 900,
+      rank: 7,
+      scoreAt: 2000,
+      marked: true,
+      relations: { neighbor: true, guildMember: false, friend: false },
+    });
+    expect(store.get(playerId(2))).toMatchObject({ score: 50, rank: 8, scoreAt: 2000, source: 'list' });
+  });
+});
+
+describe('toPlayerRanking', () => {
+  const page = (category: string) => ({
+    category: { __enum__: 'RankingCategory', value: category },
+    rankings: [
+      {
+        rank: 4001,
+        player: {
+          player_id: 11,
+          name: 'Someone',
+          avatar: 'portrait_1',
+          city_name: 'Town',
+          clan_id: 3,
+          era: 'SpaceAgeTitan',
+        },
+        clan: { id: 3, name: 'Guild' },
+        points: 327_000_000,
+        battles: 34_000,
+      },
+      { rank: 4002, player: { player_id: 12, name: 'Me', is_self: true }, clan: {}, points: 5, battles: 1 },
+      { rank: 4003, player: { player_id: 13, name: 'Loner' }, clan: {}, points: 7, battles: 2 },
+      { rank: 4004, player: { player_id: 14, name: 'No points' }, clan: {} },
+    ],
+  });
+
+  it('lists the players of the tab "Spieler" with points and rank, without the own row', () => {
+    expect(toPlayerRanking(page('players'))).toEqual([
+      {
+        id: playerId(11),
+        name: 'Someone',
+        avatar: 'portrait_1',
+        cityName: 'Town',
+        era: 'SpaceAgeTitan',
+        guild: { id: 3, name: 'Guild' },
+        score: 327_000_000,
+        rank: 4001,
+      },
+      { id: playerId(13), name: 'Loner', guild: null, score: 7, rank: 4003 },
+    ]);
+  });
+
+  it('reads no other tab', () => {
+    expect(toPlayerRanking(page('great_building'))).toBeNull();
+    expect(toPlayerRanking(null)).toBeNull();
   });
 });

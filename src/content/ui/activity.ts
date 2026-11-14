@@ -7,7 +7,7 @@ export interface ActivityVm {
   text: string;
   /** change of points and battles over the last days */
   week?: string;
-  /** several days without an increase */
+  /** several days without a change, and none since by the game's score */
   idle: boolean;
   title: string;
   /** the site is being asked right now */

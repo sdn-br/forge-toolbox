@@ -1,14 +1,14 @@
 // Game format → own model for players: social list, friends, player updates. Nothing outside src/content/game sees the game format.
 
-import { eraId, guildId, type PlayerId, playerId } from '../../shared/ids';
+import { type EraId, eraId, guildId, type PlayerId, playerId } from '../../shared/ids';
 import type { AttackTimer, GuildRef } from '../../shared/model';
 import { SECOND_MS } from '../../shared/time';
 import type { Ingestion } from '../core/ingestion';
 import type { VisitInfo } from '../model/city';
-import type { PlayerObservation } from '../model/player';
+import type { ListedPlayer, PlayerObservation } from '../model/player';
 import type { GameHandlerDeps } from './deps';
-import type { GamePlayer, GameSocialList } from './game-types';
-import { list } from './json';
+import type { GamePlayer, GameRankingList, GameSocialList } from './game-types';
+import { list, num } from './json';
 
 function toGuild(p: GamePlayer): GuildRef | null {
   const id = p.clan?.id ?? p.clan_id;
@@ -24,8 +24,8 @@ export function toObservation(p: GamePlayer): PlayerObservation | null {
     avatar: p.avatar ?? '',
     cityName: p.city_name ?? '',
     era: eraId(p.era ?? ''),
-    score: p.score ?? 0,
-    rank: p.rank ?? 0,
+    ...(typeof p.score === 'number' && { score: p.score }),
+    ...(typeof p.rank === 'number' && { rank: p.rank }),
     active: p.is_active ?? true,
     guild: toGuild(p),
   };
@@ -35,10 +35,7 @@ export function toObservation(p: GamePlayer): PlayerObservation | null {
 export function toNewFriend(data: unknown): PlayerObservation | null {
   const p = data as GamePlayer | null;
   if (!p || typeof p !== 'object' || p.is_friend !== true) return null;
-  const o = toObservation(p);
-  if (!o) return null;
-  const { score, rank, ...rest } = o;
-  return { ...rest, ...(typeof p.score === 'number' && { score }), ...(typeof p.rank === 'number' && { rank }) };
+  return toObservation(p);
 }
 
 /**
@@ -101,6 +98,44 @@ const observationsWhere = (data: unknown, keep: (p: GamePlayer) => boolean) =>
 /** For sources that carry the whole player: a missing timer field there clears what the store knows. */
 const withAttack = (data: unknown, now: number) => toObservations(list<GamePlayer>(data), now);
 
+/**
+ * The players of the ranking tab "Spieler" (recorded 2026-11-14 on de20, 50 rows a page): `points` are the score the
+ * game tells elsewhere, `player` lacks `is_active`, so the rows are listed players, not observations. The own row
+ * (`is_self`) is left out. Null for any other tab.
+ */
+export function toPlayerRanking(data: unknown): ListedPlayer[] | null {
+  const page = data as GameRankingList | null;
+  if (page?.category?.value !== 'players') return null;
+  return list<NonNullable<GameRankingList['rankings']>[number] | null>(page.rankings).flatMap((r) => {
+    const p = r?.player;
+    const id = num(p?.player_id);
+    const score = num(r?.points);
+    if (
+      id === undefined ||
+      p?.is_self === true ||
+      typeof p?.name !== 'string' ||
+      p.name === '' ||
+      score === undefined
+    ) {
+      return [];
+    }
+    const guild = num(r?.clan?.id);
+    const rank = num(r?.rank);
+    return [
+      {
+        id: playerId(id),
+        name: p.name,
+        ...(typeof p.avatar === 'string' && p.avatar !== '' && { avatar: p.avatar }),
+        ...(typeof p.city_name === 'string' && { cityName: p.city_name }),
+        ...(typeof p.era === 'string' && { era: p.era as EraId }),
+        guild: guild === undefined ? null : { id: guildId(guild), name: r?.clan?.name ?? '' },
+        score,
+        ...(rank !== undefined && { rank }),
+      },
+    ];
+  });
+}
+
 /** Registers the players handlers. */
 export function registerPlayers(ingestion: Ingestion, deps: GameHandlerDeps): void {
   const { world, now, players } = deps;
@@ -140,4 +175,11 @@ export function registerPlayers(ingestion: Ingestion, deps: GameHandlerDeps): vo
   ingestion.on('OtherPlayerService', 'updatePlayer', ({ data }) => {
     players.apply(world, withAttack(data, now()), 'update');
   });
+  // The ranking tab "Spieler": opening, paging and searching answer alike; points with a time feed the activity line
+  for (const method of ['searchRanking', 'getRanking']) {
+    ingestion.on('RankingService', method, ({ data }) => {
+      const ranked = toPlayerRanking(data);
+      if (ranked?.length) players.applyListed(world, ranked);
+    });
+  }
 }
