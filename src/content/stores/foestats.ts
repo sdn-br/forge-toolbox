@@ -1,3 +1,4 @@
+import type { DataSource } from '../../shared/activity-source';
 import type { PlayerId, WorldId } from '../../shared/ids';
 import type { FoestatsDay, FoestatsOutcome, FoestatsState } from '../../shared/model';
 import { singleFlight } from '../../shared/single-flight';
@@ -6,10 +7,10 @@ import { logError } from '../core/log';
 import type { FoestatsClient } from './foestats-api';
 
 export interface FoestatsPersistence {
-  /** whether to ask foestats now; `fetch: true` reserves the request until `store` */
-  claim(world: WorldId, player: PlayerId): Promise<{ fetch: boolean } & FoestatsState>;
-  /** what a claimed request came to, in the domain model */
-  store(world: WorldId, player: PlayerId, outcome: FoestatsOutcome): Promise<FoestatsState>;
+  /** whether to ask the site (foestats when missing) now; `fetch: true` reserves the request until `store` */
+  claim(world: WorldId, player: PlayerId, source?: DataSource): Promise<{ fetch: boolean } & FoestatsState>;
+  /** what a claimed request to the site came to, in the domain model */
+  store(world: WorldId, player: PlayerId, outcome: FoestatsOutcome, source?: DataSource): Promise<FoestatsState>;
   /** the known days of the player, oldest first */
   history(world: WorldId, player: PlayerId): Promise<FoestatsDay[]>;
 }
@@ -17,21 +18,21 @@ export interface FoestatsPersistence {
 export interface FoestatsRecord {
   /** oldest first */
   days: FoestatsDay[];
-  /** foestats did not answer the last time it was asked, about any player */
+  /** the site did not answer the last time it was asked, about any player */
   unreachable: boolean;
-  /** foestats does not know the player */
+  /** the site does not know the player */
   unknown: boolean;
   /** a view is bringing the days up to date; until then `days` is what was known before, maybe nothing */
   loading: boolean;
 }
 
-/** the requests the store makes to foestats */
-type FoestatsRequests = Pick<FoestatsClient, 'player'>;
+/** the requests the store makes to one site: foestats from the content script, ScoreDB through the service worker */
+export type FoestatsRequests = Pick<FoestatsClient, 'player'>;
 
 /**
- * Days of players at foestats, kept in the database. A view of a player asks the service worker whether a request is
- * due (at most once a day), asks foestats for the daily snapshot from the content script, hands it to the service
- * worker to keep its days, then reads the days from the database. The history grows from these snapshots.
+ * Days of players at foestats or ScoreDB, kept in the database. A view of a player asks the service worker whether a
+ * request is due (at most once a day), asks the site chosen at the time of the view, hands the outcome to the service
+ * worker to keep its days, then reads the days from the database. The history grows from these answers.
  */
 export class FoestatsStore {
   private records = new Map<PlayerId, FoestatsRecord>();
@@ -40,7 +41,7 @@ export class FoestatsStore {
     private bus: ToolboxBus,
     private world: WorldId,
     private persistence: FoestatsPersistence,
-    private requests: FoestatsRequests,
+    private requests: Record<DataSource, FoestatsRequests>,
   ) {}
 
   /** what is known about the player after the last `view` */
@@ -48,22 +49,31 @@ export class FoestatsStore {
     return this.records.get(player);
   }
 
-  /** a view shows the player: bring the days up to date and read them; a second view of a player running waits for the first */
-  view = singleFlight((player: PlayerId) => this.update(player));
+  /**
+   * a view shows the player: bring the days up to date from `source` and read them; a second view of a player running
+   * waits for the first
+   */
+  view = singleFlight((player: PlayerId, source: DataSource = 'foestats') => this.update(player, source));
 
-  private async update(player: PlayerId): Promise<void> {
+  private async update(player: PlayerId, source: DataSource): Promise<void> {
     // what is known stays on show while it is brought up to date; only a player without a record is loading
     if (!this.records.has(player)) {
       this.records.set(player, { days: [], unreachable: false, unknown: false, loading: true });
       this.bus.emit('foestats.updated', { player });
     }
     try {
-      const { fetch, ...claimed } = await this.persistence.claim(this.world, player);
+      const { fetch, ...claimed } = await this.persistence.claim(this.world, player, source);
       let state = claimed;
       if (fetch) {
+        // without days to show, the state of another site would read as one of this site: loading until it answers
+        const known = this.records.get(player);
+        if (known && known.days.length === 0 && !known.loading) {
+          this.records.set(player, { ...known, ...claimed, loading: true });
+          this.bus.emit('foestats.updated', { player });
+        }
         // the request never fails, a missing answer is 'unreachable'
-        const outcome = await this.requests.player(this.world, player);
-        state = await this.persistence.store(this.world, player, outcome);
+        const outcome = await this.requests[source].player(this.world, player);
+        state = await this.persistence.store(this.world, player, outcome, source);
       }
       const days = await this.persistence.history(this.world, player);
       this.records.set(player, { days, ...state, loading: false });

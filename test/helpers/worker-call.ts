@@ -16,7 +16,11 @@ export function workerCalls(open: (name: string) => ToolboxDb = openDb): { call:
         changes++;
       }),
     prepare: async () => {},
-    deps: { now: () => 1000, fetchText: async () => '' },
+    deps: {
+      now: () => 1000,
+      fetchText: async () => '',
+      fetchPage: async () => ({ ok: false, status: 503, text: async () => '' }),
+    },
     logError: () => {},
   });
   return { call: workerCall(dispatch), changes: () => changes };

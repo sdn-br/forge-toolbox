@@ -1,5 +1,6 @@
 // Domain types that cross the content script / service worker boundary, or the layers of the content script.
 import type { RankingRow } from '../content/model/great-building';
+import type { DataSource } from './activity-source';
 import type { BuildingDefId, EraId, GuildId, PlayerId, WorldId } from './ids';
 
 /** The own player of the game page, as the startup data name it. */
@@ -347,10 +348,12 @@ export interface FoestatsDay {
 }
 
 /**
- * What a request to foestats came to, as the service worker keeps it: foestats did not answer, it does not know the
- * player (or its snapshot is too thin to tell a day), or the snapshot day with the day before it when that is known.
+ * What a request to foestats or ScoreDB came to, as the service worker keeps it: the site did not answer, it does not
+ * know the player (or its answer is too thin to tell a day), or the days it reports. `days` are what the site tells
+ * (foestats: the snapshot day, ScoreDB: up to 30 days) and replace stored values of the same day; `before` is a day
+ * worked out from changes (foestats: the day before the snapshot) and only fills a gap.
  */
-export type FoestatsOutcome = 'unreachable' | 'unknown' | { day: FoestatsDay; before?: FoestatsDay };
+export type FoestatsOutcome = 'unreachable' | 'unknown' | { days: FoestatsDay[]; before?: FoestatsDay };
 
 /** The last time foestats was asked about a player. */
 export interface FoestatsFetch {
@@ -361,8 +364,10 @@ export interface FoestatsFetch {
   at: number;
   /** foestats answered; false only in records of older versions, which kept a failed request per player */
   ok: boolean;
-  /** foestats does not know the player; older records lack it */
+  /** the site does not know the player; older records lack it */
   unknown?: boolean;
+  /** the site asked; older records lack it, they asked foestats */
+  source?: DataSource;
 }
 
 /** The raw metadata file of one building definition as the service worker caches it; the content side translates it. */

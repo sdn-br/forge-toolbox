@@ -7,6 +7,7 @@ import { notePersistence } from '../../persistence/notes/client';
 import { playerPersistence } from '../../persistence/players/client';
 import { battlePersistence } from '../../persistence/pvp/battles-client';
 import { plunderPersistence } from '../../persistence/pvp/plunders-client';
+import { scoredbRequests } from '../../persistence/scoredb/client';
 import { shieldPersistence } from '../../persistence/shields/client';
 import type { BuildingDefId, WorldId } from '../../shared/ids';
 import type { ToolboxBus } from '../core/events';
@@ -63,7 +64,7 @@ export interface Stores {
  * `call` reaches the persistence in the service worker; `defLoader` reads the cached building definitions (it translates
  * them, which the stores do not know how to); `view` holds the view choices and the single factor the shared state of
  * the own-share boxes rests on; `now` is the clock of the stores that keep times; `fetch` makes the requests to
- * foestats from the content script. `shippedCosts` are the level costs shipped with the toolbox; tests pass their own, so
+ * foestats from the content script (ScoreDB goes through `call`). `shippedCosts` are the level costs shipped with the toolbox; tests pass their own, so
  * they see only the costs they bring.
  */
 export function createStores(
@@ -94,7 +95,10 @@ export function createStores(
     greatBuildings: new GreatBuildingStore(bus, world, greatBuildingPersistence(call), now),
     gbLevelCosts: (type, gb) => levelCosts(gb.levelCosts, shippedCosts[type]),
     playerBonuses: new PlayerBonusStore(cities),
-    foestats: new FoestatsStore(bus, world, foestatsPersistence(call), foestatsApi(fetch)),
+    foestats: new FoestatsStore(bus, world, foestatsPersistence(call), {
+      foestats: foestatsApi(fetch),
+      scoredb: scoredbRequests(call),
+    }),
     gbOwn: new GbOwnState(bus, view.prefs, view.singleFactor),
   };
 }

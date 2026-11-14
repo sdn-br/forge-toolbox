@@ -646,10 +646,11 @@ describe('LG-Rechner', () => {
       ['2026-10-21', 1500, 53],
     ];
 
-    function activitySetup(fetch: FetchLike, known: [string, number, number][] = []) {
+    function activitySetup(fetch: FetchLike, known: [string, number, number][] = [], pages?: FetchLike) {
       vi.useFakeTimers({ toFake: ['Date'] });
       vi.setSystemTime(new Date(2026, 9, 22, 9, 0));
-      const env = setup({ fetch });
+      const env = setup({ fetch, ...(pages && { pages }) });
+      void env.ctx.settings.of(FOESTATS_SETTING).set('foestats');
       const stored = env.db.db.foestatsDays.bulkPut(
         known.map(([date, points, battles]) => ({
           world: worldId('de20'),
@@ -674,7 +675,7 @@ describe('LG-Rechner', () => {
       const activity = line(box.root) as HTMLElement;
       expect(activity.textContent).toBe('zuletzt aktiv heute · 1 Tag: +300 Punkte, +3 Kämpfe');
       expect(activity.className).toBe('gb-activity muted');
-      expect(activity.dataset.tip).toBe('Punkte und Kämpfe laut foestats.com, Stand 2026-10-22');
+      expect(activity.dataset.tip).toBe('Punkte und Kämpfe, Stand 2026-10-22');
     });
 
     it('shows the last active day and the last week from the stored days, flagged after three quiet days', async () => {
@@ -742,6 +743,20 @@ describe('LG-Rechner', () => {
       expect(line(box.root)?.className).toBe('gb-activity muted');
     });
 
+    it('asks ScoreDB about the shown owner when the site changes and names its state', async () => {
+      const pages = vi.fn<FetchLike>(async () => ({
+        ok: false,
+        status: 500,
+        text: async () => '<html><head><title>Error</title></head></html>',
+      }));
+      const { box, open, ctx } = activitySetup(foestats({}, 401), [], pages);
+      open(1909);
+      await vi.waitFor(() => expect(line(box.root)?.textContent).toBe('foestats nicht erreichbar'));
+      await ctx.settings.of(FOESTATS_SETTING).set('scoredb');
+      await vi.waitFor(() => expect(line(box.root)?.textContent).toBe('bei scoredb.io unbekannt'));
+      expect(pages).toHaveBeenCalledTimes(1);
+    });
+
     it('says when foestats does not know the owner', async () => {
       const { box, open } = activitySetup(foestats({}, 404));
       open(1909);
@@ -749,10 +764,10 @@ describe('LG-Rechner', () => {
       expect(line(box.root)?.className).toBe('gb-activity muted');
     });
 
-    it('asks nothing and hides the activity when the setting is off, but keeps the link', async () => {
+    it('asks nothing and hides the activity when no site is asked, but keeps the link to foestats', async () => {
       const fetch = foestats();
       const { box, open, ctx } = activitySetup(fetch);
-      await ctx.settings.of(FOESTATS_SETTING).set(false);
+      await ctx.settings.of(FOESTATS_SETTING).set('none');
       open(1909);
       await tick();
       await tick();
@@ -761,9 +776,9 @@ describe('LG-Rechner', () => {
       expect(box.root.querySelector('a')?.getAttribute('href')).toBe('https://foestats.com/de/de20/players/1001');
     });
 
-    it('is a setting that is on by default and tells what it sends', () => {
+    it('is a setting that asks foestats by default and tells what it sends', () => {
       const { ctx } = setup();
-      expect(ctx.settings.of(FOESTATS_SETTING).get()).toBe(true);
+      expect(ctx.settings.of(FOESTATS_SETTING).get()).toBe('foestats');
       expect(ctx.settings.defs.find((d) => d.key === 'foestats.fetch')).toMatchObject({
         label: 'foestats.fetchSetting',
         hint: 'foestats.fetchHint',

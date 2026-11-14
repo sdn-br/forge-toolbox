@@ -3,6 +3,7 @@ import { createBus } from '../src/content/core/events';
 import { FoestatsStore } from '../src/content/stores/foestats';
 import { type FetchLike, foestatsApi } from '../src/content/stores/foestats-api';
 import { CLAIM_TIMEOUT } from '../src/persistence/foestats/worker';
+import { scoredbRequests } from '../src/persistence/scoredb/client';
 import { RETRY_AFTER } from '../src/shared/foestats';
 import { playerId, worldId } from '../src/shared/ids';
 import { testDb } from './helpers/battle-db';
@@ -49,16 +50,24 @@ function fakeFoestats(data: Snapshot) {
 function setup(data: Snapshot, start = at(22, 9)) {
   const clock = { now: start };
   const foestats = fakeFoestats(data);
-  const db = testDb({ now: () => clock.now });
+  const pages = vi.fn<FetchLike>(async () => ({ ok: true, status: 200, text: async () => PAGE }));
+  const db = testDb({ now: () => clock.now, fetchPage: pages });
   const bus = createBus();
   const updated: number[] = [];
   bus.on('foestats.updated', ({ player }) => updated.push(player));
   /** a store as one tab of the game has it; the requests go out from there, the database is shared */
-  const tab = () => new FoestatsStore(createBus(), world, db.foestats, foestatsApi(foestats.fetch));
-  const store = new FoestatsStore(bus, world, db.foestats, foestatsApi(foestats.fetch));
+  const requests = { foestats: foestatsApi(foestats.fetch), scoredb: scoredbRequests(db.call) };
+  const tab = () => new FoestatsStore(createBus(), world, db.foestats, requests);
+  const store = new FoestatsStore(bus, world, db.foestats, requests);
   const values = () => store.get(player)?.days.map((d) => [d.date, d.points, d.battles]);
-  return { ...foestats, clock, db, store, tab, updated, values };
+  return { ...foestats, pages, clock, db, store, tab, updated, values };
 }
+
+/** a ScoreDB player page with two days of points and battles, made up */
+const PAGE = `<html><head><title>Someone - DE20</title></head><body>
+<div id="playerPoints" data-labels="Someone,Other" data-startdate="2026_10_22" data-counters="1300|1200,9000|8000"></div>
+<div id="playerBattles" data-labels="Battles" data-startdate="2026_10_22" data-counters="12|10"></div>
+</body></html>`;
 
 const day22 = snapshot('2026-10-22', 1200, 50, 70, 3);
 
@@ -174,6 +183,76 @@ describe('foestats store', () => {
     await store.view(player);
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(store.get(player)?.unknown).toBe(false);
+  });
+
+  it('asks ScoreDB the same day about a player foestats does not know, and tells its state', async () => {
+    const { store, state, fetch, pages, values } = setup(day22);
+    state.missing = true;
+    await store.view(player, 'foestats');
+    expect(store.get(player)?.unknown).toBe(true);
+    await store.view(player, 'scoredb');
+    expect(pages).toHaveBeenCalledTimes(1);
+    expect(store.get(player)).toMatchObject({ unreachable: false, unknown: false, loading: false });
+    expect(values()).toEqual([
+      ['2026-10-21', 1200, 10],
+      ['2026-10-22', 1300, 12],
+    ]);
+    // back at foestats the days of the day count, foestats is not asked again
+    await store.view(player, 'foestats');
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(store.get(player)?.unknown).toBe(false);
+  });
+
+  it('asks foestats the same day about a player ScoreDB does not know', async () => {
+    const { store, fetch, pages } = setup(day22);
+    pages.mockResolvedValue({ ok: false, status: 500, text: async () => '<title>Error</title>' });
+    await store.view(player, 'scoredb');
+    expect(store.get(player)?.unknown).toBe(true);
+    await store.view(player, 'foestats');
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(store.get(player)).toMatchObject({ unknown: false, days: [{}, {}] });
+  });
+
+  it('asks no site again the day one of them told the days, and shows those days', async () => {
+    const { store, fetch, pages, values } = setup(day22);
+    await store.view(player, 'foestats');
+    await store.view(player, 'scoredb');
+    expect(pages).not.toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(store.get(player)).toMatchObject({ unreachable: false, unknown: false, loading: false });
+    expect(values()).toEqual([
+      ['2026-10-21', 1150, 67],
+      ['2026-10-22', 1200, 70],
+    ]);
+  });
+
+  it('shows the state of the site asked now: unreachable at foestats is no state of ScoreDB', async () => {
+    const { store, state, pages } = setup(day22);
+    state.down = true;
+    await store.view(player, 'foestats');
+    expect(store.get(player)?.unreachable).toBe(true);
+    let answer = () => {};
+    const answered = new Promise<void>((resolve) => {
+      answer = resolve;
+    });
+    pages.mockImplementation(async () => {
+      await answered;
+      return { ok: true, status: 200, text: async () => PAGE };
+    });
+    const pending = store.view(player, 'scoredb');
+    await vi.waitFor(() => expect(pages).toHaveBeenCalled());
+    // nothing known yet: loading, not the failure of the other site
+    expect(store.get(player)).toMatchObject({ loading: true, unreachable: false });
+    answer();
+    await pending;
+    expect(store.get(player)).toMatchObject({ loading: false, unreachable: false, days: [{}, {}] });
+  });
+
+  it('keeps the site in the record of a request, older records have none', async () => {
+    const { db, store, state } = setup(day22);
+    state.missing = true;
+    await store.view(player, 'foestats');
+    expect(await db.db.foestatsFetches.get([world, player])).toMatchObject({ unknown: true, source: 'foestats' });
   });
 
   it('asks at once about a player whose failed request an older version kept', async () => {

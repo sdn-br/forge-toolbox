@@ -24,6 +24,8 @@ export interface ChoiceSettingDef<V extends string = string> extends BaseSetting
   kind: 'choice';
   default: V;
   choices: { value: V; label: TextKey }[];
+  /** the choice a value an older version stored under the key stands for, e.g. a toggle that became a choice */
+  legacy?: (stored: unknown) => V | undefined;
 }
 
 /** a number within `min` and `max`, rounded to `step` (default 1, a whole number) */
@@ -174,8 +176,9 @@ export class Settings {
       case 'text':
         return typeof value === 'string' ? value.trim() : def.default;
       case 'choice':
-        // a stored value that is no longer a choice falls back to the default
-        return typeof value === 'string' && def.choices.some((c) => c.value === value) ? value : def.default;
+        // a stored value that is no longer a choice falls back to what it stood for, else to the default
+        if (typeof value === 'string' && def.choices.some((c) => c.value === value)) return value;
+        return (value !== undefined && def.legacy?.(value)) || def.default;
     }
   }
 

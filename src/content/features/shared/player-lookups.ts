@@ -1,10 +1,11 @@
-// What the features that show other players look up about them (name, foestats pages, guild, relations, star and eye, the PvP marks),
+// What the features that show other players look up about them (name, pages at foestats or ScoreDB, guild, relations, star and eye, the PvP marks),
 // and the actions on a player: star, eye and the PvP marks.
-import { foestatsGuildUrl, foestatsPlayerUrl } from '../../../shared/foestats';
+import { sourceGuildUrl, sourcePlayerUrl } from '../../../shared/activity-source';
 import type { PlayerId } from '../../../shared/ids';
 import type { Relations } from '../../../shared/model';
 import type { FeatureContext } from '../../core/feature';
 import type { OwnerLookups } from '../../ui/owner-line';
+import { activitySource } from './settings';
 
 export interface PlayerLookups extends OwnerLookups {
   /** the player's name; undefined for a player the store does not know */
@@ -26,10 +27,11 @@ export interface PvpPlayerLookups extends PlayerLookups {
 /** the lookups read the stores on each call, so one set serves every redraw */
 export const playerLookups = (ctx: FeatureContext): PvpPlayerLookups => ({
   playerName: (id) => ctx.players.get(id)?.name,
-  playerUrl: (id) => foestatsPlayerUrl(ctx.world, id),
+  // names link to the site chosen in the setting "Abfrage", foestats when none is asked
+  playerUrl: (id) => sourcePlayerUrl(activitySource(ctx.settings), ctx.world, id),
   playerGuild: (id) => {
     const guild = ctx.players.get(id)?.guild;
-    return guild && { name: guild.name, url: foestatsGuildUrl(ctx.world, guild.id) };
+    return guild && { name: guild.name, url: sourceGuildUrl(activitySource(ctx.settings), ctx.world, guild.id) };
   },
   relations: (id) => ctx.players.get(id)?.relations,
   friendInvited: (id) => ctx.players.get(id)?.friendInvited === true,

@@ -112,7 +112,7 @@ describe('activityVm without days', () => {
     loading: false,
     ...change,
   });
-  const text = (change: Parameters<typeof record>[0]) => activityVm(record(change), '2026-10-22')?.text;
+  const text = (change: Parameters<typeof record>[0]) => activityVm(record(change), '2026-10-22', 'foestats')?.text;
 
   it('tells why nothing is known', () => {
     expect(text({})).toBe('keine foestats-Daten');
@@ -122,9 +122,25 @@ describe('activityVm without days', () => {
     expect(text({ unknown: true, loading: true })).toBe('wird von foestats geladen …');
   });
 
+  it('names the chosen site', () => {
+    const vm = (change: Parameters<typeof record>[0]) => activityVm(record(change), '2026-10-22', 'scoredb');
+    expect(vm({})?.text).toBe('keine scoredb.io-Daten');
+    expect(vm({ unreachable: true })?.text).toBe('scoredb.io nicht erreichbar');
+    expect(vm({ unknown: true })?.text).toBe('bei scoredb.io unbekannt');
+    expect(vm({ loading: true })).toMatchObject({
+      text: 'wird von scoredb.io geladen …',
+      loadingTip: 'wird von scoredb.io geladen …',
+    });
+    const day = { world: worldId('de20'), player: playerId(1), date: '2026-10-22', points: 100, battles: 6 };
+    const known = (site: 'foestats' | 'scoredb') =>
+      activityVm({ ...record({ unreachable: true }), days: [day] }, '2026-10-22', site)?.title;
+    expect(known('scoredb')).toBe('Punkte und Kämpfe, Stand 2026-10-22\nscoredb.io nicht erreichbar, Stand von früher');
+    expect(known('foestats')).toBe('Punkte und Kämpfe, Stand 2026-10-22\nfoestats nicht erreichbar, Stand von früher');
+  });
+
   it('says nothing of it once days are stored', () => {
     const day = { world: worldId('de20'), player: playerId(1), date: '2026-10-22', points: 100, battles: 6 };
-    const vm = activityVm({ ...record({ unknown: true }), days: [day] }, '2026-10-22');
+    const vm = activityVm({ ...record({ unknown: true }), days: [day] }, '2026-10-22', 'foestats');
     expect(vm?.text).toBe('noch keine Zunahme bekannt');
   });
 });

@@ -31,7 +31,11 @@ function setup(prepare: (profile: Profile, db: ToolboxDb) => Promise<void> = asy
     },
     prepare,
     watch: (profile, db) => watched.push(`${profile.player} ${db.name}`),
-    deps: { now: () => 1000, fetchText: async () => '' },
+    deps: {
+      now: () => 1000,
+      fetchText: async () => '',
+      fetchPage: async () => ({ ok: false, status: 503, text: async () => '' }),
+    },
     logError: vi.fn(),
   });
   const a: Profile = { world, player: playerId(1) };

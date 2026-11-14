@@ -83,6 +83,30 @@ describe('Settings', () => {
     expect(choice.get()).toBe('forever');
   });
 
+  it('reads a value an older version stored under the key as the choice it stood for', async () => {
+    const SOURCE = choiceDef({
+      key: 'a.source',
+      ...base,
+      default: 'on',
+      choices: [
+        { value: 'off', label: 'pvp.keepForever' },
+        { value: 'on', label: 'pvp.keep30' },
+      ],
+      legacy: (stored) => (stored === false ? 'off' : undefined),
+    });
+    const read = async (stored: Record<string, unknown> | undefined) => {
+      const { settings } = setup(stored);
+      const handle = settings.register(SOURCE);
+      await settings.load();
+      return handle.get();
+    };
+    expect(await read({ 'a.source': false })).toBe('off');
+    expect(await read({ 'a.source': true })).toBe('on');
+    expect(await read({ 'a.source': 7 })).toBe('on');
+    expect(await read(undefined)).toBe('on');
+    expect(await read({ 'a.source': 'off' })).toBe('off');
+  });
+
   it('gives a choice handle the literal union of its values', () => {
     const { settings } = setup();
     const choice = settings.register(CHOICE);

@@ -15,6 +15,8 @@ export interface TestStoresOptions {
   now?: () => number;
   /** the requests to foestats; without it foestats is unreachable */
   fetch?: FetchLike;
+  /** the requests of the service worker to ScoreDB; without them ScoreDB is unreachable */
+  pages?: FetchLike;
   /** stores a test builds itself, for example on persistence it controls; they need the bus, so they come from here */
   /** what the own-share state reads; without them empty ones */
   settings?: Settings;
@@ -31,12 +33,13 @@ const offline: FetchLike = async () => ({ ok: false, status: 503, text: async ()
 export function testStores({
   now = Date.now,
   fetch = offline,
+  pages,
   settings = new Settings(memoryKv()),
   ui = new UiState(memoryKv()),
   levelCosts = {},
   overrides,
 }: TestStoresOptions = {}) {
-  const db = testDb({ now });
+  const db = testDb({ now, ...(pages && { fetchPage: pages }) });
   const world = worldId('de20');
   const bus = createBus();
   const stores: Stores = {
