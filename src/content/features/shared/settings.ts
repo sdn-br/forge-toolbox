@@ -12,13 +12,14 @@ export const FOESTATS_SETTING = choiceDef({
   group: 'foestats.group',
   label: 'foestats.fetchSetting',
   hint: 'foestats.fetchHint',
-  default: 'foestats',
+  default: 'scoredb',
   choices: [
     { value: 'none', label: 'foestats.sourceNone' },
     { value: 'foestats', label: 'foestats.sourceFoestats' },
     { value: 'scoredb', label: 'foestats.sourceScoredb' },
   ],
-  legacy: (stored) => (stored === false ? 'none' : undefined),
+  // the old toggle knew foestats only: on stays foestats, off is no request
+  legacy: (stored) => (stored === false ? 'none' : stored === true ? 'foestats' : undefined),
 });
 
 /** The site asked about players; "Keine Abfrage" while the setting is not registered, as in tests without the feature. */

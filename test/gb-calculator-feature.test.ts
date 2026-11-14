@@ -790,9 +790,9 @@ describe('LG-Rechner', () => {
       expect(box.root.querySelector('a')?.getAttribute('href')).toBe('https://foestats.com/de/de20/players/1001');
     });
 
-    it('is a setting that asks foestats by default and tells what it sends', () => {
+    it('is a setting that asks ScoreDB by default and tells what it sends', () => {
       const { ctx } = setup();
-      expect(ctx.settings.of(FOESTATS_SETTING).get()).toBe('foestats');
+      expect(ctx.settings.of(FOESTATS_SETTING).get()).toBe('scoredb');
       expect(ctx.settings.defs.find((d) => d.key === 'foestats.fetch')).toMatchObject({
         label: 'foestats.fetchSetting',
         hint: 'foestats.fetchHint',
