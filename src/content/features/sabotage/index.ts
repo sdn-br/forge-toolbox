@@ -10,7 +10,7 @@ import { icons } from '../../ui/icons';
 import { PlayerNoteCard } from '../../ui/note-card';
 import { clampTop } from '../../ui/windowed-rows';
 import { playerLookups, playerRowActions } from '../shared/player-lookups';
-import { FOESTATS_SETTING } from '../shared/settings';
+import { LINK_SETTING } from '../shared/settings';
 import { sabotageCss } from './styles';
 import { type PlunderMarks, type SabotageTab, type SabotageUi, sabotageView, VISIBLE_ROWS } from './view';
 import { type SabotageVm, sabotageViewModel } from './view-model';
@@ -261,7 +261,7 @@ export const sabotageFeature: Feature = {
     showArmy.onChange(refresh);
     // the links of the names follow the chosen site
     ctx.settings.onChange((key) => {
-      if (key === FOESTATS_SETTING.key) refresh();
+      if (key === LINK_SETTING.key) refresh();
     });
     ctx.menu.add({
       id: ID,

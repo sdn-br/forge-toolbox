@@ -745,6 +745,8 @@ export const de = {
   'foestats.fetchHint':
     'Fragt die gewählte Seite (foestats.com oder scoredb.io) einmal am Tag nach Punkten und Kämpfen des Spielers, dessen Stadt oder LG du gerade ansiehst.',
   'foestats.sourceNone': 'Keine Abfrage',
+  'foestats.linkSetting': 'Verlinkung',
+  'foestats.linkHint': 'Wohin Spieler- und Gildennamen in den Boxen führen.',
   'foestats.sourceFoestats': 'foestats.com',
   'foestats.sourceScoredb': 'scoredb.io',
 } as const;

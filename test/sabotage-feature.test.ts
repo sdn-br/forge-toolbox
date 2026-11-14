@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AUTO_OPEN, SHOW_ARMY } from '../src/content/features/sabotage';
 import { sabotageFeature } from '../src/content/features/sabotage/index';
-import { FOESTATS_SETTING } from '../src/content/features/shared/settings';
+import { LINK_SETTING } from '../src/content/features/shared/settings';
 import type { BuildingDef } from '../src/content/model/catalog';
 import type { Building } from '../src/content/model/city';
 import type { PlayerObservation } from '../src/content/model/player';
@@ -200,7 +200,7 @@ describe('sabotage feature', () => {
 
   it('links the names to the chosen site at once when the setting changes', async () => {
     const { ctx, box } = setup();
-    const source = ctx.settings.register(FOESTATS_SETTING);
+    const source = ctx.settings.register(LINK_SETTING);
     ctx.players.apply(world, [observed(1, { canPlunder: false })], 'visit');
     ctx.cities.setVisited(city(1));
     await tick();

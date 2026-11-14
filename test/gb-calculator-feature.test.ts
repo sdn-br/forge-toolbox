@@ -11,7 +11,7 @@ import {
   createGbCalculatorFeature,
   SOUND,
 } from '../src/content/features/gb-calculator';
-import { FOESTATS_SETTING } from '../src/content/features/shared/settings';
+import { FOESTATS_SETTING, LINK_SETTING } from '../src/content/features/shared/settings';
 import { registerGameHandlers } from '../src/content/game/handlers';
 import type { FetchLike } from '../src/content/stores/foestats-api';
 import { playerId, worldId } from '../src/shared/ids';
@@ -82,6 +82,20 @@ function setup(options: TestStoresOptions = {}) {
 }
 
 describe('LG-Rechner', () => {
+  it('links the owner to the site of the setting "Verlinkung", whichever site is asked', async () => {
+    const { box, ctx, open } = setup();
+    open(1909);
+    await tick();
+    const href = () =>
+      [...box.root.querySelectorAll('a')].find((a) => a.textContent === 'Eigentümer 1001')?.getAttribute('href');
+    await ctx.settings.of(FOESTATS_SETTING).set('scoredb');
+    await tick();
+    expect(href()).toBe('https://foestats.com/de/de20/players/1001');
+    await ctx.settings.of(LINK_SETTING).set('scoredb');
+    await tick();
+    expect(href()).toBe('https://foe.scoredb.io/DE20/Player/1001');
+  });
+
   it('opens with a foreign great building and shows every place with its status', async () => {
     const { box, open, rows, tones } = setup();
     open(1909);
