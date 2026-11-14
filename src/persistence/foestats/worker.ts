@@ -58,10 +58,12 @@ export function foestatsHandlers(db: FoestatsTables, { now }: Pick<HandlerDeps, 
         unreachableAt.delete(source);
         const days = outcome !== 'unknown' && outcome.days.length > 0 && outcome;
         if (days) {
-          // what the site tells for a day beats a worked out value; a worked out day only fills a gap
-          await db.foestatsDays.bulkPut(days.days);
+          // what the site tells for a day beats a worked out value; a worked out day only fills a gap. Each day keeps
+          // the site it came from, as days of both sites mix by date
+          await db.foestatsDays.bulkPut(days.days.map((d) => ({ ...d, source })));
           const { before } = days;
-          if (before && !(await db.foestatsDays.get([world, player, before.date]))) await db.foestatsDays.put(before);
+          if (before && !(await db.foestatsDays.get([world, player, before.date])))
+            await db.foestatsDays.put({ ...before, source });
         }
         // an answer without a day with points and battles tells as little as a player the site does not know
         await db.foestatsFetches.put({

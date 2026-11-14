@@ -345,6 +345,8 @@ export interface FoestatsDay {
   battles?: number;
   /** foestats' own status of the player on a snapshot day; not indexed, older rows lack it */
   active?: boolean;
+  /** the site whose answer last put the day; not indexed, rows stored before 2026-11-14 lack it */
+  source?: DataSource;
 }
 
 /**
