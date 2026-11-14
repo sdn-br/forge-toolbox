@@ -675,7 +675,7 @@ describe('LG-Rechner', () => {
       const activity = line(box.root) as HTMLElement;
       expect(activity.textContent).toBe('zuletzt aktiv heute · 1 Tag: +300 Punkte, +3 Kämpfe');
       expect(activity.className).toBe('gb-activity muted');
-      expect(activity.dataset.tip).toBe('Punkte und Kämpfe laut foestats.com, Stand 2026-10-22');
+      expect(activity.dataset.tip).toBe('Punkte und Kämpfe, Stand 2026-10-22');
     });
 
     it('shows the last active day and the last week from the stored days, flagged after three quiet days', async () => {

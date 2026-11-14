@@ -732,7 +732,7 @@ export const de = {
   'foestats.noData': 'keine {source}-Daten',
   'foestats.unreachable': '{source} nicht erreichbar',
   'foestats.unknown': 'bei {source} unbekannt',
-  'foestats.source': 'Punkte und Kämpfe laut {site}, Stand {date}',
+  'foestats.source': 'Punkte und Kämpfe, Stand {date}',
   'foestats.stale': '{source} nicht erreichbar, Stand von früher',
   'foestats.nameFoestats': 'foestats',
   'foestats.nameScoredb': 'scoredb.io',

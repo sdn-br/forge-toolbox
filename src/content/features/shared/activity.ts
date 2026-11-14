@@ -17,10 +17,10 @@ function ownText(a: Activity): string {
   return t('foestats.noIncrease');
 }
 
-/** the short name of a site in the texts, and its address */
-const NAMES: Record<DataSource, { source: TextKey; site: TextKey }> = {
-  foestats: { source: 'foestats.nameFoestats', site: 'foestats.sourceFoestats' },
-  scoredb: { source: 'foestats.nameScoredb', site: 'foestats.sourceScoredb' },
+/** the short name of a site in the texts */
+const NAMES: Record<DataSource, { source: TextKey }> = {
+  foestats: { source: 'foestats.nameFoestats' },
+  scoredb: { source: 'foestats.nameScoredb' },
 };
 
 /** why there is no activity to tell */
@@ -56,10 +56,7 @@ export function activityVm(
     idle: activity.idle,
     loading,
     loadingTip,
-    title: [
-      t('foestats.source', { site: t(NAMES[source].site), date: newest }),
-      record.unreachable && t('foestats.stale', name),
-    ]
+    title: [t('foestats.source', { date: newest }), record.unreachable && t('foestats.stale', name)]
       .filter(Boolean)
       .join('\n'),
   };

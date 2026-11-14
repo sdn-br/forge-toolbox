@@ -134,12 +134,8 @@ describe('activityVm without days', () => {
     const day = { world: worldId('de20'), player: playerId(1), date: '2026-10-22', points: 100, battles: 6 };
     const known = (site: 'foestats' | 'scoredb') =>
       activityVm({ ...record({ unreachable: true }), days: [day] }, '2026-10-22', site)?.title;
-    expect(known('scoredb')).toBe(
-      'Punkte und Kämpfe laut scoredb.io, Stand 2026-10-22\nscoredb.io nicht erreichbar, Stand von früher',
-    );
-    expect(known('foestats')).toBe(
-      'Punkte und Kämpfe laut foestats.com, Stand 2026-10-22\nfoestats nicht erreichbar, Stand von früher',
-    );
+    expect(known('scoredb')).toBe('Punkte und Kämpfe, Stand 2026-10-22\nscoredb.io nicht erreichbar, Stand von früher');
+    expect(known('foestats')).toBe('Punkte und Kämpfe, Stand 2026-10-22\nfoestats nicht erreichbar, Stand von früher');
   });
 
   it('says nothing of it once days are stored', () => {
