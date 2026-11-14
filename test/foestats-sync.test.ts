@@ -42,6 +42,23 @@ describe('fetchDue', () => {
     expect(fetchDue(unknown, at(23, 5, 40))).toBe(true);
   });
 
+  it('asks the other site at once about a player one site does not know, as no days came', () => {
+    const unknown = last({ unknown: true, source: 'foestats' });
+    expect(fetchDue(unknown, at(22, 23), 'scoredb')).toBe(true);
+    expect(fetchDue(unknown, at(22, 23), 'foestats')).toBe(false);
+    expect(fetchDue(last({ unknown: true, source: 'scoredb' }), at(22, 23), 'foestats')).toBe(true);
+  });
+
+  it('counts a record without its site as one of foestats, as older versions asked foestats only', () => {
+    expect(fetchDue(last({ unknown: true }), at(22, 23), 'foestats')).toBe(false);
+    expect(fetchDue(last({ unknown: true }), at(22, 23), 'scoredb')).toBe(true);
+  });
+
+  it('asks neither site again the day one of them told the days', () => {
+    expect(fetchDue(last({ source: 'foestats' }), at(22, 23), 'scoredb')).toBe(false);
+    expect(fetchDue(last({ source: 'scoredb' }), at(22, 23), 'foestats')).toBe(false);
+  });
+
   it('asks at once after a failure kept per player by an older version', () => {
     expect(fetchDue(last({ ok: false, at: at(22, 8) }), at(22, 8, 1))).toBe(true);
   });

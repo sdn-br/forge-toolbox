@@ -65,6 +65,12 @@ export class FoestatsStore {
       const { fetch, ...claimed } = await this.persistence.claim(this.world, player, source);
       let state = claimed;
       if (fetch) {
+        // without days to show, the state of another site would read as one of this site: loading until it answers
+        const known = this.records.get(player);
+        if (known && known.days.length === 0 && !known.loading) {
+          this.records.set(player, { ...known, ...claimed, loading: true });
+          this.bus.emit('foestats.updated', { player });
+        }
         // the request never fails, a missing answer is 'unreachable'
         const outcome = await this.requests[source].player(this.world, player);
         state = await this.persistence.store(this.world, player, outcome, source);

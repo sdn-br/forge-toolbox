@@ -1,4 +1,5 @@
 // foestats.com: links to its pages and the place of a world in its unofficial API (api.forge-db.com).
+import type { DataSource } from './activity-source';
 import type { GuildId, PlayerId, WorldId } from './ids';
 import type { FoestatsFetch } from './model';
 
@@ -47,9 +48,11 @@ export function foestatsDay(now: number): string {
 }
 
 /**
- * At most once per player and foestats day, also when foestats does not know the player. A record of a failure from an
- * older version is due at once: foestats being unreachable is no longer kept per player.
+ * At most once per player and foestats day, also when the site does not know the player. Days told by one site stand
+ * for both, a player unknown to one site is still asked at the other (`source`) the same day. A record of a failure
+ * from an older version is due at once: a site being unreachable is no longer kept per player.
  */
-export function fetchDue(last: FoestatsFetch | undefined, now: number): boolean {
-  return !last?.ok || last.day < foestatsDay(now);
+export function fetchDue(last: FoestatsFetch | undefined, now: number, source: DataSource = 'foestats'): boolean {
+  if (!last?.ok || last.day < foestatsDay(now)) return true;
+  return last.unknown === true && (last.source ?? 'foestats') !== source;
 }

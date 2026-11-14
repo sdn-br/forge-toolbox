@@ -11,17 +11,28 @@ export const foestatsFeature: Feature = {
   setup(ctx) {
     ctx.settings.registerGroup('foestats.group', '📈');
     const source = ctx.settings.register(FOESTATS_SETTING);
+    /** the player each view shows last: the owner of an opened great building, of a visited city, of a listing */
+    const shown = new Map<'greatBuilding' | 'city' | 'list', PlayerId>();
     const view = (player: PlayerId) => {
       const site = source.get();
       if (site !== 'none') void ctx.foestats.view(player, site);
     };
+    const show = (at: 'greatBuilding' | 'city' | 'list', player: PlayerId) => {
+      shown.set(at, player);
+      view(player);
+    };
     ctx.bus.on('greatBuilding.opened', ({ owner, own }) => {
-      if (!own) view(owner);
+      if (own) shown.delete('greatBuilding');
+      else show('greatBuilding', owner);
     });
-    ctx.bus.on('city.visited', ({ owner }) => view(owner));
+    ctx.bus.on('city.visited', ({ owner }) => show('city', owner));
     // a quiet list comes while a great building window shows, whose owner was asked about at its opening
     ctx.bus.on('greatBuildings.listed', ({ owner, quiet }) => {
-      if (!quiet) view(owner);
+      if (!quiet) show('list', owner);
+    });
+    // the shown players are viewed again with the new site; the claim asks only when their data is not of today
+    source.onChange(() => {
+      for (const player of new Set(shown.values())) view(player);
     });
   },
 };

@@ -1,5 +1,6 @@
 // Domain types that cross the content script / service worker boundary, or the layers of the content script.
 import type { RankingRow } from '../content/model/great-building';
+import type { DataSource } from './activity-source';
 import type { BuildingDefId, EraId, GuildId, PlayerId, WorldId } from './ids';
 
 /** The own player of the game page, as the startup data name it. */
@@ -363,8 +364,10 @@ export interface FoestatsFetch {
   at: number;
   /** foestats answered; false only in records of older versions, which kept a failed request per player */
   ok: boolean;
-  /** foestats does not know the player; older records lack it */
+  /** the site does not know the player; older records lack it */
   unknown?: boolean;
+  /** the site asked; older records lack it, they asked foestats */
+  source?: DataSource;
 }
 
 /** The raw metadata file of one building definition as the service worker caches it; the content side translates it. */

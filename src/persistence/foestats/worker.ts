@@ -19,8 +19,9 @@ export const CLAIM_TIMEOUT = 60_000;
  * The rules of asking foestats or ScoreDB live here, the request itself elsewhere (foestats from the content script,
  * ScoreDB through `scoredb.player`): the service worker decides when a request is due and keeps what came back. Both
  * sites share the tables, their points and battles are the game's. A player the site does not know is kept per player
- * until the next foestats day. An unreachable site holds back every player for `RETRY_AFTER`, per site, so switching
- * to the other site asks at once; that is kept in memory only, a restarted service worker just asks again.
+ * and site until the next foestats day; days of the day told by one site stand for both. An unreachable site holds back
+ * every player for `RETRY_AFTER`, per site, so switching to the other site asks at once; that is kept in memory only, a
+ * restarted service worker just asks again.
  */
 export function foestatsHandlers(db: FoestatsTables, { now }: Pick<HandlerDeps, 'now'>): Handlers<FoestatsApi> {
   /** claimed requests not stored yet, with the time of the claim */
@@ -28,19 +29,20 @@ export function foestatsHandlers(db: FoestatsTables, { now }: Pick<HandlerDeps, 
   const key = (world: WorldId, player: PlayerId) => `${world}:${player}`;
   /** when each site last did not answer; cleared by any answer of that site */
   const unreachableAt = new Map<DataSource, number>();
-  const unknown = async (world: WorldId, player: PlayerId) =>
-    (await db.foestatsFetches.get([world, player]))?.unknown === true;
+  /** whether `source` does not know the player; older records without a site are foestats' */
+  const unknownTo = (last: FoestatsFetch | undefined, source: DataSource) =>
+    last?.unknown === true && (last.source ?? 'foestats') === source;
 
   return {
     'foestats.claim': async ({ world, player, source = 'foestats' }) => {
       const last = await db.foestatsFetches.get([world, player]);
       const at = now();
       const down = unreachableAt.get(source);
-      const state = { unreachable: down !== undefined, unknown: last?.unknown === true };
+      const state = { unreachable: down !== undefined, unknown: unknownTo(last, source) };
       const claimed = claims.get(key(world, player));
       const fetch = !(
         (down !== undefined && at - down < RETRY_AFTER) ||
-        !fetchDue(last, at) ||
+        !fetchDue(last, at, source) ||
         (claimed !== undefined && at - claimed < CLAIM_TIMEOUT)
       );
       if (fetch) claims.set(key(world, player), at);
@@ -51,7 +53,7 @@ export function foestatsHandlers(db: FoestatsTables, { now }: Pick<HandlerDeps, 
       try {
         if (outcome === 'unreachable') {
           unreachableAt.set(source, at);
-          return { unreachable: true, unknown: await unknown(world, player) };
+          return { unreachable: true, unknown: unknownTo(await db.foestatsFetches.get([world, player]), source) };
         }
         unreachableAt.delete(source);
         const days = outcome !== 'unknown' && outcome.days.length > 0 && outcome;
@@ -68,6 +70,7 @@ export function foestatsHandlers(db: FoestatsTables, { now }: Pick<HandlerDeps, 
           day: foestatsDay(at),
           at,
           ok: true,
+          source,
           ...(!days && { unknown: true }),
         });
         return { unreachable: false, unknown: !days };

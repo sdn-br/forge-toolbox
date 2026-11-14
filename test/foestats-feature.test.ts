@@ -112,8 +112,50 @@ describe('foestats feature', () => {
     await ctx.settings.of(FOESTATS_SETTING).set('scoredb');
     visit(43);
     await vi.waitFor(() => expect(ctx.foestats.get(playerId(43))?.loading).toBe(false));
-    expect(pages).toHaveBeenCalledTimes(1);
+    // 42 is viewed again on the switch, 43 by its visit
+    await vi.waitFor(() => expect(pages).toHaveBeenCalledTimes(2));
     expect(ctx.foestats.get(playerId(43))).toMatchObject({ unreachable: false, unknown: false });
+  });
+
+  it('views the shown players again when the site changes, the claim decides whether to ask', async () => {
+    const { ctx, visit, fetch, pages } = await setup();
+    fetch.mockResolvedValue({ ok: false, status: 401, text: async () => '' });
+    visit(42);
+    ctx.bus.emit('greatBuilding.opened', { owner: playerId(8), entityId: 2, own: false });
+    ctx.bus.emit('greatBuildings.listed', { owner: playerId(10), entityIds: [], at: 0, quiet: false });
+    await vi.waitFor(() => expect(ctx.foestats.get(playerId(10))?.loading).toBe(false));
+    await vi.waitFor(() => expect(ctx.foestats.get(playerId(8))?.loading).toBe(false));
+    await vi.waitFor(() => expect(ctx.foestats.get(playerId(42))?.loading).toBe(false));
+    expect(ctx.foestats.get(playerId(42))?.unreachable).toBe(true);
+
+    await ctx.settings.of(FOESTATS_SETTING).set('scoredb');
+    await vi.waitFor(() => expect(pages).toHaveBeenCalledTimes(3));
+    const asked = pages.mock.calls.map(([url]) => url.split('/').at(-1)).sort();
+    expect(asked).toEqual(['10', '42', '8']);
+    await vi.waitFor(() =>
+      expect(ctx.foestats.get(playerId(42))).toMatchObject({ loading: false, unreachable: false }),
+    );
+    expect(ctx.foestats.get(playerId(42))?.days).toHaveLength(2);
+
+    // the days of the day stand for both sites: back at foestats nobody is asked
+    fetch.mockClear();
+    await ctx.settings.of(FOESTATS_SETTING).set('foestats');
+    await tick();
+    await tick();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('views nobody again when the site changes to none, and forgets an own great building', async () => {
+    const { ctx, fetch, pages } = await setup();
+    ctx.bus.emit('greatBuilding.opened', { owner: playerId(8), entityId: 2, own: false });
+    await vi.waitFor(() => expect(ctx.foestats.get(playerId(8))?.loading).toBe(false));
+    ctx.bus.emit('greatBuilding.opened', { owner: playerId(7), entityId: 1, own: true });
+    await ctx.settings.of(FOESTATS_SETTING).set('none');
+    await ctx.settings.of(FOESTATS_SETTING).set('scoredb');
+    await tick();
+    await tick();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(pages).not.toHaveBeenCalled();
   });
 
   it('reads a toggle stored by an older version: off is no request, on is the default', async () => {
