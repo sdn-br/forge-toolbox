@@ -89,3 +89,40 @@ describe('profit per Forge point paid in', () => {
     expect((key(a) ?? 0) > (key(c) ?? 0)).toBe(true);
   });
 });
+
+describe('an own deposit that is not safe (Nutzer, 2026-11-14)', () => {
+  const unknown = share({ state: 'unknown' });
+  const own = hit(unknown, {
+    tier: 'safe',
+    own: { rank: 3, fp: 400, status: 'unsafe' },
+    place: { rank: 2, cost: 300, profit: 84, paid: 700 },
+    worst: { rank: 3, cost: 150, profit: 20, paid: 550 },
+    profitLow: 20,
+    profitHigh: 84,
+  });
+
+  it('names the own deposit first in the row notes, and the worst case with what to add', () => {
+    expect(snipeNotes(own)).toEqual([
+      'Du: 400 FP auf P3, nicht sicher',
+      'Im schlechtesten Fall: P3 mit +150 FP, Gewinn +20',
+    ]);
+    expect(snipeNotes({ ...own, own: { rank: 3, fp: 400, status: 'unknown' } })[0]).toBe(
+      'Du: 400 FP auf P3, Sicherheit unbekannt',
+    );
+  });
+
+  it('shows what to add as the stake, with its own hint, and the profit per Forge point of the whole payment', () => {
+    expect(hitVm(own)).toMatchObject({
+      cost: '+300',
+      costHint: 'Nachlegen: was zur eigenen Einzahlung dazukommt, damit der Platz sicher ist',
+      own: true,
+      ratio: '0,12',
+      ratioRange: 'Gewinn je FP 0,04 bis 0,12',
+    });
+    expect(hitVm(hit(unknown))).toMatchObject({
+      cost: '200',
+      costHint: 'Einzahlung insgesamt, mit der der Platz sicher ist',
+    });
+    expect(hitVm(hit(unknown))).not.toHaveProperty('own');
+  });
+});

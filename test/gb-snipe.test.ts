@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ownerShare, snipeBuilding, snipeList } from '../src/content/domain/gb-snipe';
+import { ownerShare, type SnipeHit, snipeBuilding, snipeList, snipeRatio } from '../src/content/domain/gb-snipe';
+import { possibleInvestments } from '../src/content/domain/investments';
 import type { GreatBuildingDef } from '../src/content/model/catalog';
 import type { RankingRow } from '../src/content/model/great-building';
 import { buildingDefId, playerId, worldId } from '../src/shared/ids';
@@ -174,6 +175,90 @@ describe('snipeList', () => {
       [2, 134],
     ]);
     expect(list).toMatchObject({ none: 1, ownContribution: 1, unknownReward: 1 });
+  });
+});
+
+describe('snipeBuilding: own deposits that are not safe (Nutzer, 2026-11-14)', () => {
+  const self = (rank: number, fp: number): RankingRow => ({
+    rank,
+    name: 'Ich',
+    self: true,
+    fp,
+    reward: { fp: 1, blueprints: 0, medals: 0 },
+  });
+  /** a stored ranking of level 50 with the given places; the own one is a `self` row */
+  const ownRanking = (ownerFp: number, rows: RankingRow[]): Partial<KnownGreatBuilding> => ({
+    ownContribution: true,
+    rankings: [owner(ownerFp), ...rows],
+    rankingsLevel: 50,
+    rankingsAt: 900,
+    rankingsInvested: ownerFp + rows.reduce((sum, r) => sum + (r.fp ?? 0), 0),
+  });
+  const contribution = (rank: number, forgePoints: number): Partial<KnownGreatBuilding> => ({
+    ownContribution: true,
+    contribution: { rank, forgePoints, reward: 186, at: 900 },
+  });
+
+  it('lists an unsafe own deposit when topping up pays, with what to add and the profit of the whole payment', () => {
+    // 300 on P1, 100 own on P2, rest 500: P2 is safe at 250, not held. Doing nothing falls to P5 (5 FP). P1 safe at 400
+    // for 484 is the best target: add 300, profit 484 - 400 = 84
+    const hit = run(
+      building({ invested: 400, ...ownRanking(0, [place(1, 300), self(2, 100), place(3), place(4), place(5)]) }),
+    );
+    expect(hit).toMatchObject({
+      tier: 'exact',
+      own: { rank: 2, fp: 100, status: 'unsafe' },
+      place: { rank: 1, cost: 300, profit: 84, paid: 400 },
+      profitLow: 84,
+      profitHigh: 84,
+    });
+    expect(snipeRatio(hit as SnipeHit)).toEqual({ low: 0.21, high: 0.21 });
+  });
+
+  it('counts an unsafe own deposit where topping up brings no more than doing nothing', () => {
+    // without an Arc bonus: 300 on P1, 200 on P2, 100 own on P3, rest 300; doing nothing falls to P4 (8 FP), every
+    // target leaves less: P1 186 - 200, P2 93 - 150, P3 31 - 50
+    const b = building({
+      invested: 600,
+      ...ownRanking(0, [place(1, 300), place(2, 200), self(3, 100), place(4), place(5)]),
+    });
+    expect(run(b, 0)).toBe('ownNoGain');
+    const list = snipeList({ buildings: [b], greatBuilding: () => def, arcBonus: NO_ARC });
+    expect(list).toMatchObject({ hits: [], ownNoGain: 1, ownContribution: 0, none: 0 });
+  });
+
+  it('leaves out a safe own deposit, counted as before', () => {
+    // 500 own on P1, rest 700: nobody can pass 350 any more
+    const b = building({ invested: 600, ...ownRanking(100, [self(1, 500), place(2), place(3), place(4), place(5)]) });
+    expect(run(b)).toBe('ownContribution');
+  });
+
+  it('rates an own deposit without fitting rankings in the best and the worst case', () => {
+    // 100 own on P1 from the town hall list, 400 in all: the other 300 are unknown. At best the owner paid them: rest
+    // 500, P1 safe at 250, add 150 for 484 - 250 = 234. At worst 100 lie on P2 right below and 200 with the owner:
+    // P1 safe at 300, add 200, 184
+    const hit = run(building({ invested: 400, ...contribution(1, 100) }));
+    expect(hit).toMatchObject({
+      tier: 'safe',
+      own: { rank: 1, fp: 100, status: 'unknown' },
+      place: { rank: 1, cost: 150, profit: 234, paid: 250 },
+      worst: { rank: 1, cost: 200, profit: 184, paid: 300 },
+      profitLow: 184,
+      profitHigh: 234,
+    });
+  });
+
+  it('leaves out an own deposit nobody can pass without rankings, as the investments call it safe', () => {
+    // 500 own, 600 in all, rest 200: 500 ≥ 100 + 200
+    expect(run(building({ invested: 600, ...contribution(1, 500) }))).toBe('ownContribution');
+  });
+
+  it('keeps own deposits out of the possible investments, paying or not', () => {
+    const b = building({
+      invested: 400,
+      ...ownRanking(0, [place(1, 300), self(2, 100), place(3), place(4), place(5)]),
+    });
+    expect(possibleInvestments([b], () => def, ARC)).toEqual([]);
   });
 });
 

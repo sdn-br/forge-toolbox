@@ -3,14 +3,10 @@ import type { BuildingDefId, PlayerId } from '../../shared/ids';
 import type { KnownGreatBuilding } from '../../shared/model';
 import type { GreatBuildingDef, TierStart } from '../model/catalog';
 import { type ArcBonus, arcBonusAt } from './arc-bonus';
-import { calculateConstruction, constructionOf, plusPercent } from './gb-calculator';
-import { currentRankings, type SnipeHit, snipeBuildings } from './gb-snipe';
+import { plusPercent } from './gb-calculator';
+import { type InvestmentStatus, investmentStatus, type SnipeHit, snipeBuildings } from './gb-snipe';
 
-/**
- * `safe`: nobody can pass the own place anymore; it stays safe on the same level, however much others pay in. `unsafe`: the stored rankings fit the progress and someone can. `unknown`:
- * without fitting rankings the rule without them cannot tell; opening the building does.
- */
-export type InvestmentStatus = 'safe' | 'unsafe' | 'unknown';
+export type { InvestmentStatus } from './gb-snipe';
 
 export interface Investment {
   owner: PlayerId;
@@ -49,33 +45,6 @@ export interface Investments {
   /** rows with growth first, then the rest ascending */
   rows: Investment[];
 }
-
-/**
- * The own place decided with stored rankings of the building's level: the "own place" rule of the calculator, with the
- * progress the rankings were taken at (the calculator reads it from their sum). A building at its highest level or not
- * connected is still decided by the places, as the calculator would once it opens again. When the progress only grew
- * since, a safe place stays safe and an unsafe one is undecided: nobody can pass a safe place even if one rival pays
- * the whole rest, and every foreign deposit lowers the rest by at least what that rival gains. Undefined when the
- * rankings do not fit, hold no own place or cannot decide the grown building.
- */
-function statusByRankings(b: KnownGreatBuilding): InvestmentStatus | undefined {
-  const rankings = currentRankings(b);
-  if (!rankings) return undefined;
-  const calc = calculateConstruction(
-    constructionOf({ level: b.level, required: b.required }, rankings, { arcBonus: 0, factor: 0 }),
-  );
-  const mine = calc.places.find((p) => p.mine);
-  if (!mine) return undefined;
-  if (mine.secured) return 'safe';
-  return b.rankingsInvested === b.invested ? 'unsafe' : undefined;
-}
-
-/**
- * Without rankings the own place is safe once the own deposit holds all other deposits and the rest together: nobody
- * behind can pass it then, not even with everything that is left.
- */
-const statusWithout = (own: number, invested: number, rest: number): InvestmentStatus =>
-  own >= invested - own + rest ? 'safe' : 'unknown';
 
 /** the sums of some rows: the own deposits, the profit of the safe rows and of all */
 export const sumTotals = (rows: Investment[]): InvestmentTotals =>
@@ -119,7 +88,7 @@ export function myInvestments(
         invested: b.invested,
         required: b.required,
         rest,
-        status: statusByRankings(b) ?? statusWithout(c.forgePoints, b.invested, rest),
+        status: investmentStatus(b, c.forgePoints),
         ...(growth !== undefined && { growth }),
       },
     ];
@@ -146,9 +115,8 @@ export function possibleInvestments(
   me?: PlayerId,
   tiers?: TierStart[],
 ): PossibleInvestment[] {
-  const others = buildings.filter((b) => b.owner !== me);
-  return snipeBuildings(others, greatBuilding, arc, tiers).flatMap<PossibleInvestment>(({ building, result: r }) => {
-    if (r === 'ownContribution') return [];
-    return [typeof r === 'string' ? { building } : { building, hit: r }];
-  });
+  const others = buildings.filter((b) => b.owner !== me && !b.ownContribution);
+  return snipeBuildings(others, greatBuilding, arc, tiers).map<PossibleInvestment>(({ building, result: r }) =>
+    typeof r === 'string' ? { building } : { building, hit: r },
+  );
 }

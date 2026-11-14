@@ -38,8 +38,12 @@ const columns: SortColumn<SnipeColumn>[] = [
   { column: 'tier', label: 'gb.col.tier', num: false, icon: headerIcons.info, cls: 'tier-head' },
 ];
 
+/** an ignored row is muted; one that tops up an own deposit has the blue of the own place in the calculator */
+const rowClass = (r: SnipeRowVm) =>
+  [r.ignoreNote !== undefined && 'muted', r.hit.own && 'gb-mine'].filter(Boolean).join(' ');
+
 const row = (r: SnipeRowVm, actions: SnipeActions) =>
-  html`<tr class=${r.ignoreNote === undefined ? '' : 'muted'} data-tip=${rowTip(r)}>
+  html`<tr class=${rowClass(r)} data-tip=${rowTip(r)}>
   <td>${r.order}</td>
   ${markCell(r, actions.mark)}
   ${buildingCell(r.name, rowTip(r), r.ignored, () => actions.ignore(r.owner, r.entityId, !r.ignored))}
