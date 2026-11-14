@@ -714,6 +714,47 @@ describe('Snipehilfe: stacked box', () => {
     expect(box.root.querySelector('th.asc')?.getAttribute('aria-label')).toBe('#');
   });
 
+  describe('own deposits that are not safe (Nutzer, 2026-11-14)', () => {
+    /** the town hall list names the own deposit in the Zeusstatue: 10 FP on place 2 */
+    const contributed = (send: (...entries: Entry[]) => void, row: Row, rank: number, fp: number) =>
+      send({
+        requestClass: 'GreatBuildingsService',
+        requestMethod: 'getContributions',
+        requestData: null,
+        responseData: [{ ...row, rank, forge_points: fp, reward: { strategy_point_amount: 6 } }],
+      });
+
+    it('lists the building in the blue of the own place, names the deposit and shows what to add', async () => {
+      const { box, send, list, rows, cells, tones } = setup();
+      // 10 on P2 of 60, nothing known about the rest: P1 at worst held by 10 more than the own deposit, the place
+      // is not safe, and topping up to P1 leaves more than falling to P3
+      contributed(send, hitZeus(), 2, 10);
+      list([hitZeus()]);
+      await tick();
+      expect(box.box.isOpen).toBe(true);
+      expect(tones()).toBe(1);
+      const row = rows()[0] as HTMLElement;
+      expect(row.classList.contains('gb-mine')).toBe(true);
+      expect(row.dataset.tip?.split('\n')[0]).toBe('Du: 10 FP auf P2, Sicherheit unbekannt');
+      const [, name, , , rank, cost] = cells(row);
+      expect(name).toBe('Zeusstatue');
+      expect(rank).toBe('P1');
+      expect(cost).toMatch(/^\+\d+$/);
+      expect(box.text).not.toContain('eigene Einzahlung sicher');
+    });
+
+    it('counts a safe own deposit under the table and lists no row', async () => {
+      const { box, send, list, rows } = setup();
+      // 50 own of 60, rest 20: 50 ≥ 10 + 20, nobody can pass
+      contributed(send, hitZeus(), 1, 50);
+      list([hitZeus()]);
+      await tick();
+      box.box.open();
+      expect(rows()).toHaveLength(0);
+      expect(box.text).toContain('eigene Einzahlung sicher: 1');
+    });
+  });
+
   it('does not open for a list without a hit, and does not beep', async () => {
     const { box, list, tones } = setup();
     list([withRequired(zeus, 9_000, 400)]);

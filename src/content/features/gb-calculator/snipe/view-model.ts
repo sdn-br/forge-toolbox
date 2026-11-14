@@ -163,6 +163,7 @@ export function snipeViewModel(input: SnipeInput): SnipeVm {
   const counts = [
     result.none > 0 && t('snipe.countNone', { count: result.none }),
     result.ownContribution > 0 && t('snipe.countOwn', { count: result.ownContribution }),
+    result.ownNoGain > 0 && t('snipe.countOwnNoGain', { count: result.ownNoGain }),
     result.unknownReward > 0 && t('snipe.countUnknown', { count: result.unknownReward }),
     result.hits.length > kept.length && t('snipe.countIgnored', { count: result.hits.length - kept.length }),
   ].filter((c): c is string => typeof c === 'string');

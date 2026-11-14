@@ -24,8 +24,15 @@ export const snipeProfitRange = (h: SnipeHit): string | undefined =>
     ? undefined
     : t('snipe.profitRange', { low: signed(h.profitLow), high: signed(h.profitHigh) });
 
-const worstNote = (w: SnipePlace) =>
-  t('snipe.worst', { rank: w.rank, cost: formatNumber(w.cost), profit: signed(w.profit) });
+const worstNote = (w: SnipePlace, own: boolean) =>
+  t(own ? 'snipe.ownWorst' : 'snipe.worst', { rank: w.rank, cost: formatNumber(w.cost), profit: signed(w.profit) });
+
+/** "Du: 400 FP auf P3, nicht sicher", the own deposit of a row in the calculator's words */
+const ownNote = ({ fp, rank, status }: NonNullable<SnipeHit['own']>) =>
+  t('snipe.own', {
+    me: t('gbCalc.me', { fp: formatNumber(fp), rank }),
+    state: t(status === 'unsafe' ? 'gbCalc.meUnsafe' : 'snipe.ownUnknown'),
+  });
 
 /** "Eigenanteil: 320 FP" for the progress tooltip, with the age of the ranking when it is stale; nothing when unknown */
 export const ownerShareNote = (share: OwnerShare, now: number) =>
@@ -51,9 +58,9 @@ export const ownerShareCell = (share: OwnerShare, now: number): OwnerShareCell =
         tip: share.state === 'stale' ? t('investments.shareStale', { age: formatAge(now - share.at) }) : '',
       };
 
-/** lines of the row tooltip: the place of the worst case, a building that may be locked */
+/** lines of the row tooltip: the own deposit, the place of the worst case, a building that may be locked */
 export const snipeNotes = (h: SnipeHit): string[] =>
-  [h.worst && worstNote(h.worst), h.maybeLocked && t('snipe.maybeLocked')].filter(
+  [h.own && ownNote(h.own), h.worst && worstNote(h.worst, !!h.own), h.maybeLocked && t('snipe.maybeLocked')].filter(
     (n): n is string => typeof n === 'string',
   );
 
@@ -73,7 +80,12 @@ export const profitCell = (profit: string, range?: string) => estimateCell(profi
 /** the best place of a hit as drawn: `profit` the best case, `range` the range for its tooltip when not exact */
 export interface HitVm {
   rank: number;
+  /** the safe total deposit, "1.200"; for an own deposit what is added, "+300" */
   cost: string;
+  /** what the stake means, for its tooltip */
+  costHint: string;
+  /** the row tops up an own deposit that is not safe; drawn in the blue of the own place */
+  own?: true;
   profit: string;
   range?: string;
   /** profit per Forge point paid in, of the best case like `profit`, "0,20" */
@@ -88,7 +100,9 @@ export const hitVm = (h: SnipeHit): HitVm => {
   const ratio = snipeRatio(h);
   return {
     rank: h.place.rank,
-    cost: formatNumber(h.place.cost),
+    cost: h.own ? signed(h.place.cost) : formatNumber(h.place.cost),
+    costHint: t(h.own ? 'snipe.ownCostHint' : 'snipe.costHint'),
+    ...(h.own && { own: true as const }),
     profit: snipeProfit(h),
     ...(range !== undefined && { range }),
     ratio: formatRatio(ratio.high),
@@ -102,7 +116,7 @@ export const hitVm = (h: SnipeHit): HitVm => {
 /** Platz, Einsatz, Gewinn, Gewinn je FP, Sicherheit of the best place */
 export const hitCells = (h: HitVm) =>
   html`<td class="num">${t('gb.rank', { rank: h.rank })}</td>
-  <td class="num" data-tip=${t('snipe.costHint')}>${h.cost}</td>
+  <td class="num" data-tip=${h.costHint}>${h.cost}</td>
   ${profitCell(h.profit, h.range)}
   ${profitCell(h.ratio, h.ratioRange)}
   ${tierCell(h.tier)}`;
