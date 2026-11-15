@@ -36,8 +36,9 @@ export const arcTip = (arc: ArcBonus) =>
 
 /**
  * the presets of the tier and, when given, the own Arc bonus of the level, sorted by value, the chosen one active;
- * without a choice none is. A preset is active when the fixed factor of the tier holds its value. `arcBonuses` are both
- * values for the tooltip of the Arc button.
+ * without a choice none is. A preset is active when the fixed factor of the tier holds its value. A preset of the same
+ * value as the Arc bonus is left out, so no value shows twice; the Arc button stands for it and is active when the
+ * fixed factor holds that value too. `arcBonuses` are both values for the tooltip of the Arc button.
  */
 export function factorButtons(
   presets: number[],
@@ -50,10 +51,20 @@ export function factorButtons(
   const fixed = choice && fixedFactor(choice, tier);
   const label = (value: number) => factorText(value, tier);
   return [
-    ...presets.map((value) => ({ value, arc: false, active: !arc && value === fixed, label: label(value) })),
+    ...presets
+      .filter((value) => value !== arcBonus)
+      .map((value) => ({ value, arc: false, active: !arc && value === fixed, label: label(value) })),
     ...(arcBonus === undefined
       ? []
-      : [{ value: arcBonus, arc: true, active: arc, label: label(arcBonus), ...(arcBonuses && { arcBonuses }) }]),
+      : [
+          {
+            value: arcBonus,
+            arc: true,
+            active: arc || arcBonus === fixed,
+            label: label(arcBonus),
+            ...(arcBonuses && { arcBonuses }),
+          },
+        ]),
   ].sort((a, b) => a.value - b.value);
 }
 
