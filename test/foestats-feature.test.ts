@@ -158,7 +158,7 @@ describe('foestats feature', () => {
     expect(pages).not.toHaveBeenCalled();
   });
 
-  it('reads a toggle stored by an older version: off is no request, on is the default', async () => {
+  it('reads a toggle stored by an older version: off is no request, on stays foestats', async () => {
     const off = featureContext({ storage: {} });
     await off.ctx.settings.replace({ 'foestats.fetch': false });
     foestatsFeature.setup(off.ctx);
@@ -167,6 +167,9 @@ describe('foestats feature', () => {
     await on.ctx.settings.replace({ 'foestats.fetch': true });
     foestatsFeature.setup(on.ctx);
     expect(on.ctx.settings.of(FOESTATS_SETTING).get()).toBe('foestats');
+    const fresh = featureContext({ storage: {} });
+    foestatsFeature.setup(fresh.ctx);
+    expect(fresh.ctx.settings.of(FOESTATS_SETTING).get()).toBe('scoredb');
   });
 
   it('offers the choice of the site with a hint on what is sent', async () => {

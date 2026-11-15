@@ -31,4 +31,7 @@ export interface ListedPlayer {
   era?: EraId;
   /** `null` means "no guild"; missing keeps what is known. The flag of the same guild stays */
   guild?: GuildRef | null;
+  /** points and rank in the player ranking, only from its tab "Spieler"; missing keeps what is known */
+  score?: number;
+  rank?: number;
 }

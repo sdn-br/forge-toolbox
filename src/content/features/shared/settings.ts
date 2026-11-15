@@ -1,32 +1,47 @@
-import type { ActivitySource } from '../../../shared/activity-source';
+import type { ActivitySource, DataSource } from '../../../shared/activity-source';
 import { choiceDef, listDef, numberDef, type Settings, toggleDef } from '../../core/settings';
 import { type FactorChoice, GOLD_FACTOR } from '../../domain/gb-factor';
 
 /**
- * The site asked about players (setting "Abfrage"), ScoreDB by default since foestats wants a paid key (2026-11-13).
- * "Keine Abfrage": no requests, the views hide the activity, names link to foestats. The key is the one of the former
- * toggle "foestats-Daten abrufen": a stored `false` reads "Keine Abfrage", a stored `true` the default.
+ * The site asked about players (setting "Abfrage"). "Keine Abfrage": no requests, the views hide the activity. Where
+ * names link to is a setting of its own (`LINK_SETTING`). The key is the one of the former toggle "foestats-Daten
+ * abrufen": a stored `false` reads "Keine Abfrage", a stored `true` the default.
  */
 export const FOESTATS_SETTING = choiceDef({
   key: 'foestats.fetch',
   group: 'foestats.group',
   label: 'foestats.fetchSetting',
   hint: 'foestats.fetchHint',
-  default: 'foestats',
+  default: 'scoredb',
   choices: [
     { value: 'none', label: 'foestats.sourceNone' },
     { value: 'foestats', label: 'foestats.sourceFoestats' },
     { value: 'scoredb', label: 'foestats.sourceScoredb' },
   ],
-  legacy: (stored) => (stored === false ? 'none' : undefined),
+  // the old toggle knew foestats only: on stays foestats, off is no request
+  legacy: (stored) => (stored === false ? 'none' : stored === true ? 'foestats' : undefined),
 });
 
-/**
- * The chosen site as the links read it; "Keine Abfrage" while the setting is not registered, as in tests of a feature
- * without the foestats feature, so names link to foestats there.
- */
+/** The site asked about players; "Keine Abfrage" while the setting is not registered, as in tests without the feature. */
 export const activitySource = (settings: Settings): ActivitySource =>
   settings.defs.includes(FOESTATS_SETTING) ? settings.of(FOESTATS_SETTING).get() : 'none';
+
+/** Where player and guild names link to (setting "Verlinkung"), apart from the site asked (Nutzer, 2026-11-14). */
+export const LINK_SETTING = choiceDef({
+  key: 'foestats.link',
+  group: 'foestats.group',
+  label: 'foestats.linkSetting',
+  hint: 'foestats.linkHint',
+  default: 'foestats',
+  choices: [
+    { value: 'foestats', label: 'foestats.sourceFoestats' },
+    { value: 'scoredb', label: 'foestats.sourceScoredb' },
+  ],
+});
+
+/** The site names link to; foestats while the setting is not registered, as in tests without the feature. */
+export const linkSite = (settings: Settings): DataSource =>
+  settings.defs.includes(LINK_SETTING) ? settings.of(LINK_SETTING).get() : 'foestats';
 
 /** the settings of the Eigenanteil group the factors rest on */
 export const FACTOR = numberDef({

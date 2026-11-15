@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { notesFeature } from '../src/content/features/notes/index';
-import { FOESTATS_SETTING } from '../src/content/features/shared/settings';
+import { LINK_SETTING } from '../src/content/features/shared/settings';
 import type { PlayerObservation } from '../src/content/model/player';
 import { PLAYER_GROUP } from '../src/content/stores/notes';
 import { SAVE_DELAY } from '../src/content/ui/note-editor';
@@ -188,7 +188,7 @@ describe('notes feature', () => {
     expect(notes.playerPage(playerId(2))).toBeUndefined();
     expect(root.querySelector('.main a')?.getAttribute('href')).toBe('https://foestats.com/de/de20/players/2');
     // the link follows the chosen site at once
-    void ctx.settings.register(FOESTATS_SETTING).set('scoredb');
+    void ctx.settings.register(LINK_SETTING).set('scoredb');
     await vi.advanceTimersByTimeAsync(0);
     expect(root.querySelector('.main a')?.getAttribute('href')).toBe('https://foe.scoredb.io/DE20/Player/2');
 

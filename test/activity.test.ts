@@ -12,7 +12,7 @@ describe('playerActivity', () => {
     expect(playerActivity([], '2026-10-22')).toBeUndefined();
   });
 
-  it('finds the last day with more points or battles than the day before', () => {
+  it('finds the last day with other points or more battles than the day before', () => {
     const history = days(
       ['2026-10-18', 100, 5],
       ['2026-10-19', 100, 6],
@@ -29,9 +29,9 @@ describe('playerActivity', () => {
     expect(playerActivity(history, '2026-10-22')).toMatchObject({ lastActive: '2026-10-22', daysAgo: 0, idle: false });
   });
 
-  it('ignores falling points, for example after a building was torn down', () => {
+  it('counts falling points as a change, for example after a building was torn down', () => {
     const history = days(['2026-10-20', 100, 6], ['2026-10-21', 120, 6], ['2026-10-22', 90, 6]);
-    expect(playerActivity(history, '2026-10-22')).toMatchObject({ lastActive: '2026-10-21', daysAgo: 1 });
+    expect(playerActivity(history, '2026-10-22')).toMatchObject({ lastActive: '2026-10-22', daysAgo: 0 });
   });
 
   it('measures from the current foestats day, also when the last days are missing', () => {
@@ -134,13 +134,72 @@ describe('activityVm without days', () => {
     const day = { world: worldId('de20'), player: playerId(1), date: '2026-10-22', points: 100, battles: 6 };
     const known = (site: 'foestats' | 'scoredb') =>
       activityVm({ ...record({ unreachable: true }), days: [day] }, '2026-10-22', site)?.title;
-    expect(known('scoredb')).toBe('Punkte und Kämpfe, Stand 2026-10-22\nscoredb.io nicht erreichbar, Stand von früher');
-    expect(known('foestats')).toBe('Punkte und Kämpfe, Stand 2026-10-22\nfoestats nicht erreichbar, Stand von früher');
+    expect(known('scoredb')).toBe('Punkte und Kämpfe, Stand 22.10.\nscoredb.io nicht erreichbar, Stand von früher');
+    expect(known('foestats')).toBe('Punkte und Kämpfe, Stand 22.10.\nfoestats nicht erreichbar, Stand von früher');
   });
 
   it('says nothing of it once days are stored', () => {
     const day = { world: worldId('de20'), player: playerId(1), date: '2026-10-22', points: 100, battles: 6 };
     const vm = activityVm({ ...record({ unknown: true }), days: [day] }, '2026-10-22', 'foestats');
-    expect(vm?.text).toBe('noch keine Zunahme bekannt');
+    expect(vm?.text).toBe('noch keine Änderung bekannt');
+  });
+});
+
+describe('activityVm with the score the game told', () => {
+  const world = worldId('de20');
+  const player = playerId(1);
+  const record = (...rows: [string, number, 'foestats' | 'scoredb' | undefined][]) => ({
+    days: rows.map(([date, points, source]) => ({
+      world,
+      player,
+      date,
+      points,
+      battles: 6,
+      ...(source && { source }),
+    })),
+    unreachable: false,
+    unknown: false,
+    loading: false,
+  });
+  // 2026-11-14 22:48 local, a foestats day after the 13th
+  const seen = new Date(2026, 10, 14, 22, 48).getTime();
+  const now = new Date(2026, 10, 14, 23, 0).getTime();
+  const quiet = record(['2026-11-09', 100, 'scoredb'], ['2026-11-13', 100, 'scoredb']);
+
+  it('tells the change since the newest stored day, either way, and that the player is not idle then', () => {
+    expect(activityVm(quiet, '2026-11-14', 'scoredb', { score: 12_500, at: seen }, now)).toMatchObject({
+      text: '+12.400 Punkte seit Stand 13.11.',
+      idle: false,
+    });
+    expect(activityVm(quiet, '2026-11-14', 'scoredb', { score: 40, at: seen }, now)?.text).toBe(
+      '−60 Punkte seit Stand 13.11.',
+    );
+  });
+
+  it('tells no change since the newest stored day, idle as the days tell', () => {
+    expect(activityVm(quiet, '2026-11-14', 'scoredb', { score: 100, at: seen }, now)).toMatchObject({
+      text: 'keine Änderung seit Stand 13.11.',
+      idle: true,
+    });
+  });
+
+  it('does not compare a score of the same day as the newest stored one, its time of day is not known', () => {
+    const sameDay = new Date(2026, 10, 13, 12, 0).getTime();
+    expect(activityVm(quiet, '2026-11-14', 'scoredb', { score: 12_500, at: sameDay }, now)?.text).toBe(
+      'seit 5 Tagen keine Änderung',
+    );
+  });
+
+  it('dates the last change without a score of the game', () => {
+    const rose = record(['2026-11-12', 100, 'scoredb'], ['2026-11-13', 150, 'scoredb']);
+    expect(activityVm(rose, '2026-11-14', 'scoredb', undefined, now)?.text).toBe('zuletzt Änderung am 13.11.');
+  });
+
+  it('names the site of the newest day and the score of the game with its time in the tooltip', () => {
+    expect(activityVm(quiet, '2026-11-14', 'foestats', { score: 12_500, at: seen }, now)?.title).toBe(
+      'Punkte und Kämpfe, Stand 13.11. (scoredb.io)\nPunkte laut Spiel 12.500, gesehen heute 22:48',
+    );
+    const old = record(['2026-11-13', 100, undefined]);
+    expect(activityVm(old, '2026-11-14', 'scoredb', undefined, now)?.title).toBe('Punkte und Kämpfe, Stand 13.11.');
   });
 });

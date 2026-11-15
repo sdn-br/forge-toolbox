@@ -301,14 +301,26 @@ export interface GameRankingList {
 }
 
 /**
- * A row of the great building ranking (GreatBuildingRanking): one building of `player`. `points` is the progress of the
+ * A row of the great building ranking (GreatBuildingRanking): one building of `player`. The tab "Spieler" sends rows of
+ * class Ranking with the same `rank`, `player` and `clan`, `points` and `battles` and nothing of a building. `points` is the progress of the
  * level, missing at 0; a `clan` without `id` means no guild. `currentTier` came with the game update of 2026-11-05.
  */
 export interface GameGreatBuildingRanking {
   rank?: number;
-  player?: { player_id?: number; name?: string; avatar?: string; city_name?: string; era?: string; clan_id?: number };
+  player?: {
+    player_id?: number;
+    name?: string;
+    avatar?: string;
+    city_name?: string;
+    era?: string;
+    clan_id?: number;
+    /** the own row in the tab "Spieler" */
+    is_self?: boolean;
+  };
   clan?: { id?: number; name?: string };
+  /** in the tab "Spieler" the player's score, there with `battles` */
   points?: number;
+  battles?: number;
   entityId?: number;
   cityEntityId?: string;
   level?: number;

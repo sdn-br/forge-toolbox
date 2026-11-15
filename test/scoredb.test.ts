@@ -125,6 +125,12 @@ describe('storing what ScoreDB reports', () => {
       ['2026-11-11', 1200, 10],
       ['2026-11-12', 1300, 12],
     ]);
+    // each day keeps the site it came from; a day no answer touched keeps what it had
+    expect((await foestats.history(world, player)).map((d) => [d.date, d.source])).toEqual([
+      ['2026-11-09', undefined],
+      ['2026-11-11', 'scoredb'],
+      ['2026-11-12', 'scoredb'],
+    ]);
     expect(await foestats.claim(world, player, 'scoredb')).toMatchObject({ fetch: false });
   });
 

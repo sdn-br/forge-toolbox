@@ -10,7 +10,7 @@ import { rowWindow } from '../../ui/windowed-rows';
 import { catalogUnits } from '../shared/battle-details';
 import { buildingImage } from '../shared/building-image';
 import { playerLookups, playerRowActions } from '../shared/player-lookups';
-import { FOESTATS_SETTING } from '../shared/settings';
+import { LINK_SETTING } from '../shared/settings';
 import { createBattlesSection } from './battles/section';
 import { prunedBy, reselect } from './battles/selection';
 import { battlePanelVm } from './battles/view-model';
@@ -252,7 +252,7 @@ export const pvpFeature: Feature = {
     keep.onChange(prune);
     // the links of the names follow the chosen site
     ctx.settings.onChange((key) => {
-      if (key === FOESTATS_SETTING.key) rebuild();
+      if (key === LINK_SETTING.key) rebuild();
     });
 
     // The game traffic names no opponent before the battle starts, so the box opens on the battles to search them

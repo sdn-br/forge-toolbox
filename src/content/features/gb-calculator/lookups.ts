@@ -7,6 +7,7 @@ import type { ArcBonus } from '../../domain/arc-bonus';
 import type { LevelCosts } from '../../domain/gb-level-cost';
 import type { GreatBuildingDef, TierStart } from '../../model/catalog';
 import type { FoestatsRecord } from '../../stores/foestats';
+import type { GameScore } from '../shared/activity';
 import { type GbLookups, gbLookups } from '../shared/gb-lookups';
 import { activitySource, FOESTATS_SETTING } from '../shared/settings';
 
@@ -18,6 +19,10 @@ export interface GbCalcLookups extends GbLookups {
   activitySource: DataSource;
   /** the current foestats day, `YYYY-MM-DD` */
   today: string;
+  /** the owner's points as the game last told them, with the time; undefined while no source told them */
+  gameScore(id: PlayerId): GameScore | undefined;
+  /** the time of the redraw */
+  now: number;
 }
 
 /** what both sections read on a redraw: the lookups as of `now`, the building definitions and the own Arc bonus */
@@ -41,6 +46,11 @@ export function gbShared(ctx: FeatureContext, now: number): GbShared {
       foestats: (id) => (ctx.settings.of(FOESTATS_SETTING).get() !== 'none' ? ctx.foestats.get(id) : undefined),
       activitySource: linkSource(activitySource(ctx.settings)),
       today: foestatsDay(now),
+      gameScore: (id) => {
+        const p = ctx.players.get(id);
+        return p?.score !== undefined && p.scoreAt !== undefined ? { score: p.score, at: p.scoreAt } : undefined;
+      },
+      now,
     },
     greatBuilding: (def) => ctx.catalog.get(def)?.greatBuilding,
     levelCosts: ctx.gbLevelCosts,

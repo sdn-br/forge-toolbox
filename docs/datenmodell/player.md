@@ -10,6 +10,7 @@ interface Player {
   era?: EraId;
   score?: number;
   rank?: number;
+  scoreAt?: number;             // wann das Spiel score zuletzt gemeldet hat (Freundes-/Gilden-/Nachbarliste, Besuch, Spielerrangliste); fehlt bei Zeilen vor 2026-11-14
   active?: boolean;
   guild?: GuildRef;
   relations: Relations;
@@ -64,6 +65,8 @@ type PlayerSource = 'socialList' | 'visit' | 'update' | 'ranking' | 'gbg' | 'eve
   - Ein bekannter Spieler bekommt nur den Namen und einen nicht leeren Avatar, denn der Name folgt wie bei jeder Quelle der neuesten Sichtung. `seenAt` rückt vor. Die übrigen Felder, die Quelle der Zeile, Beziehungen, Zeitgeber, Stern und Ignorieren bleiben. Bleibt der Name gleich, wird die Zeile nur gespeichert, ohne `player.updated`.
   - Kommt eine Liste vor dem Laden der Datenbank, und der Spieler steht dort schon, gilt die Zeile der Datenbank mit Name, Avatar und Sichtung der Liste und mit Stern und Ignorieren dieser Sitzung.
   - Die Rangliste „Legendäre Bauwerke“ (`RankingService`, seit 2026-11-05, siehe [Great Buildings](great-buildings.md)) meldet ihre Eigentümer ebenso mit `applyListed`, dazu Stadtname, Zeitalter und Gilde (`guild` mit ID und Name, `null` für „keine Gilde“, das Wappen bleibt bei derselben Gilde). Ein unbekannter Eigentümer wird mit diesen Feldern angelegt, ein bekannter übernimmt sie, ein fehlendes Feld lässt das bekannte stehen. `player.updated` kommt, sobald sich Name, Avatar, Stadtname, Zeitalter oder Gilde ändern.
+  - Der Reiter „Spieler“ der Rangliste (`RankingService.searchRanking`/`getRanking`, Kategorie `players`, aufgenommen 2026-11-14 auf de20, 50 Zeilen je Seite) meldet seine Spieler ebenso mit `applyListed`, dazu Punkte (`points`, derselbe Wert wie `score` im Profil, verglichen an einem Spieler) und Rang. `is_active` fehlt dort, deshalb keine Beobachtung des ganzen Spielers. Die eigene Zeile (`is_self`) fällt weg. Die Kämpfe (`battles`) werden nicht gelesen. `player.updated` kommt auch, wenn sich Punkte oder Rang ändern.
+- **Zeitpunkt der Punkte** (`scoreAt`, Nutzer, 2026-11-14): Jede Quelle, die `score` mitbringt, setzt ihn auf jetzt. Eine Quelle ohne `score` lässt ihn stehen (vorher wurde ein fehlender Wert zu 0). Ändert sich nur der Zeitpunkt, kommt kein `player.updated`, geschrieben wird er wie `seenAt` höchstens einmal je Stunde. Die Aktivitätszeile ([foestats](../features/foestats.md)) vergleicht damit die Punkte laut Spiel mit dem neuesten gespeicherten Tag.
   - Alle Ansichten nehmen Eigentümernamen aus dem Player-Store. Die Investitionen hielten bis 2026-10-31 eigene Namen der Listen im Speicher, die Snipehilfe trug den Namen mit ihrer Liste mit. Beides ist entfallen.
   - Die sechs optionalen Felder liest heute keine Ansicht. Wer sie später zeigt, braucht für einen Spieler aus einer Liste eine leere Anzeige.
 - **Angriffs-Zeitgeber** (`canSabotage`, `next_interaction_in`, gesehen 2026-10-21): Direkt nach einem gewonnenen Kampf bringt `updatePlayer` `next_interaction_in: 86400` und `canSabotage: true`, direkt nach dem Plündern `next_interaction_in: 86345` und kein `canSabotage` mehr. In `getSocialList` hatten 30 von 75 Nachbarn `next_interaction_in`, 28 davon `canSabotage`. `visitPlayer` bringt keine Zeitgeber. Gespeichert wird der absolute Zeitpunkt (`nextInteractionAt`), so stimmt er auch nach einem Neuladen.

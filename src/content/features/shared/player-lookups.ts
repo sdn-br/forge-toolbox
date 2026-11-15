@@ -5,7 +5,7 @@ import type { PlayerId } from '../../../shared/ids';
 import type { Relations } from '../../../shared/model';
 import type { FeatureContext } from '../../core/feature';
 import type { OwnerLookups } from '../../ui/owner-line';
-import { activitySource } from './settings';
+import { linkSite } from './settings';
 
 export interface PlayerLookups extends OwnerLookups {
   /** the player's name; undefined for a player the store does not know */
@@ -28,10 +28,10 @@ export interface PvpPlayerLookups extends PlayerLookups {
 export const playerLookups = (ctx: FeatureContext): PvpPlayerLookups => ({
   playerName: (id) => ctx.players.get(id)?.name,
   // names link to the site chosen in the setting "Abfrage", foestats when none is asked
-  playerUrl: (id) => sourcePlayerUrl(activitySource(ctx.settings), ctx.world, id),
+  playerUrl: (id) => sourcePlayerUrl(linkSite(ctx.settings), ctx.world, id),
   playerGuild: (id) => {
     const guild = ctx.players.get(id)?.guild;
-    return guild && { name: guild.name, url: sourceGuildUrl(activitySource(ctx.settings), ctx.world, guild.id) };
+    return guild && { name: guild.name, url: sourceGuildUrl(linkSite(ctx.settings), ctx.world, guild.id) };
   },
   relations: (id) => ctx.players.get(id)?.relations,
   friendInvited: (id) => ctx.players.get(id)?.friendInvited === true,

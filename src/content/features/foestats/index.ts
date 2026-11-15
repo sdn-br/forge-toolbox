@@ -1,6 +1,6 @@
 import type { PlayerId } from '../../../shared/ids';
 import type { Feature } from '../../core/feature';
-import { FOESTATS_SETTING } from '../shared/settings';
+import { FOESTATS_SETTING, LINK_SETTING } from '../shared/settings';
 
 /**
  * Asks the chosen site (foestats or ScoreDB) about the players the viewer looks at: the owner of a foreign great building opened in the game and
@@ -11,6 +11,7 @@ export const foestatsFeature: Feature = {
   setup(ctx) {
     ctx.settings.registerGroup('foestats.group', '📈');
     const source = ctx.settings.register(FOESTATS_SETTING);
+    ctx.settings.register(LINK_SETTING);
     /** the player each view shows last: the owner of an opened great building, of a visited city, of a listing */
     const shown = new Map<'greatBuilding' | 'city' | 'list', PlayerId>();
     const view = (player: PlayerId) => {
