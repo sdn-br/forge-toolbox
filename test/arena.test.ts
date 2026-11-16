@@ -230,11 +230,12 @@ describe('arena retention', () => {
     const overview = structuredClone(arena.overview);
     if (overview[0]) overview[0].responseData.currentPlayer.rankingPoints = 1;
     send(overview);
-    // battle at 1_794_327_899 s, four of the seven log lines before 1_794_327_800 s, both points at 1 s and 2 s
-    expect(await store.prune(1_794_327_800_000)).toBe(4 + 2);
+    // battle at 1_794_327_899 s, four of the seven log lines before 1_794_327_800 s, points at 1 s and 2 s: the newest
+    // stays as the start of the curve
+    expect(await store.prune(1_794_327_800_000)).toBe(4 + 1);
     expect(await db.arenaBattles.count()).toBe(1);
     expect((await store.log.list(page)).map((l) => l.at / 1000)).toEqual([1_794_327_899, 1_794_327_819, 1_794_327_806]);
-    expect(await store.points.since(0)).toEqual([]);
+    expect((await store.points.since(0)).map((p) => p.points)).toEqual([1]);
   });
 });
 

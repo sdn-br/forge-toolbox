@@ -107,6 +107,6 @@ Jeder Spieler, den die Gegner oder das Protokoll nennen, geht mit ID, Name und A
 
 `ctx.arena` (`ArenaStore`, `src/content/stores/arena.ts`) bündelt `battles`, `log`, `points` und `opponents`. Die Aufrufe laufen über RPC im Service Worker (`src/persistence/arena/`).
 
-Aufbewahrung: Es gilt die Einstellung „Kämpfe aufbewahren“ der Nachbarschaft (`pvp.keep`). Beim Start der Session und sobald sich die Einstellung ändert, löscht `arena.prune` ältere Kämpfe, Protokollzeilen und Punkte aller Welten in einer Transaktion, zusammen mit dem Löschen der Nachbarschaft.
+Aufbewahrung: Es gilt die Einstellung „Kämpfe aufbewahren“ der Nachbarschaft (`pvp.keep`). Beim Start der Session und sobald sich die Einstellung ändert, löscht `arena.prune` ältere Kämpfe, Protokollzeilen und Punkte aller Welten in einer Transaktion, zusammen mit dem Löschen der Nachbarschaft. Der neueste Punktestand einer Welt bleibt auch dann, wenn er älter ist: Er ist der Anfang der Kurve, bis sich die Punkte wieder ändern.
 
 Sicherung: Die drei Tabellen gehören zum Bereich PvP der Sicherung (`BACKUP_TABLES`). Seit Version 4 der Sicherungsdatei. Dateien der Versionen 2 und 3 werden mit leeren Arena-Tabellen gelesen. Beim Zusammenführen kommen nur fehlende Zeilen dazu.

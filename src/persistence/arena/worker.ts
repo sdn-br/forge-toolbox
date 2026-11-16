@@ -72,11 +72,18 @@ export function arenaHandlers(db: ArenaTables & Dexie): Handlers<ArenaApi> {
     'arena.prune': ({ before }) =>
       db.transaction('rw', db.arenaBattles, db.arenaLog, db.arenaPoints, async () => {
         const counts = await Promise.all(
-          [db.arenaBattles, db.arenaLog, db.arenaPoints].map((t) =>
-            (t as Table<{ at: number }>).where('at').below(before).delete(),
-          ),
+          [db.arenaBattles, db.arenaLog].map((t) => (t as Table<{ at: number }>).where('at').below(before).delete()),
         );
-        return counts.reduce((a, b) => a + b, 0);
+        // the newest points of a world stay even when old: they are the start of the curve until the points change
+        const old = await db.arenaPoints.where('at').below(before).toArray();
+        const newest = new Map<string, number>();
+        for (const world of new Set(old.map((p) => p.world))) {
+          const last = await db.arenaPoints.where('[world+at]').between([world, -Infinity], [world, Infinity]).last();
+          if (last) newest.set(world, last.at);
+        }
+        const gone = old.filter((p) => newest.get(p.world) !== p.at);
+        await db.arenaPoints.bulkDelete(gone.map((p) => [p.world, p.at] as [typeof p.world, number]));
+        return counts.reduce((a, b) => a + b, 0) + gone.length;
       }),
   };
 }
