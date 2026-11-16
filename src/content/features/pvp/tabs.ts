@@ -9,7 +9,7 @@ import type {
 import type { ArenaVm } from './arena/view-model';
 import type { BattlesVm } from './battles/view-model';
 import type { IncomingVm } from './incoming/view-model';
-import type { KindFilter, LootFilter, PvpTab, ViewInput } from './rows';
+import type { ArenaKind, LootFilter, PvpTab, ViewInput } from './rows';
 
 export const TABS: PvpTab[] = ['battles', 'incoming', 'arena'];
 
@@ -24,8 +24,8 @@ export interface PvpQuery {
   scope: OpponentScope;
   /** the sack toggles; the attacks on the own city ignore them */
   loot: LootFilter;
-  /** the kind toggles of the arena; the other tabs ignore them */
-  kinds: KindFilter;
+  /** the sub tab of the arena; the other tabs ignore it */
+  arenaKind: ArenaKind;
 }
 
 /** the totals of a tab, which also give its number of rows */

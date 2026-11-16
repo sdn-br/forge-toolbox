@@ -12,12 +12,14 @@ import { buildingImage } from '../shared/building-image';
 import { playerLookups, playerRowActions } from '../shared/player-lookups';
 import { LINK_SETTING } from '../shared/settings';
 import { createArenaSection } from './arena/section';
+import { type DefensePanelVm, defensePanelVm } from './arena/view-model';
 import { createBattlesSection } from './battles/section';
 import { prunedBy, reselect } from './battles/selection';
 import { battlePanelVm } from './battles/view-model';
 import { createIncomingSection } from './incoming/section';
 import { KEEP_SETTING, pruneBefore } from './retention';
 import {
+  type ArenaKind,
   filtersPlayers,
   inScope,
   keepInLoaded,
@@ -31,7 +33,7 @@ import {
 } from './rows';
 import { BATTLES_MIN_WIDTH, pvpCss } from './styles';
 import type { PvpSection, PvpVm, Totals } from './tabs';
-import { pvpView } from './view';
+import { type PanelState, pvpView } from './view';
 
 /** the menu entry and the settings group show it */
 const ICON = icons.pvp;
@@ -71,6 +73,10 @@ export const pvpFeature: Feature = {
     let vm: PvpVm | undefined;
     let tab: PvpTab = 'battles';
     let filter: PvpFilter = NO_FILTER;
+    /** the sub tab of the arena; every opening of the arena tab starts on the attacks (Nutzer, 2026-11-16) */
+    let arenaKind: ArenaKind = 'attack';
+    /** the defense line the side panel shows, with what the row showed of it */
+    let defense: { opponent: PlayerId; at: number; panel: DefensePanelVm } | undefined;
     /** the index of the first row in view; the window keeps it inside the list */
     let top = 0;
     /** the battle the side panel shows, as last read; its tab stands while there is one */
@@ -110,7 +116,7 @@ export const pvpFeature: Feature = {
       const visible = VISIBLE_ROWS;
       requested = { offset: Math.max(0, top - AHEAD * visible), limit: SLICE_WINDOWS * visible };
       const { build, battles, totals } = await sections[tab].load(
-        { scope, loot: filter.loot, kinds: filter.kinds },
+        { scope, loot: filter.loot, arenaKind },
         requested.offset,
         requested.limit,
         knownTotals,
@@ -133,7 +139,7 @@ export const pvpFeature: Feature = {
       lastInput = input;
       loadedBattles = battles;
       // the selection changes without reading, the row follows it
-      shown = () => build({ ...input, selected: selected?.battleId });
+      shown = () => build({ ...input, selected: selected?.battleId, ...(defense && { selectedDefense: defense }) });
       vm = shown();
       if (selected) {
         const before = selected;
@@ -171,6 +177,7 @@ export const pvpFeature: Feature = {
       top = 0;
       // the selected battle may not be in the new list, and the list is not read whole to find out
       selected = undefined;
+      defense = undefined;
       rebuild();
       show();
     };
@@ -179,10 +186,28 @@ export const pvpFeature: Feature = {
     const actions: PvpActions = {
       tab: (next) => {
         tab = next;
+        arenaKind = 'attack';
         top = 0;
         selected = undefined;
+        defense = undefined;
         rebuild();
         show();
+      },
+      arenaKind: (next) => {
+        arenaKind = next;
+        top = 0;
+        selected = undefined;
+        defense = undefined;
+        rebuild();
+        show();
+      },
+      selectDefense: (opponent, at) => {
+        const same = defense?.opponent === opponent && defense.at === at;
+        const row = vm?.tab === 'arena' ? vm.rows.find((r) => r.opponent === opponent && r.at === at) : undefined;
+        defense =
+          same || !row ? undefined : { opponent, at, panel: defensePanelVm(row, lookups.playerGuild(opponent)) };
+        if (defense) panelOpen = true;
+        rebuild();
       },
       filter: (patch) => setFilter({ ...filter, ...patch }),
       pickPlayer: (name) => actions.filter({ name }),
@@ -212,8 +237,13 @@ export const pvpFeature: Feature = {
     const render = () => {
       const picked = filter.name.trim() ? pickedPlayer(filter.name, players()) : undefined;
       const note = picked === undefined ? undefined : card.render(picked, ctx.players.get(picked)?.name);
-      const side = selected && lastInput && { open: panelOpen, selected: battlePanelVm(selected, lastInput) };
-      if (!vm) return pvpView(tab, filter, undefined, actions, note, side);
+      const side: PanelState | undefined =
+        defense && tab === 'arena'
+          ? { open: panelOpen, defense: defense.panel }
+          : selected && lastInput
+            ? { open: panelOpen, selected: battlePanelVm(selected, lastInput) }
+            : undefined;
+      if (!vm) return pvpView(tab, filter, undefined, actions, note, side, arenaKind);
       const visible = VISIBLE_ROWS;
       const rows = rowWindow(top, vm.total, visible);
       top = rows.top;
@@ -232,7 +262,7 @@ export const pvpFeature: Feature = {
         (top < requested.offset || (top + visible > end && end < vm.total) || (settled && (nearStart || nearEnd)))
       )
         show(false);
-      return pvpView(tab, filter, { vm, window: rows }, actions, note, side);
+      return pvpView(tab, filter, { vm, window: rows }, actions, note, side, arenaKind);
     };
 
     const box = ctx.createBox({
@@ -310,6 +340,8 @@ export const pvpFeature: Feature = {
       icon: ICON,
       label: () => t('menu.pvp'),
       action: () => {
+        // opening the box on the arena tab starts on the attacks as well
+        if (!box.isOpen) arenaKind = 'attack';
         box.toggle();
         show();
       },

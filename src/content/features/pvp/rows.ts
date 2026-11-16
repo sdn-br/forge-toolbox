@@ -2,7 +2,7 @@
 // and the funnel) and the list around the table (totals, empty text, row window).
 import { html, type TemplateResult } from 'lit-html';
 import { type BuildingDefId, type PlayerId, playerId } from '../../../shared/ids';
-import type { OpponentScope, Player } from '../../../shared/model';
+import type { ArenaLogEntry, OpponentScope, Player } from '../../../shared/model';
 import { sameName, type TextKey, t, textFilter } from '../../core/texts';
 import { headerIcons } from '../../ui/icons';
 import { externalLink, nameWithGuild } from '../../ui/links';
@@ -45,14 +45,11 @@ export interface LootFilter {
 /** the sack toggles in their order */
 export const LOOT_TOGGLES: (keyof LootFilter)[] = ['with', 'without'];
 
-/** which lines of the arena log the kind toggles show: own attacks, defenses against others */
-export interface KindFilter {
-  attack: boolean;
-  defense: boolean;
-}
+/** the two sub tabs of the arena: own attacks, defenses against others' attacks */
+export type ArenaKind = ArenaLogEntry['kind'];
 
-/** the kind toggles in their order */
-export const KIND_TOGGLES: (keyof KindFilter)[] = ['attack', 'defense'];
+/** the sub tabs in their order */
+export const ARENA_KINDS: ArenaKind[] = ['attack', 'defense'];
 
 /** What the rows are narrowed to; the name field is the only state of the player filter. Each toggle shows its rows
  * while on. */
@@ -65,8 +62,6 @@ export interface PvpFilter {
   arenaMarks: ArenaMarkFilter;
   /** the battles only; the attacks on the own city have no such filter */
   loot: LootFilter;
-  /** the arena only */
-  kinds: KindFilter;
 }
 
 /** an empty name and every toggle on: every row */
@@ -75,7 +70,6 @@ export const NO_FILTER: PvpFilter = {
   marks: { plunder: true, noAttack: true, none: true },
   arenaMarks: { noAttack: true, none: true },
   loot: { with: true, without: true },
-  kinds: { attack: true, defense: true },
 };
 
 const allOn = (toggles: object) => Object.values(toggles).every(Boolean);
@@ -159,9 +153,7 @@ export const filtersPlayers = (filter: PvpFilter, tab: PvpTab = 'battles') =>
 
 /** whether the filter leaves rows out, for the text of an empty list: a name, or a toggle off */
 export const isFiltered = (filter: PvpFilter, tab: PvpTab) =>
-  filtersPlayers(filter, tab) ||
-  (tab === 'battles' && !allOn(filter.loot)) ||
-  (tab === 'arena' && !allOn(filter.kinds));
+  filtersPlayers(filter, tab) || (tab === 'battles' && !allOn(filter.loot));
 
 /** what the box does on a click; the tabs add nothing of their own */
 export interface PvpActions extends Pick<PvpRowActions, 'plunderPlayer' | 'noAttackPlayer' | 'arenaNoAttackPlayer'> {
@@ -169,6 +161,10 @@ export interface PvpActions extends Pick<PvpRowActions, 'plunderPlayer' | 'noAtt
   filter(patch: Partial<PvpFilter>): void;
   /** the funnel: puts the name into the name field, as if typed; an empty name clears it */
   pickPlayer(name: string): void;
+  /** switches the sub tab of the arena */
+  arenaKind(kind: ArenaKind): void;
+  /** selects a defense line of the arena for the side panel, or clears the selection when it is the selected one */
+  selectDefense(opponent: PlayerId, at: number): void;
   /** selects a battle for the side panel, or clears the selection when it is the selected one */
   select(battleId: number): void;
   /** folds the side panel of the selected battle in or out */
@@ -198,6 +194,8 @@ export interface ViewInput {
   now: number;
   /** the battle the side panel shows */
   selected?: number;
+  /** the defense line of the arena the side panel shows */
+  selectedDefense?: { opponent: PlayerId; at: number };
 }
 
 /** what every tab shows around its rows */

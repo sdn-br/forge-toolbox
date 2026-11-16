@@ -427,6 +427,13 @@ export const headerIcons = {
   noPvpMark: headerIcon(
     svg`${hollowDash('ft-no-pvp-mark-star', SMALL_STAR, 1.5, 0.45, 3.6, 1.8, 'translate(-1.4 -1.4) scale(.8)', 0.8)}${hollowDash('ft-no-pvp-mark-warning', WARNING, 1.5, 0.45, 4.6, 1.8, 'translate(9 9) scale(.62)', 0.62)}`,
   ),
+  /** the warning triangle of `noAttack` in hollow pieces with its mark, the swords as an outline in the accent: a
+   * player without the arena mark (A5, chosen from the icon preview, 2026-11-16) */
+  noArenaMark: headerIcon(
+    svg`${hollowDash('ft-no-arena-mark', WARNING, 1.6, 0.45, 4.6, 1.8, 'translate(-1.1 -1.1) scale(.82)', 0.82)}
+    <g transform="translate(-1.1 -1.1) scale(.82)"><path d="${WARNING_MARK}"/></g>
+    <g class="acc"><g transform="translate(8.5 8.5) scale(.64)">${sword(45)}${sword(-45)}</g></g>`,
+  ),
   /** the sack in hollow pieces: a battle without a plunder (D5, chosen from the icon preview, 2026-11-01) */
   noLoot: headerIcon(
     svg`${hollowDash('ft-no-loot-sack', SACK, 1.6, 0.45, 3.8, 1.8)}${hollowDash('ft-no-loot-tie', 'M9.6 7.7h4.8', 1.6, 0.45, 4.8, 9)}`,

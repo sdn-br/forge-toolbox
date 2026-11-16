@@ -37,6 +37,10 @@ export const pvpCss = `
 .pvp-battles { min-width: ${BATTLES_MIN_WIDTH}px; }
 .pvp-incoming { min-width: ${NOTE + NAME + INCOMING_WHEN + KIND}px; }
 .pvp-arena { min-width: ${NOTE + NAME + WHEN + ARENA_RESULT + POINTS}px; }
+.pvp-arena.pvp-defenses { min-width: ${NOTE + NAME + WHEN + POINTS}px; }
+/* the second tab row of the arena, the same faces a size smaller */
+.tabs.sub { margin-bottom: 6px; }
+.tabs.sub button { font-size: 12px; padding: 1px 8px; &.active { padding-top: 0; } }
 .pvp-table > * > tr > :is(td, th) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pvp-table .c-note { width: ${NOTE}px; }
 .pvp-table:is(.pvp-battles, .pvp-arena) .c-when { width: ${WHEN}px; }
@@ -50,9 +54,6 @@ export const pvpCss = `
 /* the arena points in the colours of good and bad, a defense muted */
 td.pvp-points.good { color: var(--good); }
 td.pvp-points.bad { color: var(--bad); }
-td.pvp-result.defense { color: var(--muted); }
-/* the kind toggles and "ohne Markierung" of the arena carry words until they get icons */
-.pvp-kind-filter button, .pvp-arena-mark-filter button:not(:has(svg)) { width: auto; padding: 0 4px; }
 .pvp-table .pvp-loot, .pvp-table .pvp-result { text-align: center; padding: 0; }
 .pvp-result svg { display: block; width: 14px; height: 14px; margin: auto; }
 /* the result in the colours of good and bad, a battle given up muted */

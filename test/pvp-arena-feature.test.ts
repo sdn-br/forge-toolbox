@@ -28,10 +28,11 @@ type TestBox = ReturnType<typeof setup>['box'];
 const rows = (box: TestBox) =>
   [...box.root.querySelectorAll('.pvp-arena tbody tr')].map((tr) => [
     tr.querySelector('.name-cell a')?.textContent,
-    tr.querySelector('.pvp-result')?.querySelector('[aria-label]')?.getAttribute('aria-label') ??
-      tr.querySelector('.pvp-result')?.getAttribute('data-tip'),
+    tr.querySelector('.pvp-result')?.querySelector('[aria-label]')?.getAttribute('aria-label'),
     tr.querySelector('.pvp-points')?.textContent,
   ]);
+/** the second tab row: the sub tabs of the arena */
+const subTab = (box: TestBox) => box.root.querySelector('.tabs.sub button.active')?.textContent?.trim();
 const row = (box: TestBox, name: string) =>
   [...box.root.querySelectorAll('.pvp-arena tbody tr')].find(
     (tr) => tr.querySelector('.name-cell a')?.textContent === name,
@@ -39,20 +40,26 @@ const row = (box: TestBox, name: string) =>
 const panel = (box: TestBox) => box.root.querySelector('.side-panel')?.textContent ?? '';
 const activeTab = (box: TestBox) => box.root.querySelector('.tabs button.active, .tabs button[aria-selected="true"]');
 
+const pickSub = (box: TestBox, label: string) =>
+  (
+    [...box.root.querySelectorAll('.tabs.sub button')].find((b) => b.textContent?.trim() === label) as HTMLElement
+  ).click();
+
 /** the battle with its line, then the overview: the box opens on the arena */
 async function opened() {
   const env = setup();
   env.send(arena.battle);
   env.send(arena.overview);
-  await vi.waitFor(() => expect(rows(env.box)).toHaveLength(7));
+  await vi.waitFor(() => expect(rows(env.box)).toHaveLength(6));
   return env;
 }
 
 describe('pvp arena tab', () => {
-  it('opens the box on the arena tab when the arena opens, with the log newest first', async () => {
+  it('opens the box on the arena tab when the arena opens, on the attacks, newest first', async () => {
     const { box } = await opened();
     expect(box.box.isOpen).toBe(true);
     expect(activeTab(box)?.textContent?.trim()).toBe('Arena');
+    expect(subTab(box)).toBe('Angriffe');
     expect(rows(box)).toEqual([
       ['Testgegner 2', 'Angriff gewonnen', '+400'],
       ['Testgegner 4', 'Angriff verloren', '−535'],
@@ -60,50 +67,91 @@ describe('pvp arena tab', () => {
       ['Testgegner 6', 'Angriff verloren', '−628'],
       ['Testgegner 5', 'Angriff gewonnen', '+529'],
       ['Testgegner 7', 'Angriff verloren', '−628'],
-      ['Testgegner 8', 'Verteidigung: angegriffen von diesem Spieler', '−55'],
     ]);
-    expect(box.text).toContain('6 Angriffe, 3 gewonnen · 1 Verteidigung · −388 Punkte');
-    // the attack icons of the battles tab in their colours, the defense as a word
+    expect(box.text).toContain('6 Angriffe, 3 gewonnen, 3 verloren · −333 Punkte');
+    expect(box.text).not.toContain('Verteidigung:');
     expect(row(box, 'Testgegner 2').querySelector('td.pvp-result.won svg')).not.toBeNull();
     expect(row(box, 'Testgegner 4').querySelector('td.pvp-result.lost svg')).not.toBeNull();
-    expect(row(box, 'Testgegner 8').querySelector('td.pvp-result.defense')?.textContent).toBe('Verteidigung');
     expect(row(box, 'Testgegner 2').querySelector('td.pvp-points.good')).not.toBeNull();
     expect(row(box, 'Testgegner 4').querySelector('td.pvp-points.bad')).not.toBeNull();
+    // no kind toggles any more, and the sack toggles belong to the battles
+    expect(box.root.querySelector('.pvp-kind-filter')).toBeNull();
+    expect(box.root.querySelector('[aria-label="Kämpfe mit Plünderung zeigen"]')).toBeNull();
   });
 
-  it('filters by kind with two toggles, both on by default; both off show no row', async () => {
+  it('has the sub tabs Angriffe and Verteidigungen in a second tab row', async () => {
     const { box } = await opened();
-    // the sack toggles belong to the battles
-    expect(box.root.querySelector('[aria-label="Kämpfe mit Plünderung zeigen"]')).toBeNull();
-    const pressed = [...box.root.querySelectorAll('.pvp-kind-filter button')].map((b) => [
-      b.getAttribute('aria-label'),
-      b.getAttribute('aria-pressed'),
+    expect([...box.root.querySelectorAll('.tabs.sub button')].map((b) => b.textContent?.trim())).toEqual([
+      'Angriffe',
+      'Verteidigungen',
     ]);
-    expect(pressed).toEqual([
-      ['Angriffe zeigen', 'true'],
-      ['Verteidigungen zeigen', 'true'],
-    ]);
+  });
 
-    box.click('Verteidigungen zeigen');
+  it('shows the defenses on their sub tab without a result column, points signed, with their own summary', async () => {
+    const { box } = await opened();
+    pickSub(box, 'Verteidigungen');
+    await vi.waitFor(() => expect(subTab(box)).toBe('Verteidigungen'));
+    await vi.waitFor(() => expect(rows(box)).toEqual([['Testgegner 8', undefined, '−55']]));
+    expect(box.text).toContain('1 Verteidigung · −55 Punkte');
+    expect(box.root.querySelector('.pvp-arena .pvp-result')).toBeNull();
+    expect(box.root.querySelectorAll('.pvp-arena thead th')).toHaveLength(4);
+    expect(row(box, 'Testgegner 8').querySelector('td.pvp-points.bad')).not.toBeNull();
+    // the arena mark of the name cell stays
+    expect(row(box, 'Testgegner 8').querySelector('button[aria-label="In der Arena nicht angreifen"]')).not.toBeNull();
+
+    pickSub(box, 'Angriffe');
     await vi.waitFor(() => expect(rows(box)).toHaveLength(6));
-    expect(box.text).toContain('6 Angriffe, 3 gewonnen · −333 Punkte');
+    expect(box.text).toContain('6 Angriffe, 3 gewonnen, 3 verloren · −333 Punkte');
+  });
 
-    box.click('Angriffe zeigen');
-    await vi.waitFor(() => expect(box.text).toContain('Keine Arena-Kämpfe zu diesem Filter.'));
-    expect(rows(box)).toHaveLength(0);
+  it('shows a selected defense in the side panel with the player and without battle details', async () => {
+    const { box } = await opened();
+    pickSub(box, 'Verteidigungen');
+    await vi.waitFor(() => expect(rows(box)).toHaveLength(1));
+    row(box, 'Testgegner 8').click();
+    expect(row(box, 'Testgegner 8').classList.contains('selected')).toBe(true);
+    expect(panel(box)).toContain('Testgegner 8');
+    expect(panel(box)).toContain('−55');
+    expect(panel(box)).not.toContain('Deine Einheiten');
+    row(box, 'Testgegner 8').click();
+    expect(box.root.querySelector('.side-drawer')).toBeNull();
+    // a selection ends with the sub tab
+    row(box, 'Testgegner 8').click();
+    pickSub(box, 'Angriffe');
+    await vi.waitFor(() => expect(rows(box)).toHaveLength(6));
+    expect(box.root.querySelector('.side-drawer')).toBeNull();
+  });
 
-    box.click('Verteidigungen zeigen');
-    await vi.waitFor(() => expect(rows(box)).toEqual([['Testgegner 8', expect.any(String), '−55']]));
+  it('opens the arena tab on the attacks every time, the sub tab is not remembered', async () => {
+    const { box, send, menu } = await opened();
+    pickSub(box, 'Verteidigungen');
+    await vi.waitFor(() => expect(subTab(box)).toBe('Verteidigungen'));
+    // the arena opens again in the game while the box is on the defenses
+    send(arena.overview);
+    await vi.waitFor(() => expect(subTab(box)).toBe('Angriffe'));
+    // leaving the arena tab and coming back
+    pickSub(box, 'Verteidigungen');
+    await vi.waitFor(() => expect(subTab(box)).toBe('Verteidigungen'));
+    box.click('Kämpfe');
+    await vi.waitFor(() => expect(activeTab(box)?.textContent?.trim()).toBe('Kämpfe'));
+    box.click('Arena');
+    await vi.waitFor(() => expect(subTab(box)).toBe('Angriffe'));
+    await vi.waitFor(() => expect(rows(box)).toHaveLength(6));
+    // closing and opening the box through the menu
+    pickSub(box, 'Verteidigungen');
+    await vi.waitFor(() => expect(subTab(box)).toBe('Verteidigungen'));
+    menu('pvp');
+    menu('pvp');
+    expect(box.box.isOpen).toBe(true);
+    await vi.waitFor(() => expect(subTab(box)).toBe('Angriffe'));
   });
 
   it('shows the stored battle of an attack in the side panel; lines without one are not selectable', async () => {
     const { box } = await opened();
     expect(row(box, 'Testgegner 2').classList.contains('battle-row')).toBe(true);
     expect(row(box, 'Testgegner 4').classList.contains('battle-row')).toBe(false);
-    expect(row(box, 'Testgegner 8').classList.contains('battle-row')).toBe(false);
 
     row(box, 'Testgegner 4').click();
-    row(box, 'Testgegner 8').click();
     expect(box.root.querySelector('.side-panel')).toBeNull();
 
     row(box, 'Testgegner 2').click();
@@ -119,7 +167,7 @@ describe('pvp arena tab', () => {
     const { box, send } = await opened();
     send(manual.start);
     send(manual.end);
-    await vi.waitFor(() => expect(rows(box)).toHaveLength(8));
+    await vi.waitFor(() => expect(rows(box)).toHaveLength(7));
     expect(rows(box)[0]).toEqual(['Testgegner 1', 'Angriff verloren', '−297']);
     row(box, 'Testgegner 1').click();
     expect(panel(box)).toContain('Testgegner 1');
@@ -143,8 +191,9 @@ describe('pvp arena tab', () => {
     menu('pvp');
     expect(activeTab(box)?.textContent?.trim()).toBe('Kämpfe');
     send(arena.overview);
-    await vi.waitFor(() => expect(rows(box)).toHaveLength(6));
+    await vi.waitFor(() => expect(rows(box)).toHaveLength(5));
     expect(activeTab(box)?.textContent?.trim()).toBe('Arena');
+    expect(subTab(box)).toBe('Angriffe');
   });
 
   it('shows the arena mark in the name cell instead of the PvP marks and toggles it on its own', async () => {
@@ -178,6 +227,8 @@ describe('pvp arena tab', () => {
         b.getAttribute('aria-label'),
         b.getAttribute('aria-pressed'),
       ]);
+    // the toggle for "ohne" carries its icon, no word
+    expect(box.root.querySelector('.pvp-arena-mark-filter button:last-child')?.textContent?.trim()).toBe('');
     expect(toggles()).toEqual([
       ['Arena: als nicht angreifen markierte zeigen', 'true'],
       ['Spieler ohne Arena-Markierung zeigen', 'true'],
@@ -187,7 +238,13 @@ describe('pvp arena tab', () => {
 
     box.click('Spieler ohne Arena-Markierung zeigen');
     await vi.waitFor(() => expect(rows(box).map((r) => r[0])).toEqual(['Testgegner 5', 'Testgegner 5']));
-    expect(box.text).toContain('2 Angriffe, 2 gewonnen · +1.058 Punkte');
+    expect(box.text).toContain('2 Angriffe, 2 gewonnen, 0 verloren · +1.058 Punkte');
+
+    // the arena marks apply to the defenses too
+    pickSub(box, 'Verteidigungen');
+    await vi.waitFor(() => expect(rows(box)).toHaveLength(0));
+    pickSub(box, 'Angriffe');
+    await vi.waitFor(() => expect(rows(box)).toHaveLength(2));
 
     // the PvP mark toggles of the other tabs stay as they were
     box.click('Kämpfe');

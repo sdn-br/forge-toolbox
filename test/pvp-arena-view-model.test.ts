@@ -3,7 +3,7 @@ import { MATCH_WINDOW, matchBattles } from '../src/content/features/pvp/arena/ma
 import { arenaFilter } from '../src/content/features/pvp/arena/section';
 import { arenaViewModel } from '../src/content/features/pvp/arena/view-model';
 import { filtersPlayers, isFiltered, NO_FILTER, opponentsFor, type ViewInput } from '../src/content/features/pvp/rows';
-import { formatArenaSummary } from '../src/content/features/shared/pvp-format';
+import { formatArenaAttackSummary, formatArenaDefenseSummary } from '../src/content/features/shared/pvp-format';
 import { eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
 import type { ArenaBattle, ArenaLogEntry, ArenaLogSummary, Player } from '../src/shared/model';
 import { playerLookups } from './helpers/player-lookups';
@@ -57,15 +57,24 @@ const summaryOf = (lines: ArenaLogEntry[]): ArenaLogSummary => {
   };
 };
 
-const vmOf = (lines: ArenaLogEntry[], battles: ArenaBattle[] = [], change: Partial<ViewInput> = {}) =>
-  arenaViewModel({
+const vmOf = (
+  all: ArenaLogEntry[],
+  battles: ArenaBattle[] = [],
+  change: Partial<ViewInput> = {},
+  kind: ArenaLogEntry['kind'] = 'attack',
+) => {
+  // the sub tab reads only the lines of its kind
+  const lines = all.filter((l) => l.kind === kind);
+  return arenaViewModel({
     ...base,
     ...change,
+    kind,
     lines,
     matched: matchBattles(lines, battles),
     summary: summaryOf(lines),
     from: 0,
   });
+};
 
 describe('arena view model', () => {
   const lines = [
@@ -74,9 +83,9 @@ describe('arena view model', () => {
     line(at(9, 15), 1008, 'defense', -55),
   ];
 
-  it('shows one row per log line with name, time, result and signed points', () => {
+  it('shows one attack row per attack line with name, time, result and signed points', () => {
     const vm = vmOf(lines);
-    expect(vm).toMatchObject({ tab: 'arena', total: 3, from: 0, empty: undefined });
+    expect(vm).toMatchObject({ tab: 'arena', kind: 'attack', total: 2, from: 0, empty: undefined });
     expect(vm.rows[0]).toEqual({
       opponent: 1002,
       name: 'Testgegner 2',
@@ -84,6 +93,7 @@ describe('arena view model', () => {
       url: 'https://foestats.com/de/de20/players/1002',
       picked: false,
       note: '',
+      at: at(13, 50),
       when: 'heute 13:50',
       outcome: 'won',
       result: 'Angriff gewonnen',
@@ -93,25 +103,46 @@ describe('arena view model', () => {
     });
     expect(vm.rows.slice(1).map((r) => [r.name, r.outcome, r.result, r.points, r.gain])).toEqual([
       ['1004', 'lost', 'Angriff verloren', '−535', 'bad'],
-      ['1008', 'defense', 'Verteidigung: angegriffen von diesem Spieler', '−55', 'bad'],
     ]);
+  });
+
+  it('shows a defense row with signed points and without any result, even with negative points', () => {
+    const vm = vmOf(lines, [], {}, 'defense');
+    expect(vm).toMatchObject({ kind: 'defense', total: 1 });
+    expect(vm.rows).toHaveLength(1);
+    const row = vm.rows[0];
+    expect(row).toMatchObject({ name: '1008', points: '−55', gain: 'bad', at: at(9, 15), selected: false });
+    expect(row).not.toHaveProperty('outcome');
+    expect(row).not.toHaveProperty('result');
+  });
+
+  it('marks the selected defense line by opponent and time', () => {
+    const selectedDefense = { opponent: playerId(1008), at: at(9, 15) };
+    expect(vmOf(lines, [], { selectedDefense }, 'defense').rows[0]?.selected).toBe(true);
+    expect(vmOf(lines, [], { selectedDefense: { ...selectedDefense, at: 1 } }, 'defense').rows[0]?.selected).toBe(
+      false,
+    );
   });
 
   it('makes only an attack with its stored battle selectable, and marks the selected one', () => {
     const battles = [fought(5001, at(13, 50), 1002), fought(5000, at(13, 45), 1004, { result: 'lost', points: -535 })];
     const vm = vmOf(lines, battles, { selected: 5000 });
-    expect(vm.rows.map((r) => r.battleId)).toEqual([5001, 5000, undefined]);
-    expect(vm.rows.map((r) => r.selected)).toEqual([false, true, false]);
+    expect(vm.rows.map((r) => r.battleId)).toEqual([5001, 5000]);
+    expect(vm.rows.map((r) => r.selected)).toEqual([false, true]);
     expect(vmOf(lines).rows.every((r) => r.battleId === undefined)).toBe(true);
   });
 
-  it('sums up the lines the filter matches', () => {
-    expect(vmOf(lines).totals).toBe('2 Angriffe, 1 gewonnen · 1 Verteidigung · −190 Punkte');
+  it('sums up the lines of the sub tab the filter matches', () => {
+    expect(vmOf(lines).totals).toBe('2 Angriffe, 1 gewonnen, 1 verloren · −135 Punkte');
+    expect(vmOf(lines, [], {}, 'defense').totals).toBe('1 Verteidigung · −55 Punkte');
   });
 
-  it('tells no lines from no match, the kind toggles counting', () => {
+  it('tells no lines from no match on each sub tab', () => {
     expect(vmOf([]).empty).toBe('none');
-    expect(vmOf([], [], { filter: { ...NO_FILTER, kinds: { attack: true, defense: false } } }).empty).toBe('noMatch');
+    expect(vmOf([], [], {}, 'defense').empty).toBe('none');
+    const named = { ...NO_FILTER, name: 'x' };
+    expect(vmOf([], [], { filter: named }).empty).toBe('noMatch');
+    expect(vmOf([], [], { filter: named }, 'defense').empty).toBe('noMatch');
   });
 });
 
@@ -163,39 +194,43 @@ describe('arena marks', () => {
 });
 
 describe('arena summary', () => {
-  const summary = (s: Partial<ArenaLogSummary>) =>
-    formatArenaSummary({ attacks: 0, won: 0, lost: 0, defenses: 0, points: 0, ...s });
-
-  it('names attacks with the won ones, defenses and points, in singular for one', () => {
-    expect(summary({ attacks: 80, won: 68, lost: 12, defenses: 7, points: 12345 })).toBe(
-      '80 Angriffe, 68 gewonnen · 7 Verteidigungen · +12.345 Punkte',
-    );
-    expect(summary({ attacks: 1, won: 0, lost: 1, defenses: 1, points: -10 })).toBe(
-      '1 Angriff, 0 gewonnen · 1 Verteidigung · −10 Punkte',
-    );
+  const full = (s: Partial<ArenaLogSummary>): ArenaLogSummary => ({
+    attacks: 0,
+    won: 0,
+    lost: 0,
+    defenses: 0,
+    points: 0,
+    ...s,
   });
 
-  it('leaves out attacks or defenses without any, and keeps the attacks when both are none', () => {
-    expect(summary({ attacks: 3, won: 3, points: 900 })).toBe('3 Angriffe, 3 gewonnen · +900 Punkte');
-    expect(summary({ defenses: 2, points: -100 })).toBe('2 Verteidigungen · −100 Punkte');
-    expect(summary({})).toBe('0 Angriffe · 0 Punkte');
+  it('names the attacks with the won and lost ones and the points, in singular for one', () => {
+    expect(formatArenaAttackSummary(full({ attacks: 80, won: 68, lost: 12, defenses: 7, points: 12345 }))).toBe(
+      '80 Angriffe, 68 gewonnen, 12 verloren · +12.345 Punkte',
+    );
+    expect(formatArenaAttackSummary(full({ attacks: 1, won: 0, lost: 1, points: -10 }))).toBe(
+      '1 Angriff, 0 gewonnen, 1 verloren · −10 Punkte',
+    );
+    expect(formatArenaAttackSummary(full({}))).toBe('0 Angriffe · 0 Punkte');
+  });
+
+  it('names the defenses and their points, ignoring the attacks', () => {
+    expect(formatArenaDefenseSummary(full({ attacks: 5, defenses: 7, points: -3456 }))).toBe(
+      '7 Verteidigungen · −3.456 Punkte',
+    );
+    expect(formatArenaDefenseSummary(full({ defenses: 1, points: -55 }))).toBe('1 Verteidigung · −55 Punkte');
+    expect(formatArenaDefenseSummary(full({}))).toBe('0 Verteidigungen · 0 Punkte');
   });
 });
 
 describe('arena filter', () => {
   const scope = { opponents: [playerId(1)] };
 
-  it('asks for one kind while the other is off, for none with both off', () => {
-    expect(arenaFilter(scope, { attack: true, defense: true })).toEqual(scope);
-    expect(arenaFilter(scope, { attack: true, defense: false })).toEqual({ ...scope, kind: 'attack' });
-    expect(arenaFilter(scope, { attack: false, defense: true })).toEqual({ ...scope, kind: 'defense' });
-    expect(arenaFilter(scope, { attack: false, defense: false })).toEqual({ opponents: [] });
+  it('asks for the lines of the sub tab within the scope', () => {
+    expect(arenaFilter(scope, 'attack')).toEqual({ ...scope, kind: 'attack' });
+    expect(arenaFilter({}, 'defense')).toEqual({ kind: 'defense' });
   });
 
-  it('counts the kind toggles as a filter on the arena only', () => {
-    const filter = { ...NO_FILTER, kinds: { attack: false, defense: true } };
-    expect(isFiltered(filter, 'arena')).toBe(true);
-    expect(isFiltered(filter, 'battles')).toBe(false);
+  it('does not count the sub tab as a filter', () => {
     expect(isFiltered(NO_FILTER, 'arena')).toBe(false);
   });
 });

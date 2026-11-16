@@ -73,21 +73,22 @@ export const formatBattleSummary = ({ battles, won, plunders, repelled, fp }: Ba
   )}`;
 
 /**
- * "80 Angriffe, 68 gewonnen · 7 Verteidigungen · +12.345 Punkte": the attacks with the won ones among them, the defenses,
- * the sum of the points. Attacks or defenses without any are left out, the attacks stay when both are 0.
+ * "80 Angriffe, 68 gewonnen, 12 verloren · +12.345 Punkte": the attacks with the won and lost ones among them, the sum
+ * of the points. Without attacks only "0 Angriffe · 0 Punkte".
  */
-export function formatArenaSummary({ attacks, won, defenses, points }: ArenaLogSummary): string {
-  const attackPart =
-    attacks > 0
-      ? `${countText(attacks, 'pvp.arena.attackCountOne', 'pvp.arena.attackCount')}, ${t('pvp.wonCount', { count: formatNumber(won) })}`
-      : defenses === 0
-        ? t('pvp.arena.attackCount', { count: '0' })
-        : '';
+export function formatArenaAttackSummary({ attacks, won, lost, points }: ArenaLogSummary): string {
+  const count = countText(attacks, 'pvp.arena.attackCountOne', 'pvp.arena.attackCount');
   return [
-    attackPart,
-    defenses > 0 ? countText(defenses, 'pvp.arena.defenseCountOne', 'pvp.arena.defenseCount') : '',
+    attacks > 0
+      ? `${count}, ${t('pvp.wonCount', { count: formatNumber(won) })}, ${t('pvp.arena.lostCount', { count: formatNumber(lost) })}`
+      : count,
     t('pvp.arena.pointsSum', { points: signed(points) }),
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  ].join(' · ');
 }
+
+/** "7 Verteidigungen · −3.456 Punkte": the defenses and the sum of their points */
+export const formatArenaDefenseSummary = ({ defenses, points }: ArenaLogSummary): string =>
+  [
+    countText(defenses, 'pvp.arena.defenseCountOne', 'pvp.arena.defenseCount'),
+    t('pvp.arena.pointsSum', { points: signed(points) }),
+  ].join(' · ');

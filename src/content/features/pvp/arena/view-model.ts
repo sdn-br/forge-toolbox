@@ -1,17 +1,20 @@
 import type { ArenaBattle, ArenaLogEntry, ArenaLogSummary } from '../../../../shared/model';
 import { formatWhen, signed, t } from '../../../core/texts';
-import { formatArenaSummary } from '../../shared/pvp-format';
-import { isFiltered, type ListVm, listVm, type OpponentVm, opponentVm, type ViewInput } from '../rows';
+import { formatArenaAttackSummary, formatArenaDefenseSummary } from '../../shared/pvp-format';
+import { type ArenaKind, isFiltered, type ListVm, listVm, type OpponentVm, opponentVm, type ViewInput } from '../rows';
 
-/** an own attack won (points above 0) or lost, or a defense against another player's attack */
-export type ArenaOutcome = 'won' | 'lost' | 'defense';
+/** an own attack won (points above 0) or lost */
+export type ArenaOutcome = 'won' | 'lost';
 
 /** a line of the arena log */
 export interface ArenaRow extends OpponentVm {
+  /** the time of the line in ms, with the opponent it names a defense line */
+  at: number;
   when: string;
-  outcome: ArenaOutcome;
+  /** only an attack has a result; a defense with negative points is not proven lost, so none is derived (Nutzer, 2026-11-16) */
+  outcome?: ArenaOutcome;
   /** the word, for the tooltip of the icon */
-  result: string;
+  result?: string;
   /** signed, "+400", "−535" */
   points: string;
   /** the colour of the points */
@@ -24,18 +27,35 @@ export interface ArenaRow extends OpponentVm {
   arenaNoAttack?: boolean;
 }
 
-/** `totals` are attacks, wins, defenses and points of the lines the filter matches */
+/** `totals` are the summary of the lines of the sub tab the filter matches */
 export interface ArenaVm extends ListVm {
   tab: 'arena';
+  kind: ArenaKind;
   /** the loaded rows, the first at `from` */
   rows: ArenaRow[];
 }
 
-const outcomeOf = (line: ArenaLogEntry): ArenaOutcome =>
-  line.kind === 'defense' ? 'defense' : line.points > 0 ? 'won' : 'lost';
+/** what the side panel shows of a defense line: the attacker and the line, no battle (the game sends none) */
+export interface DefensePanelVm {
+  name: string;
+  guild?: { name: string; url: string };
+  when: string;
+  points: string;
+  gain: ArenaRow['gain'];
+}
+
+export const defensePanelVm = (row: ArenaRow, guild?: { name: string; url: string }): DefensePanelVm => ({
+  name: row.name,
+  ...(guild && { guild }),
+  when: row.when,
+  points: row.points,
+  gain: row.gain,
+});
 
 export function arenaViewModel(
   input: ViewInput & {
+    /** the sub tab; its lines are the ones in `lines` */
+    kind: ArenaKind;
     lines: ArenaLogEntry[];
     /** the stored battle of each line, in the order of `lines` */
     matched: (ArenaBattle | undefined)[];
@@ -45,17 +65,18 @@ export function arenaViewModel(
     from: number;
   },
 ): ArenaVm {
-  const { lines, matched, summary, now } = input;
+  const { kind, lines, matched, summary, now } = input;
   return {
     ...listVm({
-      total: summary.attacks + summary.defenses,
+      total: kind === 'attack' ? summary.attacks : summary.defenses,
       from: input.from,
-      totals: formatArenaSummary(summary),
+      totals: kind === 'attack' ? formatArenaAttackSummary(summary) : formatArenaDefenseSummary(summary),
       filtered: isFiltered(input.filter, 'arena'),
     }),
     tab: 'arena',
+    kind,
     rows: lines.map((line, i): ArenaRow => {
-      const outcome = outcomeOf(line);
+      const outcome: ArenaOutcome | undefined = line.kind === 'defense' ? undefined : line.points > 0 ? 'won' : 'lost';
       const battle = matched[i];
       const arenaNoAttack = input.lookups.arenaNoAttack(line.opponent);
       // the neighbourhood marks mean nothing in the arena: no plunder there, and another defense army
@@ -63,13 +84,16 @@ export function arenaViewModel(
       return {
         ...opponent,
         ...(arenaNoAttack !== undefined && { arenaNoAttack }),
+        at: line.at,
         when: formatWhen(line.at, now),
-        outcome,
-        result: t(`pvp.arena.${outcome}`),
+        ...(outcome && { outcome, result: t(`pvp.arena.${outcome}`) }),
         points: signed(line.points),
         gain: line.points > 0 ? 'good' : line.points < 0 ? 'bad' : 'none',
         ...(battle && { battleId: battle.battleId }),
-        selected: battle !== undefined && input.selected === battle.battleId,
+        selected:
+          line.kind === 'defense'
+            ? input.selectedDefense?.opponent === line.opponent && input.selectedDefense.at === line.at
+            : battle !== undefined && input.selected === battle.battleId,
       };
     }),
   };

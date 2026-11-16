@@ -3,19 +3,21 @@ import { t } from '../../core/texts';
 import { toggleGroup } from '../../ui/buttons';
 import { headerIcons } from '../../ui/icons';
 import { searchField } from '../../ui/inputs';
+import { guildTag } from '../../ui/links';
 import { sideDrawer } from '../../ui/side-drawer';
 import { tabBar } from '../../ui/tabs';
 import type { RowWindow } from '../../ui/windowed-rows';
 import { arenaView } from './arena/view';
+import type { DefensePanelVm } from './arena/view-model';
 import { battlePanel } from './battles/panel';
 import { battlesView } from './battles/view';
 import type { BattlePanelVm } from './battles/view-model';
 import { incomingView } from './incoming/view';
 import {
+  ARENA_KINDS,
   ARENA_MARK_TOGGLES,
+  type ArenaKind,
   type ArenaMarkFilter,
-  KIND_TOGGLES,
-  type KindFilter,
   LOOT_TOGGLES,
   MARK_TOGGLES,
   type PvpActions,
@@ -36,14 +38,11 @@ const MARK_ICONS = {
 };
 const LOOT_ICONS = { with: headerIcons.lootFilled, without: headerIcons.noLoot };
 
-/** the kind toggles carry words until they get icons (docs/ui-kit.md, "Offene Icons") */
-/** the arena's mark toggles: the warning triangle; "ohne Markierung" carries a word until it gets an icon */
+/** the arena's mark toggles: the warning triangle, and the same in hollow pieces for "ohne Markierung" */
 const arenaMarkIcon = (key: keyof ArenaMarkFilter) =>
-  key === 'noAttack' ? headerIcons.noAttackOn : html`${t('pvp.filter.arenaMarks.noneShort')}`;
+  key === 'noAttack' ? headerIcons.noAttackOn : headerIcons.noArenaMark;
 
-const kindWord = (key: keyof KindFilter) => html`${t(`pvp.filter.kinds.${key}Short`)}`;
-
-/** one row: the name field, the mark toggles (the arena has its own), on the battles the sack toggles, on the arena the kind toggles; each toggle
+/** one row: the name field, the mark toggles (the arena has its own), on the battles the sack toggles; each toggle
  * shows its rows while on */
 const filterBar = (f: PvpFilter, tab: PvpTab, actions: PvpActions) => html`<p class="pvp-filter">
     ${searchField(f.name, t('pvp.search'), (name) => actions.filter({ name }))}
@@ -78,18 +77,6 @@ const filterBar = (f: PvpFilter, tab: PvpTab, actions: PvpActions) => html`<p cl
           )
         : ''
     }
-    ${
-      tab === 'arena'
-        ? toggleGroup(
-            'pvp-kind-filter',
-            KIND_TOGGLES,
-            f.kinds,
-            (key) => t(`pvp.filter.kinds.${key}`),
-            kindWord,
-            (kinds) => actions.filter({ kinds }),
-          )
-        : ''
-    }
   </p>`;
 
 /** width of the docked side panel in pixels: one column per side */
@@ -97,10 +84,11 @@ export const PANEL_WIDTH = 300;
 
 /** the side panel, only on the battles and the arena and only while a battle is selected; `selected` is the battle it
  * shows */
-export interface PanelState {
-  open: boolean;
-  selected: BattlePanelVm;
-}
+export type PanelState = { open: boolean } & ({ selected: BattlePanelVm } | { defense: DefensePanelVm });
+
+/** a defense line: the attacker, the time and the points; the game sends no battle of it */
+const defensePanel = (vm: DefensePanelVm) =>
+  html`<h2>${vm.name}${vm.guild ? html` ${guildTag(vm.guild)}` : ''}</h2><p><span class="muted">${vm.when}</span> <span class=${`pvp-points ${vm.gain}`}>${vm.points}</span></p><p class="muted">${t('pvp.arena.defenseNote')}</p>`;
 
 const panel = (state: PanelState, actions: PvpActions) =>
   sideDrawer({
@@ -109,7 +97,7 @@ const panel = (state: PanelState, actions: PvpActions) =>
     label: t('pvp.panel'),
     tip: t(state.open ? 'pvp.panelClose' : 'pvp.panelOpen'),
     toggle: actions.togglePanel,
-    panel: battlePanel(state.selected),
+    panel: 'defense' in state ? defensePanel(state.defense) : battlePanel(state.selected),
     width: PANEL_WIDTH,
   });
 
@@ -122,10 +110,15 @@ export function pvpView(
   actions: PvpActions,
   note?: TemplateResult,
   side?: PanelState,
+  arenaKind: ArenaKind = 'attack',
 ): TemplateResult {
   // the name field stays in one outer template: swapping templates would replace it and take its focus mid-typing.
   // Tabs, filters, note card and totals stay, the rows that fit are drawn and the two buttons scroll them
-  return html`<div class="pvp-layout"><div class="pvp-pane">${tabBar(TABS, tab, (key) => t(`pvp.tab.${key}`), actions.tab)}${filterBar(
+  return html`<div class="pvp-layout"><div class="pvp-pane">${tabBar(TABS, tab, (key) => t(`pvp.tab.${key}`), actions.tab)}${
+    tab === 'arena'
+      ? tabBar(ARENA_KINDS, arenaKind, (key) => t(`pvp.arena.tab.${key}`), actions.arenaKind, undefined, 'sub')
+      : ''
+  }${filterBar(
     filter,
     tab,
     actions,

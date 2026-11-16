@@ -1,20 +1,15 @@
-// The tab "Arena": the summary of the arena log lines the filter matches, which also gives the row count, a slice of the
+// The tab "Arena", one sub tab at a time: the summary of the arena log lines of the sub tab the filter matches, which also gives the row count, a slice of the
 // lines and the stored battles of its attacks.
 import type { PlayerId } from '../../../../shared/ids';
 import type { ArenaLogEntry, ArenaLogFilter, ArenaLogSummary, OpponentScope } from '../../../../shared/model';
 import type { FeatureContext } from '../../../core/feature';
-import type { KindFilter } from '../rows';
+import type { ArenaKind } from '../rows';
 import type { PvpSection } from '../tabs';
 import { matchBattles } from './match';
 import { arenaViewModel } from './view-model';
 
-/** the lines the scope and the kind toggles ask for; with both kinds off no opponent, so no line */
-export function arenaFilter(scope: OpponentScope, kinds: KindFilter): ArenaLogFilter {
-  if (kinds.attack && kinds.defense) return scope;
-  if (kinds.attack) return { ...scope, kind: 'attack' };
-  if (kinds.defense) return { ...scope, kind: 'defense' };
-  return { opponents: [] };
-}
+/** the lines of the sub tab within the scope */
+export const arenaFilter = (scope: OpponentScope, kind: ArenaKind): ArenaLogFilter => ({ ...scope, kind });
 
 /** the opponents of the attacks among the lines, each once */
 const attacked = (lines: ArenaLogEntry[]): PlayerId[] => [
@@ -23,8 +18,8 @@ const attacked = (lines: ArenaLogEntry[]): PlayerId[] => [
 
 export function createArenaSection(ctx: FeatureContext): PvpSection {
   return {
-    async load({ scope, kinds }, offset, limit, totals) {
-      const filter = arenaFilter(scope, kinds);
+    async load({ scope, arenaKind }, offset, limit, totals) {
+      const filter = arenaFilter(scope, arenaKind);
       // the box hands in the summary it read for this query; reading it walks every line of the world
       const [summary, lines] = await Promise.all([
         (totals as ArenaLogSummary | undefined) ?? ctx.arena.log.summary(filter),
@@ -39,7 +34,7 @@ export function createArenaSection(ctx: FeatureContext): PvpSection {
         : [];
       const matched = matchBattles(lines, read);
       return {
-        build: (input) => arenaViewModel({ ...input, lines, matched, summary, from: offset }),
+        build: (input) => arenaViewModel({ ...input, kind: arenaKind, lines, matched, summary, from: offset }),
         totals: summary,
         battles: matched.filter((b) => b !== undefined),
       };
