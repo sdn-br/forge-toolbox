@@ -20,6 +20,8 @@ export interface ArenaRow extends OpponentVm {
   battleId?: number;
   /** the side panel shows this row's battle */
   selected: boolean;
+  /** the arena's own mark; undefined for a player the store does not know, who cannot be marked */
+  arenaNoAttack?: boolean;
 }
 
 /** `totals` are attacks, wins, defenses and points of the lines the filter matches */
@@ -55,8 +57,12 @@ export function arenaViewModel(
     rows: lines.map((line, i): ArenaRow => {
       const outcome = outcomeOf(line);
       const battle = matched[i];
+      const arenaNoAttack = input.lookups.arenaNoAttack(line.opponent);
+      // the neighbourhood marks mean nothing in the arena: no plunder there, and another defense army
+      const { plunderWorthy: _, noAttack: __, ...opponent } = opponentVm(input, line.opponent);
       return {
-        ...opponentVm(input, line.opponent),
+        ...opponent,
+        ...(arenaNoAttack !== undefined && { arenaNoAttack }),
         when: formatWhen(line.at, now),
         outcome,
         result: t(`pvp.arena.${outcome}`),

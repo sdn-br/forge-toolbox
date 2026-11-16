@@ -114,6 +114,7 @@ describe('pvp opponent name', () => {
       pickPlayer: noop,
       plunderPlayer: noop,
       noAttackPlayer: noop,
+      arenaNoAttackPlayer: noop,
       select: noop,
       togglePanel: noop,
       note: noop,

@@ -104,7 +104,12 @@ export const BACKUP_TABLES: { [K in TableName]: TableSpec<Row<K>> } = {
     merge: mergeMarked,
     player: (r) => r.owner,
   },
-  players: { key: (r) => [r.world, r.id], area: 'players', changes: ['marksAt', 'pvpMarksAt'], merge: mergePlayer },
+  players: {
+    key: (r) => [r.world, r.id],
+    area: 'players',
+    changes: ['marksAt', 'pvpMarksAt', 'arenaMarksAt'],
+    merge: mergePlayer,
+  },
 };
 
 export const TABLE_NAMES = Object.keys(BACKUP_TABLES) as TableName[];

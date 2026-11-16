@@ -74,7 +74,8 @@ export interface BackupFile {
 export const playerKey = (world: string, id: number) => `${world}|${id}`;
 
 /** whether the session player marked, ignored or marked the player for PvP; such a player stays without a reference */
-export const isMarkedPlayer = (p: Player): boolean => Boolean(p.marked || p.ignored || p.plunderWorthy || p.noAttack);
+export const isMarkedPlayer = (p: Player): boolean =>
+  Boolean(p.marked || p.ignored || p.plunderWorthy || p.noAttack || p.arenaNoAttack);
 
 /** `forge-toolbox-backup-2026-10-26.json.gz`, by the local day */
 export function backupFileName(at: number): string {

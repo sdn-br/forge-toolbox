@@ -12,6 +12,8 @@ import { battlesView } from './battles/view';
 import type { BattlePanelVm } from './battles/view-model';
 import { incomingView } from './incoming/view';
 import {
+  ARENA_MARK_TOGGLES,
+  type ArenaMarkFilter,
   KIND_TOGGLES,
   type KindFilter,
   LOOT_TOGGLES,
@@ -35,20 +37,35 @@ const MARK_ICONS = {
 const LOOT_ICONS = { with: headerIcons.lootFilled, without: headerIcons.noLoot };
 
 /** the kind toggles carry words until they get icons (docs/ui-kit.md, "Offene Icons") */
+/** the arena's mark toggles: the warning triangle; "ohne Markierung" carries a word until it gets an icon */
+const arenaMarkIcon = (key: keyof ArenaMarkFilter) =>
+  key === 'noAttack' ? headerIcons.noAttackOn : html`${t('pvp.filter.arenaMarks.noneShort')}`;
+
 const kindWord = (key: keyof KindFilter) => html`${t(`pvp.filter.kinds.${key}Short`)}`;
 
-/** one row: the name field, the mark toggles, on the battles the sack toggles, on the arena the kind toggles; each toggle
+/** one row: the name field, the mark toggles (the arena has its own), on the battles the sack toggles, on the arena the kind toggles; each toggle
  * shows its rows while on */
 const filterBar = (f: PvpFilter, tab: PvpTab, actions: PvpActions) => html`<p class="pvp-filter">
     ${searchField(f.name, t('pvp.search'), (name) => actions.filter({ name }))}
-    ${toggleGroup(
-      'pvp-mark-filter',
-      MARK_TOGGLES,
-      f.marks,
-      (key) => t(`pvp.filter.marks.${key}`),
-      (key) => MARK_ICONS[key],
-      (marks) => actions.filter({ marks }),
-    )}
+    ${
+      tab === 'arena'
+        ? toggleGroup(
+            'pvp-arena-mark-filter',
+            ARENA_MARK_TOGGLES,
+            f.arenaMarks,
+            (key) => t(`pvp.filter.arenaMarks.${key}`),
+            arenaMarkIcon,
+            (arenaMarks) => actions.filter({ arenaMarks }),
+          )
+        : toggleGroup(
+            'pvp-mark-filter',
+            MARK_TOGGLES,
+            f.marks,
+            (key) => t(`pvp.filter.marks.${key}`),
+            (key) => MARK_ICONS[key],
+            (marks) => actions.filter({ marks }),
+          )
+    }
     ${
       tab === 'battles'
         ? toggleGroup(

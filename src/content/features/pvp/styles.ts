@@ -51,8 +51,8 @@ export const pvpCss = `
 td.pvp-points.good { color: var(--good); }
 td.pvp-points.bad { color: var(--bad); }
 td.pvp-result.defense { color: var(--muted); }
-/* the kind toggles of the arena carry words until they get icons */
-.pvp-kind-filter button { width: auto; padding: 0 4px; }
+/* the kind toggles and "ohne Markierung" of the arena carry words until they get icons */
+.pvp-kind-filter button, .pvp-arena-mark-filter button:not(:has(svg)) { width: auto; padding: 0 4px; }
 .pvp-table .pvp-loot, .pvp-table .pvp-result { text-align: center; padding: 0; }
 .pvp-result svg { display: block; width: 14px; height: 14px; margin: auto; }
 /* the result in the colours of good and bad, a battle given up muted */

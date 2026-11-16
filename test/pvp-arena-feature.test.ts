@@ -146,4 +146,57 @@ describe('pvp arena tab', () => {
     await vi.waitFor(() => expect(rows(box)).toHaveLength(6));
     expect(activeTab(box)?.textContent?.trim()).toBe('Arena');
   });
+
+  it('shows the arena mark in the name cell instead of the PvP marks and toggles it on its own', async () => {
+    const { box, ctx } = await opened();
+    const cell = row(box, 'Testgegner 2').querySelector('td.name-cell') as HTMLElement;
+    expect(
+      [...cell.querySelectorAll(':is(button.plunder, button.no-attack)')].map((b) => b.getAttribute('aria-label')),
+    ).toEqual(['In der Arena nicht angreifen']);
+    const id = ctx.players.list().find((p) => p.name === 'Testgegner 2')?.id as never;
+    ctx.players.setFlag(id, 'noAttack', true);
+    (cell.querySelector('button[aria-label="In der Arena nicht angreifen"]') as HTMLElement).click();
+    expect(ctx.players.get(id)).toMatchObject({ noAttack: true, arenaNoAttack: true });
+    await vi.waitFor(() =>
+      expect(
+        row(box, 'Testgegner 2')
+          .querySelector('button[aria-label="Markierung Arena entfernen"]')
+          ?.getAttribute('aria-pressed'),
+      ).toBe('true'),
+    );
+    // the other tabs keep the PvP marks
+    box.click('Kämpfe');
+    await vi.waitFor(() => expect(box.root.querySelector('.pvp-mark-filter')).not.toBeNull());
+    expect(box.root.querySelector('.pvp-arena-mark-filter')).toBeNull();
+  });
+
+  it('filters by the arena mark with its own two toggles, apart from the PvP mark toggles', async () => {
+    const { box, ctx } = await opened();
+    expect(box.root.querySelector('.pvp-mark-filter')).toBeNull();
+    const toggles = () =>
+      [...box.root.querySelectorAll('.pvp-arena-mark-filter button')].map((b) => [
+        b.getAttribute('aria-label'),
+        b.getAttribute('aria-pressed'),
+      ]);
+    expect(toggles()).toEqual([
+      ['Arena: als nicht angreifen markierte zeigen', 'true'],
+      ['Spieler ohne Arena-Markierung zeigen', 'true'],
+    ]);
+    const id = ctx.players.list().find((p) => p.name === 'Testgegner 5')?.id as never;
+    ctx.players.setFlag(id, 'arenaNoAttack', true);
+
+    box.click('Spieler ohne Arena-Markierung zeigen');
+    await vi.waitFor(() => expect(rows(box).map((r) => r[0])).toEqual(['Testgegner 5', 'Testgegner 5']));
+    expect(box.text).toContain('2 Angriffe, 2 gewonnen · +1.058 Punkte');
+
+    // the PvP mark toggles of the other tabs stay as they were
+    box.click('Kämpfe');
+    await vi.waitFor(() => expect(box.root.querySelector('.pvp-mark-filter')).not.toBeNull());
+    expect(
+      [...box.root.querySelectorAll('.pvp-mark-filter button')].map((b) => b.getAttribute('aria-pressed')),
+    ).toEqual(['true', 'true', 'true']);
+    box.click('Arena');
+    await vi.waitFor(() => expect(rows(box)).toHaveLength(2));
+    expect(toggles()[1]).toEqual(['Spieler ohne Arena-Markierung zeigen', 'false']);
+  });
 });

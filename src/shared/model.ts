@@ -48,6 +48,9 @@ export const OTHER_MARK: Record<MarkKind, MarkKind> = { marked: 'ignored', ignor
 /** what the session player may put on a player for PvP, separate from the great building marks: good to plunder, or not to attack */
 export type PvpMarkKind = 'plunderWorthy' | 'noAttack';
 
+/** what the session player may put on a player for the PvP arena, separate from the neighbourhood marks: not to attack */
+export type ArenaMarkKind = 'arenaNoAttack';
+
 /** When the session player may attack or plunder this player again, as the game last reported it. */
 export interface AttackTimer {
   /** a won battle that is not plundered yet (the game's `canSabotage`) */
@@ -97,6 +100,13 @@ export interface Player {
   noAttack?: boolean;
   /** like `marksAt`, for the two PvP marks only; the import picks them independently of the great building marks */
   pvpMarksAt?: number;
+  /**
+   * the session player does not want to attack the player in the PvP arena, where the player defends with another army
+   * than in the neighbourhood; independent of `noAttack` and `plunderWorthy`, excludes nothing
+   */
+  arenaNoAttack?: boolean;
+  /** like `pvpMarksAt`, for the arena mark only; the import picks it independently of all other marks */
+  arenaMarksAt?: number;
   /** missing until a source that carries the timers reported the player */
   attack?: AttackTimer;
   firstSeenAt: number;

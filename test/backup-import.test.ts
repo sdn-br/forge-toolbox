@@ -163,6 +163,22 @@ describe('merge rules', () => {
     expect(mergePlayer(local, source)).toEqual(player(2, { seenAt: 10, plunderWorthy: true, pvpMarksAt: 1 }));
   });
 
+  it('takes the arena mark from the newer arenaMarksAt, independent of the PvP marks and the game data', () => {
+    const local = player(2, { seenAt: 30, noAttack: true, pvpMarksAt: 9, arenaMarksAt: 5 });
+    const source = player(2, { seenAt: 20, plunderWorthy: true, pvpMarksAt: 1, arenaNoAttack: true, arenaMarksAt: 8 });
+    expect(mergePlayer(local, source)).toEqual(
+      player(2, { seenAt: 30, noAttack: true, pvpMarksAt: 9, arenaNoAttack: true, arenaMarksAt: 8 }),
+    );
+    // an older arena mark of the file changes nothing; a newer removal clears the local one
+    expect(mergePlayer({ ...local, arenaNoAttack: true }, { ...source, arenaMarksAt: 4 })).toBeUndefined();
+    expect(
+      mergePlayer(
+        player(2, { seenAt: 30, arenaNoAttack: true, arenaMarksAt: 5 }),
+        player(2, { seenAt: 1, arenaMarksAt: 6 }),
+      ),
+    ).toEqual(player(2, { seenAt: 30, arenaMarksAt: 6 }));
+  });
+
   it('keeps the fields a newer row learned from a list lacks, from the richer older row', () => {
     const rich = player(2, {
       name: 'old',

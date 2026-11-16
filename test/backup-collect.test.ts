@@ -109,6 +109,7 @@ describe('collecting the backup rows of a world', () => {
       player(7),
       player(30, { plunderWorthy: true, pvpMarksAt: 1 }),
       player(18, { noAttack: true }),
+      player(45, { arenaNoAttack: true, arenaMarksAt: 1 }),
       player(2),
       player(50),
       player(60),
@@ -151,7 +152,7 @@ describe('collecting the backup rows of a world', () => {
       expect(collected).toEqual(await readInFull(db, world, now));
     }
     const players = (await collectTables(db, de20, 150)).players.map((p) => p.id);
-    expect(players).toEqual([2, 3, 7, 12, 18, 25, 30, 50, 60, 70]);
+    expect(players).toEqual([2, 3, 7, 12, 18, 25, 30, 45, 50, 60, 70]);
     db.close();
   });
 });

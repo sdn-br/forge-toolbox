@@ -37,7 +37,7 @@ describe('the registry of the backed up tables', () => {
       arenaLog: 'every',
       arenaPoints: 'every',
       greatBuildings: ['marksAt', 'ownContribution', 'contribution'],
-      players: ['marksAt', 'pvpMarksAt'],
+      players: ['marksAt', 'pvpMarksAt', 'arenaMarksAt'],
     });
   });
 });

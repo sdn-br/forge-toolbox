@@ -105,7 +105,7 @@ export const pvpFeature: Feature = {
     const refresh = async () => {
       if (!box.isOpen) return;
       const current = ++query;
-      const scope = opponentsFor(filter, players());
+      const scope = opponentsFor(filter, players(), tab);
       scopeShown = scope;
       const visible = VISIBLE_ROWS;
       requested = { offset: Math.max(0, top - AHEAD * visible), limit: SLICE_WINDOWS * visible };
@@ -188,6 +188,7 @@ export const pvpFeature: Feature = {
       pickPlayer: (name) => actions.filter({ name }),
       plunderPlayer: marks.plunderPlayer,
       noAttackPlayer: marks.noAttackPlayer,
+      arenaNoAttackPlayer: marks.arenaNoAttackPlayer,
       select: (battleId) => {
         selected = selected?.battleId === battleId ? undefined : loadedBattles.find((b) => b.battleId === battleId);
         if (selected) panelOpen = true;
@@ -297,7 +298,7 @@ export const pvpFeature: Feature = {
     ctx.bus.on('arena.battleRecorded', onRecorded);
     // a changed name or PvP mark can change who the filter matches
     // the name field and the mark toggles turn into opponents by the player store
-    ctx.bus.on('player.updated', () => (filtersPlayers(filter) ? show() : rebuild()));
+    ctx.bus.on('player.updated', () => (filtersPlayers(filter, tab) ? show() : rebuild()));
     // the markers in the rows show the notes
     ctx.bus.on('note.changed', rebuild);
     // the unit portraits in the side panel are looked up when it is built

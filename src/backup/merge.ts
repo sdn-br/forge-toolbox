@@ -70,12 +70,22 @@ const withPvpMarks = (row: Player, from: Player): Player => {
   };
 };
 
+/** the arena mark of a player comes from the row with the newer `arenaMarksAt`, independent of all other marks */
+const withArenaMark = (row: Player, from: Player): Player => {
+  const { arenaNoAttack: _, arenaMarksAt: __, ...rest } = row;
+  return {
+    ...rest,
+    ...(from.arenaNoAttack && { arenaNoAttack: true }),
+    ...(from.arenaMarksAt !== undefined && { arenaMarksAt: from.arenaMarksAt }),
+  };
+};
+
 /** the fields of a player a great building list does not carry */
 const LIST_GAPS = ['avatar', 'cityName', 'era', 'score', 'rank', 'active'] as const;
 
 /**
- * A player: as `mergeMarked`, and the two PvP marks from the row with the newer `pvpMarksAt`, independent of the great
- * building marks. A row known only from a great building list lacks most game fields; whichever row wins,
+ * A player: as `mergeMarked`, the two PvP marks from the row with the newer `pvpMarksAt` and the arena mark from the
+ * row with the newer `arenaMarksAt`, each independent of the others. A row known only from a great building list lacks most game fields; whichever row wins,
  * the fields it lacks come from the other row, so a list never wipes what a richer row knows and a richer row of the
  * file fills a row the profile knows only from a list.
  */
@@ -88,6 +98,8 @@ export const mergePlayer: MergeRule<Player> = (local, source) => {
   for (const key of LIST_GAPS)
     if (base[key] === undefined && other[key] !== undefined) Object.assign(filled, { [key]: other[key] });
   const pvp = source.pvpMarksAt !== undefined && source.pvpMarksAt > (local.pvpMarksAt ?? Number.NEGATIVE_INFINITY);
-  if (!merged && !pvp && Object.keys(filled).length === 0) return undefined;
-  return withPvpMarks({ ...base, ...filled }, pvp ? source : local);
+  const arena =
+    source.arenaMarksAt !== undefined && source.arenaMarksAt > (local.arenaMarksAt ?? Number.NEGATIVE_INFINITY);
+  if (!merged && !pvp && !arena && Object.keys(filled).length === 0) return undefined;
+  return withArenaMark(withPvpMarks({ ...base, ...filled }, pvp ? source : local), arena ? source : local);
 };

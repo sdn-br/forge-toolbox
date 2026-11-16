@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { MATCH_WINDOW, matchBattles } from '../src/content/features/pvp/arena/match';
 import { arenaFilter } from '../src/content/features/pvp/arena/section';
 import { arenaViewModel } from '../src/content/features/pvp/arena/view-model';
-import { isFiltered, NO_FILTER, type ViewInput } from '../src/content/features/pvp/rows';
+import { filtersPlayers, isFiltered, NO_FILTER, opponentsFor, type ViewInput } from '../src/content/features/pvp/rows';
 import { formatArenaSummary } from '../src/content/features/shared/pvp-format';
 import { eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
-import type { ArenaBattle, ArenaLogEntry, ArenaLogSummary } from '../src/shared/model';
+import type { ArenaBattle, ArenaLogEntry, ArenaLogSummary, Player } from '../src/shared/model';
 import { playerLookups } from './helpers/player-lookups';
 
 const now = new Date(2026, 10, 10, 15, 0).getTime();
@@ -112,6 +112,53 @@ describe('arena view model', () => {
   it('tells no lines from no match, the kind toggles counting', () => {
     expect(vmOf([]).empty).toBe('none');
     expect(vmOf([], [], { filter: { ...NO_FILTER, kinds: { attack: true, defense: false } } }).empty).toBe('noMatch');
+  });
+});
+
+describe('arena marks', () => {
+  it('shows the arena mark of a known player instead of the neighbourhood marks', () => {
+    const lookups = playerLookups({
+      playerName: (id: PlayerId) => names[id],
+      plunderWorthy: (id: PlayerId) => (id === 1002 ? true : undefined),
+      noAttack: (id: PlayerId) => (id === 1002 ? true : undefined),
+      arenaNoAttack: (id: PlayerId) => (id === 1002 ? false : undefined),
+    });
+    const vm = vmOf([line(at(13, 50), 1002, 'attack', 400), line(at(13, 45), 1004, 'attack', -535)], [], { lookups });
+    expect(vm.rows[0]?.arenaNoAttack).toBe(false);
+    expect(vm.rows[0]).not.toHaveProperty('plunderWorthy');
+    expect(vm.rows[0]).not.toHaveProperty('noAttack');
+    // a player the store does not know cannot be marked
+    expect(vm.rows[1]).not.toHaveProperty('arenaNoAttack');
+  });
+
+  const player = (id: number, marks: Partial<Player> = {}) =>
+    ({ id: playerId(id), name: `P${id}`, ...marks }) as Player;
+  const players = [
+    player(1, { arenaNoAttack: true }),
+    player(2, { noAttack: true }),
+    player(3, { plunderWorthy: true, arenaNoAttack: true }),
+    player(4),
+  ];
+  const arenaMarks = (noAttack: boolean, none: boolean) => ({ ...NO_FILTER, arenaMarks: { noAttack, none } });
+
+  it('filters the arena by its own mark alone; the neighbourhood toggles play no part there', () => {
+    expect(opponentsFor(arenaMarks(true, true), players, 'arena')).toEqual({});
+    expect(opponentsFor(arenaMarks(true, false), players, 'arena')).toEqual({ opponents: [1, 3] });
+    // without the arena mark the unknown players stay, so the known marked ones are left out
+    expect(opponentsFor(arenaMarks(false, true), players, 'arena')).toEqual({ exceptOpponents: [1, 3] });
+    expect(opponentsFor(arenaMarks(false, false), players, 'arena')).toEqual({ opponents: [] });
+    expect(opponentsFor({ ...arenaMarks(true, false), name: 'P1' }, players, 'arena')).toEqual({ opponents: [1] });
+    const neighbourhoodOff = { ...NO_FILTER, marks: { plunder: false, noAttack: false, none: false } };
+    expect(opponentsFor(neighbourhoodOff, players, 'arena')).toEqual({});
+  });
+
+  it('leaves the other tabs to the neighbourhood toggles', () => {
+    expect(opponentsFor(arenaMarks(false, false), players, 'battles')).toEqual({});
+    expect(opponentsFor(arenaMarks(false, false), players, 'incoming')).toEqual({});
+    expect(filtersPlayers(arenaMarks(false, true), 'battles')).toBe(false);
+    expect(filtersPlayers(arenaMarks(false, true), 'arena')).toBe(true);
+    expect(isFiltered(arenaMarks(true, false), 'arena')).toBe(true);
+    expect(isFiltered(arenaMarks(true, false), 'incoming')).toBe(false);
   });
 });
 

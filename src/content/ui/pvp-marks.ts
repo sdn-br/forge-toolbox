@@ -1,5 +1,5 @@
 // The two PvP marks of a player, separate from the star and the eye of the great buildings: good to plunder (a small
-// star with a sack) and not to attack (a warning triangle with swords).
+// star with a sack) and not to attack (a warning triangle with swords); and the arena's own mark not to attack.
 import { html } from 'lit-html';
 import { t } from '../core/texts';
 import { toggleButton } from './buttons';
@@ -20,6 +20,16 @@ export const noAttackButton = (on: boolean, toggle: () => void) =>
     'no-attack',
     on,
     t(on ? 'pvpMark.noAttack.remove' : 'pvpMark.noAttack.add'),
+    on ? headerIcons.noAttackOn : headerIcons.noAttack,
+    toggle,
+  );
+
+/** the arena's own mark: not to attack in the PvP arena, where the player defends with another army */
+export const arenaNoAttackButton = (on: boolean, toggle: () => void) =>
+  toggleButton(
+    'no-attack',
+    on,
+    t(on ? 'pvpMark.arenaNoAttack.remove' : 'pvpMark.arenaNoAttack.add'),
     on ? headerIcons.noAttackOn : headerIcons.noAttack,
     toggle,
   );

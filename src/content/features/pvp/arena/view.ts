@@ -1,6 +1,7 @@
 import { html } from 'lit-html';
 import { t } from '../../../core/texts';
 import { headerIcons } from '../../../ui/icons';
+import { arenaNoAttackButton } from '../../../ui/pvp-marks';
 import type { RowWindow } from '../../../ui/windowed-rows';
 import { selectOnClick } from '../battles/view';
 import { listView, noteMarker, opponentCell, type PvpActions, rowsShown } from '../rows';
@@ -13,8 +14,14 @@ const resultCell = (r: ArenaRow) =>
     ? html`<td class="pvp-result defense" data-tip=${r.result}>${t('pvp.arena.defenseShort')}</td>`
     : html`<td class=${`pvp-result ${r.outcome}`}><span role="img" data-tip=${r.result} aria-label=${r.result}>${headerIcons[r.outcome]}</span></td>`;
 
+/** the arena's own mark instead of the two PvP marks, only for a player the store knows */
+const arenaMark = (r: ArenaRow, actions: PvpActions) =>
+  r.arenaNoAttack === undefined
+    ? html``
+    : arenaNoAttackButton(r.arenaNoAttack, () => actions.arenaNoAttackPlayer(r.opponent, !r.arenaNoAttack));
+
 const cells = (r: ArenaRow, actions: PvpActions) =>
-  html`${noteMarker(r.opponent, r.note, actions)}${opponentCell(r, actions)}<td>${r.when}</td>${resultCell(r)}<td class=${`pvp-points ${r.gain}`}>${r.points}</td>`;
+  html`${noteMarker(r.opponent, r.note, actions)}${opponentCell(r, actions, arenaMark(r, actions))}<td>${r.when}</td>${resultCell(r)}<td class=${`pvp-points ${r.gain}`}>${r.points}</td>`;
 
 /** a row with a stored battle selects it for the side panel, any other row is plain */
 const row = (r: ArenaRow, actions: PvpActions) =>

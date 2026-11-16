@@ -14,17 +14,27 @@ export type SocialLists = Record<keyof Relations, PlayerObservation[]> & { invit
 
 const NO_RELATIONS: Relations = { neighbor: false, guildMember: false, friend: false };
 
-/** The two pairs of flags that exclude each other, each with the time of its last change and its change event. */
-const PAIRS = {
+type TimeField = 'marksAt' | 'pvpMarksAt' | 'arenaMarksAt';
+type FlagSource = ToolboxEvents['player.updated']['source'];
+
+/**
+ * The flags the session player sets by hand, each with the time of its last change and its change event: two pairs
+ * that exclude each other, and the arena mark, which excludes nothing.
+ */
+const FLAGS: Record<
+  'marked' | 'ignored' | 'plunderWorthy' | 'noAttack' | 'arenaNoAttack',
+  { other?: 'marked' | 'ignored' | 'plunderWorthy' | 'noAttack'; at: TimeField; source: FlagSource }
+> = {
   marked: { other: 'ignored', at: 'marksAt', source: 'mark' },
   ignored: { other: 'marked', at: 'marksAt', source: 'ignore' },
   plunderWorthy: { other: 'noAttack', at: 'pvpMarksAt', source: 'plunderWorthy' },
   noAttack: { other: 'plunderWorthy', at: 'pvpMarksAt', source: 'noAttack' },
-} as const;
+  arenaNoAttack: { at: 'arenaMarksAt', source: 'arenaNoAttack' },
+};
 
-export type FlagKind = keyof typeof PAIRS;
-type MarkField = FlagKind | (typeof PAIRS)[FlagKind]['at'];
-const MARK_FIELDS = [...Object.keys(PAIRS), ...new Set(Object.values(PAIRS).map((p) => p.at))] as MarkField[];
+export type FlagKind = keyof typeof FLAGS;
+type MarkField = FlagKind | TimeField;
+const MARK_FIELDS = [...Object.keys(FLAGS), ...new Set(Object.values(FLAGS).map((p) => p.at))] as MarkField[];
 
 /** the marks of a player, the part no game source reports */
 const marksOf = (p: Player | undefined): Pick<Player, MarkField> =>
@@ -108,11 +118,11 @@ export class PlayerStore {
         touched = true;
       }
       // the marks are the player's own and the game never reports them, so what the database holds stays
-      // (a flag the player set this session wins over the other one of the database, the two exclude each other;
-      // their time goes with them, a change this session is newer than any in the database)
+      // (a flag the player set this session wins over the other one of the database, the two of a pair exclude each
+      // other; their time goes with them, a change this session is newer than any in the database)
       const patch: Partial<Player> = {};
-      for (const [kind, { other, at }] of Object.entries(PAIRS) as [FlagKind, (typeof PAIRS)[FlagKind]][]) {
-        if (row[kind] && !live[kind] && !live[other]) patch[kind] = true;
+      for (const [kind, { other, at }] of Object.entries(FLAGS) as [FlagKind, (typeof FLAGS)[FlagKind]][]) {
+        if (row[kind] && !live[kind] && !(other && live[other])) patch[kind] = true;
         if (live[at] === undefined && row[at] !== undefined) patch[at] = row[at];
       }
       if (Object.keys(patch).length > 0) {
@@ -144,20 +154,22 @@ export class PlayerStore {
 
   /**
    * Sets or clears a flag on a player. Only a player the store knows can be flagged; false for any other. Setting a
-   * flag clears the one that excludes it (star and ignore, `plunderWorthy` and `noAttack`) and stamps the time of the
-   * pair. The great building marks are not touched.
+   * flag clears the one that excludes it (star and ignore, `plunderWorthy` and `noAttack`; the arena mark has none) and
+   * stamps the time of its pair. The great building marks are not touched.
    */
   setFlag(id: PlayerId, kind: FlagKind, value: boolean): boolean {
     const p = this.players.get(id);
     if (!p) return false;
     if ((p[kind] === true) !== value) {
-      const { other, at, source } = PAIRS[kind];
-      const clears = value && p[other] === true;
+      const { other, at, source } = FLAGS[kind];
+      const clears = other !== undefined && value && p[other] === true;
       // releasing never meets the other flag set, the two exclude each other
-      const { [kind]: _, [other]: __, ...rest } = p;
+      const rest = { ...p };
+      delete rest[kind];
+      if (other) delete rest[other];
       const time = { [at]: this.now() };
       this.players.set(id, value ? { ...rest, [kind]: true, ...time } : { ...rest, ...time });
-      if (clears) this.changed(new Set([id]), PAIRS[other].source);
+      if (clears && other) this.changed(new Set([id]), FLAGS[other].source);
       this.changed(new Set([id]), source);
     }
     return true;
