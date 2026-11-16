@@ -33,6 +33,7 @@ Je Domäne eine Datei. Für ein Feature nur die Dateien lesen, die es berührt.
 - [Ressourcen und Inventar](datenmodell/ressourcen.md): Ressourcenbeutel, Inventar, FP-Pakete
 - [Erweiterungen und Bewertung](datenmodell/bewertung.md): abgeleitete Werte (Erweiterungen, CityAssessment, Plünderbarkeit)
 - [PvP](datenmodell/pvp.md): Kämpfe, Plünderungen, Angriffe auf mich, Schilde
+- [PvP-Arena](datenmodell/pvp-arena.md): eigene Arena-Kämpfe, Protokoll, Punkte, Gegner im Angebot
 - [Great Buildings](datenmodell/great-buildings.md): LG-Bau, Rangliste, Rechnung je Platz, Einzahlung
 
 ## Zuordnung Spielantwort → Store
@@ -49,6 +50,9 @@ Je Domäne eine Datei. Für ein Feature nur die Dateien lesen, die es berührt.
 | `FriendService.deleteFriend` (Antwort: Spieler-ID) | Player | `friend` wegnehmen |
 | `BattlefieldService.startByBattleType` | Battle | eigenen PvP-Angriff speichern, manuellen Kampf bis zum Ende vormerken |
 | `BattlefieldService.*` mit `BattleRealmState` (gesehen: `submitMove`) | Battle | vorgemerkten manuellen Kampf mit dem Ergebnis speichern |
+| `BattlefieldService.startByBattleType` mit `pvp_arena`, Ende wie oben | Arena | eigenen Arena-Kampf speichern |
+| `PVPArenaService.getOverview` | Arena, Player | Punkte, Gegner im Angebot und Protokoll; Spieler ohne Beziehung anlegen |
+| `PVPArenaService.addLog`, `updatePlayer`, `updateOpponents` | Arena, Player | Protokollzeile, Punkte, neue Gegner |
 | `CityMapService.updateEntity`, `reset` | City | eigene oder besuchte Stadt je nach Spieler-ID |
 | `CityMapService.placeBuilding`, `removeBuilding`, `moveEntity` | City | eigene Stadt ändern |
 | Metadaten `building_entity_lookup` und `building_entity_<id>` | Catalog | Gebäude-Definitionen |

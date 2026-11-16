@@ -247,6 +247,8 @@ export const pvpFeature: Feature = {
           if (deleted.some((n) => n > 0)) show();
         })
         .catch((error) => logError('pruning battles, plunders and attacks failed', error));
+      // the arena keeps its rows as long as the neighbourhood; nothing of the PvP box shows them
+      ctx.arena.prune(before).catch((error) => logError('pruning the arena failed', error));
     };
     ctx.bus.on('session.started', prune);
     keep.onChange(prune);

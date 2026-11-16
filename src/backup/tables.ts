@@ -82,6 +82,21 @@ export const BACKUP_TABLES: { [K in TableName]: TableSpec<Row<K>> } = {
     merge: longerShield,
     player: (r) => r.player,
   },
+  arenaBattles: {
+    key: (r) => [r.world, r.battleId],
+    area: 'pvp',
+    changes: 'every',
+    merge: addMissing,
+    player: (r) => r.opponent,
+  },
+  arenaLog: {
+    key: (r) => [r.world, r.at, r.opponent, r.kind],
+    area: 'pvp',
+    changes: 'every',
+    merge: addMissing,
+    player: (r) => r.opponent,
+  },
+  arenaPoints: { key: (r) => [r.world, r.at], area: 'pvp', changes: 'every', merge: addMissing },
   greatBuildings: {
     key: gbKey,
     area: 'greatBuildings',

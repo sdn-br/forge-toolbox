@@ -1,7 +1,7 @@
 import type { Call } from '../content/core/rpc';
 import type { PlayerRowsPersistence } from '../content/stores/player-rows';
 
-type Name = 'battles' | 'plunders' | 'incoming';
+type Name = 'battles' | 'plunders' | 'incoming' | 'arenaBattles' | 'arenaLog';
 
 /** The client side of `PlayerRowsApi`. */
 export function playerRowsClient<Row>(call: Call, name: Name): PlayerRowsPersistence<Row> {

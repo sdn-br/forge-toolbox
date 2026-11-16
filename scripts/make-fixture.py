@@ -56,6 +56,16 @@
 # the first 3 unconnected great buildings, one unconnected residential, one generic_building in ProductionFinishedState
 # and one in IdleState (they need no road), plus the first street (connected: 1). Player id 1000.
 
+# Arena: python3 -I scripts/make-fixture.py arena <recording.json> <out.json>
+# keeps the first PVPArenaService.getOverview, its log trimmed to 6 lines (the first 4, the first lost attack and the
+# first defense when they are not among them, filled up with the next ones, newest first), and the first response batch with an automatic arena battle (updatePlayer,
+# addLog, updateOpponents, startByBattleType). Every player anonymized (me 1000, others from 1001 in order of
+# appearance, names „Testgegner <n>“, no avatar), battle id 5001, opponent slots from 7001, battle state trimmed to units
+# and the arena points of ranking_data.
+# Manual arena battle: python3 -I scripts/make-fixture.py arena-manual <recording.json> <out.json>
+# keeps the first arena battle that starts without a result and the response batch whose BattlefieldService move ends it
+# (with its updatePlayer, addLog and updateOpponents), anonymized as in the arena mode, battle id 5002.
+
 # Friend accepted: python3 -I scripts/make-fixture.py friend-accept <recording.json> <out.json>
 # Friend deleted: python3 -I scripts/make-fixture.py friend-delete <recording.json> <out.json>
 # keeps the first FriendService.acceptInvitation (request: the player id, response: the new friend as a whole player),
@@ -617,6 +627,114 @@ def friend_delete_fixture(rec,out):
       'delete':{'requestClass':'FriendService','requestMethod':'deleteFriend','requestData':[FRIEND],'responseData':FRIEND}}
     json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
 
+class ArenaIds:
+    """fake ids for one fixture: players (me 1000, others from 1001), opponent slots from 7001"""
+    def __init__(self,me):
+        self.players={me:1000}; self.slots={}
+    def player(self,p):
+        if p not in self.players: self.players[p]=1000+len(self.players)
+        return self.players[p]
+    def slot(self,s):
+        if s not in self.slots: self.slots[s]=7001+len(self.slots)
+        return self.slots[s]
+    def arena_player(self,ap,points=False):
+        n=self.player(ap['player']['player_id'])
+        o={'player':{'player_id':n,'name':'Ich' if n==1000 else f'Testgegner {n-1000}','avatar':'','__class__':ap['player'].get('__class__')},'__class__':ap.get('__class__')}
+        if points: o['rankingPoints']=ap['rankingPoints']
+        return o
+    def action(self,a):
+        return {'time':a['time'],'otherPlayer':self.arena_player(a['otherPlayer']),'rankingPointsChange':a['rankingPointsChange'],'type':a['type'],'__class__':a.get('__class__')}
+    def opponent(self,o):
+        return {'opponentId':self.slot(o['opponentId']),'opposingPlayer':self.arena_player(o['opposingPlayer']),'rewardPoints':o['rewardPoints'],
+          'difficulty':o['difficulty'],'era':o['era'],'defenseArmyBoosts':o['defenseArmyBoosts'],'__class__':o.get('__class__')}
+    def unit(self,u):
+        o={k:u[k] for k in ('ownerId','teamFlag','unitTypeId','startHitpoints','currentHitpoints') if k in u}
+        # the arena's defending army belongs to no player (ownerId -1)
+        if u.get('ownerId',-1)>0: o['ownerId']=self.player(u['ownerId'])
+        o['bonuses']=[{k:b[k] for k in ('type','value','__class__') if k in b} for b in u.get('bonuses',[])]
+        return o
+    def state(self,st):
+        o={k:st[k] for k in ('winnerBit','surrenderBit','round','__class__') if k in st}
+        o['unitsOrder']=[self.unit(u) for u in st.get('unitsOrder',[])]
+        rd=st.get('ranking_data')
+        if rd and 'pvpArenaRankingPoints' in rd: o['ranking_data']={'pvpArenaRankingPoints':rd['pvpArenaRankingPoints'],'__class__':rd.get('__class__')}
+        return o
+    def battle(self,b,battle_id):
+        bt=b['battleType']
+        o={'battleId':battle_id,'battleType':{'attackerPlayerId':self.player(bt['attackerPlayerId']),'defenderPlayerId':self.player(bt['defenderPlayerId']),
+          'era':bt['era'],'type':bt['type'],'totalWaves':bt.get('totalWaves'),'opponentSerial':self.slot(bt['opponentSerial']),'difficulty':bt.get('difficulty'),'__class__':bt.get('__class__')},
+          'attackerPlayerId':self.player(b['attackerPlayerId'])}
+        if 'defenderPlayerId' in b: o['defenderPlayerId']=b['defenderPlayerId'] if b['defenderPlayerId']<=0 else self.player(b['defenderPlayerId'])
+        o.update({k:b[k] for k in ('startTime','isAutoBattle') if k in b})
+        o['state']=self.state(b['state']); o['__class__']=b.get('__class__')
+        return o
+    def entry(self,e,battle_id):
+        m=e['requestMethod']; d=e['responseData']
+        if m=='getOverview':
+            d={'currentPlayer':self.arena_player(d['currentPlayer'],True),'nextRefreshAt':d['nextRefreshAt'],
+              'opponents':[self.opponent(o) for o in d['opponents']],'actions':[self.action(a) for a in d['actions']],'__class__':d.get('__class__')}
+        elif m=='updatePlayer': d=self.arena_player(d,True)
+        elif m=='addLog': d=self.action(d)
+        elif m=='updateOpponents': d=[self.opponent(o) for o in d]
+        elif m=='startByBattleType': d=self.battle(d,battle_id)
+        else: d=self.state(d)
+        return {'requestClass':e['requestClass'],'requestMethod':m,'responseData':d}
+
+def arena_batches(rec):
+    out=[]
+    for r in rec:
+        if r.get('kind')!='json': continue
+        v=r.get('data') if 'data' in r else r.get('response')
+        if isinstance(v,str):
+            try: v=json.loads(v)
+            except ValueError: continue
+        if isinstance(v,list): out.append([e for e in v if isinstance(e,dict)])
+    return out
+
+ARENA_KEEP={('PVPArenaService','updatePlayer'),('PVPArenaService','addLog'),('PVPArenaService','updateOpponents')}
+
+def arena_fixture(rec,out):
+    batches=arena_batches(rec)
+    overview=next(e for b in batches for e in b if e.get('requestClass')=='PVPArenaService' and e.get('requestMethod')=='getOverview')
+    actions=overview['responseData']['actions']
+    keep=actions[:4]
+    lost=next(a for a in actions if a['type']=='attack' and a['rankingPointsChange']<0)
+    defense=next(a for a in actions if a['type']=='defense')
+    for a in (lost,defense):
+        if a not in keep: keep.append(a)
+    keep+=[a for a in actions if a not in keep][:6-len(keep)]
+    keep.sort(key=lambda a:-a['time'])
+    overview=dict(overview,responseData=dict(overview['responseData'],actions=keep))
+    def auto(e): return e.get('requestMethod')=='startByBattleType' and e['responseData'].get('battleType',{}).get('type')=='pvp_arena' and 'winnerBit' in e['responseData']['state']
+    batch=next(b for b in batches if any(auto(e) for e in b))
+    ids=ArenaIds(overview['responseData']['currentPlayer']['player']['player_id'])
+    fixture={'note':'PvP arena recorded on de10 2026-11-10: the overview (log trimmed to 6 lines with a lost attack and a defense) and the response batch of an automatic arena battle. Players anonymized (me 1000, others from 1001), battle id 5001, opponent slots from 7001, unrelated entries and fields dropped.',
+      'me':1000,'overview':[ids.entry(overview,None)],
+      'battle':[ids.entry(e,5001) for e in batch if (e.get('requestClass'),e.get('requestMethod')) in ARENA_KEEP or auto(e)]}
+    json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
+
+def arena_manual_fixture(rec,out):
+    batches=arena_batches(rec)
+    start=end=None
+    for b in batches:
+        for e in b:
+            d=e.get('responseData')
+            if e.get('requestClass')!='BattlefieldService' or not isinstance(d,dict): continue
+            if start is None and e['requestMethod']=='startByBattleType' and d.get('battleType',{}).get('type')=='pvp_arena' and 'winnerBit' not in d['state']:
+                start=e
+            elif start is not None and d.get('__class__')=='BattleRealmState' and ('winnerBit' in d or 'surrenderBit' in d):
+                end=b; break
+        if end: break
+    ids=ArenaIds(start['responseData']['attackerPlayerId'])
+    fixture={'note':'Manual PvP arena battle recorded on de10 2026-11-10 (23 moves, lost): the start and the response batch of the move that ends it. Players anonymized (me 1000, others from 1001), battle id 5002, opponent slots from 7001, unrelated entries and fields dropped.',
+      'me':1000,'start':[ids.entry(start,5002)],
+      'end':[ids.entry(e,5002) for e in end if (e.get('requestClass'),e.get('requestMethod')) in ARENA_KEEP or (e.get('requestClass')=='BattlefieldService' and isinstance(e.get('responseData'),dict) and e['responseData'].get('__class__')=='BattleRealmState')]}
+    json.dump(fixture,open(out,'w'),indent=1,ensure_ascii=False)
+
+if sys.argv[1]=='arena':
+    arena_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
+if sys.argv[1]=='arena-manual':
+    arena_manual_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
 if sys.argv[1]=='gb-unconnected':
     gb_unconnected_fixture(json.load(open(sys.argv[2])),sys.argv[3]); sys.exit()
 if sys.argv[1]=='gb-ranking':

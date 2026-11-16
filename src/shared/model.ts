@@ -237,6 +237,70 @@ export interface IncomingTotals {
   plunders: number;
 }
 
+export type ArenaDifficulty = 'easy' | 'medium' | 'hard';
+
+/**
+ * A battle of the session player as the attacker in the PvP arena. Kept apart from the neighbourhood battles: it allows
+ * no plunder, and its opponent is drawn by the arena, not chosen.
+ */
+export interface ArenaBattle extends Omit<FoughtBattle, 'plunderAt'> {
+  /** the arena points the battle won (positive) or lost (negative) */
+  points?: number;
+  difficulty?: ArenaDifficulty;
+  /** the game's id of the opponent slot the battle was fought against (`opponentSerial`) */
+  opponentId?: number;
+}
+
+export type ArenaLogKind = 'attack' | 'defense';
+
+/** A line of the arena log the game keeps: an own attack or a defense against another player, with its points. */
+export interface ArenaLogEntry {
+  world: WorldId;
+  at: number;
+  opponent: PlayerId;
+  kind: ArenaLogKind;
+  /** signed: what the line won or lost */
+  points: number;
+}
+
+/** which lines an arena log list or its summary covers */
+export interface ArenaLogFilter extends OpponentScope {
+  /** missing means both */
+  kind?: ArenaLogKind;
+}
+
+/** what the arena log counts over the lines of a filter */
+export interface ArenaLogSummary {
+  attacks: number;
+  /** attacks with points above 0 */
+  won: number;
+  /** attacks with no points or fewer */
+  lost: number;
+  defenses: number;
+  /** the sum of the points of all lines */
+  points: number;
+}
+
+/** The arena points of the session player at a time; stored only when they changed. */
+export interface ArenaPoints {
+  world: WorldId;
+  at: number;
+  points: number;
+}
+
+/** One of the opponents the arena offers right now. */
+export interface ArenaOpponent {
+  /** the game's id of the slot, changes with every new draw */
+  opponentId: number;
+  player: PlayerId;
+  /** the points a win brings */
+  rewardPoints: number;
+  difficulty: ArenaDifficulty;
+  era: EraId;
+  attackBoost: number;
+  defenseBoost: number;
+}
+
 /** A tab of the notes; the player group is not stored, it always exists. */
 export interface NoteGroup {
   world: WorldId;

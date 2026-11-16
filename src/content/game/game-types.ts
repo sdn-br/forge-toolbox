@@ -168,6 +168,8 @@ export interface GameBattleState {
   surrenderBit?: number;
   round?: number;
   unitsOrder?: GameBattleUnit[];
+  /** an arena battle's result carries the arena points it won or lost (signed, seen 2026-11-10) */
+  ranking_data?: { pvpArenaRankingPoints?: number };
 }
 
 /** request data of ArmyUnitManagementService.getArmyInfo (seen: `[{ __class__: 'ArmyContext', battleType: 'pvp' }]`) */
@@ -182,7 +184,17 @@ export interface GameBattle {
   isAutoBattle?: boolean;
   attackerPlayerId?: number;
   defenderPlayerId?: number;
-  battleType?: { type?: string; era?: string };
+  /**
+   * `pvp` or `pvp_arena` among others. An arena battle names its defender only here: the battle's own
+   * `defenderPlayerId` is missing (auto) or -1 (manual start), seen 2026-11-10.
+   */
+  battleType?: {
+    type?: string;
+    era?: string;
+    defenderPlayerId?: number;
+    difficulty?: string;
+    opponentSerial?: number;
+  };
   state?: GameBattleState;
 }
 
@@ -382,4 +394,36 @@ export interface GameUnitType {
   name?: unknown;
   minEra?: unknown;
   unitClass?: unknown;
+}
+
+/** a player as the arena names it (`PVPArenaPlayer`), seen 2026-11-10 */
+export interface GameArenaPlayer {
+  player?: { player_id?: number; name?: string; avatar?: string };
+  rankingPoints?: number;
+}
+
+/** an opponent the arena offers (`PVPArenaOpponent`) */
+export interface GameArenaOpponent {
+  opponentId?: number;
+  opposingPlayer?: GameArenaPlayer;
+  rewardPoints?: number;
+  difficulty?: string;
+  era?: string;
+  defenseArmyBoosts?: { attackBoost?: number; defenseBoost?: number };
+}
+
+/** a line of the arena log (`PVPArenaAction`): `time` in unix seconds, `type` 'attack' or 'defense' */
+export interface GameArenaAction {
+  time?: number;
+  otherPlayer?: GameArenaPlayer;
+  rankingPointsChange?: number;
+  type?: string;
+}
+
+/** response of PVPArenaService.getOverview; `actions` newest first, about two days */
+export interface GameArenaOverview {
+  currentPlayer?: GameArenaPlayer;
+  nextRefreshAt?: number;
+  opponents?: GameArenaOpponent[];
+  actions?: GameArenaAction[];
 }

@@ -1,4 +1,5 @@
 import Dexie from 'dexie';
+import type { ArenaTables } from '../persistence/arena/worker';
 import type { AssetsTables } from '../persistence/assets/worker';
 import type { BuildingDefsTables } from '../persistence/building-defs/worker';
 import type { FoestatsTables } from '../persistence/foestats/worker';
@@ -13,6 +14,7 @@ import { defineVersions } from './migrations';
 export type ToolboxDb = Dexie &
   PlayersTables &
   PvpTables &
+  ArenaTables &
   IncomingTables &
   NotesTables &
   ShieldsTables &

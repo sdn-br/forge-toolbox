@@ -47,6 +47,16 @@ export interface ToolboxEvents {
   'army.target': { opponent: PlayerId };
   /** the army window of the last `army.target` no longer shows, read from the game engine; may never come */
   'army.closed': Record<string, never>;
+  /** the game sent the arena overview: the player opened the PvP arena */
+  'arena.opened': Record<string, never>;
+  /** the opponents the arena offers changed (`arena.opponents.current()`) */
+  'arena.opponents': Record<string, never>;
+  /** the store wrote own arena battles against these players to the database, once per write */
+  'arena.battleRecorded': { opponents: PlayerId[] };
+  /** the store wrote arena log lines about these players to the database, once per write */
+  'arena.logRecorded': { opponents: PlayerId[] };
+  /** the store wrote changed own arena points to the database */
+  'arena.pointsRecorded': Record<string, never>;
   /** the game started a battle of any type */
   'battle.started': Record<string, never>;
   /** the page module saw another great building window in the game engine (see core/gb-window.ts); may never come */

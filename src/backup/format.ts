@@ -3,6 +3,9 @@
 // Version 1 had one block of settings and one set of tables for all worlds, from the time before profiles.
 import type { PlayerId, WorldId } from '../shared/ids';
 import type {
+  ArenaBattle,
+  ArenaLogEntry,
+  ArenaPoints,
   Battle,
   CityShield,
   IncomingAttack,
@@ -15,7 +18,7 @@ import type {
 
 export const BACKUP_FORMAT = 'forge-toolbox-backup';
 /** raised when the shape of the file changes; an import maps older versions */
-export const BACKUP_VERSION = 3;
+export const BACKUP_VERSION = 4;
 
 /**
  * The row type of each backed up table. Only what cannot come back from the game or foestats, and the players it refers
@@ -29,6 +32,10 @@ export interface BackupRows {
   notePages: NotePage;
   /** shields still running; ended ones say nothing any more */
   cityShields: CityShield;
+  /** the PvP arena, since version 4 */
+  arenaBattles: ArenaBattle;
+  arenaLog: ArenaLogEntry;
+  arenaPoints: ArenaPoints;
   /** the rows the retention never prunes: own contribution, marked, ignored */
   greatBuildings: KnownGreatBuilding;
   /** the players the rows above refer to, and the ones the session player marked or ignored */

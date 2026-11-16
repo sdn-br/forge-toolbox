@@ -21,7 +21,7 @@ export type ReadError = 'notJson' | 'notBackup' | 'version';
 
 export type ReadResult = { ok: true; backup: BackupFile } | { ok: false; error: ReadError };
 
-function isProfileEntry(value: unknown): value is BackupProfile {
+function isProfileEntry(value: unknown, names: readonly TableName[]): value is BackupProfile {
   const p = value as Partial<BackupProfile> | null;
   const tables = p?.tables as Record<string, unknown> | undefined;
   return (
@@ -29,7 +29,7 @@ function isProfileEntry(value: unknown): value is BackupProfile {
     (p.player === undefined || typeof p.player === 'number') &&
     typeof tables === 'object' &&
     tables !== null &&
-    TABLE_NAMES.every((name) => Array.isArray(tables[name]))
+    names.every((name) => Array.isArray(tables[name]))
   );
 }
 
@@ -50,10 +50,29 @@ function upgradeV2(backup: BackupFile): BackupFile {
       greatBuildings: rename(tables.greatBuildings),
     },
   }));
+  return { ...backup, profiles };
+}
+
+/** the tables version 4 added: the PvP arena */
+const ARENA_TABLES = ['arenaBattles', 'arenaLog', 'arenaPoints'] as const satisfies readonly TableName[];
+
+/** Backup versions 2 and 3 had no arena tables; they come empty. */
+function upgradeV3(backup: BackupFile): BackupFile {
+  const profiles = backup.profiles.map(({ tables, ...p }) => ({
+    ...p,
+    tables: { ...tables, ...Object.fromEntries(ARENA_TABLES.map((name) => [name, []])) } as BackupTables,
+  }));
   return { ...backup, version: BACKUP_VERSION, profiles };
 }
 
-/** Reads a backup file, gzipped or plain JSON. The current version and version 2 are taken; anything else says why not. */
+/** what each older version the import reads lacks: the upgrades to the current version, oldest first */
+const UPGRADES: Record<number, ((backup: BackupFile) => BackupFile)[]> = { 2: [upgradeV2, upgradeV3], 3: [upgradeV3] };
+
+/** the tables a file of `version` must have: an older one lacks the ones a later version added */
+const tablesOfVersion = (version: number): readonly TableName[] =>
+  version < 4 ? TABLE_NAMES.filter((name) => !(ARENA_TABLES as readonly TableName[]).includes(name)) : TABLE_NAMES;
+
+/** Reads a backup file, gzipped or plain JSON. The current version and versions 2 and 3 are taken; anything else says why not. */
 export async function readBackupFile(file: Blob): Promise<ReadResult> {
   let value: unknown;
   try {
@@ -63,10 +82,13 @@ export async function readBackupFile(file: Blob): Promise<ReadResult> {
   }
   const v = value as (Omit<Partial<BackupFile>, 'version'> & { version?: number }) | null;
   if (v?.format !== BACKUP_FORMAT) return { ok: false, error: 'notBackup' };
-  if (v.version !== BACKUP_VERSION && v.version !== 2) return { ok: false, error: 'version' };
-  if (!Array.isArray(v.profiles) || !v.profiles.every(isProfileEntry)) return { ok: false, error: 'notBackup' };
-  const backup = value as BackupFile;
-  return { ok: true, backup: v.version === 2 ? upgradeV2(backup) : backup };
+  const upgrades = v.version === BACKUP_VERSION ? [] : UPGRADES[v.version ?? 0];
+  if (!upgrades) return { ok: false, error: 'version' };
+  const names = tablesOfVersion(v.version ?? 0);
+  if (!Array.isArray(v.profiles) || !v.profiles.every((p) => isProfileEntry(p, names))) {
+    return { ok: false, error: 'notBackup' };
+  }
+  return { ok: true, backup: upgrades.reduce((backup, upgrade) => upgrade(backup), value as BackupFile) };
 }
 
 /** the entry of a profile in a backup file */

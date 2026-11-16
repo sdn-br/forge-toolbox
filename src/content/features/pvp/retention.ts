@@ -15,7 +15,7 @@ export const KEEP_SETTING = choiceDef({
   ],
 });
 
-/** Battles, plunders and attacks on the own city before this time are deleted; undefined keeps all. */
+/** Battles, plunders, attacks on the own city and the arena's rows before this time are deleted; undefined keeps all. */
 export function pruneBefore(keep: string, now: number): number | undefined {
   const days = Number(keep);
   return Number.isFinite(days) && days > 0 ? now - days * DAY_MS : undefined;

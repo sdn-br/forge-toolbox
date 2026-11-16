@@ -80,4 +80,12 @@ export function defineVersions(db: Dexie): void {
           .modify((row: Record<string, unknown>) => renameCityEntityId(row));
       }
     });
+  // the PvP arena, apart from the neighbourhood battles (user, 2026-11-16): own battles keyed like `battles`; the game's
+  // log keyed by time, opponent and kind, since its lines have no id and the overview repeats them; the own points,
+  // one row per change
+  db.version(17).stores({
+    arenaBattles: '[world+battleId], [world+at], [world+opponent+at], at',
+    arenaLog: '[world+at+opponent+kind], [world+at], [world+opponent+at], at',
+    arenaPoints: '[world+at], at',
+  });
 }
