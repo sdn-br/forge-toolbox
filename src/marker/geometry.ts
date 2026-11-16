@@ -58,23 +58,31 @@ export function nearCanvas(point: Point, canvas: CanvasBox, margin = 60): boolea
 }
 
 /**
- * Stage points where the arrow over `anchor` (a stage point) may lie, to test against the game's own buttons: the
- * corners and the middle of the drawn arrow, its top raised by the bob, and the tip. `cssPerStage` turns the arrow's
- * CSS size into stage units.
+ * Points on the outline of the drawn pin, in the units of its SVG (viewBox 46 × 54, src/marker/index.ts): left, top and
+ * right of the round head, its middle, the narrow body below and the tip. The corners of the box around the pin lie
+ * well beside the head and hid a pin too early (Nutzer, 2026-11-16).
+ */
+const PIN_OUTLINE: readonly Point[] = [
+  { x: 9, y: 18.5 },
+  { x: 23, y: 4.5 },
+  { x: 37, y: 18.5 },
+  { x: 23, y: 18.5 },
+  { x: 23, y: 35 },
+  { x: 23, y: 51.5 },
+];
+const PIN_VIEWBOX_WIDTH = 46;
+
+/**
+ * Stage points where the pin over `anchor` (a stage point) lies, to test against the game's own buttons: points on its
+ * outline, raised by half the bob, the middle of its up and down. `cssPerStage` turns the pin's CSS size into stage
+ * units.
  */
 export function arrowProbes(anchor: Point, scale: number, cssPerStage: number): Point[] {
   const k = scale / (cssPerStage > 0 ? cssPerStage : 1);
   const offset = arrowOffset();
-  const left = anchor.x + offset.x * k;
-  const right = left + ARROW.width * k;
-  const top = anchor.y + (offset.y - ARROW.bob) * k;
-  const tip = anchor.y - ARROW.gap * k;
-  return [
-    { x: left, y: top },
-    { x: right, y: top },
-    { x: left, y: tip },
-    { x: right, y: tip },
-    { x: anchor.x, y: (top + tip) / 2 },
-    { x: anchor.x, y: tip },
-  ];
+  const unit = ARROW.width / PIN_VIEWBOX_WIDTH;
+  return PIN_OUTLINE.map((o) => ({
+    x: anchor.x + (offset.x + o.x * unit) * k,
+    y: anchor.y + (offset.y + o.y * unit - ARROW.bob / 2) * k,
+  }));
 }

@@ -46,15 +46,15 @@ describe('marker geometry', () => {
     expect(nearCanvas({ x: 400, y: 700 }, canvas)).toBe(false);
   });
 
-  it('probes the corners and the middle of the arrow, raised by the bob, and its tip, in stage units', () => {
-    // at scale 1 and one CSS pixel per stage unit: 92 wide, top at 14 + 108 + 20 above the anchor, tip 14 above
+  it('probes the outline of the pin, raised by half the bob, in stage units', () => {
+    // at scale 1 and one CSS pixel per stage unit the pin is 92 × 108, its top 122 above the anchor, raised by 10
     expect(arrowProbes({ x: 100, y: 200 }, 1, 1)).toEqual([
-      { x: 54, y: 58 },
-      { x: 146, y: 58 },
-      { x: 54, y: 186 },
-      { x: 146, y: 186 },
-      { x: 100, y: 122 },
-      { x: 100, y: 186 },
+      { x: 72, y: 105 },
+      { x: 100, y: 77 },
+      { x: 128, y: 105 },
+      { x: 100, y: 105 },
+      { x: 100, y: 138 },
+      { x: 100, y: 171 },
     ]);
     // twice the zoom on a stage in device pixels (two CSS pixels per stage unit) cancels out
     expect(arrowProbes({ x: 100, y: 200 }, 2, 2)).toEqual(arrowProbes({ x: 100, y: 200 }, 1, 1));
