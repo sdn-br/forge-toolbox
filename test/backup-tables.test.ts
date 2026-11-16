@@ -17,7 +17,7 @@ describe('the registry of the backed up tables', () => {
 
   it('puts each table in the area of the import it belonged to before the registry', () => {
     expect(Object.fromEntries(DATA_AREAS.map((area) => [area, tablesOf(area)]))).toEqual({
-      pvp: ['battles', 'plunders', 'incoming', 'cityShields'],
+      pvp: ['battles', 'plunders', 'incoming', 'cityShields', 'arenaBattles', 'arenaLog', 'arenaPoints'],
       notes: ['noteGroups', 'notePages'],
       greatBuildings: ['greatBuildings'],
     });
@@ -33,8 +33,11 @@ describe('the registry of the backed up tables', () => {
       noteGroups: 'every',
       notePages: 'every',
       cityShields: 'every',
+      arenaBattles: 'every',
+      arenaLog: 'every',
+      arenaPoints: 'every',
       greatBuildings: ['marksAt', 'ownContribution', 'contribution'],
-      players: ['marksAt', 'pvpMarksAt'],
+      players: ['marksAt', 'pvpMarksAt', 'arenaMarksAt'],
     });
   });
 });

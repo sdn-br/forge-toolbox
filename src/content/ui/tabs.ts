@@ -12,8 +12,10 @@ export const tabBar = <K extends string>(
   label: (key: K) => string | TemplateResult,
   pick: (key: K) => void,
   tip?: (key: K) => string,
+  /** a class beside `tabs`, for a variant such as a smaller second row */
+  cls = '',
 ) =>
-  html`<div class="tabs">${keys.map(
+  html`<div class=${cls ? `tabs ${cls}` : 'tabs'}>${keys.map(
     (key) =>
       html`<button class=${key === current ? 'active' : ''} ?disabled=${key === current} data-tip=${ifDefined(tip?.(key))}
         aria-label=${ifDefined(tip?.(key))} @click=${() => pick(key)}>${label(key)}</button>`,

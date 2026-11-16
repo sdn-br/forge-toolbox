@@ -11,5 +11,6 @@ export const playerLookups = (change: Partial<PvpPlayerLookups> = {}): PvpPlayer
   ownerIgnored: () => undefined,
   plunderWorthy: () => undefined,
   noAttack: () => undefined,
+  arenaNoAttack: () => undefined,
   ...change,
 });

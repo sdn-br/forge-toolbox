@@ -1,8 +1,9 @@
 // Which game response feeds which store: one module per area translates the game format and registers its handlers
-// (`city.ts`, `players.ts`, `catalog.ts`, `pvp.ts`, `great-buildings.ts`, `resources.ts`). This file is the index. A
+// (`city.ts`, `players.ts`, `catalog.ts`, `pvp.ts`, `arena.ts`, `great-buildings.ts`, `resources.ts`). This file is the index. A
 // response may have several handlers that each feed their own part, for example `updatePlayer` (players, plunder) and
 // `CityMapService.reset` (plunder, own buildings, great buildings).
 import type { Ingestion } from '../core/ingestion';
+import { registerArena } from './arena';
 import { registerCatalog } from './catalog';
 import { registerCity } from './city';
 import type { GameHandlerDeps } from './deps';
@@ -28,6 +29,7 @@ export function registerGameHandlers(ingestion: Ingestion, deps: GameHandlerDeps
   registerPlayers(ingestion, deps);
   registerCatalog(ingestion, deps);
   registerPvp(ingestion, deps);
+  registerArena(ingestion, deps);
   registerGreatBuildings(ingestion, deps);
   registerResources(ingestion, deps);
 }

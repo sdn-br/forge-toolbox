@@ -1,7 +1,13 @@
 // The texts the pvp and the sabotage box share for battles, plunders and attacks on the own city.
 import type { BuildingDefId } from '../../../shared/ids';
-import type { BattleSummary, IncomingAttack, IncomingTotals, PlunderTotals } from '../../../shared/model';
-import { formatNumber, hasText, type TextKey, t } from '../../core/texts';
+import type {
+  ArenaLogSummary,
+  BattleSummary,
+  IncomingAttack,
+  IncomingTotals,
+  PlunderTotals,
+} from '../../../shared/model';
+import { formatNumber, hasText, signed, type TextKey, t } from '../../core/texts';
 
 /** The game's name of a resource from the startup data; undefined when unknown. */
 type ResourceName = (id: string) => string | undefined;
@@ -65,3 +71,24 @@ export const formatBattleSummary = ({ battles, won, plunders, repelled, fp }: Ba
   `${countText(battles, 'pvp.battleCountOne', 'pvp.battleCount')}, ${t('pvp.wonCount', { count: formatNumber(won) })} · ${formatPlunderTotals(
     { count: plunders, repelled, fp },
   )}`;
+
+/**
+ * "80 Angriffe, 68 gewonnen, 12 verloren · +12.345 Punkte": the attacks with the won and lost ones among them, the sum
+ * of the points. Without attacks only "0 Angriffe · 0 Punkte".
+ */
+export function formatArenaAttackSummary({ attacks, won, lost, points }: ArenaLogSummary): string {
+  const count = countText(attacks, 'pvp.arena.attackCountOne', 'pvp.arena.attackCount');
+  return [
+    attacks > 0
+      ? `${count}, ${t('pvp.wonCount', { count: formatNumber(won) })}, ${t('pvp.arena.lostCount', { count: formatNumber(lost) })}`
+      : count,
+    t('pvp.arena.pointsSum', { points: signed(points) }),
+  ].join(' · ');
+}
+
+/** "7 Verteidigungen · −3.456 Punkte": the defenses and the sum of their points */
+export const formatArenaDefenseSummary = ({ defenses, points }: ArenaLogSummary): string =>
+  [
+    countText(defenses, 'pvp.arena.defenseCountOne', 'pvp.arena.defenseCount'),
+    t('pvp.arena.pointsSum', { points: signed(points) }),
+  ].join(' · ');

@@ -91,7 +91,7 @@ describe('collectBackup', () => {
     );
 
     expect(backup).toMatchObject({ format: BACKUP_FORMAT, version: BACKUP_VERSION, createdAt: 1000 });
-    expect(BACKUP_VERSION).toBe(3);
+    expect(BACKUP_VERSION).toBe(4);
     expect(backup.profiles).toHaveLength(1);
     const [profile] = backup.profiles;
     expect(profile).toMatchObject({ world: de20, player: me, settings: { 'pvp.openWithArmy': false } });

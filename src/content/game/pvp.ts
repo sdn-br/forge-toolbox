@@ -1,7 +1,16 @@
 // Game format → own model for pvp: battles, army window, plunder, incoming attacks and city shields. Nothing outside src/content/game sees the game format.
 
 import { type BuildingDefId, buildingDefId, eraId, type PlayerId, playerId, type WorldId } from '../../shared/ids';
-import type { BattleResult, BattleSide, CityShield, FoughtBattle, IncomingAttack, Plunder } from '../../shared/model';
+import type {
+  ArenaBattle,
+  ArenaDifficulty,
+  BattleResult,
+  BattleSide,
+  CityShield,
+  FoughtBattle,
+  IncomingAttack,
+  Plunder,
+} from '../../shared/model';
 import { SECOND_MS } from '../../shared/time';
 import type { ArmyBattleKind } from '../core/events';
 import type { Ingestion } from '../core/ingestion';
@@ -20,7 +29,7 @@ import type {
   GameEventPage,
   GamePlunderResult,
 } from './game-types';
-import { list, numbers } from './json';
+import { list, num, numbers } from './json';
 import { observations } from './players';
 
 /** The buildings the game marks with the Double Loot icon (`showEntityIcons`). */
@@ -63,18 +72,20 @@ function resultOf(state: GameBattleState): BattleResult | null {
   return null;
 }
 
-/** A battle that passed isOwnPvpBattle: the fields it checks are there. */
-export type OwnPvpBattle = GameBattle & { battleId: number; defenderPlayerId: number; state: GameBattleState };
+/** the battles the toolbox records: neighbourhood PvP and the PvP arena, each in its own store */
+export type RecordedBattleKind = 'pvp' | 'arena';
 
-/** A PvP battle the session player attacks in, finished or still running. */
-export function isOwnPvpBattle(b: GameBattle, me: PlayerId): b is OwnPvpBattle {
-  return (
-    b.battleType?.type === 'pvp' &&
-    b.attackerPlayerId === me &&
-    typeof b.battleId === 'number' &&
-    typeof b.defenderPlayerId === 'number' &&
-    b.state !== undefined
-  );
+/** the defender of an own battle; the arena names it only in the battle type (see GameBattle) */
+const defenderOf = (b: GameBattle, kind: RecordedBattleKind) =>
+  kind === 'arena' ? b.battleType?.defenderPlayerId : b.defenderPlayerId;
+
+/** Which recorded kind a battle the session player attacks in is, finished or still running; null for any other. */
+export function ownBattleKind(b: GameBattle, me: PlayerId): RecordedBattleKind | null {
+  const type = b.battleType?.type;
+  const kind = type === 'pvp' ? 'pvp' : type === 'pvp_arena' ? 'arena' : null;
+  if (!kind || b.attackerPlayerId !== me || typeof b.battleId !== 'number' || b.state === undefined) return null;
+  const defender = defenderOf(b, kind);
+  return typeof defender === 'number' ? kind : null;
 }
 
 /** A response that is a battle state, for example the answer to a move of a manual battle. */
@@ -82,20 +93,23 @@ export function isBattleState(data: unknown): data is GameBattleState {
   return typeof data === 'object' && data !== null && (data as GameBattleState).__class__ === 'BattleRealmState';
 }
 
-/**
- * A finished PvP battle the session player attacked in; anything else is null. Without `end` the start must carry
- * the result (auto battle). With `end`, the final state of a manual battle, the result comes from there.
- */
-export function toBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: GameBattleState): FoughtBattle | null {
-  if (!isOwnPvpBattle(b, me)) return null;
+/** The fields every recorded battle has, once `ownBattleKind` named it `kind`; null while it has no result. */
+function foughtOf(
+  world: WorldId,
+  b: GameBattle,
+  me: PlayerId,
+  kind: RecordedBattleKind,
+  end?: GameBattleState,
+): { battle: FoughtBattle; final: GameBattleState } | null {
+  if (ownBattleKind(b, me) !== kind || b.state === undefined || typeof b.battleId !== 'number') return null;
   const final = end ?? b.state;
   const result = resultOf(final);
   if (!result) return null;
-  return {
+  const battle: FoughtBattle = {
     world,
     battleId: b.battleId,
     at: (b.startTime ?? 0) * SECOND_MS,
-    opponent: playerId(b.defenderPlayerId),
+    opponent: playerId(defenderOf(b, kind) as number),
     result,
     auto: end ? false : b.isAutoBattle === true,
     // the game counts rounds from 0 and omits the field while it is 0
@@ -103,6 +117,34 @@ export function toBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: Game
     era: eraId(b.battleType?.era ?? ''),
     attacker: toSide(b.state.unitsOrder ?? [], final.unitsOrder ?? [], ATTACKER_TEAM),
     defender: toSide(b.state.unitsOrder ?? [], final.unitsOrder ?? [], DEFENDER_TEAM),
+  };
+  return { battle, final };
+}
+
+/**
+ * A finished PvP battle the session player attacked in; anything else is null. Without `end` the start must carry
+ * the result (auto battle). With `end`, the final state of a manual battle, the result comes from there.
+ */
+export function toBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: GameBattleState): FoughtBattle | null {
+  return foughtOf(world, b, me, 'pvp', end)?.battle ?? null;
+}
+
+const DIFFICULTIES: readonly string[] = ['easy', 'medium', 'hard'] satisfies ArenaDifficulty[];
+export const arenaDifficulty = (v: unknown): ArenaDifficulty | undefined =>
+  typeof v === 'string' && DIFFICULTIES.includes(v) ? (v as ArenaDifficulty) : undefined;
+
+/** A finished arena battle the session player attacked in, as `toBattle` reads a PvP battle; anything else is null. */
+export function toArenaBattle(world: WorldId, b: GameBattle, me: PlayerId, end?: GameBattleState): ArenaBattle | null {
+  const fought = foughtOf(world, b, me, 'arena', end);
+  if (!fought) return null;
+  const points = num(fought.final.ranking_data?.pvpArenaRankingPoints);
+  const difficulty = arenaDifficulty(b.battleType?.difficulty);
+  const opponentId = num(b.battleType?.opponentSerial);
+  return {
+    ...fought.battle,
+    ...(points !== undefined && { points }),
+    ...(difficulty && { difficulty }),
+    ...(opponentId !== undefined && { opponentId }),
   };
 }
 
@@ -219,10 +261,20 @@ export function toShields(world: WorldId, data: unknown): CityShield[] {
 
 /** Registers the pvp handlers. */
 export function registerPvp(ingestion: Ingestion, deps: GameHandlerDeps): void {
-  const { world, bus, now, session, cities, battles, plunders, incoming, shields } = deps;
+  const { world, bus, now, session, cities, battles, plunders, incoming, shields, arena } = deps;
+
+  /** Records a finished battle in the store of its kind; false while it has no result. */
+  const record = (start: GameBattle, me: PlayerId, end?: GameBattleState): boolean => {
+    const battle = toBattle(world, start, me, end);
+    if (battle) battles.record(battle);
+    const inArena = battle ? null : toArenaBattle(world, start, me, end);
+    if (inArena) arena.battles.record(inArena);
+    return Boolean(battle || inArena);
+  };
 
   // A manual battle starts without a result. Its result comes with a later BattlefieldService response that is a
-  // battle state (seen: submitMove). Only the latest start counts, it is the battle on screen.
+  // battle state (seen: submitMove). Only the latest start counts, it is the battle on screen. The start keeps its
+  // battle type, so the end lands in the store of the kind it started as (PvP or arena), never in the other.
   let running: GameBattle | null = null;
   ingestion.on('BattlefieldService', 'startByBattleType', ({ data }) => {
     bus.emit('battle.started', {});
@@ -230,17 +282,12 @@ export function registerPvp(ingestion: Ingestion, deps: GameHandlerDeps): void {
     const me = session.current?.playerId;
     if (me === undefined) return;
     const start = data as GameBattle;
-    const battle = toBattle(world, start, me);
-    if (battle) battles.record(battle);
-    else if (isOwnPvpBattle(start, me)) running = start;
+    if (!record(start, me) && ownBattleKind(start, me)) running = start;
   });
   ingestion.onService('BattlefieldService', ({ method, data }) => {
     const me = session.current?.playerId;
     if (method === 'startByBattleType' || !running || me === undefined || !isBattleState(data)) return;
-    const battle = toBattle(world, running, me, data);
-    if (!battle) return;
-    battles.record(battle);
-    running = null;
+    if (record(running, me, data)) running = null;
   });
 
   // The army window before a battle asks for the army with the battle type in the request. It names no opponent;

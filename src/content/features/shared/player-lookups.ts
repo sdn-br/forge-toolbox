@@ -22,6 +22,8 @@ export interface PvpPlayerLookups extends PlayerLookups {
   plunderWorthy(id: PlayerId): boolean | undefined;
   /** whether the player is not to be attacked; undefined for a player the store does not know */
   noAttack(id: PlayerId): boolean | undefined;
+  /** whether the player is not to be attacked in the arena; undefined for a player the store does not know */
+  arenaNoAttack(id: PlayerId): boolean | undefined;
 }
 
 /** the lookups read the stores on each call, so one set serves every redraw */
@@ -39,6 +41,7 @@ export const playerLookups = (ctx: FeatureContext): PvpPlayerLookups => ({
   ownerIgnored: (id) => ctx.players.flag(id, 'ignored'),
   plunderWorthy: (id) => ctx.players.flag(id, 'plunderWorthy'),
   noAttack: (id) => ctx.players.flag(id, 'noAttack'),
+  arenaNoAttack: (id) => ctx.players.flag(id, 'arenaNoAttack'),
 });
 
 /** what a row with a player does with their star and eye */
@@ -55,6 +58,8 @@ export interface PvpRowActions extends PlayerRowActions {
   plunderPlayer(player: PlayerId, plunderWorthy: boolean): void;
   /** marks a player as not to attack or takes it away */
   noAttackPlayer(player: PlayerId, noAttack: boolean): void;
+  /** marks a player as not to attack in the arena or takes it away */
+  arenaNoAttackPlayer(player: PlayerId, arenaNoAttack: boolean): void;
 }
 
 export const playerRowActions = (ctx: FeatureContext): PvpRowActions => ({
@@ -62,4 +67,5 @@ export const playerRowActions = (ctx: FeatureContext): PvpRowActions => ({
   ignorePlayer: (player, ignored) => ctx.players.setFlag(player, 'ignored', ignored),
   plunderPlayer: (player, value) => ctx.players.setFlag(player, 'plunderWorthy', value),
   noAttackPlayer: (player, value) => ctx.players.setFlag(player, 'noAttack', value),
+  arenaNoAttackPlayer: (player, value) => ctx.players.setFlag(player, 'arenaNoAttack', value),
 });

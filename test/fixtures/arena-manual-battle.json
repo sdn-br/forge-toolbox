@@ -1,0 +1,908 @@
+{
+  "note": "Manual PvP arena battle recorded on de10 2026-11-10 (23 moves, lost): the start and the response batch of the move that ends it. Players anonymized (me 1000, others from 1001), battle id 5002, opponent slots from 7001, unrelated entries and fields dropped.",
+  "me": 1000,
+  "start": [
+    {
+      "requestClass": "BattlefieldService",
+      "requestMethod": "startByBattleType",
+      "responseData": {
+        "battleId": 5002,
+        "battleType": {
+          "attackerPlayerId": 1000,
+          "defenderPlayerId": 1001,
+          "era": "SpaceAgeMars",
+          "type": "pvp_arena",
+          "totalWaves": 1,
+          "opponentSerial": 7001,
+          "difficulty": "medium",
+          "__class__": "PVPArenaBattleType"
+        },
+        "attackerPlayerId": 1000,
+        "defenderPlayerId": -1,
+        "startTime": 1794328072,
+        "state": {
+          "__class__": "BattleRealmState",
+          "unitsOrder": [
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "ninja",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 1827.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "advanced_tactics",
+                  "value": 514.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 3113,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 2785,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "ninja",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 1827.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "advanced_tactics",
+                  "value": 514.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 3113,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 2785,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "rocket_troop",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 1827.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "advanced_tactics",
+                  "value": 514.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 3113,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 2785,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "rocket_troop",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 1827.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "advanced_tactics",
+                  "value": 514.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 3113,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 2785,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": -1,
+              "teamFlag": 2,
+              "unitTypeId": "steel_warden",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "defender_attack_boost",
+                  "value": 2152,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "defense_boost",
+                  "value": 1983,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": -1,
+              "teamFlag": 2,
+              "unitTypeId": "steel_warden",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "defender_attack_boost",
+                  "value": 2152,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "defense_boost",
+                  "value": 1983,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": -1,
+              "teamFlag": 2,
+              "unitTypeId": "steel_warden",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "defender_attack_boost",
+                  "value": 2152,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "defense_boost",
+                  "value": 1983,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": -1,
+              "teamFlag": 2,
+              "unitTypeId": "steel_warden",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "defender_attack_boost",
+                  "value": 2152,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "defense_boost",
+                  "value": 1983,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "ronin_bot",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 1827.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "advanced_tactics",
+                  "value": 514.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 3113,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 2785,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": -1,
+              "teamFlag": 2,
+              "unitTypeId": "steel_warden",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "defender_attack_boost",
+                  "value": 2152,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "defense_boost",
+                  "value": 1983,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "ronin_bot",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 1827.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "advanced_tactics",
+                  "value": 514.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 3113,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 2785,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": -1,
+              "teamFlag": 2,
+              "unitTypeId": "steel_warden",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "defender_attack_boost",
+                  "value": 2152,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "defense_boost",
+                  "value": 1983,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "rogue",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 1827.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "advanced_tactics",
+                  "value": 514.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 3113,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 2785,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": -1,
+              "teamFlag": 2,
+              "unitTypeId": "rogue",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "defender_attack_boost",
+                  "value": 2152,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "defense_boost",
+                  "value": 1983,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": 1000,
+              "teamFlag": 1,
+              "unitTypeId": "rogue",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "military_boost",
+                  "value": 1827.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "advanced_tactics",
+                  "value": 514.0,
+                  "__class__": "GreatBuildingUnitBonus"
+                },
+                {
+                  "type": "attack_boost",
+                  "value": 3113,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "attacker_defense_boost",
+                  "value": 2785,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            },
+            {
+              "ownerId": -1,
+              "teamFlag": 2,
+              "unitTypeId": "rogue",
+              "startHitpoints": 10,
+              "currentHitpoints": 10,
+              "bonuses": [
+                {
+                  "type": "defender_attack_boost",
+                  "value": 2152,
+                  "__class__": "MilitaryUnitBonus"
+                },
+                {
+                  "type": "defense_boost",
+                  "value": 1983,
+                  "__class__": "MilitaryUnitBonus"
+                }
+              ]
+            }
+          ]
+        },
+        "__class__": "BattleRealm"
+      }
+    }
+  ],
+  "end": [
+    {
+      "requestClass": "PVPArenaService",
+      "requestMethod": "updatePlayer",
+      "responseData": {
+        "player": {
+          "player_id": 1000,
+          "name": "Ich",
+          "avatar": "",
+          "__class__": "BasePlayer"
+        },
+        "__class__": "PVPArenaPlayer",
+        "rankingPoints": 24720
+      }
+    },
+    {
+      "requestClass": "PVPArenaService",
+      "requestMethod": "addLog",
+      "responseData": {
+        "time": 1794328217,
+        "otherPlayer": {
+          "player": {
+            "player_id": 1001,
+            "name": "Testgegner 1",
+            "avatar": "",
+            "__class__": "BasePlayer"
+          },
+          "__class__": "PVPArenaPlayer"
+        },
+        "rankingPointsChange": -297,
+        "type": "attack",
+        "__class__": "PVPArenaAction"
+      }
+    },
+    {
+      "requestClass": "PVPArenaService",
+      "requestMethod": "updateOpponents",
+      "responseData": [
+        {
+          "opponentId": 7002,
+          "opposingPlayer": {
+            "player": {
+              "player_id": 1002,
+              "name": "Testgegner 2",
+              "avatar": "",
+              "__class__": "BasePlayer"
+            },
+            "__class__": "PVPArenaPlayer"
+          },
+          "rewardPoints": 628,
+          "difficulty": "hard",
+          "era": "SpaceAgeAsteroidBelt",
+          "defenseArmyBoosts": {
+            "attackBoost": 7635,
+            "defenseBoost": 8580,
+            "__class__": "PVPArenaBoost"
+          },
+          "__class__": "PVPArenaOpponent"
+        },
+        {
+          "opponentId": 7003,
+          "opposingPlayer": {
+            "player": {
+              "player_id": 1003,
+              "name": "Testgegner 3",
+              "avatar": "",
+              "__class__": "BasePlayer"
+            },
+            "__class__": "PVPArenaPlayer"
+          },
+          "rewardPoints": 370,
+          "difficulty": "medium",
+          "era": "VirtualFuture",
+          "defenseArmyBoosts": {
+            "attackBoost": 3013,
+            "defenseBoost": 2927,
+            "__class__": "PVPArenaBoost"
+          },
+          "__class__": "PVPArenaOpponent"
+        },
+        {
+          "opponentId": 7004,
+          "opposingPlayer": {
+            "player": {
+              "player_id": 1004,
+              "name": "Testgegner 4",
+              "avatar": "",
+              "__class__": "BasePlayer"
+            },
+            "__class__": "PVPArenaPlayer"
+          },
+          "rewardPoints": 275,
+          "difficulty": "easy",
+          "era": "OceanicFuture",
+          "defenseArmyBoosts": {
+            "attackBoost": 3722,
+            "defenseBoost": 3413,
+            "__class__": "PVPArenaBoost"
+          },
+          "__class__": "PVPArenaOpponent"
+        }
+      ]
+    },
+    {
+      "requestClass": "BattlefieldService",
+      "requestMethod": "submitMove",
+      "responseData": {
+        "winnerBit": 2,
+        "round": 6,
+        "__class__": "BattleRealmState",
+        "unitsOrder": [
+          {
+            "ownerId": 1000,
+            "teamFlag": 1,
+            "unitTypeId": "ninja",
+            "startHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "military_boost",
+                "value": 1827,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "advanced_tactics",
+                "value": 514,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "attack_boost",
+                "value": 3113,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "attacker_defense_boost",
+                "value": 2785,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": 1000,
+            "teamFlag": 1,
+            "unitTypeId": "ninja",
+            "startHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "military_boost",
+                "value": 1827,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "advanced_tactics",
+                "value": 514,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "attack_boost",
+                "value": 3113,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "attacker_defense_boost",
+                "value": 2785,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": 1000,
+            "teamFlag": 1,
+            "unitTypeId": "rocket_troop",
+            "startHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "military_boost",
+                "value": 1827,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "advanced_tactics",
+                "value": 514,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "attack_boost",
+                "value": 3113,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "attacker_defense_boost",
+                "value": 2785,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": 1000,
+            "teamFlag": 1,
+            "unitTypeId": "rocket_troop",
+            "startHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "military_boost",
+                "value": 1827,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "advanced_tactics",
+                "value": 514,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "attack_boost",
+                "value": 3113,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "attacker_defense_boost",
+                "value": 2785,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": -1,
+            "teamFlag": 2,
+            "unitTypeId": "steel_warden",
+            "startHitpoints": 10,
+            "currentHitpoints": 9,
+            "bonuses": [
+              {
+                "type": "defender_attack_boost",
+                "value": 2152,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "defense_boost",
+                "value": 1983,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": -1,
+            "teamFlag": 2,
+            "unitTypeId": "steel_warden",
+            "startHitpoints": 10,
+            "currentHitpoints": 6,
+            "bonuses": [
+              {
+                "type": "defender_attack_boost",
+                "value": 2152,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "defense_boost",
+                "value": 1983,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": -1,
+            "teamFlag": 2,
+            "unitTypeId": "steel_warden",
+            "startHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "defender_attack_boost",
+                "value": 2152,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "defense_boost",
+                "value": 1983,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": -1,
+            "teamFlag": 2,
+            "unitTypeId": "steel_warden",
+            "startHitpoints": 10,
+            "currentHitpoints": 9,
+            "bonuses": [
+              {
+                "type": "defender_attack_boost",
+                "value": 2152,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "defense_boost",
+                "value": 1983,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": 1000,
+            "teamFlag": 1,
+            "unitTypeId": "ronin_bot",
+            "startHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "military_boost",
+                "value": 1827,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "advanced_tactics",
+                "value": 514,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "attack_boost",
+                "value": 3113,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "attacker_defense_boost",
+                "value": 2785,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": -1,
+            "teamFlag": 2,
+            "unitTypeId": "steel_warden",
+            "startHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "defender_attack_boost",
+                "value": 2152,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "defense_boost",
+                "value": 1983,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": 1000,
+            "teamFlag": 1,
+            "unitTypeId": "ronin_bot",
+            "startHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "military_boost",
+                "value": 1827,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "advanced_tactics",
+                "value": 514,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "attack_boost",
+                "value": 3113,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "attacker_defense_boost",
+                "value": 2785,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": -1,
+            "teamFlag": 2,
+            "unitTypeId": "steel_warden",
+            "startHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "defender_attack_boost",
+                "value": 2152,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "defense_boost",
+                "value": 1983,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": 1000,
+            "teamFlag": 1,
+            "unitTypeId": "rogue",
+            "startHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "military_boost",
+                "value": 1827,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "advanced_tactics",
+                "value": 514,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "attack_boost",
+                "value": 3113,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "attacker_defense_boost",
+                "value": 2785,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": -1,
+            "teamFlag": 2,
+            "unitTypeId": "rogue",
+            "startHitpoints": 10,
+            "currentHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "defender_attack_boost",
+                "value": 2152,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "defense_boost",
+                "value": 1983,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": 1000,
+            "teamFlag": 1,
+            "unitTypeId": "rogue",
+            "startHitpoints": 10,
+            "bonuses": [
+              {
+                "type": "military_boost",
+                "value": 1827,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "advanced_tactics",
+                "value": 514,
+                "__class__": "GreatBuildingUnitBonus"
+              },
+              {
+                "type": "attack_boost",
+                "value": 3113,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "attacker_defense_boost",
+                "value": 2785,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          },
+          {
+            "ownerId": -1,
+            "teamFlag": 2,
+            "unitTypeId": "rogue",
+            "startHitpoints": 10,
+            "currentHitpoints": 7,
+            "bonuses": [
+              {
+                "type": "defender_attack_boost",
+                "value": 2152,
+                "__class__": "MilitaryUnitBonus"
+              },
+              {
+                "type": "defense_boost",
+                "value": 1983,
+                "__class__": "MilitaryUnitBonus"
+              }
+            ]
+          }
+        ],
+        "ranking_data": {
+          "pvpArenaRankingPoints": -297,
+          "__class__": "BattleResult"
+        }
+      }
+    }
+  ]
+}

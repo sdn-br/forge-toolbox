@@ -1,4 +1,5 @@
 import type { FetchLike } from '../content/stores/foestats-api';
+import { arenaHandlers } from '../persistence/arena/worker';
 import { assetsHandlers } from '../persistence/assets/worker';
 import { backupHandlers } from '../persistence/backup/worker';
 import { buildingDefsHandlers } from '../persistence/building-defs/worker';
@@ -26,6 +27,7 @@ export function createHandlers(db: ToolboxDb, deps: HandlerDeps): Handlers<Backg
   return {
     ...playersHandlers(db),
     ...pvpHandlers(db),
+    ...arenaHandlers(db),
     ...incomingHandlers(db),
     ...notesHandlers(db),
     ...shieldsHandlers(db),

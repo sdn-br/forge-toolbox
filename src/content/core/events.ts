@@ -1,7 +1,7 @@
 // Contracts of all domain events. A listener gets exactly this payload and reads the rest from the stores.
 import type { GbWindowState } from '../../shared/gb-window-protocol';
 import type { BuildingDefId, PlayerId } from '../../shared/ids';
-import type { CityKey, PlayerSource, PvpMarkKind, Session } from '../../shared/model';
+import type { ArenaMarkKind, CityKey, PlayerSource, PvpMarkKind, Session } from '../../shared/model';
 import { EventBus } from './bus';
 
 /** what the army window is opened for: a battle against a player's city, the arena, or anything else */
@@ -10,7 +10,7 @@ export type ArmyBattleKind = 'pvp' | 'pvpArena' | 'other';
 export interface ToolboxEvents {
   'session.started': { session: Session };
   /** `source` is where the data came from, or `mark` when the player put a star on a player or took it away */
-  'player.updated': { ids: PlayerId[]; source: PlayerSource | 'mark' | 'ignore' | PvpMarkKind };
+  'player.updated': { ids: PlayerId[]; source: PlayerSource | 'mark' | 'ignore' | PvpMarkKind | ArenaMarkKind };
   'city.ownChanged': { buildingIds?: number[]; reset: boolean };
   'city.visited': { owner: PlayerId };
   'city.visitedChanged': { owner: PlayerId; buildingIds: number[] };
@@ -47,6 +47,16 @@ export interface ToolboxEvents {
   'army.target': { opponent: PlayerId };
   /** the army window of the last `army.target` no longer shows, read from the game engine; may never come */
   'army.closed': Record<string, never>;
+  /** the game sent the arena overview: the player opened the PvP arena */
+  'arena.opened': Record<string, never>;
+  /** the opponents the arena offers changed (`arena.opponents.current()`) */
+  'arena.opponents': Record<string, never>;
+  /** the store wrote own arena battles against these players to the database, once per write */
+  'arena.battleRecorded': { opponents: PlayerId[] };
+  /** the store wrote arena log lines about these players to the database, once per write */
+  'arena.logRecorded': { opponents: PlayerId[] };
+  /** the store wrote changed own arena points to the database */
+  'arena.pointsRecorded': Record<string, never>;
   /** the game started a battle of any type */
   'battle.started': Record<string, never>;
   /** the page module saw another great building window in the game engine (see core/gb-window.ts); may never come */

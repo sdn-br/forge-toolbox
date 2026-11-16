@@ -1,4 +1,5 @@
 // All stores of one world, built in one place: a new store touches this file and nothing else in the wiring.
+import { arenaPersistence } from '../../persistence/arena/client';
 import { assetPersistence } from '../../persistence/assets/client';
 import { foestatsPersistence } from '../../persistence/foestats/client';
 import { greatBuildingPersistence } from '../../persistence/great-buildings/client';
@@ -16,6 +17,7 @@ import shippedLevelCosts from '../data/gb-level-costs.json';
 import type { FactorChoice } from '../domain/gb-factor';
 import { type LevelCostFile, type LevelCosts, levelCosts } from '../domain/gb-level-cost';
 import type { GreatBuildingDef } from '../model/catalog';
+import { ArenaStore } from './arena';
 import { AssetStore } from './assets';
 import { BattleStore } from './battles';
 import { type BuildingDefLoader, CatalogStore } from './catalog';
@@ -50,6 +52,8 @@ export interface Stores {
   plunders: PlunderStore;
   incoming: IncomingStore;
   shields: ShieldStore;
+  /** the PvP arena: own battles, the game's log, own points, the opponents on offer */
+  arena: ArenaStore;
   notes: NoteStore;
   greatBuildings: GreatBuildingStore;
   /** the cost of each level of a great building of a type, from its definition and the costs shipped with the toolbox */
@@ -91,6 +95,7 @@ export function createStores(
     plunders: new PlunderStore(bus, world, plunderPersistence(call)),
     incoming: new IncomingStore(bus, world, incomingPersistence(call)),
     shields: new ShieldStore(bus, world, shieldPersistence(call), now),
+    arena: new ArenaStore(bus, world, arenaPersistence(call), now),
     notes: new NoteStore(bus, world, notePersistence(call), now),
     greatBuildings: new GreatBuildingStore(bus, world, greatBuildingPersistence(call), now),
     gbLevelCosts: (type, gb) => levelCosts(gb.levelCosts, shippedCosts[type]),

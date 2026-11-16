@@ -44,21 +44,57 @@ const building = (owner: number, entityId: number, change: Partial<KnownGreatBui
 async function readInFull(db: ToolboxDb, world: WorldId, now: number): Promise<BackupTables> {
   const all = <T extends { world: string }, K>(table: Table<T, K>) =>
     table.toArray().then((rows) => rows.filter((r) => r.world === world));
-  const [battles, plunders, incoming, noteGroups, notePages, shields, buildings, allPlayers] = await Promise.all([
+  const [
+    battles,
+    plunders,
+    incoming,
+    noteGroups,
+    notePages,
+    shields,
+    arenaBattles,
+    arenaLog,
+    arenaPoints,
+    buildings,
+    allPlayers,
+  ] = await Promise.all([
     all(db.battles),
     all(db.plunders),
     all(db.incoming),
     all(db.noteGroups),
     all(db.notePages),
     all(db.cityShields),
+    all(db.arenaBattles),
+    all(db.arenaLog),
+    all(db.arenaPoints),
     all(db.greatBuildings),
     all(db.players),
   ]);
   const cityShields = shields.filter((s) => s.expiresAt > now);
   const greatBuildings = buildings.filter((b) => isFlagged(b) || hasOwnContribution(b));
-  const referenced = referencedPlayers({ battles, plunders, incoming, notePages, cityShields, greatBuildings });
+  const referenced = referencedPlayers({
+    battles,
+    plunders,
+    incoming,
+    notePages,
+    cityShields,
+    arenaBattles,
+    arenaLog,
+    greatBuildings,
+  });
   const players = playersToKeep(allPlayers, referenced);
-  return { battles, plunders, incoming, noteGroups, notePages, cityShields, greatBuildings, players };
+  return {
+    battles,
+    plunders,
+    incoming,
+    noteGroups,
+    notePages,
+    cityShields,
+    arenaBattles,
+    arenaLog,
+    arenaPoints,
+    greatBuildings,
+    players,
+  };
 }
 
 describe('collecting the backup rows of a world', () => {
@@ -73,6 +109,7 @@ describe('collecting the backup rows of a world', () => {
       player(7),
       player(30, { plunderWorthy: true, pvpMarksAt: 1 }),
       player(18, { noAttack: true }),
+      player(45, { arenaNoAttack: true, arenaMarksAt: 1 }),
       player(2),
       player(50),
       player(60),
@@ -115,7 +152,7 @@ describe('collecting the backup rows of a world', () => {
       expect(collected).toEqual(await readInFull(db, world, now));
     }
     const players = (await collectTables(db, de20, 150)).players.map((p) => p.id);
-    expect(players).toEqual([2, 3, 7, 12, 18, 25, 30, 50, 60, 70]);
+    expect(players).toEqual([2, 3, 7, 12, 18, 25, 30, 45, 50, 60, 70]);
     db.close();
   });
 });

@@ -1,12 +1,19 @@
 // What the box needs of each tab: the tabs in order, the view model each builds and how a tab loads a slice of its rows.
-import type { BattleSummary, BattleWithPlunder, IncomingTotals, OpponentScope } from '../../../shared/model';
+import type {
+  ArenaLogSummary,
+  BattleSummary,
+  BattleWithPlunder,
+  IncomingTotals,
+  OpponentScope,
+} from '../../../shared/model';
+import type { ArenaVm } from './arena/view-model';
 import type { BattlesVm } from './battles/view-model';
 import type { IncomingVm } from './incoming/view-model';
-import type { LootFilter, PvpTab, ViewInput } from './rows';
+import type { ArenaKind, LootFilter, PvpTab, ViewInput } from './rows';
 
-export const TABS: PvpTab[] = ['battles', 'incoming'];
+export const TABS: PvpTab[] = ['battles', 'incoming', 'arena'];
 
-export type PvpVm = BattlesVm | IncomingVm;
+export type PvpVm = BattlesVm | IncomingVm | ArenaVm;
 
 /** the tab's view model from what it loaded; building it again reads nothing */
 export type BuildVm = (input: ViewInput) => PvpVm;
@@ -17,17 +24,19 @@ export interface PvpQuery {
   scope: OpponentScope;
   /** the sack toggles; the attacks on the own city ignore them */
   loot: LootFilter;
+  /** the sub tab of the arena; the other tabs ignore it */
+  arenaKind: ArenaKind;
 }
 
 /** the totals of a tab, which also give its number of rows */
-export type Totals = BattleSummary | IncomingTotals;
+export type Totals = BattleSummary | IncomingTotals | ArenaLogSummary;
 
 /** what a tab read */
 export interface Loaded {
   build: BuildVm;
   /** the totals the slice was built with, read or handed in */
   totals: Totals;
-  /** the battles read, for the side panel; none on the attacks on the own city */
+  /** the battles read, for the side panel; on the arena those matched to its lines, none on the attacks on the own city */
   battles: BattleWithPlunder[];
 }
 

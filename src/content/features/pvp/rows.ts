@@ -1,8 +1,8 @@
-// What both tabs of the PvP box share: the filter, the lead cells of a row (note marker and opponent with the PvP marks
+// What the tabs of the PvP box share: the filter, the lead cells of a row (note marker and opponent with the PvP marks
 // and the funnel) and the list around the table (totals, empty text, row window).
 import { html, type TemplateResult } from 'lit-html';
 import { type BuildingDefId, type PlayerId, playerId } from '../../../shared/ids';
-import type { OpponentScope, Player } from '../../../shared/model';
+import type { ArenaLogEntry, OpponentScope, Player } from '../../../shared/model';
 import { sameName, type TextKey, t, textFilter } from '../../core/texts';
 import { headerIcons } from '../../ui/icons';
 import { externalLink, nameWithGuild } from '../../ui/links';
@@ -13,7 +13,7 @@ import { type RowWindow, windowedRows } from '../../ui/windowed-rows';
 import type { UnitInfo } from '../shared/battle-details';
 import type { PvpPlayerLookups, PvpRowActions } from '../shared/player-lookups';
 
-export type PvpTab = 'battles' | 'incoming';
+export type PvpTab = 'battles' | 'incoming' | 'arena';
 
 /** which players the mark toggles show, by their PvP marks; a player with neither mark, or one the player store does
  * not know, counts as `none`. A player with both marks shows while either of them is on. */
@@ -26,6 +26,16 @@ export interface MarkFilter {
 /** the mark toggles in their order */
 export const MARK_TOGGLES: (keyof MarkFilter)[] = ['plunder', 'noAttack', 'none'];
 
+/** which players the mark toggles of the arena show, by its own mark; a player without it, or one the player store
+ * does not know, counts as `none`. The neighbourhood marks play no part in the arena. */
+export interface ArenaMarkFilter {
+  noAttack: boolean;
+  none: boolean;
+}
+
+/** the mark toggles of the arena in their order */
+export const ARENA_MARK_TOGGLES: (keyof ArenaMarkFilter)[] = ['noAttack', 'none'];
+
 /** which battles the sack toggles show: those with a plunder, those without one */
 export interface LootFilter {
   with: boolean;
@@ -35,12 +45,21 @@ export interface LootFilter {
 /** the sack toggles in their order */
 export const LOOT_TOGGLES: (keyof LootFilter)[] = ['with', 'without'];
 
+/** the two sub tabs of the arena: own attacks, defenses against others' attacks */
+export type ArenaKind = ArenaLogEntry['kind'];
+
+/** the sub tabs in their order */
+export const ARENA_KINDS: ArenaKind[] = ['attack', 'defense'];
+
 /** What the rows are narrowed to; the name field is the only state of the player filter. Each toggle shows its rows
  * while on. */
 export interface PvpFilter {
   /** a name typed or written by the funnel; the exact name of a known player means that player alone */
   name: string;
+  /** the battles and the attacks on the own city */
   marks: MarkFilter;
+  /** the arena only, a state of its own, so a mark toggle means the same on every tab that shows it */
+  arenaMarks: ArenaMarkFilter;
   /** the battles only; the attacks on the own city have no such filter */
   loot: LootFilter;
 }
@@ -49,6 +68,7 @@ export interface PvpFilter {
 export const NO_FILTER: PvpFilter = {
   name: '',
   marks: { plunder: true, noAttack: true, none: true },
+  arenaMarks: { noAttack: true, none: true },
   loot: { with: true, without: true },
 };
 
@@ -61,6 +81,24 @@ const showsMarks = (marks: MarkFilter, player: Player | undefined) => {
   if (!plunder && !noAttack) return marks.none;
   return (plunder && marks.plunder) || (noAttack && marks.noAttack);
 };
+
+/** the same for the mark toggles of the arena */
+const showsArenaMarks = (marks: ArenaMarkFilter, player: Player | undefined) =>
+  player?.arenaNoAttack === true ? marks.noAttack : marks.none;
+
+/** the mark toggles a tab shows: whether all are on, whether "ohne Markierung" is, and whom they show */
+const markRule = (filter: PvpFilter, tab: PvpTab) =>
+  tab === 'arena'
+    ? {
+        all: allOn(filter.arenaMarks),
+        none: filter.arenaMarks.none,
+        shows: (p: Player | undefined) => showsArenaMarks(filter.arenaMarks, p),
+      }
+    : {
+        all: allOn(filter.marks),
+        none: filter.marks.none,
+        shows: (p: Player | undefined) => showsMarks(filter.marks, p),
+      };
 
 /** whether rows of this opponent are in the scope */
 export const inScope = ({ opponents, exceptOpponents }: OpponentScope, id: PlayerId) =>
@@ -82,20 +120,20 @@ function named(name: string, players: Player[]): PlayerId[] | undefined {
 }
 
 /**
- * The opponents a filter asks for, together with the name: no field means all, an empty list none. With a mark toggle
- * off and "ohne Markierung" on, the players the store does not know still show, so the scope leaves out the known
- * players the toggles hide instead of naming those they show.
+ * The opponents a filter asks for on a tab, together with the name: no field means all, an empty list none. With a mark
+ * toggle off and "ohne Markierung" on, the players the store does not know still show, so the scope leaves out the
+ * known players the toggles hide instead of naming those they show. The arena goes by its own mark toggles.
  */
-export function opponentsFor(filter: PvpFilter, players: Player[]): OpponentScope {
+export function opponentsFor(filter: PvpFilter, players: Player[], tab: PvpTab = 'battles'): OpponentScope {
   const byName = named(filter.name, players);
-  const { marks } = filter;
-  if (allOn(marks)) return byName === undefined ? {} : { opponents: byName };
+  const marks = markRule(filter, tab);
+  if (marks.all) return byName === undefined ? {} : { opponents: byName };
   if (byName !== undefined) {
     const known = new Map(players.map((p) => [p.id, p]));
-    return { opponents: byName.filter((id) => showsMarks(marks, known.get(id))) };
+    return { opponents: byName.filter((id) => marks.shows(known.get(id))) };
   }
-  if (marks.none) return { exceptOpponents: players.filter((p) => !showsMarks(marks, p)).map((p) => p.id) };
-  return { opponents: players.filter((p) => showsMarks(marks, p)).map((p) => p.id) };
+  if (marks.none) return { exceptOpponents: players.filter((p) => !marks.shows(p)).map((p) => p.id) };
+  return { opponents: players.filter((p) => marks.shows(p)).map((p) => p.id) };
 }
 
 /** The one player the name field names exactly, for the note card: a known player by name, else the id a row shows for a
@@ -108,19 +146,25 @@ export function pickedPlayer(name: string, players: Player[]): PlayerId | undefi
   return exact.length === 0 ? idOf(text) : undefined;
 }
 
-/** whether the name field or the mark toggles narrow the players, which the player store then turns into opponents */
-export const filtersPlayers = (filter: PvpFilter) => filter.name.trim() !== '' || !allOn(filter.marks);
+/** whether the name field or the mark toggles of the tab narrow the players, which the player store then turns into
+ * opponents */
+export const filtersPlayers = (filter: PvpFilter, tab: PvpTab = 'battles') =>
+  filter.name.trim() !== '' || !markRule(filter, tab).all;
 
 /** whether the filter leaves rows out, for the text of an empty list: a name, or a toggle off */
 export const isFiltered = (filter: PvpFilter, tab: PvpTab) =>
-  filtersPlayers(filter) || (tab === 'battles' && !allOn(filter.loot));
+  filtersPlayers(filter, tab) || (tab === 'battles' && !allOn(filter.loot));
 
 /** what the box does on a click; the tabs add nothing of their own */
-export interface PvpActions extends Pick<PvpRowActions, 'plunderPlayer' | 'noAttackPlayer'> {
+export interface PvpActions extends Pick<PvpRowActions, 'plunderPlayer' | 'noAttackPlayer' | 'arenaNoAttackPlayer'> {
   tab(tab: PvpTab): void;
   filter(patch: Partial<PvpFilter>): void;
   /** the funnel: puts the name into the name field, as if typed; an empty name clears it */
   pickPlayer(name: string): void;
+  /** switches the sub tab of the arena */
+  arenaKind(kind: ArenaKind): void;
+  /** selects a defense line of the arena for the side panel, or clears the selection when it is the selected one */
+  selectDefense(opponent: PlayerId, at: number): void;
   /** selects a battle for the side panel, or clears the selection when it is the selected one */
   select(battleId: number): void;
   /** folds the side panel of the selected battle in or out */
@@ -150,6 +194,8 @@ export interface ViewInput {
   now: number;
   /** the battle the side panel shows */
   selected?: number;
+  /** the defense line of the arena the side panel shows */
+  selectedDefense?: { opponent: PlayerId; at: number };
 }
 
 /** what every tab shows around its rows */
@@ -206,14 +252,22 @@ export function opponentVm(input: ViewInput, id: PlayerId): OpponentVm {
   };
 }
 
-/** The opponent: the name links to their page at foestats, then at the right edge the two PvP marks (only for a player
- * the store knows) and the funnel. The tooltip adds the guild. */
-export const opponentCell = (r: OpponentVm, actions: PvpActions) =>
-  html`<td class="name-cell" data-tip=${r.nameTip}><span class="row-name">${externalLink(r.name, r.url)}${pvpMarks(
+/** The opponent: the name links to their page at foestats, then at the right edge the marks (by default the two PvP
+ * marks, only for a player the store knows) and the funnel. The tooltip adds the guild. */
+export const opponentCell = (
+  r: OpponentVm,
+  actions: PvpActions,
+  marks: TemplateResult = pvpMarks(
     r,
     (value) => actions.plunderPlayer(r.opponent, value),
     (value) => actions.noAttackPlayer(r.opponent, value),
-  )}${pickButton(r.name, r.picked, actions.pickPlayer)}</span></td>`;
+  ),
+) =>
+  html`<td class="name-cell" data-tip=${r.nameTip}><span class="row-name">${externalLink(r.name, r.url)}${marks}${pickButton(
+    r.name,
+    r.picked,
+    actions.pickPlayer,
+  )}</span></td>`;
 
 /** a note sheet per row: dim without a note, the note as tooltip */
 export const noteMarker = (opponent: PlayerId, note: string, actions: PvpActions) =>

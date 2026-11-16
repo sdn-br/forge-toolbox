@@ -708,6 +708,34 @@ describe('PlayerStore: PvP marks', () => {
     expect(p).not.toHaveProperty('noAttack');
   });
 
+  it('keeps the arena mark apart: excludes nothing, times itself and comes from the database', async () => {
+    const { store, events } = setup();
+    store.apply(world, [obs(1)], 'visit');
+    store.setFlag(playerId(1), 'plunderWorthy', true);
+    events.length = 0;
+    expect(store.setFlag(playerId(1), 'arenaNoAttack', true)).toBe(true);
+    expect(store.get(playerId(1))).toMatchObject({ plunderWorthy: true, arenaNoAttack: true, arenaMarksAt: 1000 });
+    expect(store.flag(playerId(1), 'arenaNoAttack')).toBe(true);
+    store.setFlag(playerId(1), 'noAttack', true);
+    expect(store.get(playerId(1))).toMatchObject({ noAttack: true, arenaNoAttack: true });
+    expect(events.map((e) => (e as { source: string }).source)).toEqual(['arenaNoAttack', 'plunderWorthy', 'noAttack']);
+    store.setFlag(playerId(1), 'arenaNoAttack', false);
+    expect(store.get(playerId(1))).not.toHaveProperty('arenaNoAttack');
+    expect(store.get(playerId(1))).toMatchObject({ noAttack: true, arenaMarksAt: 1000 });
+
+    const loaded = setup([row({ arenaNoAttack: true, arenaMarksAt: 500, noAttack: true, pvpMarksAt: 400 })]);
+    loaded.store.applyListed(world, [{ id: playerId(1), name: 'Listed' }]);
+    loaded.store.setFlag(playerId(1), 'plunderWorthy', true);
+    await loaded.store.load(world);
+    expect(loaded.store.get(playerId(1))).toMatchObject({
+      name: 'Listed',
+      plunderWorthy: true,
+      arenaNoAttack: true,
+      arenaMarksAt: 500,
+    });
+    expect(loaded.store.get(playerId(1))).not.toHaveProperty('noAttack');
+  });
+
   it('stay with a player known only from a list when the database row arrives', async () => {
     const { store } = setup([row({ noAttack: true, pvpMarksAt: 5, ignored: true, marksAt: 5 })]);
     store.applyListed(world, [{ id: playerId(1), name: 'Listed' }]);

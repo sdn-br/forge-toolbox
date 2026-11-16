@@ -41,7 +41,7 @@ interface BattleSide {
 
 **Regeln**
 
-- Gespeichert werden nur PvP-Kämpfe (`battleType.type === 'pvp'`), in denen der eigene Spieler angreift. Ohne Session wird nichts gespeichert.
+- Gespeichert werden hier nur PvP-Kämpfe der Nachbarschaft (`battleType.type === 'pvp'`), in denen der eigene Spieler angreift. Kämpfe in der Arena (`pvp_arena`) haben eigene Tabellen, siehe [PvP-Arena](pvp-arena.md). Ohne Session wird nichts gespeichert.
 - Die Seite einer Einheit steht in `teamFlag`: 1 Angreifer, 2 Verteidiger. `bonuses` sind die Summen je Typ aus der ersten Einheit der Seite. Alle Einheiten einer Seite tragen in der Aufnahme dieselben Boni.
 - Die Boni bleiben roh gespeichert. Sie sind unwiederbringlich, und eine spätere Auswertung soll sie neu deuten können.
 - Fehlt `currentHitpoints`, ist die Einheit tot (`endHp` 0).
@@ -81,7 +81,7 @@ Ein Kampf misst nur die verteidigende Armee des Gegners. Seine angreifende Armee
 
 **Persistenz:** Tabelle `battles` (Dexie Version 2), Schlüssel `[world+battleId]`, Indizes `[world+at]`, `[world+opponent+at]` und `at`. Neue Kämpfe einer Spielantwort gehen gesammelt in einem Schreibvorgang an den Service Worker. `battles.put` und `plunders.put` schreiben ihre Zeilen und ordnen die berührten Gegner neu zu, in einer `rw`-Transaktion über beide Tabellen. Dexie Version 13 behält das Schema von `battles` und `plunders` und ordnet im Upgrade jeden Gegner jeder Welt mit Plünderungen zu. Eine Datenbank ohne Plünderungen bleibt unverändert.
 
-**Aufbewahrung:** Einstellung „Kämpfe aufbewahren“: unbegrenzt (Standard), 30, 90, 180 oder 365 Tage. Ältere Kämpfe aller Welten löscht der Service Worker (`battles.prune`) einmal beim Start der Session und sobald sich die Einstellung ändert. Ein älterer Kampf bleibt, solange seine Plünderung bleibt (`plunderAt` nicht älter als die Grenze). Plünderungen werden mit derselben Grenze gelöscht, so behält jede verbleibende Plünderung ihren Kampf.
+**Aufbewahrung:** Einstellung „Kämpfe aufbewahren“: unbegrenzt (Standard), 30, 90, 180 oder 365 Tage. Ältere Kämpfe aller Welten löscht der Service Worker (`pvp.prune`, die Arena mit `arena.prune`) einmal beim Start der Session und sobald sich die Einstellung ändert. Ein älterer Kampf bleibt, solange seine Plünderung bleibt (`plunderAt` nicht älter als die Grenze). Plünderungen werden mit derselben Grenze gelöscht, so behält jede verbleibende Plünderung ihren Kampf.
 
 **Spieler:** Ein Kampf verweist auf `opponent`. Eine Bereinigung der Spieler gibt es noch nicht. Kommt sie, muss sie Spieler behalten, auf die ein Kampf verweist. Den Namen des Gegners liefert meist das `OtherPlayerService.updatePlayer`, das in derselben Antwort wie der Kampf kommt.
 

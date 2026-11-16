@@ -80,13 +80,16 @@ const tables = (change: Partial<BackupTables> = {}): BackupTables => ({
   noteGroups: [],
   notePages: [],
   cityShields: [],
+  arenaBattles: [],
+  arenaLog: [],
+  arenaPoints: [],
   greatBuildings: [],
   players: [],
   ...change,
 });
 const backupOf = (...profiles: BackupProfile[]): BackupFile => ({
   format: BACKUP_FORMAT,
-  version: 3,
+  version: 4,
   createdAt: 500,
   profiles,
 });
@@ -158,6 +161,22 @@ describe('merge rules', () => {
     const local = player(2, { seenAt: 10, noAttack: true });
     const source = player(2, { seenAt: 5, plunderWorthy: true, pvpMarksAt: 1 });
     expect(mergePlayer(local, source)).toEqual(player(2, { seenAt: 10, plunderWorthy: true, pvpMarksAt: 1 }));
+  });
+
+  it('takes the arena mark from the newer arenaMarksAt, independent of the PvP marks and the game data', () => {
+    const local = player(2, { seenAt: 30, noAttack: true, pvpMarksAt: 9, arenaMarksAt: 5 });
+    const source = player(2, { seenAt: 20, plunderWorthy: true, pvpMarksAt: 1, arenaNoAttack: true, arenaMarksAt: 8 });
+    expect(mergePlayer(local, source)).toEqual(
+      player(2, { seenAt: 30, noAttack: true, pvpMarksAt: 9, arenaNoAttack: true, arenaMarksAt: 8 }),
+    );
+    // an older arena mark of the file changes nothing; a newer removal clears the local one
+    expect(mergePlayer({ ...local, arenaNoAttack: true }, { ...source, arenaMarksAt: 4 })).toBeUndefined();
+    expect(
+      mergePlayer(
+        player(2, { seenAt: 30, arenaNoAttack: true, arenaMarksAt: 5 }),
+        player(2, { seenAt: 1, arenaMarksAt: 6 }),
+      ),
+    ).toEqual(player(2, { seenAt: 30, arenaMarksAt: 6 }));
   });
 
   it('keeps the fields a newer row learned from a list lacks, from the richer older row', () => {
@@ -274,15 +293,30 @@ describe('readBackupFile', () => {
     const read = await readBackupFile(json(file));
     if (!read.ok) throw new Error('not read');
     const t = read.backup.profiles[0]?.tables;
-    expect(read.backup.version).toBe(3);
+    expect(read.backup.version).toBe(4);
     expect(t?.greatBuildings).toEqual([building(1, 2)]);
+    expect([t?.arenaBattles, t?.arenaLog, t?.arenaPoints]).toEqual([[], [], []]);
     expect(t?.plunders).toEqual([{ ...plunder, def: 'W_X' }, plunder]);
     expect(t?.incoming).toEqual([{ world: de20, kind: 'plunder', key: 1, at: 1, attacker: 5, def: 'W_Y' }]);
   });
 
+  it('upgrades a version 3 file: the arena tables come empty', async () => {
+    const { arenaBattles: _b, arenaLog: _l, arenaPoints: _p, ...v3 } = tables({ battles: [battle(1, 11)] });
+    const file = { ...backupOf(), version: 3, profiles: [{ world: de20, player: me, tables: v3 }] };
+    const read = await readBackupFile(json(file));
+    if (!read.ok) throw new Error('not read');
+    expect(read.backup).toEqual(backupOf({ world: de20, player: me, tables: tables({ battles: [battle(1, 11)] }) }));
+  });
+
+  it('refuses a version 4 file without the arena tables', async () => {
+    const { arenaLog: _l, ...partial } = tables();
+    const file = { ...backupOf(), profiles: [{ world: de20, player: me, tables: partial }] };
+    expect(await readBackupFile(json(file))).toEqual({ ok: false, error: 'notBackup' });
+  });
+
   it('refuses another version, a foreign file and broken data', async () => {
     expect(await readBackupFile(json({ ...backupOf(), version: 1 }))).toEqual({ ok: false, error: 'version' });
-    expect(await readBackupFile(json({ ...backupOf(), version: 4 }))).toEqual({ ok: false, error: 'version' });
+    expect(await readBackupFile(json({ ...backupOf(), version: 5 }))).toEqual({ ok: false, error: 'version' });
     expect(await readBackupFile(json({ some: 'thing' }))).toEqual({ ok: false, error: 'notBackup' });
     expect(await readBackupFile(new Blob(['not json']))).toEqual({ ok: false, error: 'notJson' });
     const broken = { ...backupOf(), profiles: [{ world: de20, tables: { battles: [] } }] };
