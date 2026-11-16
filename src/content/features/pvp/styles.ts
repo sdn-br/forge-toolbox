@@ -12,6 +12,10 @@ const INCOMING_WHEN = 110;
 const NAME = 130;
 /** the least room for the kind of an attack on the own city */
 const KIND = 150;
+/** the result of an arena line: the icon of an attack or the word of a defense */
+const ARENA_RESULT = 84;
+/** signed arena points, "+12.345" */
+const POINTS = 64;
 
 /** the least width of the battles table; the box is that wide plus its padding and the two scroll buttons */
 export const BATTLES_MIN_WIDTH = NOTE + NAME + WHEN + RESULT + LOOT + BATTLE;
@@ -32,13 +36,23 @@ export const pvpCss = `
 .pvp-table { table-layout: fixed; }
 .pvp-battles { min-width: ${BATTLES_MIN_WIDTH}px; }
 .pvp-incoming { min-width: ${NOTE + NAME + INCOMING_WHEN + KIND}px; }
+.pvp-arena { min-width: ${NOTE + NAME + WHEN + ARENA_RESULT + POINTS}px; }
 .pvp-table > * > tr > :is(td, th) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pvp-table .c-note { width: ${NOTE}px; }
-.pvp-battles .c-when { width: ${WHEN}px; }
+.pvp-table:is(.pvp-battles, .pvp-arena) .c-when { width: ${WHEN}px; }
 .pvp-incoming .c-when { width: ${INCOMING_WHEN}px; }
 .pvp-table .c-result { width: ${RESULT}px; }
 .pvp-table .c-loot { width: ${LOOT}px; }
 .pvp-table .c-battle { width: ${BATTLE}px; }
+.pvp-table .c-arena-result { width: ${ARENA_RESULT}px; }
+.pvp-table .c-points { width: ${POINTS}px; }
+.pvp-table .pvp-points { text-align: right; }
+/* the arena points in the colours of good and bad, a defense muted */
+td.pvp-points.good { color: var(--good); }
+td.pvp-points.bad { color: var(--bad); }
+td.pvp-result.defense { color: var(--muted); }
+/* the kind toggles of the arena carry words until they get icons */
+.pvp-kind-filter button { width: auto; padding: 0 4px; }
 .pvp-table .pvp-loot, .pvp-table .pvp-result { text-align: center; padding: 0; }
 .pvp-result svg { display: block; width: 14px; height: 14px; margin: auto; }
 /* the result in the colours of good and bad, a battle given up muted */

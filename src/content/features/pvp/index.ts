@@ -11,6 +11,7 @@ import { catalogUnits } from '../shared/battle-details';
 import { buildingImage } from '../shared/building-image';
 import { playerLookups, playerRowActions } from '../shared/player-lookups';
 import { LINK_SETTING } from '../shared/settings';
+import { createArenaSection } from './arena/section';
 import { createBattlesSection } from './battles/section';
 import { prunedBy, reselect } from './battles/selection';
 import { battlePanelVm } from './battles/view-model';
@@ -43,6 +44,13 @@ export const OPEN_WITH_ARMY = toggleDef({
 });
 
 /** room beyond the least widths, for longer names and, on the attacks on the own city, the kind (Nutzer, 2026-11-01) */
+export const OPEN_WITH_ARENA = toggleDef({
+  key: 'pvp.openWithArena',
+  group: 'pvp.title',
+  label: 'pvp.openWithArena',
+  default: true,
+});
+
 const NAME_ROOM = 120;
 /** the battles table, the body padding 16, the two scroll buttons with their gap 26 and 20 for the cell padding */
 const WIDTH = BATTLES_MIN_WIDTH + 16 + 26 + 20 + NAME_ROOM;
@@ -58,6 +66,7 @@ export const pvpFeature: Feature = {
     ctx.settings.registerGroup('pvp.title', ICON);
     const keep = ctx.settings.register(KEEP_SETTING);
     const openWithArmy = ctx.settings.register(OPEN_WITH_ARMY);
+    const openWithArena = ctx.settings.register(OPEN_WITH_ARENA);
 
     let vm: PvpVm | undefined;
     let tab: PvpTab = 'battles';
@@ -85,6 +94,7 @@ export const pvpFeature: Feature = {
     const sections: Record<PvpTab, PvpSection> = {
       battles: createBattlesSection(ctx),
       incoming: createIncomingSection(ctx),
+      arena: createArenaSection(ctx),
     };
     const lookups = playerLookups(ctx);
     const players = () => ctx.players.list().filter((p) => p.world === ctx.world);
@@ -100,7 +110,7 @@ export const pvpFeature: Feature = {
       const visible = VISIBLE_ROWS;
       requested = { offset: Math.max(0, top - AHEAD * visible), limit: SLICE_WINDOWS * visible };
       const { build, battles, totals } = await sections[tab].load(
-        { scope, loot: filter.loot },
+        { scope, loot: filter.loot, kinds: filter.kinds },
         requested.offset,
         requested.limit,
         knownTotals,
@@ -247,8 +257,13 @@ export const pvpFeature: Feature = {
           if (deleted.some((n) => n > 0)) show();
         })
         .catch((error) => logError('pruning battles, plunders and attacks failed', error));
-      // the arena keeps its rows as long as the neighbourhood; nothing of the PvP box shows them
-      ctx.arena.prune(before).catch((error) => logError('pruning the arena failed', error));
+      // the arena keeps its rows as long as the neighbourhood
+      ctx.arena
+        .prune(before)
+        .then((deleted) => {
+          if (deleted > 0) show();
+        })
+        .catch((error) => logError('pruning the arena failed', error));
     };
     ctx.bus.on('session.started', prune);
     keep.onChange(prune);
@@ -269,9 +284,17 @@ export const pvpFeature: Feature = {
       // all toggles back on, so the opponent shows whatever its marks and battles
       setFilter({ ...NO_FILTER, name: nameOf(opponent) });
     });
+    // the arena overview brings the log, defenses included; the box opens on it
+    ctx.bus.on('arena.opened', () => {
+      if (!openWithArena.get()) return;
+      box.open();
+      actions.tab('arena');
+    });
     ctx.bus.on('battle.recorded', onRecorded);
     ctx.bus.on('plunder.recorded', onRecorded);
     ctx.bus.on('incoming.recorded', onRecorded);
+    ctx.bus.on('arena.logRecorded', onRecorded);
+    ctx.bus.on('arena.battleRecorded', onRecorded);
     // a changed name or PvP mark can change who the filter matches
     // the name field and the mark toggles turn into opponents by the player store
     ctx.bus.on('player.updated', () => (filtersPlayers(filter) ? show() : rebuild()));

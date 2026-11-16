@@ -202,11 +202,11 @@ describe('pvp feature', () => {
     expect(lists.length).toBe(loads + 1);
   });
 
-  it('has the tabs battles and attacks on the own city, no plunders tab', async () => {
+  it('has the tabs battles, attacks on the own city and arena, no plunders tab', async () => {
     const { box } = setup();
     await tick();
     const tabs = [...box.root.querySelectorAll('.tabs button')].map((b) => b.textContent?.trim());
-    expect(tabs).toEqual(['Kämpfe', 'Angriffe auf mich']);
+    expect(tabs).toEqual(['Kämpfe', 'Angriffe auf mich', 'Arena']);
   });
 
   it('switches to the attacks on the own city with their totals', async () => {

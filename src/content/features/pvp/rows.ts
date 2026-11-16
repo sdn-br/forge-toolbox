@@ -1,4 +1,4 @@
-// What both tabs of the PvP box share: the filter, the lead cells of a row (note marker and opponent with the PvP marks
+// What the tabs of the PvP box share: the filter, the lead cells of a row (note marker and opponent with the PvP marks
 // and the funnel) and the list around the table (totals, empty text, row window).
 import { html, type TemplateResult } from 'lit-html';
 import { type BuildingDefId, type PlayerId, playerId } from '../../../shared/ids';
@@ -13,7 +13,7 @@ import { type RowWindow, windowedRows } from '../../ui/windowed-rows';
 import type { UnitInfo } from '../shared/battle-details';
 import type { PvpPlayerLookups, PvpRowActions } from '../shared/player-lookups';
 
-export type PvpTab = 'battles' | 'incoming';
+export type PvpTab = 'battles' | 'incoming' | 'arena';
 
 /** which players the mark toggles show, by their PvP marks; a player with neither mark, or one the player store does
  * not know, counts as `none`. A player with both marks shows while either of them is on. */
@@ -35,6 +35,15 @@ export interface LootFilter {
 /** the sack toggles in their order */
 export const LOOT_TOGGLES: (keyof LootFilter)[] = ['with', 'without'];
 
+/** which lines of the arena log the kind toggles show: own attacks, defenses against others */
+export interface KindFilter {
+  attack: boolean;
+  defense: boolean;
+}
+
+/** the kind toggles in their order */
+export const KIND_TOGGLES: (keyof KindFilter)[] = ['attack', 'defense'];
+
 /** What the rows are narrowed to; the name field is the only state of the player filter. Each toggle shows its rows
  * while on. */
 export interface PvpFilter {
@@ -43,6 +52,8 @@ export interface PvpFilter {
   marks: MarkFilter;
   /** the battles only; the attacks on the own city have no such filter */
   loot: LootFilter;
+  /** the arena only */
+  kinds: KindFilter;
 }
 
 /** an empty name and every toggle on: every row */
@@ -50,6 +61,7 @@ export const NO_FILTER: PvpFilter = {
   name: '',
   marks: { plunder: true, noAttack: true, none: true },
   loot: { with: true, without: true },
+  kinds: { attack: true, defense: true },
 };
 
 const allOn = (toggles: object) => Object.values(toggles).every(Boolean);
@@ -113,7 +125,7 @@ export const filtersPlayers = (filter: PvpFilter) => filter.name.trim() !== '' |
 
 /** whether the filter leaves rows out, for the text of an empty list: a name, or a toggle off */
 export const isFiltered = (filter: PvpFilter, tab: PvpTab) =>
-  filtersPlayers(filter) || (tab === 'battles' && !allOn(filter.loot));
+  filtersPlayers(filter) || (tab === 'battles' && !allOn(filter.loot)) || (tab === 'arena' && !allOn(filter.kinds));
 
 /** what the box does on a click; the tabs add nothing of their own */
 export interface PvpActions extends Pick<PvpRowActions, 'plunderPlayer' | 'noAttackPlayer'> {

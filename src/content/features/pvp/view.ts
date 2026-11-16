@@ -6,15 +6,26 @@ import { searchField } from '../../ui/inputs';
 import { sideDrawer } from '../../ui/side-drawer';
 import { tabBar } from '../../ui/tabs';
 import type { RowWindow } from '../../ui/windowed-rows';
+import { arenaView } from './arena/view';
 import { battlePanel } from './battles/panel';
 import { battlesView } from './battles/view';
 import type { BattlePanelVm } from './battles/view-model';
 import { incomingView } from './incoming/view';
-import { LOOT_TOGGLES, MARK_TOGGLES, type PvpActions, type PvpFilter, type PvpTab } from './rows';
+import {
+  KIND_TOGGLES,
+  type KindFilter,
+  LOOT_TOGGLES,
+  MARK_TOGGLES,
+  type PvpActions,
+  type PvpFilter,
+  type PvpTab,
+} from './rows';
 import { type PvpVm, TABS } from './tabs';
 
-const list = (vm: PvpVm, window: RowWindow, actions: PvpActions) =>
-  vm.tab === 'battles' ? battlesView(vm, window, actions) : incomingView(vm, window, actions);
+const list = (vm: PvpVm, window: RowWindow, actions: PvpActions) => {
+  if (vm.tab === 'battles') return battlesView(vm, window, actions);
+  return vm.tab === 'arena' ? arenaView(vm, window, actions) : incomingView(vm, window, actions);
+};
 
 const MARK_ICONS = {
   plunder: headerIcons.plunderStarFilled,
@@ -23,7 +34,11 @@ const MARK_ICONS = {
 };
 const LOOT_ICONS = { with: headerIcons.lootFilled, without: headerIcons.noLoot };
 
-/** one row: the name field, the mark toggles, on the battles the sack toggles; each toggle shows its rows while on */
+/** the kind toggles carry words until they get icons (docs/ui-kit.md, "Offene Icons") */
+const kindWord = (key: keyof KindFilter) => html`${t(`pvp.filter.kinds.${key}Short`)}`;
+
+/** one row: the name field, the mark toggles, on the battles the sack toggles, on the arena the kind toggles; each toggle
+ * shows its rows while on */
 const filterBar = (f: PvpFilter, tab: PvpTab, actions: PvpActions) => html`<p class="pvp-filter">
     ${searchField(f.name, t('pvp.search'), (name) => actions.filter({ name }))}
     ${toggleGroup(
@@ -46,12 +61,25 @@ const filterBar = (f: PvpFilter, tab: PvpTab, actions: PvpActions) => html`<p cl
           )
         : ''
     }
+    ${
+      tab === 'arena'
+        ? toggleGroup(
+            'pvp-kind-filter',
+            KIND_TOGGLES,
+            f.kinds,
+            (key) => t(`pvp.filter.kinds.${key}`),
+            kindWord,
+            (kinds) => actions.filter({ kinds }),
+          )
+        : ''
+    }
   </p>`;
 
 /** width of the docked side panel in pixels: one column per side */
 export const PANEL_WIDTH = 300;
 
-/** the side panel, only on the battles and only while a battle is selected; `selected` is the battle it shows */
+/** the side panel, only on the battles and the arena and only while a battle is selected; `selected` is the battle it
+ * shows */
 export interface PanelState {
   open: boolean;
   selected: BattlePanelVm;
@@ -84,5 +112,5 @@ export function pvpView(
     filter,
     tab,
     actions,
-  )}${note ?? ''}${shown ? list(shown.vm, shown.window, actions) : ''}</div>${tab === 'battles' && side ? panel(side, actions) : ''}</div>`;
+  )}${note ?? ''}${shown ? list(shown.vm, shown.window, actions) : ''}</div>${(tab === 'battles' || tab === 'arena') && side ? panel(side, actions) : ''}</div>`;
 }

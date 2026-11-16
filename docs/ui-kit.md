@@ -45,5 +45,6 @@ Bausteine und Regeln der Oberfläche, gilt für alle Features. Überblick: [Konz
   - Knopf „Übernehmen“ bei „Einstellungen von einem anderen Profil übernehmen“ (Allgemein, Abschnitt „Daten“), vielleicht ein Icon (Nutzer, 2026-10-26). Die Knöpfe der Rückfrage behalten Text.
   - Knopf „Importieren“ und die Dateiauswahl auf der Seite „Daten verwalten“, vielleicht ein Icon (Nutzer, 2026-10-27).
   - Knopf „Gefundene Daten übernehmen“ in den Einstellungen (Allgemein, Abschnitt „Daten“), vielleicht ein Icon (Nutzer, 2026-10-27). Die Knöpfe des Dialogs „Gefundene Daten“ behalten Text.
+  - Reiter „Arena“ der PvP-Box (2026-11-16, bei der Umsetzung, noch nicht besprochen): die Schalter „Angriffe zeigen“ und „Verteidigungen zeigen“ tragen die Wörter „Angriffe“ und „Verteidigungen“, das Ergebnis einer Verteidigung steht als Wort „Verteidigung“ in der Spalte „Ergebnis“. Unter den vorhandenen Icons passt keins (das Schild ist die Gilde).
   - Knöpfe „Ordner wählen“, „Ordner entfernen“ und „Ordner freigeben“ auf der Seite „Daten verwalten“ und „Ordner freigeben“ neben dem Menü im Spiel, vielleicht ein Icon (2026-10-28, noch nicht besprochen).
 - Styles so gekapselt, dass Spiel-CSS und Toolbox-CSS sich nicht beeinflussen (zu prüfen: Shadow DOM).
