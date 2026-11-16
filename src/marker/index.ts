@@ -30,6 +30,7 @@ import {
   ARROW,
   anchorOf,
   arrowOffset,
+  arrowProbes,
   arrowScale,
   type CanvasBox,
   cssPerStage,
@@ -46,7 +47,13 @@ interface EngineNode {
   gameContainer?: EngineNode;
   /** holds the game's windows (market, inventory, army); empty but for a hidden backdrop while none is open */
   windowContainer?: EngineNode;
+  /** the game's own interface over the city: the bar on top, the buttons at the sides, the field bottom left */
+  hudContainer?: HitTester;
   _isoScene?: IsoScene;
+}
+/** an OpenFL display object; `shapeFlag` tests the drawn pixels, not only the bounds (seen 2026-11-16) */
+interface HitTester {
+  hitTestPoint?(x: number, y: number, shapeFlag?: boolean): unknown;
 }
 interface IsoScene {
   isoToScreen(x: number, y: number): Point;
@@ -131,17 +138,30 @@ function captureEngine(): Promise<LimeApp | undefined> {
  * knows from the game traffic. A game window (market, inventory, army) shows in the window container, over the city;
  * the arrows hide meanwhile, since the game sends nothing when it closes (seen 2026-10-25).
  */
-function currentScene(): IsoScene | undefined {
+function currentScene(): { scene: IsoScene; hud?: HitTester } | undefined {
   for (const child of app?.stage.__children ?? []) {
     if (child?.__visible === false || child?.gameContainer?.__visible === false) continue;
     if (child?.windowContainer?.__children?.some((w) => w?.__visible !== false)) return undefined;
     for (const view of child?.gameContainer?.__children ?? []) {
       if (view?.__visible === false) continue;
       const scene = view?._isoScene;
-      if (scene && typeof scene.isoToScreen === 'function' && scene._camera) return scene;
+      if (scene && typeof scene.isoToScreen === 'function' && scene._camera) return { scene, hud: child.hudContainer };
     }
   }
   return undefined;
+}
+
+/** an arrow is tested against the game's buttons every this many frames, not every frame */
+const HUD_EVERY = 6;
+
+/**
+ * Whether the arrow over `anchor` touches a button of the game's interface. The arrows lie over the whole canvas, the
+ * game's buttons are drawn inside it, so an arrow there would cover them (Nutzer, 2026-11-14); it hides instead
+ * (Nutzer, 2026-11-16). Hanging the arrows into the engine below the interface was put back, it writes into the game.
+ */
+function underHud(hud: HitTester | undefined, anchor: Point, scale: number, perStage: number): boolean {
+  if (typeof hud?.hitTestPoint !== 'function') return false;
+  return arrowProbes(anchor, scale, perStage).some((p) => hud.hitTestPoint?.(p.x, p.y, true) === true);
 }
 
 const offset = arrowOffset();
@@ -181,6 +201,8 @@ const CLOSE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 interface Marker {
   spot: MarkerSpot;
   el: HTMLElement;
+  /** the arrow touched a button of the game at the last test */
+  covered?: boolean;
 }
 
 let layer: HTMLElement | undefined;
@@ -190,6 +212,8 @@ let markers: Marker[] = [];
 let seq = 0;
 let looping = false;
 let missingSceneLogged = false;
+/** frames placed since the arrows showed, for the test against the game's buttons */
+let frame = 0;
 /** counts commands, so a show that waited for the engine yields to anything that came meanwhile */
 let generation = 0;
 function report(ids: number[]) {
@@ -283,27 +307,29 @@ function canvasBox(canvas: HTMLCanvasElement): CanvasBox {
   return { left: r.left, top: r.top, width: r.width, height: r.height };
 }
 
-/** a grid point of the scene in viewport pixels */
-function project(scene: IsoScene, box: CanvasBox, point: Point): Point {
-  return stageToViewport(scene.isoToScreen(point.x, point.y), box, cssPerStage(box, app?.stage.stageWidth));
-}
-
 function place() {
-  const scene = currentScene();
+  const current = currentScene();
   const canvas = document.querySelector<HTMLCanvasElement>(CANVAS);
   // another view over the city: the arrows wait, hidden, and come back with the city
-  if (!scene || !canvas) {
-    if (!scene && !missingSceneLogged) logInfo('building marker: no city scene in the current view');
+  if (!current || !canvas) {
+    if (!current && !missingSceneLogged) logInfo('building marker: no city scene in the current view');
     missingSceneLogged = true;
     for (const m of markers) m.el.hidden = true;
     if (clearButton) clearButton.hidden = true;
     return;
   }
+  const { scene, hud } = current;
   const box = canvasBox(canvas);
   const scale = arrowScale(scene._zoomFactor);
+  const perStage = cssPerStage(box, app?.stage.stageWidth);
+  const test = frame++ % HUD_EVERY === 0;
   for (const m of markers) {
-    const p = project(scene, box, anchorOf(m.spot));
-    const visible = Number.isFinite(p.x) && Number.isFinite(p.y) && nearCanvas(p, box);
+    const anchor = anchorOf(m.spot);
+    const stage = scene.isoToScreen(anchor.x, anchor.y);
+    const p = stageToViewport(stage, box, perStage);
+    const shown = Number.isFinite(p.x) && Number.isFinite(p.y) && nearCanvas(p, box);
+    if (shown && (test || m.covered === undefined)) m.covered = underHud(hud, stage, scale, perStage);
+    const visible = shown && !m.covered;
     m.el.hidden = !visible;
     if (visible) m.el.style.transform = `translate(${p.x}px, ${p.y}px) scale(${scale})`;
   }

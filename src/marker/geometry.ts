@@ -56,3 +56,25 @@ export function nearCanvas(point: Point, canvas: CanvasBox, margin = 60): boolea
     point.y < canvas.top + canvas.height + margin
   );
 }
+
+/**
+ * Stage points where the arrow over `anchor` (a stage point) may lie, to test against the game's own buttons: the
+ * corners and the middle of the drawn arrow, its top raised by the bob, and the tip. `cssPerStage` turns the arrow's
+ * CSS size into stage units.
+ */
+export function arrowProbes(anchor: Point, scale: number, cssPerStage: number): Point[] {
+  const k = scale / (cssPerStage > 0 ? cssPerStage : 1);
+  const offset = arrowOffset();
+  const left = anchor.x + offset.x * k;
+  const right = left + ARROW.width * k;
+  const top = anchor.y + (offset.y - ARROW.bob) * k;
+  const tip = anchor.y - ARROW.gap * k;
+  return [
+    { x: left, y: top },
+    { x: right, y: top },
+    { x: left, y: tip },
+    { x: right, y: tip },
+    { x: anchor.x, y: (top + tip) / 2 },
+    { x: anchor.x, y: tip },
+  ];
+}
