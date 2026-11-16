@@ -182,13 +182,19 @@ const STYLE = `
 .clear svg { display: block; width: 18px; height: 18px; }
 `;
 
-// a golden pin, its tip at the bottom middle like the arrow it replaced (2026-11-02), so the geometry stays; drawn on
-// 46 × 54 and shown twice that size
-const ARROW_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="${ARROW.width}" height="${ARROW.height}" viewBox="0 0 46 54">
-<defs><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+/**
+ * A golden pin, its tip at the bottom middle like the arrow it replaced (2026-11-02), so the geometry stays; drawn on
+ * 46 × 54 and shown twice that size. `gradient` names its colour gradient. Each pin needs its own name: with one shared id every pin painted with
+ * the gradient of the first, and once that one hid (pushed off the canvas, over a button of the game) the others lost
+ * their colour and showed only the outline (Nutzer, 2026-11-16).
+ */
+const arrowSvg = (
+  gradient: string,
+) => `<svg xmlns="http://www.w3.org/2000/svg" width="${ARROW.width}" height="${ARROW.height}" viewBox="0 0 46 54">
+<defs><linearGradient id="${gradient}" x1="0" y1="0" x2="1" y2="1">
 <stop offset="0" stop-color="#fff3b0"/><stop offset=".45" stop-color="#f5c932"/><stop offset="1" stop-color="#b87a04"/>
 </linearGradient></defs>
-<path d="M23 51.5C23 51.5 9 35 9 18.5a14 14 0 0 1 28 0C37 35 23 51.5 23 51.5Z" fill="url(#gold)" stroke="#5c3a00"
+<path d="M23 51.5C23 51.5 9 35 9 18.5a14 14 0 0 1 28 0C37 35 23 51.5 23 51.5Z" fill="url(#${gradient})" stroke="#5c3a00"
   stroke-width="2.4" stroke-linejoin="round"/>
 <circle cx="23" cy="18.5" r="5.4" fill="#fff3b0" stroke="#5c3a00" stroke-width="2.4"/>
 <path d="M14 14a9.5 9.5 0 0 1 6-6" stroke="#fffbe0" stroke-width="2.4" stroke-linecap="round" opacity=".6" fill="none"/>
@@ -212,6 +218,8 @@ let markers: Marker[] = [];
 let seq = 0;
 let looping = false;
 let missingSceneLogged = false;
+/** pins drawn so far, for the name of each one's gradient */
+let pins = 0;
 /** frames placed since the arrows showed, for the test against the game's buttons */
 let frame = 0;
 /** counts commands, so a show that waited for the engine yields to anything that came meanwhile */
@@ -274,7 +282,7 @@ async function show(command: Extract<MarkerCommand, { type: 'show' }>) {
     const el = document.createElement('div');
     el.className = 'arrow';
     el.hidden = true;
-    el.innerHTML = ARROW_SVG;
+    el.innerHTML = arrowSvg(`pin-gold-${++pins}`);
     parent.append(el);
     return { spot, el };
   });
