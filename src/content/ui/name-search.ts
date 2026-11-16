@@ -2,6 +2,7 @@
 // typing narrows the list, and what the owner acts on is the pick (click, or Enter on the highlighted suggestion),
 // after which the field is empty again.
 import { html, type TemplateResult } from 'lit-html';
+import { ref } from 'lit-html/directives/ref.js';
 import { clamp } from '../../shared/math';
 import { compareText, foldCase, textFilter } from '../core/texts';
 import { keepKeys } from './inputs';
@@ -57,8 +58,23 @@ export class NameSearch {
   /** the suggestions of the last render, the ones the keys move through and pick from */
   private shown: Suggestion[] = [];
   private id = `name-search-${++instances}`;
+  /** the field of the last render; lit-html keeps it between renders */
+  private drawn?: HTMLInputElement;
+  private field = ref((el) => {
+    if (el instanceof HTMLInputElement) this.drawn = el;
+  });
 
   constructor(private options: NameSearchOptions) {}
+
+  /**
+   * Puts the cursor into the field after the next render, as when the box opens. Every call does, unlike `autofocus`,
+   * which focuses an element only once: a box keeps its field between closing and opening again.
+   */
+  focus(): void {
+    this.options.update();
+    // a box renders in a microtask; this one comes after it, when the field is drawn and in the document
+    queueMicrotask(() => this.drawn?.focus());
+  }
 
   render(): TemplateResult {
     const list = this.open ? suggestNames(this.options.names(), this.text) : [];
@@ -74,7 +90,7 @@ export class NameSearch {
     return html`<div class=${this.options.inline ? 'name-search inline' : 'name-search'}>
       <input type="search" role="combobox" aria-autocomplete="list" aria-controls=${this.id}
         aria-expanded=${expanded ? 'true' : 'false'} aria-activedescendant=${expanded ? `${this.id}-${active}` : ''}
-        placeholder=${this.options.placeholder()} .value=${this.text}
+        placeholder=${this.options.placeholder()} .value=${this.text} ${this.field}
         @input=${(e: Event) => this.input((e.target as HTMLInputElement).value)}
         @keydown=${(e: KeyboardEvent) => this.key(e)} @keypress=${keepKeys} @keyup=${keepKeys}
         @blur=${() => this.close()} />

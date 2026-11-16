@@ -167,6 +167,21 @@ describe('building search feature', () => {
     }
   });
 
+  it('puts the cursor into the field each time it opens from the menu', async () => {
+    const { ctx, box, menu } = setup();
+    loadOwnCity(ctx);
+    document.body.append(box.root);
+    menu('buildingSearch');
+    await Promise.resolve();
+    expect(box.root.ownerDocument.activeElement).toBe(input(box));
+    input(box).blur();
+    menu('buildingSearch');
+    menu('buildingSearch');
+    await Promise.resolve();
+    expect(box.root.ownerDocument.activeElement).toBe(input(box));
+    box.root.remove();
+  });
+
   it('keeps keys from the game', () => {
     const { ctx, box, menu } = setup();
     loadOwnCity(ctx);
