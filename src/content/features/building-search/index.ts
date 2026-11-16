@@ -39,7 +39,11 @@ export const buildingSearchFeature: Feature = {
       id: ID,
       icon: icons.buildingSearch,
       label: () => t('buildingSearch.menu'),
-      action: () => box.toggle(),
+      action: () => {
+        box.toggle();
+        // ready to type once the box opens (Nutzer, 2026-11-16)
+        if (box.isOpen) field.focus();
+      },
     });
   },
 };
