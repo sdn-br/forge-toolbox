@@ -30,6 +30,7 @@ import {
   ARROW,
   anchorOf,
   arrowOffset,
+  arrowProbes,
   arrowScale,
   type CanvasBox,
   cssPerStage,
@@ -46,7 +47,13 @@ interface EngineNode {
   gameContainer?: EngineNode;
   /** holds the game's windows (market, inventory, army); empty but for a hidden backdrop while none is open */
   windowContainer?: EngineNode;
+  /** the game's own interface over the city: the bar on top, the buttons at the sides, the field bottom left */
+  hudContainer?: HitTester;
   _isoScene?: IsoScene;
+}
+/** an OpenFL display object; `shapeFlag` tests the drawn pixels, not only the bounds (seen 2026-11-16) */
+interface HitTester {
+  hitTestPoint?(x: number, y: number, shapeFlag?: boolean): unknown;
 }
 interface IsoScene {
   isoToScreen(x: number, y: number): Point;
@@ -131,17 +138,30 @@ function captureEngine(): Promise<LimeApp | undefined> {
  * knows from the game traffic. A game window (market, inventory, army) shows in the window container, over the city;
  * the arrows hide meanwhile, since the game sends nothing when it closes (seen 2026-10-25).
  */
-function currentScene(): IsoScene | undefined {
+function currentScene(): { scene: IsoScene; hud?: HitTester } | undefined {
   for (const child of app?.stage.__children ?? []) {
     if (child?.__visible === false || child?.gameContainer?.__visible === false) continue;
     if (child?.windowContainer?.__children?.some((w) => w?.__visible !== false)) return undefined;
     for (const view of child?.gameContainer?.__children ?? []) {
       if (view?.__visible === false) continue;
       const scene = view?._isoScene;
-      if (scene && typeof scene.isoToScreen === 'function' && scene._camera) return scene;
+      if (scene && typeof scene.isoToScreen === 'function' && scene._camera) return { scene, hud: child.hudContainer };
     }
   }
   return undefined;
+}
+
+/** an arrow is tested against the game's buttons every this many frames, not every frame */
+const HUD_EVERY = 6;
+
+/**
+ * Whether the arrow over `anchor` touches a button of the game's interface. The arrows lie over the whole canvas, the
+ * game's buttons are drawn inside it, so an arrow there would cover them (Nutzer, 2026-11-14); it hides instead
+ * (Nutzer, 2026-11-16). Hanging the arrows into the engine below the interface was put back, it writes into the game.
+ */
+function underHud(hud: HitTester | undefined, anchor: Point, scale: number, perStage: number): boolean {
+  if (typeof hud?.hitTestPoint !== 'function') return false;
+  return arrowProbes(anchor, scale, perStage).some((p) => hud.hitTestPoint?.(p.x, p.y, true) === true);
 }
 
 const offset = arrowOffset();
@@ -162,13 +182,19 @@ const STYLE = `
 .clear svg { display: block; width: 18px; height: 18px; }
 `;
 
-// a golden pin, its tip at the bottom middle like the arrow it replaced (2026-11-02), so the geometry stays; drawn on
-// 46 × 54 and shown twice that size
-const ARROW_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="${ARROW.width}" height="${ARROW.height}" viewBox="0 0 46 54">
-<defs><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+/**
+ * A golden pin, its tip at the bottom middle like the arrow it replaced (2026-11-02), so the geometry stays; drawn on
+ * 46 × 54 and shown twice that size. `gradient` names its colour gradient. Each pin needs its own name: with one shared id every pin painted with
+ * the gradient of the first, and once that one hid (pushed off the canvas, over a button of the game) the others lost
+ * their colour and showed only the outline (Nutzer, 2026-11-16).
+ */
+const arrowSvg = (
+  gradient: string,
+) => `<svg xmlns="http://www.w3.org/2000/svg" width="${ARROW.width}" height="${ARROW.height}" viewBox="0 0 46 54">
+<defs><linearGradient id="${gradient}" x1="0" y1="0" x2="1" y2="1">
 <stop offset="0" stop-color="#fff3b0"/><stop offset=".45" stop-color="#f5c932"/><stop offset="1" stop-color="#b87a04"/>
 </linearGradient></defs>
-<path d="M23 51.5C23 51.5 9 35 9 18.5a14 14 0 0 1 28 0C37 35 23 51.5 23 51.5Z" fill="url(#gold)" stroke="#5c3a00"
+<path d="M23 51.5C23 51.5 9 35 9 18.5a14 14 0 0 1 28 0C37 35 23 51.5 23 51.5Z" fill="url(#${gradient})" stroke="#5c3a00"
   stroke-width="2.4" stroke-linejoin="round"/>
 <circle cx="23" cy="18.5" r="5.4" fill="#fff3b0" stroke="#5c3a00" stroke-width="2.4"/>
 <path d="M14 14a9.5 9.5 0 0 1 6-6" stroke="#fffbe0" stroke-width="2.4" stroke-linecap="round" opacity=".6" fill="none"/>
@@ -181,6 +207,8 @@ const CLOSE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 interface Marker {
   spot: MarkerSpot;
   el: HTMLElement;
+  /** the arrow touched a button of the game at the last test */
+  covered?: boolean;
 }
 
 let layer: HTMLElement | undefined;
@@ -190,6 +218,10 @@ let markers: Marker[] = [];
 let seq = 0;
 let looping = false;
 let missingSceneLogged = false;
+/** pins drawn so far, for the name of each one's gradient */
+let pins = 0;
+/** frames placed since the arrows showed, for the test against the game's buttons */
+let frame = 0;
 /** counts commands, so a show that waited for the engine yields to anything that came meanwhile */
 let generation = 0;
 function report(ids: number[]) {
@@ -250,7 +282,7 @@ async function show(command: Extract<MarkerCommand, { type: 'show' }>) {
     const el = document.createElement('div');
     el.className = 'arrow';
     el.hidden = true;
-    el.innerHTML = ARROW_SVG;
+    el.innerHTML = arrowSvg(`pin-gold-${++pins}`);
     parent.append(el);
     return { spot, el };
   });
@@ -283,27 +315,29 @@ function canvasBox(canvas: HTMLCanvasElement): CanvasBox {
   return { left: r.left, top: r.top, width: r.width, height: r.height };
 }
 
-/** a grid point of the scene in viewport pixels */
-function project(scene: IsoScene, box: CanvasBox, point: Point): Point {
-  return stageToViewport(scene.isoToScreen(point.x, point.y), box, cssPerStage(box, app?.stage.stageWidth));
-}
-
 function place() {
-  const scene = currentScene();
+  const current = currentScene();
   const canvas = document.querySelector<HTMLCanvasElement>(CANVAS);
   // another view over the city: the arrows wait, hidden, and come back with the city
-  if (!scene || !canvas) {
-    if (!scene && !missingSceneLogged) logInfo('building marker: no city scene in the current view');
+  if (!current || !canvas) {
+    if (!current && !missingSceneLogged) logInfo('building marker: no city scene in the current view');
     missingSceneLogged = true;
     for (const m of markers) m.el.hidden = true;
     if (clearButton) clearButton.hidden = true;
     return;
   }
+  const { scene, hud } = current;
   const box = canvasBox(canvas);
   const scale = arrowScale(scene._zoomFactor);
+  const perStage = cssPerStage(box, app?.stage.stageWidth);
+  const test = frame++ % HUD_EVERY === 0;
   for (const m of markers) {
-    const p = project(scene, box, anchorOf(m.spot));
-    const visible = Number.isFinite(p.x) && Number.isFinite(p.y) && nearCanvas(p, box);
+    const anchor = anchorOf(m.spot);
+    const stage = scene.isoToScreen(anchor.x, anchor.y);
+    const p = stageToViewport(stage, box, perStage);
+    const shown = Number.isFinite(p.x) && Number.isFinite(p.y) && nearCanvas(p, box);
+    if (shown && (test || m.covered === undefined)) m.covered = underHud(hud, stage, scale, perStage);
+    const visible = shown && !m.covered;
     m.el.hidden = !visible;
     if (visible) m.el.style.transform = `translate(${p.x}px, ${p.y}px) scale(${scale})`;
   }

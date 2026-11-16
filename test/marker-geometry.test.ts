@@ -3,6 +3,7 @@ import {
   ARROW,
   anchorOf,
   arrowOffset,
+  arrowProbes,
   arrowScale,
   cssPerStage,
   nearCanvas,
@@ -43,5 +44,19 @@ describe('marker geometry', () => {
     expect(nearCanvas({ x: -40, y: 300 }, canvas)).toBe(true);
     expect(nearCanvas({ x: -60, y: 300 }, canvas)).toBe(false);
     expect(nearCanvas({ x: 400, y: 700 }, canvas)).toBe(false);
+  });
+
+  it('probes the outline of the pin, raised by half the bob, in stage units', () => {
+    // at scale 1 and one CSS pixel per stage unit the pin is 92 × 108, its top 122 above the anchor, raised by 10
+    expect(arrowProbes({ x: 100, y: 200 }, 1, 1)).toEqual([
+      { x: 72, y: 105 },
+      { x: 100, y: 77 },
+      { x: 128, y: 105 },
+      { x: 100, y: 105 },
+      { x: 100, y: 138 },
+      { x: 100, y: 171 },
+    ]);
+    // twice the zoom on a stage in device pixels (two CSS pixels per stage unit) cancels out
+    expect(arrowProbes({ x: 100, y: 200 }, 2, 2)).toEqual(arrowProbes({ x: 100, y: 200 }, 1, 1));
   });
 });
