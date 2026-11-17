@@ -104,4 +104,10 @@ export function registerArena(ingestion: Ingestion, deps: GameHandlerDeps): void
   ingestion.on('PVPArenaService', 'updateOpponents', ({ data }) => {
     if (Array.isArray(data)) recordOpponents(data);
   });
+  // The button "Erneuern" draws three new opponents without a battle (seen 2026-11-17): the opponents in the shape of
+  // the overview, with `nextRefreshAt` and a current player without points.
+  ingestion.on('PVPArenaService', 'refreshOpponents', ({ data }) => {
+    if (isObject(data) && Array.isArray(data.opponents))
+      recordOpponents(data.opponents as (GameArenaOpponent | null)[]);
+  });
 }
