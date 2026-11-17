@@ -87,14 +87,13 @@ describe('pvp arena tab', () => {
     ]);
   });
 
-  it('shows the defenses on their sub tab without a result column, points signed, with their own summary', async () => {
+  it('shows the defenses on their sub tab with a result column, points signed, with their own summary', async () => {
     const { box } = await opened();
     pickSub(box, 'Verteidigungen');
     await vi.waitFor(() => expect(subTab(box)).toBe('Verteidigungen'));
-    await vi.waitFor(() => expect(rows(box)).toEqual([['Testgegner 8', undefined, '−55']]));
+    await vi.waitFor(() => expect(rows(box)).toEqual([['Testgegner 8', 'Verteidigung verloren', '−55']]));
     expect(box.text).toContain('1 Verteidigung · −55 Punkte');
-    expect(box.root.querySelector('.pvp-arena .pvp-result')).toBeNull();
-    expect(box.root.querySelectorAll('.pvp-arena thead th')).toHaveLength(4);
+    expect(box.root.querySelectorAll('.pvp-arena thead th')).toHaveLength(5);
     expect(row(box, 'Testgegner 8').querySelector('td.pvp-points.bad')).not.toBeNull();
     // the arena mark of the name cell stays
     expect(row(box, 'Testgegner 8').querySelector('button[aria-label="In der Arena nicht angreifen"]')).not.toBeNull();

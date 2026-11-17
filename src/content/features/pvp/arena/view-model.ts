@@ -4,15 +4,20 @@ import { formatArenaAttackSummary, formatArenaDefenseSummary } from '../../share
 import { type ArenaKind, isFiltered, type ListVm, listVm, type OpponentVm, opponentVm, type ViewInput } from '../rows';
 import { type ArenaOffer, type OfferRow, offerRows } from './offers';
 
-/** an own attack won (points above 0) or lost */
+/** an own attack won or a defense held (points above 0), or lost (points below 0) */
 export type ArenaOutcome = 'won' | 'lost';
+
+const RESULT = {
+  attack: { won: 'pvp.arena.won', lost: 'pvp.arena.lost' },
+  defense: { won: 'pvp.arena.defenseWon', lost: 'pvp.arena.defenseLost' },
+} as const;
 
 /** a line of the arena log */
 export interface ArenaRow extends OpponentVm {
   /** the time of the line in ms, with the opponent it names a defense line */
   at: number;
   when: string;
-  /** only an attack has a result; a defense with negative points is not proven lost, so none is derived (Nutzer, 2026-11-16) */
+  /** from the sign of the points, for attacks and defenses alike (Nutzer, 2026-11-17); none for 0 points */
   outcome?: ArenaOutcome;
   /** the word, for the tooltip of the icon */
   result?: string;
@@ -82,7 +87,7 @@ export function arenaViewModel(
     kind,
     ...(kind === 'attack' && input.offers?.length && { offers: offerRows(input, input.offers) }),
     rows: lines.map((line, i): ArenaRow => {
-      const outcome: ArenaOutcome | undefined = line.kind === 'defense' ? undefined : line.points > 0 ? 'won' : 'lost';
+      const outcome: ArenaOutcome | undefined = line.points > 0 ? 'won' : line.points < 0 ? 'lost' : undefined;
       const battle = matched[i];
       const arenaNoAttack = input.lookups.arenaNoAttack(line.opponent);
       // the neighbourhood marks mean nothing in the arena: no plunder there, and another defense army
@@ -92,7 +97,7 @@ export function arenaViewModel(
         ...(arenaNoAttack !== undefined && { arenaNoAttack }),
         at: line.at,
         when: formatWhen(line.at, now),
-        ...(outcome && { outcome, result: t(`pvp.arena.${outcome}`) }),
+        ...(outcome && { outcome, result: t(RESULT[line.kind][outcome]) }),
         points: signed(line.points),
         gain: line.points > 0 ? 'good' : line.points < 0 ? 'bad' : 'none',
         ...(battle && { battleId: battle.battleId }),

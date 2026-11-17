@@ -238,6 +238,8 @@ export const de = {
   'pvp.arena.noMatch': 'Keine Arena-Kämpfe zu diesem Filter.',
   'pvp.arena.won': 'Angriff gewonnen',
   'pvp.arena.lost': 'Angriff verloren',
+  'pvp.arena.defenseWon': 'Verteidigung gehalten',
+  'pvp.arena.defenseLost': 'Verteidigung verloren',
   'pvp.arena.points': 'Punkte',
   'pvp.arena.lostCount': '{count} verloren',
   'pvp.arena.pointsSum': '{points} Punkte',

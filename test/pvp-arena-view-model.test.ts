@@ -107,14 +107,15 @@ describe('arena view model', () => {
     ]);
   });
 
-  it('shows a defense row with signed points and without any result, even with negative points', () => {
+  it('shows a defense row with signed points and its result from their sign', () => {
     const vm = vmOf(lines, [], {}, 'defense');
     expect(vm).toMatchObject({ kind: 'defense', total: 1 });
     expect(vm.rows).toHaveLength(1);
     const row = vm.rows[0];
     expect(row).toMatchObject({ name: '1008', points: '−55', gain: 'bad', at: at(9, 15), selected: false });
-    expect(row).not.toHaveProperty('outcome');
-    expect(row).not.toHaveProperty('result');
+    expect(row).toMatchObject({ outcome: 'lost', result: 'Verteidigung verloren' });
+    const held = vmOf([line(at(9, 15), 1008, 'defense', 40)], [], {}, 'defense').rows[0];
+    expect(held).toMatchObject({ outcome: 'won', result: 'Verteidigung gehalten', points: '+40', gain: 'good' });
   });
 
   it('marks the selected defense line by opponent and time', () => {
