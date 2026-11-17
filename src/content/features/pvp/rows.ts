@@ -1,7 +1,7 @@
 // What the tabs of the PvP box share: the filter, the lead cells of a row (note marker and opponent with the PvP marks
 // and the funnel) and the list around the table (totals, empty text, row window).
 import { html, type TemplateResult } from 'lit-html';
-import { type BuildingDefId, type PlayerId, playerId } from '../../../shared/ids';
+import { type BuildingDefId, type EraId, type PlayerId, playerId } from '../../../shared/ids';
 import type { ArenaLogEntry, OpponentScope, Player } from '../../../shared/model';
 import { sameName, type TextKey, t, textFilter } from '../../core/texts';
 import { headerIcons } from '../../ui/icons';
@@ -183,6 +183,8 @@ export interface ViewInput {
   resourceName: (id: string) => string | undefined;
   /** the name of a good's era, from the catalog */
   goodEra?: (id: string) => string | undefined;
+  /** the name of an era, from the catalog */
+  eraName?: (id: EraId) => string | undefined;
   /** a unit type as the battle details show it, from the catalog */
   unit: (id: string) => UnitInfo | undefined;
   /** the URL of a game image on the Inno CDN, once the index is known */

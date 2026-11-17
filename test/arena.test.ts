@@ -219,6 +219,20 @@ describe('the arena opponents', () => {
     send(arena.battle);
     expect(events.filter((e) => e !== 'points')).toEqual(['opponents', 'opened', 'opponents']);
   });
+
+  it('takes the new draw of the button "Erneuern"', () => {
+    const { arena: store, events, send } = setup();
+    const opponents = structuredClone(arena.overview[0]?.responseData.opponents ?? []).reverse();
+    send([
+      {
+        requestClass: 'PVPArenaService',
+        requestMethod: 'refreshOpponents',
+        responseData: { currentPlayer: { player: { player_id: arena.me } }, nextRefreshAt: 1, opponents },
+      },
+    ]);
+    expect(store.opponents.current().map((o) => o.opponentId)).toEqual([7003, 7002, 7001]);
+    expect(events).toEqual(['opponents']);
+  });
 });
 
 describe('arena retention', () => {

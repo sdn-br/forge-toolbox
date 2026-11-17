@@ -1,4 +1,4 @@
-import type { BuildingDefId, PlayerId } from '../../../shared/ids';
+import type { BuildingDefId, EraId, PlayerId } from '../../../shared/ids';
 import type { BattleWithPlunder, OpponentScope } from '../../../shared/model';
 import type { Feature } from '../../core/feature';
 import { logError } from '../../core/log';
@@ -129,6 +129,7 @@ export const pvpFeature: Feature = {
         lookups,
         building: (id: BuildingDefId) => ctx.catalog.buildingName(id),
         resourceName: (id: string) => ctx.catalog.resourceName(id),
+        eraName: (id: EraId) => ctx.catalog.eraName(id),
         goodEra: (id: string) => ctx.catalog.goodEraName(id),
         unit: catalogUnits(ctx.catalog, ctx.assets),
         assetUrl: (path: string) => ctx.assets.url(path),
@@ -326,6 +327,14 @@ export const pvpFeature: Feature = {
     ctx.bus.on('incoming.recorded', onRecorded);
     ctx.bus.on('arena.logRecorded', onRecorded);
     ctx.bus.on('arena.battleRecorded', onRecorded);
+    // the block of the opponents on offer, whatever the filters say: a new draw and the lines about them load it again
+    ctx.bus.on('arena.opponents', () => {
+      if (tab === 'arena') show();
+    });
+    const offered = (opponents: PlayerId[]) => ctx.arena.opponents.current().some((o) => opponents.includes(o.player));
+    ctx.bus.on('arena.logRecorded', ({ opponents }) => {
+      if (tab === 'arena' && offered(opponents)) show();
+    });
     // a changed name or PvP mark can change who the filter matches
     // the name field and the mark toggles turn into opponents by the player store
     ctx.bus.on('player.updated', () => (filtersPlayers(filter, tab) ? show() : rebuild()));

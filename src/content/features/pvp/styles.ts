@@ -14,6 +14,10 @@ const NAME = 130;
 const KIND = 150;
 /** the result of an arena line: the icon of an attack or the word of a defense */
 const ARENA_RESULT = 84;
+/** the block of the opponents on offer: difficulty word, percent boosts "11.674 %", record "12:3" */
+const OFFER_DIFFICULTY = 56;
+const OFFER_NUM = 64;
+const OFFER_RECORD = 48;
 /** signed arena points, "+12.345" */
 const POINTS = 64;
 
@@ -38,6 +42,14 @@ export const pvpCss = `
 .pvp-incoming { min-width: ${NOTE + NAME + INCOMING_WHEN + KIND}px; }
 .pvp-arena { min-width: ${NOTE + NAME + WHEN + ARENA_RESULT + POINTS}px; }
 .pvp-arena.pvp-defenses { min-width: ${NOTE + NAME + WHEN + POINTS}px; }
+/* the block "Gegner jetzt": a small table of its own above the list, a row of a player marked as not to attack warns */
+.pvp-offers-title { margin: 4px 0 2px; font-size: 12px; }
+.pvp-offers { min-width: ${NAME + OFFER_DIFFICULTY + 3 * OFFER_NUM + OFFER_RECORD}px; margin-bottom: 6px; }
+.pvp-table .c-offer-difficulty { width: ${OFFER_DIFFICULTY}px; }
+.pvp-table .c-offer-num { width: ${OFFER_NUM}px; }
+.pvp-table .c-offer-record { width: ${OFFER_RECORD}px; }
+.pvp-offers tr.warn { background: var(--row-warn); }
+.pvp-offers .pvp-record { text-align: right; }
 /* the second tab row of the arena, the same faces a size smaller */
 .tabs.sub { margin-bottom: 6px; }
 .tabs.sub button { font-size: 12px; padding: 1px 8px; &.active { padding-top: 0; } }
