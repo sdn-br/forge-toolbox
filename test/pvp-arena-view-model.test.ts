@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { MATCH_WINDOW, matchBattles } from '../src/content/features/pvp/arena/match';
+import type { ArenaOffer } from '../src/content/features/pvp/arena/offers';
 import { arenaFilter } from '../src/content/features/pvp/arena/section';
 import { arenaViewModel } from '../src/content/features/pvp/arena/view-model';
 import { filtersPlayers, isFiltered, NO_FILTER, opponentsFor, type ViewInput } from '../src/content/features/pvp/rows';
 import { formatArenaAttackSummary, formatArenaDefenseSummary } from '../src/content/features/shared/pvp-format';
 import { eraId, type PlayerId, playerId, worldId } from '../src/shared/ids';
-import type { ArenaBattle, ArenaLogEntry, ArenaLogSummary, Player } from '../src/shared/model';
+import type { ArenaBattle, ArenaLogEntry, ArenaLogSummary, ArenaOpponent, Player } from '../src/shared/model';
 import { playerLookups } from './helpers/player-lookups';
 
 const now = new Date(2026, 10, 10, 15, 0).getTime();
@@ -279,5 +280,87 @@ describe('matching arena battles to log lines', () => {
   it('never matches a defense', () => {
     const defense = line(at(14, 0), 1002, 'defense', 400);
     expect(matchBattles([defense], [fought(1, at(14, 0), 1002)])).toEqual([undefined]);
+  });
+});
+
+describe('arena view model, the opponents on offer', () => {
+  const offer = (
+    id: number,
+    change: Partial<ArenaOpponent> = {},
+    record: Partial<ArenaOffer['record']> = {},
+  ): ArenaOffer => ({
+    opponent: {
+      opponentId: 7000 + id,
+      player: playerId(1000 + id),
+      rewardPoints: 628,
+      difficulty: 'hard',
+      era: eraId('SpaceAgeAsteroidBelt'),
+      attackBoost: 11674,
+      defenseBoost: 11991,
+      ...change,
+    },
+    record: { won: 0, lost: 0, points: 0, ...record },
+  });
+  const offers = [
+    offer(
+      2,
+      { difficulty: 'medium', rewardPoints: 400, attackBoost: 3743, defenseBoost: 4504 },
+      { won: 3, lost: 1, points: 1200, lastAt: at(13, 50) },
+    ),
+    offer(1),
+    offer(3, { difficulty: 'easy', rewardPoints: 275 }),
+  ];
+  const vm = (change: Partial<ViewInput> = {}, list: ArenaOffer[] = offers, kind: ArenaLogEntry['kind'] = 'attack') =>
+    arenaViewModel({ ...base, ...change, kind, lines: [], matched: [], summary: summaryOf([]), from: 0, offers: list });
+
+  it('has one row per offered opponent in the order the game sends them, with words, reward and record', () => {
+    const rows = vm().offers ?? [];
+    expect(rows.map((r) => [r.opponent, r.name, r.difficultyWord, r.reward, r.record])).toEqual([
+      [1002, 'Testgegner 2', 'mittel', '+400', '3:1'],
+      [1001, '1001', 'schwer', '+628', '0:0'],
+      [1003, '1003', 'leicht', '+275', '0:0'],
+    ]);
+  });
+
+  it('shows the boosts of the defense army as percent', () => {
+    expect(vm().offers?.map((r) => [r.attackBoost, r.defenseBoost])).toEqual([
+      ['3.743 %', '4.504 %'],
+      ['11.674 %', '11.991 %'],
+      ['11.674 %', '11.991 %'],
+    ]);
+  });
+
+  it('gives the record tooltip with points and the last fight, or says there was none', () => {
+    const rows = vm().offers ?? [];
+    expect(rows[0]?.recordTip).toBe('3 gewonnen, 1 verloren, +1.200 Punkte, zuletzt heute 13:50');
+    expect(rows[1]?.recordTip).toBe('Noch nicht angegriffen');
+  });
+
+  it('names the era for the tooltip only when the catalog knows it', () => {
+    expect(vm().offers?.[0]?.era).toBeUndefined();
+    expect(vm({ eraName: () => 'Weltraum: Asteroidengürtel' }).offers?.[0]?.era).toBe('Weltraum: Asteroidengürtel');
+  });
+
+  it('warns for a player with the arena mark and only for one', () => {
+    const lookups = playerLookups({
+      playerName: (id: PlayerId) => names[id],
+      arenaNoAttack: (id: PlayerId) => (id === 1001 ? true : id === 1002 ? false : undefined),
+    });
+    const rows = vm({ lookups }).offers ?? [];
+    expect(rows.map((r) => [r.arenaNoAttack, r.warn])).toEqual([
+      [false, false],
+      [true, true],
+      [undefined, false],
+    ]);
+  });
+
+  it('is not filtered by the name field or the mark toggles', () => {
+    const filter = { ...NO_FILTER, name: 'Testgegner 2', arenaMarks: { noAttack: false, none: false } };
+    expect(vm({ filter }).offers).toHaveLength(3);
+  });
+
+  it('has no block without offers and none on the defenses', () => {
+    expect(vm({}, []).offers).toBeUndefined();
+    expect(vm({}, offers, 'defense').offers).toBeUndefined();
   });
 });

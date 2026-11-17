@@ -90,7 +90,7 @@ interface ArenaOpponent {
 }
 ```
 
-Nur im Speicher, je Welt. Die Übersicht und jedes `updateOpponents` ersetzen die Liste ganz. Abfrage: `current()`. Ein Eintrag ohne Platz, Spieler, Punkte oder bekannte Schwierigkeit wird übersprungen.
+Nur im Speicher, je Welt. Die Übersicht und jedes `updateOpponents` ersetzen die Liste ganz. Abfrage: `current()`. `attackBoost` und `defenseBoost` sind ganze Zahlen ohne Nachkommastellen (gesehen 3413 bis 11991) und gelten als Prozent, in derselben Größenordnung wie `defender_attack_boost` und `defense_boost` der Einheiten im Kampf (gesehen 2152 und 1983); ein Beleg über das Spielfenster steht noch aus. Ein Eintrag ohne Platz, Spieler, Punkte oder bekannte Schwierigkeit wird übersprungen.
 
 ## Spieler
 

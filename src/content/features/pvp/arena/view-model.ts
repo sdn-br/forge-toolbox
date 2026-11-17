@@ -2,6 +2,7 @@ import type { ArenaBattle, ArenaLogEntry, ArenaLogSummary } from '../../../../sh
 import { formatWhen, signed, t } from '../../../core/texts';
 import { formatArenaAttackSummary, formatArenaDefenseSummary } from '../../shared/pvp-format';
 import { type ArenaKind, isFiltered, type ListVm, listVm, type OpponentVm, opponentVm, type ViewInput } from '../rows';
+import { type ArenaOffer, type OfferRow, offerRows } from './offers';
 
 /** an own attack won (points above 0) or lost */
 export type ArenaOutcome = 'won' | 'lost';
@@ -33,6 +34,8 @@ export interface ArenaVm extends ListVm {
   kind: ArenaKind;
   /** the loaded rows, the first at `from` */
   rows: ArenaRow[];
+  /** the opponents on offer, on the attacks only and only once the arena has been opened */
+  offers?: OfferRow[];
 }
 
 /** what the side panel shows of a defense line: the attacker and the line, no battle (the game sends none) */
@@ -63,6 +66,8 @@ export function arenaViewModel(
     summary: ArenaLogSummary;
     /** the index of the first loaded line in the list */
     from: number;
+    /** the opponents on offer now, in the order the game sends them */
+    offers?: ArenaOffer[];
   },
 ): ArenaVm {
   const { kind, lines, matched, summary, now } = input;
@@ -75,6 +80,7 @@ export function arenaViewModel(
     }),
     tab: 'arena',
     kind,
+    ...(kind === 'attack' && input.offers?.length && { offers: offerRows(input, input.offers) }),
     rows: lines.map((line, i): ArenaRow => {
       const outcome: ArenaOutcome | undefined = line.kind === 'defense' ? undefined : line.points > 0 ? 'won' : 'lost';
       const battle = matched[i];
