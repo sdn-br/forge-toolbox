@@ -34,21 +34,32 @@ afterEach(() => {
 describe('attack warning', () => {
   it('covers the buttons of the army window against a player marked not to attack, naming the player', () => {
     const { ctx, cover } = setup();
-    ctx.bus.emit('army.target', { opponent: playerId(111) });
+    ctx.bus.emit('army.target', { opponent: playerId(111), kind: 'pvp' });
     expect(cover()?.textContent).toContain('Redcowboy steht auf „nicht angreifen“.');
+  });
+
+  it('warns in the arena only against a player marked not to attack there, and names the arena', () => {
+    const { ctx, cover } = setup();
+    ctx.bus.emit('army.target', { opponent: playerId(111), kind: 'pvpArena' });
+    expect(cover()).toBeNull();
+    ctx.players.setFlag(playerId(222), 'arenaNoAttack', true);
+    ctx.bus.emit('army.target', { opponent: playerId(222), kind: 'pvpArena' });
+    expect(cover()?.textContent).toContain('Friend steht in der Arena auf „nicht angreifen“.');
+    ctx.bus.emit('army.target', { opponent: playerId(222), kind: 'pvp' });
+    expect(cover()).toBeNull();
   });
 
   it('shows nothing against another player', () => {
     const { ctx, cover } = setup();
-    ctx.bus.emit('army.target', { opponent: playerId(222) });
+    ctx.bus.emit('army.target', { opponent: playerId(222), kind: 'pvp' });
     expect(cover()).toBeNull();
-    ctx.bus.emit('army.target', { opponent: playerId(999) });
+    ctx.bus.emit('army.target', { opponent: playerId(999), kind: 'pvp' });
     expect(cover()).toBeNull();
   });
 
   it('goes with "fight anyway"', () => {
     const { ctx, cover } = setup();
-    ctx.bus.emit('army.target', { opponent: playerId(111) });
+    ctx.bus.emit('army.target', { opponent: playerId(111), kind: 'pvp' });
     (cover() as Element).querySelector('button')?.click();
     expect(cover()).toBeNull();
   });
@@ -58,17 +69,17 @@ describe('attack warning', () => {
     ['a battle starts', 'battle.started'],
   ] as const)('goes when %s', (_name, event) => {
     const { ctx, cover } = setup();
-    ctx.bus.emit('army.target', { opponent: playerId(111) });
+    ctx.bus.emit('army.target', { opponent: playerId(111), kind: 'pvp' });
     ctx.bus.emit(event, {});
     expect(cover()).toBeNull();
   });
 
   it('goes when another army window opens and comes back for the next marked opponent', () => {
     const { ctx, cover } = setup();
-    ctx.bus.emit('army.target', { opponent: playerId(111) });
+    ctx.bus.emit('army.target', { opponent: playerId(111), kind: 'pvp' });
     ctx.bus.emit('army.opened', { kind: 'pvp' });
     expect(cover()).toBeNull();
-    ctx.bus.emit('army.target', { opponent: playerId(111) });
+    ctx.bus.emit('army.target', { opponent: playerId(111), kind: 'pvp' });
     expect(cover()).not.toBeNull();
   });
 });

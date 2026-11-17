@@ -1,5 +1,6 @@
 // Covers the three buttons of the game's army window (attack, auto battle, replace units) while it prepares a battle
-// against a player marked not to attack. Like a game window, the cover is fixed: the game draws the army window in a
+// against a player marked not to attack, in the arena against one marked not to attack there (assumed: the arena's
+// army window is the same window with its buttons in the same place, 2026-11-17). Like a game window, the cover is fixed: the game draws the army window in a
 // fixed size around the middle of the page, so the buttons always lie at the same place relative to it (measured
 // 2026-11-01 on de10 at three window sizes). The opponent comes from the game engine (army.target); without it no cover
 // shows. The cover goes with the window (army.closed), with the start of a battle or with "fight anyway".
@@ -31,8 +32,14 @@ export const attackWarningFeature: Feature = {
     const shadow = host.attachShadow({ mode: 'open' });
 
     const hide = () => host.remove();
-    const show = (name: string | undefined) => {
-      const text = name ? t('attackWarning.named', { name }) : t('attackWarning.unnamed');
+    const show = (name: string | undefined, arena: boolean) => {
+      const text = arena
+        ? name
+          ? t('attackWarning.arenaNamed', { name })
+          : t('attackWarning.arenaUnnamed')
+        : name
+          ? t('attackWarning.named', { name })
+          : t('attackWarning.unnamed');
       render(
         html`<style>${baseCss}${css}</style>
           <div class="cover" role="alert">
@@ -45,8 +52,10 @@ export const attackWarningFeature: Feature = {
       document.documentElement.append(host);
     };
 
-    ctx.bus.on('army.target', ({ opponent }) => {
-      if (ctx.players.flag(opponent, 'noAttack')) show(ctx.players.get(opponent)?.name);
+    ctx.bus.on('army.target', ({ opponent, kind }) => {
+      const arena = kind === 'pvpArena';
+      if (ctx.players.flag(opponent, arena ? 'arenaNoAttack' : 'noAttack'))
+        show(ctx.players.get(opponent)?.name, arena);
       else hide();
     });
     ctx.bus.on('army.opened', hide);

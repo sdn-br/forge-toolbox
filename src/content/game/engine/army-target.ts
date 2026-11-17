@@ -33,19 +33,22 @@ export function watchArmyTarget(bus: ToolboxBus, link: ArmyLink): void {
   let open = 0;
   /** the ask whose window showed its opponent and has not closed yet, 0 for none */
   let shown = 0;
+  /** the battle kind of the open ask */
+  let kind: 'pvp' | 'pvpArena' = 'pvp';
   link.onTarget((answered, id) => {
     if (open === 0 || answered !== open) return;
     open = 0;
     shown = answered;
-    bus.emit('army.target', { opponent: playerId(id) });
+    bus.emit('army.target', { opponent: playerId(id), kind });
   });
   link.onClosed((closed) => {
     if (shown === 0 || closed !== shown) return;
     shown = 0;
     bus.emit('army.closed', {});
   });
-  bus.on('army.opened', ({ kind }) => {
-    if (kind !== 'pvp') return;
+  bus.on('army.opened', (opened) => {
+    if (opened.kind === 'other') return;
+    kind = opened.kind;
     open = ++seq;
     link.post({ tag: ARMY_TAG, from: 'content', type: 'target', seq });
   });

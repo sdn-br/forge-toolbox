@@ -43,8 +43,8 @@ export interface ToolboxEvents {
   'shield.recorded': { players: PlayerId[] };
   /** the game opened the army window before a battle; the opponent is not known yet */
   'army.opened': { kind: ArmyBattleKind };
-  /** the page module read the opponent of the open pvp army window from the game engine; may never come */
-  'army.target': { opponent: PlayerId };
+  /** the page module read the opponent of the open pvp or arena army window from the game engine; may never come */
+  'army.target': { opponent: PlayerId; kind: 'pvp' | 'pvpArena' };
   /** the army window of the last `army.target` no longer shows, read from the game engine; may never come */
   'army.closed': Record<string, never>;
   /** the game sent the arena overview: the player opened the PvP arena */

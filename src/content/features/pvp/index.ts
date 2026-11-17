@@ -311,8 +311,8 @@ export const pvpFeature: Feature = {
       box.open();
       actions.tab('battles');
     });
-    ctx.bus.on('army.target', ({ opponent }) => {
-      if (!box.isOpen || !openWithArmy.get()) return;
+    ctx.bus.on('army.target', ({ opponent, kind }) => {
+      if (kind !== 'pvp' || !box.isOpen || !openWithArmy.get()) return;
       // all toggles back on, so the opponent shows whatever its marks and battles
       setFilter({ ...NO_FILTER, name: nameOf(opponent) });
     });
