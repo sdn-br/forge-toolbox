@@ -163,6 +163,8 @@ export interface PvpActions extends Pick<PvpRowActions, 'plunderPlayer' | 'noAtt
   pickPlayer(name: string): void;
   /** switches the sub tab of the arena */
   arenaKind(kind: ArenaKind): void;
+  /** opens the history of the arena points in the side panel, or closes it */
+  history(): void;
   /** selects a defense line of the arena for the side panel, or clears the selection when it is the selected one */
   selectDefense(opponent: PlayerId, at: number): void;
   /** selects a battle for the side panel, or clears the selection when it is the selected one */

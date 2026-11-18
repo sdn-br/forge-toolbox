@@ -7,6 +7,8 @@ import { guildTag } from '../../ui/links';
 import { sideDrawer } from '../../ui/side-drawer';
 import { tabBar } from '../../ui/tabs';
 import type { RowWindow } from '../../ui/windowed-rows';
+import type { ArenaHistoryVm } from './arena/history';
+import { historyPanel } from './arena/history-view';
 import { arenaView } from './arena/view';
 import type { DefensePanelVm } from './arena/view-model';
 import { battlePanel } from './battles/panel';
@@ -42,9 +44,14 @@ const LOOT_ICONS = { with: headerIcons.lootFilled, without: headerIcons.noLoot }
 const arenaMarkIcon = (key: keyof ArenaMarkFilter) =>
   key === 'noAttack' ? headerIcons.noAttackOn : headerIcons.noArenaMark;
 
+/** opens the history of the points in the side panel; a text for now, an icon is open (docs/ui-kit.md) */
+const historyButton = (on: boolean, actions: PvpActions) =>
+  html`<button class=${on ? 'action pvp-history-button on' : 'action pvp-history-button'} aria-pressed=${on ? 'true' : 'false'} data-tip=${t('pvp.arena.history.show')}
+    aria-label=${t('pvp.arena.history.show')} @click=${() => actions.history()}>${t('pvp.arena.history.button')}</button>`;
+
 /** one row: the name field, the mark toggles (the arena has its own), on the battles the sack toggles; each toggle
  * shows its rows while on */
-const filterBar = (f: PvpFilter, tab: PvpTab, actions: PvpActions) => html`<p class="pvp-filter">
+const filterBar = (f: PvpFilter, tab: PvpTab, actions: PvpActions, historyOn: boolean) => html`<p class="pvp-filter">
     ${searchField(f.name, t('pvp.search'), (name) => actions.filter({ name }))}
     ${
       tab === 'arena'
@@ -65,6 +72,7 @@ const filterBar = (f: PvpFilter, tab: PvpTab, actions: PvpActions) => html`<p cl
             (marks) => actions.filter({ marks }),
           )
     }
+    ${tab === 'arena' ? historyButton(historyOn, actions) : ''}
     ${
       tab === 'battles'
         ? toggleGroup(
@@ -84,7 +92,11 @@ export const PANEL_WIDTH = 300;
 
 /** the side panel, only on the battles and the arena and only while a battle is selected; `selected` is the battle it
  * shows */
-export type PanelState = { open: boolean } & ({ selected: BattlePanelVm } | { defense: DefensePanelVm });
+export type PanelState = { open: boolean } & (
+  | { selected: BattlePanelVm }
+  | { defense: DefensePanelVm }
+  | { history: ArenaHistoryVm }
+);
 
 /** a defense line: the attacker, the time and the points; the game sends no battle of it */
 const defensePanel = (vm: DefensePanelVm) =>
@@ -94,10 +106,23 @@ const panel = (state: PanelState, actions: PvpActions) =>
   sideDrawer({
     cls: 'pvp-drawer',
     open: state.open,
-    label: t('pvp.panel'),
-    tip: t(state.open ? 'pvp.panelClose' : 'pvp.panelOpen'),
+    label: t('history' in state ? 'pvp.arena.history.panel' : 'pvp.panel'),
+    tip: t(
+      'history' in state
+        ? state.open
+          ? 'pvp.arena.history.panelClose'
+          : 'pvp.arena.history.show'
+        : state.open
+          ? 'pvp.panelClose'
+          : 'pvp.panelOpen',
+    ),
     toggle: actions.togglePanel,
-    panel: 'defense' in state ? defensePanel(state.defense) : battlePanel(state.selected),
+    panel:
+      'history' in state
+        ? historyPanel(state.history)
+        : 'defense' in state
+          ? defensePanel(state.defense)
+          : battlePanel(state.selected),
     width: PANEL_WIDTH,
   });
 
@@ -112,6 +137,7 @@ export function pvpView(
   side?: PanelState,
   arenaKind: ArenaKind = 'attack',
 ): TemplateResult {
+  const historyOn = side !== undefined && 'history' in side;
   // the name field stays in one outer template: swapping templates would replace it and take its focus mid-typing.
   // Tabs, filters, note card and totals stay, the rows that fit are drawn and the two buttons scroll them
   return html`<div class="pvp-layout"><div class="pvp-pane">${tabBar(TABS, tab, (key) => t(`pvp.tab.${key}`), actions.tab)}${
@@ -122,5 +148,6 @@ export function pvpView(
     filter,
     tab,
     actions,
+    historyOn,
   )}${note ?? ''}${shown ? list(shown.vm, shown.window, actions) : ''}</div>${(tab === 'battles' || tab === 'arena') && side ? panel(side, actions) : ''}</div>`;
 }

@@ -83,4 +83,17 @@ tr.battle-row:hover { background: var(--row-selected); }
 /* the battle the side panel shows, marked like a picked row in the box "Besuchte Stadt" */
 tr.battle-row.selected { background: var(--row-selected); box-shadow: inset 3px 0 var(--accent); }
 button.marker.dim { opacity: .3; }
+/* the history of the arena points in the side panel: the chart in the palette, hover areas without a face */
+.pvp-chart { display: block; width: 100%; height: auto; margin: 4px 0 8px; }
+.pvp-chart .grid { stroke: var(--line); stroke-width: 1; }
+.pvp-chart .axis { fill: var(--muted); font-size: 9px; }
+.pvp-chart .line { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+.pvp-chart .mark rect { fill: transparent; }
+.pvp-chart .mark circle { fill: var(--accent); opacity: 0; pointer-events: none; }
+.pvp-chart .mark:hover circle { opacity: 1; }
+.pvp-history { width: 100%; }
+.pvp-history .num { text-align: right; white-space: nowrap; }
+.pvp-history td.pvp-points.good { color: var(--good); }
+.pvp-history td.pvp-points.bad { color: var(--bad); }
+.pvp-history-button.on { color: var(--accent); border-color: var(--accent); }
 `;

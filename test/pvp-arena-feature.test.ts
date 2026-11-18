@@ -347,4 +347,70 @@ describe('pvp arena tab, the opponents on offer', () => {
       ]),
     );
   });
+
+  describe('history of the points', () => {
+    const historyButton = (box: TestBox) =>
+      box.root.querySelector('button[aria-label="Punkteverlauf zeigen"]') as HTMLElement;
+
+    it('has the button on both sub tabs, starting with the word Verlauf', async () => {
+      const { box } = await opened();
+      expect(historyButton(box).textContent?.trim()).toBe('Verlauf');
+      pickSub(box, 'Verteidigungen');
+      await vi.waitFor(() => expect(subTab(box)).toBe('Verteidigungen'));
+      expect(historyButton(box)).not.toBeNull();
+      box.click('Kämpfe');
+      await vi.waitFor(() => expect(activeTab(box)?.textContent?.trim()).toBe('Kämpfe'));
+      expect(historyButton(box)).toBeNull();
+    });
+
+    /** the overview again with other points of the player */
+    const withPoints = (points: number) => {
+      const overview = structuredClone(arena.overview);
+      if (overview[0]) overview[0].responseData.currentPlayer.rankingPoints = points;
+      return overview;
+    };
+
+    it('opens the chart and the table per day in the side panel and closes it again', async () => {
+      const { box, send } = await opened();
+      send(withPoints(31_337));
+      historyButton(box).click();
+      await vi.waitFor(() => expect(box.root.querySelector('.side-panel .pvp-history')).not.toBeNull());
+      expect(historyButton(box).getAttribute('aria-pressed')).toBe('true');
+      expect(box.root.querySelector('.side-panel svg.pvp-chart path.line')).not.toBeNull();
+      expect(box.root.querySelector('.side-panel svg.pvp-chart .mark[data-tip]')?.getAttribute('data-tip')).toMatch(
+        /Punkte$/,
+      );
+      const days = [...box.root.querySelectorAll('.side-panel .pvp-history tbody tr')];
+      // the points come now, the log lines of the fixture are older: at least two days
+      expect(days.length).toBeGreaterThanOrEqual(2);
+      const attacks = days.reduce((sum, tr) => sum + Number(tr.children[3]?.textContent), 0);
+      const defenses = days.reduce((sum, tr) => sum + Number(tr.children[4]?.textContent), 0);
+      expect([attacks, defenses]).toEqual([6, 1]);
+      historyButton(box).click();
+      expect(box.root.querySelector('.side-drawer')).toBeNull();
+    });
+
+    it('is replaced by a selected battle, which it replaces in turn', async () => {
+      const { box } = await opened();
+      row(box, 'Testgegner 2').click();
+      expect(panel(box)).toContain('Deine Einheiten');
+      historyButton(box).click();
+      await vi.waitFor(() => expect(box.root.querySelector('.side-panel .pvp-history')).not.toBeNull());
+      expect(row(box, 'Testgegner 2').classList.contains('selected')).toBe(false);
+      row(box, 'Testgegner 2').click();
+      expect(box.root.querySelector('.pvp-history')).toBeNull();
+      expect(panel(box)).toContain('Deine Einheiten');
+    });
+
+    it('says so with fewer than two points and loads again while open when new points come', async () => {
+      const { box, send } = await opened();
+      historyButton(box).click();
+      await vi.waitFor(() => expect(box.root.querySelector('.pvp-history')).not.toBeNull());
+      expect(box.root.querySelector('.side-panel svg.pvp-chart')).toBeNull();
+      expect(panel(box)).toContain('Noch zu wenige Punktestände');
+      send(withPoints(31_337));
+      await vi.waitFor(() => expect(box.root.querySelectorAll('.side-panel .mark')).toHaveLength(2));
+      expect(box.root.querySelector('.side-panel .pvp-history')?.textContent).toContain('31.337');
+    });
+  });
 });
