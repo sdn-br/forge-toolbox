@@ -49,13 +49,19 @@ describe('city shields', () => {
     expect(env.recorded).toEqual([[playerId(1)]]);
   });
 
-  it('logs the raw payload once per message', () => {
+  it('logs the raw payload of the unconfirmed websocket path only', () => {
     const info = vi.spyOn(console, 'info').mockImplementation(() => {});
     const env = setup();
     const payload = [{ playerId: 1, expireTime: NOW_S + HOUR_S }];
     env.ws(payload);
     expect(info).toHaveBeenCalledTimes(1);
-    expect(info.mock.calls[0]).toEqual(['[Forge Toolbox]', 'getCityProtections (format unconfirmed)', 'ws', payload]);
+    expect(info.mock.calls[0]).toEqual([
+      '[Forge Toolbox]',
+      'getCityProtections over the websocket (unconfirmed)',
+      payload,
+    ]);
+    env.json(payload);
+    expect(info).toHaveBeenCalledTimes(1);
   });
 
   it('ignores players that cannot be attacked at all (-1) and malformed entries', async () => {

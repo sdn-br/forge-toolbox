@@ -87,7 +87,7 @@ Ein Kampf misst nur die verteidigende Armee des Gegners. Seine angreifende Armee
 
 ## CityShield (Schilde)
 
-Stand 2026-10-21. **Format laut alter Toolbox, nicht selbst gesehen.** Quelle: `OtherPlayerService.getCityProtections`, `responseData` ist eine Liste von `{ playerId, expireTime }`. `expireTime` ist in Unix-Sekunden, `-1` heißt, der Spieler kann gar nicht angegriffen werden. Vermutung: Die Liste kommt beim Start, wenn ein Nachbar schon einen Schild hat, und über den Websocket, wenn ein Nachbar einen Schild aktiviert (24, 48 oder 72 Stunden aus dem Laden der Freundesschenke). Die Ingestion behandelt `json` und `ws` gleich.
+Stand 2026-11-18. **Format beim Start im Spiel gesehen** (2026-11-18, ein Nachbar mit Schild, vorher nur laut alter Toolbox). Quelle: `OtherPlayerService.getCityProtections`, `responseData` ist eine Liste von `{ playerId, expireTime, __class__: 'CityShield' }`. `expireTime` ist in Unix-Sekunden, `-1` heißt, der Spieler kann gar nicht angegriffen werden. Die Liste kommt beim Start, wenn ein Nachbar schon einen Schild hat (gesehen). Vermutung: Sie kommt auch über den Websocket, wenn ein Nachbar einen Schild aktiviert (24, 48 oder 72 Stunden aus dem Laden der Freundesschenke). Die Ingestion behandelt `json` und `ws` gleich.
 
 ```ts
 interface CityShield {
