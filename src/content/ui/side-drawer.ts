@@ -16,23 +16,28 @@ export interface SideDrawer {
   panel: TemplateResult;
   /** width of the panel in pixels */
   width: number;
+  /** a second drawer of the box: it takes the side the first one does not */
+  secondary?: boolean;
 }
 
 /**
  * Docked, the panel hangs out of the left side of the box, where the box usually has room (it opens at the right edge
- * of the screen). A box near the left edge gets it on its right side instead. Checked on every render.
+ * of the screen). A box near the left edge gets it on its right side instead. A second drawer takes the opposite side.
+ * Checked on every render.
  */
-const place = (width: number) => (el: Element | undefined) => {
+const place = (width: number, secondary: boolean) => (el: Element | undefined) => {
   const drawer = el as HTMLElement | undefined;
   const box = drawer?.closest('.box');
   if (!drawer || !box) return;
-  drawer.dataset.side = box.getBoundingClientRect().left < width + 30 ? 'right' : 'left';
+  const nearLeftEdge = box.getBoundingClientRect().left < width + 30;
+  // the first drawer takes the side it needs, a second one the opposite
+  drawer.dataset.side = nearLeftEdge !== secondary ? 'right' : 'left';
 };
 
 /** the tab and, while open, the panel; it stands beside the content of the box, in a row with it */
 export const sideDrawer = (d: SideDrawer): TemplateResult =>
-  html`<aside class=${d.open ? `side-drawer ${d.cls} open` : `side-drawer ${d.cls}`} style=${`--side-width: ${d.width}px`}
-    ${ref(place(d.width))}>
+  html`<aside class=${`side-drawer ${d.cls}${d.secondary ? ' secondary' : ''}${d.open ? ' open' : ''}`} style=${`--side-width: ${d.width}px`}
+    ${ref(place(d.width, d.secondary ?? false))}>
     <button class="action side-tab" data-tip=${d.tip} @click=${() => d.toggle()}>${d.label}</button>
     ${d.open ? html`<div class="side-panel">${d.panel}</div>` : ''}
   </aside>`;

@@ -25,10 +25,11 @@ const POINTS = 64;
 export const BATTLES_MIN_WIDTH = NOTE + NAME + WHEN + RESULT + LOOT + BATTLE;
 
 export const pvpCss = `
-/* the list and, popped out, the side panel in a row; docked the panel hangs out of the box (ui/side-drawer.ts) */
+/* the list and, popped out, the side panels in a row, the battle before the list and the history after it; docked the panel hangs out of the box (ui/side-drawer.ts) */
 .pvp-layout { display: flex; align-items: stretch; gap: 6px; }
 /* tabs, filters, note card and totals, then the table area with a fixed number of rows (VISIBLE_ROWS); the two
    buttons beside it scroll them */
+.box.popped .pvp-layout > .side-drawer:not(.secondary) { order: -1; }
 .pvp-pane { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 .pvp-pane > :not(.pvp-win) { flex: none; }
 .pvp-win { flex: 1 1 auto; min-height: 0; }
@@ -95,5 +96,4 @@ button.marker.dim { opacity: .3; }
 .pvp-history .num { text-align: right; white-space: nowrap; }
 .pvp-history td.pvp-points.good { color: var(--good); }
 .pvp-history td.pvp-points.bad { color: var(--bad); }
-.pvp-history-button.on { color: var(--accent); border-color: var(--accent); }
 `;

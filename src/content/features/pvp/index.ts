@@ -80,7 +80,7 @@ export const pvpFeature: Feature = {
     let defense: { opponent: PlayerId; at: number; panel: DefensePanelVm } | undefined;
     /** the index of the first row in view; the window keeps it inside the list */
     let top = 0;
-    /** the side panel shows the history of the arena points, as last read; it replaces a selected battle or defense */
+    /** the second drawer, on the arena tab: the history of the arena points, as last read; independent of the battle panel */
     let historyOpen = false;
     let history: ArenaHistoryVm | undefined;
     /** the battle the side panel shows, as last read; its tab stands while there is one */
@@ -110,12 +110,12 @@ export const pvpFeature: Feature = {
     // the history reads all points and lines; a newer read wins
     let historyQuery = 0;
     const loadHistory = () => {
-      if (!historyOpen || !box.isOpen) return;
+      if (!historyOpen || tab !== 'arena' || !box.isOpen) return;
       const current = ++historyQuery;
       arenaSection
         .history()
         .then((next) => {
-          if (current !== historyQuery || !historyOpen) return;
+          if (current !== historyQuery) return;
           history = next;
           box.update();
         })
@@ -205,8 +205,6 @@ export const pvpFeature: Feature = {
 
     const actions: PvpActions = {
       tab: (next) => {
-        // the game opening the arena again, while the box is on it, keeps the history
-        if (next !== tab) historyOpen = false;
         tab = next;
         arenaKind = 'attack';
         top = 0;
@@ -214,6 +212,8 @@ export const pvpFeature: Feature = {
         defense = undefined;
         rebuild();
         show();
+        // the history keeps its open state while another tab hides it
+        loadHistory();
       },
       arenaKind: (next) => {
         arenaKind = next;
@@ -223,29 +223,17 @@ export const pvpFeature: Feature = {
         rebuild();
         show();
       },
-      history: () => {
+      toggleHistory: () => {
         historyOpen = !historyOpen;
-        if (historyOpen) {
-          // one panel at a time: the selection gives way
-          selected = undefined;
-          defense = undefined;
-          panelOpen = true;
-          rebuild();
-          loadHistory();
-        } else {
-          history = undefined;
-          rebuild();
-        }
+        box.update();
+        loadHistory();
       },
       selectDefense: (opponent, at) => {
         const same = defense?.opponent === opponent && defense.at === at;
         const row = vm?.tab === 'arena' ? vm.rows.find((r) => r.opponent === opponent && r.at === at) : undefined;
         defense =
           same || !row ? undefined : { opponent, at, panel: defensePanelVm(row, lookups.playerGuild(opponent)) };
-        if (defense) {
-          panelOpen = true;
-          historyOpen = false;
-        }
+        if (defense) panelOpen = true;
         rebuild();
       },
       filter: (patch) => setFilter({ ...filter, ...patch }),
@@ -255,10 +243,7 @@ export const pvpFeature: Feature = {
       arenaNoAttackPlayer: marks.arenaNoAttackPlayer,
       select: (battleId) => {
         selected = selected?.battleId === battleId ? undefined : loadedBattles.find((b) => b.battleId === battleId);
-        if (selected) {
-          panelOpen = true;
-          historyOpen = false;
-        }
+        if (selected) panelOpen = true;
         // the battles of the slice are loaded already
         rebuild();
       },
@@ -279,15 +264,14 @@ export const pvpFeature: Feature = {
     const render = () => {
       const picked = filter.name.trim() ? pickedPlayer(filter.name, players()) : undefined;
       const note = picked === undefined ? undefined : card.render(picked, ctx.players.get(picked)?.name);
+      const historyState = { open: historyOpen, ...(history && { vm: history }) };
       const side: PanelState | undefined =
-        historyOpen && history && tab === 'arena'
-          ? { open: panelOpen, history }
-          : defense && tab === 'arena'
-            ? { open: panelOpen, defense: defense.panel }
-            : selected && lastInput
-              ? { open: panelOpen, selected: battlePanelVm(selected, lastInput) }
-              : undefined;
-      if (!vm) return pvpView(tab, filter, undefined, actions, note, side, arenaKind);
+        defense && tab === 'arena'
+          ? { open: panelOpen, defense: defense.panel }
+          : selected && lastInput
+            ? { open: panelOpen, selected: battlePanelVm(selected, lastInput) }
+            : undefined;
+      if (!vm) return pvpView(tab, filter, undefined, actions, note, side, arenaKind, historyState);
       const visible = VISIBLE_ROWS;
       const rows = rowWindow(top, vm.total, visible);
       top = rows.top;
@@ -306,7 +290,7 @@ export const pvpFeature: Feature = {
         (top < requested.offset || (top + visible > end && end < vm.total) || (settled && (nearStart || nearEnd)))
       )
         show(false);
-      return pvpView(tab, filter, { vm, window: rows }, actions, note, side, arenaKind);
+      return pvpView(tab, filter, { vm, window: rows }, actions, note, side, arenaKind, historyState);
     };
 
     const box = ctx.createBox({
