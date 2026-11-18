@@ -346,6 +346,8 @@ export const de = {
   'pvpMark.arenaNoAttack.remove': 'Markierung Arena entfernen',
   'attackWarning.named': '{name} steht auf „nicht angreifen“.',
   'attackWarning.unnamed': 'Dieser Spieler steht auf „nicht angreifen“.',
+  'attackWarning.arenaNamed': '{name} steht in der Arena auf „nicht angreifen“.',
+  'attackWarning.arenaUnnamed': 'Dieser Spieler steht in der Arena auf „nicht angreifen“.',
   'attackWarning.fightAnyway': 'Trotzdem kämpfen',
   'contributionWarning.player': 'Spieler {name} steht auf Ignorieren.',
   'contributionWarning.playerUnnamed': 'Dieser Spieler steht auf Ignorieren.',

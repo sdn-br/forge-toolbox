@@ -40,12 +40,20 @@ describe('watchArmyTarget', () => {
     bus.emit('army.opened', { kind: 'pvp' });
     expect(posted).toEqual([{ tag: ARMY_TAG, from: 'content', type: 'target', seq: 1 }]);
     answer(1, 5412792);
-    expect(targets).toHaveBeenCalledExactlyOnceWith({ opponent: playerId(5412792) });
+    expect(targets).toHaveBeenCalledExactlyOnceWith({ opponent: playerId(5412792), kind: 'pvp' });
   });
 
-  it.each(['other', 'pvpArena'] as const)('does not ask for a %s battle', (kind) => {
+  it('asks for the opponent of an arena army window and names the arena', () => {
+    const { bus, posted, answer, targets } = setup();
+    bus.emit('army.opened', { kind: 'pvpArena' });
+    expect(posted).toHaveLength(1);
+    answer(1, 1002);
+    expect(targets).toHaveBeenCalledExactlyOnceWith({ opponent: playerId(1002), kind: 'pvpArena' });
+  });
+
+  it('does not ask for another battle', () => {
     const { bus, posted } = setup();
-    bus.emit('army.opened', { kind });
+    bus.emit('army.opened', { kind: 'other' });
     expect(posted).toEqual([]);
   });
 
@@ -56,7 +64,7 @@ describe('watchArmyTarget', () => {
     answer(1, 111);
     expect(targets).not.toHaveBeenCalled();
     answer(2, 222);
-    expect(targets).toHaveBeenCalledExactlyOnceWith({ opponent: playerId(222) });
+    expect(targets).toHaveBeenCalledExactlyOnceWith({ opponent: playerId(222), kind: 'pvp' });
   });
 
   it('takes only the first answer to an ask', () => {
@@ -64,7 +72,7 @@ describe('watchArmyTarget', () => {
     bus.emit('army.opened', { kind: 'pvp' });
     answer(1, 111);
     answer(1, 222);
-    expect(targets).toHaveBeenCalledExactlyOnceWith({ opponent: playerId(111) });
+    expect(targets).toHaveBeenCalledExactlyOnceWith({ opponent: playerId(111), kind: 'pvp' });
   });
 
   it('ignores an answer nobody asked for', () => {
@@ -114,6 +122,11 @@ describe('armyTarget (page module)', () => {
 
   it('reads the defender of the open pvp army window', () => {
     expect(armyTarget(stage(armyWindow(pvp)))).toBe(5412792);
+  });
+
+  it('reads the defender of the open arena army window', () => {
+    const arena = { type: 'pvp_arena', attackerPlayerId: 1000, defenderPlayerId: 1002, opponentSerial: 7002 };
+    expect(armyTarget(stage(armyWindow(arena)))).toBe(1002);
   });
 
   it('finds nothing without an engine, a window container or an army window', () => {

@@ -360,10 +360,17 @@ describe('pvp feature', () => {
       expect(box.box.isOpen).toBe(false);
     });
 
+    it('leaves the name field alone for the opponent of an arena army window', async () => {
+      const { ctx, box } = setup(1, true);
+      ctx.bus.emit('army.target', { opponent: playerId(222), kind: 'pvpArena' });
+      await tick();
+      expect(field(box).value).toBe('');
+    });
+
     it('writes the opponent the page module read from the army window into the name field', async () => {
       const { ctx, box, lists } = setup(1, false);
       ctx.bus.emit('army.opened', { kind: 'pvp' });
-      ctx.bus.emit('army.target', { opponent: playerId(222) });
+      ctx.bus.emit('army.target', { opponent: playerId(222), kind: 'pvp' });
       await tick();
       expect(lists.at(-1)?.query.opponents).toEqual([playerId(222)]);
       expect(field(box).value).toBe('222');
@@ -375,7 +382,7 @@ describe('pvp feature', () => {
       ctx.bus.emit('army.opened', { kind: 'pvp' });
       await tick();
       box.click('Kämpfe ohne Plünderung zeigen');
-      ctx.bus.emit('army.target', { opponent: playerId(222) });
+      ctx.bus.emit('army.target', { opponent: playerId(222), kind: 'pvp' });
       await tick();
       expect(field(box).value).toBe('222');
       expect(lists.at(-1)?.query.opponents).toEqual([playerId(222)]);
@@ -395,7 +402,7 @@ describe('pvp feature', () => {
 
     it('neither opens nor picks for an opponent while the box is closed', async () => {
       const { ctx, box, lists } = setup(1, false);
-      ctx.bus.emit('army.target', { opponent: playerId(222) });
+      ctx.bus.emit('army.target', { opponent: playerId(222), kind: 'pvp' });
       await tick();
       expect(box.box.isOpen).toBe(false);
       expect(lists).toHaveLength(0);
@@ -972,7 +979,7 @@ describe('pvp feature loading', () => {
   it('ignores records of players the filter does not show', async () => {
     const { ctx, lists } = setup();
     await tick();
-    ctx.bus.emit('army.target', { opponent: playerId(111) });
+    ctx.bus.emit('army.target', { opponent: playerId(111), kind: 'pvp' });
     await tick();
     const loads = lists.length;
     ctx.bus.emit('battle.recorded', { opponents: [playerId(222)] });
