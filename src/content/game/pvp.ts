@@ -247,8 +247,9 @@ export function toIncoming(world: WorldId, e: GameEvent, me: PlayerId, at: numbe
 }
 
 /**
- * City shields from getCityProtections. The format is unconfirmed, so entries without a numeric player and end are
- * skipped, as is `expireTime` -1 (cannot be attacked at all, which is no shield).
+ * City shields from getCityProtections (`{ playerId, expireTime }`, the end in seconds, seen at the start 2026-11-18).
+ * Entries without a numeric player and end are skipped, as is `expireTime` -1 (cannot be attacked at all, which is no
+ * shield).
  */
 export function toShields(world: WorldId, data: unknown): CityShield[] {
   return list<GameCityProtection | null>(data).flatMap((e) => {
@@ -371,13 +372,13 @@ export function registerPvp(ingestion: Ingestion, deps: GameHandlerDeps): void {
     if (Array.isArray(events)) recordIncoming(events, (e) => (e.date ? parseEventDate(e.date, now()) : undefined));
   });
 
-  // City shields of other players. Only the old toolbox's concept names this method; assumed: it comes at the start
-  // when a neighbour has a shield, and over the websocket when one buys a shield. Ingestion routes both the same way.
-  // A start without the list deletes nothing, ended shields are ignored when read.
+  // City shields of other players. Seen at the start with a neighbour's shield (2026-11-18); assumed: it also comes
+  // over the websocket when one buys a shield. Ingestion routes both the same way. A start without the list deletes
+  // nothing, ended shields are ignored when read.
   ingestion.on('OtherPlayerService', 'getCityProtections', ({ data, via }) => {
-    // debt: logs every getCityProtections raw. ceiling: console noise once the format is confirmed.
-    // upgrade: remove after the format and the trigger are confirmed in the game.
-    logInfo('getCityProtections (format unconfirmed)', via, data);
+    // debt: logs getCityProtections over the websocket raw. ceiling: console noise once that path is seen.
+    // upgrade: remove after a shield bought during the session arrived over the websocket.
+    if (via === 'ws') logInfo('getCityProtections over the websocket (unconfirmed)', data);
     shields.record(toShields(world, data));
   });
 }
