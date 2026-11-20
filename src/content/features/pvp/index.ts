@@ -11,6 +11,7 @@ import { catalogUnits } from '../shared/battle-details';
 import { buildingImage } from '../shared/building-image';
 import { playerLookups, playerRowActions } from '../shared/player-lookups';
 import { LINK_SETTING } from '../shared/settings';
+import type { ArenaHistoryVm } from './arena/history';
 import { createArenaSection } from './arena/section';
 import { type DefensePanelVm, defensePanelVm } from './arena/view-model';
 import { createBattlesSection } from './battles/section';
@@ -79,6 +80,9 @@ export const pvpFeature: Feature = {
     let defense: { opponent: PlayerId; at: number; panel: DefensePanelVm } | undefined;
     /** the index of the first row in view; the window keeps it inside the list */
     let top = 0;
+    /** the second drawer, on the arena tab: the history of the arena points, as last read; independent of the battle panel */
+    let historyOpen = false;
+    let history: ArenaHistoryVm | undefined;
     /** the battle the side panel shows, as last read; its tab stands while there is one */
     let selected: BattleWithPlunder | undefined;
     /** the tab folds the panel in and out, a new selection opens it */
@@ -97,10 +101,25 @@ export const pvpFeature: Feature = {
     // who the filter matched at the last load
     let scopeShown: OpponentScope = {};
 
+    const arenaSection = createArenaSection(ctx);
     const sections: Record<PvpTab, PvpSection> = {
       battles: createBattlesSection(ctx),
       incoming: createIncomingSection(ctx),
-      arena: createArenaSection(ctx),
+      arena: arenaSection,
+    };
+    // the history reads all points and lines; a newer read wins
+    let historyQuery = 0;
+    const loadHistory = () => {
+      if (!historyOpen || tab !== 'arena' || !box.isOpen) return;
+      const current = ++historyQuery;
+      arenaSection
+        .history()
+        .then((next) => {
+          if (current !== historyQuery) return;
+          history = next;
+          box.update();
+        })
+        .catch((error) => logError('loading the arena history failed', error));
     };
     const lookups = playerLookups(ctx);
     const players = () => ctx.players.list().filter((p) => p.world === ctx.world);
@@ -193,6 +212,8 @@ export const pvpFeature: Feature = {
         defense = undefined;
         rebuild();
         show();
+        // the history keeps its open state while another tab hides it
+        loadHistory();
       },
       arenaKind: (next) => {
         arenaKind = next;
@@ -201,6 +222,11 @@ export const pvpFeature: Feature = {
         defense = undefined;
         rebuild();
         show();
+      },
+      toggleHistory: () => {
+        historyOpen = !historyOpen;
+        box.update();
+        loadHistory();
       },
       selectDefense: (opponent, at) => {
         const same = defense?.opponent === opponent && defense.at === at;
@@ -238,13 +264,14 @@ export const pvpFeature: Feature = {
     const render = () => {
       const picked = filter.name.trim() ? pickedPlayer(filter.name, players()) : undefined;
       const note = picked === undefined ? undefined : card.render(picked, ctx.players.get(picked)?.name);
+      const historyState = { open: historyOpen, ...(history && { vm: history }) };
       const side: PanelState | undefined =
         defense && tab === 'arena'
           ? { open: panelOpen, defense: defense.panel }
           : selected && lastInput
             ? { open: panelOpen, selected: battlePanelVm(selected, lastInput) }
             : undefined;
-      if (!vm) return pvpView(tab, filter, undefined, actions, note, side, arenaKind);
+      if (!vm) return pvpView(tab, filter, undefined, actions, note, side, arenaKind, historyState);
       const visible = VISIBLE_ROWS;
       const rows = rowWindow(top, vm.total, visible);
       top = rows.top;
@@ -263,7 +290,7 @@ export const pvpFeature: Feature = {
         (top < requested.offset || (top + visible > end && end < vm.total) || (settled && (nearStart || nearEnd)))
       )
         show(false);
-      return pvpView(tab, filter, { vm, window: rows }, actions, note, side, arenaKind);
+      return pvpView(tab, filter, { vm, window: rows }, actions, note, side, arenaKind, historyState);
     };
 
     const box = ctx.createBox({
@@ -327,6 +354,9 @@ export const pvpFeature: Feature = {
     ctx.bus.on('incoming.recorded', onRecorded);
     ctx.bus.on('arena.logRecorded', onRecorded);
     ctx.bus.on('arena.battleRecorded', onRecorded);
+    // the history covers all points and lines, whoever the filters match
+    ctx.bus.on('arena.pointsRecorded', loadHistory);
+    ctx.bus.on('arena.logRecorded', loadHistory);
     // the block of the opponents on offer, whatever the filters say: a new draw and the lines about them load it again
     ctx.bus.on('arena.opponents', () => {
       if (tab === 'arena') show();

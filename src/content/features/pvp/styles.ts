@@ -25,10 +25,11 @@ const POINTS = 64;
 export const BATTLES_MIN_WIDTH = NOTE + NAME + WHEN + RESULT + LOOT + BATTLE;
 
 export const pvpCss = `
-/* the list and, popped out, the side panel in a row; docked the panel hangs out of the box (ui/side-drawer.ts) */
+/* the list and, popped out, the side panels in a row, the battle before the list and the history after it; docked the panel hangs out of the box (ui/side-drawer.ts) */
 .pvp-layout { display: flex; align-items: stretch; gap: 6px; }
 /* tabs, filters, note card and totals, then the table area with a fixed number of rows (VISIBLE_ROWS); the two
    buttons beside it scroll them */
+.box.popped .pvp-layout > .side-drawer:not(.secondary) { order: -1; }
 .pvp-pane { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 .pvp-pane > :not(.pvp-win) { flex: none; }
 .pvp-win { flex: 1 1 auto; min-height: 0; }
@@ -83,4 +84,16 @@ tr.battle-row:hover { background: var(--row-selected); }
 /* the battle the side panel shows, marked like a picked row in the box "Besuchte Stadt" */
 tr.battle-row.selected { background: var(--row-selected); box-shadow: inset 3px 0 var(--accent); }
 button.marker.dim { opacity: .3; }
+/* the history of the arena points in the side panel: the chart in the palette, hover areas without a face */
+.pvp-chart { display: block; width: 100%; height: auto; margin: 4px 0 8px; }
+.pvp-chart .grid { stroke: var(--line); stroke-width: 1; }
+.pvp-chart .axis { fill: var(--muted); font-size: 9px; }
+.pvp-chart .line { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+.pvp-chart .mark rect { fill: transparent; }
+.pvp-chart .mark circle { fill: var(--accent); opacity: 0; pointer-events: none; }
+.pvp-chart .mark:hover circle { opacity: 1; }
+.pvp-history { width: 100%; }
+.pvp-history .num { text-align: right; white-space: nowrap; }
+.pvp-history td.pvp-points.good { color: var(--good); }
+.pvp-history td.pvp-points.bad { color: var(--bad); }
 `;

@@ -118,6 +118,7 @@ describe('pvp opponent name', () => {
       select: noop,
       arenaKind: noop,
       selectDefense: noop,
+      toggleHistory: noop,
       togglePanel: noop,
       note: noop,
       scroll: noop,

@@ -193,6 +193,8 @@ button.side-tab { margin: 0; writing-mode: vertical-rl; padding: 8px 2px; border
   border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.5); }
 /* popped out: no room beside the window, so the panel takes a column beside the content */
 .box.popped .side-drawer { position: static; flex: 0 0 auto; flex-direction: row-reverse; }
+/* a second drawer of a box stands after the content, its tab next to the content (the first one: see the PvP box) */
+.box.popped .side-drawer.secondary { flex-direction: row; }
 .box.popped .side-tab { border: 2px solid var(--line); border-radius: 6px; }
 .box.popped .side-panel { max-height: none; align-self: stretch; box-shadow: none; }
 /* windowed rows (ui/windowed-rows.ts): the table area, the two buttons beside it, the line of what is hidden */

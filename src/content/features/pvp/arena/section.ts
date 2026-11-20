@@ -5,6 +5,7 @@ import type { ArenaLogEntry, ArenaLogFilter, ArenaLogSummary, OpponentScope } fr
 import type { FeatureContext } from '../../../core/feature';
 import type { ArenaKind } from '../rows';
 import type { PvpSection } from '../tabs';
+import { type ArenaHistoryVm, historyViewModel } from './history';
 import { matchBattles } from './match';
 import type { ArenaOffer } from './offers';
 import { arenaViewModel } from './view-model';
@@ -17,7 +18,15 @@ const attacked = (lines: ArenaLogEntry[]): PlayerId[] => [
   ...new Set(lines.filter((l) => l.kind === 'attack').map((l) => l.opponent)),
 ];
 
-export function createArenaSection(ctx: FeatureContext): PvpSection {
+/** more lines than the store will ever hold, to read them all */
+const ALL = 1_000_000;
+
+export interface ArenaSection extends PvpSection {
+  /** the points and the log lines of all stored time, shaped for the side panel */
+  history(): Promise<ArenaHistoryVm>;
+}
+
+export function createArenaSection(ctx: FeatureContext): ArenaSection {
   /** the opponents on offer with the own attacks on them; the block ignores the filters of the list */
   const readOffers = (): Promise<ArenaOffer[]> =>
     Promise.all(
@@ -40,6 +49,13 @@ export function createArenaSection(ctx: FeatureContext): PvpSection {
     );
 
   return {
+    async history() {
+      const [points, lines] = await Promise.all([
+        ctx.arena.points.since(0),
+        ctx.arena.log.list({ limit: ALL, offset: 0 }),
+      ]);
+      return historyViewModel({ points, lines });
+    },
     async load({ scope, arenaKind }, offset, limit, totals) {
       const filter = arenaFilter(scope, arenaKind);
       // the box hands in the summary it read for this query; reading it walks every line of the world

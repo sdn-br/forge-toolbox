@@ -7,6 +7,8 @@ import { guildTag } from '../../ui/links';
 import { sideDrawer } from '../../ui/side-drawer';
 import { tabBar } from '../../ui/tabs';
 import type { RowWindow } from '../../ui/windowed-rows';
+import type { ArenaHistoryVm } from './arena/history';
+import { historyPanel } from './arena/history-view';
 import { arenaView } from './arena/view';
 import type { DefensePanelVm } from './arena/view-model';
 import { battlePanel } from './battles/panel';
@@ -101,6 +103,25 @@ const panel = (state: PanelState, actions: PvpActions) =>
     width: PANEL_WIDTH,
   });
 
+/** the second drawer, on the arena only: the history of the points, on the side the battle panel does not take; its
+ * content is empty until the first read is there */
+export interface HistoryState {
+  open: boolean;
+  vm?: ArenaHistoryVm;
+}
+
+const historyDrawer = (state: HistoryState, actions: PvpActions) =>
+  sideDrawer({
+    cls: 'pvp-history-drawer',
+    secondary: true,
+    open: state.open,
+    label: t('pvp.arena.history.panel'),
+    tip: t(state.open ? 'pvp.arena.history.panelClose' : 'pvp.arena.history.show'),
+    toggle: actions.toggleHistory,
+    panel: state.vm ? historyPanel(state.vm) : html``,
+    width: PANEL_WIDTH,
+  });
+
 /** what the box draws; `shown` is the loaded view model with the window of rows it draws, `note` the note card of the
  * player the name field names */
 export function pvpView(
@@ -111,6 +132,7 @@ export function pvpView(
   note?: TemplateResult,
   side?: PanelState,
   arenaKind: ArenaKind = 'attack',
+  history?: HistoryState,
 ): TemplateResult {
   // the name field stays in one outer template: swapping templates would replace it and take its focus mid-typing.
   // Tabs, filters, note card and totals stay, the rows that fit are drawn and the two buttons scroll them
@@ -122,5 +144,5 @@ export function pvpView(
     filter,
     tab,
     actions,
-  )}${note ?? ''}${shown ? list(shown.vm, shown.window, actions) : ''}</div>${(tab === 'battles' || tab === 'arena') && side ? panel(side, actions) : ''}</div>`;
+  )}${note ?? ''}${shown ? list(shown.vm, shown.window, actions) : ''}</div>${(tab === 'battles' || tab === 'arena') && side ? panel(side, actions) : ''}${tab === 'arena' && history ? historyDrawer(history, actions) : ''}</div>`;
 }

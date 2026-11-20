@@ -37,7 +37,8 @@ const row = (box: TestBox, name: string) =>
   [...box.root.querySelectorAll('.pvp-arena tbody tr')].find(
     (tr) => tr.querySelector('.name-cell a')?.textContent === name,
   ) as HTMLElement;
-const panel = (box: TestBox) => box.root.querySelector('.side-panel')?.textContent ?? '';
+const panel = (box: TestBox) =>
+  box.root.querySelector('.side-drawer:not(.pvp-history-drawer) .side-panel')?.textContent ?? '';
 const activeTab = (box: TestBox) => box.root.querySelector('.tabs button.active, .tabs button[aria-selected="true"]');
 
 const pickSub = (box: TestBox, label: string) =>
@@ -113,12 +114,12 @@ describe('pvp arena tab', () => {
     expect(panel(box)).toContain('−55');
     expect(panel(box)).not.toContain('Deine Einheiten');
     row(box, 'Testgegner 8').click();
-    expect(box.root.querySelector('.side-drawer')).toBeNull();
+    expect(box.root.querySelector('.side-drawer:not(.pvp-history-drawer)')).toBeNull();
     // a selection ends with the sub tab
     row(box, 'Testgegner 8').click();
     pickSub(box, 'Angriffe');
     await vi.waitFor(() => expect(rows(box)).toHaveLength(6));
-    expect(box.root.querySelector('.side-drawer')).toBeNull();
+    expect(box.root.querySelector('.side-drawer:not(.pvp-history-drawer)')).toBeNull();
   });
 
   it('opens the arena tab on the attacks every time, the sub tab is not remembered', async () => {
@@ -151,7 +152,7 @@ describe('pvp arena tab', () => {
     expect(row(box, 'Testgegner 4').classList.contains('battle-row')).toBe(false);
 
     row(box, 'Testgegner 4').click();
-    expect(box.root.querySelector('.side-panel')).toBeNull();
+    expect(box.root.querySelector('.side-drawer:not(.pvp-history-drawer) .side-panel')).toBeNull();
 
     row(box, 'Testgegner 2').click();
     expect(row(box, 'Testgegner 2').classList.contains('selected')).toBe(true);
@@ -159,7 +160,7 @@ describe('pvp arena tab', () => {
     expect(panel(box)).toContain('Deine Einheiten');
     expect(box.root.querySelector('.side-panel .pvp-outcome.won')).not.toBeNull();
     row(box, 'Testgegner 2').click();
-    expect(box.root.querySelector('.side-drawer')).toBeNull();
+    expect(box.root.querySelector('.side-drawer:not(.pvp-history-drawer)')).toBeNull();
   });
 
   it('matches a manual battle to its line, which comes when the battle ends, and follows new lines', async () => {
@@ -346,5 +347,89 @@ describe('pvp arena tab, the opponents on offer', () => {
         ['Testgegner 4', '0:1'],
       ]),
     );
+  });
+
+  describe('history of the points', () => {
+    const tab = (box: TestBox) => box.root.querySelector('.pvp-history-drawer button.side-tab') as HTMLElement | null;
+    const historyPanelEl = (box: TestBox) => box.root.querySelector('.pvp-history-drawer .side-panel');
+    const battleTab = (box: TestBox) => box.root.querySelector('.side-drawer:not(.pvp-history-drawer) button.side-tab');
+
+    /** the overview again with other points of the player */
+    const withPoints = (points: number) => {
+      const overview = structuredClone(arena.overview);
+      if (overview[0]) overview[0].responseData.currentPlayer.rankingPoints = points;
+      return overview;
+    };
+
+    it('has the drawer tab "Verlauf" on both sub tabs and on no other tab, and no button in the filter row', async () => {
+      const { box } = await opened();
+      expect(tab(box)?.textContent?.trim()).toBe('Verlauf');
+      expect(tab(box)?.getAttribute('data-tip')).toBe('Punkteverlauf zeigen');
+      expect(box.root.querySelector('.pvp-filter button[aria-label="Punkteverlauf zeigen"]')).toBeNull();
+      pickSub(box, 'Verteidigungen');
+      await vi.waitFor(() => expect(subTab(box)).toBe('Verteidigungen'));
+      expect(tab(box)).not.toBeNull();
+      box.click('Kämpfe');
+      await vi.waitFor(() => expect(activeTab(box)?.textContent?.trim()).toBe('Kämpfe'));
+      expect(tab(box)).toBeNull();
+    });
+
+    it('opens the chart and the table per day and closes it again', async () => {
+      const { box, send } = await opened();
+      send(withPoints(31_337));
+      tab(box)?.click();
+      await vi.waitFor(() => expect(historyPanelEl(box)?.querySelector('.pvp-history')).not.toBeNull());
+      expect(tab(box)?.getAttribute('data-tip')).toBe('Punkteverlauf ausblenden');
+      expect(historyPanelEl(box)?.querySelector('svg.pvp-chart path.line')).not.toBeNull();
+      expect(historyPanelEl(box)?.querySelector('svg.pvp-chart .mark[data-tip]')?.getAttribute('data-tip')).toMatch(
+        /Punkte$/,
+      );
+      const days = [...(historyPanelEl(box)?.querySelectorAll('.pvp-history tbody tr') ?? [])];
+      // the points come now, the log lines of the fixture are older: at least two days
+      expect(days.length).toBeGreaterThanOrEqual(2);
+      const attacks = days.reduce((sum, tr) => sum + Number(tr.children[3]?.textContent), 0);
+      const defenses = days.reduce((sum, tr) => sum + Number(tr.children[4]?.textContent), 0);
+      expect([attacks, defenses]).toEqual([6, 1]);
+      tab(box)?.click();
+      expect(historyPanelEl(box)).toBeNull();
+      expect(tab(box)).not.toBeNull();
+    });
+
+    it('stays open beside a selected battle, which opens and closes without touching it', async () => {
+      const { box } = await opened();
+      tab(box)?.click();
+      await vi.waitFor(() => expect(historyPanelEl(box)?.querySelector('.pvp-history')).not.toBeNull());
+      row(box, 'Testgegner 2').click();
+      expect(panel(box)).toContain('Deine Einheiten');
+      expect(historyPanelEl(box)?.querySelector('.pvp-history')).not.toBeNull();
+      // the battle panel folds in and out on its own tab
+      (battleTab(box) as HTMLElement).click();
+      expect(box.root.querySelectorAll('.side-panel')).toHaveLength(1);
+      expect(historyPanelEl(box)).not.toBeNull();
+      row(box, 'Testgegner 2').click();
+      expect(box.root.querySelector('.side-drawer:not(.pvp-history-drawer)')).toBeNull();
+      expect(historyPanelEl(box)?.querySelector('.pvp-history')).not.toBeNull();
+    });
+
+    it('is hidden on another tab and open again on the way back, with its state kept', async () => {
+      const { box } = await opened();
+      tab(box)?.click();
+      await vi.waitFor(() => expect(historyPanelEl(box)?.querySelector('.pvp-history')).not.toBeNull());
+      box.click('Kämpfe');
+      await vi.waitFor(() => expect(tab(box)).toBeNull());
+      box.click('Arena');
+      await vi.waitFor(() => expect(historyPanelEl(box)?.querySelector('.pvp-history')).not.toBeNull());
+    });
+
+    it('says so with fewer than two points and loads again while open when new points come', async () => {
+      const { box, send } = await opened();
+      tab(box)?.click();
+      await vi.waitFor(() => expect(historyPanelEl(box)?.querySelector('.pvp-history')).not.toBeNull());
+      expect(historyPanelEl(box)?.querySelector('svg.pvp-chart')).toBeNull();
+      expect(historyPanelEl(box)?.textContent).toContain('Noch zu wenige Punktestände');
+      send(withPoints(31_337));
+      await vi.waitFor(() => expect(historyPanelEl(box)?.querySelectorAll('.mark')).toHaveLength(2));
+      expect(historyPanelEl(box)?.querySelector('.pvp-history')?.textContent).toContain('31.337');
+    });
   });
 });
