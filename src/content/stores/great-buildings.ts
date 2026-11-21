@@ -144,7 +144,8 @@ export class GreatBuildingStore {
 
   /**
    * The game opened the construction window. The building comes from its opening; `known` is the building from a city
-   * the toolbox knows, used when there was no opening (the own buildings).
+   * the toolbox knows, used when there was no opening (the own buildings). For an own building the own city always
+   * wins, as in the game: the noted building of an earlier opening misses a level up the city has seen.
    */
   openConstruction(
     owner: PlayerId,
@@ -154,7 +155,8 @@ export class GreatBuildingStore {
     known?: GreatBuildingEntity,
     nextProduction?: { fp?: number },
   ): void {
-    const entity = this.entities.get(gbIdKey(owner, entityId)) ?? known;
+    const noted = this.entities.get(gbIdKey(owner, entityId));
+    const entity = own ? (known ?? noted) : (noted ?? known);
     this.open = {
       owner,
       entityId,
