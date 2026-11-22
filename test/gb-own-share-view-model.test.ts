@@ -98,7 +98,7 @@ describe('the factors of places 6 and 7 (Nutzer, 2026-11-05)', () => {
       greatBuilding: () => ({ era: 'FutureEra', levelCosts: [], maxTier: 'gold' }),
       tiers: [
         { tier: 'copper', startLevel: 1 },
-        { tier: 'gold', startLevel: 11 },
+        { tier: 'gold', startLevel: 10 },
       ],
       factors: { choices, status: 'standard', canSave: false, canReset: false, canAdopt: false },
       factorButtons: [80, 90, 100],

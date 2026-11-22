@@ -4,7 +4,7 @@ import { alikeOn, effectiveFactor, effectiveFactors } from '../../domain/gb-fact
 import { type LevelCosts, levelCosts } from '../../domain/gb-level-cost';
 import { emptyLevel } from '../../domain/gb-level-preview';
 import { calculateOwnShare, type OwnPlace, type OwnShareCalc } from '../../domain/gb-own-share';
-import { levelTier, tierPlaces } from '../../domain/gb-tier';
+import { levelTier, rewardTier, tierPlaces } from '../../domain/gb-tier';
 import type { GreatBuildingDef, GreatBuildingTier, TierStart } from '../../model/catalog';
 import type { Construction, RankingRow } from '../../model/great-building';
 import type { PlaceFactorState } from '../../stores/gb-own-state';
@@ -171,10 +171,11 @@ function ownTable(
   exts: number[],
 ): Omit<Extract<OwnShareVm, { kind: 'current' }>, 'levels' | 'preview' | 'invested' | 'addedLive'> {
   const { choices, ...factorState } = input.factors;
-  const tier = levelTier(gb, level + 1, input.tiers);
+  // the places follow the level the construction goes to, Arc bonus and factor the building's level
+  const tier = rewardTier(gb, level, input.tiers);
   const arcBonus = input.arcBonus?.[tier];
   // a copper level has five places, the factors of places 6 and 7 count on gold levels only
-  const factors = effectiveFactors(choices.slice(0, tierPlaces(tier)), arcBonus, tier);
+  const factors = effectiveFactors(choices.slice(0, tierPlaces(levelTier(gb, level + 1, input.tiers))), arcBonus, tier);
   const calc = calculateOwnShare({
     required,
     rankings,

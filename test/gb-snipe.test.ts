@@ -66,14 +66,13 @@ describe('snipeBuilding', () => {
     });
   });
 
-  it('takes the Arc bonus of the tier the level goes to', () => {
+  it('takes the Arc bonus of the tier of the building', () => {
     const gold: GreatBuildingDef = { ...def, maxTier: 'gold' };
     const arc = { copper: 0, gold: 200 };
-    // gold from 51: the construction from 50 goes to 51, seven places, place 1 pays round(320 × 5040 / 8660) = 186,
-    // tripled 558
+    // gold from 50: the building on 50 is gold, seven places, place 1 pays round(320 × 5040 / 8660) = 186, tripled 558
     const tiers = [
       { tier: 'copper' as const, startLevel: 1 },
-      { tier: 'gold' as const, startLevel: 51 },
+      { tier: 'gold' as const, startLevel: 50 },
     ];
     expect(snipeBuilding(building({ invested: 400 }), gold, arc, tiers)).toMatchObject({
       place: { rank: 1, cost: 200, profit: 358 },

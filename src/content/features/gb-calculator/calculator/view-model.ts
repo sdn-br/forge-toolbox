@@ -17,7 +17,7 @@ import { type LevelCosts, levelCosts } from '../../../domain/gb-level-cost';
 import { previewLevel } from '../../../domain/gb-level-preview';
 import { ownerRow } from '../../../domain/gb-snipe';
 import { type LevelUpAndFirst, levelUpAndFirst } from '../../../domain/gb-strategy';
-import { levelTier } from '../../../domain/gb-tier';
+import { rewardTier } from '../../../domain/gb-tier';
 import type { GreatBuildingDef, GreatBuildingTier, TierStart } from '../../../model/catalog';
 import type { Construction } from '../../../model/great-building';
 import type { ActivityVm } from '../../../ui/activity';
@@ -43,7 +43,7 @@ export interface GbHeader extends OwnerVm {
   /** the parts of `availableFp`; a part is undefined while its source is not known */
   fpBar?: number;
   fpPackages?: number;
-  /** the Arc bonus of the tier of the level shown (the next level of the construction shown) */
+  /** the Arc bonus of the tier of the level shown (the building's level of the construction shown, `rewardTier`) */
   arcBonus: number;
   /** both values, for the tooltip */
   arcBonuses: ArcBonus;
@@ -167,7 +167,7 @@ export interface GbCalculatorInput extends GbCalcLookups {
   fpBar?: number;
   /** Forge points in the packages of the inventory; undefined while the inventory is not known */
   fpPackages?: number;
-  /** per tier; each level takes the one of the level it goes to */
+  /** per tier; each level takes the one of the building's level (`rewardTier`) */
   arcBonus: ArcBonus;
   /** the tiers of great building levels; the default ones when missing */
   tiers?: TierStart[];
@@ -286,7 +286,7 @@ export function gbCalculatorViewModel(input: GbCalculatorInput): GbCalculatorVm 
   const gb = input.greatBuilding(entity.def);
   // each construction pays the Arc bonus and the fixed factor of its tier: the live one, the next one after a level
   // up, the one shown
-  const tierAt = (level: number) => levelTier(gb, level + 1, input.tiers);
+  const tierAt = (level: number) => rewardTier(gb, level, input.tiers);
   const arcAt = (level: number) => input.arcBonus[tierAt(level)];
   const factorAt = (level: number) =>
     effective(input.factor, input.arcButton ? arcAt(level) : undefined, tierAt(level));
