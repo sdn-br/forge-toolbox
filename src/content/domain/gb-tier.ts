@@ -29,3 +29,14 @@ export function levelTier(
 
 /** the places with a reward on a level of `tier`: 5 on copper, 7 on gold (seen 2026-11-05) */
 export const tierPlaces = (tier: GreatBuildingTier): number => (tier === 'gold' ? 7 : 5);
+
+/**
+ * The tier whose Arc bonus and factor a construction from `level` pays: the tier of the building's level, not of the
+ * level it goes to. On the first gold level (100 → 101) the places are already seven, the reward still gets the copper
+ * Arc bonus (Nutzer, seen in the game on 2026-11-22: P1 36,772 FP with +34,566, the copper bonus of 94 %).
+ */
+export const rewardTier = (
+  def: GreatBuildingDef | undefined,
+  level: number,
+  tiers: TierStart[] = DEFAULT_TIERS,
+): GreatBuildingTier => levelTier(def, level, tiers);

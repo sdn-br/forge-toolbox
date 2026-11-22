@@ -3,7 +3,7 @@
 import type { LimitedBonus } from '../model/bonus';
 import type { GreatBuildingDef, GreatBuildingTier, TierStart } from '../model/catalog';
 import type { City } from '../model/city';
-import { levelTier } from './gb-tier';
+import { rewardTier } from './gb-tier';
 
 /** the Arc bonus in percent for contributions into levels of each tier */
 export type ArcBonus = Record<GreatBuildingTier, number>;
@@ -35,6 +35,6 @@ export function arcBonus(own: City | undefined, limited: LimitedBonus[] = []): A
   return { copper: sum(TYPES.copper), gold: sum(TYPES.gold) };
 }
 
-/** The Arc bonus that counts for the construction from `level`: the one of the tier of level + 1. */
+/** The Arc bonus that counts for the construction from `level`: the one of the building's tier (`rewardTier`). */
 export const arcBonusAt = (arc: ArcBonus, def: GreatBuildingDef | undefined, level: number, tiers?: TierStart[]) =>
-  arc[levelTier(def, level + 1, tiers)];
+  arc[rewardTier(def, level, tiers)];

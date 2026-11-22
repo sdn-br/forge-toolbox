@@ -60,12 +60,13 @@ describe('arcBonus', () => {
     ).toEqual({ copper: 98, gold: 15 });
   });
 
-  it('takes the value of the tier of the level a construction goes to', () => {
+  it('takes the value of the tier of the building, also on the first gold level', () => {
     const arc = { copper: 93, gold: 12 };
     const gold = { era: 'FutureEra', levelCosts: [], maxTier: 'gold' as const };
     expect(arcBonusAt(arc, gold, 99)).toBe(93);
-    // the construction from 100 goes to level 101, the first gold level
-    expect(arcBonusAt(arc, gold, 100)).toBe(12);
+    // the construction from 100 goes to level 101, the first gold level, and still pays the copper bonus (seen 2026-11-22)
+    expect(arcBonusAt(arc, gold, 100)).toBe(93);
+    expect(arcBonusAt(arc, gold, 101)).toBe(12);
     expect(arcBonusAt(arc, { ...gold, maxTier: 'copper' }, 137)).toBe(93);
     expect(arcBonusAt(arc, undefined, 137)).toBe(93);
     expect(

@@ -258,10 +258,11 @@ describe('what the table cannot show', () => {
 });
 
 describe('the Arc bonus by tier', () => {
-  it('pays each level at the Arc bonus of its tier, the buttons show the one of the first level', () => {
+  it('pays each level at the Arc bonus of the tier of the building, the buttons show the one of the first level', () => {
     const arc: PlaceFactorState = { ...factorsOf(0), choices: Array(7).fill({ value: 0, arc: true }) };
     const gold: GreatBuildingDef = { ...roman, maxTier: 'gold' };
-    // gold from 6: the construction from 5 goes to the first gold level
+    // gold from 6: the construction from 5 goes to the first gold level, seven places at the copper bonus (seen
+    // 2026-11-22); the one from 6 pays the gold bonus
     const tiers = [
       { tier: 'copper' as const, startLevel: 1 },
       { tier: 'gold' as const, startLevel: 6 },
@@ -281,10 +282,11 @@ describe('the Arc bonus by tier', () => {
     expect(t.rows.map((r) => [r.level, r.ownShare])).toEqual([
       [3, Math.max(0, calcOf(3, true).open)],
       [4, shareAt(4, 90)],
-      [5, shareAt(5, 200)],
+      [5, shareAt(5, 90)],
       [6, shareAt(6, 200)],
     ]);
-    expect(shareAt(5, 200)).not.toBe(shareAt(5, 90));
+    expect(t.places).toBe(7);
+    expect(shareAt(6, 200)).not.toBe(shareAt(6, 90));
     expect(t.placeFactors[0]).toEqual({ factor: 90, arc: true });
     expect(t.factorButtons.find((b) => b.arc)).toMatchObject({ value: 90, arcBonuses: { copper: 90, gold: 200 } });
   });
@@ -309,15 +311,16 @@ describe('the Arc bonus by tier', () => {
       }).open;
     };
     const t = vm({ ...input, to: 7 });
-    // the rows from 5 go to gold levels: 1,15 instead of 1,9, no carry over
+    // the rows from 6 are on gold levels: 1,15 instead of 1,9, no carry over; the one from 5 still pays copper
     expect(t.rows.slice(1).map((r) => [r.level, r.ownShare])).toEqual([
       [4, shareAt(4, 90)],
-      [5, shareAt(5, 15)],
+      [5, shareAt(5, 90)],
       [6, shareAt(6, 15)],
     ]);
     expect(t.tier).toBe('copper');
     expect(t.factorButtons.map((b) => b.label)).toEqual(['1,8', '1,9', '2']);
-    const gold = vm({ ...input, from: 5, to: 7 });
+    expect(vm({ ...input, from: 5, to: 7 }).tier).toBe('copper');
+    const gold = vm({ ...input, from: 6, to: 7 });
     expect(gold.tier).toBe('gold');
     expect(gold.factorButtons.map((b) => [b.label, b.active])).toEqual([
       ['1,10', false],

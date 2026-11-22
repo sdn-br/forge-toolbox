@@ -141,10 +141,29 @@ describe('LG-Rechner', () => {
     expect(tones()).toBe(1);
   });
 
+  it('pays the copper Arc bonus into the first gold level, the building is still copper (seen 2026-11-22)', async () => {
+    const { box, ingestion, send, open, loadDefinitions } = setup();
+    loadDefinitions();
+    const arche = definitions.files.find((f) => f.json.id === 'X_FutureEra_Landmark1');
+    if (!arche) throw new Error('no Arc definition');
+    const json = { ...arche.json, maxTier: { __enum__: 'GreatBuildingTier', value: 'gold' } };
+    ingestion.accept({ kind: 'meta', url: `${arche.url}-gold`, response: JSON.stringify(json), at: 0 });
+    send({
+      requestClass: 'BonusService',
+      requestMethod: 'getLimitedBonuses',
+      requestData: [],
+      responseData: [{ type: 'contribution_boost_gold', value: 12, isActive: true }],
+    });
+    open(1500);
+    await tick();
+    expect(box.text).toContain('Arche St. 100 → 101');
+    expect(box.text).toContain('Arche-Bonus: 95,5 %');
+  });
+
   it('pays the gold Arc bonus into a gold level and names both values in the tooltip', async () => {
     const { box, ctx, ingestion, send, open, rows, loadDefinitions } = setup();
     loadDefinitions();
-    // the Arc reaches gold; level 100 → 101 is the first gold level
+    // the Arc reaches gold; from level 101 the building is gold and pays the gold bonus
     const arche = definitions.files.find((f) => f.json.id === 'X_FutureEra_Landmark1');
     if (!arche) throw new Error('no Arc definition');
     const json = { ...arche.json, maxTier: { __enum__: 'GreatBuildingTier', value: 'gold' } };
@@ -156,9 +175,9 @@ describe('LG-Rechner', () => {
       requestData: [],
       responseData: [{ type: 'contribution_boost_gold', value: 12, isActive: true }],
     });
-    open(1500);
+    open(1500, (e) => ({ ...e, level: 101, max_level: 102 }));
     await tick();
-    expect(box.text).toContain('Arche St. 100 → 101');
+    expect(box.text).toContain('Arche St. 101 → 102');
     expect(box.text).toContain('Arche-Bonus: 12 %');
     const arc = [...box.root.querySelectorAll('[data-tip]')].find((e) => e.textContent?.includes('Arche-Bonus'));
     expect(arc?.getAttribute('data-tip')).toBe('Kupfer 95,5 %, Gold 12 %');

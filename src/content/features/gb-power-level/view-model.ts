@@ -6,7 +6,7 @@ import { alikeOn, effectiveFactor, effectiveFactors } from '../../domain/gb-fact
 import { type LevelCosts, levelCosts } from '../../domain/gb-level-cost';
 import type { OwnShareCalc } from '../../domain/gb-own-share';
 import { powerLevelPlan } from '../../domain/gb-power-level';
-import { levelTier, tierPlaces } from '../../domain/gb-tier';
+import { levelTier, rewardTier, tierPlaces } from '../../domain/gb-tier';
 import type { GreatBuildingDef, GreatBuildingTier, TierStart } from '../../model/catalog';
 import type { Construction } from '../../model/great-building';
 import type { PlaceFactorState } from '../../stores/gb-own-state';
@@ -145,10 +145,12 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
   const to = level(input.to, from + DEFAULT_SPAN, from + 1, from + MAX_ROWS);
   const { choices, ...factorState } = input.factors;
   // each row takes the Arc bonus and the fixed factors of its tier; buttons and fields show those of the first row
-  const tierAt = (x: number) => levelTier(gb, x + 1, input.tiers);
+  // the places follow the level a row goes to, Arc bonus and factor the building's level
+  const placesAt = (x: number) => tierPlaces(levelTier(gb, x + 1, input.tiers));
+  const tierAt = (x: number) => rewardTier(gb, x, input.tiers);
   // a copper level has five places, the factors of places 6 and 7 count on gold levels only
   const factorAt = (x: number) =>
-    effectiveFactors(choices.slice(0, tierPlaces(tierAt(x))), input.arcBonus?.[tierAt(x)], tierAt(x));
+    effectiveFactors(choices.slice(0, placesAt(x)), input.arcBonus?.[tierAt(x)], tierAt(x));
   const tier = tierAt(from);
   const arcBonus = input.arcBonus?.[tier];
   const factors = factorAt(from);
@@ -178,7 +180,7 @@ export function powerLevelViewModel(input: PowerLevelInputs): PowerLevelVm {
     factorAt,
   });
   // seven place columns only when a gold level is shown
-  const places = Math.max(tierPlaces(tier), ...plan.rows.map((r) => tierPlaces(tierAt(r.level))));
+  const places = Math.max(placesAt(from), ...plan.rows.map((r) => placesAt(r.level)));
   const rows = plan.rows.map<PowerRow>((r) => ({
     level: r.level,
     next: r.level + 1,
