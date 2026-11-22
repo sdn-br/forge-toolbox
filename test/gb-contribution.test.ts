@@ -144,7 +144,9 @@ describe('recorded contribution to place 2 with empty places below', () => {
     expect(cells(rows()[1])).toEqual(['2', '279', 'secured', '205', '-74', '−0,27', '390 (+111)', '136,1 %']);
     const me = box.root.querySelector('.gb-me')?.cloneNode(true) as HTMLElement;
     me.querySelector('.gb-own')?.remove();
-    expect(me.textContent?.trim()).toBe('Du: 279 FP auf P2 · sicher');
+    for (const svg of me.querySelectorAll('svg')) svg.remove();
+    // the profit of the own place, as in its row
+    expect(me.textContent?.replace(/\s+/g, ' ').trim()).toBe('Du: 279 FP (−74 FP) auf P2 · sicher');
     expect(box.root.querySelector('.gb-me .secured-icon svg')).not.toBeNull();
     expect(box.root.querySelector('.gb-me')?.className).toBe('gb-me safe');
     for (const row of rows().slice(2)) {

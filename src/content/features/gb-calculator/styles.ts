@@ -19,6 +19,8 @@ tr.gb-mine { background: var(--row-mine); }
 td.over-rest { color: var(--bad); }
 /* the circled check where a place is safe, in the cell and after "sicher" in the own line */
 td.secured svg, .gb-me .secured-icon svg { display: inline-block; }
+/* the profit icon before the profit in the advice of the own line */
+.gb-me .profit-icon svg { display: inline-block; margin-right: 2px; }
 /* the own values open the "Du" box in the box's own colours, the safe green does not reach them; a rule parts them from
    the deposit below, none when nothing follows */
 .gb-me .gb-own { display: flex; gap: 14px; color: var(--ink); padding-bottom: 3px; margin-bottom: 3px;

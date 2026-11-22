@@ -109,13 +109,16 @@ export interface MeVm {
   rank?: number;
   /** the own place cannot be passed anymore; missing when the rank pays no reward */
   secured?: boolean;
+  /** the profit of the own deposit as it stands: the reward of the own place minus the deposit; missing when the rank
+   * pays no reward */
+  profit?: number;
   /** level now with everything missing, then take place 1 of the next level; only when that pays */
   levelUp?: LevelUpAndFirst;
   /**
    * the places the player can still make safe, from the first down to the own one: the safe total and what he has to
-   * add; `best` marks the one with the highest profit. Only places that are worthwhile.
+   * add, and the profit there; `best` marks the one with the highest profit. Only places that are worthwhile.
    */
-  targets: { rank: number; cost: number; extra: number; best: boolean }[];
+  targets: { rank: number; cost: number; extra: number; profit: number; best: boolean }[];
   /** places could be had, but none is worthwhile */
   noneWorthwhile?: boolean;
 }
@@ -233,10 +236,12 @@ function meVm(calc: ConstructionCalc): MeVm {
     fp: calc.myDeposit,
     ...(calc.myRank !== undefined && { rank: calc.myRank }),
     ...(own && { secured: own.secured }),
+    ...(own && { profit: own.gross - calc.myDeposit }),
     targets: advice.targets.map((p) => ({
       rank: p.rank,
       cost: p.safeCost as number,
       extra: p.safeExtra as number,
+      profit: p.profit ?? 0,
       best: p === advice.best,
     })),
     ...(advice.noneWorthwhile && { noneWorthwhile: true }),

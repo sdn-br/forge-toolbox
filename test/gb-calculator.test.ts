@@ -345,17 +345,25 @@ describe('fallback place and worthwhile places', () => {
     expect(calculateConstruction(input(4000, rankings, { arcBonus: 0 })).fallbackGross).toBe(0);
   });
 
-  it('lists a place that leaves more than the fallback although it loses: 400 in, 1000 more for 1200, fallback 100', () => {
+  it('leaves out a place that loses over all, although it leaves more than the fallback: 400 in, 1000 more for 1200', () => {
     // place 1 holds 1300, own place 2; safe cost round(2800 / 2) = 1400, 1000 more; two passes (802) put him on place 4
     const c = calc([1300, 400], 2, 1100);
     expect(c.fallbackGross).toBe(100);
-    expect(c.places[0]).toMatchObject({ safeCost: 1400, safeExtra: 1000, gross: 1200, profit: -200, worthwhile: true });
+    expect(c.places[0]).toMatchObject({
+      safeCost: 1400,
+      safeExtra: 1000,
+      gross: 1200,
+      profit: -200,
+      worthwhile: false,
+    });
   });
 
   it('leaves out places that do not beat the fallback, the own place as well', () => {
     // fallback 100 as above; gross - missing: place 1 1200 - 700, place 2 600 - 550, own place 300 - 200
     const c = calc([1000, 700, 600], 3, 1000);
-    expect(c.places.map((p) => p.worthwhile)).toEqual([true, false, false, undefined, undefined]);
+    // place 1 beats the fallback, but loses over all
+    expect(c.places[0]?.profit).toBeLessThan(0);
+    expect(c.places.map((p) => p.worthwhile)).toEqual([false, false, false, undefined, undefined]);
   });
 
   it('without an own deposit lists a place with no loss or a safe cost within the demand', () => {
@@ -367,17 +375,16 @@ describe('fallback place and worthwhile places', () => {
     expect(calculateConstruction(input(6000, level([]), { arcBonus: 0 })).places[0]?.worthwhile).toBe(false);
   });
 
-  it('advises the worthwhile places up to the own one and marks the one with the highest profit', () => {
+  it('advises no place with an own deposit that loses, although it beats the fallback (Nutzer, 2026-11-22)', () => {
     // place 1 loses 200, the own place 2 loses 150 at its safe cost of 750; both beat the fallback of 100
     const advice = ownAdvice(calc([1300, 400], 2, 1100));
-    expect(advice.targets.map((p) => p.rank)).toEqual([1, 2]);
-    expect(advice.best?.rank).toBe(2);
-    expect(advice.noneWorthwhile).toBe(false);
+    expect(advice.targets).toEqual([]);
+    expect(advice.noneWorthwhile).toBe(true);
   });
 
   it('keeps the higher place as the best on equal profit', () => {
     const c = calc([1300, 400], 2, 1100);
-    const places = c.places.map((p) => (p.rank <= 2 ? { ...p, profit: 0 } : p));
+    const places = c.places.map((p) => (p.rank <= 2 ? { ...p, profit: 0, worthwhile: true } : p));
     expect(ownAdvice({ ...c, places }).best?.rank).toBe(1);
   });
 
