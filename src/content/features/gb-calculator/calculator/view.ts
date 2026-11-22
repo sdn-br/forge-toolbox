@@ -93,21 +93,27 @@ function levelUpLine(l: LevelUpAndFirst) {
   )}</b></span>`;
 }
 
+/** a profit in the own line: in parentheses, the profit icon before it */
+const profitOf = (profit: number) =>
+  html`(<span class="profit-icon" role="img" data-tip=${t('gbCalc.profit')} aria-label=${t('gbCalc.profit')}>${
+    headerIcons.profit
+  }</span>${signed(profit)} ${t('gbCalc.fp')})`;
+
 /** the own deposit: safe, or the places still to make safe with what is missing for each */
 function meLine(me: MeVm, own: TemplateResult) {
   const levelUp = me.levelUp ? html`<br />${levelUpLine(me.levelUp)}` : '';
   const deposit = t('gbCalc.me', { fp: formatNumber(me.fp), rank: me.rank ?? '?' });
   if (me.secured)
     return html`<p class="gb-me safe">${own}${deposit} · ${t('gbCalc.meSecured')}
-      <span class="secured-icon" role="img" aria-hidden="true">${headerIcons.checkCircle}</span>${levelUp}</p>`;
+      <span class="secured-icon" role="img" aria-hidden="true">${headerIcons.checkCircle}</span>${
+        me.profit !== undefined ? html` ${profitOf(me.profit)}` : ''
+      }${levelUp}</p>`;
   const where =
     me.fp > 0 ? `${deposit}${me.secured === false ? ` · ${t('gbCalc.meUnsafe')}` : ''}` : t('gbCalc.meNone');
   // with nothing paid in yet the total is what to pay, else what to add; the profit there in parentheses
-  const profitIcon = html`<span class="profit-icon" role="img" data-tip=${t('gbCalc.profit')}
-    aria-label=${t('gbCalc.profit')}>${headerIcons.profit}</span>`;
   const target = (x: MeVm['targets'][number]) => {
     const fp = me.fp > 0 ? `+${formatNumber(x.extra)}` : formatNumber(x.cost);
-    const text = html`${t('gbCalc.meTarget', { rank: x.rank, fp })} (${profitIcon}${signed(x.profit)})`;
+    const text = html`${t('gbCalc.meTarget', { rank: x.rank, fp })} ${profitOf(x.profit)}`;
     return x.best ? html`<b>${text}</b>` : text;
   };
   const targets = me.targets.length
