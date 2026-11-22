@@ -102,13 +102,12 @@ function meLine(me: MeVm, own: TemplateResult) {
       <span class="secured-icon" role="img" aria-hidden="true">${headerIcons.checkCircle}</span>${levelUp}</p>`;
   const where =
     me.fp > 0 ? `${deposit}${me.secured === false ? ` · ${t('gbCalc.meUnsafe')}` : ''}` : t('gbCalc.meNone');
-  // with nothing paid in yet the total is what to pay, else what to add
+  // with nothing paid in yet the total is what to pay, else what to add; the profit there in parentheses
+  const secure = html`<span class="secured-icon" role="img" data-tip=${t('gbCalc.meSecure')}
+    aria-label=${t('gbCalc.meSecure')}>${headerIcons.checkCircle}</span>`;
   const target = (x: MeVm['targets'][number]) => {
-    const text = t('gbCalc.meTarget', {
-      rank: x.rank,
-      fp: me.fp > 0 ? `+${formatNumber(x.extra)}` : formatNumber(x.cost),
-      profit: signed(x.profit),
-    });
+    const fp = me.fp > 0 ? `+${formatNumber(x.extra)}` : formatNumber(x.cost);
+    const text = html`P${x.rank}${secure} ${fp} (${signed(x.profit)})`;
     return x.best ? html`<b>${text}</b>` : text;
   };
   const targets = me.targets.length
