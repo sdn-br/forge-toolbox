@@ -103,11 +103,11 @@ function meLine(me: MeVm, own: TemplateResult) {
   const where =
     me.fp > 0 ? `${deposit}${me.secured === false ? ` · ${t('gbCalc.meUnsafe')}` : ''}` : t('gbCalc.meNone');
   // with nothing paid in yet the total is what to pay, else what to add; the profit there in parentheses
-  const secure = html`<span class="secured-icon" role="img" data-tip=${t('gbCalc.meSecure')}
-    aria-label=${t('gbCalc.meSecure')}>${headerIcons.checkCircle}</span>`;
+  const profitIcon = html`<span class="profit-icon" role="img" data-tip=${t('gbCalc.profit')}
+    aria-label=${t('gbCalc.profit')}>${headerIcons.profit}</span>`;
   const target = (x: MeVm['targets'][number]) => {
     const fp = me.fp > 0 ? `+${formatNumber(x.extra)}` : formatNumber(x.cost);
-    const text = html`P${x.rank}${secure} ${fp} (${signed(x.profit)})`;
+    const text = html`${t('gbCalc.meTarget', { rank: x.rank, fp })} (${profitIcon}${signed(x.profit)})`;
     return x.best ? html`<b>${text}</b>` : text;
   };
   const targets = me.targets.length

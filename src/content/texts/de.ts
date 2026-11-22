@@ -537,7 +537,7 @@ export const de = {
   'gbCalc.me': 'Du: {fp} FP auf P{rank}',
   'gbCalc.meSecured': 'sicher',
   'gbCalc.meUnsafe': 'nicht sicher',
-  'gbCalc.meSecure': 'sichern',
+  'gbCalc.meTarget': 'P{rank} sichern: {fp}',
   'gbCalc.levelUp': 'Leveln + P1 auf {level}: {fill} + {first} FP',
   'gbCalc.meNone': 'Du: noch nichts eingezahlt',
   'gbCalc.meNoTarget': 'kein Platz zu haben',
