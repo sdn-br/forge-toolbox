@@ -587,8 +587,8 @@ describe('LG-Rechner', () => {
       // place 1: round((3099 + 1970) / 2) = 2535 cannot pass 3099; place 2: round(2449 / 2) = 1225 for 926 profit;
       // place 3: round(1970 / 2) = 985 for -271; place 4 the same 985: dominated
       expect(cells(rows()[0])?.[2]).toBe('secured');
-      expect(meLines(box.root)).toEqual(['Du: noch nichts eingezahlt', 'P2 sichern: 1.225']);
-      expect(best(box.root)).toEqual(['P2 sichern: 1.225']);
+      expect(meLines(box.root)).toEqual(['Du: noch nichts eingezahlt', 'P2 sichern: 1.225 → +926']);
+      expect(best(box.root)).toEqual(['P2 sichern: 1.225 → +926']);
     });
 
     it('nothing paid in and every place safe: says that no place can be had', () => {
@@ -621,9 +621,9 @@ describe('LG-Rechner', () => {
       expect(now?.className).toBe('muted');
       expect(now?.getAttribute('data-tip')).toBe('wenn du nichts mehr einzahlst und dich niemand überholt');
       expect(box.root.querySelector('.gb-me')?.className).toBe('gb-me');
-      expect(meLines(box.root)).toEqual(['Du: 400 FP auf P3 · nicht sicher', 'P1 sichern: +1.852']);
+      expect(meLines(box.root)).toEqual(['Du: 400 FP auf P3 · nicht sicher', 'P1 sichern: +1.852 → +241']);
       // profits 2493 - 2252 = 241, 1251 - 1952 = -701, 420 - 1502 = -1082
-      expect(best(box.root)).toEqual(['P1 sichern: +1.852']);
+      expect(best(box.root)).toEqual(['P1 sichern: +1.852 → +241']);
     });
 
     it('safe on place 1: the line says so and the own row shows a check mark and one rate', () => {
@@ -642,7 +642,7 @@ describe('LG-Rechner', () => {
       const { box, rows } = scenario([4000, 400], 2);
       expect(cells(rows()[0])?.slice(0, 3)).toEqual(['1', '4.000', 'secured']);
       // own place: round(1404 / 2) = 702
-      expect(meLines(box.root)).toEqual(['Du: 400 FP auf P2 · nicht sicher', 'P2 sichern: +302']);
+      expect(meLines(box.root)).toEqual(['Du: 400 FP auf P2 · nicht sicher', 'P2 sichern: +302 → +549']);
     });
   });
 

@@ -61,8 +61,9 @@ export interface PlaceCalc {
   levelWarning: boolean;
   /**
    * worth naming as an advice to the player (see `ConstructionCalc.fallbackGross`): without an own deposit when it
-   * loses nothing or its safe cost is not above the demand, else when it leaves more than doing nothing. Set where the
-   * place can be had or is the own place while not safe.
+   * loses nothing or its safe cost is not above the demand, else when it loses nothing over all and leaves more than
+   * doing nothing (Nutzer, 2026-11-22: no advice to pay more for a loss). Set where the place can be had or is the own
+   * place while not safe.
    */
   worthwhile?: boolean;
   status: PlaceStatus;
@@ -190,7 +191,7 @@ export function calculateConstruction(input: ConstructionInput): ConstructionCal
     const worthwhile =
       fallbackGross === undefined
         ? profit >= 0 || safeCost <= demandCost
-        : gross - (safeCost - myDeposit) > fallbackGross;
+        : profit >= 0 && gross - (safeCost - myDeposit) > fallbackGross;
     // not more profit than a higher place offers; places that complete the level stay out, `levelWarning` flags them
     const worse = available && !levelWarning && best !== undefined && profit <= best;
     if (available && !levelWarning) best = best === undefined ? profit : Math.max(best, profit);

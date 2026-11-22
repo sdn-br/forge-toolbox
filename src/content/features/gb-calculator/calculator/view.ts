@@ -107,6 +107,7 @@ function meLine(me: MeVm, own: TemplateResult) {
     const text = t('gbCalc.meTarget', {
       rank: x.rank,
       fp: me.fp > 0 ? `+${formatNumber(x.extra)}` : formatNumber(x.cost),
+      profit: signed(x.profit),
     });
     return x.best ? html`<b>${text}</b>` : text;
   };

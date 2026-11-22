@@ -113,9 +113,9 @@ export interface MeVm {
   levelUp?: LevelUpAndFirst;
   /**
    * the places the player can still make safe, from the first down to the own one: the safe total and what he has to
-   * add; `best` marks the one with the highest profit. Only places that are worthwhile.
+   * add, and the profit there; `best` marks the one with the highest profit. Only places that are worthwhile.
    */
-  targets: { rank: number; cost: number; extra: number; best: boolean }[];
+  targets: { rank: number; cost: number; extra: number; profit: number; best: boolean }[];
   /** places could be had, but none is worthwhile */
   noneWorthwhile?: boolean;
 }
@@ -237,6 +237,7 @@ function meVm(calc: ConstructionCalc): MeVm {
       rank: p.rank,
       cost: p.safeCost as number,
       extra: p.safeExtra as number,
+      profit: p.profit ?? 0,
       best: p === advice.best,
     })),
     ...(advice.noneWorthwhile && { noneWorthwhile: true }),
