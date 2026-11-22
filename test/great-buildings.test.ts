@@ -271,3 +271,33 @@ describe('great building writes', () => {
     expect(rows[0]?.invested).toBe(30);
   });
 });
+
+describe('opening a great building', () => {
+  const entity = (level: number, invested: number) => ({
+    owner: playerId(1001),
+    entityId: 7,
+    def: 'X' as never,
+    level,
+    maxLevel: 200,
+    invested,
+    required: 500,
+    connected: true,
+  });
+  const persistence = { put: async () => {}, list: async () => [] } as unknown as ConstructorParameters<
+    typeof GreatBuildingStore
+  >[2];
+
+  it('takes an own building from the own city, not from an earlier noted state that missed a level up', () => {
+    const store = new GreatBuildingStore(createBus(), worldId('de20'), persistence);
+    store.noteEntity(entity(138, 63933));
+    store.openConstruction(playerId(1001), 7, true, [], entity(139, 0));
+    expect(store.current()?.entity).toMatchObject({ level: 139, invested: 0 });
+  });
+
+  it('takes the noted building of another player before a known city', () => {
+    const store = new GreatBuildingStore(createBus(), worldId('de20'), persistence);
+    store.noteEntity(entity(139, 20));
+    store.openConstruction(playerId(1001), 7, false, [], entity(138, 10));
+    expect(store.current()?.entity).toMatchObject({ level: 139, invested: 20 });
+  });
+});
