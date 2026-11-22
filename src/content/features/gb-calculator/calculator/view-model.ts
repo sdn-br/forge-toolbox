@@ -109,7 +109,8 @@ export interface MeVm {
   rank?: number;
   /** the own place cannot be passed anymore; missing when the rank pays no reward */
   secured?: boolean;
-  /** the profit of the own place as it stands; missing when the rank pays no reward */
+  /** the profit of the own deposit as it stands: the reward of the own place minus the deposit; missing when the rank
+   * pays no reward */
   profit?: number;
   /** level now with everything missing, then take place 1 of the next level; only when that pays */
   levelUp?: LevelUpAndFirst;
@@ -235,7 +236,7 @@ function meVm(calc: ConstructionCalc): MeVm {
     fp: calc.myDeposit,
     ...(calc.myRank !== undefined && { rank: calc.myRank }),
     ...(own && { secured: own.secured }),
-    ...(own?.profit !== undefined && { profit: own.profit }),
+    ...(own && { profit: own.gross - calc.myDeposit }),
     targets: advice.targets.map((p) => ({
       rank: p.rank,
       cost: p.safeCost as number,

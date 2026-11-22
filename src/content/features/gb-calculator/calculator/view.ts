@@ -102,14 +102,15 @@ const profitOf = (profit: number) =>
 /** the own deposit: safe, or the places still to make safe with what is missing for each */
 function meLine(me: MeVm, own: TemplateResult) {
   const levelUp = me.levelUp ? html`<br />${levelUpLine(me.levelUp)}` : '';
-  const deposit = t('gbCalc.me', { fp: formatNumber(me.fp), rank: me.rank ?? '?' });
+  // the profit of the deposit as it stands in parentheses after it, when the rank pays
+  const deposit = html`${t('gbCalc.meDeposit', { fp: formatNumber(me.fp) })}${
+    me.profit !== undefined ? html` ${profitOf(me.profit)}` : ''
+  } ${t('gbCalc.meRank', { rank: me.rank ?? '?' })}`;
   if (me.secured)
     return html`<p class="gb-me safe">${own}${deposit} · ${t('gbCalc.meSecured')}
-      <span class="secured-icon" role="img" aria-hidden="true">${headerIcons.checkCircle}</span>${
-        me.profit !== undefined ? html` ${profitOf(me.profit)}` : ''
-      }${levelUp}</p>`;
+      <span class="secured-icon" role="img" aria-hidden="true">${headerIcons.checkCircle}</span>${levelUp}</p>`;
   const where =
-    me.fp > 0 ? `${deposit}${me.secured === false ? ` · ${t('gbCalc.meUnsafe')}` : ''}` : t('gbCalc.meNone');
+    me.fp > 0 ? html`${deposit}${me.secured === false ? ` · ${t('gbCalc.meUnsafe')}` : ''}` : t('gbCalc.meNone');
   // with nothing paid in yet the total is what to pay, else what to add; the profit there in parentheses
   const target = (x: MeVm['targets'][number]) => {
     const fp = me.fp > 0 ? `+${formatNumber(x.extra)}` : formatNumber(x.cost);

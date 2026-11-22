@@ -628,7 +628,10 @@ describe('LG-Rechner', () => {
       expect(now?.className).toBe('muted');
       expect(now?.getAttribute('data-tip')).toBe('wenn du nichts mehr einzahlst und dich niemand überholt');
       expect(box.root.querySelector('.gb-me')?.className).toBe('gb-me');
-      expect(meLines(box.root)).toEqual(['Du: 400 FP auf P3 · nicht sicher', 'P1 sichern: +1.852 FP (+241 FP)']);
+      expect(meLines(box.root)).toEqual([
+        'Du: 400 FP (+20 FP) auf P3 · nicht sicher',
+        'P1 sichern: +1.852 FP (+241 FP)',
+      ]);
       // profits 2493 - 2252 = 241, 1251 - 1952 = -701, 420 - 1502 = -1082
       expect(best(box.root)).toEqual(['P1 sichern: +1.852 FP (+241 FP)']);
     });
@@ -636,7 +639,7 @@ describe('LG-Rechner', () => {
     it('safe on place 1: the line says so and the own row shows a check mark and one rate', () => {
       // me 2800 alone: rest 5404, round(5404 / 2) = 2702 cannot pass me
       const { box, rows } = scenario([2800], 1);
-      expect(meLines(box.root)).toEqual(['Du: 2.800 FP auf P1 · sicher (−307 FP)']);
+      expect(meLines(box.root)).toEqual(['Du: 2.800 FP (−307 FP) auf P1 · sicher']);
       expect(box.root.querySelector('.gb-me')?.className).toBe('gb-me safe');
       // the own deposit is the cost once it is more than the safe 2702: 2493 - 2800
       expect(cells(rows()[0])?.slice(0, 5)).toEqual(['1', '2.800', 'secured', '2.493', '-307']);
@@ -649,7 +652,10 @@ describe('LG-Rechner', () => {
       const { box, rows } = scenario([4000, 400], 2);
       expect(cells(rows()[0])?.slice(0, 3)).toEqual(['1', '4.000', 'secured']);
       // own place: round(1404 / 2) = 702
-      expect(meLines(box.root)).toEqual(['Du: 400 FP auf P2 · nicht sicher', 'P2 sichern: +302 FP (+549 FP)']);
+      expect(meLines(box.root)).toEqual([
+        'Du: 400 FP (+851 FP) auf P2 · nicht sicher',
+        'P2 sichern: +302 FP (+549 FP)',
+      ]);
     });
   });
 

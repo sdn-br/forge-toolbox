@@ -146,7 +146,7 @@ describe('recorded contribution to place 2 with empty places below', () => {
     me.querySelector('.gb-own')?.remove();
     for (const svg of me.querySelectorAll('svg')) svg.remove();
     // the profit of the own place, as in its row
-    expect(me.textContent?.replace(/\s+/g, ' ').trim()).toBe('Du: 279 FP auf P2 · sicher (−74 FP)');
+    expect(me.textContent?.replace(/\s+/g, ' ').trim()).toBe('Du: 279 FP (−74 FP) auf P2 · sicher');
     expect(box.root.querySelector('.gb-me .secured-icon svg')).not.toBeNull();
     expect(box.root.querySelector('.gb-me')?.className).toBe('gb-me safe');
     for (const row of rows().slice(2)) {

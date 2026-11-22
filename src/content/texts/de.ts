@@ -535,6 +535,8 @@ export const de = {
   'gbCalc.securedHint': 'Platz ist sicher',
   'gbCalc.depositRateHint': 'wenn du nichts mehr einzahlst und dich niemand überholt',
   'gbCalc.me': 'Du: {fp} FP auf P{rank}',
+  'gbCalc.meDeposit': 'Du: {fp} FP',
+  'gbCalc.meRank': 'auf P{rank}',
   'gbCalc.meSecured': 'sicher',
   'gbCalc.meUnsafe': 'nicht sicher',
   'gbCalc.meTarget': 'P{rank} sichern: {fp} FP',
